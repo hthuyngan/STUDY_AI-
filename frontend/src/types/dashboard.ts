@@ -78,6 +78,53 @@ export interface LeaderboardUser {
   isCurrentUser?: boolean
 }
 
+// ── Learning Home Redesign Types ──────────────────────────────
+export interface DashboardSubject {
+  id: string
+  name: string
+  slug: string
+  lessonCount: number
+  icon: 'calculator' | 'atom' | 'flask' | 'book'
+  colorVar?: string
+}
+
+export interface RecommendedLesson {
+  id: string
+  title: string
+  subject: string
+  duration: string
+  category: 'lesson' | 'quiz' | 'ai-practice'
+  tag?: string
+  url: string
+}
+
+export interface WeeklyGoalDay {
+  dayLabel: string     // 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'
+  completed: boolean
+  isToday?: boolean
+}
+
+export interface WeeklyGoalData {
+  completedDays: number
+  totalDays: number
+  days: WeeklyGoalDay[]
+}
+
+export interface DashboardProgressData {
+  completedLessons: number
+  streakDays: number
+  totalXP: number
+}
+
+export interface CurrentLessonData {
+  id: string
+  subject: string
+  grade: string
+  title: string
+  progress: number
+  url: string
+}
+
 export interface DashboardData {
   user: {
     id: string
@@ -97,4 +144,11 @@ export interface DashboardData {
   subjects: SubjectProgressItemData[]
   recentActivities: RecentActivityItem[]
   leaderboard: LeaderboardUser[]
+
+  // Learning Home fields
+  currentLesson?: CurrentLessonData
+  exploreSubjects?: DashboardSubject[]
+  learningProgress?: DashboardProgressData
+  weeklyGoal?: WeeklyGoalData
+  recommendations?: RecommendedLesson[]
 }

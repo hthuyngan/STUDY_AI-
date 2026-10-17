@@ -20,15 +20,8 @@ function App() {
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Routes>
-        {/* Main Dashboard */}
-        <Route
-          path="/dashboard"
-          element={
-            <AppShell>
-              <DashboardPage />
-            </AppShell>
-          }
-        />
+        {/* Main Dashboard — Learning Home Workspace */}
+        <Route path="/dashboard" element={<DashboardPage />} />
 
         {/* Design System Page (Bảo lưu theo yêu cầu) */}
         <Route path="/design-system" element={<DesignSystemPage />} />

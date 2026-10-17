@@ -239,4 +239,101 @@ export const mockDashboardData: DashboardData = {
       xp: 3180,
     },
   ],
+
+  // ── Learning Home Redesign Mock Data ───────────────────────
+  currentLesson: {
+    id: 'les-current',
+    subject: 'Toán 12',
+    grade: 'Lớp 12',
+    title: 'Khảo sát sự biến thiên & Vẽ đồ thị hàm số',
+    progress: 75,
+    url: '/courses/toan-12',
+  },
+
+  exploreSubjects: [
+    {
+      id: 'sub-toan',
+      name: 'Toán',
+      slug: 'toan-12',
+      lessonCount: 24,
+      icon: 'calculator',
+    },
+    {
+      id: 'sub-ly',
+      name: 'Vật lý',
+      slug: 'vat-ly-12',
+      lessonCount: 18,
+      icon: 'atom',
+    },
+    {
+      id: 'sub-hoa',
+      name: 'Hóa học',
+      slug: 'hoa-hoc-12',
+      lessonCount: 20,
+      icon: 'flask',
+    },
+    {
+      id: 'sub-anh',
+      name: 'Tiếng Anh',
+      slug: 'tieng-anh',
+      lessonCount: 16,
+      icon: 'book',
+    },
+  ],
+
+  learningProgress: {
+    completedLessons: 68,
+    streakDays: 12,
+    totalXP: 2450,
+  },
+
+  weeklyGoal: {
+    completedDays: 5,
+    totalDays: 7,
+    days: [
+      { dayLabel: 'T2', completed: true },
+      { dayLabel: 'T3', completed: true },
+      { dayLabel: 'T4', completed: true },
+      { dayLabel: 'T5', completed: true },
+      { dayLabel: 'T6', completed: true },
+      { dayLabel: 'T7', completed: false, isToday: true },
+      { dayLabel: 'CN', completed: false },
+    ],
+  },
+
+  recommendations: [
+    {
+      id: 'rec-1',
+      title: 'Hệ Mặt Trời & Chuyển động thiên thể',
+      subject: 'Vật lý',
+      duration: '20 phút',
+      category: 'lesson',
+      url: '/courses/vat-ly-12',
+    },
+    {
+      id: 'rec-2',
+      title: 'Phản ứng Este hóa & Ứng dụng thực tế',
+      subject: 'Hóa học',
+      duration: '15 phút',
+      category: 'lesson',
+      url: '/courses/hoa-hoc-12',
+    },
+    {
+      id: 'rec-3',
+      title: 'IELTS Academic Vocabulary: Environment',
+      subject: 'Tiếng Anh',
+      duration: '25 phút',
+      category: 'lesson',
+      url: '/courses/tieng-anh',
+    },
+    {
+      id: 'rec-ai',
+      title: 'Luyện tập giải bài khó cùng AI Tutor',
+      subject: 'AI Tutor',
+      duration: '5 phút luyện đề',
+      category: 'ai-practice',
+      tag: 'Cá nhân hóa',
+      url: '/ai-tutor?prompt=giai-thich-toan-12',
+    },
+  ],
 }
