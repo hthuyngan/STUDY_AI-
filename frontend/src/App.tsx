@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
 import { Card } from '@/components/ui/Card'
+import AITutorPage from '@/pages/AITutor/AITutorPage'
 import DashboardPage from '@/pages/Dashboard/DashboardPage'
 import DesignSystemPage from '@/pages/DesignSystem/DesignSystemPage'
 
@@ -33,14 +34,13 @@ function App() {
         {/* Design System Page (Bảo lưu theo yêu cầu) */}
         <Route path="/design-system" element={<DesignSystemPage />} />
 
-        {/* Feature Placeholders */}
+        {/* AI Tutor Feature */}
         <Route
           path="/ai-tutor"
           element={
-            <PlaceholderPage
-              title="✦ Trợ lý AI Tutor"
-              desc="Hỏi đáp bài tập, giải thích chi tiết từng bước và luyện đề cùng AI."
-            />
+            <AppShell>
+              <AITutorPage />
+            </AppShell>
           }
         />
         <Route
