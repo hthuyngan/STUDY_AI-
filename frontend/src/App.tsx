@@ -3,7 +3,7 @@ import DesignSystemPage from '@/pages/DesignSystem/DesignSystemPage'
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Routes>
         {/* Design System — BƯỚC 3 */}
         <Route path="/design-system" element={<DesignSystemPage />} />
