@@ -1,0 +1,287 @@
+.lesson-block-heading {
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-3);
+  letter-spacing: -0.01em;
+}
+
+.lesson-block-heading:first-child {
+  margin-top: 0;
+}
+
+.lesson-block-paragraph {
+  font-size: var(--text-base);
+  color: var(--text-primary);
+  line-height: var(--leading-relaxed);
+  margin-bottom: var(--space-4);
+}
+
+/* Definition block */
+.definition-block {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-left: 4px solid var(--color-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  margin: var(--space-4) 0;
+}
+
+.definition-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.definition-icon {
+  color: var(--color-primary);
+}
+
+.definition-term {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+}
+
+.definition-content {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+/* Formula block */
+.formula-block {
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  margin: var(--space-4) 0;
+}
+
+.formula-label {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.formula-math-display {
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--text-base);
+  color: var(--text-primary);
+  overflow-x: auto;
+  margin-bottom: var(--space-2);
+}
+
+.formula-note {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+/* Example block */
+.example-block {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5);
+  margin: var(--space-5) 0;
+}
+
+.example-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.example-icon {
+  color: var(--color-warning);
+}
+
+.example-title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+}
+
+.example-problem {
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  line-height: var(--leading-relaxed);
+  margin-bottom: var(--space-4);
+  background: var(--surface-sunken);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+}
+
+.example-solution {
+  margin-bottom: var(--space-4);
+}
+
+.solution-label {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: var(--space-2);
+}
+
+.solution-steps-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.solution-step-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.step-num {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--color-primary);
+}
+
+.step-text {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.step-math-box {
+  background: var(--surface-sunken);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+  margin-top: var(--space-1);
+  overflow-x: auto;
+}
+
+.example-conclusion {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.conclusion-badge {
+  font-size: 11px;
+  font-weight: var(--font-bold);
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  flex-shrink: 0;
+}
+
+.conclusion-text {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  line-height: var(--leading-normal);
+}
+
+/* Important note */
+.important-note-block {
+  background: var(--color-warning-light);
+  border: 1px solid var(--color-warning-bg);
+  border-left: 4px solid var(--color-warning);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  margin: var(--space-4) 0;
+}
+
+[data-theme="dark"] .important-note-block {
+  background: rgba(217, 119, 6, 0.1);
+  border-color: rgba(217, 119, 6, 0.25);
+}
+
+.note-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.note-icon {
+  color: var(--color-warning);
+}
+
+.note-title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+}
+
+.note-list {
+  padding-left: var(--space-5);
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.note-item {
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  line-height: var(--leading-relaxed);
+}
+
+/* Summary block */
+.lesson-summary-block {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-left: 4px solid var(--color-success);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  margin: var(--space-5) 0;
+}
+
+.summary-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.summary-icon {
+  color: var(--color-success);
+}
+
+.summary-title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+}
+
+.summary-list {
+  padding-left: var(--space-5);
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.summary-item {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+}
