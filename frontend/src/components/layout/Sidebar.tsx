@@ -191,13 +191,15 @@ export function Sidebar({
               collapsed={collapsed}
               onClick={onCloseMobile}
             />
-            <SidebarItem
-              to="/design-system"
-              label="Design System"
-              icon={Palette}
-              collapsed={collapsed}
-              onClick={onCloseMobile}
-            />
+            {import.meta.env.DEV && (
+              <SidebarItem
+                to="/design-system"
+                label="Design System"
+                icon={Palette}
+                collapsed={collapsed}
+                onClick={onCloseMobile}
+              />
+            )}
             <SidebarItem
               to="/settings"
               label="Cài đặt"

@@ -3,16 +3,15 @@ import { AlertCircle, RotateCcw } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { AITutorCard } from '@/components/dashboard/AITutorCard'
+import { CalendarStreakCard } from '@/components/dashboard/CalendarStreakCard'
 import { ContinueLearningCard } from '@/components/dashboard/ContinueLearningCard'
-import { DailyGoalsCard } from '@/components/dashboard/DailyGoalsCard'
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader'
 import { DashboardOnboarding } from '@/components/dashboard/DashboardOnboarding'
 import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton'
-import { LeaderboardCard } from '@/components/dashboard/LeaderboardCard'
+import { LearningProgressOverview } from '@/components/dashboard/LearningProgressOverview'
 import { RecentActivityCard } from '@/components/dashboard/RecentActivityCard'
-import { StatsStrip } from '@/components/dashboard/StatsStrip'
-import { StudyActivityCard } from '@/components/dashboard/StudyActivityCard'
-import { SubjectProgressCard } from '@/components/dashboard/SubjectProgressCard'
+import { SmartReviewCard } from '@/components/dashboard/SmartReviewCard'
+import { WeeklyPlanCard } from '@/components/dashboard/WeeklyPlanCard'
 import { useDashboard } from '@/hooks/useDashboard'
 import './DashboardPage.css'
 
@@ -33,8 +32,8 @@ export function DashboardPage() {
   if (error || !data) {
     if (showEmptyPreview) {
       return (
-        <div className="dashboard-root">
-          <div className="flex justify-end mb-2">
+        <div className="dashboard-root is-empty-preview">
+          <div className="empty-preview-toggle-bar">
             <Button
               variant="outline"
               icon={RotateCcw}
@@ -50,7 +49,7 @@ export function DashboardPage() {
 
     return (
       <div className="dashboard-error-banner" role="alert">
-        <AlertCircle size={28} className="text-danger" aria-hidden />
+        <AlertCircle size={28} className="text-danger" aria-hidden="true" />
         <h2 className="error-title">Không thể tải dữ liệu bảng điều khiển</h2>
         <p className="error-desc">{error || 'Vui lòng kiểm tra lại kết nối mạng của bạn.'}</p>
         <Button variant="outline" icon={RotateCcw} onClick={reload}>
@@ -60,69 +59,76 @@ export function DashboardPage() {
     )
   }
 
-  // 3. Normal Dashboard State
+  // Handle continuing first or specific lesson
+  const handleContinueLesson = (lessonId?: string) => {
+    const target = lessonId
+      ? data.continueLessons.find((l) => l.id === lessonId)
+      : data.continueLessons[0]
+
+    if (target) {
+      const courseId =
+        target.subjectId === 'math'
+          ? 'math-12'
+          : target.subjectId === 'physics'
+            ? 'phy-12'
+            : 'eng-12'
+      navigate(`/learn/${courseId}/${target.id}`)
+    } else {
+      navigate('/courses')
+    }
+  }
+
+  // 3. Normal Dashboard State with 5-Tier Architecture
   return (
-    <div className="dashboard-root">
-      {/* Header */}
+    <div className="dashboard-root notebook-paper-theme">
+      {/* 1. HERO GREETING + LARGE STICKER */}
       <DashboardHeader
         userName={data.user.greetingName}
-        onStartLearning={() => {
-          const firstLesson = data.continueLessons[0]
-          if (firstLesson) {
-            const courseId = firstLesson.subjectId === 'math' ? 'math-12' : firstLesson.subjectId === 'physics' ? 'phy-12' : 'eng-12'
-            navigate(`/learn/${courseId}/${firstLesson.id}`)
-          } else {
-            navigate('/courses')
-          }
-        }}
+        streakDays={data.stats.streakDays}
+        totalXP={data.stats.totalXP}
+        onStartLearning={() => handleContinueLesson()}
       />
 
-      {/* Stats Strip — 1 unified container with dividers */}
-      <StatsStrip stats={data.stats} />
-
-      {/* Row 1: Study Activity (8 cols) + Daily Goals (4 cols) */}
-      <div className="dashboard-row-grid">
-        <div className="col-span-8">
-          <StudyActivityCard
-            points={data.activity.points}
-            weeklyHours={data.activity.weeklyHours}
-            increasePercent={data.activity.increasePercent}
-          />
-        </div>
-        <div className="col-span-4">
-          <DailyGoalsCard data={data.dailyGoals} />
-        </div>
-      </div>
-
-      {/* Row 2: Continue Learning (8 cols) + AI Tutor (4 cols) */}
-      <div className="dashboard-row-grid">
-        <div className="col-span-8">
+      {/* 2. BÀI HỌC GỢI Ý (2/3) + CALENDAR/STREAK (1/3) */}
+      <section className="dashboard-grid-2-1" aria-label="Bài học gợi ý và lịch học cá nhân">
+        <div className="grid-col-suggested">
           <ContinueLearningCard
             lessons={data.continueLessons}
-            onContinueLesson={(lessonId) => {
-              const lesson = data.continueLessons.find((l) => l.id === lessonId)
-              const courseId = lesson?.subjectId === 'math' ? 'math-12' : lesson?.subjectId === 'physics' ? 'phy-12' : 'eng-12'
-              navigate(`/learn/${courseId}/${lessonId}`)
-            }}
+            onContinueLesson={(lessonId) => handleContinueLesson(lessonId)}
           />
         </div>
-        <div className="col-span-4">
-          <AITutorCard />
+        <div className="grid-col-calendar">
+          <CalendarStreakCard
+            streakDays={data.stats.streakDays}
+            learnedDaysCount={5}
+          />
         </div>
-      </div>
+      </section>
 
-      {/* Row 3: Subject Progress (Full width container with 4 cols) */}
-      <SubjectProgressCard subjects={data.subjects} />
+      {/* 3. LỘ TRÌNH TUẦN NÀY (Full width notebook planning) */}
+      <section className="dashboard-full-width-section" aria-label="Lộ trình học tập tuần này">
+        <WeeklyPlanCard plan={data.weeklyPlan} />
+      </section>
 
-      {/* Row 4: Recent Activity (8 cols) + Leaderboard (4 cols) */}
-      <div className="dashboard-row-grid">
-        <div className="col-span-8">
+      {/* 4. ÔN TẬP THÔNG MINH (2/3) + AI TUTOR (1/3) */}
+      <section className="dashboard-grid-2-1" aria-label="Ôn tập thông minh và trợ lý học tập AI">
+        <div className="grid-col-review">
+          <SmartReviewCard items={data.smartReviews} />
+        </div>
+        <div className="grid-col-ai">
+          <AITutorCard onOpenChat={() => navigate('/ai-tutor')} />
+        </div>
+      </section>
+
+      {/* 5. TIẾN ĐỘ HỌC TẬP (1/2) + HOẠT ĐỘNG GẦN ĐÂY (1/2) */}
+      <section className="dashboard-grid-1-1" aria-label="Tiến độ học tập và hoạt động gần đây">
+        <div className="grid-col-half">
+          <LearningProgressOverview subjects={data.subjects} />
+        </div>
+        <div className="grid-col-half">
           <RecentActivityCard activities={data.recentActivities} />
         </div>
-        <div className="col-span-4">
-          <LeaderboardCard entries={data.leaderboard} />
-        </div>
-      </div>
+      </section>
     </div>
   )
 }

@@ -78,6 +78,31 @@ export interface LeaderboardUser {
   isCurrentUser?: boolean
 }
 
+export interface WeeklyPlanDay {
+  id: string
+  day: string         // 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'
+  status: 'completed' | 'current' | 'upcoming'
+  subject: string     // 'Toán', 'Vật lý', 'Anh', 'Hóa', 'Quiz', 'Review'
+}
+
+export interface SmartReviewItem {
+  id: string
+  title: string
+  subject: string
+  note: string        // 'Cần ôn lại', '3 câu sai gần đây'
+  actionLabel: string // 'Ôn ngay', 'Làm 5 câu', 'Ôn từ vựng'
+  actionUrl: string
+}
+
+export interface DashboardSubjectProgress {
+  id: string
+  name: string
+  completedLessons: number
+  totalLessons: number
+  progressPercent: number
+  colorToken?: string
+}
+
 export interface DashboardData {
   user: {
     id: string
@@ -97,4 +122,6 @@ export interface DashboardData {
   subjects: SubjectProgressItemData[]
   recentActivities: RecentActivityItem[]
   leaderboard: LeaderboardUser[]
+  weeklyPlan?: WeeklyPlanDay[]
+  smartReviews?: SmartReviewItem[]
 }
