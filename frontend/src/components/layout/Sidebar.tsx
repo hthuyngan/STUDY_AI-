@@ -10,8 +10,10 @@ import {
   FlaskConical,
   GraduationCap,
   Languages,
+  Layers,
   LayoutGrid,
   Library,
+  Milestone,
   Palette,
   Settings,
 } from 'lucide-react'
@@ -86,6 +88,13 @@ export function Sidebar({
               onClick={onCloseMobile}
             />
             <SidebarItem
+              to="/learning-path"
+              label="Lộ trình học"
+              icon={Milestone}
+              collapsed={collapsed}
+              onClick={onCloseMobile}
+            />
+            <SidebarItem
               to="/ai-tutor"
               label="AI Tutor"
               icon={Bot}
@@ -96,6 +105,13 @@ export function Sidebar({
               to="/courses"
               label="Khóa học"
               icon={BookOpen}
+              collapsed={collapsed}
+              onClick={onCloseMobile}
+            />
+            <SidebarItem
+              to="/subjects"
+              label="Môn học"
+              icon={Layers}
               collapsed={collapsed}
               onClick={onCloseMobile}
             />
@@ -120,7 +136,7 @@ export function Sidebar({
           <div className="sidebar-nav-group">
             {!collapsed ? (
               <div className="sidebar-group-header">
-                <span className="sidebar-group-title">HỌC TẬP</span>
+                <span className="sidebar-group-title">PHÂN MÔN</span>
               </div>
             ) : (
               <div className="sidebar-group-divider" aria-hidden />
@@ -194,7 +210,7 @@ export function Sidebar({
 
         {/* Footer: User profile */}
         <div className="sidebar-footer">
-          <div className="sidebar-user-card">
+          <Link to="/profile" className="sidebar-user-card" onClick={onCloseMobile}>
             <Avatar
               src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"
               alt="Hoàng Thúy Ngân"
@@ -206,7 +222,7 @@ export function Sidebar({
                 <span className="sidebar-user-grade">Lớp 12A1 · Tự nhiên</span>
               </div>
             )}
-          </div>
+          </Link>
         </div>
       </aside>
     </>

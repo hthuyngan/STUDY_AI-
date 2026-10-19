@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { AlertCircle, RotateCcw } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { AITutorCard } from '@/components/dashboard/AITutorCard'
 import { ContinueLearningCard } from '@/components/dashboard/ContinueLearningCard'
@@ -16,6 +17,7 @@ import { useDashboard } from '@/hooks/useDashboard'
 import './DashboardPage.css'
 
 export function DashboardPage() {
+  const navigate = useNavigate()
   const [showEmptyPreview, setShowEmptyPreview] = useState(false)
   const { data, isLoading, error, reload } = useDashboard({
     simulateEmpty: showEmptyPreview,
@@ -65,10 +67,12 @@ export function DashboardPage() {
       <DashboardHeader
         userName={data.user.greetingName}
         onStartLearning={() => {
-          // Navigate or open first pending lesson
           const firstLesson = data.continueLessons[0]
           if (firstLesson) {
-            alert(`Bắt đầu học: ${firstLesson.lessonTitle}`)
+            const courseId = firstLesson.subjectId === 'math' ? 'math-12' : firstLesson.subjectId === 'physics' ? 'phy-12' : 'eng-12'
+            navigate(`/learn/${courseId}/${firstLesson.id}`)
+          } else {
+            navigate('/courses')
           }
         }}
       />
@@ -97,7 +101,8 @@ export function DashboardPage() {
             lessons={data.continueLessons}
             onContinueLesson={(lessonId) => {
               const lesson = data.continueLessons.find((l) => l.id === lessonId)
-              alert(`Tiếp tục học: ${lesson?.lessonTitle || lessonId}`)
+              const courseId = lesson?.subjectId === 'math' ? 'math-12' : lesson?.subjectId === 'physics' ? 'phy-12' : 'eng-12'
+              navigate(`/learn/${courseId}/${lessonId}`)
             }}
           />
         </div>

@@ -1,21 +1,21 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
-import { Card } from '@/components/ui/Card'
+import AchievementsPage from '@/pages/Achievements/AchievementsPage'
 import AITutorPage from '@/pages/AITutor/AITutorPage'
+import CourseDetailPage from '@/pages/Courses/CourseDetailPage'
+import CoursesPage from '@/pages/Courses/CoursesPage'
 import DashboardPage from '@/pages/Dashboard/DashboardPage'
 import DesignSystemPage from '@/pages/DesignSystem/DesignSystemPage'
-
-function PlaceholderPage({ title, desc }: { title: string; desc: string }) {
-  return (
-    <AppShell>
-      <div className="py-6">
-        <Card title={title} subtitle="Tính năng đang được phát triển">
-          <p className="text-secondary text-sm">{desc}</p>
-        </Card>
-      </div>
-    </AppShell>
-  )
-}
+import ExercisesPage from '@/pages/Exercises/ExercisesPage'
+import LearningPathPage from '@/pages/LearningPath/LearningPathPage'
+import LessonPage from '@/pages/Lesson/LessonPage'
+import LibraryPage from '@/pages/Library/LibraryPage'
+import ProfilePage from '@/pages/Profile/ProfilePage'
+import QuizPage from '@/pages/Quiz/QuizPage'
+import QuizResultPage from '@/pages/Quiz/QuizResultPage'
+import SettingsPage from '@/pages/Settings/SettingsPage'
+import SubjectDetailPage from '@/pages/Subjects/SubjectDetailPage'
+import SubjectsPage from '@/pages/Subjects/SubjectsPage'
 
 function App() {
   return (
@@ -31,10 +31,71 @@ function App() {
           }
         />
 
-        {/* Design System Page (Bảo lưu theo yêu cầu) */}
-        <Route path="/design-system" element={<DesignSystemPage />} />
+        {/* Subjects */}
+        <Route
+          path="/subjects"
+          element={
+            <AppShell>
+              <SubjectsPage />
+            </AppShell>
+          }
+        />
+        <Route
+          path="/subjects/:subjectId"
+          element={
+            <AppShell>
+              <SubjectDetailPage />
+            </AppShell>
+          }
+        />
 
-        {/* AI Tutor Feature */}
+        {/* Courses */}
+        <Route
+          path="/courses"
+          element={
+            <AppShell>
+              <CoursesPage />
+            </AppShell>
+          }
+        />
+        <Route
+          path="/courses/:courseId"
+          element={
+            <AppShell>
+              <CourseDetailPage />
+            </AppShell>
+          }
+        />
+
+        {/* Lesson View */}
+        <Route
+          path="/learn/:courseId/:lessonId"
+          element={
+            <AppShell>
+              <LessonPage />
+            </AppShell>
+          }
+        />
+
+        {/* Quiz Flow */}
+        <Route
+          path="/quiz/:quizId"
+          element={
+            <AppShell>
+              <QuizPage />
+            </AppShell>
+          }
+        />
+        <Route
+          path="/quiz/:quizId/result"
+          element={
+            <AppShell>
+              <QuizResultPage />
+            </AppShell>
+          }
+        />
+
+        {/* AI Tutor */}
         <Route
           path="/ai-tutor"
           element={
@@ -44,59 +105,84 @@ function App() {
           }
         />
         <Route
-          path="/courses"
+          path="/ai-tutor/:conversationId"
           element={
-            <PlaceholderPage
-              title="Khóa học của tôi"
-              desc="Toàn bộ danh sách khóa học và bài giảng theo chương trình."
-            />
+            <AppShell>
+              <AITutorPage />
+            </AppShell>
           }
         />
+
+        {/* Learning Path */}
+        <Route
+          path="/learning-path"
+          element={
+            <AppShell>
+              <LearningPathPage />
+            </AppShell>
+          }
+        />
+
+        {/* Exercises */}
         <Route
           path="/exercises"
           element={
-            <PlaceholderPage
-              title="Bài tập & Luyện đề"
-              desc="Ngân hàng câu hỏi trắc nghiệm và đề thi thử đại học."
-            />
+            <AppShell>
+              <ExercisesPage />
+            </AppShell>
           }
         />
+        <Route
+          path="/exercises/:exerciseId"
+          element={
+            <AppShell>
+              <ExercisesPage />
+            </AppShell>
+          }
+        />
+
+        {/* Library */}
         <Route
           path="/library"
           element={
-            <PlaceholderPage
-              title="Thư viện tài liệu"
-              desc="Sách giáo khoa điện tử, tài liệu tóm tắt công thức và đề thi các năm."
-            />
+            <AppShell>
+              <LibraryPage />
+            </AppShell>
           }
         />
-        <Route
-          path="/subjects/:id"
-          element={
-            <PlaceholderPage
-              title="Chi tiết môn học"
-              desc="Lộ trình học tập chi tiết, các chương và bài học theo phân môn."
-            />
-          }
-        />
+
+        {/* Achievements */}
         <Route
           path="/achievements"
           element={
-            <PlaceholderPage
-              title="Thành tích & Huy hiệu"
-              desc="Huy hiệu học tập, chuỗi ngày streak và bảng vinh danh."
-            />
+            <AppShell>
+              <AchievementsPage />
+            </AppShell>
           }
         />
+
+        {/* Profile */}
+        <Route
+          path="/profile"
+          element={
+            <AppShell>
+              <ProfilePage />
+            </AppShell>
+          }
+        />
+
+        {/* Settings */}
         <Route
           path="/settings"
           element={
-            <PlaceholderPage
-              title="Cài đặt tài khoản"
-              desc="Quản lý hồ sơ học sinh, mục tiêu học tập và thông báo."
-            />
+            <AppShell>
+              <SettingsPage />
+            </AppShell>
           }
         />
+
+        {/* Design System Page (Bảo lưu theo yêu cầu) */}
+        <Route path="/design-system" element={<DesignSystemPage />} />
 
         {/* Root redirect to Dashboard */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />

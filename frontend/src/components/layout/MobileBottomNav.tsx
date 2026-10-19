@@ -8,7 +8,7 @@ export function MobileBottomNav() {
     { to: '/dashboard', label: 'Trang chủ', icon: LayoutGrid },
     { to: '/ai-tutor', label: 'AI', icon: Bot },
     { to: '/courses', label: 'Học', icon: BookOpen },
-    { to: '/settings', label: 'Tôi', icon: User },
+    { to: '/profile', label: 'Tôi', icon: User },
   ]
 
   return (
