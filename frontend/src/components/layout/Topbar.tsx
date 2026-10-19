@@ -65,13 +65,52 @@ const MOCK_SEARCH_ITEMS: SearchResult[] = [
   },
 ]
 
+interface NotificationItem {
+  id: string
+  title: string
+  subtitle: string
+  time: string
+  unread: boolean
+  url: string
+}
+
+const INITIAL_NOTIFICATIONS: NotificationItem[] = [
+  {
+    id: 'notif-1',
+    title: 'Bài tập duy trì streak 12 ngày',
+    subtitle: 'Khảo sát hàm số (Toán 12) cần hoàn thành hôm nay',
+    time: '25 phút trước',
+    unread: true,
+    url: '/exercises',
+  },
+  {
+    id: 'notif-2',
+    title: 'Gợi ý mới từ AI Tutor',
+    subtitle: 'Bạn nên ôn lại phần Tiệm cận trước khi học bài mới',
+    time: '2 giờ trước',
+    unread: true,
+    url: '/learning-path',
+  },
+  {
+    id: 'notif-3',
+    title: 'Thành tích mới mở khóa',
+    subtitle: 'Chúc mừng bạn đạt mốc 2,450 XP học tập!',
+    time: '1 ngày trước',
+    unread: false,
+    url: '/achievements',
+  },
+]
+
 export function Topbar({ onOpenMobileMenu }: TopbarProps) {
   const navigate = useNavigate()
   const searchInputRef = useRef<HTMLInputElement>(null)
   const searchDropdownRef = useRef<HTMLDivElement>(null)
+  const notificationsRef = useRef<HTMLDivElement>(null)
 
   const [query, setQuery] = useState('')
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS)
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
 
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     return (localStorage.getItem('study_ai_theme') as 'light' | 'dark') || 'light'
@@ -91,6 +130,7 @@ export function Topbar({ onOpenMobileMenu }: TopbarProps) {
         setIsSearchOpen(true)
       } else if (e.key === 'Escape') {
         setIsSearchOpen(false)
+        setIsNotificationsOpen(false)
       }
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -107,6 +147,13 @@ export function Topbar({ onOpenMobileMenu }: TopbarProps) {
         !searchInputRef.current.contains(e.target as Node)
       ) {
         setIsSearchOpen(false)
+      }
+
+      if (
+        notificationsRef.current &&
+        !notificationsRef.current.contains(e.target as Node)
+      ) {
+        setIsNotificationsOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -158,7 +205,7 @@ export function Topbar({ onOpenMobileMenu }: TopbarProps) {
             }}
             onFocus={() => setIsSearchOpen(true)}
             className="topbar-search-input"
-            placeholder="Tìm bài học, môn học, dạng bài... (⌘K)"
+            placeholder="Tìm bài học, khóa học hoặc câu hỏi... (⌘K)"
             aria-label="Tìm kiếm nội dung"
           />
           <kbd className="topbar-search-kbd">⌘K</kbd>
@@ -312,12 +359,54 @@ export function Topbar({ onOpenMobileMenu }: TopbarProps) {
         />
 
         {/* Notifications */}
-        <IconButton
-          icon={Bell}
-          label="Thông báo học tập"
-          badgeCount={2}
-          onClick={() => alert('Thông báo: Bạn có 1 bài tập cần hoàn thành hôm nay để duy trì streak!')}
-        />
+        <div className="topbar-notifications-wrap" ref={notificationsRef}>
+          <IconButton
+            icon={Bell}
+            label="Thông báo học tập"
+            badgeCount={notifications.filter((n) => n.unread).length || undefined}
+            onClick={() => setIsNotificationsOpen((prev) => !prev)}
+          />
+
+          {isNotificationsOpen && (
+            <div className="topbar-notifications-dropdown" role="region" aria-label="Danh sách thông báo">
+              <div className="notifications-header">
+                <span className="notifications-title">Thông báo</span>
+                {notifications.some((n) => n.unread) && (
+                  <button
+                    type="button"
+                    className="notifications-mark-read"
+                    onClick={() => setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })))}
+                  >
+                    Đã đọc tất cả
+                  </button>
+                )}
+              </div>
+              <div className="notifications-list scrollbar-clean">
+                {notifications.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`notification-item ${item.unread ? 'is-unread' : ''}`}
+                    onClick={() => {
+                      setNotifications((prev) =>
+                        prev.map((n) => (n.id === item.id ? { ...n, unread: false } : n))
+                      )
+                      setIsNotificationsOpen(false)
+                      navigate(item.url)
+                    }}
+                  >
+                    <div className="notification-dot" aria-hidden />
+                    <div className="notification-content">
+                      <span className="notification-item-title">{item.title}</span>
+                      <p className="notification-item-subtitle">{item.subtitle}</p>
+                      <span className="notification-item-time">{item.time}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* User avatar item */}
         <Link to="/profile" className="topbar-user" title="Hồ sơ của bạn">
