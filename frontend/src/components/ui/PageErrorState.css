@@ -1,0 +1,31 @@
+.page-error-root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-8) var(--space-4);
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  min-height: 220px;
+}
+
+.page-error-icon {
+  color: var(--color-danger);
+  margin-bottom: var(--space-3);
+}
+
+.page-error-title {
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-1);
+}
+
+.page-error-desc {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  max-width: 380px;
+  margin-bottom: var(--space-4);
+}

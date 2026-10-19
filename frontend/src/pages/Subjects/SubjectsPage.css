@@ -1,0 +1,193 @@
+.subjects-page-root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.page-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.page-title {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-1);
+}
+
+.page-subtitle {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.subject-search-box {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2) var(--space-3);
+  width: 260px;
+}
+
+.subject-search-box:focus-within {
+  border-color: var(--border-focus);
+}
+
+.subject-search-box .search-icon {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.subject-search-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  width: 100%;
+}
+
+.subject-search-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* Grid */
+.subjects-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+}
+
+@media (max-width: 768px) {
+  .subjects-grid {
+    grid-template-columns: 1fr;
+  }
+  .subject-search-box {
+    width: 100%;
+  }
+}
+
+.subject-item-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.subject-card-top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.subject-brand-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-lg);
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  flex-shrink: 0;
+}
+
+.subject-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.subject-badge-grade {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  font-weight: var(--font-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.subject-name {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+}
+
+.subject-desc {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+  margin-bottom: var(--space-3);
+  flex-grow: 1;
+}
+
+.subject-current-chap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  background: var(--surface-sunken);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.current-chap-label {
+  color: var(--text-tertiary);
+}
+
+.current-chap-text {
+  color: var(--text-primary);
+  font-weight: var(--font-medium);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.subject-card-progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.progress-labels {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--text-xs);
+}
+
+.lesson-count-label {
+  color: var(--text-secondary);
+}
+
+.percentage-label {
+  color: var(--text-primary);
+  font-weight: var(--font-semibold);
+}
+
+.subject-card-footer {
+  margin-top: auto;
+}
+
+.subject-card-skeleton {
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5);
+  display: flex;
+  gap: var(--space-3);
+}
+
+.subject-card-skeleton .skeleton-lines {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
