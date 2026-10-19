@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Progress } from '@/components/ui/Progress'
+import { StickerIllustration } from '@/components/ui/StickerIllustration'
 import type { ContinueLessonItem } from '@/types/dashboard'
 
 export interface ContinueLearningCardProps {
@@ -14,68 +15,85 @@ export function ContinueLearningCard({
   lessons,
   onContinueLesson,
 }: ContinueLearningCardProps) {
-  const viewAllAction = (
-    <Link to="/courses" className="card-link-action">
-      <span>Xem tất cả</span>
-      <ArrowRight size={14} aria-hidden />
-    </Link>
+  const primaryLesson = lessons[0]
+  const secondaryLessons = lessons.slice(1, 3)
+
+  const cardAction = (
+    <div className="card-header-action-wrap">
+      <Link to="/courses" className="card-link-action">
+        <span>Xem tất cả</span>
+        <ArrowRight size={14} aria-hidden="true" />
+      </Link>
+      <StickerIllustration name="study" size="sm" decorative className="header-sticker" />
+    </div>
   )
 
   return (
     <Card
-      title="Tiếp tục học"
-      subtitle="Bài học gần nhất đang dang dở"
-      action={viewAllAction}
-      isFlushList
-      className="continue-learning-card"
+      title="Bài học gợi ý"
+      subtitle="Tiếp tục bài học gần nhất đang dang dở"
+      action={cardAction}
+      className="suggested-learning-card"
     >
-      <div className="continue-learning-list">
-        {lessons.map((lesson) => {
-          return (
-            <div key={lesson.id} className="continue-lesson-row">
-              {/* Subject icon badge */}
-              <div
-                className="lesson-subject-badge"
-                style={{
-                  backgroundColor: lesson.subjectBg,
-                  color: lesson.subjectColor,
-                }}
-                aria-hidden
-              >
-                <span>{lesson.subjectIcon}</span>
+      {primaryLesson ? (
+        <div className="primary-focus-widget">
+          <div className="focus-header-meta">
+            <span className="focus-subject-tag">{primaryLesson.subjectName}</span>
+            <span className="focus-chapter-text">{primaryLesson.chapter}</span>
+          </div>
+
+          <h3 className="focus-lesson-title">{primaryLesson.lessonTitle}</h3>
+
+          <div className="focus-progress-wrapper">
+            <div className="focus-progress-labels">
+              <span className="focus-progress-count">
+                {Math.round((primaryLesson.progress / 100) * 12)} / 12 bài hoàn thành
+              </span>
+              <span className="focus-progress-percent">{primaryLesson.progress}%</span>
+            </div>
+            {/* Long progress bar */}
+            <Progress value={primaryLesson.progress} height={9} />
+          </div>
+
+          <div className="focus-action-row">
+            <Button
+              variant="primary"
+              icon={Play}
+              onClick={() => onContinueLesson?.(primaryLesson.id)}
+              className="focus-continue-btn"
+            >
+              Tiếp tục bài học
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <p className="suggested-empty-text">Chưa có bài học nào đang dở dang.</p>
+      )}
+
+      {secondaryLessons.length > 0 && (
+        <div className="secondary-suggested-list">
+          {secondaryLessons.map((lesson) => (
+            <div key={lesson.id} className="secondary-lesson-row">
+              <div className="secondary-lesson-info">
+                <span className="secondary-subject">{lesson.subjectName}</span>
+                <span className="secondary-title">{lesson.lessonTitle}</span>
               </div>
-
-              {/* Lesson main details */}
-              <div className="lesson-details">
-                <div className="lesson-meta-top">
-                  <span className="lesson-subject-name">{lesson.subjectName}</span>
-                  <span className="lesson-dot" aria-hidden>·</span>
-                  <span className="lesson-chapter">{lesson.chapter}</span>
-                </div>
-                <h3 className="lesson-title">{lesson.lessonTitle}</h3>
-
-                {/* Progress bar */}
-                <div className="lesson-progress-row">
-                  <Progress value={lesson.progress} height={6} />
-                  <span className="lesson-progress-percent">{lesson.progress}%</span>
-                </div>
-              </div>
-
-              {/* Action */}
-              <div className="lesson-action">
+              <div className="secondary-lesson-meta">
+                <span className="secondary-percent">{lesson.progress}%</span>
                 <Button
-                  variant={lesson.isPrimary ? 'primary' : 'outline'}
-                  icon={Play}
+                  variant="outline"
+                  size="sm"
                   onClick={() => onContinueLesson?.(lesson.id)}
-                  className="lesson-continue-btn"
                 >
-                  Tiếp tục
+                  Học
                 </Button>
               </div>
             </div>
-          )
-        })}
-      </div>
+          ))}
+        </div>
+      )}
     </Card>
   )
 }
+
+export default ContinueLearningCard
