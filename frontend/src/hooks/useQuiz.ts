@@ -1,14 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { getLatestQuizResult, getQuiz, submitQuiz } from '@/services/quiz.service'
 import type { QuizDetail, QuizResultReport, QuizSubmissionAnswer } from '@/types/quiz'
 
 export function useQuiz(quizId: string | undefined) {
   const [quiz, setQuiz] = useState<QuizDetail | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(Boolean(quizId))
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const fetchQuiz = async () => {
+  const reload = useCallback(async () => {
     if (!quizId) return
     setIsLoading(true)
     setError(null)
@@ -24,34 +24,58 @@ export function useQuiz(quizId: string | undefined) {
     } finally {
       setIsLoading(false)
     }
-  }
-
-  useEffect(() => {
-    fetchQuiz()
   }, [quizId])
 
-  const submitAnswers = async (
-    answers: QuizSubmissionAnswer[],
-    timeTakenSeconds?: number
-  ): Promise<QuizResultReport> => {
-    if (!quizId) throw new Error('No quiz id')
-    setIsSubmitting(true)
-    try {
-      return await submitQuiz(quizId, answers, timeTakenSeconds)
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
+  useEffect(() => {
+    if (!quizId) return
+    let isMounted = true
 
-  return { quiz, isLoading, error, isSubmitting, submitAnswers, reload: fetchQuiz }
+    getQuiz(quizId)
+      .then((data) => {
+        if (!isMounted) return
+        if (!data) {
+          setError('Không tìm thấy bài kiểm tra.')
+        } else {
+          setQuiz(data)
+        }
+        setIsLoading(false)
+      })
+      .catch(() => {
+        if (!isMounted) return
+        setError('Lỗi tải bài trắc nghiệm.')
+        setIsLoading(false)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [quizId])
+
+  const submitAnswers = useCallback(
+    async (
+      answers: QuizSubmissionAnswer[],
+      timeTakenSeconds?: number
+    ): Promise<QuizResultReport> => {
+      if (!quizId) throw new Error('No quiz id')
+      setIsSubmitting(true)
+      try {
+        return await submitQuiz(quizId, answers, timeTakenSeconds)
+      } finally {
+        setIsSubmitting(false)
+      }
+    },
+    [quizId]
+  )
+
+  return { quiz, isLoading, error, isSubmitting, submitAnswers, reload }
 }
 
 export function useQuizResult(quizId: string | undefined) {
   const [result, setResult] = useState<QuizResultReport | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(Boolean(quizId))
   const [error, setError] = useState<string | null>(null)
 
-  const fetchResult = async () => {
+  const reload = useCallback(async () => {
     if (!quizId) return
     setIsLoading(true)
     setError(null)
@@ -63,11 +87,28 @@ export function useQuizResult(quizId: string | undefined) {
     } finally {
       setIsLoading(false)
     }
-  }
-
-  useEffect(() => {
-    fetchResult()
   }, [quizId])
 
-  return { result, isLoading, error, reload: fetchResult }
+  useEffect(() => {
+    if (!quizId) return
+    let isMounted = true
+
+    getLatestQuizResult(quizId)
+      .then((data) => {
+        if (!isMounted) return
+        setResult(data)
+        setIsLoading(false)
+      })
+      .catch(() => {
+        if (!isMounted) return
+        setError('Lỗi khi tải kết quả kiểm tra.')
+        setIsLoading(false)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [quizId])
+
+  return { result, isLoading, error, reload }
 }

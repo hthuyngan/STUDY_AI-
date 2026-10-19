@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   getCourseOutline,
   getLesson,
@@ -10,12 +10,12 @@ import type { CourseOutlineChapter, LessonDetail } from '@/types/lesson'
 export function useLesson(courseId: string | undefined, lessonId: string | undefined) {
   const [lesson, setLesson] = useState<LessonDetail | null>(null)
   const [outline, setOutline] = useState<CourseOutlineChapter[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(Boolean(courseId && lessonId))
   const [error, setError] = useState<string | null>(null)
   const [isCompleted, setIsCompleted] = useState(false)
   const [isBookmarked, setIsBookmarked] = useState(false)
 
-  const fetchLesson = async () => {
+  const reload = useCallback(async () => {
     if (!courseId || !lessonId) return
     setIsLoading(true)
     setError(null)
@@ -37,24 +37,50 @@ export function useLesson(courseId: string | undefined, lessonId: string | undef
     } finally {
       setIsLoading(false)
     }
-  }
-
-  useEffect(() => {
-    fetchLesson()
   }, [courseId, lessonId])
 
-  const handleToggleBookmark = async () => {
-    if (!lessonId) return
-    const nextVal = !isBookmarked
-    setIsBookmarked(nextVal)
-    await toggleLessonBookmark(lessonId)
-  }
+  useEffect(() => {
+    if (!courseId || !lessonId) return
+    let isMounted = true
 
-  const handleCompleteLesson = async () => {
+    Promise.all([
+      getLesson(courseId, lessonId),
+      getCourseOutline(courseId),
+    ])
+      .then(([lessonData, outlineData]) => {
+        if (!isMounted) return
+        if (!lessonData) {
+          setError('Không tìm thấy bài học.')
+        } else {
+          setLesson(lessonData)
+          setIsCompleted(lessonData.isCompleted)
+          setIsBookmarked(!!lessonData.isBookmarked)
+          setOutline(outlineData)
+        }
+        setIsLoading(false)
+      })
+      .catch(() => {
+        if (!isMounted) return
+        setError('Lỗi khi tải nội dung bài học.')
+        setIsLoading(false)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [courseId, lessonId])
+
+  const handleToggleBookmark = useCallback(async () => {
+    if (!lessonId) return
+    setIsBookmarked((prev) => !prev)
+    await toggleLessonBookmark(lessonId)
+  }, [lessonId])
+
+  const handleCompleteLesson = useCallback(async () => {
     if (!lessonId) return
     setIsCompleted(true)
     await markLessonComplete(lessonId)
-  }
+  }, [lessonId])
 
   return {
     lesson,
@@ -65,6 +91,6 @@ export function useLesson(courseId: string | undefined, lessonId: string | undef
     isBookmarked,
     toggleBookmark: handleToggleBookmark,
     completeLesson: handleCompleteLesson,
-    reload: fetchLesson,
+    reload,
   }
 }

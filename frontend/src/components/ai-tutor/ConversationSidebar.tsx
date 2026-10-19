@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Plus, X } from 'lucide-react'
 import type { ChatConversation } from '../../types/aiTutor'
 import { Button } from '../ui/Button'
@@ -23,9 +23,9 @@ export function ConversationSidebar({
   isOpenOnMobile = false,
   onCloseMobile,
 }: ConversationSidebarProps) {
+  const [todayStr] = useState(() => new Date().toDateString())
   // Group conversations into "Hôm nay" and "Trước đó"
   const { todayList, earlierList } = useMemo(() => {
-    const todayStr = new Date().toDateString()
     const today: ChatConversation[] = []
     const earlier: ChatConversation[] = []
 
@@ -37,7 +37,7 @@ export function ConversationSidebar({
       }
     }
     return { todayList: today, earlierList: earlier }
-  }, [conversations])
+  }, [conversations, todayStr])
 
   return (
     <>

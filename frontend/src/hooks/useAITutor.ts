@@ -8,11 +8,45 @@ export function useAITutor() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [conversations, setConversations] = useState<ChatConversation[]>([])
   const [activeConversation, setActiveConversation] = useState<ChatConversation | null>(null)
-  const [activeSubject, setActiveSubject] = useState<string>('all')
+  const [activeSubject, setActiveSubject] = useState<string>(() => {
+    const promptParam = searchParams.get('prompt')
+    if (promptParam) {
+      const matched = SUGGESTED_PROMPTS.find(
+        (p) => p.id === promptParam || p.title.toLowerCase().includes(promptParam.toLowerCase())
+      )
+      if (matched?.subject) return matched.subject
+    }
+    return 'all'
+  })
   const [isStreaming, setIsStreaming] = useState(false)
   const [isTyping, setIsTyping] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [prefilledInput, setPrefilledInput] = useState<string>('')
+  const [prefilledInput, setPrefilledInput] = useState<string>(() => {
+    const promptParam = searchParams.get('prompt')
+    if (!promptParam) return ''
+    const matched = SUGGESTED_PROMPTS.find(
+      (p) => p.id === promptParam || p.title.toLowerCase().includes(promptParam.toLowerCase())
+    )
+    if (matched) return matched.prompt
+    return decodeURIComponent(promptParam.replace(/-/g, ' '))
+  })
+  const [lastPromptParam, setLastPromptParam] = useState(() => searchParams.get('prompt'))
+
+  const currentPromptParam = searchParams.get('prompt')
+  if (currentPromptParam && currentPromptParam !== lastPromptParam) {
+    setLastPromptParam(currentPromptParam)
+    const matched = SUGGESTED_PROMPTS.find(
+      (p) => p.id === currentPromptParam || p.title.toLowerCase().includes(currentPromptParam.toLowerCase())
+    )
+    if (matched) {
+      setPrefilledInput(matched.prompt)
+      if (matched.subject) {
+        setActiveSubject(matched.subject)
+      }
+    } else {
+      setPrefilledInput(decodeURIComponent(currentPromptParam.replace(/-/g, ' ')))
+    }
+  }
 
   const lastUserMessageRef = useRef<string | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
@@ -41,30 +75,13 @@ export function useAITutor() {
     }
   }, [])
 
-  // Handle URL query prompt prefill (e.g. /ai-tutor?prompt=giai-thich-tiem-can)
+  // Clean URL search param prompt so refresh/back doesn't re-populate
   useEffect(() => {
-    const promptParam = searchParams.get('prompt')
-    if (!promptParam) return
-
-    // Find in suggested prompts by id or slug
-    const matched = SUGGESTED_PROMPTS.find(
-      (p) => p.id === promptParam || p.title.toLowerCase().includes(promptParam.toLowerCase())
-    )
-
-    if (matched) {
-      setPrefilledInput(matched.prompt)
-      if (matched.subject) {
-        setActiveSubject(matched.subject)
-      }
-    } else {
-      // Decode raw query
-      setPrefilledInput(decodeURIComponent(promptParam.replace(/-/g, ' ')))
+    if (searchParams.has('prompt')) {
+      const newParams = new URLSearchParams(searchParams)
+      newParams.delete('prompt')
+      setSearchParams(newParams, { replace: true })
     }
-
-    // Clean query param to avoid re-triggering on reload
-    const newParams = new URLSearchParams(searchParams)
-    newParams.delete('prompt')
-    setSearchParams(newParams, { replace: true })
   }, [searchParams, setSearchParams])
 
   const selectConversation = useCallback(
@@ -239,7 +256,7 @@ export function useAITutor() {
         abortControllerRef.current = null
       }
     },
-    [activeConversation, activeSubject, isStreaming]
+    [activeSubject, isStreaming]
   )
 
   const retryLastMessage = useCallback(async () => {

@@ -34,20 +34,22 @@ export function ChatComposer({
   prefilledText = '',
   disabled = false,
 }: ChatComposerProps) {
-  const [content, setContent] = useState('')
+  const [content, setContent] = useState(prefilledText)
+  const [prevPrefilledText, setPrevPrefilledText] = useState(prefilledText)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // Update when prefilledText changes
-  useEffect(() => {
+  if (prefilledText !== prevPrefilledText) {
+    setPrevPrefilledText(prefilledText)
     if (prefilledText) {
       setContent(prefilledText)
-      // Focus textarea
-      setTimeout(() => {
-        if (textareaRef.current) {
-          textareaRef.current.focus()
-          adjustTextareaHeight(textareaRef.current)
-        }
-      }, 50)
+    }
+  }
+
+  // Adjust height and focus when prefilledText changes
+  useEffect(() => {
+    if (prefilledText && textareaRef.current) {
+      textareaRef.current.focus()
+      adjustTextareaHeight(textareaRef.current)
     }
   }, [prefilledText])
 

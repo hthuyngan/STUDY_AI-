@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { getSubjectById, getSubjects } from '@/services/subjects.service'
 import type { SubjectDetail, SubjectSummary } from '@/types/subject'
 
@@ -7,7 +7,7 @@ export function useSubjects() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchSubjects = async () => {
+  const reload = useCallback(async () => {
     setIsLoading(true)
     setError(null)
     try {
@@ -18,21 +18,36 @@ export function useSubjects() {
     } finally {
       setIsLoading(false)
     }
-  }
-
-  useEffect(() => {
-    fetchSubjects()
   }, [])
 
-  return { subjects, isLoading, error, reload: fetchSubjects }
+  useEffect(() => {
+    let isMounted = true
+    getSubjects()
+      .then((data) => {
+        if (!isMounted) return
+        setSubjects(data)
+        setIsLoading(false)
+      })
+      .catch(() => {
+        if (!isMounted) return
+        setError('Không thể tải danh sách môn học.')
+        setIsLoading(false)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  return { subjects, isLoading, error, reload }
 }
 
 export function useSubjectDetail(subjectId: string | undefined) {
   const [subject, setSubject] = useState<SubjectDetail | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(Boolean(subjectId))
   const [error, setError] = useState<string | null>(null)
 
-  const fetchSubject = async () => {
+  const reload = useCallback(async () => {
     if (!subjectId) return
     setIsLoading(true)
     setError(null)
@@ -48,11 +63,31 @@ export function useSubjectDetail(subjectId: string | undefined) {
     } finally {
       setIsLoading(false)
     }
-  }
-
-  useEffect(() => {
-    fetchSubject()
   }, [subjectId])
 
-  return { subject, isLoading, error, reload: fetchSubject }
+  useEffect(() => {
+    if (!subjectId) return
+    let isMounted = true
+    getSubjectById(subjectId)
+      .then((data) => {
+        if (!isMounted) return
+        if (!data) {
+          setError('Không tìm thấy thông tin môn học.')
+        } else {
+          setSubject(data)
+        }
+        setIsLoading(false)
+      })
+      .catch(() => {
+        if (!isMounted) return
+        setError('Không thể tải chi tiết môn học.')
+        setIsLoading(false)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [subjectId])
+
+  return { subject, isLoading, error, reload }
 }

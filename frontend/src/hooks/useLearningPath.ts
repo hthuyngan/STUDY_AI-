@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { getLearningPath } from '@/services/learningPath.service'
 import type { LearningPathData } from '@/types/learningPath'
 
@@ -7,7 +7,7 @@ export function useLearningPath() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchPath = async () => {
+  const reload = useCallback(async () => {
     setIsLoading(true)
     setError(null)
     try {
@@ -18,11 +18,27 @@ export function useLearningPath() {
     } finally {
       setIsLoading(false)
     }
-  }
-
-  useEffect(() => {
-    fetchPath()
   }, [])
 
-  return { learningPath, isLoading, error, reload: fetchPath }
+  useEffect(() => {
+    let isMounted = true
+
+    getLearningPath()
+      .then((data) => {
+        if (!isMounted) return
+        setLearningPath(data)
+        setIsLoading(false)
+      })
+      .catch(() => {
+        if (!isMounted) return
+        setError('Lỗi khi tải lộ trình học tập cá nhân.')
+        setIsLoading(false)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  return { learningPath, isLoading, error, reload }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   getAchievements,
   getExercises,
@@ -20,7 +20,10 @@ export function useExercises(filters?: { subjectId?: string; status?: string }) 
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchExercises = async () => {
+  const subjectFilter = filters?.subjectId
+  const statusFilter = filters?.status
+
+  const reload = useCallback(async () => {
     setIsLoading(true)
     setError(null)
     try {
@@ -31,13 +34,29 @@ export function useExercises(filters?: { subjectId?: string; status?: string }) 
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [filters])
 
   useEffect(() => {
-    fetchExercises()
-  }, [filters?.subjectId, filters?.status])
+    let isMounted = true
 
-  return { exercises, isLoading, error, reload: fetchExercises }
+    getExercises({ subjectId: subjectFilter, status: statusFilter })
+      .then((data) => {
+        if (!isMounted) return
+        setExercises(data)
+        setIsLoading(false)
+      })
+      .catch(() => {
+        if (!isMounted) return
+        setError('Lỗi khi tải danh sách bài tập.')
+        setIsLoading(false)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [subjectFilter, statusFilter])
+
+  return { exercises, isLoading, error, reload }
 }
 
 export function useLibrary(filters?: { category?: string; subjectId?: string; search?: string }) {
@@ -45,7 +64,11 @@ export function useLibrary(filters?: { category?: string; subjectId?: string; se
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchLibrary = async () => {
+  const categoryFilter = filters?.category
+  const subjectFilter = filters?.subjectId
+  const searchFilter = filters?.search
+
+  const reload = useCallback(async () => {
     setIsLoading(true)
     setError(null)
     try {
@@ -56,13 +79,29 @@ export function useLibrary(filters?: { category?: string; subjectId?: string; se
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [filters])
 
   useEffect(() => {
-    fetchLibrary()
-  }, [filters?.category, filters?.subjectId, filters?.search])
+    let isMounted = true
 
-  return { items, isLoading, error, reload: fetchLibrary }
+    getLibraryItems({ category: categoryFilter, subjectId: subjectFilter, search: searchFilter })
+      .then((data) => {
+        if (!isMounted) return
+        setItems(data)
+        setIsLoading(false)
+      })
+      .catch(() => {
+        if (!isMounted) return
+        setError('Lỗi khi tải thư viện tài liệu.')
+        setIsLoading(false)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [categoryFilter, subjectFilter, searchFilter])
+
+  return { items, isLoading, error, reload }
 }
 
 export function useAchievements() {
@@ -70,7 +109,7 @@ export function useAchievements() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchAchievements = async () => {
+  const reload = useCallback(async () => {
     setIsLoading(true)
     setError(null)
     try {
@@ -81,13 +120,29 @@ export function useAchievements() {
     } finally {
       setIsLoading(false)
     }
-  }
-
-  useEffect(() => {
-    fetchAchievements()
   }, [])
 
-  return { achievements, isLoading, error, reload: fetchAchievements }
+  useEffect(() => {
+    let isMounted = true
+
+    getAchievements()
+      .then((data) => {
+        if (!isMounted) return
+        setAchievements(data)
+        setIsLoading(false)
+      })
+      .catch(() => {
+        if (!isMounted) return
+        setError('Lỗi khi tải danh sách thành tích.')
+        setIsLoading(false)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  return { achievements, isLoading, error, reload }
 }
 
 export function useUserProfile() {
@@ -95,7 +150,7 @@ export function useUserProfile() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchProfile = async () => {
+  const reload = useCallback(async () => {
     setIsLoading(true)
     setError(null)
     try {
@@ -106,13 +161,29 @@ export function useUserProfile() {
     } finally {
       setIsLoading(false)
     }
-  }
-
-  useEffect(() => {
-    fetchProfile()
   }, [])
 
-  return { profile, isLoading, error, reload: fetchProfile }
+  useEffect(() => {
+    let isMounted = true
+
+    getUserProfile()
+      .then((data) => {
+        if (!isMounted) return
+        setProfile(data)
+        setIsLoading(false)
+      })
+      .catch(() => {
+        if (!isMounted) return
+        setError('Lỗi khi tải hồ sơ học sinh.')
+        setIsLoading(false)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  return { profile, isLoading, error, reload }
 }
 
 export function useUserSettings() {
@@ -120,7 +191,7 @@ export function useUserSettings() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchSettings = async () => {
+  const reload = useCallback(async () => {
     setIsLoading(true)
     setError(null)
     try {
@@ -131,20 +202,36 @@ export function useUserSettings() {
     } finally {
       setIsLoading(false)
     }
-  }
-
-  useEffect(() => {
-    fetchSettings()
   }, [])
 
-  const saveSettings = async (next: Partial<UserSettingsData>) => {
+  useEffect(() => {
+    let isMounted = true
+
+    getUserSettings()
+      .then((data) => {
+        if (!isMounted) return
+        setSettings(data)
+        setIsLoading(false)
+      })
+      .catch(() => {
+        if (!isMounted) return
+        setError('Lỗi khi tải cài đặt.')
+        setIsLoading(false)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  const saveSettings = useCallback(async (next: Partial<UserSettingsData>) => {
     try {
       const updated = await updateUserSettings(next)
       setSettings(updated)
     } catch {
       setError('Lỗi khi lưu cài đặt.')
     }
-  }
+  }, [])
 
-  return { settings, isLoading, error, saveSettings, reload: fetchSettings }
+  return { settings, isLoading, error, saveSettings, reload }
 }
