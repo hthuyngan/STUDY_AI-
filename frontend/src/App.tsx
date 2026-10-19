@@ -1,20 +1,24 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
-import { Card } from '@/components/ui/Card'
-import DashboardPage from '@/pages/Dashboard/DashboardPage'
-import DesignSystemPage from '@/pages/DesignSystem/DesignSystemPage'
+import { RouteLoadingFallback } from '@/components/layout/RouteLoadingFallback'
 
-function PlaceholderPage({ title, desc }: { title: string; desc: string }) {
-  return (
-    <AppShell>
-      <div className="py-6">
-        <Card title={title} subtitle="Tính năng đang được phát triển">
-          <p className="text-secondary text-sm">{desc}</p>
-        </Card>
-      </div>
-    </AppShell>
-  )
-}
+const DashboardPage = lazy(() => import('@/pages/Dashboard/DashboardPage'))
+const SubjectsPage = lazy(() => import('@/pages/Subjects/SubjectsPage'))
+const SubjectDetailPage = lazy(() => import('@/pages/Subjects/SubjectDetailPage'))
+const CoursesPage = lazy(() => import('@/pages/Courses/CoursesPage'))
+const CourseDetailPage = lazy(() => import('@/pages/Courses/CourseDetailPage'))
+const LessonPage = lazy(() => import('@/pages/Lesson/LessonPage'))
+const QuizPage = lazy(() => import('@/pages/Quiz/QuizPage'))
+const QuizResultPage = lazy(() => import('@/pages/Quiz/QuizResultPage'))
+const AITutorPage = lazy(() => import('@/pages/AITutor/AITutorPage'))
+const LearningPathPage = lazy(() => import('@/pages/LearningPath/LearningPathPage'))
+const ExercisesPage = lazy(() => import('@/pages/Exercises/ExercisesPage'))
+const LibraryPage = lazy(() => import('@/pages/Library/LibraryPage'))
+const AchievementsPage = lazy(() => import('@/pages/Achievements/AchievementsPage'))
+const ProfilePage = lazy(() => import('@/pages/Profile/ProfilePage'))
+const SettingsPage = lazy(() => import('@/pages/Settings/SettingsPage'))
+const DesignSystemPage = lazy(() => import('@/pages/DesignSystem/DesignSystemPage'))
 
 function App() {
   return (
@@ -25,76 +29,202 @@ function App() {
           path="/dashboard"
           element={
             <AppShell>
-              <DashboardPage />
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <DashboardPage />
+              </Suspense>
+            </AppShell>
+          }
+        />
+
+        {/* Subjects */}
+        <Route
+          path="/subjects"
+          element={
+            <AppShell>
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <SubjectsPage />
+              </Suspense>
+            </AppShell>
+          }
+        />
+        <Route
+          path="/subjects/:subjectId"
+          element={
+            <AppShell>
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <SubjectDetailPage />
+              </Suspense>
+            </AppShell>
+          }
+        />
+
+        {/* Courses */}
+        <Route
+          path="/courses"
+          element={
+            <AppShell>
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <CoursesPage />
+              </Suspense>
+            </AppShell>
+          }
+        />
+        <Route
+          path="/courses/:courseId"
+          element={
+            <AppShell>
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <CourseDetailPage />
+              </Suspense>
+            </AppShell>
+          }
+        />
+
+        {/* Lesson View */}
+        <Route
+          path="/learn/:courseId/:lessonId"
+          element={
+            <AppShell>
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <LessonPage />
+              </Suspense>
+            </AppShell>
+          }
+        />
+
+        {/* Quiz Flow */}
+        <Route
+          path="/quiz/:quizId"
+          element={
+            <AppShell>
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <QuizPage />
+              </Suspense>
+            </AppShell>
+          }
+        />
+        <Route
+          path="/quiz/:quizId/result"
+          element={
+            <AppShell>
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <QuizResultPage />
+              </Suspense>
+            </AppShell>
+          }
+        />
+
+        {/* AI Tutor */}
+        <Route
+          path="/ai-tutor"
+          element={
+            <AppShell>
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <AITutorPage />
+              </Suspense>
+            </AppShell>
+          }
+        />
+        <Route
+          path="/ai-tutor/:conversationId"
+          element={
+            <AppShell>
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <AITutorPage />
+              </Suspense>
+            </AppShell>
+          }
+        />
+
+        {/* Learning Path */}
+        <Route
+          path="/learning-path"
+          element={
+            <AppShell>
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <LearningPathPage />
+              </Suspense>
+            </AppShell>
+          }
+        />
+
+        {/* Exercises */}
+        <Route
+          path="/exercises"
+          element={
+            <AppShell>
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <ExercisesPage />
+              </Suspense>
+            </AppShell>
+          }
+        />
+        <Route
+          path="/exercises/:exerciseId"
+          element={
+            <AppShell>
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <ExercisesPage />
+              </Suspense>
+            </AppShell>
+          }
+        />
+
+        {/* Library */}
+        <Route
+          path="/library"
+          element={
+            <AppShell>
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <LibraryPage />
+              </Suspense>
+            </AppShell>
+          }
+        />
+
+        {/* Achievements */}
+        <Route
+          path="/achievements"
+          element={
+            <AppShell>
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <AchievementsPage />
+              </Suspense>
+            </AppShell>
+          }
+        />
+
+        {/* Profile */}
+        <Route
+          path="/profile"
+          element={
+            <AppShell>
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <ProfilePage />
+              </Suspense>
+            </AppShell>
+          }
+        />
+
+        {/* Settings */}
+        <Route
+          path="/settings"
+          element={
+            <AppShell>
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <SettingsPage />
+              </Suspense>
             </AppShell>
           }
         />
 
         {/* Design System Page (Bảo lưu theo yêu cầu) */}
-        <Route path="/design-system" element={<DesignSystemPage />} />
-
-        {/* Feature Placeholders */}
         <Route
-          path="/ai-tutor"
+          path="/design-system"
           element={
-            <PlaceholderPage
-              title="✦ Trợ lý AI Tutor"
-              desc="Hỏi đáp bài tập, giải thích chi tiết từng bước và luyện đề cùng AI."
-            />
-          }
-        />
-        <Route
-          path="/courses"
-          element={
-            <PlaceholderPage
-              title="Khóa học của tôi"
-              desc="Toàn bộ danh sách khóa học và bài giảng theo chương trình."
-            />
-          }
-        />
-        <Route
-          path="/exercises"
-          element={
-            <PlaceholderPage
-              title="Bài tập & Luyện đề"
-              desc="Ngân hàng câu hỏi trắc nghiệm và đề thi thử đại học."
-            />
-          }
-        />
-        <Route
-          path="/library"
-          element={
-            <PlaceholderPage
-              title="Thư viện tài liệu"
-              desc="Sách giáo khoa điện tử, tài liệu tóm tắt công thức và đề thi các năm."
-            />
-          }
-        />
-        <Route
-          path="/subjects/:id"
-          element={
-            <PlaceholderPage
-              title="Chi tiết môn học"
-              desc="Lộ trình học tập chi tiết, các chương và bài học theo phân môn."
-            />
-          }
-        />
-        <Route
-          path="/achievements"
-          element={
-            <PlaceholderPage
-              title="Thành tích & Huy hiệu"
-              desc="Huy hiệu học tập, chuỗi ngày streak và bảng vinh danh."
-            />
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <PlaceholderPage
-              title="Cài đặt tài khoản"
-              desc="Quản lý hồ sơ học sinh, mục tiêu học tập và thông báo."
-            />
+            <Suspense fallback={<RouteLoadingFallback />}>
+              <DesignSystemPage />
+            </Suspense>
           }
         />
 
