@@ -886,6 +886,65 @@
   flex-shrink: 0;
 }
 
+.weekly-goal-section {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.weekly-goal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.weekly-goal-title {
+  font-size: var(--text-xs, 12px);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.weekly-goal-badge {
+  font-size: 11px;
+  color: var(--color-primary);
+  font-weight: 600;
+  background: var(--color-primary-light);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.weekly-days-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.weekly-day-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px 2px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.weekly-day-box.is-done {
+  background: var(--color-success-light);
+  border-color: var(--color-success-bg);
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+.weekly-day-box .day-mark {
+  font-size: 10px;
+}
+
 /* ── CONTINUE LEARNING WIDGET ──────────────────────────────── */
 .continue-learning-list {
   display: flex;

@@ -13,12 +13,20 @@ export function LibraryPage() {
   const [activeCategory, setActiveCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSubject, setSelectedSubject] = useState('all')
+  const [savedOverrides, setSavedOverrides] = useState<Record<string, boolean>>({})
 
   const { items, isLoading, error, reload } = useLibrary({
     category: activeCategory,
     subjectId: selectedSubject,
     search: searchQuery,
   })
+
+  const handleToggleSave = (id: string, currentSaved?: boolean) => {
+    setSavedOverrides((prev) => ({
+      ...prev,
+      [id]: prev[id] !== undefined ? !prev[id] : !currentSaved,
+    }))
+  }
 
   const categories = ['all', 'Tài liệu', 'Công thức', 'Ghi chú', 'Đã lưu']
   const subjects = [
@@ -133,14 +141,19 @@ export function LibraryPage() {
                   {item.pagesCount} trang · Cập nhật {item.updatedAt}
                 </span>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  icon={item.isSaved ? BookmarkCheck : Bookmark}
-                  onClick={() => alert(`Đã cập nhật trạng thái lưu tài liệu: ${item.title}`)}
-                >
-                  {item.isSaved ? 'Đã lưu' : 'Lưu lại'}
-                </Button>
+                {(() => {
+                  const isItemSaved = savedOverrides[item.id] !== undefined ? savedOverrides[item.id] : !!item.isSaved
+                  return (
+                    <Button
+                      variant={isItemSaved ? 'secondary' : 'outline'}
+                      size="sm"
+                      icon={isItemSaved ? BookmarkCheck : Bookmark}
+                      onClick={() => handleToggleSave(item.id, item.isSaved)}
+                    >
+                      {isItemSaved ? 'Đã lưu' : 'Lưu lại'}
+                    </Button>
+                  )
+                })()}
               </div>
             </Card>
           ))}

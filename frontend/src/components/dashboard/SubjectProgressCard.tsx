@@ -10,7 +10,7 @@ export interface SubjectProgressCardProps {
 
 export function SubjectProgressCard({ subjects }: SubjectProgressCardProps) {
   const viewAllAction = (
-    <Link to="/courses" className="card-link-action">
+    <Link to="/subjects" className="card-link-action">
       <span>Xem tất cả môn</span>
       <ArrowRight size={14} aria-hidden />
     </Link>

@@ -75,6 +75,30 @@ export function DailyGoalsCard({ data }: DailyGoalsCardProps) {
           )
         })}
       </div>
+
+      {/* Weekly Goal Progress */}
+      <div className="weekly-goal-section">
+        <div className="weekly-goal-header">
+          <span className="weekly-goal-title">Mục tiêu tuần</span>
+          <span className="weekly-goal-badge">5 / 7 ngày</span>
+        </div>
+        <div className="weekly-days-row">
+          {[
+            { day: 'T2', done: true },
+            { day: 'T3', done: true },
+            { day: 'T4', done: true },
+            { day: 'T5', done: true },
+            { day: 'T6', done: true },
+            { day: 'T7', done: false },
+            { day: 'CN', done: false },
+          ].map((d) => (
+            <div key={d.day} className={`weekly-day-box ${d.done ? 'is-done' : ''}`}>
+              <span className="day-name">{d.day}</span>
+              <span className="day-mark" aria-hidden>{d.done ? '✓' : '○'}</span>
+            </div>
+          ))}
+        </div>
+      </div>
     </Card>
   )
 }
