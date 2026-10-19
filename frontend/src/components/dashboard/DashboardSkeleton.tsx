@@ -1,85 +1,97 @@
-import { Card } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Skeleton'
 
 export function DashboardSkeleton() {
   return (
-    <div className="dashboard-skeleton-container" aria-label="Đang tải dữ liệu...">
-      {/* Header Skeleton */}
-      <div className="dashboard-header-skeleton">
-        <div className="header-skeleton-left">
-          <Skeleton width="280px" height="32px" rounded="lg" />
-          <Skeleton width="420px" height="18px" rounded="md" className="mt-2" />
+    <div className="dashboard-root is-loading" aria-busy="true" aria-label="Đang tải dữ liệu bảng điều khiển">
+      {/* 1. Hero Skeleton */}
+      <div className="skeleton-hero-card">
+        <div className="skeleton-hero-left">
+          <Skeleton variant="text" width={260} height={32} />
+          <Skeleton variant="text" width="60%" height={18} />
+          <div className="skeleton-hero-meta">
+            <Skeleton variant="rect" width={140} height={24} />
+            <Skeleton variant="rect" width={120} height={24} />
+          </div>
+          <Skeleton variant="rect" width={160} height={42} />
         </div>
-        <Skeleton width="120px" height="40px" rounded="xl" />
+        <Skeleton variant="circle" width={120} height={120} className="desktop-only" />
       </div>
 
-      {/* Stats Strip Skeleton */}
-      <div className="stats-strip-container">
-        <div className="stats-strip-grid">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="stats-strip-item">
-              <Skeleton width="40px" height="40px" rounded="xl" />
-              <div className="stats-strip-content">
-                <Skeleton width="80px" height="24px" rounded="md" />
-                <Skeleton width="110px" height="14px" rounded="sm" className="mt-1" />
-              </div>
-            </div>
+      {/* 2. Suggested Learning (2/3) + Calendar/Streak (1/3) */}
+      <div className="dashboard-row-grid-2-1">
+        <div className="col-suggested">
+          <div className="skeleton-card-surface">
+            <Skeleton variant="text" width={180} height={22} />
+            <Skeleton variant="text" width={220} height={14} />
+            <Skeleton variant="rect" width="100%" height={90} />
+            <Skeleton variant="rect" width="100%" height={10} />
+            <Skeleton variant="rect" width={140} height={38} />
+          </div>
+        </div>
+
+        <div className="col-calendar">
+          <div className="skeleton-card-surface">
+            <Skeleton variant="text" width={140} height={20} />
+            <Skeleton variant="rect" width="100%" height={120} />
+            <Skeleton variant="rect" width="100%" height={40} />
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Weekly Plan (Full Width) */}
+      <div className="skeleton-card-surface">
+        <Skeleton variant="text" width={200} height={22} />
+        <div className="skeleton-weekly-cols">
+          {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+            <Skeleton key={i} variant="rect" width="100%" height={64} />
           ))}
         </div>
       </div>
 
-      {/* Grid 1: Activity + Daily Goals */}
-      <div className="dashboard-row-grid">
-        <div className="col-span-8">
-          <Card title={<Skeleton width="160px" height="20px" />} subtitle={<Skeleton width="220px" height="14px" />}>
-            <Skeleton width="100%" height="220px" rounded="lg" />
-          </Card>
+      {/* 4. Smart Review (2/3) + AI Tutor (1/3) */}
+      <div className="dashboard-row-grid-2-1">
+        <div className="col-smart-review">
+          <div className="skeleton-card-surface">
+            <Skeleton variant="text" width={190} height={22} />
+            <Skeleton variant="rect" width="100%" height={48} />
+            <Skeleton variant="rect" width="100%" height={48} />
+            <Skeleton variant="rect" width="100%" height={48} />
+          </div>
         </div>
-        <div className="col-span-4">
-          <Card title={<Skeleton width="140px" height="20px" />} subtitle={<Skeleton width="180px" height="14px" />}>
-            <div className="flex flex-col gap-4">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex flex-col gap-2">
-                  <div className="flex justify-between">
-                    <Skeleton width="140px" height="16px" rounded="sm" />
-                    <Skeleton width="50px" height="16px" rounded="sm" />
-                  </div>
-                  <Skeleton width="100%" height="6px" rounded="full" />
-                </div>
-              ))}
-            </div>
-          </Card>
+
+        <div className="col-ai-tutor">
+          <div className="skeleton-card-surface">
+            <Skeleton variant="text" width={120} height={20} />
+            <Skeleton variant="rect" width="100%" height={70} />
+            <Skeleton variant="rect" width="100%" height={38} />
+          </div>
         </div>
       </div>
 
-      {/* Grid 2: Continue Learning + AI Tutor */}
-      <div className="dashboard-row-grid">
-        <div className="col-span-8">
-          <Card title={<Skeleton width="150px" height="20px" />} subtitle={<Skeleton width="200px" height="14px" />}>
-            <div className="flex flex-col gap-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center gap-4 py-2">
-                  <Skeleton width="40px" height="40px" rounded="lg" />
-                  <div className="flex-1 flex flex-col gap-2">
-                    <Skeleton width="70%" height="16px" rounded="sm" />
-                    <Skeleton width="100%" height="6px" rounded="full" />
-                  </div>
-                  <Skeleton width="80px" height="36px" rounded="xl" />
-                </div>
-              ))}
-            </div>
-          </Card>
+      {/* 5. Learning Progress (1/2) + Recent Activity (1/2) */}
+      <div className="dashboard-row-grid-1-1">
+        <div className="col-half">
+          <div className="skeleton-card-surface">
+            <Skeleton variant="text" width={170} height={22} />
+            <Skeleton variant="rect" width="100%" height={44} />
+            <Skeleton variant="rect" width="100%" height={44} />
+            <Skeleton variant="rect" width="100%" height={44} />
+            <Skeleton variant="rect" width="100%" height={44} />
+          </div>
         </div>
-        <div className="col-span-4">
-          <Card>
-            <div className="flex flex-col gap-3">
-              <Skeleton width="120px" height="24px" rounded="md" />
-              <Skeleton width="100%" height="40px" rounded="md" />
-              <Skeleton width="100%" height="40px" rounded="xl" />
-            </div>
-          </Card>
+
+        <div className="col-half">
+          <div className="skeleton-card-surface">
+            <Skeleton variant="text" width={180} height={22} />
+            <Skeleton variant="rect" width="100%" height={44} />
+            <Skeleton variant="rect" width="100%" height={44} />
+            <Skeleton variant="rect" width="100%" height={44} />
+            <Skeleton variant="rect" width="100%" height={44} />
+          </div>
         </div>
       </div>
     </div>
   )
 }
+
+export default DashboardSkeleton

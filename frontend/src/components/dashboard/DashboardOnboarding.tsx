@@ -1,6 +1,7 @@
-import { ArrowRight, Sparkles } from 'lucide-react'
+import { BookOpen } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
-import { Card } from '@/components/ui/Card'
+import { StickerIllustration } from '@/components/ui/StickerIllustration'
 
 export interface DashboardOnboardingProps {
   onSetupRoadmap?: () => void
@@ -8,45 +9,32 @@ export interface DashboardOnboardingProps {
 
 export function DashboardOnboarding({ onSetupRoadmap }: DashboardOnboardingProps) {
   return (
-    <Card className="dashboard-onboarding-card">
-      <div className="onboarding-wrapper">
-        <div className="onboarding-icon-pill" aria-hidden>
-          <Sparkles size={24} className="onboarding-sparkle" />
-          <span className="onboarding-brand-tag">STUDY AI</span>
-        </div>
+    <div className="dashboard-onboarding-notebook">
+      <div className="onboarding-sticker-wrap" aria-hidden="true">
+        <StickerIllustration name="welcome" size="xl" decorative />
+      </div>
 
-        <h2 className="onboarding-heading">Bắt đầu hành trình học tập của bạn</h2>
-
-        <p className="onboarding-description">
-          AI Tutor sẽ phân tích mục tiêu thi cử, sở thích và trình độ hiện tại để thiết kế lộ trình học tập cá nhân hóa từng ngày cho riêng bạn.
+      <div className="onboarding-text-wrap">
+        <h2 className="onboarding-headline">Bắt đầu hành trình học đầu tiên</h2>
+        <p className="onboarding-subtext">
+          Bạn chưa có dữ liệu học tập nào. Hãy chọn một môn học hoặc khóa học đầu tiên để kích hoạt lộ trình học tập thông minh và chuỗi streak nhé!
         </p>
+      </div>
 
-        <div className="onboarding-features">
-          <div className="onboarding-feature-item">
-            <span className="feature-check" aria-hidden>✓</span>
-            <span>Đánh giá năng lực ban đầu miễn phí</span>
-          </div>
-          <div className="onboarding-feature-item">
-            <span className="feature-check" aria-hidden>✓</span>
-            <span>Gợi ý bài học theo điểm yếu thực tế</span>
-          </div>
-          <div className="onboarding-feature-item">
-            <span className="feature-check" aria-hidden>✓</span>
-            <span>Trợ lý AI giải đáp 24/7 mọi thắc mắc</span>
-          </div>
-        </div>
-
-        <div className="onboarding-action">
+      <div className="onboarding-cta-wrap">
+        <Link to="/courses">
           <Button
             variant="primary"
-            icon={ArrowRight}
+            icon={BookOpen}
             onClick={onSetupRoadmap}
-            className="onboarding-cta-btn"
+            className="onboarding-primary-btn"
           >
-            Thiết lập lộ trình học ngay
+            Khám phá khóa học
           </Button>
-        </div>
+        </Link>
       </div>
-    </Card>
+    </div>
   )
 }
+
+export default DashboardOnboarding
