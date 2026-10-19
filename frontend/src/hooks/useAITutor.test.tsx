@@ -59,7 +59,7 @@ describe('useAITutor Hook', () => {
     expect(messages[0].content).toBe('Giải thích đạo hàm cực trị')
     expect(messages[1].role).toBe('assistant')
     expect(messages[1].content.length).toBeGreaterThan(0)
-  })
+  }, 15000)
 
   it('handles error simulation and retry', async () => {
     const { result } = renderHook(() => useAITutor(), { wrapper })

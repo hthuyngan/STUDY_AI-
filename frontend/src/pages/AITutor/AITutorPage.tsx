@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useAITutor } from '../../hooks/useAITutor'
 import { useAutoScroll } from '../../hooks/useAutoScroll'
 import { ConversationSidebar } from '../../components/ai-tutor/ConversationSidebar'
@@ -9,6 +10,18 @@ import { ChatComposer } from '../../components/ai-tutor/ChatComposer'
 import './AITutorPage.css'
 
 export function AITutorPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const topicParam = searchParams.get('topic')
+  const lessonParam = searchParams.get('lesson')
+  const contextTopic = topicParam || (lessonParam ? `Bài học #${lessonParam}` : undefined)
+
+  const handleClearContext = () => {
+    const next = new URLSearchParams(searchParams)
+    next.delete('topic')
+    next.delete('lesson')
+    setSearchParams(next, { replace: true })
+  }
+
   const {
     conversations,
     activeConversation,
@@ -95,6 +108,8 @@ export function AITutorPage() {
           activeSubject={activeSubject}
           onSelectSubject={selectSubject}
           prefilledText={prefilledInput}
+          contextTopic={contextTopic}
+          onClearContext={handleClearContext}
         />
       </main>
     </div>

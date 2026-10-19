@@ -6,7 +6,7 @@ import {
   type KeyboardEvent,
   type FormEvent,
 } from 'react'
-import { ArrowUp, Plus, Square } from 'lucide-react'
+import { ArrowUp, Plus, Square, X } from 'lucide-react'
 import { SUBJECT_OPTIONS } from '../../data/aiTutor.mock'
 
 interface ChatComposerProps {
@@ -17,6 +17,8 @@ interface ChatComposerProps {
   onSelectSubject: (subject: string) => void
   prefilledText?: string
   disabled?: boolean
+  contextTopic?: string
+  onClearContext?: () => void
 }
 
 function adjustTextareaHeight(el: HTMLTextAreaElement) {
@@ -33,6 +35,8 @@ export function ChatComposer({
   onSelectSubject,
   prefilledText = '',
   disabled = false,
+  contextTopic,
+  onClearContext,
 }: ChatComposerProps) {
   const [content, setContent] = useState(prefilledText)
   const [prevPrefilledText, setPrevPrefilledText] = useState(prefilledText)
@@ -87,6 +91,23 @@ export function ChatComposer({
   return (
     <form className="chat-composer-root" onSubmit={handleSubmit}>
       <div className="chat-composer-box">
+        {contextTopic && (
+          <div className="composer-context-chip" role="status" aria-label={`Đang hỏi về ${contextTopic}`}>
+            <span className="context-chip-label">Đang hỏi về:</span>
+            <span className="context-chip-text">{contextTopic}</span>
+            {onClearContext && (
+              <button
+                type="button"
+                className="context-chip-remove"
+                onClick={onClearContext}
+                aria-label="Bỏ ngữ cảnh bài học"
+                title="Bỏ ngữ cảnh"
+              >
+                <X size={13} aria-hidden />
+              </button>
+            )}
+          </div>
+        )}
         <div className="chat-composer-input-row">
           <button
             type="button"
