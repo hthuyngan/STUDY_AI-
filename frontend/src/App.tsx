@@ -1,21 +1,24 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
-import AchievementsPage from '@/pages/Achievements/AchievementsPage'
-import AITutorPage from '@/pages/AITutor/AITutorPage'
-import CourseDetailPage from '@/pages/Courses/CourseDetailPage'
-import CoursesPage from '@/pages/Courses/CoursesPage'
-import DashboardPage from '@/pages/Dashboard/DashboardPage'
-import DesignSystemPage from '@/pages/DesignSystem/DesignSystemPage'
-import ExercisesPage from '@/pages/Exercises/ExercisesPage'
-import LearningPathPage from '@/pages/LearningPath/LearningPathPage'
-import LessonPage from '@/pages/Lesson/LessonPage'
-import LibraryPage from '@/pages/Library/LibraryPage'
-import ProfilePage from '@/pages/Profile/ProfilePage'
-import QuizPage from '@/pages/Quiz/QuizPage'
-import QuizResultPage from '@/pages/Quiz/QuizResultPage'
-import SettingsPage from '@/pages/Settings/SettingsPage'
-import SubjectDetailPage from '@/pages/Subjects/SubjectDetailPage'
-import SubjectsPage from '@/pages/Subjects/SubjectsPage'
+import { RouteLoadingFallback } from '@/components/layout/RouteLoadingFallback'
+
+const DashboardPage = lazy(() => import('@/pages/Dashboard/DashboardPage'))
+const SubjectsPage = lazy(() => import('@/pages/Subjects/SubjectsPage'))
+const SubjectDetailPage = lazy(() => import('@/pages/Subjects/SubjectDetailPage'))
+const CoursesPage = lazy(() => import('@/pages/Courses/CoursesPage'))
+const CourseDetailPage = lazy(() => import('@/pages/Courses/CourseDetailPage'))
+const LessonPage = lazy(() => import('@/pages/Lesson/LessonPage'))
+const QuizPage = lazy(() => import('@/pages/Quiz/QuizPage'))
+const QuizResultPage = lazy(() => import('@/pages/Quiz/QuizResultPage'))
+const AITutorPage = lazy(() => import('@/pages/AITutor/AITutorPage'))
+const LearningPathPage = lazy(() => import('@/pages/LearningPath/LearningPathPage'))
+const ExercisesPage = lazy(() => import('@/pages/Exercises/ExercisesPage'))
+const LibraryPage = lazy(() => import('@/pages/Library/LibraryPage'))
+const AchievementsPage = lazy(() => import('@/pages/Achievements/AchievementsPage'))
+const ProfilePage = lazy(() => import('@/pages/Profile/ProfilePage'))
+const SettingsPage = lazy(() => import('@/pages/Settings/SettingsPage'))
+const DesignSystemPage = lazy(() => import('@/pages/DesignSystem/DesignSystemPage'))
 
 function App() {
   return (
@@ -26,7 +29,9 @@ function App() {
           path="/dashboard"
           element={
             <AppShell>
-              <DashboardPage />
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <DashboardPage />
+              </Suspense>
             </AppShell>
           }
         />
@@ -36,7 +41,9 @@ function App() {
           path="/subjects"
           element={
             <AppShell>
-              <SubjectsPage />
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <SubjectsPage />
+              </Suspense>
             </AppShell>
           }
         />
@@ -44,7 +51,9 @@ function App() {
           path="/subjects/:subjectId"
           element={
             <AppShell>
-              <SubjectDetailPage />
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <SubjectDetailPage />
+              </Suspense>
             </AppShell>
           }
         />
@@ -54,7 +63,9 @@ function App() {
           path="/courses"
           element={
             <AppShell>
-              <CoursesPage />
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <CoursesPage />
+              </Suspense>
             </AppShell>
           }
         />
@@ -62,7 +73,9 @@ function App() {
           path="/courses/:courseId"
           element={
             <AppShell>
-              <CourseDetailPage />
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <CourseDetailPage />
+              </Suspense>
             </AppShell>
           }
         />
@@ -72,7 +85,9 @@ function App() {
           path="/learn/:courseId/:lessonId"
           element={
             <AppShell>
-              <LessonPage />
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <LessonPage />
+              </Suspense>
             </AppShell>
           }
         />
@@ -82,7 +97,9 @@ function App() {
           path="/quiz/:quizId"
           element={
             <AppShell>
-              <QuizPage />
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <QuizPage />
+              </Suspense>
             </AppShell>
           }
         />
@@ -90,7 +107,9 @@ function App() {
           path="/quiz/:quizId/result"
           element={
             <AppShell>
-              <QuizResultPage />
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <QuizResultPage />
+              </Suspense>
             </AppShell>
           }
         />
@@ -100,7 +119,9 @@ function App() {
           path="/ai-tutor"
           element={
             <AppShell>
-              <AITutorPage />
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <AITutorPage />
+              </Suspense>
             </AppShell>
           }
         />
@@ -108,7 +129,9 @@ function App() {
           path="/ai-tutor/:conversationId"
           element={
             <AppShell>
-              <AITutorPage />
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <AITutorPage />
+              </Suspense>
             </AppShell>
           }
         />
@@ -118,7 +141,9 @@ function App() {
           path="/learning-path"
           element={
             <AppShell>
-              <LearningPathPage />
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <LearningPathPage />
+              </Suspense>
             </AppShell>
           }
         />
@@ -128,7 +153,9 @@ function App() {
           path="/exercises"
           element={
             <AppShell>
-              <ExercisesPage />
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <ExercisesPage />
+              </Suspense>
             </AppShell>
           }
         />
@@ -136,7 +163,9 @@ function App() {
           path="/exercises/:exerciseId"
           element={
             <AppShell>
-              <ExercisesPage />
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <ExercisesPage />
+              </Suspense>
             </AppShell>
           }
         />
@@ -146,7 +175,9 @@ function App() {
           path="/library"
           element={
             <AppShell>
-              <LibraryPage />
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <LibraryPage />
+              </Suspense>
             </AppShell>
           }
         />
@@ -156,7 +187,9 @@ function App() {
           path="/achievements"
           element={
             <AppShell>
-              <AchievementsPage />
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <AchievementsPage />
+              </Suspense>
             </AppShell>
           }
         />
@@ -166,7 +199,9 @@ function App() {
           path="/profile"
           element={
             <AppShell>
-              <ProfilePage />
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <ProfilePage />
+              </Suspense>
             </AppShell>
           }
         />
@@ -176,13 +211,22 @@ function App() {
           path="/settings"
           element={
             <AppShell>
-              <SettingsPage />
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <SettingsPage />
+              </Suspense>
             </AppShell>
           }
         />
 
         {/* Design System Page (Bảo lưu theo yêu cầu) */}
-        <Route path="/design-system" element={<DesignSystemPage />} />
+        <Route
+          path="/design-system"
+          element={
+            <Suspense fallback={<RouteLoadingFallback />}>
+              <DesignSystemPage />
+            </Suspense>
+          }
+        />
 
         {/* Root redirect to Dashboard */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
