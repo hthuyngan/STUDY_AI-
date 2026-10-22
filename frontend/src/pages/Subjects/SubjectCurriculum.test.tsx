@@ -29,6 +29,40 @@ describe('Subject Curriculum and Filtering Logic', () => {
     expect(inProgressLessons.map((l) => l.id)).toContain('lesson-math-08')
   })
 
+  it('computes chapter statistics accurately for two-column chapter navigator', () => {
+    const math = mockSubjectDetails.math
+    const chap1 = math.chapters[0]
+    const completed = chap1.lessons.filter((l) => l.status === 'completed').length
+    const inProgress = chap1.lessons.filter((l) => l.status === 'in-progress').length
+    const total = chap1.lessons.length
+
+    expect(total).toBe(7)
+    expect(completed).toBe(4)
+    expect(inProgress).toBe(1)
+    const percent = Math.round((completed / total) * 100)
+    expect(percent).toBe(57)
+  })
+
+  it('filters chapters for In-Progress tab to only chapters with in-progress lessons', () => {
+    const math = mockSubjectDetails.math
+    const chaptersWithInProgress = math.chapters.filter((ch) =>
+      ch.lessons.some((l) => l.status === 'in-progress')
+    )
+
+    // Chapter 1 has lesson-math-08 and Chapter 2 has lesson-math-203
+    expect(chaptersWithInProgress.length).toBe(2)
+    expect(chaptersWithInProgress.map((c) => c.id)).toEqual(['math-chap-1', 'math-chap-2'])
+  })
+
+  it('auto-selects chapter containing in-progress lesson', () => {
+    const math = mockSubjectDetails.math
+    const firstInProgressChap = math.chapters.find((ch) =>
+      ch.lessons.some((l) => l.status === 'in-progress')
+    )
+    expect(firstInProgressChap).toBeDefined()
+    expect(firstInProgressChap?.id).toBe('math-chap-1')
+  })
+
   it('filters lessons by search query matching lesson title or chapter title', () => {
     const math = mockSubjectDetails.math
     const query = 'đạo hàm'

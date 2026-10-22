@@ -24,11 +24,17 @@
 .app-content-container {
   flex: 1;
   width: 100%;
-  padding: var(--space-6, 24px);
+  padding: 24px 28px;
+}
+
+@media (min-width: 1400px) {
+  .app-content-container {
+    padding: 28px 32px;
+  }
 }
 
 .app-content-inner {
-  max-width: var(--content-max-width, 1280px);
+  max-width: var(--content-max-width, 1340px);
   width: 100%;
   margin: 0 auto;
 }
@@ -631,7 +637,7 @@
   }
 
   .app-content-container {
-    padding: var(--space-4, 16px);
+    padding: 20px 24px;
   }
 }
 
@@ -639,6 +645,10 @@
 @media (max-width: 768px) {
   .desktop-only { display: none !important; }
   .mobile-only  { display: flex !important; }
+
+  .app-content-container {
+    padding: 16px;
+  }
 
   .sidebar {
     position: fixed;

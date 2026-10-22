@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
-import { CheckCircle2, ChevronRight, Lock, Play, Search, SlidersHorizontal } from 'lucide-react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { BookOpen, Play, Search, SlidersHorizontal } from 'lucide-react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { CurriculumChapterNav, type ChapterWithStats } from '@/components/subjects/CurriculumChapterNav'
+import { CurriculumLessonsPanel } from '@/components/subjects/CurriculumLessonsPanel'
 import { Breadcrumb } from '@/components/ui/Breadcrumb'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -8,7 +10,7 @@ import { PageErrorState } from '@/components/ui/PageErrorState'
 import { Progress } from '@/components/ui/Progress'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { useSubjectDetail } from '@/hooks/useSubjects'
-import type { LessonFilter, SubjectLessonItem } from '@/types/subject'
+import type { LessonFilter } from '@/types/subject'
 import './SubjectDetailPage.css'
 
 export function SubjectDetailPage() {
@@ -20,7 +22,7 @@ export function SubjectDetailPage() {
   // Filter state synced with URL search params
   const activeTab = (searchParams.get('view') === 'in-progress' ? 'in-progress' : 'all') as LessonFilter
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedChapterId, setSelectedChapterId] = useState<string>('all')
+  const [userSelectedChapterId, setUserSelectedChapterId] = useState<string>('')
 
   const handleTabChange = (tab: LessonFilter) => {
     setSearchParams((prev) => {
@@ -34,91 +36,143 @@ export function SubjectDetailPage() {
     })
   }
 
-  // All lessons flat list
-  const allLessons = useMemo(() => {
+  // Chapters with computed statistics
+  const chaptersWithStats: ChapterWithStats[] = useMemo(() => {
     if (!subject) return []
-    return subject.chapters.flatMap((ch) =>
-      ch.lessons.map((l) => ({
-        ...l,
-        chapterId: ch.id,
-        chapterTitle: ch.title,
-      }))
-    )
+    return subject.chapters.map((chap) => {
+      const total = chap.lessons.length
+      const completed = chap.lessons.filter((l) => l.status === 'completed').length
+      const inProgress = chap.lessons.filter((l) => l.status === 'in-progress').length
+      const percent = total > 0 ? Math.round((completed / total) * 100) : 0
+
+      return {
+        ...chap,
+        totalLessons: total,
+        completedLessons: completed,
+        inProgressLessons: inProgress,
+        progressPercent: percent,
+      }
+    })
   }, [subject])
 
-  // Count in-progress
-  const inProgressCount = useMemo(() => {
-    return allLessons.filter((l) => l.status === 'in-progress').length
-  }, [allLessons])
+  // All lessons flat count for stats
+  const totalAllLessonsCount = useMemo(() => {
+    return chaptersWithStats.reduce((acc, ch) => acc + ch.totalLessons, 0)
+  }, [chaptersWithStats])
 
-  // Find primary continue lesson
-  const continueLesson = useMemo(() => {
-    const inProg = allLessons.find((l) => l.status === 'in-progress')
-    if (inProg) return inProg
-    const avail = allLessons.find((l) => l.status === 'available')
-    return avail || allLessons[0]
-  }, [allLessons])
+  const totalInProgressCount = useMemo(() => {
+    return chaptersWithStats.reduce((acc, ch) => acc + ch.inProgressLessons, 0)
+  }, [chaptersWithStats])
 
-  // Filtered chapters for "all" tab
-  const filteredChapters = useMemo(() => {
-    if (!subject) return []
+  // Chapters available for current active tab
+  const availableChapters = useMemo(() => {
+    if (activeTab === 'in-progress') {
+      return chaptersWithStats.filter((c) => c.inProgressLessons > 0)
+    }
+    return chaptersWithStats
+  }, [chaptersWithStats, activeTab])
+
+  // Find the primary continue lesson for the Hero button
+  const primaryContinueLesson = useMemo(() => {
+    if (!subject) return null
+    for (const chap of subject.chapters) {
+      const inProg = chap.lessons.find((l) => l.status === 'in-progress')
+      if (inProg) return inProg
+    }
+    for (const chap of subject.chapters) {
+      const avail = chap.lessons.find((l) => l.status === 'available')
+      if (avail) return avail
+    }
+    return subject.chapters[0]?.lessons[0] || null
+  }, [subject])
+
+  // Resolve active chapter ID based on selection and search
+  const activeChapterId = useMemo(() => {
+    if (availableChapters.length === 0) return ''
+
     const query = searchQuery.trim().toLowerCase()
 
-    return subject.chapters
-      .filter((chap) => {
-        if (selectedChapterId !== 'all' && chap.id !== selectedChapterId) {
-          return false
-        }
-        return true
+    // If searching, check if currently selected chapter matches.
+    // If not, find the first available chapter that contains matches.
+    if (query) {
+      const currentCandidate = userSelectedChapterId
+        ? availableChapters.find((c) => c.id === userSelectedChapterId)
+        : null
+
+      const candidateHasMatch = currentCandidate?.lessons.some((l) => {
+        if (activeTab === 'in-progress' && l.status !== 'in-progress') return false
+        return (
+          l.title.toLowerCase().includes(query) ||
+          currentCandidate.title.toLowerCase().includes(query)
+        )
       })
-      .map((chap) => {
-        const chapMatches = chap.title.toLowerCase().includes(query)
-        const lessons = chap.lessons.filter((l) => {
-          if (query && !chapMatches && !l.title.toLowerCase().includes(query)) {
-            return false
-          }
-          return true
-        })
 
-        return {
-          ...chap,
-          lessons,
-        }
-      })
-      .filter((chap) => chap.lessons.length > 0)
-  }, [subject, selectedChapterId, searchQuery])
-
-  // Filtered in-progress lessons for "in-progress" tab
-  const filteredInProgressLessons = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase()
-
-    return allLessons.filter((l) => {
-      if (l.status !== 'in-progress') return false
-      if (selectedChapterId !== 'all' && l.chapterId !== selectedChapterId) return false
-      if (
-        query &&
-        !l.title.toLowerCase().includes(query) &&
-        !(l.chapterTitle && l.chapterTitle.toLowerCase().includes(query))
-      ) {
-        return false
+      if (candidateHasMatch && currentCandidate) {
+        return currentCandidate.id
       }
-      return true
-    })
-  }, [allLessons, selectedChapterId, searchQuery])
+
+      // Find first chapter that has a matching lesson
+      const match = availableChapters.find((c) =>
+        c.lessons.some((l) => {
+          if (activeTab === 'in-progress' && l.status !== 'in-progress') return false
+          return l.title.toLowerCase().includes(query) || c.title.toLowerCase().includes(query)
+        })
+      )
+      if (match) return match.id
+    }
+
+    // Normal selection without search or if search doesn't override
+    if (userSelectedChapterId && availableChapters.some((c) => c.id === userSelectedChapterId)) {
+      return userSelectedChapterId
+    }
+
+    // Default: find chapter containing first in-progress lesson
+    const inProgChap = availableChapters.find((c) => c.inProgressLessons > 0)
+    if (inProgChap) return inProgChap.id
+
+    // Fallback to first available chapter
+    return availableChapters[0].id
+  }, [availableChapters, userSelectedChapterId, searchQuery, activeTab])
+
+  // Current active chapter object
+  const activeChapter = useMemo(() => {
+    return availableChapters.find((c) => c.id === activeChapterId) || null
+  }, [availableChapters, activeChapterId])
+
+  // Visible lessons inside the active chapter
+  const visibleLessons = useMemo(() => {
+    if (!activeChapter) return []
+    const query = searchQuery.trim().toLowerCase()
+
+    let list = activeChapter.lessons
+    if (activeTab === 'in-progress') {
+      list = list.filter((l) => l.status === 'in-progress')
+    }
+
+    if (query) {
+      list = list.filter(
+        (l) =>
+          l.title.toLowerCase().includes(query) ||
+          activeChapter.title.toLowerCase().includes(query)
+      )
+    }
+
+    return list
+  }, [activeChapter, activeTab, searchQuery])
 
   if (isLoading) {
     return (
       <div className="subject-detail-root">
         <Skeleton variant="text" width={220} height={16} />
         <div className="subject-detail-header-skeleton">
-          <Skeleton variant="rect" width="100%" height={160} />
+          <Skeleton variant="rect" width="100%" height={170} />
         </div>
         <div className="subject-toolbar-skeleton">
-          <Skeleton variant="rect" width="100%" height={48} />
+          <Skeleton variant="rect" width="100%" height={44} />
         </div>
-        <div className="chapter-skeleton">
-          <Skeleton variant="text" width="40%" height={24} />
-          <Skeleton variant="rect" width="100%" height={200} />
+        <div className="curriculum-main-grid">
+          <Skeleton variant="rect" width="100%" height={380} />
+          <Skeleton variant="rect" width="100%" height={380} />
         </div>
       </div>
     )
@@ -137,7 +191,7 @@ export function SubjectDetailPage() {
 
   return (
     <div className="subject-detail-root">
-      {/* Breadcrumb */}
+      {/* 1. Breadcrumb */}
       <Breadcrumb
         items={[
           { label: 'Môn học', to: '/subjects' },
@@ -145,7 +199,7 @@ export function SubjectDetailPage() {
         ]}
       />
 
-      {/* Header / Hero */}
+      {/* 2. Hero Header — Restrained height, generous spacing, Navy Notebook theme */}
       <header className="subject-header-card">
         <div className="subject-header-main">
           <div
@@ -162,35 +216,33 @@ export function SubjectDetailPage() {
             </div>
             <h1 className="subject-title">{subject.name}</h1>
             <p className="subject-subtitle">
-              {subject.description || 'Theo dõi tiến độ học tập theo từng chương và bài.'}
+              {subject.description || 'Chương trình học được sắp xếp theo từng chương và bài.'}
             </p>
           </div>
         </div>
 
         <div className="subject-header-stats">
           <div className="progress-stat-row">
-            <div className="stat-item">
-              <span className="stat-label">Tiến độ giáo trình</span>
-              <span className="stat-val">{subject.progress}%</span>
-            </div>
-            <div className="stat-item text-right">
-              <span className="stat-label">Số bài học</span>
-              <span className="stat-val">
-                {subject.completedLessons} / {subject.totalLessons} bài
-              </span>
-            </div>
+            <span className="stat-label">TIẾN ĐỘ GIÁO TRÌNH</span>
+            <span className="stat-val">{subject.progress}%</span>
           </div>
 
-          <Progress value={subject.progress} height={8} />
+          <Progress value={subject.progress} height={7} />
 
-          {continueLesson && (
+          <div className="progress-stat-sub-row">
+            <span className="stat-sub-text">
+              {subject.completedLessons} / {subject.totalLessons} bài hoàn thành
+            </span>
+          </div>
+
+          {primaryContinueLesson && (
             <div className="subject-cta-wrap">
               <Button
                 variant="primary"
                 icon={Play}
                 fullWidth
                 onClick={() =>
-                  navigate(`/subjects/${subject.id}/lessons/${continueLesson.id}`)
+                  navigate(`/subjects/${subject.id}/lessons/${primaryContinueLesson.id}`)
                 }
               >
                 Tiếp tục bài đang học
@@ -200,9 +252,9 @@ export function SubjectDetailPage() {
         </div>
       </header>
 
-      {/* Filter Toolbar — No nested cards, clean flat bar */}
+      {/* 3. Toolbar below Hero: Tabs (Left) + Search (Right) */}
       <div className="subject-filter-toolbar">
-        {/* Segmented Tabs */}
+        {/* Segmented Pill Tabs */}
         <div className="filter-segmented-tabs" role="tablist" aria-label="Bộ lọc bài học">
           <button
             type="button"
@@ -212,7 +264,7 @@ export function SubjectDetailPage() {
             onClick={() => handleTabChange('all')}
           >
             <span>Tất cả bài học</span>
-            <span className="tab-count-badge">{allLessons.length}</span>
+            <span className="tab-count-badge">{totalAllLessonsCount}</span>
           </button>
 
           <button
@@ -223,205 +275,81 @@ export function SubjectDetailPage() {
             onClick={() => handleTabChange('in-progress')}
           >
             <span>Đang học dở</span>
-            <span className="tab-count-badge">{inProgressCount}</span>
+            <span className="tab-count-badge">{totalInProgressCount}</span>
           </button>
         </div>
 
-        {/* Controls: Search + Chapter select */}
-        <div className="filter-controls-group">
-          {/* Search Input */}
-          <div className="lesson-search-box">
-            <Search size={16} className="search-icon" aria-hidden />
-            <input
-              type="search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm bài học trong giáo trình..."
-              className="lesson-search-input"
-              aria-label="Tìm bài học trong giáo trình..."
-            />
-          </div>
-
-          {/* Chapter Select */}
-          <div className="chapter-select-box">
-            <SlidersHorizontal size={14} className="select-icon" aria-hidden />
-            <select
-              value={selectedChapterId}
-              onChange={(e) => setSelectedChapterId(e.target.value)}
-              className="chapter-select"
-              aria-label="Lọc theo chương"
-            >
-              <option value="all">Tất cả chương</option>
-              {subject.chapters.map((chap, idx) => (
-                <option key={chap.id} value={chap.id}>
-                  {chap.title.split(/[:·]/)[0].trim() || `Chương ${idx + 1}`}
-                </option>
-              ))}
-            </select>
-          </div>
+        {/* Search Input (Right) */}
+        <div className="lesson-search-box">
+          <Search size={16} className="search-icon" aria-hidden />
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Tìm bài học trong giáo trình..."
+            className="lesson-search-input"
+            aria-label="Tìm bài học trong giáo trình..."
+          />
         </div>
       </div>
 
-      {/* Content Area */}
-      {activeTab === 'in-progress' ? (
-        /* TAB 2: Đang học dở */
-        <div className="in-progress-view-wrap">
-          {filteredInProgressLessons.length === 0 ? (
-            <EmptyState
-              icon={Play}
-              title="Bạn chưa có bài học nào đang học dở."
-              description="Bắt đầu một bài học mới trong giáo trình nhé."
-              actionLabel="Xem tất cả bài học"
-              onAction={() => {
-                handleTabChange('all')
-                setSearchQuery('')
-                setSelectedChapterId('all')
-              }}
-            />
-          ) : (
-            <div className="in-progress-list">
-              {filteredInProgressLessons.map((lesson: SubjectLessonItem) => (
-                <div key={lesson.id} className="in-progress-card-item">
-                  <div className="in-progress-meta-row">
-                    <span className="in-progress-chapter-badge">
-                      {lesson.chapterTitle || 'Chương 1'}
-                    </span>
-                    <span className="in-progress-duration">{lesson.durationMinutes} phút</span>
-                  </div>
+      {/* 4. Mobile Chapter Selector (Shown ONLY on mobile <= 768px to avoid duplicate controls) */}
+      <div className="mobile-chapter-select-wrap">
+        <label htmlFor="mobile-chapter-select" className="mobile-chapter-label">
+          <SlidersHorizontal size={14} aria-hidden />
+          <span>Chọn chương:</span>
+        </label>
+        <select
+          id="mobile-chapter-select"
+          value={activeChapterId}
+          onChange={(e) => setUserSelectedChapterId(e.target.value)}
+          className="mobile-chapter-select"
+        >
+          {availableChapters.map((chap, idx) => (
+            <option key={chap.id} value={chap.id}>
+              Chương {chap.chapterNumber || idx + 1}: {chap.title.replace(/^Chương\s*\d+[:·\s-]*/i, '')} ({chap.completedLessons}/{chap.totalLessons})
+            </option>
+          ))}
+        </select>
+      </div>
 
-                  <h3 className="in-progress-title">
-                    <Link
-                      to={`/subjects/${subject.id}/lessons/${lesson.id}`}
-                      className="in-progress-title-link"
-                    >
-                      {lesson.title}
-                    </Link>
-                  </h3>
-
-                  <div className="in-progress-progress-row">
-                    <div className="in-progress-bar-wrap">
-                      <Progress value={lesson.progress || 0} height={7} />
-                    </div>
-                    <span className="in-progress-percent">{lesson.progress || 0}%</span>
-                  </div>
-
-                  <div className="in-progress-action-row">
-                    <Button
-                      variant="primary"
-                      icon={Play}
-                      onClick={() =>
-                        navigate(`/subjects/${subject.id}/lessons/${lesson.id}`)
-                      }
-                    >
-                      Học tiếp
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+      {/* 5. Main Content: 2 Columns on Desktop */}
+      {activeTab === 'in-progress' && availableChapters.length === 0 ? (
+        <div className="curriculum-empty-full">
+          <EmptyState
+            icon={BookOpen}
+            title="Bạn chưa có bài học nào đang học dở."
+            description="Bắt đầu một bài học mới trong giáo trình nhé."
+            actionLabel="Xem tất cả bài học"
+            onAction={() => {
+              handleTabChange('all')
+              setSearchQuery('')
+            }}
+          />
         </div>
       ) : (
-        /* TAB 1: Tất cả bài học (theo cấu trúc SGK) */
-        <div className="chapters-container">
-          {filteredChapters.length === 0 ? (
-            <EmptyState
-              icon={Search}
-              title="Không tìm thấy bài học phù hợp"
-              description={`Không có bài học nào khớp với điều kiện tìm kiếm "${searchQuery}".`}
-              actionLabel="Xóa bộ lọc tìm kiếm"
-              onAction={() => {
-                setSearchQuery('')
-                setSelectedChapterId('all')
-              }}
+        <div className="curriculum-main-grid">
+          {/* Cột trái (300px): Danh sách chương */}
+          <aside className="curriculum-col-left">
+            <CurriculumChapterNav
+              chapters={availableChapters}
+              selectedChapterId={activeChapterId}
+              onSelectChapter={(id) => setUserSelectedChapterId(id)}
+              activeTab={activeTab}
             />
-          ) : (
-            filteredChapters.map((chapter) => (
-              <section key={chapter.id} className="chapter-section">
-                <div className="chapter-header">
-                  <div className="chapter-header-main">
-                    <h2 className="chapter-title">{chapter.title}</h2>
-                    {chapter.description && (
-                      <p className="chapter-desc">{chapter.description}</p>
-                    )}
-                  </div>
-                  <span className="chapter-lesson-count">
-                    {chapter.lessons.length} bài
-                  </span>
-                </div>
+          </aside>
 
-                {/* Lesson rows with divider */}
-                <div className="lesson-list-container">
-                  {chapter.lessons.map((lesson) => {
-                    const isLocked = lesson.status === 'locked'
-                    const isCompleted = lesson.status === 'completed'
-                    const isInProgress = lesson.status === 'in-progress'
-                    const lessonUrl = `/subjects/${subject.id}/lessons/${lesson.id}`
-
-                    return (
-                      <div
-                        key={lesson.id}
-                        className={`lesson-list-row ${isLocked ? 'is-locked' : ''} ${isInProgress ? 'is-active' : ''}`}
-                      >
-                        {/* Status Icon */}
-                        <div className="lesson-status-col" aria-hidden>
-                          {isCompleted && (
-                            <CheckCircle2 size={18} className="status-icon completed" />
-                          )}
-                          {isInProgress && (
-                            <Play size={15} className="status-icon in-progress" />
-                          )}
-                          {lesson.status === 'available' && (
-                            <div className="status-dot available" />
-                          )}
-                          {isLocked && (
-                            <Lock size={15} className="status-icon locked" />
-                          )}
-                        </div>
-
-                        {/* Title, duration, progress info */}
-                        <div className="lesson-info-col">
-                          <Link
-                            to={isLocked ? '#' : lessonUrl}
-                            className={`lesson-title-link ${isLocked ? 'disabled' : ''}`}
-                            tabIndex={isLocked ? -1 : 0}
-                          >
-                            {lesson.title}
-                          </Link>
-                          <div className="lesson-meta-sub">
-                            <span className="lesson-duration">{lesson.durationMinutes} phút</span>
-                            {isInProgress && typeof lesson.progress === 'number' && (
-                              <span className="lesson-progress-badge">
-                                Đã học {lesson.progress}%
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Action Column */}
-                        <div className="lesson-action-col">
-                          {isLocked ? (
-                            <span className="locked-label">Khóa</span>
-                          ) : (
-                            <Link
-                              to={lessonUrl}
-                              className={`lesson-action-btn ${isInProgress ? 'is-in-progress-cta' : ''}`}
-                              aria-label={`Mở bài học: ${lesson.title}`}
-                            >
-                              <span className="action-text">
-                                {isCompleted ? 'Ôn lại' : isInProgress ? 'Học tiếp' : 'Bắt đầu'}
-                              </span>
-                              <ChevronRight size={15} aria-hidden />
-                            </Link>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </section>
-            ))
-          )}
+          {/* Cột phải (fluid): Danh sách bài học */}
+          <main className="curriculum-col-right">
+            <CurriculumLessonsPanel
+              chapter={activeChapter}
+              lessons={visibleLessons}
+              subjectId={subject.id}
+              searchQuery={searchQuery}
+              onClearSearch={() => setSearchQuery('')}
+              activeTab={activeTab}
+            />
+          </main>
         </div>
       )}
     </div>
