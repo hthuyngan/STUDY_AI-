@@ -1,4 +1,4 @@
-import { Bot, Check, ChevronLeft, ChevronRight, HelpCircle } from 'lucide-react'
+import { Award, Bot, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import './LessonBottomBar.css'
@@ -8,11 +8,11 @@ export interface LessonBottomBarProps {
   lessonTitle: string
   courseId?: string
   subjectId?: string
-  quizId?: string
   previousLessonId?: string
   nextLessonId?: string
   isCompleted?: boolean
-  onComplete?: () => void
+  isAssessmentCompleted?: boolean
+  onOpenAssessment?: () => void
 }
 
 export function LessonBottomBar({
@@ -20,15 +20,22 @@ export function LessonBottomBar({
   subjectId,
   lessonId,
   lessonTitle,
-  quizId,
   previousLessonId,
   nextLessonId,
-  isCompleted,
-  onComplete,
+  isAssessmentCompleted,
+  onOpenAssessment,
 }: LessonBottomBarProps) {
   const navigate = useNavigate()
 
-  const activeSubjectId = subjectId || (courseId?.startsWith('phy') ? 'physics' : courseId?.startsWith('chem') ? 'chemistry' : courseId?.startsWith('eng') ? 'english' : 'math')
+  const activeSubjectId =
+    subjectId ||
+    (courseId?.startsWith('phy')
+      ? 'physics'
+      : courseId?.startsWith('chem')
+        ? 'chemistry'
+        : courseId?.startsWith('eng')
+          ? 'english'
+          : 'math')
 
   const handleAskAI = () => {
     navigate(`/ai-tutor?lesson=${lessonId}&topic=${encodeURIComponent(lessonTitle)}`)
@@ -36,6 +43,7 @@ export function LessonBottomBar({
 
   return (
     <div className="lesson-bottom-bar" role="toolbar" aria-label="Điều hướng bài học">
+      {/* LEFT: Bài trước */}
       <div className="bottom-bar-left">
         {previousLessonId ? (
           <Button
@@ -50,6 +58,7 @@ export function LessonBottomBar({
         )}
       </div>
 
+      {/* CENTER: Hỏi AI về bài này */}
       <div className="bottom-bar-center">
         <Button
           variant="outline"
@@ -59,27 +68,21 @@ export function LessonBottomBar({
         >
           Hỏi AI về bài này
         </Button>
+      </div>
 
-        {quizId && (
+      {/* RIGHT: Primary CTA (Làm bài tập thu hoạch) & Bài tiếp */}
+      <div className="bottom-bar-right">
+        {onOpenAssessment && (
           <Button
-            variant="outline"
-            icon={HelpCircle}
-            onClick={() => navigate(`/quiz/${quizId}`)}
+            variant={isAssessmentCompleted ? 'outline' : 'primary'}
+            icon={Award}
+            onClick={onOpenAssessment}
+            className="assessment-primary-cta"
           >
-            Làm bài trắc nghiệm
+            {isAssessmentCompleted ? 'Bài tập thu hoạch' : 'Làm bài tập thu hoạch'}
           </Button>
         )}
 
-        <Button
-          variant={isCompleted ? 'outline' : 'primary'}
-          icon={Check}
-          onClick={onComplete}
-        >
-          {isCompleted ? 'Đã hoàn thành' : 'Đánh dấu hoàn thành'}
-        </Button>
-      </div>
-
-      <div className="bottom-bar-right">
         {nextLessonId && (
           <Button
             variant="outline"
