@@ -1,4 +1,3 @@
-import '@/styles/components.css'
 import { SUBJECTS } from '@/data/subjects'
 import { DSPreview, DSSection } from './DSHelpers'
 import './DesignSystem.css'
