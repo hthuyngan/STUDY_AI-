@@ -1,0 +1,44 @@
+.lesson-global-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  max-width: 240px;
+}
+
+.lesson-global-progress-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-navy-800, #243b53);
+  letter-spacing: -0.01em;
+}
+
+.lesson-global-progress-label .progress-number {
+  font-family: var(--font-mono, monospace);
+  font-weight: 700;
+  color: var(--color-navy-900, #102a43);
+}
+
+.lesson-global-progress-track {
+  height: 6px;
+  background-color: var(--color-slate-200, #e2e8f0);
+  border-radius: 9999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.lesson-global-progress-fill {
+  height: 100%;
+  background-color: var(--color-navy-800, #102a43);
+  border-radius: 9999px;
+  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lesson-global-progress-fill {
+    transition: none;
+  }
+}

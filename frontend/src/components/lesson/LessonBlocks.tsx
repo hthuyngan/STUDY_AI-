@@ -3,8 +3,19 @@ import { AlertCircle, BookMarked, Check, Lightbulb } from 'lucide-react'
 import type { ExampleItem, FormulaItem } from '@/types/lesson'
 import './LessonBlocks.css'
 
-export function LessonHeading({ children }: { children: ReactNode }) {
-  return <h2 className="lesson-block-heading">{children}</h2>
+export function LessonHeading({
+  children,
+  extra,
+}: {
+  children: ReactNode
+  extra?: ReactNode
+}) {
+  return (
+    <div className="lesson-heading-row">
+      <h2 className="lesson-block-heading">{children}</h2>
+      {extra && <div className="lesson-heading-extra">{extra}</div>}
+    </div>
+  )
 }
 
 export function LessonParagraph({ children }: { children: ReactNode }) {

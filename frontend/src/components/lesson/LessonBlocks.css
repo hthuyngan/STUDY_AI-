@@ -1,14 +1,26 @@
+.lesson-heading-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-3);
+}
+
+.lesson-heading-row:first-child {
+  margin-top: 0;
+}
+
+.lesson-heading-row .lesson-block-heading {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
 .lesson-block-heading {
   font-size: var(--text-xl);
   font-weight: var(--font-bold);
   color: var(--text-primary);
-  margin-top: var(--space-6);
-  margin-bottom: var(--space-3);
   letter-spacing: -0.01em;
-}
-
-.lesson-block-heading:first-child {
-  margin-top: 0;
 }
 
 .lesson-block-paragraph {

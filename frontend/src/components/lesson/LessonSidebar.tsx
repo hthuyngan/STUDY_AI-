@@ -8,6 +8,7 @@ export interface LessonSidebarProps {
   subjectTitle: string
   currentLessonId: string
   chapters: CourseOutlineChapter[]
+  currentLessonProgress?: number
   isOpenOnMobile?: boolean
   onCloseMobile?: () => void
   // Legacy alias
@@ -20,6 +21,7 @@ export function LessonSidebar({
   subjectTitle,
   currentLessonId,
   chapters,
+  currentLessonProgress,
   isOpenOnMobile = false,
   onCloseMobile,
   courseId,
@@ -95,7 +97,14 @@ export function LessonSidebar({
                       </div>
 
                       <div className="item-text-col">
-                        <span className="item-lesson-num">Bài {l.lessonNumber}</span>
+                        <div className="item-title-row">
+                          <span className="item-lesson-num">Bài {l.lessonNumber}</span>
+                          {isCurrent && typeof currentLessonProgress === 'number' && (
+                            <span className="sidebar-lesson-progress-badge">
+                              {currentLessonProgress}%
+                            </span>
+                          )}
+                        </div>
                         <span className="item-lesson-title">{l.title}</span>
                       </div>
                     </Link>

@@ -1,6 +1,18 @@
 import { mockLessonsDetail } from '@/data/lessons.mock'
 import { mockSubjectDetails } from '@/data/subjects.mock'
+import { LESSON_PROGRESS_STORAGE_KEY } from '@/services/lessonProgress.service'
+import type { LessonProgressState } from '@/types/assessment'
 import type { CourseOutlineChapter, LessonDetail } from '@/types/lesson'
+
+function getSavedLessonProgressMap(): Record<string, LessonProgressState> {
+  if (typeof window === 'undefined') return {}
+  try {
+    const raw = localStorage.getItem(LESSON_PROGRESS_STORAGE_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
 
 function resolveSubjectKey(id: string): string {
   if (id.startsWith('math')) return 'math'
@@ -12,6 +24,9 @@ function resolveSubjectKey(id: string): string {
 
 export async function getLesson(courseOrSubjectId: string, lessonId: string): Promise<LessonDetail | null> {
   await new Promise((resolve) => setTimeout(resolve, 150))
+  const progressMap = getSavedLessonProgressMap()
+  const savedProgress = progressMap[lessonId]
+
   const lesson = mockLessonsDetail[lessonId]
   if (!lesson) {
     const subjectKey = resolveSubjectKey(courseOrSubjectId)
@@ -29,7 +44,7 @@ export async function getLesson(courseOrSubjectId: string, lessonId: string): Pr
       title: 'Nội dung bài học',
       durationMinutes: 45,
       xp: 50,
-      isCompleted: false,
+      isCompleted: savedProgress ? savedProgress.overallProgress === 100 : false,
       content: {
         introduction: 'Bài học trọng tâm thuộc chương trình giáo trình chuẩn SGK.',
         definitions: [
@@ -45,7 +60,11 @@ export async function getLesson(courseOrSubjectId: string, lessonId: string): Pr
       },
     }
   }
-  return { ...lesson }
+
+  return {
+    ...lesson,
+    isCompleted: savedProgress ? savedProgress.overallProgress === 100 : lesson.isCompleted,
+  }
 }
 
 export async function getCourseOutline(courseOrSubjectId: string): Promise<CourseOutlineChapter[]> {
@@ -54,16 +73,31 @@ export async function getCourseOutline(courseOrSubjectId: string): Promise<Cours
   const subject = mockSubjectDetails[subjectKey]
   if (!subject) return []
 
+  const progressMap = getSavedLessonProgressMap()
+
   return subject.chapters.map((chap) => ({
     id: chap.id,
     title: chap.title,
-    lessons: chap.lessons.map((l, idx) => ({
-      id: l.id,
-      lessonNumber: idx + 1,
-      title: l.title,
-      status: l.status,
-      durationMinutes: l.durationMinutes,
-    })),
+    lessons: chap.lessons.map((l, idx) => {
+      const saved = progressMap[l.id]
+      const status: 'completed' | 'in-progress' | 'available' | 'locked' = saved
+        ? saved.overallProgress === 100
+          ? 'completed'
+          : saved.overallProgress > 0
+            ? 'in-progress'
+            : l.status === 'locked'
+              ? 'locked'
+              : 'available'
+        : l.status
+
+      return {
+        id: l.id,
+        lessonNumber: idx + 1,
+        title: l.title,
+        status,
+        durationMinutes: l.durationMinutes,
+      }
+    }),
   }))
 }
 
