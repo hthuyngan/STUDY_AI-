@@ -4,22 +4,30 @@ import type { CourseOutlineChapter } from '@/types/lesson'
 import './LessonSidebar.css'
 
 export interface LessonSidebarProps {
-  courseId: string
-  courseTitle: string
+  subjectId: string
+  subjectTitle: string
   currentLessonId: string
   chapters: CourseOutlineChapter[]
   isOpenOnMobile?: boolean
   onCloseMobile?: () => void
+  // Legacy alias
+  courseId?: string
+  courseTitle?: string
 }
 
 export function LessonSidebar({
-  courseId,
-  courseTitle,
+  subjectId,
+  subjectTitle,
   currentLessonId,
   chapters,
   isOpenOnMobile = false,
   onCloseMobile,
+  courseId,
+  courseTitle,
 }: LessonSidebarProps) {
+  const activeSubjectId = subjectId || courseId || 'math'
+  const activeSubjectTitle = subjectTitle || courseTitle || 'Giáo trình môn học'
+
   return (
     <>
       {/* Mobile backdrop */}
@@ -29,13 +37,17 @@ export function LessonSidebar({
 
       <aside
         className={`lesson-outline-sidebar ${isOpenOnMobile ? 'mobile-open' : ''}`}
-        aria-label="Danh sách bài học trong khóa"
+        aria-label="Mục lục bài học trong giáo trình"
       >
         <div className="outline-sidebar-header">
           <div className="header-top-line">
-            <Link to={`/courses/${courseId}`} className="back-course-link" title="Quay lại khóa học">
+            <Link
+              to={`/subjects/${activeSubjectId}`}
+              className="back-course-link"
+              title="Quay lại giáo trình môn học"
+            >
               <ChevronLeft size={16} aria-hidden />
-              <span>Khóa học</span>
+              <span>Giáo trình môn</span>
             </Link>
 
             {onCloseMobile && (
@@ -49,7 +61,7 @@ export function LessonSidebar({
               </button>
             )}
           </div>
-          <h2 className="sidebar-course-title">{courseTitle}</h2>
+          <h2 className="sidebar-course-title">{activeSubjectTitle}</h2>
         </div>
 
         <nav className="outline-sidebar-content scrollbar-clean">
@@ -68,7 +80,7 @@ export function LessonSidebar({
                   return (
                     <Link
                       key={l.id}
-                      to={isLocked ? '#' : `/learn/${courseId}/${l.id}`}
+                      to={isLocked ? '#' : `/subjects/${activeSubjectId}/lessons/${l.id}`}
                       className={`sidebar-lesson-item ${isCurrent ? 'current' : ''} ${isLocked ? 'locked' : ''}`}
                       onClick={() => {
                         if (!isLocked && onCloseMobile) onCloseMobile()

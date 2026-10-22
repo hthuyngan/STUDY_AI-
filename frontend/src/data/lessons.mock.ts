@@ -3,11 +3,11 @@ import type { LessonDetail } from '@/types/lesson'
 export const mockLessonsDetail: Record<string, LessonDetail> = {
   'lesson-math-08': {
     id: 'lesson-math-08',
-    courseId: 'math-12',
-    courseTitle: 'Ứng dụng đạo hàm để khảo sát & vẽ đồ thị hàm số',
+    courseId: 'math',
+    courseTitle: 'Toán học · Lớp 12',
     subjectId: 'math',
-    subjectName: 'Toán 12',
-    chapterId: 'chap-1',
+    subjectName: 'Toán học',
+    chapterId: 'math-chap-1',
     chapterTitle: 'Chương 1: Khảo sát sự biến thiên của hàm số',
     lessonNumber: 8,
     title: 'Khảo sát sự biến thiên và vẽ đồ thị hàm số',

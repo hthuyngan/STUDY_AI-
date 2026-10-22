@@ -1,7 +1,6 @@
 import {
   Atom,
   Award,
-  BookOpen,
   Bot,
   ChevronLeft,
   ChevronRight,
@@ -98,13 +97,6 @@ export function Sidebar({
               to="/ai-tutor"
               label="AI Tutor"
               icon={Bot}
-              collapsed={collapsed}
-              onClick={onCloseMobile}
-            />
-            <SidebarItem
-              to="/courses"
-              label="Khóa học"
-              icon={BookOpen}
               collapsed={collapsed}
               onClick={onCloseMobile}
             />

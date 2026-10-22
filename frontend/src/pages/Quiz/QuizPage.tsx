@@ -91,7 +91,8 @@ export function QuizPage() {
       {/* Breadcrumb */}
       <Breadcrumb
         items={[
-          quiz.courseId ? { label: 'Khóa học', to: `/courses/${quiz.courseId}` } : { label: 'Bài tập', to: '/exercises' },
+          { label: 'Môn học', to: '/subjects' },
+          ...(quiz.subjectId ? [{ label: quiz.subjectName || 'Môn học', to: `/subjects/${quiz.subjectId}` }] : []),
           { label: quiz.title },
         ]}
       />

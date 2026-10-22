@@ -12,7 +12,7 @@ export const mockLearningPath: LearningPathData = {
     reason:
       'Dựa trên kết quả bài kiểm tra gần đây, bạn còn nhầm lẫn phần Tiệm cận đứng và Điểm cực đại. Hãy ôn lại Bài 04 & làm 5 câu trắc nghiệm trước khi học tiếp bài mới.',
     actionLabel: 'Ôn ngay Bài 04',
-    actionUrl: '/learn/math-12/lesson-math-04',
+    actionUrl: '/subjects/math/lessons/lesson-math-04',
     topic: 'Đường tiệm cận của đồ thị hàm số',
   },
   stages: [

@@ -54,8 +54,8 @@ export function SubjectsPage() {
       {/* Header */}
       <div className="page-header-row">
         <div>
-          <h1 className="page-title">Môn học của bạn</h1>
-          <p className="page-subtitle">Theo dõi tiến độ và lựa chọn chương trình học tập mục tiêu</p>
+          <h1 className="page-title">Môn học</h1>
+          <p className="page-subtitle">Học theo giáo trình và theo dõi tiến độ của từng môn.</p>
         </div>
 
         {/* Search */}
@@ -67,7 +67,7 @@ export function SubjectsPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Tìm môn học..."
             className="subject-search-input"
-            aria-label="Tìm kiếm môn học"
+            aria-label="Tìm môn học..."
           />
         </div>
       </div>
@@ -93,7 +93,9 @@ export function SubjectsPage() {
                   {sub.icon}
                 </div>
                 <div className="subject-card-meta">
-                  <div className="subject-badge-grade">{sub.grade}</div>
+                  <div className="subject-badge-grade">
+                    {sub.grade} · {sub.curriculumLabel || 'Giáo trình SGK'}
+                  </div>
                   <h2 className="subject-name">{sub.name}</h2>
                 </div>
               </div>
@@ -120,7 +122,7 @@ export function SubjectsPage() {
               <div className="subject-card-footer">
                 <Link to={`/subjects/${sub.id}`} className="w-full">
                   <Button variant="outline" icon={ArrowRight} fullWidth>
-                    Vào môn học
+                    Mở giáo trình
                   </Button>
                 </Link>
               </div>

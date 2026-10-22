@@ -20,8 +20,22 @@ import { useLesson } from '@/hooks/useLesson'
 import './LessonPage.css'
 
 export function LessonPage() {
-  const { courseId, lessonId } = useParams<{ courseId: string; lessonId: string }>()
+  const { subjectId: paramSubjectId, courseId: paramCourseId, lessonId } = useParams<{
+    subjectId?: string
+    courseId?: string
+    lessonId: string
+  }>()
   const [mobileOutlineOpen, setMobileOutlineOpen] = useState(false)
+
+  const resolvedSubjectId =
+    paramSubjectId ||
+    (paramCourseId?.startsWith('phy')
+      ? 'physics'
+      : paramCourseId?.startsWith('chem')
+        ? 'chemistry'
+        : paramCourseId?.startsWith('eng')
+          ? 'english'
+          : 'math')
 
   const {
     lesson,
@@ -33,7 +47,7 @@ export function LessonPage() {
     toggleBookmark,
     completeLesson,
     reload,
-  } = useLesson(courseId, lessonId)
+  } = useLesson(resolvedSubjectId, lessonId)
 
   if (isLoading) {
     return (
@@ -50,18 +64,25 @@ export function LessonPage() {
   if (error || !lesson) {
     return (
       <div className="lesson-page-root">
-        <Breadcrumb items={[{ label: 'Khóa học', to: '/courses' }, { label: 'Bài học' }]} />
+        <Breadcrumb items={[{ label: 'Môn học', to: '/subjects' }, { label: 'Bài học' }]} />
         <PageErrorState description={error || 'Không tìm thấy bài học'} onRetry={reload} />
       </div>
     )
   }
 
+  const chapterShortLabel = lesson.chapterTitle
+    ? lesson.chapterTitle.split(/[:·]/)[0].trim()
+    : 'Chương 1'
+  const lessonShortLabel = lesson.lessonNumber
+    ? `Bài ${String(lesson.lessonNumber).padStart(2, '0')}`
+    : lesson.title
+
   return (
     <div className="lesson-page-container">
       {/* Sidebar with outline */}
       <LessonSidebar
-        courseId={lesson.courseId}
-        courseTitle={lesson.courseTitle}
+        subjectId={resolvedSubjectId}
+        subjectTitle={`Giáo trình ${lesson.subjectName || 'Môn học'}`}
         currentLessonId={lesson.id}
         chapters={outline}
         isOpenOnMobile={mobileOutlineOpen}
@@ -74,9 +95,10 @@ export function LessonPage() {
         <div className="lesson-top-bar">
           <Breadcrumb
             items={[
-              { label: 'Khóa học', to: '/courses' },
-              { label: lesson.courseTitle, to: `/courses/${lesson.courseId}` },
-              { label: lesson.title },
+              { label: 'Môn học', to: '/subjects' },
+              { label: lesson.subjectName || 'Toán học', to: `/subjects/${resolvedSubjectId}` },
+              { label: chapterShortLabel },
+              { label: lessonShortLabel },
             ]}
           />
 
@@ -171,7 +193,7 @@ export function LessonPage() {
 
         {/* Bottom Action Bar */}
         <LessonBottomBar
-          courseId={lesson.courseId}
+          subjectId={resolvedSubjectId}
           lessonId={lesson.id}
           lessonTitle={lesson.title}
           quizId={lesson.quizId}

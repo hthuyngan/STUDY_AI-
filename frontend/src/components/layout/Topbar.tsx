@@ -20,7 +20,7 @@ export interface TopbarProps {
 }
 
 interface SearchResult {
-  category: 'Bài học' | 'Khóa học' | 'Tài liệu' | 'AI Tutor'
+  category: 'Môn học' | 'Bài học' | 'Bài tập' | 'Tài liệu' | 'AI Tutor'
   icon: typeof BookOpen
   title: string
   subtitle: string
@@ -32,22 +32,22 @@ const MOCK_SEARCH_ITEMS: SearchResult[] = [
     category: 'Bài học',
     icon: BookOpen,
     title: 'Khảo sát sự biến thiên và vẽ đồ thị hàm số',
-    subtitle: 'Giải tích 12 · Bài 08',
-    url: '/learn/math-12/lesson-math-08',
+    subtitle: 'Toán học 12 · Bài 08',
+    url: '/subjects/math/lessons/lesson-math-08',
   },
   {
     category: 'Bài học',
     icon: BookOpen,
     title: 'Cực trị của hàm số',
-    subtitle: 'Giải tích 12 · Bài 02',
-    url: '/learn/math-12/lesson-math-02',
+    subtitle: 'Toán học 12 · Bài 02',
+    url: '/subjects/math/lessons/lesson-math-02',
   },
   {
-    category: 'Khóa học',
+    category: 'Môn học',
     icon: Layers,
-    title: 'Ứng dụng đạo hàm để khảo sát hàm số',
-    subtitle: 'Toán 12 · 12 bài học',
-    url: '/courses/math-12',
+    title: 'Toán học · Lớp 12',
+    subtitle: 'Giáo trình SGK · 32 bài học',
+    url: '/subjects/math',
   },
   {
     category: 'Tài liệu',

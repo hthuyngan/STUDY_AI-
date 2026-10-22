@@ -140,7 +140,9 @@ export function LearningPathPage() {
 
                   {isCurrent && stage.primaryCourseId && stage.primaryLessonId && (
                     <div className="stage-action-wrap">
-                      <Link to={`/learn/${stage.primaryCourseId}/${stage.primaryLessonId}`}>
+                      <Link
+                        to={`/subjects/${stage.primaryCourseId.startsWith('math') ? 'math' : stage.primaryCourseId.startsWith('phy') ? 'physics' : stage.primaryCourseId.startsWith('chem') ? 'chemistry' : 'english'}/lessons/${stage.primaryLessonId}`}
+                      >
                         <Button variant="primary" icon={Play}>
                           Học tiếp giai đoạn này
                         </Button>

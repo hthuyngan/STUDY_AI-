@@ -69,10 +69,9 @@ export function DashboardPage() {
         onStartLearning={() => {
           const firstLesson = data.continueLessons[0]
           if (firstLesson) {
-            const courseId = firstLesson.subjectId === 'math' ? 'math-12' : firstLesson.subjectId === 'physics' ? 'phy-12' : 'eng-12'
-            navigate(`/learn/${courseId}/${firstLesson.id}`)
+            navigate(`/subjects/${firstLesson.subjectId}/lessons/${firstLesson.id}`)
           } else {
-            navigate('/courses')
+            navigate('/subjects')
           }
         }}
       />
@@ -101,8 +100,8 @@ export function DashboardPage() {
             lessons={data.continueLessons}
             onContinueLesson={(lessonId) => {
               const lesson = data.continueLessons.find((l) => l.id === lessonId)
-              const courseId = lesson?.subjectId === 'math' ? 'math-12' : lesson?.subjectId === 'physics' ? 'phy-12' : 'eng-12'
-              navigate(`/learn/${courseId}/${lessonId}`)
+              const subjectId = lesson?.subjectId || 'math'
+              navigate(`/subjects/${subjectId}/lessons/${lessonId}`)
             }}
           />
         </div>

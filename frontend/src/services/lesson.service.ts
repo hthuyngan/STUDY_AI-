@@ -1,27 +1,37 @@
-import { mockCourseDetails } from '@/data/courses.mock'
 import { mockLessonsDetail } from '@/data/lessons.mock'
+import { mockSubjectDetails } from '@/data/subjects.mock'
 import type { CourseOutlineChapter, LessonDetail } from '@/types/lesson'
 
-export async function getLesson(courseId: string, lessonId: string): Promise<LessonDetail | null> {
+function resolveSubjectKey(id: string): string {
+  if (id.startsWith('math')) return 'math'
+  if (id.startsWith('phy')) return 'physics'
+  if (id.startsWith('chem')) return 'chemistry'
+  if (id.startsWith('eng')) return 'english'
+  return id
+}
+
+export async function getLesson(courseOrSubjectId: string, lessonId: string): Promise<LessonDetail | null> {
   await new Promise((resolve) => setTimeout(resolve, 150))
   const lesson = mockLessonsDetail[lessonId]
   if (!lesson) {
-    // If not in detailed mock, provide fallback mock lesson
+    const subjectKey = resolveSubjectKey(courseOrSubjectId)
+    const subject = mockSubjectDetails[subjectKey]
+
     return {
       id: lessonId,
-      courseId,
-      courseTitle: 'Khóa học ôn thi THPT Quốc gia',
-      subjectId: 'math',
-      subjectName: 'Toán học',
+      courseId: courseOrSubjectId,
+      courseTitle: subject ? `Giáo trình ${subject.name} ${subject.grade}` : 'Giáo trình học tập SGK',
+      subjectId: subjectKey,
+      subjectName: subject?.name || 'Môn học',
       chapterId: 'chap-default',
-      chapterTitle: 'Chuyên đề học tập',
+      chapterTitle: 'Chương 1 · Kiến thức trọng tâm',
       lessonNumber: 1,
       title: 'Nội dung bài học',
       durationMinutes: 45,
       xp: 50,
       isCompleted: false,
       content: {
-        introduction: 'Bài học trọng tâm thuộc chương trình ôn thi THPT Quốc gia.',
+        introduction: 'Bài học trọng tâm thuộc chương trình giáo trình chuẩn SGK.',
         definitions: [
           {
             term: 'Kiến thức cốt lõi',
@@ -38,12 +48,13 @@ export async function getLesson(courseId: string, lessonId: string): Promise<Les
   return { ...lesson }
 }
 
-export async function getCourseOutline(courseId: string): Promise<CourseOutlineChapter[]> {
+export async function getCourseOutline(courseOrSubjectId: string): Promise<CourseOutlineChapter[]> {
   await new Promise((resolve) => setTimeout(resolve, 100))
-  const course = mockCourseDetails[courseId]
-  if (!course) return []
+  const subjectKey = resolveSubjectKey(courseOrSubjectId)
+  const subject = mockSubjectDetails[subjectKey]
+  if (!subject) return []
 
-  return course.chapters.map((chap) => ({
+  return subject.chapters.map((chap) => ({
     id: chap.id,
     title: chap.title,
     lessons: chap.lessons.map((l, idx) => ({
@@ -55,6 +66,8 @@ export async function getCourseOutline(courseId: string): Promise<CourseOutlineC
     })),
   }))
 }
+
+export const getSubjectOutline = getCourseOutline
 
 export async function toggleLessonBookmark(lessonId: string): Promise<boolean> {
   await new Promise((resolve) => setTimeout(resolve, 100))

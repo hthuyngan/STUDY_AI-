@@ -1,13 +1,11 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
 import { RouteLoadingFallback } from '@/components/layout/RouteLoadingFallback'
 
 const DashboardPage = lazy(() => import('@/pages/Dashboard/DashboardPage'))
 const SubjectsPage = lazy(() => import('@/pages/Subjects/SubjectsPage'))
 const SubjectDetailPage = lazy(() => import('@/pages/Subjects/SubjectDetailPage'))
-const CoursesPage = lazy(() => import('@/pages/Courses/CoursesPage'))
-const CourseDetailPage = lazy(() => import('@/pages/Courses/CourseDetailPage'))
 const LessonPage = lazy(() => import('@/pages/Lesson/LessonPage'))
 const QuizPage = lazy(() => import('@/pages/Quiz/QuizPage'))
 const QuizResultPage = lazy(() => import('@/pages/Quiz/QuizResultPage'))
@@ -19,6 +17,37 @@ const AchievementsPage = lazy(() => import('@/pages/Achievements/AchievementsPag
 const ProfilePage = lazy(() => import('@/pages/Profile/ProfilePage'))
 const SettingsPage = lazy(() => import('@/pages/Settings/SettingsPage'))
 const DesignSystemPage = lazy(() => import('@/pages/DesignSystem/DesignSystemPage'))
+
+function LegacyCoursesRedirect() {
+  const { courseId } = useParams<{ courseId?: string }>()
+  if (!courseId) {
+    return <Navigate to="/subjects" replace />
+  }
+  const subjectId = courseId.startsWith('math')
+    ? 'math'
+    : courseId.startsWith('phy')
+      ? 'physics'
+      : courseId.startsWith('chem')
+        ? 'chemistry'
+        : courseId.startsWith('eng')
+          ? 'english'
+          : 'math'
+  return <Navigate to={`/subjects/${subjectId}`} replace />
+}
+
+function LegacyLearnRedirect() {
+  const { courseId, lessonId } = useParams<{ courseId: string; lessonId: string }>()
+  const subjectId = (courseId || '').startsWith('math')
+    ? 'math'
+    : (courseId || '').startsWith('phy')
+      ? 'physics'
+      : (courseId || '').startsWith('chem')
+        ? 'chemistry'
+        : (courseId || '').startsWith('eng')
+          ? 'english'
+          : 'math'
+  return <Navigate to={`/subjects/${subjectId}/lessons/${lessonId}`} replace />
+}
 
 function App() {
   return (
@@ -36,7 +65,7 @@ function App() {
           }
         />
 
-        {/* Subjects */}
+        {/* Subjects Curriculum */}
         <Route
           path="/subjects"
           element={
@@ -58,31 +87,9 @@ function App() {
           }
         />
 
-        {/* Courses */}
+        {/* Canonical Lesson Route */}
         <Route
-          path="/courses"
-          element={
-            <AppShell>
-              <Suspense fallback={<RouteLoadingFallback />}>
-                <CoursesPage />
-              </Suspense>
-            </AppShell>
-          }
-        />
-        <Route
-          path="/courses/:courseId"
-          element={
-            <AppShell>
-              <Suspense fallback={<RouteLoadingFallback />}>
-                <CourseDetailPage />
-              </Suspense>
-            </AppShell>
-          }
-        />
-
-        {/* Lesson View */}
-        <Route
-          path="/learn/:courseId/:lessonId"
+          path="/subjects/:subjectId/lessons/:lessonId"
           element={
             <AppShell>
               <Suspense fallback={<RouteLoadingFallback />}>
@@ -91,6 +98,13 @@ function App() {
             </AppShell>
           }
         />
+
+        {/* Legacy Course redirects */}
+        <Route path="/courses" element={<Navigate to="/subjects" replace />} />
+        <Route path="/courses/:courseId" element={<LegacyCoursesRedirect />} />
+
+        {/* Legacy /learn redirect to canonical /subjects/:subjectId/lessons/:lessonId */}
+        <Route path="/learn/:courseId/:lessonId" element={<LegacyLearnRedirect />} />
 
         {/* Quiz Flow */}
         <Route

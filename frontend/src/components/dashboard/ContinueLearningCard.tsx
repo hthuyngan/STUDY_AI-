@@ -15,7 +15,7 @@ export function ContinueLearningCard({
   onContinueLesson,
 }: ContinueLearningCardProps) {
   const viewAllAction = (
-    <Link to="/courses" className="card-link-action">
+    <Link to="/subjects" className="card-link-action">
       <span>Xem tất cả</span>
       <ArrowRight size={14} aria-hidden />
     </Link>

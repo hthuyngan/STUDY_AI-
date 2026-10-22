@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/Button'
 import './LessonBottomBar.css'
 
 export interface LessonBottomBarProps {
-  courseId: string
   lessonId: string
   lessonTitle: string
+  courseId?: string
+  subjectId?: string
   quizId?: string
   previousLessonId?: string
   nextLessonId?: string
@@ -16,6 +17,7 @@ export interface LessonBottomBarProps {
 
 export function LessonBottomBar({
   courseId,
+  subjectId,
   lessonId,
   lessonTitle,
   quizId,
@@ -25,6 +27,8 @@ export function LessonBottomBar({
   onComplete,
 }: LessonBottomBarProps) {
   const navigate = useNavigate()
+
+  const activeSubjectId = subjectId || (courseId?.startsWith('phy') ? 'physics' : courseId?.startsWith('chem') ? 'chemistry' : courseId?.startsWith('eng') ? 'english' : 'math')
 
   const handleAskAI = () => {
     navigate(`/ai-tutor?lesson=${lessonId}&topic=${encodeURIComponent(lessonTitle)}`)
@@ -37,7 +41,7 @@ export function LessonBottomBar({
           <Button
             variant="outline"
             icon={ChevronLeft}
-            onClick={() => navigate(`/learn/${courseId}/${previousLessonId}`)}
+            onClick={() => navigate(`/subjects/${activeSubjectId}/lessons/${previousLessonId}`)}
           >
             Bài trước
           </Button>
@@ -79,7 +83,7 @@ export function LessonBottomBar({
         {nextLessonId && (
           <Button
             variant="outline"
-            onClick={() => navigate(`/learn/${courseId}/${nextLessonId}`)}
+            onClick={() => navigate(`/subjects/${activeSubjectId}/lessons/${nextLessonId}`)}
           >
             <span>Bài tiếp</span>
             <ChevronRight size={16} aria-hidden />
