@@ -27,8 +27,23 @@ export function useDashboard(options: DashboardFetchOptions = {}) {
         }
       })
 
+    const handleLearningStateChanged = () => {
+      fetchDashboardData({ simulateEmpty, simulateError, delayMs: 0 })
+        .then((result) => {
+          if (isMounted) {
+            setData(result)
+          }
+        })
+        .catch(() => {})
+    }
+
+    window.addEventListener('study_ai:learning_state_changed', handleLearningStateChanged)
+    window.addEventListener('storage', handleLearningStateChanged)
+
     return () => {
       isMounted = false
+      window.removeEventListener('study_ai:learning_state_changed', handleLearningStateChanged)
+      window.removeEventListener('storage', handleLearningStateChanged)
     }
   }, [simulateEmpty, simulateError, delayMs, reloadKey])
 

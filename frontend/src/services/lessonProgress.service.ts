@@ -1,3 +1,4 @@
+import { notifyLearningStateChanged } from './learningStateEvents'
 import { mockLessonsDetail } from '@/data/lessons.mock'
 import { mockSubjectDetails } from '@/data/subjects.mock'
 import type { LessonProgressState } from '@/types/assessment'
@@ -35,6 +36,9 @@ export function saveLessonProgress(progress: LessonProgressState): void {
 
   // Sync with mockSubjectDetails so Curriculum panels & lesson rows reflect progress
   syncProgressToSubject(progress)
+
+  // Notify system-wide learning state listeners (Dashboard, etc.)
+  notifyLearningStateChanged()
 }
 
 export function computeProgressValues(

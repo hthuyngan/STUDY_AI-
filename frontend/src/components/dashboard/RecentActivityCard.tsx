@@ -24,40 +24,48 @@ export function RecentActivityCard({ activities }: RecentActivityCardProps) {
       isFlushList
       className="recent-activity-card"
     >
-      <div className="recent-activity-list">
-        {activities.slice(0, 5).map((act) => {
-          return (
-            <div key={act.id} className="recent-activity-row">
-              <Avatar
-                src={act.userAvatar}
-                alt={act.userName}
-                size="sm"
-                className="activity-avatar"
-              />
+      {activities.length === 0 ? (
+        <div className="recent-activity-empty" style={{ padding: '36px 20px', textAlign: 'center' }}>
+          <p style={{ margin: 0, color: 'var(--text-secondary, #627D98)', fontSize: '0.9375rem' }}>
+            Hoạt động học tập của bạn sẽ xuất hiện ở đây.
+          </p>
+        </div>
+      ) : (
+        <div className="recent-activity-list">
+          {activities.slice(0, 5).map((act) => {
+            return (
+              <div key={act.id} className="recent-activity-row">
+                <Avatar
+                  src={act.userAvatar}
+                  alt={act.userName}
+                  size="sm"
+                  className="activity-avatar"
+                />
 
-              <div className="activity-body">
-                <p className="activity-sentence">
-                  <span className="activity-user">{act.userName}</span>{' '}
-                  <span className="activity-action">{act.action}</span>{' '}
-                  {act.targetUrl ? (
-                    <Link to={act.targetUrl} className="activity-target-link">
-                      {act.targetName}
-                    </Link>
-                  ) : (
-                    <span className="activity-target">{act.targetName}</span>
-                  )}
-                </p>
+                <div className="activity-body">
+                  <p className="activity-sentence">
+                    <span className="activity-user">{act.userName}</span>{' '}
+                    <span className="activity-action">{act.action}</span>{' '}
+                    {act.targetUrl ? (
+                      <Link to={act.targetUrl} className="activity-target-link">
+                        {act.targetName}
+                      </Link>
+                    ) : (
+                      <span className="activity-target">{act.targetName}</span>
+                    )}
+                  </p>
 
-                <div className="activity-meta">
-                  <span className="activity-tag">{act.subjectOrModule}</span>
-                  <span className="activity-dot" aria-hidden>·</span>
-                  <span className="activity-time">{act.timeAgo}</span>
+                  <div className="activity-meta">
+                    <span className="activity-tag">{act.subjectOrModule}</span>
+                    <span className="activity-dot" aria-hidden>·</span>
+                    <span className="activity-time">{act.timeAgo}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          )
-        })}
-      </div>
+            )
+          })}
+        </div>
+      )}
     </Card>
   )
 }

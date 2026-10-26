@@ -1,6 +1,17 @@
 import type { DashboardData } from '@/types/dashboard'
 
+// ============================================================
+// DASHBOARD MOCK DATA — STUDY_AI
+// Note:
+// - STATIC DEMO DATA: user profile, leaderboard, visual baseline
+// - DERIVED LEARNING DATA: stats, continueLessons, subjects,
+//   and recentActivities are derived dynamically at runtime
+//   via LearningStateEngine (buildLearningStateSnapshot).
+//   The values below serve as initial fallback baseline only.
+// ============================================================
+
 export const mockDashboardData: DashboardData = {
+  // [STATIC DEMO DATA] User identity profile
   user: {
     id: 'stu-001',
     name: 'Hoàng Thúy Ngân',
@@ -8,40 +19,43 @@ export const mockDashboardData: DashboardData = {
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
     grade: 'Lớp 12A1 · Chuyên Tự Nhiên',
   },
+  // [DERIVED LEARNING DATA - OVERRIDDEN BY LEARNING STATE ENGINE]
   stats: {
-    streakDays: 12,
-    longestStreak: 18,
-    totalXP: 2450,
-    weeklyMinutes: 504, // 8.4 hours
-    completedLessonsCount: 68,
+    streakDays: 0,
+    longestStreak: 0,
+    totalXP: 0,
+    weeklyMinutes: 0,
+    completedLessonsCount: 0,
   },
+  // [DERIVED LEARNING DATA - OVERRIDDEN BY LEARNING STATE ENGINE]
   activity: {
     points: [
-      { day: 'T2', fullDay: 'Thứ Hai', minutes: 75, lessons: 2 },
-      { day: 'T3', fullDay: 'Thứ Ba', minutes: 90, lessons: 3 },
-      { day: 'T4', fullDay: 'Thứ Tư', minutes: 120, lessons: 4 },
-      { day: 'T5', fullDay: 'Thứ Năm', minutes: 45, lessons: 1 },
-      { day: 'T6', fullDay: 'Thứ Sáu', minutes: 80, lessons: 2 },
-      { day: 'T7', fullDay: 'Thứ Bảy', minutes: 60, lessons: 2 },
-      { day: 'CN', fullDay: 'Chủ Nhật', minutes: 34, lessons: 1 },
+      { day: 'T2', fullDay: 'Thứ Hai', minutes: 0, lessons: 0 },
+      { day: 'T3', fullDay: 'Thứ Ba', minutes: 0, lessons: 0 },
+      { day: 'T4', fullDay: 'Thứ Tư', minutes: 0, lessons: 0 },
+      { day: 'T5', fullDay: 'Thứ Năm', minutes: 0, lessons: 0 },
+      { day: 'T6', fullDay: 'Thứ Sáu', minutes: 0, lessons: 0 },
+      { day: 'T7', fullDay: 'Thứ Bảy', minutes: 0, lessons: 0 },
+      { day: 'CN', fullDay: 'Chủ Nhật', minutes: 0, lessons: 0 },
     ],
-    weeklyHours: 8.4,
-    increasePercent: 18,
+    weeklyHours: 0,
+    increasePercent: 0,
   },
+  // [STATIC DEMO DATA] Daily goals configuration
   dailyGoals: {
     items: [
       {
         id: 'goal-1',
         title: 'Học một bài học mới',
-        current: 1,
+        current: 0,
         target: 1,
         unit: 'bài',
-        completed: true,
+        completed: false,
       },
       {
         id: 'goal-2',
         title: 'Làm 20 câu trắc nghiệm luyện tập',
-        current: 14,
+        current: 0,
         target: 20,
         unit: 'câu',
         completed: false,
@@ -49,7 +63,7 @@ export const mockDashboardData: DashboardData = {
       {
         id: 'goal-3',
         title: 'Hỏi bài cùng trợ lý AI Tutor',
-        current: 8,
+        current: 0,
         target: 15,
         unit: 'phút',
         completed: false,
@@ -65,6 +79,7 @@ export const mockDashboardData: DashboardData = {
     ],
     bonusXP: 120,
   },
+  // [DERIVED LEARNING DATA - OVERRIDDEN BY LEARNING STATE ENGINE]
   continueLessons: [
     {
       id: 'lesson-math-08',

@@ -1,3 +1,4 @@
+import { notifyLearningStateChanged } from './learningStateEvents'
 import { createLearningEvent } from './learningTracking.service'
 import { markAssessmentCompleted } from './lessonProgress.service'
 import type {
@@ -34,6 +35,7 @@ function saveStoredAttempts(attempts: LearningAttempt[]): void {
   if (typeof window === 'undefined') return
   try {
     localStorage.setItem(ASSESSMENT_ATTEMPTS_STORAGE_KEY, JSON.stringify(attempts))
+    notifyLearningStateChanged()
   } catch (err) {
     console.error('Failed to save learning attempts to localStorage', err)
   }

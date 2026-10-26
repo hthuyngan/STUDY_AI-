@@ -43,7 +43,8 @@ export function SubjectDetailPage() {
       const total = chap.lessons.length
       const completed = chap.lessons.filter((l) => l.status === 'completed').length
       const inProgress = chap.lessons.filter((l) => l.status === 'in-progress').length
-      const percent = total > 0 ? Math.round((completed / total) * 100) : 0
+      const sumProgress = chap.lessons.reduce((acc, l) => acc + (l.progress || 0), 0)
+      const percent = total > 0 ? Math.round(sumProgress / total) : 0
 
       return {
         ...chap,

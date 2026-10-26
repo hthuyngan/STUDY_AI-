@@ -1,5 +1,6 @@
 import { mockDashboardData } from '@/data/dashboard.mock'
-import type { DashboardData } from '@/types/dashboard'
+import { buildLearningStateSnapshot } from '@/services/learningState.service'
+import type { DailyGoalItem, DashboardData, SubjectProgressItemData } from '@/types/dashboard'
 
 export interface DashboardFetchOptions {
   simulateEmpty?: boolean
@@ -7,7 +8,9 @@ export interface DashboardFetchOptions {
   delayMs?: number
 }
 
-export async function fetchDashboardData(options: DashboardFetchOptions = {}): Promise<DashboardData | null> {
+export async function fetchDashboardData(
+  options: DashboardFetchOptions = {}
+): Promise<DashboardData | null> {
   const { simulateEmpty = false, simulateError = false, delayMs = 300 } = options
 
   if (delayMs > 0) {
@@ -22,5 +25,61 @@ export async function fetchDashboardData(options: DashboardFetchOptions = {}): P
     return null
   }
 
-  return mockDashboardData
+  const base = mockDashboardData
+  const learning = buildLearningStateSnapshot()
+
+  // Map subjects with real derived learning progress
+  const subjects: SubjectProgressItemData[] = (base.subjects || []).map(
+    (baseSubj: SubjectProgressItemData) => {
+      const derived = learning.subjects[baseSubj.id]
+      if (!derived) return baseSubj
+      return {
+        ...baseSubj,
+        progress: derived.progress,
+        completedLessons: derived.completedLessons,
+        totalLessons: derived.totalLessons,
+      }
+    }
+  )
+
+  // Dynamic daily goal: "Học một bài học mới"
+  // Check if today has completed any lesson
+  const lastPoint = learning.weeklyActivity.points[learning.weeklyActivity.points.length - 1]
+  const todayLessons = lastPoint?.lessons || 0
+  const dailyGoals = {
+    ...base.dailyGoals,
+    items: base.dailyGoals.items.map((g: DailyGoalItem) => {
+      if (g.id === 'goal-1') {
+        const completed = todayLessons >= 1
+        return {
+          ...g,
+          current: Math.min(g.target, todayLessons),
+          completed,
+        }
+      }
+      return g
+    }),
+  }
+
+  // Merge static demo base with real derived learner state
+  return {
+    ...base,
+    stats: {
+      ...base.stats,
+      streakDays: learning.streak.current,
+      longestStreak: learning.streak.longest,
+      weeklyMinutes: learning.weeklyActivity.totalMinutes,
+      completedLessonsCount: learning.summary.completedLessons,
+    },
+    activity: {
+      ...base.activity,
+      points: learning.weeklyActivity.points,
+      weeklyHours: learning.weeklyActivity.weeklyHours,
+      increasePercent: learning.weeklyActivity.increasePercent,
+    },
+    dailyGoals,
+    continueLessons: learning.continueLearning,
+    subjects,
+    recentActivities: learning.recentActivities,
+  }
 }
