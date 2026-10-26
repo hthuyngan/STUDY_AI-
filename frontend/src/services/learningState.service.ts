@@ -72,36 +72,24 @@ export function formatTimeAgo(dateInput: Date | string | number): string {
   return `${day}/${month}`
 }
 
+import {
+  learningProgressRepository,
+  assessmentAttemptRepository,
+  learningEventsRepository,
+  SYNC_QUEUE_STORAGE_KEY,
+  BACKEND_BOOTSTRAP_MARKER_KEY,
+} from '@/repositories'
+
 function getStoredProgressMap(): Record<string, LessonProgressState> {
-  if (typeof window === 'undefined') return {}
-  try {
-    const raw = localStorage.getItem(LESSON_PROGRESS_STORAGE_KEY)
-    return raw ? JSON.parse(raw) : {}
-  } catch {
-    return {}
-  }
+  return learningProgressRepository.getAll()
 }
 
 function getStoredAttemptsList(): LearningAttempt[] {
-  if (typeof window === 'undefined') return []
-  try {
-    const raw =
-      localStorage.getItem(ASSESSMENT_ATTEMPTS_STORAGE_KEY) ||
-      localStorage.getItem(LEGACY_ATTEMPTS_STORAGE_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
+  return assessmentAttemptRepository.getAll()
 }
 
 function getStoredEventsList(): LearningEvent[] {
-  if (typeof window === 'undefined') return []
-  try {
-    const raw = localStorage.getItem(LEARNING_EVENTS_STORAGE_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
+  return learningEventsRepository.getAll()
 }
 
 /**
@@ -601,6 +589,8 @@ export function resetLearningStateForTests(): void {
     localStorage.removeItem(ASSESSMENT_ATTEMPTS_STORAGE_KEY)
     localStorage.removeItem(LEGACY_ATTEMPTS_STORAGE_KEY)
     localStorage.removeItem(LEARNING_EVENTS_STORAGE_KEY)
+    localStorage.removeItem(SYNC_QUEUE_STORAGE_KEY)
+    localStorage.removeItem(BACKEND_BOOTSTRAP_MARKER_KEY)
     notifyLearningStateChanged()
   }
 }

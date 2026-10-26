@@ -1,7 +1,8 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
 import { RouteLoadingFallback } from '@/components/layout/RouteLoadingFallback'
+import { performBootstrapSyncIfAvailable } from '@/repositories'
 
 const DashboardPage = lazy(() => import('@/pages/Dashboard/DashboardPage'))
 const SubjectsPage = lazy(() => import('@/pages/Subjects/SubjectsPage'))
@@ -50,6 +51,12 @@ function LegacyLearnRedirect() {
 }
 
 function App() {
+  useEffect(() => {
+    performBootstrapSyncIfAvailable().catch(() => {
+      // Non-blocking background bootstrap sync
+    })
+  }, [])
+
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Routes>

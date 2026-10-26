@@ -1,4 +1,8 @@
-import { notifyLearningStateChanged } from './learningStateEvents'
+import {
+  assessmentAttemptRepository,
+  ASSESSMENT_ATTEMPTS_STORAGE_KEY,
+  LEGACY_ATTEMPTS_STORAGE_KEY,
+} from '@/repositories/assessmentAttempt.repository'
 import { createLearningEvent } from './learningTracking.service'
 import { markAssessmentCompleted } from './lessonProgress.service'
 import type {
@@ -8,9 +12,8 @@ import type {
   LessonAssessment,
 } from '@/types/assessment'
 
-export const ASSESSMENT_ATTEMPTS_STORAGE_KEY = 'study_ai.assessment_attempts.v1'
+export { ASSESSMENT_ATTEMPTS_STORAGE_KEY, LEGACY_ATTEMPTS_STORAGE_KEY }
 export const LEARNING_ATTEMPTS_STORAGE_KEY = ASSESSMENT_ATTEMPTS_STORAGE_KEY
-export const LEGACY_ATTEMPTS_STORAGE_KEY = 'study_ai.learning_attempts.v1'
 
 function generateId(prefix = 'atm'): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -20,26 +23,13 @@ function generateId(prefix = 'atm'): string {
 }
 
 function getStoredAttempts(): LearningAttempt[] {
-  if (typeof window === 'undefined') return []
-  try {
-    const raw =
-      localStorage.getItem(ASSESSMENT_ATTEMPTS_STORAGE_KEY) ||
-      localStorage.getItem(LEGACY_ATTEMPTS_STORAGE_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
+  return assessmentAttemptRepository.getAll()
 }
 
 function saveStoredAttempts(attempts: LearningAttempt[]): void {
-  if (typeof window === 'undefined') return
-  try {
-    localStorage.setItem(ASSESSMENT_ATTEMPTS_STORAGE_KEY, JSON.stringify(attempts))
-    notifyLearningStateChanged()
-  } catch (err) {
-    console.error('Failed to save learning attempts to localStorage', err)
-  }
+  attempts.forEach((a) => assessmentAttemptRepository.save(a))
 }
+
 
 export function getAllAttemptsForLesson(lessonId: string): LearningAttempt[] {
   const attempts = getStoredAttempts()

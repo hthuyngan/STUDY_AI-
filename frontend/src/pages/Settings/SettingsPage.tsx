@@ -1,10 +1,12 @@
 import { useState } from 'react'
-import { Check, Moon, Sun } from 'lucide-react'
+import { Check, Moon, RefreshCw, Sun } from 'lucide-react'
 import { Breadcrumb } from '@/components/ui/Breadcrumb'
 import { Card } from '@/components/ui/Card'
 import { PageErrorState } from '@/components/ui/PageErrorState'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { getApiBaseUrl, isRemoteApiConfigured } from '@/config/learner'
 import { useUserSettings } from '@/hooks/useSupporting'
+import { syncQueue } from '@/repositories'
 import './SettingsPage.css'
 
 export function SettingsPage() {
@@ -173,6 +175,49 @@ export function SettingsPage() {
               >
                 Chi tiết từng bước
               </button>
+            </div>
+          </div>
+        </Card>
+
+        {/* Section 5: Đồng bộ & Lưu trữ */}
+        <Card
+          title="Lưu trữ & Đồng bộ dữ liệu"
+          subtitle="Quản lý đồng bộ tiến độ học tập giữa trình duyệt và máy chủ backend"
+        >
+          <div className="setting-control-row">
+            <div>
+              <span className="control-label">Chế độ lưu trữ</span>
+              <p className="control-desc">
+                {isRemoteApiConfigured()
+                  ? `Hybrid (Ngoại tuyến tức thì + Máy chủ API: ${getApiBaseUrl()})`
+                  : 'Ngoại tuyến (Lưu trữ cục bộ an toàn, không phụ thuộc mạng)'}
+              </p>
+            </div>
+            <div className="sync-actions-group" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span
+                style={{
+                  fontSize: '12px',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  background: isRemoteApiConfigured() ? 'var(--color-bg-secondary, #f1f5f9)' : 'var(--color-bg-secondary, #f1f5f9)',
+                  color: 'var(--color-text-secondary, #64748b)',
+                }}
+              >
+                {syncQueue.getPendingCount()} tác vụ chờ đồng bộ
+              </span>
+              {isRemoteApiConfigured() && (
+                <button
+                  type="button"
+                  className="theme-opt-btn"
+                  onClick={async () => {
+                    await syncQueue.flush()
+                    showSaved()
+                  }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                >
+                  <RefreshCw size={13} /> Đồng bộ ngay
+                </button>
+              )}
             </div>
           </div>
         </Card>

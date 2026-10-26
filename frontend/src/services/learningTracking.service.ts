@@ -1,7 +1,10 @@
+import {
+  learningEventsRepository,
+  LEARNING_EVENTS_STORAGE_KEY,
+} from '@/repositories/learningEvents.repository'
 import type { LearningEvent, LearningEventType } from '@/types/assessment'
 
-export const LEARNING_EVENTS_STORAGE_KEY = 'study_ai.learning_events.v1'
-const MAX_STORED_EVENTS = 500
+export { LEARNING_EVENTS_STORAGE_KEY }
 
 export function generateEventId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -11,31 +14,13 @@ export function generateEventId(): string {
 }
 
 export function getStoredLearningEvents(lessonId?: string): LearningEvent[] {
-  if (typeof window === 'undefined') return []
-  try {
-    const raw = localStorage.getItem(LEARNING_EVENTS_STORAGE_KEY)
-    const list: LearningEvent[] = raw ? JSON.parse(raw) : []
-    if (lessonId) {
-      return list.filter((e) => e.lessonId === lessonId)
-    }
-    return list
-  } catch {
-    return []
-  }
+  return learningEventsRepository.getAll(lessonId)
 }
 
 export function recordLearningEvent(event: LearningEvent): void {
-  if (typeof window === 'undefined') return
-  try {
-    const list = getStoredLearningEvents()
-    list.push(event)
-    // Keep most recent events to prevent quota overflow
-    const trimmed = list.slice(-MAX_STORED_EVENTS)
-    localStorage.setItem(LEARNING_EVENTS_STORAGE_KEY, JSON.stringify(trimmed))
-  } catch (err) {
-    console.error('Failed to save learning event to localStorage', err)
-  }
+  learningEventsRepository.append(event)
 }
+
 
 export interface CreateLearningEventParams {
   type: LearningEventType

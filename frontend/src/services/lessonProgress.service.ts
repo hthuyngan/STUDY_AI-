@@ -1,45 +1,21 @@
-import { notifyLearningStateChanged } from './learningStateEvents'
+import { learningProgressRepository, LESSON_PROGRESS_STORAGE_KEY } from '@/repositories/learningProgress.repository'
 import { mockLessonsDetail } from '@/data/lessons.mock'
 import { mockSubjectDetails } from '@/data/subjects.mock'
 import type { LessonProgressState } from '@/types/assessment'
 
-export const LESSON_PROGRESS_STORAGE_KEY = 'study_ai.lesson_progress.v1'
-
-function getStorageMap(): Record<string, LessonProgressState> {
-  if (typeof window === 'undefined') return {}
-  try {
-    const raw = localStorage.getItem(LESSON_PROGRESS_STORAGE_KEY)
-    return raw ? JSON.parse(raw) : {}
-  } catch {
-    return {}
-  }
-}
-
-function setStorageMap(map: Record<string, LessonProgressState>): void {
-  if (typeof window === 'undefined') return
-  try {
-    localStorage.setItem(LESSON_PROGRESS_STORAGE_KEY, JSON.stringify(map))
-  } catch (err) {
-    console.error('Failed to save lesson progress to localStorage', err)
-  }
-}
+export { LESSON_PROGRESS_STORAGE_KEY }
 
 export function getLessonProgress(lessonId: string): LessonProgressState | null {
-  const map = getStorageMap()
-  return map[lessonId] || null
+  return learningProgressRepository.getByLessonId(lessonId)
 }
 
 export function saveLessonProgress(progress: LessonProgressState): void {
-  const map = getStorageMap()
-  map[progress.lessonId] = progress
-  setStorageMap(map)
+  learningProgressRepository.save(progress)
 
   // Sync with mockSubjectDetails so Curriculum panels & lesson rows reflect progress
   syncProgressToSubject(progress)
-
-  // Notify system-wide learning state listeners (Dashboard, etc.)
-  notifyLearningStateChanged()
 }
+
 
 export function computeProgressValues(
   completedSectionCount: number,
