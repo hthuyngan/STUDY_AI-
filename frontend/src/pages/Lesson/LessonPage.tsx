@@ -357,17 +357,16 @@ export function LessonPage() {
           )}
 
           {/* Embedded Lesson Harvest Assessment Card */}
-          {assessment && (
-            <LessonAssessmentCard
-              assessment={assessment}
-              isCompleted={isAssessmentCompleted}
-              hasUnfinishedAttempt={hasUnfinishedAttempt}
-              latestAttempt={latestCompletedAttempt}
-              onStartAttempt={handleStartAttempt}
-              onViewResult={handleViewLatestResult}
-              onRetryAttempt={handleRestartAttempt}
-            />
-          )}
+          <LessonAssessmentCard
+            assessment={assessment}
+            isCompleted={isAssessmentCompleted}
+            hasUnfinishedAttempt={hasUnfinishedAttempt}
+            activeAttempt={activeAttempt}
+            latestAttempt={latestCompletedAttempt}
+            onStartAttempt={handleStartAttempt}
+            onViewResult={handleViewLatestResult}
+            onRetryAttempt={handleRestartAttempt}
+          />
         </article>
 
         {/* Bottom Action Bar */}

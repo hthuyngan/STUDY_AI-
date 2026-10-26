@@ -71,17 +71,29 @@ export function useLessonAssessment({
   // Start new attempt or resume
   const handleStartAttempt = useCallback(() => {
     const unfinished = getActiveUnfinishedAttempt(assessment.lessonId)
+    let currentAtt: LearningAttempt
     if (unfinished) {
       const resumed = resumeAttempt(unfinished)
+      currentAtt = resumed
       setActiveAttempt(resumed)
       // Restore question index if saved
       const qIdx = questions.findIndex((q) => q.id === resumed.currentQuestionId)
       setCurrentQuestionIndex(qIdx >= 0 ? qIdx : 0)
     } else {
       const brandNew = startNewAttempt(assessment)
+      currentAtt = brandNew
       setActiveAttempt(brandNew)
       setCurrentQuestionIndex(0)
     }
+
+    createLearningEvent({
+      attemptId: currentAtt.id,
+      lessonId: assessment.lessonId,
+      subjectId: assessment.subjectId,
+      type: 'assessment_opened',
+      payload: { mode: unfinished ? 'resume' : 'new' },
+    })
+
     setShowResultView(false)
     setShowPauseConfirm(false)
     setShowSubmitConfirm(false)
@@ -95,6 +107,15 @@ export function useLessonAssessment({
     const brandNew = startNewAttempt(assessment)
     setActiveAttempt(brandNew)
     setCurrentQuestionIndex(0)
+
+    createLearningEvent({
+      attemptId: brandNew.id,
+      lessonId: assessment.lessonId,
+      subjectId: assessment.subjectId,
+      type: 'assessment_opened',
+      payload: { mode: 'retry' },
+    })
+
     setShowResultView(false)
     setShowPauseConfirm(false)
     setShowSubmitConfirm(false)
@@ -107,11 +128,18 @@ export function useLessonAssessment({
   const handleViewLatestResult = useCallback(() => {
     const latest = getLatestCompletedAttempt(assessment.lessonId)
     if (latest) {
+      createLearningEvent({
+        attemptId: latest.id,
+        lessonId: assessment.lessonId,
+        subjectId: assessment.subjectId,
+        type: 'assessment_opened',
+        payload: { mode: 'view_result' },
+      })
       setActiveAttempt(latest)
       setShowResultView(true)
       setIsModalOpen(true)
     }
-  }, [assessment.lessonId])
+  }, [assessment.lessonId, assessment.subjectId])
 
   // Navigate to question
   const goToQuestion = useCallback(
@@ -120,11 +148,17 @@ export function useLessonAssessment({
       const elapsed = flushCurrentQuestionTime()
 
       const targetQ = questions[index]
-      const viewEvent = createLearningEvent(activeAttempt.id, 'question_viewed', {
-        fromQuestionId: currentQuestion?.id,
-        toQuestionId: targetQ.id,
-        questionIndex: index,
-        timeSpentOnPrevMs: elapsed,
+      const viewEvent = createLearningEvent({
+        attemptId: activeAttempt.id,
+        lessonId: assessment.lessonId,
+        subjectId: assessment.subjectId,
+        type: 'question_viewed',
+        payload: {
+          fromQuestionId: currentQuestion?.id,
+          toQuestionId: targetQ.id,
+          questionIndex: index,
+          timeSpentOnPrevMs: elapsed,
+        },
       })
 
       const updated = {
@@ -137,7 +171,7 @@ export function useLessonAssessment({
       setCurrentQuestionIndex(index)
       questionStartTimeRef.current = Date.now()
     },
-    [activeAttempt, currentQuestion?.id, flushCurrentQuestionTime, questions]
+    [activeAttempt, assessment.lessonId, assessment.subjectId, currentQuestion?.id, flushCurrentQuestionTime, questions]
   )
 
   const nextQuestion = useCallback(() => {
@@ -225,8 +259,14 @@ export function useLessonAssessment({
       if (document.hidden) {
         isHiddenRef.current = true
         const elapsed = flushCurrentQuestionTime()
-        const blurEvent = createLearningEvent(activeAttempt.id, 'window_blurred', {
-          timeSpentOnQuestionMs: elapsed,
+        const blurEvent = createLearningEvent({
+          attemptId: activeAttempt.id,
+          lessonId: assessment.lessonId,
+          subjectId: assessment.subjectId,
+          type: 'window_blurred',
+          payload: {
+            timeSpentOnQuestionMs: elapsed,
+          },
         })
         const updated = {
           ...activeAttempt,
@@ -237,7 +277,12 @@ export function useLessonAssessment({
       } else {
         isHiddenRef.current = false
         questionStartTimeRef.current = Date.now()
-        const focusEvent = createLearningEvent(activeAttempt.id, 'window_focused', {})
+        const focusEvent = createLearningEvent({
+          attemptId: activeAttempt.id,
+          lessonId: assessment.lessonId,
+          subjectId: assessment.subjectId,
+          type: 'window_focused',
+        })
         const updated = {
           ...activeAttempt,
           events: [...activeAttempt.events, focusEvent],
@@ -254,7 +299,13 @@ export function useLessonAssessment({
       window.removeEventListener('beforeunload', handleBeforeUnload)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [activeAttempt, flushCurrentQuestionTime, isModalOpen])
+  }, [
+    activeAttempt,
+    assessment.lessonId,
+    assessment.subjectId,
+    flushCurrentQuestionTime,
+    isModalOpen,
+  ])
 
   // Calculate answered count
   const answeredCount = activeAttempt ? Object.keys(activeAttempt.responses).length : 0

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createLearningEvent } from '@/services/learningTracking.service'
 import {
   computeProgressValues,
   getLessonProgress,
@@ -31,6 +32,17 @@ export function useLessonProgress({
     setTrackedLessonId(lessonId)
     setProgressState(getLessonProgress(lessonId))
   }
+
+  // Emit lesson_opened event
+  useEffect(() => {
+    if (!lessonId) return
+    createLearningEvent({
+      lessonId,
+      subjectId,
+      type: 'lesson_opened',
+      payload: { actualSectionCount: actualSectionIds.length },
+    })
+  }, [lessonId, subjectId, actualSectionIds.length])
 
   const completedSectionIds = useMemo(() => {
     return progressState?.completedSectionIds || []
@@ -80,7 +92,14 @@ export function useLessonProgress({
           }
 
           if (entry.isIntersecting && entry.intersectionRatio >= 0.55) {
-            // Held in viewport: start 2-second dwell timer
+            // Held in viewport: emit section viewed & start 2-second dwell timer
+            createLearningEvent({
+              lessonId,
+              subjectId,
+              type: 'lesson_section_viewed',
+              payload: { sectionId },
+            })
+
             if (!timersRef.current.has(sectionId)) {
               const timer = setTimeout(() => {
                 const updated = markSectionCompleted(
@@ -90,6 +109,14 @@ export function useLessonProgress({
                   totalActualSections
                 )
                 setProgressState(updated)
+
+                createLearningEvent({
+                  lessonId,
+                  subjectId,
+                  type: 'lesson_section_completed',
+                  payload: { sectionId, overallProgress: updated.overallProgress },
+                })
+
                 timersRef.current.delete(sectionId)
               }, 2000)
               timersRef.current.set(sectionId, timer)

@@ -1,4 +1,5 @@
-import { describe, expect, it, beforeEach, vi } from 'vitest'
+import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest'
+import { cleanup } from '@testing-library/react'
 import {
   computeProgressValues,
   markSectionCompleted,
@@ -121,6 +122,7 @@ describe('Assessment Attempt Lifecycle & Autosave', () => {
     const paused = pauseAttempt(attempt, 5000)
     expect(paused.sessionTimeMs).toBe(5000)
     expect(paused.exitReason).toBe('paused')
+    expect(paused.events.some((e) => e.type === 'assessment_paused')).toBe(true)
 
     const resumed = resumeAttempt(paused)
     expect(resumed.events.some((e) => e.type === 'attempt_resumed')).toBe(true)
@@ -191,6 +193,10 @@ describe('Assessment Attempt Lifecycle & Autosave', () => {
 describe('Assessment UI Components & Modal Interactions', () => {
   const assessment = mockAssessments['lesson-math-08']
 
+  afterEach(() => {
+    cleanup()
+  })
+
   it('renders LessonAssessmentCard with pending 80% badge and starts attempt', async () => {
     const { render, screen, fireEvent } = await import('@testing-library/react')
     const { LessonAssessmentCard } = await import('@/components/assessment/LessonAssessmentCard')
@@ -237,7 +243,7 @@ describe('Assessment UI Components & Modal Interactions', () => {
 
     expect(screen.getByText('100%')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Làm lại/i })).toBeInTheDocument()
-    expect(screen.getByText(/5\/5/)).toBeInTheDocument()
+    expect(screen.getByText(/5 \/ 5/)).toBeInTheDocument()
   })
 
   it('ensures modal prevents backdrop close and triggers pause confirmation on Esc', async () => {
@@ -280,5 +286,63 @@ describe('Assessment UI Components & Modal Interactions', () => {
     // Press Escape -> triggers setShowPauseConfirm(true) instead of closing
     fireEvent.keyDown(window, { key: 'Escape', code: 'Escape' })
     expect(setShowPause).toHaveBeenCalledWith(true)
+  })
+
+  it('renders LessonAssessmentCard in unfinished state with active attempt details and handles restart confirm', async () => {
+    const { render, screen, fireEvent } = await import('@testing-library/react')
+    const { LessonAssessmentCard } = await import('@/components/assessment/LessonAssessmentCard')
+
+    let attempt = startNewAttempt(assessment)
+    attempt = recordAnswerSelection(attempt, assessment.questions[0].id, 'opt-1-a', 2000)
+    attempt = recordAnswerSelection(attempt, assessment.questions[1].id, 'opt-2-b', 3000)
+
+    const onRetry = vi.fn()
+    render(
+      <LessonAssessmentCard
+        assessment={assessment}
+        isCompleted={false}
+        hasUnfinishedAttempt={true}
+        activeAttempt={attempt}
+        onStartAttempt={vi.fn()}
+        onRetryAttempt={onRetry}
+      />
+    )
+
+    expect(screen.getAllByText('Đang làm dở').length).toBeGreaterThan(0)
+    expect(screen.getByText(/2 \/ 5 câu/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Tiếp tục bài tập/i })).toBeInTheDocument()
+
+    // Click Bắt đầu lại -> opens confirmation dialog
+    const restartBtn = screen.getByRole('button', { name: /Bắt đầu lại/i })
+    fireEvent.click(restartBtn)
+
+    expect(screen.getByText(/Bắt đầu lại bài tập thu hoạch\?/i)).toBeInTheDocument()
+    const confirmBtn = screen.getByRole('button', { name: /Xác nhận bắt đầu lại/i })
+    fireEvent.click(confirmBtn)
+    expect(onRetry).toHaveBeenCalled()
+  })
+
+  it('renders graceful fallback when lesson has no assessment without crashing', async () => {
+    const { render, screen } = await import('@testing-library/react')
+    const { LessonAssessmentCard } = await import('@/components/assessment/LessonAssessmentCard')
+
+    render(
+      <LessonAssessmentCard
+        assessment={null}
+        isCompleted={false}
+        hasUnfinishedAttempt={false}
+        onStartAttempt={vi.fn()}
+      />
+    )
+
+    expect(screen.getByText(/Bài tập thu hoạch đang được cập nhật/i)).toBeInTheDocument()
+    expect(screen.getByText('80%')).toBeInTheDocument()
+  })
+
+  it('verifies learning event log persistence in storage', async () => {
+    const { getStoredLearningEvents } = await import('@/services/learningTracking.service')
+    const events = getStoredLearningEvents(assessment.lessonId)
+    expect(events.length).toBeGreaterThan(0)
+    expect(events.some((e) => e.type === 'assessment_started')).toBe(true)
   })
 })

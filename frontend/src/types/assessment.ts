@@ -43,6 +43,7 @@ export interface AssessmentResponse {
 }
 
 export type LearningEventType =
+  | 'lesson_opened'
   | 'lesson_section_viewed'
   | 'lesson_section_completed'
   | 'assessment_opened'
@@ -51,16 +52,19 @@ export type LearningEventType =
   | 'answer_selected'
   | 'answer_changed'
   | 'question_completed'
-  | 'assessment_submitted'
-  | 'assessment_completed'
+  | 'assessment_paused'
   | 'attempt_resumed'
   | 'attempt_abandoned'
+  | 'assessment_submitted'
+  | 'assessment_completed'
   | 'window_blurred'
   | 'window_focused'
 
 export interface LearningEvent {
   id: string
-  attemptId: string
+  attemptId?: string
+  lessonId: string
+  subjectId: string
   timestamp: string // ISO 8601
   type: LearningEventType
   payload?: Record<string, unknown>

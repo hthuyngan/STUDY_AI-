@@ -7,7 +7,9 @@ import type {
   LessonAssessment,
 } from '@/types/assessment'
 
-export const LEARNING_ATTEMPTS_STORAGE_KEY = 'study_ai.learning_attempts.v1'
+export const ASSESSMENT_ATTEMPTS_STORAGE_KEY = 'study_ai.assessment_attempts.v1'
+export const LEARNING_ATTEMPTS_STORAGE_KEY = ASSESSMENT_ATTEMPTS_STORAGE_KEY
+export const LEGACY_ATTEMPTS_STORAGE_KEY = 'study_ai.learning_attempts.v1'
 
 function generateId(prefix = 'atm'): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -19,7 +21,9 @@ function generateId(prefix = 'atm'): string {
 function getStoredAttempts(): LearningAttempt[] {
   if (typeof window === 'undefined') return []
   try {
-    const raw = localStorage.getItem(LEARNING_ATTEMPTS_STORAGE_KEY)
+    const raw =
+      localStorage.getItem(ASSESSMENT_ATTEMPTS_STORAGE_KEY) ||
+      localStorage.getItem(LEGACY_ATTEMPTS_STORAGE_KEY)
     return raw ? JSON.parse(raw) : []
   } catch {
     return []
@@ -29,7 +33,7 @@ function getStoredAttempts(): LearningAttempt[] {
 function saveStoredAttempts(attempts: LearningAttempt[]): void {
   if (typeof window === 'undefined') return
   try {
-    localStorage.setItem(LEARNING_ATTEMPTS_STORAGE_KEY, JSON.stringify(attempts))
+    localStorage.setItem(ASSESSMENT_ATTEMPTS_STORAGE_KEY, JSON.stringify(attempts))
   } catch (err) {
     console.error('Failed to save learning attempts to localStorage', err)
   }
@@ -62,8 +66,12 @@ export function startNewAttempt(
   // If there was an active attempt left in-progress, mark it abandoned
   const updatedAttempts = existingAttempts.map((att) => {
     if (att.status === 'in-progress') {
-      const abandonedEvent = createLearningEvent(att.id, 'attempt_abandoned', {
-        reason: 'started_new_attempt',
+      const abandonedEvent = createLearningEvent({
+        attemptId: att.id,
+        lessonId: att.lessonId,
+        subjectId: att.subjectId,
+        type: 'attempt_abandoned',
+        payload: { reason: 'started_new_attempt' },
       })
       return {
         ...att,
@@ -80,10 +88,16 @@ export function startNewAttempt(
   const attemptId = generateId('atm')
   const now = new Date().toISOString()
 
-  const startEvent = createLearningEvent(attemptId, 'assessment_started', {
-    assessmentId: assessment.id,
-    questionCount: assessment.questions.length,
-    attemptNumber,
+  const startEvent = createLearningEvent({
+    attemptId,
+    lessonId: assessment.lessonId,
+    subjectId: assessment.subjectId,
+    type: 'assessment_started',
+    payload: {
+      assessmentId: assessment.id,
+      questionCount: assessment.questions.length,
+      attemptNumber,
+    },
   })
 
   const newAttempt: LearningAttempt = {
@@ -148,10 +162,27 @@ export function recordAnswerSelection(
   }
 
   const eventType = isChanging ? 'answer_changed' : 'answer_selected'
-  const event = createLearningEvent(attempt.id, eventType, {
-    questionId,
-    selectedOptionId,
-    previousSelection: existingResp?.selectedOptionIds || [],
+  const event = createLearningEvent({
+    attemptId: attempt.id,
+    lessonId: attempt.lessonId,
+    subjectId: attempt.subjectId,
+    type: eventType,
+    payload: {
+      questionId,
+      selectedOptionId,
+      previousSelection: existingResp?.selectedOptionIds || [],
+    },
+  })
+
+  const questionDoneEvent = createLearningEvent({
+    attemptId: attempt.id,
+    lessonId: attempt.lessonId,
+    subjectId: attempt.subjectId,
+    type: 'question_completed',
+    payload: {
+      questionId,
+      timeSpentMs: response.timeSpentMs,
+    },
   })
 
   const updatedResponses = {
@@ -166,7 +197,7 @@ export function recordAnswerSelection(
     ...attempt,
     responses: updatedResponses,
     progressMeasure,
-    events: [...attempt.events, event],
+    events: [...attempt.events, event, questionDoneEvent],
     lastActivityAt: now,
   }
 
@@ -179,8 +210,14 @@ export function pauseAttempt(
   additionalSessionTimeMs: number
 ): LearningAttempt {
   const now = new Date().toISOString()
-  const event = createLearningEvent(attempt.id, 'attempt_abandoned', {
-    reason: 'paused_by_learner',
+  const event = createLearningEvent({
+    attemptId: attempt.id,
+    lessonId: attempt.lessonId,
+    subjectId: attempt.subjectId,
+    type: 'assessment_paused',
+    payload: {
+      reason: 'paused_by_learner',
+    },
   })
 
   const updatedAttempt: LearningAttempt = {
@@ -197,7 +234,12 @@ export function pauseAttempt(
 
 export function resumeAttempt(attempt: LearningAttempt): LearningAttempt {
   const now = new Date().toISOString()
-  const event = createLearningEvent(attempt.id, 'attempt_resumed', {})
+  const event = createLearningEvent({
+    attemptId: attempt.id,
+    lessonId: attempt.lessonId,
+    subjectId: attempt.subjectId,
+    type: 'attempt_resumed',
+  })
 
   const updatedAttempt: LearningAttempt = {
     ...attempt,
@@ -251,16 +293,28 @@ export function submitAttempt(
   const scorePercentage = Math.round(scoreScaled * 100)
   const isPassed = scorePercentage >= passingScorePercent
 
-  const submitEvent = createLearningEvent(attempt.id, 'assessment_submitted', {
-    scoreRaw,
-    scoreMax,
-    scorePercentage,
+  const submitEvent = createLearningEvent({
+    attemptId: attempt.id,
+    lessonId: attempt.lessonId,
+    subjectId: attempt.subjectId,
+    type: 'assessment_submitted',
+    payload: {
+      scoreRaw,
+      scoreMax,
+      scorePercentage,
+    },
   })
 
-  const completeEvent = createLearningEvent(attempt.id, 'assessment_completed', {
-    scoreRaw,
-    scoreMax,
-    isPassed,
+  const completeEvent = createLearningEvent({
+    attemptId: attempt.id,
+    lessonId: attempt.lessonId,
+    subjectId: attempt.subjectId,
+    type: 'assessment_completed',
+    payload: {
+      scoreRaw,
+      scoreMax,
+      isPassed,
+    },
   })
 
   const finalAttempt: LearningAttempt = {

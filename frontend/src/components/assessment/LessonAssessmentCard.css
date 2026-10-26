@@ -74,6 +74,12 @@
   border: 1px solid var(--color-slate-200, #e2e8f0);
 }
 
+.assessment-completion-badge.is-in-progress {
+  color: #92400e;
+  background-color: #fef3c7;
+  border: 1px solid #fde68a;
+}
+
 .assessment-completion-badge.is-completed {
   color: var(--color-navy-900, #102a43);
   background-color: #e2e8f0;
@@ -140,6 +146,12 @@
   border-radius: 4px;
 }
 
+.metric-badge.is-in-progress {
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
 .metric-badge.is-passed {
   background-color: #f0fdf4;
   color: #166534;
@@ -152,15 +164,62 @@
   border: 1px solid #fecaca;
 }
 
-.assessment-unfinished-alert {
-  margin-top: 1rem;
-  padding: 0.75rem 1rem;
-  border-radius: 6px;
-  background-color: #fffbeb;
-  border: 1px solid #fde68a;
-  color: #92400e;
+.lesson-assessment-card .modal-sub-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(16, 42, 67, 0.6);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 500;
+}
+
+.lesson-assessment-card .modal-sub-dialog {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 1.75rem 2rem;
+  max-width: 440px;
+  width: 100%;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  border: 1px solid var(--color-slate-200, #e2e8f0);
+}
+
+.lesson-assessment-card .sub-dialog-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  margin-bottom: 1rem;
+}
+
+.lesson-assessment-card .sub-dialog-icon.submit {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+.lesson-assessment-card .sub-dialog-title {
+  font-size: 1.1875rem;
+  font-weight: 700;
+  color: var(--color-navy-900, #102a43);
+  margin: 0 0 0.5rem 0;
+}
+
+.lesson-assessment-card .sub-dialog-desc {
   font-size: 0.875rem;
-  line-height: 1.4;
+  color: var(--color-slate-600, #475569);
+  line-height: 1.5;
+  margin: 0 0 1.5rem 0;
+}
+
+.lesson-assessment-card .sub-dialog-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
 }
 
 .assessment-card-actions {
