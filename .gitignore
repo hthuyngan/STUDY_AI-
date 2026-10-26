@@ -61,3 +61,13 @@ pnpm-debug.log*
 *.sw?
 .DS_Store
 Thumbs.db
+
+# Backend & Databases
+backend/data/*.db
+backend/.venv/
+*.db
+*.sqlite
+*.sqlite3
+backend/alembic/versions/__pycache__/
+*.egg-info/
+.pytest_cache/

@@ -44,3 +44,31 @@ jobs:
         run: bun run build
         env:
           VITE_BASE_URL: /STUDY_AI-/
+
+  backend-validate:
+    name: Backend Test & Migration
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run Alembic migrations
+        run: alembic upgrade head
+
+      - name: Run Pytest
+        run: pytest -v
