@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Eye, EyeOff, Loader2, Sparkles } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
+import { getDefaultRouteForRole } from '@/auth/permissions'
 import { useAuth } from '@/auth/useAuth'
 import './AuthPage.css'
 
@@ -46,13 +47,13 @@ export const RegisterPage: React.FC = () => {
 
     setIsSubmitting(true)
     try {
-      await register({
+      const newUser = await register({
         email: trimmedEmail,
         password,
         displayName: trimmedName,
         grade: grade || undefined,
       })
-      navigate('/dashboard')
+      navigate(getDefaultRouteForRole(newUser.role), { replace: true })
     } catch (err: unknown) {
       const msg =
         err instanceof Error ? err.message : 'Tạo tài khoản không thành công.'

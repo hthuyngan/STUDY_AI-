@@ -1,0 +1,45 @@
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-full, 9999px);
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.status-badge-icon {
+  flex-shrink: 0;
+}
+
+.status-variant-success {
+  background: rgba(4, 120, 87, 0.08);
+  color: #047857;
+  border-color: rgba(4, 120, 87, 0.2);
+}
+
+.status-variant-info {
+  background: rgba(3, 105, 161, 0.08);
+  color: #0369a1;
+  border-color: rgba(3, 105, 161, 0.2);
+}
+
+.status-variant-warning {
+  background: rgba(180, 83, 9, 0.08);
+  color: #b45309;
+  border-color: rgba(180, 83, 9, 0.2);
+}
+
+.status-variant-danger {
+  background: rgba(220, 38, 38, 0.08);
+  color: #dc2626;
+  border-color: rgba(220, 38, 38, 0.2);
+}
+
+.status-variant-neutral {
+  background: rgba(98, 125, 152, 0.08);
+  color: #486581;
+  border-color: rgba(98, 125, 152, 0.2);
+}

@@ -1,8 +1,11 @@
+export type UserRole = 'learner' | 'teacher' | 'content' | 'support' | 'admin'
+
 export interface AuthUser {
   id: string
   email?: string
   displayName: string
   grade?: string
+  role: UserRole
   createdAt: string
 }
 

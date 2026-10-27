@@ -52,6 +52,7 @@ def _format_user_response(user: User) -> UserResponse:
         email=user.email,
         displayName=user.display_name,
         grade=user.grade,
+        role=user.role or "learner",
         createdAt=user.created_at,
     )
 

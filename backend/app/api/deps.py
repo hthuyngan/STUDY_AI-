@@ -36,3 +36,60 @@ def get_current_user(
         raise credentials_exception
 
     return user
+
+
+ROLE_PERMISSIONS: dict[str, set[str]] = {
+    "learner": set(),
+    "teacher": {
+        "view_classes",
+        "manage_assignments",
+        "view_student_progress",
+    },
+    "content": {
+        "manage_content",
+        "review_content",
+        "publish_content",
+    },
+    "support": {
+        "manage_support_tickets",
+        "view_user_support_profile",
+    },
+    "admin": {
+        "manage_users",
+        "manage_roles",
+        "view_system_metrics",
+        "view_classes",
+        "manage_assignments",
+        "view_student_progress",
+        "manage_content",
+        "review_content",
+        "publish_content",
+        "manage_support_tickets",
+        "view_user_support_profile",
+    },
+}
+
+
+def require_role(*allowed_roles: str):
+    def role_checker(current_user: User = Depends(get_current_user)) -> User:
+        if current_user.role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Không có quyền truy cập.",
+            )
+        return current_user
+
+    return role_checker
+
+
+def require_permission(permission: str):
+    def permission_checker(current_user: User = Depends(get_current_user)) -> User:
+        user_perms = ROLE_PERMISSIONS.get(current_user.role, set())
+        if permission not in user_perms:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Không có quyền truy cập.",
+            )
+        return current_user
+
+    return permission_checker

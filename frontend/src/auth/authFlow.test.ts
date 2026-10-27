@@ -46,6 +46,7 @@ describe('Auth Session & Token Memory Security', () => {
       id: 'usr-123',
       email: 'learner@example.com',
       displayName: 'Minh',
+      role: 'learner',
       grade: 'Lớp 10',
       createdAt: new Date().toISOString(),
     })
@@ -82,6 +83,7 @@ describe('Identity-Aware Namespaced Storage & Cross-User Isolation', () => {
       id: 'usr_alice',
       email: 'alice@example.com',
       displayName: 'Alice',
+      role: 'learner',
       grade: '10',
       createdAt: new Date().toISOString(),
     })
@@ -107,6 +109,7 @@ describe('Identity-Aware Namespaced Storage & Cross-User Isolation', () => {
       id: 'user_alice',
       email: 'alice@example.com',
       displayName: 'Alice',
+      role: 'learner',
       grade: '10',
       createdAt: new Date().toISOString(),
     })
@@ -129,6 +132,7 @@ describe('Identity-Aware Namespaced Storage & Cross-User Isolation', () => {
       id: 'user_bob',
       email: 'bob@example.com',
       displayName: 'Bob',
+      role: 'learner',
       grade: '10',
       createdAt: new Date().toISOString(),
     })
@@ -154,6 +158,7 @@ describe('Identity-Aware Namespaced Storage & Cross-User Isolation', () => {
       id: 'user_alice',
       email: 'alice@example.com',
       displayName: 'Alice',
+      role: 'learner',
       grade: '10',
       createdAt: new Date().toISOString(),
     })

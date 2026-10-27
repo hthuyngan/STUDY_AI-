@@ -1,0 +1,68 @@
+.staff-metric-card {
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: var(--radius-md, 8px);
+  padding: var(--spacing-4, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2, 8px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.staff-metric-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.staff-metric-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-muted, #627d98);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.staff-metric-icon-wrap {
+  color: var(--text-muted, #627d98);
+  display: inline-flex;
+}
+
+.staff-metric-body {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.staff-metric-value {
+  font-size: 1.55rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-main, #102a43);
+  line-height: 1.2;
+}
+
+.staff-metric-trend {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.staff-metric-trend.trend-positive {
+  color: #047857;
+  background: rgba(4, 120, 87, 0.08);
+}
+
+.staff-metric-trend.trend-negative {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.08);
+}
+
+.staff-metric-context {
+  font-size: 0.78rem;
+  color: var(--text-muted, #627d98);
+  margin: 0;
+  line-height: 1.4;
+}

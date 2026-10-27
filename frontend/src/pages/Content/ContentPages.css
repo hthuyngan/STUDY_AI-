@@ -1,0 +1,85 @@
+/* Content Workspace styles */
+
+.content-two-column {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .content-two-column {
+    grid-template-columns: 1fr;
+  }
+}
+
+.curriculum-chapter-item {
+  padding: 12px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+  margin-bottom: 8px;
+}
+
+.curriculum-chapter-item:hover {
+  border-color: var(--color-primary);
+}
+
+.curriculum-chapter-item.active {
+  border-color: var(--color-primary);
+  background: var(--color-surface-hover, rgba(16, 42, 67, 0.04));
+}
+
+.editor-sticky-bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+  z-index: 10;
+  border-radius: 0 0 8px 8px;
+}
+
+.editor-form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.editor-form-section label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-navy-dark, #102a43);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.editor-form-section textarea,
+.editor-form-section input {
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.editor-form-section textarea:focus,
+.editor-form-section input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.editor-form-section .hint {
+  font-size: 12px;
+  color: var(--color-ink-muted);
+}

@@ -1,12 +1,14 @@
 import React, { useState } from 'react'
 import { Eye, EyeOff, Loader2, Sparkles } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { getDefaultRouteForRole } from '@/auth/permissions'
 import { useAuth } from '@/auth/useAuth'
 import './AuthPage.css'
 
 export const LoginPage: React.FC = () => {
   const { login } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -31,8 +33,10 @@ export const LoginPage: React.FC = () => {
 
     setIsSubmitting(true)
     try {
-      await login({ email: trimmedEmail, password })
-      navigate('/dashboard')
+      const loggedUser = await login({ email: trimmedEmail, password })
+      const fromPath = (location.state as { from?: { pathname: string } })?.from?.pathname
+      const target = fromPath || getDefaultRouteForRole(loggedUser.role)
+      navigate(target, { replace: true })
     } catch (err: unknown) {
       const msg =
         err instanceof Error

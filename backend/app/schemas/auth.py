@@ -20,6 +20,7 @@ class UserResponse(BaseModel):
     email: Optional[str] = None
     displayName: Optional[str] = None
     grade: Optional[str] = None
+    role: str = "learner"
     createdAt: datetime
 
     model_config = ConfigDict(

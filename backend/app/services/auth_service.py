@@ -38,6 +38,7 @@ def register_user(
         password_hash=hash_password(data.password),
         display_name=data.displayName.strip(),
         grade=data.grade.strip() if data.grade else None,
+        role="learner",
         last_login_at=now,
         created_at=now,
         updated_at=now,

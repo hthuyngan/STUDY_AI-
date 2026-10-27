@@ -2,6 +2,7 @@ export interface ProgressProps {
   value: number // 0 to 100
   max?: number
   height?: number
+  size?: 'sm' | 'md' | 'lg' | string
   color?: string
   backgroundColor?: string
   className?: string
@@ -12,13 +13,15 @@ export interface ProgressProps {
 export function Progress({
   value,
   max = 100,
-  height = 8,
+  height,
+  size,
   color,
   backgroundColor,
   className = '',
   showLabel = false,
   labelPrefix = '',
 }: ProgressProps) {
+  const computedHeight = height ?? (size === 'sm' ? 6 : size === 'lg' ? 12 : 8)
   const percentage = Math.min(Math.max(Math.round((value / max) * 100), 0), 100)
 
   return (
@@ -26,7 +29,7 @@ export function Progress({
       <div
         className="progress-track"
         style={{
-          height: `${height}px`,
+          height: `${computedHeight}px`,
           backgroundColor: backgroundColor || 'var(--surface-sunken)',
         }}
         role="progressbar"
