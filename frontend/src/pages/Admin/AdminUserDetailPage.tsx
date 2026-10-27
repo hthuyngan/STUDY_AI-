@@ -40,7 +40,13 @@ export const AdminUserDetailPage: React.FC = () => {
   }
 
   if (error || !user) {
-    return <PageErrorState description={error || 'Không tìm thấy người dùng'} />
+    return (
+      <PageErrorState
+        title="Không thể kết nối máy chủ quản trị."
+        description={error || 'Không tìm thấy người dùng'}
+        onRetry={refresh}
+      />
+    )
   }
 
   const handleRoleChange = async () => {

@@ -542,6 +542,18 @@
   text-overflow: ellipsis;
 }
 
+.topbar-user-role-badge {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  font-size: 10px;
+  font-weight: var(--font-semibold);
+  background: var(--surface-sunken);
+  color: var(--color-primary);
+  border: 1px solid var(--border-subtle);
+}
+
 .topbar-user-dropdown-item {
   display: flex;
   align-items: center;

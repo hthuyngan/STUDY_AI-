@@ -26,7 +26,13 @@ export const TeacherStudentDetailPage: React.FC = () => {
   }
 
   if (error || !student) {
-    return <PageErrorState description={error || 'Không tìm thấy hồ sơ học sinh'} onRetry={refresh} />
+    return (
+      <PageErrorState
+        title="Không thể kết nối máy chủ quản trị."
+        description={error || 'Không tìm thấy hồ sơ học sinh'}
+        onRetry={refresh}
+      />
+    )
   }
 
   return (

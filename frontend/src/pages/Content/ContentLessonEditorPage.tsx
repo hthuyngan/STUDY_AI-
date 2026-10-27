@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useLessonEditor } from '@/hooks/useContent'
 import { StatusBadge } from '@/components/ui/StatusBadge'
@@ -21,21 +21,50 @@ function LessonEditorForm({ lessonData, isSaving, onSave }: LessonEditorFormProp
   const [examples, setExamples] = useState(lessonData.examples)
   const [notes, setNotes] = useState(lessonData.notes)
   const [summary, setSummary] = useState(lessonData.summary)
-  const [savedNotice, setSavedNotice] = useState(false)
+  const [isDirty, setIsDirty] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [saveError, setSaveError] = useState<string | null>(null)
+
+  // Warn before leaving editor if changes are unsaved
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault()
+        e.returnValue = ''
+      }
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [isDirty])
+
+  const handleFieldChange = (setter: (val: string) => void) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setter(e.target.value)
+    setIsDirty(true)
+  }
 
   const handleSave = async (newStatus?: typeof lessonData.status) => {
-    await onSave({
-      title,
-      introduction,
-      definitions,
-      formulas,
-      examples,
-      notes,
-      summary,
-      ...(newStatus ? { status: newStatus } : {}),
-    })
-    setSavedNotice(true)
-    setTimeout(() => setSavedNotice(false), 2500)
+    setSaveStatus('saving')
+    setSaveError(null)
+    try {
+      await onSave({
+        title,
+        introduction,
+        definitions,
+        formulas,
+        examples,
+        notes,
+        summary,
+        ...(newStatus ? { status: newStatus } : {}),
+      })
+      setSaveStatus('saved')
+      setIsDirty(false)
+      setTimeout(() => setSaveStatus('idle'), 2500)
+    } catch (err: unknown) {
+      setSaveStatus('error')
+      setSaveError(err instanceof Error ? err.message : 'Lỗi lưu bài học')
+    }
   }
 
   return (
@@ -78,8 +107,25 @@ function LessonEditorForm({ lessonData, isSaving, onSave }: LessonEditorFormProp
         </div>
       </div>
 
-      {savedNotice && (
+      {saveStatus === 'saving' && (
         <div
+          role="status"
+          style={{
+            padding: '10px 16px',
+            marginBottom: '16px',
+            background: 'var(--surface-sunken)',
+            color: 'var(--text-secondary)',
+            borderRadius: '6px',
+            fontSize: '14px',
+            border: '1px solid var(--border-subtle)',
+          }}
+        >
+          ⏳ Đang lưu bài học...
+        </div>
+      )}
+      {saveStatus === 'saved' && (
+        <div
+          role="status"
           style={{
             padding: '10px 16px',
             marginBottom: '16px',
@@ -93,6 +139,22 @@ function LessonEditorForm({ lessonData, isSaving, onSave }: LessonEditorFormProp
           ✓ Đã lưu thay đổi thành công!
         </div>
       )}
+      {saveStatus === 'error' && (
+        <div
+          role="alert"
+          style={{
+            padding: '10px 16px',
+            marginBottom: '16px',
+            background: 'var(--color-danger-bg, #fff5f5)',
+            color: 'var(--color-danger, #e03131)',
+            borderRadius: '6px',
+            fontSize: '14px',
+            border: '1px solid var(--border-subtle)',
+          }}
+        >
+          ✕ Lỗi lưu bài học: {saveError}
+        </div>
+      )}
 
       <div style={{ display: 'grid', gap: '24px' }}>
         {/* Section 1: Basic Information */}
@@ -104,7 +166,7 @@ function LessonEditorForm({ lessonData, isSaving, onSave }: LessonEditorFormProp
               id="ed-title"
               type="text"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={handleFieldChange(setTitle)}
               placeholder="VD: Khảo sát và vẽ đồ thị hàm phân thức..."
             />
           </div>
@@ -129,7 +191,7 @@ function LessonEditorForm({ lessonData, isSaving, onSave }: LessonEditorFormProp
               id="ed-intro"
               rows={4}
               value={introduction}
-              onChange={(e) => setIntroduction(e.target.value)}
+              onChange={handleFieldChange(setIntroduction)}
               placeholder="Giới thiệu bối cảnh thực tế hoặc vấn đề dẫn nhập..."
             />
             <span className="hint">Giúp học sinh hiểu tại sao cần học nội dung này và ứng dụng thực tế.</span>
@@ -145,7 +207,7 @@ function LessonEditorForm({ lessonData, isSaving, onSave }: LessonEditorFormProp
               id="ed-def"
               rows={5}
               value={definitions}
-              onChange={(e) => setDefinitions(e.target.value)}
+              onChange={handleFieldChange(setDefinitions)}
               placeholder="Định nghĩa tập xác định, điều kiện nghiệm, tính đơn điệu..."
             />
           </div>
@@ -160,7 +222,7 @@ function LessonEditorForm({ lessonData, isSaving, onSave }: LessonEditorFormProp
               id="ed-form"
               rows={4}
               value={formulas}
-              onChange={(e) => setFormulas(e.target.value)}
+              onChange={handleFieldChange(setFormulas)}
               placeholder="Công thức đạo hàm, tiệm cận, tọa độ tâm đối xứng..."
             />
           </div>
@@ -175,7 +237,7 @@ function LessonEditorForm({ lessonData, isSaving, onSave }: LessonEditorFormProp
               id="ed-ex"
               rows={6}
               value={examples}
-              onChange={(e) => setExamples(e.target.value)}
+              onChange={handleFieldChange(setExamples)}
               placeholder="Đề bài ví dụ và các bước giải cụ thể..."
             />
           </div>
@@ -190,7 +252,7 @@ function LessonEditorForm({ lessonData, isSaving, onSave }: LessonEditorFormProp
               id="ed-notes"
               rows={3}
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              onChange={handleFieldChange(setNotes)}
               placeholder="Các bẫy trắc nghiệm học sinh hay mắc..."
             />
           </div>
@@ -205,7 +267,7 @@ function LessonEditorForm({ lessonData, isSaving, onSave }: LessonEditorFormProp
               id="ed-sum"
               rows={3}
               value={summary}
-              onChange={(e) => setSummary(e.target.value)}
+              onChange={handleFieldChange(setSummary)}
               placeholder="Những ý trọng tâm cần ghi nhớ..."
             />
           </div>
@@ -248,7 +310,7 @@ function LessonEditorForm({ lessonData, isSaving, onSave }: LessonEditorFormProp
             type="button"
             className="staff-btn staff-btn-secondary"
             onClick={() => handleSave('draft')}
-            disabled={isSaving}
+            disabled={saveStatus === 'saving' || isSaving}
           >
             Lưu bản nháp
           </button>
@@ -256,7 +318,7 @@ function LessonEditorForm({ lessonData, isSaving, onSave }: LessonEditorFormProp
             type="button"
             className="staff-btn staff-btn-secondary"
             onClick={() => handleSave('in-review')}
-            disabled={isSaving}
+            disabled={saveStatus === 'saving' || isSaving}
           >
             Gửi kiểm duyệt
           </button>
@@ -264,9 +326,9 @@ function LessonEditorForm({ lessonData, isSaving, onSave }: LessonEditorFormProp
             type="button"
             className="staff-btn staff-btn-primary"
             onClick={() => handleSave('published')}
-            disabled={isSaving}
+            disabled={saveStatus === 'saving' || isSaving}
           >
-            {isSaving ? 'Đang lưu...' : 'Xuất bản bài học'}
+            {saveStatus === 'saving' ? 'Đang lưu...' : 'Xuất bản bài học'}
           </button>
         </div>
       </div>
@@ -295,7 +357,7 @@ export function ContentLessonEditorPage() {
   if (error || !lessonData) {
     return (
       <div className="staff-page">
-        <PageErrorState title="Lỗi tải bài học" message={error || 'Không tìm thấy bài học'} onRetry={refresh} />
+        <PageErrorState title="Không thể kết nối máy chủ quản trị." message={error || 'Không tìm thấy bài học'} onRetry={refresh} />
       </div>
     )
   }

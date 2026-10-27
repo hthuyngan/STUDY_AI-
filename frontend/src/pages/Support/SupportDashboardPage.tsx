@@ -26,7 +26,7 @@ export function SupportDashboardPage() {
   if (error || !data) {
     return (
       <div className="staff-page">
-        <PageErrorState title="Lỗi tải bảng điều khiển hỗ trợ" message={error || 'Không có dữ liệu'} onRetry={refresh} />
+        <PageErrorState title="Không thể kết nối máy chủ quản trị." message={error || 'Không có dữ liệu'} onRetry={refresh} />
       </div>
     )
   }

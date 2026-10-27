@@ -83,7 +83,7 @@ export function ContentLessonsPage() {
           <Skeleton height={52} />
         </div>
       ) : error ? (
-        <PageErrorState title="Lỗi tải danh sách bài học" message={error} onRetry={refresh} />
+        <PageErrorState title="Không thể kết nối máy chủ quản trị." message={error} onRetry={refresh} />
       ) : lessons.length === 0 ? (
         <EmptyState title="Không tìm thấy bài học" description="Thử thay đổi bộ lọc tìm kiếm hoặc tạo bài học mới." />
       ) : (

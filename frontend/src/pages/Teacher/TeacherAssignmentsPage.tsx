@@ -71,7 +71,7 @@ export function TeacherAssignmentsPage() {
           <Skeleton height={52} />
         </div>
       ) : error ? (
-        <PageErrorState title="Lỗi tải danh sách bài tập" message={error} onRetry={refresh} />
+        <PageErrorState title="Không thể kết nối máy chủ quản trị." message={error} onRetry={refresh} />
       ) : filtered.length === 0 ? (
         <EmptyState
           title="Không tìm thấy bài tập"

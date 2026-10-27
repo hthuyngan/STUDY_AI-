@@ -27,7 +27,7 @@ export function ContentDashboardPage() {
   if (error || !data) {
     return (
       <div className="staff-page">
-        <PageErrorState title="Lỗi tải tổng quan biên tập nội dung" message={error || 'Không có dữ liệu'} onRetry={refresh} />
+        <PageErrorState title="Không thể kết nối máy chủ quản trị." message={error || 'Không có dữ liệu'} onRetry={refresh} />
       </div>
     )
   }

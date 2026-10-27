@@ -44,7 +44,7 @@ export function SupportTicketDetailPage() {
   if (error || !ticket) {
     return (
       <div className="staff-page">
-        <PageErrorState title="Lỗi tải ticket" message={error || 'Không tìm thấy ticket'} onRetry={refresh} />
+        <PageErrorState title="Không thể kết nối máy chủ quản trị." message={error || 'Không tìm thấy ticket'} onRetry={refresh} />
       </div>
     )
   }

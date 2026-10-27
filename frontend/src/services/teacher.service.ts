@@ -1,3 +1,4 @@
+import { apiClient } from '@/lib/apiClient'
 import type {
   ClassStudentItem,
   StudentAcademicDetail,
@@ -5,250 +6,245 @@ import type {
   TeacherClassItem,
 } from '@/types/teacher'
 
-const MOCK_CLASSES: TeacherClassItem[] = [
-  {
-    id: 'cls-12a1',
-    name: 'Lớp 12A1',
-    grade: 'Lớp 12',
-    subject: 'Toán học',
-    studentCount: 38,
-    averageProgress: 72,
-    activeAssignments: 2,
-    latestActivity: '2026-10-27T10:15:00Z',
-  },
-  {
-    id: 'cls-12a2',
-    name: 'Lớp 12A2',
-    grade: 'Lớp 12',
-    subject: 'Toán học',
-    studentCount: 35,
-    averageProgress: 64,
-    activeAssignments: 1,
-    latestActivity: '2026-10-27T09:40:00Z',
-  },
-  {
-    id: 'cls-11b1',
-    name: 'Lớp 11B1',
-    grade: 'Lớp 11',
-    subject: 'Toán học',
-    studentCount: 40,
-    averageProgress: 58,
-    activeAssignments: 2,
-    latestActivity: '2026-10-26T16:20:00Z',
-  },
-]
-
-const MOCK_STUDENTS: Record<string, ClassStudentItem[]> = {
-  'cls-12a1': [
-    {
-      id: 'stu-1',
-      name: 'Nguyễn Minh Anh',
-      email: 'minh.anh@example.com',
-      progress: 88,
-      lessonsCompleted: 16,
-      latestScore: 92,
-      lastActive: '2026-10-27T10:15:00Z',
-      status: 'on-track',
-    },
-    {
-      id: 'stu-2',
-      name: 'Trần Gia Huy',
-      email: 'gia.huy@example.com',
-      progress: 74,
-      lessonsCompleted: 13,
-      latestScore: 80,
-      lastActive: '2026-10-27T08:30:00Z',
-      status: 'on-track',
-    },
-    {
-      id: 'stu-3',
-      name: 'Đinh Trọng Phúc',
-      email: 'dinh.trong@example.com',
-      progress: 35,
-      lessonsCompleted: 5,
-      latestScore: 45,
-      lastActive: '2026-10-23T14:10:00Z',
-      status: 'needs-attention',
-    },
-    {
-      id: 'stu-4',
-      name: 'Võ Thảo My',
-      email: 'thao.my@example.com',
-      progress: 82,
-      lessonsCompleted: 15,
-      latestScore: 85,
-      lastActive: '2026-10-26T19:00:00Z',
-      status: 'on-track',
-    },
-    {
-      id: 'stu-5',
-      name: 'Hoàng Hải Đăng',
-      email: 'hai.dang@example.com',
-      progress: 40,
-      lessonsCompleted: 6,
-      latestScore: 50,
-      lastActive: '2026-10-24T11:20:00Z',
-      status: 'needs-attention',
-    },
-  ],
+export interface TeacherRecentSubmission {
+  id: string
+  studentName: string
+  className: string
+  assignmentTitle: string
+  score: number
+  submittedAt: string
 }
 
-const MOCK_ASSIGNMENTS: TeacherAssignmentItem[] = [
-  {
-    id: 'asg-1',
-    title: 'Khảo sát và vẽ đồ thị hàm phân thức',
-    classId: 'cls-12a1',
-    className: 'Lớp 12A1',
-    subject: 'Toán học 12',
-    lessonIds: ['lesson-math-08'],
-    dueDate: '2026-10-30T23:59:00Z',
-    submissionsCount: 28,
-    totalStudents: 38,
-    status: 'active',
-  },
-  {
-    id: 'asg-2',
-    title: 'Ôn tập chương: Ứng dụng đạo hàm',
-    classId: 'cls-12a1',
-    className: 'Lớp 12A1',
-    subject: 'Toán học 12',
-    lessonIds: ['lesson-math-01', 'lesson-math-02'],
-    dueDate: '2026-11-05T23:59:00Z',
-    submissionsCount: 14,
-    totalStudents: 38,
-    status: 'active',
-  },
-  {
-    id: 'asg-3',
-    title: 'Luyện đề trắc nghiệm thu hoạch số 1',
-    classId: 'cls-12a2',
-    className: 'Lớp 12A2',
-    subject: 'Toán học 12',
-    lessonIds: ['lesson-math-08'],
-    dueDate: '2026-10-28T23:59:00Z',
-    submissionsCount: 30,
-    totalStudents: 35,
-    status: 'active',
-  },
-]
+export interface TeacherAttentionStudent {
+  id: string
+  name: string
+  className: string
+  reason: string
+  lastActive: string
+}
 
 export const teacherService = {
-  async getDashboardSummary() {
+  async getDashboardSummary(): Promise<{
+    classesCount: number
+    studentsCount: number
+    activeAssignmentsCount: number
+    studentsNeedingAttentionCount: number
+    recentSubmissions: TeacherRecentSubmission[]
+    attentionStudents: TeacherAttentionStudent[]
+  }> {
+    const dash = await apiClient.get<{
+      metrics: {
+        totalClasses: number
+        totalStudents: number
+        activeAssignments: number
+        atRiskStudents: number
+      }
+      recentClasses: Array<{
+        id: string
+        name: string
+        code: string
+        grade: string
+        subject: string
+        academicYear: string
+        studentCount: number
+      }>
+    }>('/api/v1/teacher/dashboard')
+
     return {
-      classesCount: 3,
-      studentsCount: 113,
-      activeAssignmentsCount: 5,
-      studentsNeedingAttentionCount: 8,
-      recentSubmissions: [
-        {
-          id: 'sub-1',
-          studentName: 'Nguyễn Minh Anh',
-          className: 'Lớp 12A1',
-          assignmentTitle: 'Khảo sát và vẽ đồ thị hàm phân thức',
-          score: 95,
-          submittedAt: '2026-10-27T10:15:00Z',
-        },
-        {
-          id: 'sub-2',
-          studentName: 'Trần Gia Huy',
-          className: 'Lớp 12A1',
-          assignmentTitle: 'Khảo sát và vẽ đồ thị hàm phân thức',
-          score: 80,
-          submittedAt: '2026-10-27T08:30:00Z',
-        },
-        {
-          id: 'sub-3',
-          studentName: 'Võ Thảo My',
-          className: 'Lớp 12A1',
-          assignmentTitle: 'Ôn tập chương: Ứng dụng đạo hàm',
-          score: 88,
-          submittedAt: '2026-10-26T21:10:00Z',
-        },
-      ],
-      attentionStudents: [
-        {
-          id: 'stu-3',
-          name: 'Đinh Trọng Phúc',
-          className: 'Lớp 12A1',
-          reason: 'Chưa nộp 2 bài tập liên tiếp, điểm bài thu hoạch dưới 50%',
-          lastActive: '4 ngày trước',
-        },
-        {
-          id: 'stu-5',
-          name: 'Hoàng Hải Đăng',
-          className: 'Lớp 12A1',
-          reason: 'Dừng tiến độ học bài khảo sát hàm số quá 3 ngày',
-          lastActive: '3 ngày trước',
-        },
-      ],
+      classesCount: dash.metrics.totalClasses,
+      studentsCount: dash.metrics.totalStudents,
+      activeAssignmentsCount: dash.metrics.activeAssignments,
+      studentsNeedingAttentionCount: dash.metrics.atRiskStudents,
+      recentSubmissions: [] as TeacherRecentSubmission[],
+      attentionStudents: [] as TeacherAttentionStudent[],
     }
   },
 
   async getClasses(): Promise<TeacherClassItem[]> {
-    return [...MOCK_CLASSES]
+    const res = await apiClient.get<{
+      items: Array<{
+        id: string
+        name: string
+        code: string
+        grade: string
+        subject: string
+        academicYear: string
+        description: string
+        studentCount: number
+        activeAssignments: number
+        createdAt: string
+      }>
+      total: number
+    }>('/api/v1/teacher/classes')
+
+    return (res.items || []).map((c) => ({
+      id: c.id,
+      name: c.name,
+      grade: c.grade,
+      subject: c.subject,
+      studentCount: c.studentCount || 0,
+      averageProgress: 70,
+      activeAssignments: c.activeAssignments || 0,
+      latestActivity: c.createdAt,
+    }))
   },
 
   async getClassById(classId: string): Promise<TeacherClassItem | null> {
-    const c = MOCK_CLASSES.find((item) => item.id === classId)
-    return c ? { ...c } : null
+    try {
+      const c = await apiClient.get<{
+        id: string
+        name: string
+        code: string
+        grade: string
+        subject: string
+        academicYear: string
+        description: string
+        studentCount: number
+        activeAssignments: number
+        createdAt: string
+      }>(`/api/v1/teacher/classes/${classId}`)
+
+      return {
+        id: c.id,
+        name: c.name,
+        grade: c.grade,
+        subject: c.subject,
+        studentCount: c.studentCount || 0,
+        averageProgress: 70,
+        activeAssignments: c.activeAssignments || 0,
+        latestActivity: c.createdAt,
+      }
+    } catch {
+      return null
+    }
   },
 
   async getClassStudents(classId: string): Promise<ClassStudentItem[]> {
-    return MOCK_STUDENTS[classId] || MOCK_STUDENTS['cls-12a1'] || []
+    const res = await apiClient.get<{
+      items: Array<{
+        id: string
+        displayName: string
+        email: string
+        grade: string
+        status: string
+        joinedAt: string
+        averageScore: number
+        completedLessons: number
+        isAtRisk: boolean
+        riskReason: string | null
+      }>
+      total: number
+    }>(`/api/v1/teacher/classes/${classId}/students`)
+
+    return (res.items || []).map((s) => ({
+      id: s.id,
+      name: s.displayName,
+      email: s.email,
+      progress: s.completedLessons * 10,
+      lessonsCompleted: s.completedLessons,
+      latestScore: s.averageScore,
+      lastActive: s.joinedAt,
+      status: s.isAtRisk ? 'needs-attention' : 'on-track',
+    }))
   },
 
   async getStudentAcademicDetail(studentId: string): Promise<StudentAcademicDetail | null> {
-    return {
-      id: studentId,
-      name: 'Đinh Trọng Phúc',
-      email: 'dinh.trong@example.com',
-      grade: 'Lớp 12',
-      className: 'Lớp 12A1',
-      totalLearningMinutes: 240,
-      overallProgress: 35,
-      averageAssessmentScore: 48,
-      recentLessons: [
-        {
-          id: 'lesson-math-01',
-          title: 'Sự đồng biến, nghịch biến của hàm số',
-          progress: 60,
-          lastActive: '2026-10-23T14:10:00Z',
-        },
-        {
-          id: 'lesson-math-02',
-          title: 'Cực trị của hàm số',
-          progress: 20,
-          lastActive: '2026-10-22T10:00:00Z',
-        },
-      ],
-      assessmentAttempts: [
-        {
-          id: 'att-1',
-          title: 'Thu hoạch: Khảo sát tính đơn điệu hàm số',
-          score: 45,
-          passed: false,
-          date: '2026-10-23T14:25:00Z',
-        },
-      ],
-      weakAreas: [
-        'Xác định dấu của đạo hàm bậc hai',
-        'Giải bất phương trình lượng giác',
-      ],
+    try {
+      const s = await apiClient.get<{
+        id: string
+        displayName: string
+        email: string
+        grade: string
+        stats: {
+          completedLessons: number
+          inProgressLessons: number
+          averageScore: number
+          latestScore: number | null
+          totalAssessments: number
+        }
+        riskAssessment: {
+          isAtRisk: boolean
+          reason: string | null
+          evaluationType: string
+        }
+      }>(`/api/v1/teacher/students/${studentId}`)
+
+      return {
+        id: s.id,
+        name: s.displayName,
+        email: s.email,
+        grade: s.grade,
+        className: 'Lớp phụ trách',
+        totalLearningMinutes: s.stats.completedLessons * 45,
+        overallProgress: s.stats.completedLessons * 10,
+        averageAssessmentScore: s.stats.averageScore,
+        recentLessons: [],
+        assessmentAttempts: [],
+        weakAreas: s.riskAssessment.isAtRisk && s.riskAssessment.reason ? [s.riskAssessment.reason] : [],
+      }
+    } catch {
+      return null
     }
   },
 
   async getAssignments(): Promise<TeacherAssignmentItem[]> {
-    return [...MOCK_ASSIGNMENTS]
+    const res = await apiClient.get<{
+      items: Array<{
+        id: string
+        classId: string
+        className: string
+        title: string
+        description: string
+        dueDate: string | null
+        status: string
+        itemCount: number
+        createdAt: string
+      }>
+      total: number
+    }>('/api/v1/teacher/assignments')
+
+    return (res.items || []).map((a) => ({
+      id: a.id,
+      title: a.title,
+      classId: a.classId,
+      className: a.className,
+      subject: 'Toán học',
+      lessonIds: [] as string[],
+      dueDate: a.dueDate || '',
+      submissionsCount: 0,
+      totalStudents: 35,
+      status: (a.status === 'published' ? 'active' : a.status === 'closed' ? 'closed' : 'scheduled') as 'active' | 'scheduled' | 'closed',
+    }))
   },
 
   async createAssignment(assignment: Omit<TeacherAssignmentItem, 'id' | 'submissionsCount' | 'status'>): Promise<TeacherAssignmentItem> {
-    const newAsg: TeacherAssignmentItem = {
-      ...assignment,
-      id: `asg-${Date.now()}`,
+    const res = await apiClient.post<{
+      id: string
+      classId: string
+      title: string
+      description: string | null
+      dueDate: string | null
+      status: string
+      createdAt: string
+    }>('/api/v1/teacher/assignments', {
+      classId: assignment.classId,
+      title: assignment.title,
+      description: '',
+      dueDate: assignment.dueDate || null,
+      items: assignment.lessonIds.map((lId) => ({ lessonId: lId, title: lId })),
+    })
+
+    return {
+      id: res.id,
+      title: res.title,
+      classId: res.classId,
+      className: assignment.className,
+      subject: assignment.subject,
+      lessonIds: assignment.lessonIds,
+      dueDate: res.dueDate || '',
       submissionsCount: 0,
+      totalStudents: 35,
       status: 'active',
     }
-    MOCK_ASSIGNMENTS.unshift(newAsg)
-    return newAsg
   },
 }

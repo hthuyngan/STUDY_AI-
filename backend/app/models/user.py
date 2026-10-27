@@ -20,6 +20,7 @@ class User(Base):
     display_name: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     grade: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     role: Mapped[str] = mapped_column(String(32), default="learner", nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="active", nullable=False)
     last_login_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

@@ -32,7 +32,7 @@ export function ContentSubjectsPage() {
           <Skeleton height={52} />
         </div>
       ) : error ? (
-        <PageErrorState title="Lỗi tải danh sách môn học" message={error} onRetry={refresh} />
+        <PageErrorState title="Không thể kết nối máy chủ quản trị." message={error} onRetry={refresh} />
       ) : subjects.length === 0 ? (
         <EmptyState title="Chưa có môn học" description="Không tìm thấy môn học nào trong hệ thống." />
       ) : (

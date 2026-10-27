@@ -10,6 +10,7 @@ import {
   Moon,
   Search,
   Settings,
+  Shield,
   Sun,
   User as UserIcon,
   X,
@@ -456,7 +457,22 @@ export function Topbar({ onOpenMobileMenu }: TopbarProps) {
                   <div className="topbar-user-dropdown-sub">
                     {user.email || user.grade || 'Học viên'}
                   </div>
+                  {user.role === 'admin' && (
+                    <span className="topbar-user-role-badge">Quản trị viên</span>
+                  )}
                 </div>
+
+                {user.role === 'admin' && (
+                  <Link
+                    to="/admin"
+                    className="topbar-user-dropdown-item topbar-admin-shortcut"
+                    role="menuitem"
+                    onClick={() => setIsUserMenuOpen(false)}
+                  >
+                    <Shield size={15} />
+                    <span>Trang quản trị</span>
+                  </Link>
+                )}
 
                 <Link
                   to="/settings"

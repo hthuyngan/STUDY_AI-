@@ -1,6 +1,6 @@
 import type { UserRole } from '@/auth/auth.types'
 
-export type AccountStatus = 'active' | 'suspended' | 'pending'
+export type AccountStatus = 'active' | 'suspended' | 'disabled' | 'pending'
 
 export interface AdminUserItem {
   id: string

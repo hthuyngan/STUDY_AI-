@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, LogOut, Moon, RefreshCw, Sun, User as UserIcon } from 'lucide-react'
+import { Check, LogOut, Moon, RefreshCw, Shield, Sun, User as UserIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/auth/useAuth'
 import { Breadcrumb } from '@/components/ui/Breadcrumb'
@@ -107,6 +107,35 @@ export function SettingsPage() {
                   Trạng thái: <strong>Đã đăng nhập ({syncStatus.mode === 'hybrid' ? 'Đồng bộ Hybrid' : 'Cục bộ'})</strong> · {syncStatus.pendingCount} tác vụ chờ
                 </span>
               </div>
+              {user.role === 'admin' && (
+                <div
+                  className="setting-control-row"
+                  style={{
+                    marginTop: '8px',
+                    borderTop: '1px solid var(--border-subtle)',
+                    paddingTop: '8px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <div>
+                    <span className="control-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Shield size={14} /> Vai trò: Quản trị viên
+                    </span>
+                    <p className="control-desc" style={{ fontSize: '12px' }}>
+                      Tài khoản có quyền quản trị toàn hệ thống.
+                    </p>
+                  </div>
+                  <Link
+                    to="/admin"
+                    className="theme-opt-btn"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', textDecoration: 'none' }}
+                  >
+                    <Shield size={14} /> Mở trang quản trị
+                  </Link>
+                </div>
+              )}
             </div>
           ) : (
             <div className="setting-control-row">

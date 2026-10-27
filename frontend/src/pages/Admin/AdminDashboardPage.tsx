@@ -18,7 +18,13 @@ export const AdminDashboardPage: React.FC = () => {
     useAdminDashboard()
 
   if (error) {
-    return <PageErrorState description={error} onRetry={refresh} />
+    return (
+      <PageErrorState
+        title="Không thể kết nối máy chủ quản trị."
+        description={error}
+        onRetry={refresh}
+      />
+    )
   }
 
   return (

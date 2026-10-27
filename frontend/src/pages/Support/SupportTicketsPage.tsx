@@ -97,7 +97,7 @@ export function SupportTicketsPage() {
           <Skeleton height={52} />
         </div>
       ) : error ? (
-        <PageErrorState title="Lỗi tải danh sách ticket" message={error} onRetry={refresh} />
+        <PageErrorState title="Không thể kết nối máy chủ quản trị." message={error} onRetry={refresh} />
       ) : tickets.length === 0 ? (
         <EmptyState title="Không tìm thấy ticket nào" description="Thử thay đổi bộ lọc tìm kiếm hoặc từ khóa tra cứu." />
       ) : (

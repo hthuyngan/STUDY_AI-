@@ -48,7 +48,7 @@ export function ContentReviewPage() {
           <Skeleton height={52} />
         </div>
       ) : error ? (
-        <PageErrorState title="Lỗi tải hàng đợi kiểm duyệt" message={error} onRetry={refresh} />
+        <PageErrorState title="Không thể kết nối máy chủ quản trị." message={error} onRetry={refresh} />
       ) : queue.length === 0 ? (
         <EmptyState title="Hàng đợi trống" description="Tất cả các nội dung gửi lên đã được xử lý xong." />
       ) : (

@@ -35,6 +35,12 @@ def get_current_user(
     if not user:
         raise credentials_exception
 
+    if user.status in ("suspended", "disabled"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tài khoản đã bị tạm khóa hoặc vô hiệu hóa.",
+        )
+
     return user
 
 

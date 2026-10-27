@@ -1,10 +1,21 @@
 import { useAdminDashboard } from '@/hooks/useAdmin'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { PageErrorState } from '@/components/ui/PageErrorState'
 import './AdminPages.css'
 
 export const AdminSystemPage: React.FC = () => {
-  const { metrics, loading } = useAdminDashboard()
+  const { metrics, loading, error, refresh } = useAdminDashboard()
+
+  if (error) {
+    return (
+      <PageErrorState
+        title="Không thể kết nối máy chủ quản trị."
+        description={error}
+        onRetry={refresh}
+      />
+    )
+  }
 
   return (
     <div className="admin-system-page">

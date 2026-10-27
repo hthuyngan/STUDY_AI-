@@ -28,7 +28,7 @@ export function PageErrorState({
       {onRetry && (
         <div className="page-error-action">
           <Button variant="outline" icon={RotateCcw} onClick={onRetry}>
-            Thử tải lại
+            Thử lại
           </Button>
         </div>
       )}

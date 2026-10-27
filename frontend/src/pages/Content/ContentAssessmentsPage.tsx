@@ -87,7 +87,7 @@ export function ContentAssessmentsPage() {
           <Skeleton height={52} />
         </div>
       ) : error ? (
-        <PageErrorState title="Lỗi tải bài thu hoạch" message={error} onRetry={refresh} />
+        <PageErrorState title="Không thể kết nối máy chủ quản trị." message={error} onRetry={refresh} />
       ) : assessments.length === 0 ? (
         <EmptyState title="Chưa có bài thu hoạch" description="Không tìm thấy bài thu hoạch nào." />
       ) : (

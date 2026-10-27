@@ -25,7 +25,13 @@ export const TeacherClassDetailPage: React.FC = () => {
   }
 
   if (error || !classInfo) {
-    return <PageErrorState description={error || 'Không tìm thấy lớp'} onRetry={refresh} />
+    return (
+      <PageErrorState
+        title="Không thể kết nối máy chủ quản trị."
+        description={error || 'Không tìm thấy lớp'}
+        onRetry={refresh}
+      />
+    )
   }
 
   return (

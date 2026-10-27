@@ -7,12 +7,15 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ROLE_LABELS } from '@/components/layout/workspaceNavigation'
+import { PageErrorState } from '@/components/ui/PageErrorState'
 import './AdminPages.css'
 
 export const AdminUsersPage: React.FC = () => {
   const {
     users,
     loading,
+    error,
+    refresh,
     search,
     setSearch,
     roleFilter,
@@ -20,6 +23,16 @@ export const AdminUsersPage: React.FC = () => {
     statusFilter,
     setStatusFilter,
   } = useAdminUsers()
+
+  if (error) {
+    return (
+      <PageErrorState
+        title="Không thể kết nối máy chủ quản trị."
+        description={error}
+        onRetry={refresh}
+      />
+    )
+  }
 
   const roleSelectOptions = [
     { label: 'Tất cả vai trò', value: 'all' },
