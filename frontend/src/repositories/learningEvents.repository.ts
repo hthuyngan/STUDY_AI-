@@ -1,8 +1,11 @@
 /**
  * Learning Events Repository Layer (Local, Remote, Hybrid with Batch Buffering)
+ * Fully identity-aware with canonical /me remote endpoints.
  */
 
+import { getAuthUser } from '@/auth/authSession'
 import { isRemoteApiConfigured } from '@/config/learner'
+import { getStorageKey, migrateLegacyStorageToGuest } from '@/repositories/storageKeys'
 import { enqueueSyncItem } from '@/repositories/syncQueue'
 import type { LearningEvent } from '@/types/assessment'
 
@@ -21,8 +24,17 @@ export interface ILearningEventsRepository {
 export class LocalLearningEventsRepository implements ILearningEventsRepository {
   getAll(lessonId?: string): LearningEvent[] {
     if (typeof window === 'undefined') return []
+    migrateLegacyStorageToGuest()
     try {
-      const raw = localStorage.getItem(LEARNING_EVENTS_STORAGE_KEY)
+      const storageKey = getStorageKey('learning_events')
+      let raw = localStorage.getItem(storageKey)
+      if (!raw) {
+        const legacy = localStorage.getItem(LEARNING_EVENTS_STORAGE_KEY)
+        if (legacy) {
+          raw = legacy
+          localStorage.setItem(storageKey, legacy)
+        }
+      }
       const list: LearningEvent[] = raw ? JSON.parse(raw) : []
       if (lessonId) {
         return list.filter((e) => e.lessonId === lessonId)
@@ -40,66 +52,57 @@ export class LocalLearningEventsRepository implements ILearningEventsRepository 
   appendBatch(events: LearningEvent[]): void {
     if (typeof window === 'undefined' || events.length === 0) return
     try {
+      const storageKey = getStorageKey('learning_events')
       const list = this.getAll()
       list.push(...events)
       const trimmed = list.slice(-MAX_STORED_EVENTS)
-      localStorage.setItem(
-        LEARNING_EVENTS_STORAGE_KEY,
-        JSON.stringify(trimmed)
-      )
+      localStorage.setItem(storageKey, JSON.stringify(trimmed))
     } catch (err) {
       console.error('Failed to append learning events to localStorage', err)
     }
   }
 
   async flushPendingEvents(): Promise<void> {
-    // Local storage is synchronous, no pending buffer
+    // Local storage is synchronous
   }
 }
 
 export class HybridLearningEventsRepository implements ILearningEventsRepository {
-  private local = new LocalLearningEventsRepository()
-  private pendingBuffer: LearningEvent[] = []
+  private local: LocalLearningEventsRepository
+  private pendingBatch: LearningEvent[] = []
   private debounceTimer: ReturnType<typeof setTimeout> | null = null
+
+  constructor(local?: LocalLearningEventsRepository) {
+    this.local = local || new LocalLearningEventsRepository()
+  }
 
   getAll(lessonId?: string): LearningEvent[] {
     return this.local.getAll(lessonId)
   }
 
   append(event: LearningEvent): void {
-    // 1. Local append immediately
-    this.local.append(event)
-
-    // 2. Buffer for remote batch upload
-    if (isRemoteApiConfigured()) {
-      this.pendingBuffer.push(event)
-
-      // Immediate flush for important milestone events
-      if (
-        event.type === 'assessment_completed' ||
-        event.type === 'assessment_submitted' ||
-        this.pendingBuffer.length >= EVENT_BATCH_FLUSH_SIZE
-      ) {
-        this.flushPendingEvents().catch(() => {})
-      } else {
-        this.scheduleDebouncedFlush()
-      }
-    }
+    this.appendBatch([event])
   }
 
   appendBatch(events: LearningEvent[]): void {
-    this.local.appendBatch(events)
-    if (isRemoteApiConfigured() && events.length > 0) {
-      this.pendingBuffer.push(...events)
-      this.flushPendingEvents().catch(() => {})
-    }
-  }
+    if (events.length === 0) return
 
-  private scheduleDebouncedFlush(): void {
-    if (this.debounceTimer) clearTimeout(this.debounceTimer)
-    this.debounceTimer = setTimeout(() => {
-      this.flushPendingEvents().catch(() => {})
-    }, EVENT_FLUSH_DEBOUNCE_MS)
+    // 1. Immediately write to local storage
+    this.local.appendBatch(events)
+
+    // 2. If remote API configured AND user is authenticated, buffer for dispatch
+    if (isRemoteApiConfigured() && getAuthUser() !== null) {
+      this.pendingBatch.push(...events)
+
+      if (this.pendingBatch.length >= EVENT_BATCH_FLUSH_SIZE) {
+        void this.flushPendingEvents()
+      } else {
+        if (this.debounceTimer) clearTimeout(this.debounceTimer)
+        this.debounceTimer = setTimeout(() => {
+          void this.flushPendingEvents()
+        }, EVENT_FLUSH_DEBOUNCE_MS)
+      }
+    }
   }
 
   async flushPendingEvents(): Promise<void> {
@@ -108,17 +111,22 @@ export class HybridLearningEventsRepository implements ILearningEventsRepository
       this.debounceTimer = null
     }
 
-    if (!isRemoteApiConfigured() || this.pendingBuffer.length === 0) {
+    if (this.pendingBatch.length === 0) return
+
+    // Only queue if authenticated
+    if (!isRemoteApiConfigured() || !getAuthUser()) {
+      this.pendingBatch = []
       return
     }
 
-    const batchToSend = [...this.pendingBuffer]
-    this.pendingBuffer = []
+    const eventsToFlush = [...this.pendingBatch]
+    this.pendingBatch = []
 
-    const batchId = `ev_batch_${Date.now()}`
-    enqueueSyncItem('event-batch', batchId, {
-      events: batchToSend as unknown as Record<string, unknown>[],
-    })
+    enqueueSyncItem(
+      'event-batch',
+      `events_${Date.now()}`,
+      { events: eventsToFlush } as Record<string, unknown>
+    )
   }
 }
 

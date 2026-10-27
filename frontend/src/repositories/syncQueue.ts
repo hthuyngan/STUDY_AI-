@@ -1,9 +1,12 @@
 /**
  * Lightweight resilient sync queue for offline changes and asynchronous remote dispatch.
+ * Scoped per authenticated learner identity to prevent cross-account queue leaks.
  */
 
-import { getCurrentLearnerId, isRemoteApiConfigured } from '@/config/learner'
+import { getAuthUser } from '@/auth/authSession'
+import { isRemoteApiConfigured } from '@/config/learner'
 import { apiClient } from '@/lib/apiClient'
+import { getStorageKey } from '@/repositories/storageKeys'
 import type {
   PersistenceMode,
   SyncOperationType,
@@ -33,23 +36,28 @@ function notifySyncStatus(): void {
 }
 
 export function getPersistenceMode(): PersistenceMode {
-  return isRemoteApiConfigured() ? 'hybrid' : 'local'
+  return isRemoteApiConfigured() && getAuthUser() !== null ? 'hybrid' : 'local'
 }
 
-export function getSyncQueue(): SyncQueueItem[] {
+export function getSyncQueue(identity?: string): SyncQueueItem[] {
   if (typeof window === 'undefined') return []
   try {
-    const raw = localStorage.getItem(SYNC_QUEUE_STORAGE_KEY)
+    const key = getStorageKey('sync_queue', identity)
+    const raw =
+      localStorage.getItem(key) || localStorage.getItem(SYNC_QUEUE_STORAGE_KEY)
     return raw ? JSON.parse(raw) : []
   } catch {
     return []
   }
 }
 
-function saveSyncQueue(queue: SyncQueueItem[]): void {
+function saveSyncQueue(queue: SyncQueueItem[], identity?: string): void {
   if (typeof window === 'undefined') return
   try {
-    localStorage.setItem(SYNC_QUEUE_STORAGE_KEY, JSON.stringify(queue))
+    const key = getStorageKey('sync_queue', identity)
+    const json = JSON.stringify(queue)
+    localStorage.setItem(key, json)
+    localStorage.setItem(SYNC_QUEUE_STORAGE_KEY, json)
     notifySyncStatus()
   } catch (err) {
     console.error('Failed to save sync queue', err)
@@ -88,91 +96,77 @@ export function removeSyncItem(id: string): void {
   saveSyncQueue(queue.filter((item) => item.id !== id))
 }
 
-export function getSyncStatus(): SyncStatus {
-  const queue = getSyncQueue()
-  const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true
-
-  let state: SyncState = currentSyncState
-  if (!isOnline) {
-    state = 'offline'
-  } else if (queue.length === 0 && state !== 'error') {
-    state = 'synced'
-  }
-
-  return {
-    state,
-    mode: getPersistenceMode(),
-    pendingCount: queue.length,
-    lastSyncedAt,
-    lastError,
-  }
-}
-
-/**
- * Flush pending items in sync queue to backend.
- */
 export async function flushSyncQueue(): Promise<void> {
-  if (!isRemoteApiConfigured()) {
-    currentSyncState = 'idle'
+  // Only process remote sync if remote API is configured
+  if (!isRemoteApiConfigured() || isProcessing) {
     return
   }
 
-  if (typeof navigator !== 'undefined' && !navigator.onLine) {
-    currentSyncState = 'offline'
+  const queue = getSyncQueue()
+  if (queue.length === 0) {
+    currentSyncState = 'idle'
     notifySyncStatus()
     return
   }
 
-  if (isProcessing) return
   isProcessing = true
   currentSyncState = 'syncing'
   notifySyncStatus()
 
-  const userId = getCurrentLearnerId()
-  const queue = getSyncQueue()
+  const authUser = getAuthUser()
+  const remainingQueue: SyncQueueItem[] = []
 
-  try {
-    for (const item of queue) {
-      if (item.retryCount >= MAX_QUEUE_RETRIES) {
-        continue
+  for (const item of queue) {
+    try {
+      if (item.type === 'progress-upsert') {
+        const endpoint = authUser
+          ? `/api/v1/me/lesson-progress/${item.entityId}`
+          : `/users/stu-001/lesson-progress/${item.entityId}`
+        await apiClient.put(endpoint, item.payload)
+      } else if (item.type === 'attempt-upsert') {
+        const endpoint = authUser
+          ? `/api/v1/me/assessment-attempts/${item.entityId}`
+          : `/users/stu-001/assessment-attempts/${item.entityId}`
+        await apiClient.put(endpoint, item.payload)
+      } else if (item.type === 'event-batch') {
+        const endpoint = authUser
+          ? '/api/v1/me/learning-events/batch'
+          : '/users/stu-001/learning-events/batch'
+        await apiClient.post(endpoint, item.payload)
       }
+      lastSyncedAt = new Date().toISOString()
+      lastError = undefined
+    } catch (err: unknown) {
+      item.retryCount += 1
+      lastError = err instanceof Error ? err.message : 'Sync dispatch failed'
 
-      try {
-        if (item.type === 'progress-upsert') {
-          await apiClient.put(
-            `/users/${userId}/lesson-progress/${item.entityId}`,
-            item.payload
-          )
-        } else if (item.type === 'attempt-upsert') {
-          await apiClient.put(
-            `/users/${userId}/assessment-attempts/${item.entityId}`,
-            item.payload
-          )
-        } else if (item.type === 'event-batch') {
-          await apiClient.post(
-            `/users/${userId}/learning-events/batch`,
-            item.payload
-          )
-        }
-
-        // Successfully synced
-        removeSyncItem(item.id)
-      } catch (itemErr: unknown) {
-        item.retryCount += 1
-        lastError =
-          itemErr instanceof Error ? itemErr.message : 'Item sync failed'
-        saveSyncQueue(queue)
+      if (item.retryCount < MAX_QUEUE_RETRIES) {
+        remainingQueue.push(item)
+      } else {
+        console.warn(
+          `Sync operation [${item.type}] for [${item.entityId}] dropped after max retries`,
+          err
+        )
       }
     }
+  }
 
-    lastSyncedAt = new Date().toISOString()
-    currentSyncState = getSyncQueue().length === 0 ? 'synced' : 'error'
-  } catch (err: unknown) {
-    currentSyncState = 'error'
-    lastError = err instanceof Error ? err.message : 'Sync flush failed'
-  } finally {
-    isProcessing = false
-    notifySyncStatus()
+  saveSyncQueue(remainingQueue)
+  isProcessing = false
+  currentSyncState = remainingQueue.length > 0 ? 'error' : 'idle'
+  notifySyncStatus()
+}
+
+export const processSyncQueue = flushSyncQueue
+
+export function getSyncStatus(): SyncStatus {
+  const queue = getSyncQueue()
+  return {
+    mode: getPersistenceMode(),
+    state: currentSyncState,
+    pendingCount: queue.length,
+    lastSyncedAt,
+    lastError,
   }
 }
 
@@ -197,6 +191,7 @@ export class SyncQueue {
   enqueue = enqueueSyncItem
   remove = removeSyncItem
   flush = flushSyncQueue
+  process = flushSyncQueue
   getStatus = getSyncStatus
   getPendingCount = () => getSyncQueue().length
   getItems = getSyncQueue

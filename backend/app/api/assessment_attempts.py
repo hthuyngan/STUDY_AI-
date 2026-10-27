@@ -1,8 +1,10 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
+from app.api.deps import get_current_user
 from app.database import get_db
 from app.models.assessment_attempt import AssessmentAttempt
+from app.models.user import User
 from app.schemas.assessment import (
     AssessmentAttemptCreate,
     AssessmentAttemptResponse,
@@ -18,6 +20,14 @@ from app.services.assessment_service import (
 router = APIRouter(
     prefix="/users/{user_id}/assessment-attempts", tags=["Assessment Attempts"]
 )
+
+
+def _verify_user_access(user_id: str, current_user: User) -> None:
+    if current_user.id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot access assessment attempts of another learner.",
+        )
 
 
 def _format_attempt_response(
@@ -61,21 +71,26 @@ def _format_attempt_response(
     )
 
 
-
 @router.get("", response_model=List[AssessmentAttemptResponse])
 def list_attempts(
     user_id: str,
     lesson_id: Optional[str] = Query(None, alias="lessonId"),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    _verify_user_access(user_id, current_user)
     attempts = get_user_attempts(db, user_id, lesson_id=lesson_id)
     return [_format_attempt_response(a) for a in attempts]
 
 
 @router.get("/{attempt_id}", response_model=AssessmentAttemptResponse)
 def get_single_attempt(
-    user_id: str, attempt_id: str, db: Session = Depends(get_db)
+    user_id: str,
+    attempt_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
+    _verify_user_access(user_id, current_user)
     attempt = get_attempt_by_id(db, user_id, attempt_id)
     if not attempt:
         raise HTTPException(
@@ -91,8 +106,12 @@ def get_single_attempt(
     status_code=status.HTTP_201_CREATED,
 )
 def create_attempt(
-    user_id: str, data: AssessmentAttemptCreate, db: Session = Depends(get_db)
+    user_id: str,
+    data: AssessmentAttemptCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
+    _verify_user_access(user_id, current_user)
     saved = upsert_attempt(db, user_id, data)
     return _format_attempt_response(saved)
 
@@ -103,7 +122,9 @@ def update_or_upsert_attempt(
     user_id: str,
     attempt_id: str,
     data: AssessmentAttemptCreate | AssessmentAttemptUpdate,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    _verify_user_access(user_id, current_user)
     saved = upsert_attempt(db, user_id, data, attempt_id=attempt_id)
     return _format_attempt_response(saved)

@@ -5,15 +5,20 @@ import {
   Bot,
   FileText,
   Layers,
+  LogOut,
   Menu,
   Moon,
   Search,
+  Settings,
   Sun,
+  User as UserIcon,
   X,
 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '@/auth/useAuth'
 import { Avatar } from '@/components/ui/Avatar'
 import { IconButton } from '@/components/ui/IconButton'
+
 
 export interface TopbarProps {
   onOpenMobileMenu?: () => void
@@ -103,18 +108,22 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
 
 export function Topbar({ onOpenMobileMenu }: TopbarProps) {
   const navigate = useNavigate()
+  const { user, isAuthenticated, logout } = useAuth()
   const searchInputRef = useRef<HTMLInputElement>(null)
   const searchDropdownRef = useRef<HTMLDivElement>(null)
   const notificationsRef = useRef<HTMLDivElement>(null)
+  const userMenuRef = useRef<HTMLDivElement>(null)
 
   const [query, setQuery] = useState('')
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS)
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
 
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     return (localStorage.getItem('study_ai_theme') as 'light' | 'dark') || 'light'
   })
+
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
@@ -131,6 +140,7 @@ export function Topbar({ onOpenMobileMenu }: TopbarProps) {
       } else if (e.key === 'Escape') {
         setIsSearchOpen(false)
         setIsNotificationsOpen(false)
+        setIsUserMenuOpen(false)
       }
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -155,10 +165,18 @@ export function Topbar({ onOpenMobileMenu }: TopbarProps) {
       ) {
         setIsNotificationsOpen(false)
       }
+
+      if (
+        userMenuRef.current &&
+        !userMenuRef.current.contains(e.target as Node)
+      ) {
+        setIsUserMenuOpen(false)
+      }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))
@@ -408,14 +426,86 @@ export function Topbar({ onOpenMobileMenu }: TopbarProps) {
           )}
         </div>
 
-        {/* User avatar item */}
-        <Link to="/profile" className="topbar-user" title="Hồ sơ của bạn">
-          <Avatar
-            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"
-            alt="Hoàng Thúy Ngân"
-            size="sm"
-          />
-        </Link>
+        {/* User state: Authenticated vs Guest */}
+        {isAuthenticated && user ? (
+          <div className="topbar-user-wrap" ref={userMenuRef}>
+            <button
+              type="button"
+              className="topbar-user-trigger"
+              onClick={() => setIsUserMenuOpen((prev) => !prev)}
+              aria-expanded={isUserMenuOpen}
+              aria-haspopup="true"
+              aria-label="Menu tài khoản"
+            >
+              <Avatar
+                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"
+                alt={user.displayName}
+                size="sm"
+              />
+              <span className="topbar-user-name desktop-only">{user.displayName}</span>
+            </button>
+
+            {isUserMenuOpen && (
+              <div
+                className="topbar-user-dropdown"
+                role="menu"
+                aria-label="Tùy chọn người dùng"
+              >
+                <div className="topbar-user-dropdown-header">
+                  <div className="topbar-user-dropdown-name">{user.displayName}</div>
+                  <div className="topbar-user-dropdown-sub">
+                    {user.email || user.grade || 'Học viên'}
+                  </div>
+                </div>
+
+                <Link
+                  to="/settings"
+                  className="topbar-user-dropdown-item"
+                  role="menuitem"
+                  onClick={() => setIsUserMenuOpen(false)}
+                >
+                  <UserIcon size={15} />
+                  <span>Tài khoản</span>
+                </Link>
+
+                <Link
+                  to="/settings"
+                  className="topbar-user-dropdown-item"
+                  role="menuitem"
+                  onClick={() => setIsUserMenuOpen(false)}
+                >
+                  <Settings size={15} />
+                  <span>Cài đặt</span>
+                </Link>
+
+                <div className="topbar-user-dropdown-divider" />
+
+                <button
+                  type="button"
+                  className="topbar-user-dropdown-item is-danger"
+                  role="menuitem"
+                  onClick={async () => {
+                    setIsUserMenuOpen(false)
+                    await logout()
+                    navigate('/dashboard')
+                  }}
+                >
+                  <LogOut size={15} />
+                  <span>Đăng xuất</span>
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="topbar-auth-guest">
+            <Link to="/login" className="topbar-btn-login">
+              Đăng nhập
+            </Link>
+            <Link to="/register" className="topbar-btn-register desktop-only">
+              Đăng ký
+            </Link>
+          </div>
+        )}
       </div>
     </header>
   )

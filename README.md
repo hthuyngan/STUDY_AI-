@@ -14,32 +14,42 @@ STUDY_AI- là nền tảng gia sư & trợ lý học tập thông minh sử dụ
 ```
 Browser UI (React 19 + TypeScript)
       │
+      ├── Auth Layer (AuthProvider + in-memory JWT + HttpOnly refresh cookie)
+      │
       ▼
 Learning State Engine (Pure Aggregation & Derived Snapshot)
       │
       ▼
-Repository Layer Abstraction
-   ├── Local Persistence (localStorage - Zero UI Latency & Offline Fallback)
-   ├── Remote Sync Queue (study_ai.sync_queue.v1 - Resilient Background Dispatch)
-   └── Remote API (FastAPI + Pydantic v2 + SQLAlchemy 2.x)
+Repository Layer Abstraction (Identity-Aware Scoped Namespaces)
+   ├── Local Persistence (study_ai.<identity>.*.v2 - Zero UI Latency & Multi-user isolation)
+   ├── Remote Sync Queue (study_ai.<identity>.sync_queue.v2 - Resilient Background Dispatch)
+   └── Protected Remote API (FastAPI + JWT Bearer + /api/v1/me/* canonical routes)
              │
              ▼
-       Database (SQLite Local / PostgreSQL Production-ready)
+       Database (Argon2id hashes, refresh_sessions, SQLite Local / PostgreSQL-ready)
 ```
 
-### Persistence Modes (Chế độ lưu trữ)
+### Identity & Persistence Modes (Chế độ danh tính & lưu trữ)
 
-1. **Local Mode (Mặc định trên GitHub Pages & Offline)**:
-   - Khi không cấu hình biến môi trường `VITE_API_BASE_URL`.
-   - Toàn bộ dữ liệu học tập (Lesson Progress, Assessment Attempts, Learning Events) lưu tức thì vào trình duyệt.
-   - Hoàn toàn không phát sinh lỗi mạng hoặc console spam.
+1. **Guest Mode (Mặc định trên GitHub Pages & người dùng chưa đăng nhập)**:
+   - Danh tính cục bộ ổn định (`guest_<random>_<timestamp>`).
+   - Lưu trữ dữ liệu học tập vào namespace riêng `study_ai.<guest_id>.*.v2`.
+   - Di chuyển tự động từ schema cũ `v1` sang guest namespace mà không gây gián đoạn hay mất mát dữ liệu.
+   - Khi không có `VITE_API_BASE_URL`: hoạt động hoàn toàn offline, 0ms latency, không lỗi mạng console spam.
 
-2. **Hybrid Mode (Full-stack Local Development & Server Integration)**:
-   - Khi cấu hình `VITE_API_BASE_URL=http://localhost:8000/api/v1`.
-   - **Ghi**: Lưu cục bộ lập tức (0ms UI latency) + đưa tác vụ vào hàng đợi đồng bộ bất đồng bộ (`SyncQueue`).
-   - **Đọc**: Khôi phục từ remote và hợp nhất với dữ liệu cục bộ chưa đồng bộ (quy tắc: server newer-wins, không hạ cấp bài thi đã nộp 100%).
-   - **Tự phục hồi**: Tự động thử lại khi trình duyệt online trở lại (`window.online`) hoặc khi người dùng thao tác mới.
-   - **Bootstrap tự động**: Di chuyển dữ liệu cũ từ `localStorage` lên máy chủ lần đầu tiên (`POST /users/{id}/sync/bootstrap`).
+2. **Authenticated Mode (Đăng nhập bảo mật & Đồng bộ đám mây)**:
+   - **Xác thực Backend-Native**: FastAPI + SQLAlchemy + Argon2id hash mật khẩu.
+   - **Mô hình Token kép**:
+     - *Access Token*: JWT ngắn hạn (15 phút), lưu **in-memory** duy nhất (không bao giờ lưu vào localStorage/sessionStorage/IndexedDB).
+     - *Refresh Token*: Chuỗi ngẫu nhiên opaque (`secrets.token_urlsafe`), băm SHA-256 lưu trong bảng `refresh_sessions`. Client nhận qua **HttpOnly cookie** (`SameSite`, `Secure` tại production).
+     - *Cơ chế quay vòng (Rotation)*: Mỗi lần gọi `POST /api/v1/auth/refresh`, refresh token cũ lập tức bị thu hồi và cấp token mới.
+   - **API học tập bảo vệ**: Toàn bộ dữ liệu gắn với token (`/api/v1/me/lesson-progress`, `/api/v1/me/assessment-attempts`, `/api/v1/me/learning-events`, `/api/v1/me/sync/bootstrap`). Client không thể tự truyền `userId` để giả mạo danh tính.
+   - **Cô lập nhiều người dùng**: User A và User B trên cùng máy tính lưu trữ ở các namespace `study_ai.<user_id>.*.v2` độc lập. Đăng xuất ẩn cache tài khoản, không để rò rỉ dữ liệu chéo.
+
+3. **Guest → Account Data Migration**:
+   - Khi khách có tiến độ trên thiết bị đăng nhập/đăng ký tài khoản, hệ thống hiển thị hộp thoại xác nhận rõ ràng:
+     - `[ Đồng bộ vào tài khoản ]`: Hợp nhất tiến độ bài học, bài thu hoạch, lịch sử học tập lên `/api/v1/me/sync/bootstrap` theo quy tắc server newer-wins và không hạ cấp trạng thái đã hoàn thành.
+     - `[ Giữ riêng trên thiết bị ]`: Không tải dữ liệu khách lên đám mây; tài khoản bắt đầu từ dữ liệu của chính tài khoản đó.
 
 ---
 
@@ -48,16 +58,17 @@ Repository Layer Abstraction
 ### Frontend
 - **Framework**: [React 19](https://react.dev/) + [Vite](https://vite.dev/)
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
-- **State & Data**: Repository Pattern, Hybrid Offline-First Sync Queue, Unified Learning State Engine
-- **Styling**: Vanilla CSS tokens & Design System
-- **Testing & Quality**: Vitest (59 unit/integration tests), Oxlint (0 warnings)
+- **State & Data**: AuthProvider (in-memory access token), Repository Pattern, Identity-Aware Sync Queue, Unified Learning State Engine
+- **Styling**: Vanilla CSS tokens & Design System (Navy Notebook theme, dark mode support)
+- **Testing & Quality**: Vitest (67 unit/integration tests), Oxlint (0 warnings)
 - **Package Manager**: [Bun](https://bun.sh/)
 
 ### Backend
 - **Framework**: [FastAPI](https://fastapi.tiangolo.com/) (Python 3.12+)
-- **ORM & Database**: [SQLAlchemy 2.x](https://www.sqlalchemy.org/) + [Alembic](https://alembic.sqlalchemy.org/)
+- **Security & Auth**: Argon2id password hashing (`argon2-cffi`), PyJWT short-lived access tokens, opaque rotating refresh sessions in HttpOnly cookies
+- **ORM & Database**: [SQLAlchemy 2.x](https://www.sqlalchemy.org/) + [Alembic](https://alembic.sqlalchemy.org/) (Migrations 001 + 002)
 - **Schemas & Config**: [Pydantic v2](https://docs.pydantic.dev/) + `pydantic-settings`
-- **Testing**: Pytest + HTTPX TestClient (10 API integration tests)
+- **Testing**: Pytest + HTTPX TestClient (19 API integration tests across auth, isolation, and learning)
 - **Database Engine**: SQLite cục bộ (`data/study_ai.db`), kiến trúc sẵn sàng kết nối PostgreSQL
 
 ---

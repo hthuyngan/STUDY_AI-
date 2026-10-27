@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { Check, Moon, RefreshCw, Sun } from 'lucide-react'
+import { Check, LogOut, Moon, RefreshCw, Sun, User as UserIcon } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { useAuth } from '@/auth/useAuth'
 import { Breadcrumb } from '@/components/ui/Breadcrumb'
 import { Card } from '@/components/ui/Card'
 import { PageErrorState } from '@/components/ui/PageErrorState'
@@ -9,7 +11,9 @@ import { useUserSettings } from '@/hooks/useSupporting'
 import { syncQueue } from '@/repositories'
 import './SettingsPage.css'
 
+
 export function SettingsPage() {
+  const { user, isAuthenticated, logout } = useAuth()
   const { settings, isLoading, error, saveSettings, reload } = useUserSettings()
   const [isSavedBanner, setIsSavedBanner] = useState(false)
 
@@ -56,6 +60,8 @@ export function SettingsPage() {
     setTimeout(() => setIsSavedBanner(false), 2000)
   }
 
+  const syncStatus = syncQueue.getStatus()
+
   return (
     <div className="settings-page-root">
       <Breadcrumb items={[{ label: 'Cài đặt hệ thống' }]} />
@@ -74,6 +80,58 @@ export function SettingsPage() {
       </div>
 
       <div className="settings-sections-list">
+        {/* Section: Tài khoản */}
+        <Card title="Tài khoản học viên" subtitle="Thông tin danh tính và trạng thái liên kết đám mây">
+          {isAuthenticated && user ? (
+            <div className="account-settings-content">
+              <div className="setting-control-row">
+                <div>
+                  <span className="control-label">{user.displayName}</span>
+                  <p className="control-desc">
+                    {user.email || 'Chưa liên kết email'} · {user.grade || 'Lớp 12'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="theme-opt-btn"
+                  onClick={async () => {
+                    await logout()
+                  }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--color-danger)' }}
+                >
+                  <LogOut size={14} /> Đăng xuất
+                </button>
+              </div>
+              <div className="setting-control-row" style={{ marginTop: '8px', borderTop: '1px solid var(--border-subtle)', paddingTop: '8px' }}>
+                <span className="control-desc" style={{ fontSize: '12px' }}>
+                  Trạng thái: <strong>Đã đăng nhập ({syncStatus.mode === 'hybrid' ? 'Đồng bộ Hybrid' : 'Cục bộ'})</strong> · {syncStatus.pendingCount} tác vụ chờ
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="setting-control-row">
+              <div>
+                <span className="control-label">Chế độ học Khách (Guest)</span>
+                <p className="control-desc">Dữ liệu hiện đang được lưu trên thiết bị này.</p>
+              </div>
+              <Link
+                to="/login"
+                className="theme-opt-btn active"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  textDecoration: 'none',
+                  backgroundColor: 'var(--color-primary)',
+                  color: 'var(--neutral-0)',
+                }}
+              >
+                <UserIcon size={14} /> Đăng nhập để đồng bộ
+              </Link>
+            </div>
+          )}
+        </Card>
+
         {/* Section 1: Giao diện */}
         <Card title="Giao diện hiển thị" subtitle="Chế độ màu sáng/tối tối ưu cho mắt khi học đêm">
           <div className="setting-control-row">
@@ -96,6 +154,7 @@ export function SettingsPage() {
             </div>
           </div>
         </Card>
+
 
         {/* Section 2: Học tập */}
         <Card title="Mục tiêu học tập hàng ngày" subtitle="Đặt thời gian tự học mục tiêu mỗi ngày">
@@ -203,14 +262,14 @@ export function SettingsPage() {
                   color: 'var(--color-text-secondary, #64748b)',
                 }}
               >
-                {syncQueue.getPendingCount()} tác vụ chờ đồng bộ
+                {syncStatus.pendingCount} tác vụ chờ đồng bộ
               </span>
               {isRemoteApiConfigured() && (
                 <button
                   type="button"
                   className="theme-opt-btn"
                   onClick={async () => {
-                    await syncQueue.flush()
+                    await syncQueue.process()
                     showSaved()
                   }}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}

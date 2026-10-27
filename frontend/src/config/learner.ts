@@ -2,15 +2,16 @@
  * Central learner identity and environment configuration for StudyAI.
  */
 
-const DEFAULT_LEARNER_ID = 'stu-001'
+import { getCurrentIdentity } from '@/repositories/storageKeys'
 
 /**
  * Get current learner ID.
- * Centralized abstraction so future authentication phases can dynamically resolve user identity.
+ * Returns authenticated user ID when logged in, or stable semantic guest identity when in guest mode.
  */
 export function getCurrentLearnerId(): string {
-  return DEFAULT_LEARNER_ID
+  return getCurrentIdentity()
 }
+
 
 /**
  * Get configured remote API base URL, stripped of trailing slashes.

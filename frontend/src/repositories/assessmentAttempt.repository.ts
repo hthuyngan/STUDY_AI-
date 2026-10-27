@@ -1,9 +1,12 @@
 /**
  * Assessment Attempt Repository Layer (Local, Remote, Hybrid)
+ * Fully identity-aware with canonical /me remote endpoints.
  */
 
-import { getCurrentLearnerId, isRemoteApiConfigured } from '@/config/learner'
+import { getAuthUser } from '@/auth/authSession'
+import { isRemoteApiConfigured } from '@/config/learner'
 import { requestJson } from '@/lib/apiClient'
+import { getStorageKey, migrateLegacyStorageToGuest } from '@/repositories/storageKeys'
 import { enqueueSyncItem } from '@/repositories/syncQueue'
 import { notifyLearningStateChanged } from '@/services/learningStateEvents'
 import type { LearningAttempt } from '@/types/assessment'
@@ -22,10 +25,19 @@ export interface IAssessmentAttemptRepository {
 export class LocalAssessmentAttemptRepository implements IAssessmentAttemptRepository {
   getAll(lessonId?: string): LearningAttempt[] {
     if (typeof window === 'undefined') return []
+    migrateLegacyStorageToGuest()
     try {
-      const raw =
-        localStorage.getItem(ASSESSMENT_ATTEMPTS_STORAGE_KEY) ||
-        localStorage.getItem(LEGACY_ATTEMPTS_STORAGE_KEY)
+      const storageKey = getStorageKey('assessment_attempts')
+      let raw = localStorage.getItem(storageKey)
+      if (!raw) {
+        const legacy =
+          localStorage.getItem(ASSESSMENT_ATTEMPTS_STORAGE_KEY) ||
+          localStorage.getItem(LEGACY_ATTEMPTS_STORAGE_KEY)
+        if (legacy) {
+          raw = legacy
+          localStorage.setItem(storageKey, legacy)
+        }
+      }
       const list: LearningAttempt[] = raw ? JSON.parse(raw) : []
       if (lessonId) {
         return list.filter((a) => a.lessonId === lessonId)
@@ -44,6 +56,7 @@ export class LocalAssessmentAttemptRepository implements IAssessmentAttemptRepos
   save(attempt: LearningAttempt): void {
     if (typeof window === 'undefined') return
     try {
+      const storageKey = getStorageKey('assessment_attempts')
       const list = this.getAll()
       const index = list.findIndex((a) => a.id === attempt.id)
       if (index >= 0) {
@@ -51,10 +64,7 @@ export class LocalAssessmentAttemptRepository implements IAssessmentAttemptRepos
       } else {
         list.push(attempt)
       }
-      localStorage.setItem(
-        ASSESSMENT_ATTEMPTS_STORAGE_KEY,
-        JSON.stringify(list)
-      )
+      localStorage.setItem(storageKey, JSON.stringify(list))
     } catch (err) {
       console.error('Failed to save assessment attempt to localStorage', err)
     }
@@ -62,28 +72,22 @@ export class LocalAssessmentAttemptRepository implements IAssessmentAttemptRepos
 }
 
 export class RemoteAssessmentAttemptRepository {
-  async fetchAll(
-    userId: string,
-    lessonId?: string
-  ): Promise<LearningAttempt[]> {
+  async fetchAll(lessonId?: string): Promise<LearningAttempt[]> {
     const query = lessonId ? `?lessonId=${encodeURIComponent(lessonId)}` : ''
     return requestJson<LearningAttempt[]>(
-      `/users/${userId}/assessment-attempts${query}`
+      `/api/v1/me/assessment-attempts${query}`
     )
   }
 
-  async fetchById(userId: string, attemptId: string): Promise<LearningAttempt> {
+  async fetchById(attemptId: string): Promise<LearningAttempt> {
     return requestJson<LearningAttempt>(
-      `/users/${userId}/assessment-attempts/${attemptId}`
+      `/api/v1/me/assessment-attempts/${attemptId}`
     )
   }
 
-  async save(
-    userId: string,
-    attempt: LearningAttempt
-  ): Promise<LearningAttempt> {
+  async save(attempt: LearningAttempt): Promise<LearningAttempt> {
     return requestJson<LearningAttempt>(
-      `/users/${userId}/assessment-attempts/${attempt.id}`,
+      `/api/v1/me/assessment-attempts/${attempt.id}`,
       {
         method: 'PUT',
         body: JSON.stringify(attempt),
@@ -93,8 +97,19 @@ export class RemoteAssessmentAttemptRepository {
 }
 
 export class HybridAssessmentAttemptRepository implements IAssessmentAttemptRepository {
-  private local = new LocalAssessmentAttemptRepository()
-  private remote = new RemoteAssessmentAttemptRepository()
+  private local: LocalAssessmentAttemptRepository
+  private remote: RemoteAssessmentAttemptRepository
+  private queue: { enqueue: typeof enqueueSyncItem }
+
+  constructor(
+    local?: LocalAssessmentAttemptRepository,
+    remote?: RemoteAssessmentAttemptRepository,
+    queue?: { enqueue: typeof enqueueSyncItem }
+  ) {
+    this.local = local || new LocalAssessmentAttemptRepository()
+    this.remote = remote || new RemoteAssessmentAttemptRepository()
+    this.queue = queue || { enqueue: enqueueSyncItem }
+  }
 
   getAll(lessonId?: string): LearningAttempt[] {
     return this.local.getAll(lessonId)
@@ -108,12 +123,12 @@ export class HybridAssessmentAttemptRepository implements IAssessmentAttemptRepo
     // 1. Write local immediately
     this.local.save(attempt)
 
-    // 2. Notify system
+    // 2. Notify reactive UI
     notifyLearningStateChanged()
 
-    // 3. Remote async dispatch
-    if (isRemoteApiConfigured()) {
-      enqueueSyncItem(
+    // 3. Queue sync only if API configured AND user is authenticated
+    if (isRemoteApiConfigured() && getAuthUser() !== null) {
+      this.queue.enqueue(
         'attempt-upsert',
         attempt.id,
         attempt as unknown as Record<string, unknown>
@@ -122,41 +137,47 @@ export class HybridAssessmentAttemptRepository implements IAssessmentAttemptRepo
   }
 
   async fetchRemoteAll(lessonId?: string): Promise<LearningAttempt[] | null> {
-    if (!isRemoteApiConfigured()) return null
+    if (!isRemoteApiConfigured() || !getAuthUser()) return null
     try {
-      const userId = getCurrentLearnerId()
-      const remoteList = await this.remote.fetchAll(userId, lessonId)
+      const remoteList = await this.remote.fetchAll(lessonId)
       const localList = this.local.getAll()
-      const localMap = new Map(localList.map((a) => [a.id, a]))
 
+      const map = new Map<string, LearningAttempt>()
+      // Seed with local attempts
+      for (const att of localList) {
+        map.set(att.id, att)
+      }
+
+      // Merge server attempts
       let hasChanges = false
-      for (const rAttempt of remoteList) {
-        const local = localMap.get(rAttempt.id)
-        if (!local) {
-          localList.push(rAttempt)
+      for (const serverAtt of remoteList) {
+        const existing = map.get(serverAtt.id)
+        if (!existing) {
+          map.set(serverAtt.id, serverAtt)
           hasChanges = true
         } else {
-          const remoteTime = new Date(rAttempt.lastActivityAt).getTime()
-          const localTime = new Date(local.lastActivityAt).getTime()
-          if (remoteTime > localTime && local.completionStatus !== 'completed') {
-            const idx = localList.findIndex((a) => a.id === rAttempt.id)
-            if (idx >= 0) {
-              localList[idx] = rAttempt
-              hasChanges = true
-            }
+          const sTime = new Date(
+            serverAtt.completedAt || serverAtt.lastActivityAt || 0
+          ).getTime()
+          const lTime = new Date(
+            existing.completedAt || existing.lastActivityAt || 0
+          ).getTime()
+          if (sTime > lTime && existing.status !== 'completed') {
+            map.set(serverAtt.id, serverAtt)
+            hasChanges = true
           }
         }
       }
 
       if (hasChanges) {
-        localStorage.setItem(
-          ASSESSMENT_ATTEMPTS_STORAGE_KEY,
-          JSON.stringify(localList)
-        )
+        const mergedList = Array.from(map.values())
+        const storageKey = getStorageKey('assessment_attempts')
+        localStorage.setItem(storageKey, JSON.stringify(mergedList))
         notifyLearningStateChanged()
+        return lessonId ? mergedList.filter((a) => a.lessonId === lessonId) : mergedList
       }
 
-      return localList
+      return this.local.getAll(lessonId)
     } catch {
       return null
     }

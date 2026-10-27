@@ -1,9 +1,17 @@
 import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useParams } from 'react-router-dom'
+import { AuthProvider } from '@/auth/AuthProvider'
+import { MigrationDialog } from '@/components/auth/MigrationDialog'
 import { AppShell } from '@/components/layout/AppShell'
 import { RouteLoadingFallback } from '@/components/layout/RouteLoadingFallback'
 import { performBootstrapSyncIfAvailable } from '@/repositories'
 
+const LoginPage = lazy(() =>
+  import('@/pages/Auth/LoginPage').then((m) => ({ default: m.LoginPage }))
+)
+const RegisterPage = lazy(() =>
+  import('@/pages/Auth/RegisterPage').then((m) => ({ default: m.RegisterPage }))
+)
 const DashboardPage = lazy(() => import('@/pages/Dashboard/DashboardPage'))
 const SubjectsPage = lazy(() => import('@/pages/Subjects/SubjectsPage'))
 const SubjectDetailPage = lazy(() => import('@/pages/Subjects/SubjectDetailPage'))
@@ -18,6 +26,7 @@ const AchievementsPage = lazy(() => import('@/pages/Achievements/AchievementsPag
 const ProfilePage = lazy(() => import('@/pages/Profile/ProfilePage'))
 const SettingsPage = lazy(() => import('@/pages/Settings/SettingsPage'))
 const DesignSystemPage = lazy(() => import('@/pages/DesignSystem/DesignSystemPage'))
+
 
 function LegacyCoursesRedirect() {
   const { courseId } = useParams<{ courseId?: string }>()
@@ -58,19 +67,40 @@ function App() {
   }, [])
 
   return (
-    <BrowserRouter basename={import.meta.env.BASE_URL}>
-      <Routes>
-        {/* Main Dashboard */}
-        <Route
-          path="/dashboard"
-          element={
-            <AppShell>
+    <AuthProvider>
+      <MigrationDialog />
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
+        <Routes>
+          {/* Authentication Routes */}
+          <Route
+            path="/login"
+            element={
               <Suspense fallback={<RouteLoadingFallback />}>
-                <DashboardPage />
+                <LoginPage />
               </Suspense>
-            </AppShell>
-          }
-        />
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <Suspense fallback={<RouteLoadingFallback />}>
+                <RegisterPage />
+              </Suspense>
+            }
+          />
+
+          {/* Main Dashboard */}
+          <Route
+            path="/dashboard"
+            element={
+              <AppShell>
+                <Suspense fallback={<RouteLoadingFallback />}>
+                  <DashboardPage />
+                </Suspense>
+              </AppShell>
+            }
+          />
+
 
         {/* Subjects Curriculum */}
         <Route
@@ -251,10 +281,11 @@ function App() {
 
         {/* Root redirect to Dashboard */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>
-  )
+  </AuthProvider>
+)
+
 }
 
 export default App

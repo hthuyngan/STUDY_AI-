@@ -16,6 +16,28 @@ class Settings(BaseSettings):
         "http://localhost:5173,http://127.0.0.1:5173,https://hthuyngan.github.io"
     )
 
+    # JWT Authentication
+    JWT_SECRET_KEY: str = "dev-insecure-secret-study-ai-change-in-production-2026"
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+
+    # Auth Cookies
+    AUTH_COOKIE_SECURE: bool = False
+    AUTH_COOKIE_SAMESITE: str = "lax"
+    AUTH_COOKIE_PATH: str = "/api/v1/auth"
+
+    def model_post_init(self, __context) -> None:
+        if self.APP_ENV == "production":
+            if (
+                not self.JWT_SECRET_KEY
+                or self.JWT_SECRET_KEY.startswith("dev-")
+                or len(self.JWT_SECRET_KEY) < 32
+            ):
+                raise ValueError(
+                    "Production mode requires a strong, non-default JWT_SECRET_KEY of at least 32 characters"
+                )
+
     @property
     def cors_origins_list(self) -> List[str]:
         if not self.CORS_ORIGINS:

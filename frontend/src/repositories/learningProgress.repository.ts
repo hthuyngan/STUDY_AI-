@@ -1,9 +1,12 @@
 /**
  * Learning Progress Repository Layer (Local, Remote, Hybrid)
+ * Fully identity-aware with canonical /me remote endpoints.
  */
 
-import { getCurrentLearnerId, isRemoteApiConfigured } from '@/config/learner'
+import { getAuthUser } from '@/auth/authSession'
+import { isRemoteApiConfigured } from '@/config/learner'
 import { requestJson } from '@/lib/apiClient'
+import { getStorageKey } from '@/repositories/storageKeys'
 import { enqueueSyncItem, syncQueue } from '@/repositories/syncQueue'
 import { notifyLearningStateChanged } from '@/services/learningStateEvents'
 import type { LessonProgressState } from '@/types/assessment'
@@ -21,12 +24,26 @@ export class LocalLearningProgressRepository implements ILearningProgressReposit
   getAll(): Record<string, LessonProgressState> {
     if (typeof window === 'undefined') return {}
     try {
-      const raw = localStorage.getItem(LESSON_PROGRESS_STORAGE_KEY)
-      return raw ? JSON.parse(raw) : {}
+      const storageKey = getStorageKey('lesson_progress')
+      const raw = localStorage.getItem(storageKey)
+      if (raw) return JSON.parse(raw)
+
+      // Fallback to legacy v1 key
+      const legacyRaw = localStorage.getItem(LESSON_PROGRESS_STORAGE_KEY)
+      if (legacyRaw) {
+        try {
+          localStorage.setItem(storageKey, legacyRaw)
+        } catch {
+          // ignore
+        }
+        return JSON.parse(legacyRaw)
+      }
+      return {}
     } catch {
       return {}
     }
   }
+
 
   getByLessonId(lessonId: string): LessonProgressState | null {
     const map = this.getAll()
@@ -36,9 +53,10 @@ export class LocalLearningProgressRepository implements ILearningProgressReposit
   save(progress: LessonProgressState): void {
     if (typeof window === 'undefined') return
     try {
+      const storageKey = getStorageKey('lesson_progress')
       const map = this.getAll()
       map[progress.lessonId] = progress
-      localStorage.setItem(LESSON_PROGRESS_STORAGE_KEY, JSON.stringify(map))
+      localStorage.setItem(storageKey, JSON.stringify(map))
     } catch (err) {
       console.error('Failed to save lesson progress to localStorage', err)
     }
@@ -46,25 +64,19 @@ export class LocalLearningProgressRepository implements ILearningProgressReposit
 }
 
 export class RemoteLearningProgressRepository {
-  async fetchAll(userId: string): Promise<LessonProgressState[]> {
-    return requestJson<LessonProgressState[]>(`/users/${userId}/lesson-progress`)
+  async fetchAll(): Promise<LessonProgressState[]> {
+    return requestJson<LessonProgressState[]>('/api/v1/me/lesson-progress')
   }
 
-  async fetchByLessonId(
-    userId: string,
-    lessonId: string
-  ): Promise<LessonProgressState> {
+  async fetchByLessonId(lessonId: string): Promise<LessonProgressState> {
     return requestJson<LessonProgressState>(
-      `/users/${userId}/lesson-progress/${lessonId}`
+      `/api/v1/me/lesson-progress/${lessonId}`
     )
   }
 
-  async save(
-    userId: string,
-    progress: LessonProgressState
-  ): Promise<LessonProgressState> {
+  async save(progress: LessonProgressState): Promise<LessonProgressState> {
     return requestJson<LessonProgressState>(
-      `/users/${userId}/lesson-progress/${progress.lessonId}`,
+      `/api/v1/me/lesson-progress/${progress.lessonId}`,
       {
         method: 'PUT',
         body: JSON.stringify(progress),
@@ -103,7 +115,7 @@ export class HybridLearningProgressRepository implements ILearningProgressReposi
     // 2. Notify system-wide listeners for reactive UI update
     notifyLearningStateChanged()
 
-    // 3. If remote API is configured, enqueue async sync
+    // 3. Remote sync is dispatched if API configured
     if (isRemoteApiConfigured()) {
       this.queue.enqueue(
         'progress-upsert',
@@ -114,10 +126,10 @@ export class HybridLearningProgressRepository implements ILearningProgressReposi
   }
 
   async fetchRemoteAll(): Promise<Record<string, LessonProgressState> | null> {
-    if (!isRemoteApiConfigured()) return null
+    // Guest or no API: keep local only
+    if (!isRemoteApiConfigured() || !getAuthUser()) return null
     try {
-      const userId = getCurrentLearnerId()
-      const remoteList = await this.remote.fetchAll(userId)
+      const remoteList = await this.remote.fetchAll()
       const localMap = this.local.getAll()
 
       let hasChanges = false
@@ -138,10 +150,8 @@ export class HybridLearningProgressRepository implements ILearningProgressReposi
       }
 
       if (hasChanges) {
-        localStorage.setItem(
-          LESSON_PROGRESS_STORAGE_KEY,
-          JSON.stringify(localMap)
-        )
+        const storageKey = getStorageKey('lesson_progress')
+        localStorage.setItem(storageKey, JSON.stringify(localMap))
         notifyLearningStateChanged()
       }
 

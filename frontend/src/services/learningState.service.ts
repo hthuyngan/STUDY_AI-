@@ -1,7 +1,4 @@
 import { mockSubjectDetails, mockSubjectsSummary } from '@/data/subjects.mock'
-import { ASSESSMENT_ATTEMPTS_STORAGE_KEY, LEGACY_ATTEMPTS_STORAGE_KEY } from '@/services/assessment.service'
-import { LEARNING_EVENTS_STORAGE_KEY } from '@/services/learningTracking.service'
-import { LESSON_PROGRESS_STORAGE_KEY } from '@/services/lessonProgress.service'
 import type { LearningAttempt, LearningEvent, LessonProgressState } from '@/types/assessment'
 import type { ContinueLessonItem, RecentActivityItem } from '@/types/dashboard'
 import type {
@@ -76,8 +73,6 @@ import {
   learningProgressRepository,
   assessmentAttemptRepository,
   learningEventsRepository,
-  SYNC_QUEUE_STORAGE_KEY,
-  BACKEND_BOOTSTRAP_MARKER_KEY,
 } from '@/repositories'
 
 function getStoredProgressMap(): Record<string, LessonProgressState> {
@@ -585,12 +580,7 @@ export function selectAssessmentPerformanceBySubject(
  */
 export function resetLearningStateForTests(): void {
   if (typeof window !== 'undefined') {
-    localStorage.removeItem(LESSON_PROGRESS_STORAGE_KEY)
-    localStorage.removeItem(ASSESSMENT_ATTEMPTS_STORAGE_KEY)
-    localStorage.removeItem(LEGACY_ATTEMPTS_STORAGE_KEY)
-    localStorage.removeItem(LEARNING_EVENTS_STORAGE_KEY)
-    localStorage.removeItem(SYNC_QUEUE_STORAGE_KEY)
-    localStorage.removeItem(BACKEND_BOOTSTRAP_MARKER_KEY)
+    localStorage.clear()
     notifyLearningStateChanged()
   }
 }

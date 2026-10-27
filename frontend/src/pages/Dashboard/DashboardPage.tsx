@@ -13,16 +13,19 @@ import { RecentActivityCard } from '@/components/dashboard/RecentActivityCard'
 import { StatsStrip } from '@/components/dashboard/StatsStrip'
 import { StudyActivityCard } from '@/components/dashboard/StudyActivityCard'
 import { SubjectProgressCard } from '@/components/dashboard/SubjectProgressCard'
+import { useAuth } from '@/auth/useAuth'
 import { useDashboard } from '@/hooks/useDashboard'
 import './DashboardPage.css'
 
 export function DashboardPage() {
   const navigate = useNavigate()
+  const { user, isAuthenticated } = useAuth()
   const [showEmptyPreview, setShowEmptyPreview] = useState(false)
   const { data, isLoading, error, reload } = useDashboard({
     simulateEmpty: showEmptyPreview,
     delayMs: 250,
   })
+
 
   // 1. Loading State
   if (isLoading) {
@@ -61,12 +64,16 @@ export function DashboardPage() {
   }
 
   // 3. Normal Dashboard State
+  const displayGreetingName =
+    isAuthenticated && user ? user.displayName : data.user.greetingName
+
   return (
     <div className="dashboard-root">
       {/* Header */}
       <DashboardHeader
-        userName={data.user.greetingName}
+        userName={displayGreetingName}
         onStartLearning={() => {
+
           const firstLesson = data.continueLessons[0]
           if (firstLesson) {
             navigate(`/subjects/${firstLesson.subjectId}/lessons/${firstLesson.id}`)
