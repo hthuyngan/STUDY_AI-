@@ -1,0 +1,115 @@
+import type {
+  SupportTicketItem,
+  SupportTicketMessage,
+  SupportUserProfile,
+} from '@/types/support'
+
+export const INITIAL_MOCK_TICKETS: SupportTicketItem[] = [
+  {
+    id: 'TK-4821',
+    title: 'Tiến độ làm bài thu hoạch không đồng bộ sau khi mở máy tính khác',
+    userId: 'usr-101',
+    userName: 'Nguyễn Minh Anh',
+    userEmail: 'minh.anh@example.com',
+    category: 'sync',
+    priority: 'high',
+    status: 'in-progress',
+    updatedAt: '2026-10-27T10:30:00Z',
+    assignedTo: 'Vũ Hoàng Yến',
+    messageCount: 3,
+  },
+  {
+    id: 'TK-4822',
+    title: 'Không hiển thị lời giải chi tiết cho câu hỏi trắc nghiệm số 3',
+    userId: 'usr-102',
+    userName: 'Trần Gia Huy',
+    userEmail: 'gia.huy@example.com',
+    category: 'content',
+    priority: 'medium',
+    status: 'open',
+    updatedAt: '2026-10-27T09:15:00Z',
+    messageCount: 1,
+  },
+  {
+    id: 'TK-4819',
+    title: 'Yêu cầu cập nhật lại thông tin khối lớp từ 11 sang 12',
+    userId: 'usr-107',
+    userName: 'Đinh Trọng Phúc',
+    userEmail: 'dinh.trong@example.com',
+    category: 'account',
+    priority: 'low',
+    status: 'waiting',
+    updatedAt: '2026-10-26T14:00:00Z',
+    assignedTo: 'Vũ Hoàng Yến',
+    messageCount: 4,
+  },
+  {
+    id: 'TK-4815',
+    title: 'Báo lỗi giật lag khi mở đoạn video mô phỏng con lắc lò xo',
+    userId: 'usr-108',
+    userName: 'Võ Thảo My',
+    userEmail: 'thao.my@example.com',
+    category: 'other',
+    priority: 'medium',
+    status: 'resolved',
+    updatedAt: '2026-10-25T11:20:00Z',
+    assignedTo: 'Nguyễn Tuấn Kiệt',
+    messageCount: 5,
+  },
+]
+
+export const INITIAL_MOCK_MESSAGES: Record<string, SupportTicketMessage[]> = {
+  'TK-4821': [
+    {
+      id: 'msg-1',
+      ticketId: 'TK-4821',
+      senderId: 'usr-101',
+      senderName: 'Nguyễn Minh Anh',
+      senderRole: 'user',
+      message: 'Chào ban hỗ trợ, tối qua em có làm bài thu hoạch Toán 12 trên điện thoại đạt 90%, sáng nay đăng nhập trên máy tính trường thì thấy bài học vẫn báo Chưa làm. Nhờ anh chị kiểm tra giúp em ạ.',
+      timestamp: '2026-10-27T08:10:00Z',
+    },
+    {
+      id: 'msg-2',
+      ticketId: 'TK-4821',
+      senderId: 'usr-105',
+      senderName: 'Vũ Hoàng Yến (Hỗ trợ)',
+      senderRole: 'support',
+      message: 'Chào Minh Anh, hệ thống đã ghi nhận yêu cầu. Hiện tại tài khoản của bạn đang có 1 gói đồng bộ nền (Sync Queue) chưa hoàn tất từ thiết bị di động cũ do mất kết nối mạng. Bạn có thể mở lại ứng dụng trên điện thoại trong 10 giây để hoàn tất tải lên nhé.',
+      timestamp: '2026-10-27T09:00:00Z',
+    },
+    {
+      id: 'msg-3',
+      ticketId: 'TK-4821',
+      senderId: 'usr-101',
+      senderName: 'Nguyễn Minh Anh',
+      senderRole: 'user',
+      message: 'Dạ em đã mở lại điện thoại và thấy hệ thống báo "Đã đồng bộ 0ms trước" rồi ạ. Em cảm ơn chị!',
+      timestamp: '2026-10-27T10:30:00Z',
+    },
+  ],
+}
+
+export const INITIAL_SUPPORT_PROFILES: Record<string, SupportUserProfile> = {
+  'usr-101': {
+    id: 'usr-101',
+    email: 'minh.anh@example.com',
+    displayName: 'Nguyễn Minh Anh',
+    role: 'learner',
+    status: 'active',
+    createdAt: '2026-09-01T08:00:00Z',
+    lastLoginAt: '2026-10-27T10:30:00Z',
+    syncState: 'synced',
+    storageNamespace: 'study_ai.usr-101.v2',
+    completedLessonsCount: 18,
+    totalAttemptsCount: 22,
+    recentTicketHistory: [
+      {
+        id: 'TK-4821',
+        title: 'Tiến độ làm bài thu hoạch không đồng bộ sau khi mở máy tính khác',
+        status: 'in-progress',
+        date: '2026-10-27',
+      },
+    ],
+  },
+}

@@ -1,5 +1,5 @@
 import React from 'react'
-import { ChevronLeft, ChevronRight, GraduationCap } from 'lucide-react'
+import { ChevronLeft, ChevronRight, GraduationCap, ArrowLeft } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import type { WorkspaceConfig } from './workspaceNavigation'
 
@@ -107,6 +107,19 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
             </div>
           ))}
         </nav>
+
+        {/* Footer Quick Return */}
+        <div className="workspace-sidebar-footer">
+          <Link
+            to="/dashboard"
+            className="workspace-sidebar-back-link"
+            onClick={onCloseMobile}
+            title={collapsed ? 'Quay lại học viên' : undefined}
+          >
+            <ArrowLeft size={16} aria-hidden="true" />
+            {!collapsed && <span>Quay lại học viên</span>}
+          </Link>
+        </div>
       </aside>
     </>
   )

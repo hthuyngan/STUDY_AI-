@@ -5,10 +5,10 @@ import {
   Settings,
   User as UserIcon,
   ChevronDown,
+  ArrowLeft,
 } from 'lucide-react'
 import { Link, useNavigate, Outlet } from 'react-router-dom'
 import { useAuth } from '@/auth/useAuth'
-import { setAuthUser } from '@/auth/authSession'
 import type { UserRole } from '@/auth/auth.types'
 import {
   getWorkspaceConfig,
@@ -75,35 +75,6 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     navigate('/login')
   }
 
-  // Developer role preview switcher (ONLY rendered during development)
-  const handleDevRoleSwitch = (newRole: UserRole) => {
-    if (!import.meta.env.DEV) return
-    if (user) {
-      setAuthUser({
-        ...user,
-        role: newRole,
-      })
-      switch (newRole) {
-        case 'admin':
-          navigate('/admin')
-          break
-        case 'teacher':
-          navigate('/teacher')
-          break
-        case 'content':
-          navigate('/content')
-          break
-        case 'support':
-          navigate('/support')
-          break
-        case 'learner':
-        default:
-          navigate('/dashboard')
-          break
-      }
-    }
-  }
-
   const roleLabel = ROLE_LABELS[user?.role || role]
 
   return (
@@ -138,24 +109,52 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
           </div>
 
           <div className="workspace-topbar-right">
-            {/* Dev Only Role Preview Switcher */}
-            {import.meta.env.DEV && (
-              <div className="dev-role-preview-tag" title="Chỉ hiển thị trong môi trường DEV">
-                <span className="dev-tag-label">DEV ROLE:</span>
-                <select
-                  className="dev-role-select"
-                  value={user?.role || role}
-                  onChange={(e) => handleDevRoleSwitch(e.target.value as UserRole)}
-                  aria-label="Chuyển vai trò xem trước trong dev mode"
-                >
-                  <option value="admin">Admin</option>
-                  <option value="teacher">Teacher</option>
-                  <option value="content">Content</option>
-                  <option value="support">Support</option>
-                  <option value="learner">Learner</option>
-                </select>
-              </div>
-            )}
+            {/* Quick Action: Quay lại giao diện học viên */}
+            <Link
+              to="/dashboard"
+              className="workspace-back-to-app-btn"
+              aria-label="Quay lại giao diện học viên"
+              title="Quay lại giao diện học viên (/dashboard)"
+            >
+              <ArrowLeft size={14} aria-hidden="true" />
+              <span>Giao diện học viên</span>
+            </Link>
+
+            {/* Quick Workspace Switcher for Prototype Mode */}
+            <div className="workspace-switcher-wrapper">
+              <select
+                className="workspace-switcher-select"
+                value={role}
+                onChange={(e) => {
+                  const target = e.target.value
+                  switch (target) {
+                    case 'learner':
+                      navigate('/dashboard')
+                      break
+                    case 'admin':
+                      navigate('/admin')
+                      break
+                    case 'teacher':
+                      navigate('/teacher')
+                      break
+                    case 'content':
+                      navigate('/content')
+                      break
+                    case 'support':
+                      navigate('/support')
+                      break
+                  }
+                }}
+                aria-label="Chuyển không gian làm việc"
+                title="Chuyển đổi giữa các workspace"
+              >
+                <option value="admin">Quản trị (Admin)</option>
+                <option value="teacher">Giáo viên (Teacher)</option>
+                <option value="content">Nội dung (Content)</option>
+                <option value="support">Hỗ trợ (Support)</option>
+                <option value="learner">Học viên (Learner)</option>
+              </select>
+            </div>
 
             {/* Role Badge */}
             <div className={`staff-role-pill role-${user?.role || role}`}>

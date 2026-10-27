@@ -4,6 +4,7 @@ import { useAuth } from './useAuth'
 import { hasRole } from './permissions'
 import type { UserRole } from './auth.types'
 import { UnauthorizedPage } from '@/pages/Error/UnauthorizedPage'
+import { isStaffUiPreviewEnabled } from '@/config/staffPreview'
 
 export interface RoleGuardProps {
   allowedRoles: UserRole | UserRole[]
@@ -16,6 +17,13 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({
 }) => {
   const { user, state, isGuest } = useAuth()
   const location = useLocation()
+
+  // Development / UI Review Preview Mode:
+  // When preview mode is enabled, allows direct rendering of staff screens
+  // without requiring authenticated backend session or role match.
+  if (isStaffUiPreviewEnabled()) {
+    return children ? <>{children}</> : <Outlet />
+  }
 
   if (state === 'initializing') {
     return (

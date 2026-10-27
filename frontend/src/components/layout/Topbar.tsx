@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/auth/useAuth'
+import { isPrototypeMode } from '@/config/prototype'
 import { Avatar } from '@/components/ui/Avatar'
 import { IconButton } from '@/components/ui/IconButton'
 
@@ -427,6 +428,41 @@ export function Topbar({ onOpenMobileMenu }: TopbarProps) {
           )}
         </div>
 
+        {/* Quick Admin Access Button & Workspace Switcher */}
+        {(() => {
+          const canShowAdminShortcut = isPrototypeMode() || user?.role === 'admin'
+          if (!canShowAdminShortcut) return null
+          return (
+            <div className="topbar-admin-shortcut-group">
+              <Link
+                to="/admin"
+                className="topbar-admin-quick-btn"
+                aria-label="Trang quản trị"
+                title="Trang quản trị hệ thống"
+              >
+                <Shield size={14} aria-hidden="true" />
+                <span className="topbar-admin-quick-label">Trang quản trị</span>
+              </Link>
+              {isPrototypeMode() && (
+                <select
+                  className="topbar-workspace-mini-select desktop-only"
+                  defaultValue="/admin"
+                  onChange={(e) => {
+                    navigate(e.target.value)
+                  }}
+                  aria-label="Chuyển nhanh workspace"
+                  title="Chuyển nhanh sang workspace nhân sự"
+                >
+                  <option value="/admin">Quản trị</option>
+                  <option value="/teacher">Giáo viên</option>
+                  <option value="/content">Nội dung</option>
+                  <option value="/support">Hỗ trợ</option>
+                </select>
+              )}
+            </div>
+          )
+        })()}
+
         {/* User state: Authenticated vs Guest */}
         {isAuthenticated && user ? (
           <div className="topbar-user-wrap" ref={userMenuRef}>
@@ -462,7 +498,7 @@ export function Topbar({ onOpenMobileMenu }: TopbarProps) {
                   )}
                 </div>
 
-                {user.role === 'admin' && (
+                {(isPrototypeMode() || user.role === 'admin') && (
                   <Link
                     to="/admin"
                     className="topbar-user-dropdown-item topbar-admin-shortcut"

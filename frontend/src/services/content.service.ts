@@ -1,4 +1,3 @@
-import { apiClient } from '@/lib/apiClient'
 import type {
   ContentAssessmentSummary,
   ContentLessonItem,
@@ -6,6 +5,19 @@ import type {
   CurriculumSubjectItem,
   LessonEditorData,
 } from '@/types/content'
+import {
+  INITIAL_MOCK_ASSESSMENTS,
+  INITIAL_MOCK_LESSON_CONTENT,
+  INITIAL_MOCK_LESSONS,
+  INITIAL_MOCK_REVIEW_QUEUE,
+  INITIAL_MOCK_SUBJECTS,
+} from '@/data/staff/content.mock'
+
+let mockSubjects = [...INITIAL_MOCK_SUBJECTS]
+let mockLessons = [...INITIAL_MOCK_LESSONS]
+let mockAssessments = [...INITIAL_MOCK_ASSESSMENTS]
+let mockReviewQueue = [...INITIAL_MOCK_REVIEW_QUEUE]
+const mockLessonContents: Record<string, LessonEditorData> = { ...INITIAL_MOCK_LESSON_CONTENT }
 
 export const contentService = {
   async getDashboardSummary(): Promise<{
@@ -16,214 +28,115 @@ export const contentService = {
     reviewQueue: ContentReviewQueueItem[]
     recentLessons: ContentLessonItem[]
   }> {
-    const [draftsRes, reviewRes, publishedRes, lessonsRes] = await Promise.all([
-      apiClient.get<{ total: number }>('/api/v1/content/lessons?status=draft&pageSize=1'),
-      apiClient.get<{ items: any[]; total: number }>('/api/v1/content/lessons?status=in-review&pageSize=10'),
-      apiClient.get<{ total: number }>('/api/v1/content/lessons?status=published&pageSize=1'),
-      apiClient.get<{ items: any[]; total: number }>('/api/v1/content/lessons?pageSize=5'),
-    ])
-
-    const reviewQueue: ContentReviewQueueItem[] = (reviewRes.items || []).map((l: any) => ({
-      id: l.id,
-      title: l.title,
-      type: 'lesson',
-      subject: 'Chương trình',
-      author: l.authorName || 'Biên tập viên',
-      submittedAt: l.updatedAt,
-      status: 'pending',
-      commentsCount: 0,
-    }))
-
-    const recentLessons: ContentLessonItem[] = (lessonsRes.items || []).map((l: any) => ({
-      id: l.id,
-      title: l.title,
-      subjectId: 'general',
-      subjectName: 'Chương trình THPT',
-      chapterId: l.chapterId,
-      chapterName: 'Chương bài học',
-      status: (l.status as ContentLessonItem['status']) || 'draft',
-      authorName: l.authorName || 'Biên tập viên',
-      updatedAt: l.updatedAt,
-      hasAssessment: true,
-    }))
-
     return {
-      draftCount: draftsRes.total || 0,
-      needsReviewCount: reviewRes.total || 0,
-      publishedThisWeek: publishedRes.total || 0,
-      assessmentCoveragePercent: 85,
-      reviewQueue,
-      recentLessons,
+      draftCount: mockLessons.filter((l) => l.status === 'draft').length,
+      needsReviewCount: mockLessons.filter((l) => l.status === 'in-review').length,
+      publishedThisWeek: mockLessons.filter((l) => l.status === 'published').length,
+      assessmentCoveragePercent: 86,
+      reviewQueue: [...mockReviewQueue],
+      recentLessons: [...mockLessons.slice(0, 4)],
     }
   },
 
   async getSubjects(): Promise<CurriculumSubjectItem[]> {
-    const res = await apiClient.get<{
-      items: Array<{
-        id: string
-        name: string
-        code: string
-        grade: string
-        description: string
-        chapterCount: number
-        lessonCount: number
-      }>
-      total: number
-    }>('/api/v1/content/subjects')
-
-    return (res.items || []).map((s) => ({
-      id: s.id,
-      name: s.name,
-      grade: s.grade,
-      chapterCount: s.chapterCount || 0,
-      lessonCount: s.lessonCount || 0,
-      assessmentCount: s.lessonCount || 0,
-      publishedPercent: 80,
-      updatedAt: new Date().toISOString(),
-    }))
+    return [...mockSubjects]
   },
 
-  async getLessons(subjectFilter = 'all', statusFilter = 'all', search = ''): Promise<ContentLessonItem[]> {
-    const params = new URLSearchParams()
-    if (subjectFilter && subjectFilter !== 'all') params.append('subjectId', subjectFilter)
-    if (statusFilter && statusFilter !== 'all') params.append('status', statusFilter)
-    params.append('pageSize', '100')
-
-    const res = await apiClient.get<{
-      items: Array<{
-        id: string
-        chapterId: string
-        title: string
-        slug: string
-        status: string
-        authorId: string
-        authorName: string
-        updatedAt: string
-      }>
-      total: number
-    }>(`/api/v1/content/lessons?${params.toString()}`)
-
-    let list: ContentLessonItem[] = (res.items || []).map((l) => ({
-      id: l.id,
-      title: l.title,
-      subjectId: 'general',
-      subjectName: 'Chương trình THPT',
-      chapterId: l.chapterId,
-      chapterName: 'Chương bài học',
-      status: (l.status as ContentLessonItem['status']) || 'draft',
-      authorName: l.authorName || 'Biên tập viên',
-      updatedAt: l.updatedAt,
-      hasAssessment: true,
-    }))
-
+  async getLessons(
+    subjectFilter = 'all',
+    statusFilter = 'all',
+    search = ''
+  ): Promise<ContentLessonItem[]> {
+    let list = [...mockLessons]
+    if (subjectFilter && subjectFilter !== 'all') {
+      list = list.filter((l) => l.subjectId === subjectFilter)
+    }
+    if (statusFilter && statusFilter !== 'all') {
+      list = list.filter((l) => l.status === statusFilter)
+    }
     if (search.trim()) {
       const q = search.trim().toLowerCase()
-      list = list.filter((l) => l.title.toLowerCase().includes(q) || l.authorName.toLowerCase().includes(q))
+      list = list.filter(
+        (l) =>
+          l.title.toLowerCase().includes(q) ||
+          l.authorName.toLowerCase().includes(q)
+      )
     }
-
     return list
   },
 
   async getLessonEditor(lessonId: string): Promise<LessonEditorData> {
-    const l = await apiClient.get<{
-      id: string
-      chapterId: string
-      title: string
-      slug: string
-      status: string
-      introduction: string
-      definitions: Array<{ term: string; meaning: string }> | string[]
-      formulas: string[]
-      examples: Array<{ title?: string; problem?: string; solution?: string }> | string[]
-      importantNotes: string[]
-      summaryPoints: string[]
-      updatedAt: string
-    }>(`/api/v1/content/lessons/${lessonId}`)
-
-    const defStr = Array.isArray(l.definitions)
-      ? l.definitions.map((d: any) => (typeof d === 'string' ? d : `${d.term}: ${d.meaning}`)).join('\n')
-      : ''
-    const formStr = Array.isArray(l.formulas) ? l.formulas.join('\n') : ''
-    const exStr = Array.isArray(l.examples)
-      ? l.examples.map((e: any) => (typeof e === 'string' ? e : `${e.title || 'Ví dụ'}: ${e.problem || ''}\n${e.solution || ''}`)).join('\n')
-      : ''
-    const notesStr = Array.isArray(l.importantNotes) ? l.importantNotes.join('\n') : ''
-    const sumStr = Array.isArray(l.summaryPoints) ? l.summaryPoints.join('\n') : ''
-
-    return {
-      id: l.id,
-      title: l.title,
-      subjectId: 'general',
-      chapterId: l.chapterId,
-      status: (l.status as LessonEditorData['status']) || 'draft',
-      introduction: l.introduction || '',
-      definitions: defStr,
-      formulas: formStr,
-      examples: exStr,
-      notes: notesStr,
-      summary: sumStr,
-      assessmentId: `asm-${l.id}`,
-      lastSavedAt: l.updatedAt,
+    if (mockLessonContents[lessonId]) {
+      return { ...mockLessonContents[lessonId] }
     }
+    const lesson = mockLessons.find((l) => l.id === lessonId)
+    const editorData: LessonEditorData = {
+      id: lessonId,
+      title: lesson ? lesson.title : 'Bài học mới',
+      subjectId: lesson ? lesson.subjectId : 'math',
+      chapterId: lesson ? lesson.chapterId : 'ch-01',
+      status: lesson ? lesson.status : 'draft',
+      introduction: 'Giới thiệu tổng quan nội dung và mục tiêu cần đạt của bài học theo khung chương trình GDPT.',
+      definitions: 'Các định nghĩa, khái niệm then chốt cần nắm vững trước khi đi vào giải bài tập.',
+      formulas: 'Công thức toán học và biểu thức liên quan quan trọng cần ghi nhớ.',
+      examples: 'Ví dụ mẫu minh họa phương pháp giải toán từng bước chi tiết và rõ ràng.',
+      notes: 'Lưu ý những lỗi sai phổ biến học sinh thường gặp trong quá trình làm bài.',
+      summary: 'Tóm tắt các kiến thức cốt lõi của bài học và dạng bài tập trọng tâm.',
+      assessmentId: 'asm-math-08',
+      lastSavedAt: new Date().toISOString(),
+    }
+    mockLessonContents[lessonId] = editorData
+    return { ...editorData }
   },
 
   async saveLessonEditor(data: LessonEditorData): Promise<LessonEditorData> {
-    const updated = await apiClient.patch<{
-      id: string
-      chapterId: string
-      title: string
-      slug: string
-      status: string
-      introduction: string
-      updatedAt: string
-    }>(`/api/v1/content/lessons/${data.id}`, {
-      title: data.title,
-      introduction: data.introduction,
-      definitions: data.definitions ? data.definitions.split('\n').filter(Boolean) : [],
-      formulas: data.formulas ? data.formulas.split('\n').filter(Boolean) : [],
-      examples: data.examples ? data.examples.split('\n').filter(Boolean) : [],
-      importantNotes: data.notes ? data.notes.split('\n').filter(Boolean) : [],
-      summaryPoints: data.summary ? data.summary.split('\n').filter(Boolean) : [],
-    })
-
-    return {
+    const updated: LessonEditorData = {
       ...data,
-      title: updated.title,
-      lastSavedAt: updated.updatedAt || new Date().toISOString(),
+      lastSavedAt: new Date().toISOString(),
     }
+    mockLessonContents[data.id] = updated
+
+    // Also update in lessons list
+    mockLessons = mockLessons.map((l) =>
+      l.id === data.id
+        ? {
+            ...l,
+            title: data.title,
+            status: data.status,
+            updatedAt: updated.lastSavedAt || new Date().toISOString(),
+          }
+        : l
+    )
+    return updated
   },
 
   async getAssessments(): Promise<ContentAssessmentSummary[]> {
-    return []
+    return [...mockAssessments]
   },
 
   async getReviewQueue(): Promise<ContentReviewQueueItem[]> {
-    const res = await apiClient.get<{
-      items: Array<{
-        id: string
-        title: string
-        status: string
-        authorName: string
-        updatedAt: string
-      }>
-      total: number
-    }>('/api/v1/content/lessons?status=in-review&pageSize=50')
-
-    return (res.items || []).map((l) => ({
-      id: l.id,
-      title: l.title,
-      type: 'lesson',
-      subject: 'Chương trình',
-      author: l.authorName || 'Biên tập viên',
-      submittedAt: l.updatedAt,
-      status: 'pending',
-      commentsCount: 0,
-    }))
+    return [...mockReviewQueue]
   },
 
   async reviewAction(id: string, action: 'approve' | 'request-changes'): Promise<boolean> {
-    const endpoint = action === 'approve' ? 'approve' : 'request-changes'
-    await apiClient.post(`/api/v1/content/lessons/${id}/${endpoint}`)
-    return true
+    const item = mockReviewQueue.find((r) => r.id === id)
+    if (item) {
+      item.status = action === 'approve' ? 'approved' : 'changes-requested'
+      // Update corresponding lesson status if applicable
+      mockLessons = mockLessons.map((l) =>
+        l.title === item.title
+          ? { ...l, status: action === 'approve' ? 'published' : 'draft' }
+          : l
+      )
+      return true
+    }
+    return false
+  },
+
+  _resetMockState(): void {
+    mockSubjects = [...INITIAL_MOCK_SUBJECTS]
+    mockLessons = [...INITIAL_MOCK_LESSONS]
+    mockAssessments = [...INITIAL_MOCK_ASSESSMENTS]
+    mockReviewQueue = [...INITIAL_MOCK_REVIEW_QUEUE]
   },
 }

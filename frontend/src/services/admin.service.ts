@@ -1,110 +1,131 @@
-import { apiClient } from '@/lib/apiClient'
 import type {
   AdminActivityItem,
   AdminAttentionItem,
   AdminSystemMetrics,
   AdminUserItem,
 } from '@/types/admin'
+import {
+  INITIAL_MOCK_ACTIVITIES,
+  INITIAL_MOCK_ATTENTION_ITEMS,
+  INITIAL_MOCK_METRICS,
+  INITIAL_MOCK_USERS,
+} from '@/data/staff/admin.mock'
+
+// In-memory state for prototype interactions
+let mockUsers = [...INITIAL_MOCK_USERS]
+const mockAttentionItems = [...INITIAL_MOCK_ATTENTION_ITEMS]
+const mockActivities = [...INITIAL_MOCK_ACTIVITIES]
 
 export const adminService = {
   async getMetrics(): Promise<AdminSystemMetrics> {
-    const [dash, health] = await Promise.all([
-      apiClient.get<{
-        metrics: {
-          totalUsers: number
-          activeUsers: number
-          staffCount: number
-          learnersCount: number
-          systemStatus: string
-        }
-      }>('/api/v1/admin/dashboard'),
-      apiClient.get<{
-        apiStatus: string
-        database: { status: string; latencyMs: number }
-        environment: string
-        backendVersion: string
-      }>('/api/v1/admin/system/health'),
-    ])
-
     return {
-      totalUsers: dash.metrics.totalUsers,
-      activeLearners: dash.metrics.activeUsers,
-      staffAccounts: dash.metrics.staffCount,
-      openSupportTickets: 0,
-      systemStatus: (dash.metrics.systemStatus as AdminSystemMetrics['systemStatus']) || 'healthy',
-      apiLatencyMs: health.database.latencyMs > 0 ? health.database.latencyMs : 1,
-      databaseStatus: (health.database.status as AdminSystemMetrics['databaseStatus']) || 'connected',
-      frontendVersion: 'v2.1.0',
-      backendVersion: health.backendVersion || 'v0.1.0',
-      environment: health.environment || 'production',
+      ...INITIAL_MOCK_METRICS,
+      totalUsers: mockUsers.length,
+      staffAccounts: mockUsers.filter((u) => u.role !== 'learner').length,
     }
   },
 
   async getAttentionItems(): Promise<AdminAttentionItem[]> {
-    // In production without mock fallback, return operational alerts
-    return []
+    return [...mockAttentionItems]
   },
 
   async getRecentActivities(): Promise<AdminActivityItem[]> {
-    const dash = await apiClient.get<{
-      recentActivities: Array<{
-        id: string
-        action: string
-        actor: string
-        targetType: string
-        targetId: string
-        timestamp: string
-      }>
-    }>('/api/v1/admin/dashboard')
-
-    return (dash.recentActivities || []).map((a) => ({
-      id: a.id,
-      actorName: a.actor,
-      action: a.action,
-      target: `${a.targetType} (${a.targetId})`,
-      timestamp: a.timestamp,
-    }))
+    return [...mockActivities]
   },
 
-  async getUsers(search = '', roleFilter = '', statusFilter = ''): Promise<AdminUserItem[]> {
-    const params = new URLSearchParams()
-    if (search.trim()) params.append('search', search.trim())
-    if (roleFilter && roleFilter !== 'all') params.append('role', roleFilter)
-    if (statusFilter && statusFilter !== 'all') params.append('status', statusFilter)
-    params.append('page', '1')
-    params.append('pageSize', '100')
-
-    const res = await apiClient.get<{
-      items: AdminUserItem[]
-      page: number
-      pageSize: number
-      total: number
-    }>(`/api/v1/admin/users?${params.toString()}`)
-
-    return res.items || []
+  async getUsers(
+    search = '',
+    roleFilter = 'all',
+    statusFilter = 'all'
+  ): Promise<AdminUserItem[]> {
+    let result = [...mockUsers]
+    if (search.trim()) {
+      const q = search.trim().toLowerCase()
+      result = result.filter(
+        (u) =>
+          u.displayName.toLowerCase().includes(q) ||
+          u.email.toLowerCase().includes(q)
+      )
+    }
+    if (roleFilter && roleFilter !== 'all') {
+      result = result.filter((u) => u.role === roleFilter)
+    }
+    if (statusFilter && statusFilter !== 'all') {
+      result = result.filter((u) => u.status === statusFilter)
+    }
+    return result
   },
 
-  async getUserById(id: string): Promise<AdminUserItem | null> {
-    try {
-      return await apiClient.get<AdminUserItem>(`/api/v1/admin/users/${id}`)
-    } catch {
-      return null
+  async getUserById(userId: string): Promise<AdminUserItem | null> {
+    const user = mockUsers.find((u) => u.id === userId)
+    return user ? { ...user } : null
+  },
+
+  async updateUserRole(userId: string, newRole: string): Promise<boolean> {
+    const user = mockUsers.find((u) => u.id === userId)
+    if (user) {
+      user.role = newRole as AdminUserItem['role']
+      mockActivities.unshift({
+        id: `act-${Date.now()}`,
+        actorName: 'Quản trị viên Hệ thống',
+        action: 'cập nhật vai trò thành công cho',
+        target: `${user.displayName} (${user.role})`,
+        timestamp: new Date().toISOString(),
+      })
+      return true
+    }
+    return false
+  },
+
+  async toggleUserStatus(userId: string): Promise<boolean> {
+    const user = mockUsers.find((u) => u.id === userId)
+    if (user) {
+      user.status = user.status === 'active' ? 'suspended' : 'active'
+      mockActivities.unshift({
+        id: `act-${Date.now()}`,
+        actorName: 'Quản trị viên Hệ thống',
+        action: user.status === 'active' ? 'kích hoạt lại tài khoản' : 'tạm khóa tài khoản',
+        target: `${user.displayName}`,
+        timestamp: new Date().toISOString(),
+      })
+      return true
+    }
+    return false
+  },
+
+  async revokeUserSessions(userId: string): Promise<boolean> {
+    const user = mockUsers.find((u) => u.id === userId)
+    if (user) {
+      mockActivities.unshift({
+        id: `act-${Date.now()}`,
+        actorName: 'Quản trị viên Hệ thống',
+        action: 'thu hồi tất cả phiên đăng nhập của',
+        target: `${user.displayName}`,
+        timestamp: new Date().toISOString(),
+      })
+      return true
+    }
+    return false
+  },
+
+  async getSystemHealth(): Promise<{
+    apiStatus: string
+    database: { status: string; latencyMs: number }
+    environment: string
+    backendVersion: string
+    checkedAt: string
+  }> {
+    return {
+      apiStatus: 'operational',
+      database: { status: 'connected', latencyMs: 2 },
+      environment: 'development / prototype',
+      backendVersion: 'v1.4.0 (Mock Engine)',
+      checkedAt: new Date().toISOString(),
     }
   },
 
-  async updateUserRole(id: string, newRole: string): Promise<boolean> {
-    await apiClient.patch(`/api/v1/admin/users/${id}/role`, { role: newRole })
-    return true
-  },
-
-  async toggleUserStatus(id: string, currentStatus?: string): Promise<boolean> {
-    const targetStatus = currentStatus === 'active' ? 'suspended' : 'active'
-    await apiClient.patch(`/api/v1/admin/users/${id}/status`, { status: targetStatus })
-    return true
-  },
-
-  async revokeUserSessions(id: string): Promise<boolean> {
-    await apiClient.post(`/api/v1/admin/users/${id}/revoke-sessions`)
-    return true
+  // Reset helper for testing
+  _resetMockState(): void {
+    mockUsers = [...INITIAL_MOCK_USERS]
   },
 }

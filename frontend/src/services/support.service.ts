@@ -1,89 +1,46 @@
-import { apiClient } from '@/lib/apiClient'
 import type {
   SupportTicketItem,
   SupportTicketMessage,
   SupportUserProfile,
   TicketStatus,
 } from '@/types/support'
+import {
+  INITIAL_MOCK_MESSAGES,
+  INITIAL_MOCK_TICKETS,
+  INITIAL_SUPPORT_PROFILES,
+} from '@/data/staff/support.mock'
+
+let mockTickets = [...INITIAL_MOCK_TICKETS]
+const mockMessages: Record<string, SupportTicketMessage[]> = { ...INITIAL_MOCK_MESSAGES }
+const mockProfiles: Record<string, SupportUserProfile> = { ...INITIAL_SUPPORT_PROFILES }
 
 export const supportService = {
   async getDashboardSummary() {
-    const res = await apiClient.get<{
-      items: any[]
-      total: number
-    }>('/api/v1/support/tickets?pageSize=100')
-
-    const tickets = res.items || []
-    const openCount = tickets.filter((t) => t.status === 'open').length
-    const inProgressCount = tickets.filter((t) => t.status === 'in_progress' || t.status === 'in-progress').length
-    const resolvedTodayCount = tickets.filter((t) => t.status === 'resolved').length
-
     return {
-      openCount,
-      waitingCount: inProgressCount,
-      escalatedCount: tickets.filter((t) => t.priority === 'urgent' || t.priority === 'high').length,
-      resolvedTodayCount,
-      recentTickets: tickets.slice(0, 5).map((t) => ({
-        id: t.id,
-        title: t.subject,
-        userId: t.userId,
-        userName: t.userName,
-        userEmail: t.userEmail,
-        category: (t.category as SupportTicketItem['category']) || 'sync',
-        priority: (t.priority as SupportTicketItem['priority']) || 'medium',
-        status: (t.status as SupportTicketItem['status']) || 'open',
-        updatedAt: t.updatedAt,
-        assignedTo: t.assigneeName || undefined,
-        messageCount: t.messageCount || 0,
-      })),
+      openCount: mockTickets.filter((t) => t.status === 'open').length,
+      waitingCount: mockTickets.filter((t) => t.status === 'in-progress' || t.status === 'waiting').length,
+      escalatedCount: mockTickets.filter((t) => t.priority === 'urgent' || t.priority === 'high').length,
+      resolvedTodayCount: mockTickets.filter((t) => t.status === 'resolved').length,
+      recentTickets: [...mockTickets],
     }
   },
 
   async getTickets(
-    categoryFilter = 'all',
-    priorityFilter = 'all',
-    statusFilter = 'all',
+    category = 'all',
+    priority = 'all',
+    status = 'all',
     search = ''
   ): Promise<SupportTicketItem[]> {
-    const params = new URLSearchParams()
-    if (categoryFilter && categoryFilter !== 'all') params.append('category', categoryFilter)
-    if (statusFilter && statusFilter !== 'all') params.append('status', statusFilter)
-    if (priorityFilter && priorityFilter !== 'all') params.append('priority', priorityFilter)
-    params.append('pageSize', '100')
-
-    const res = await apiClient.get<{
-      items: Array<{
-        id: string
-        subject: string
-        status: string
-        priority: string
-        category: string
-        userId: string
-        userName: string
-        userEmail: string
-        assignedTo: string | null
-        assigneeName: string | null
-        messageCount: number
-        createdAt: string
-        updatedAt: string
-      }>
-      total: number
-    }>(`/api/v1/support/tickets?${params.toString()}`)
-
-    let list: SupportTicketItem[] = (res.items || []).map((t) => ({
-      id: t.id,
-      title: t.subject,
-      userId: t.userId,
-      userName: t.userName,
-      userEmail: t.userEmail,
-      category: (t.category as SupportTicketItem['category']) || 'sync',
-      priority: (t.priority as SupportTicketItem['priority']) || 'medium',
-      status: (t.status === 'in_progress' ? 'in-progress' : t.status) as SupportTicketItem['status'],
-      updatedAt: t.updatedAt,
-      assignedTo: t.assigneeName || undefined,
-      messageCount: t.messageCount || 0,
-    }))
-
+    let list = [...mockTickets]
+    if (category && category !== 'all') {
+      list = list.filter((t) => t.category === category)
+    }
+    if (priority && priority !== 'all') {
+      list = list.filter((t) => t.priority === priority)
+    }
+    if (status && status !== 'all') {
+      list = list.filter((t) => t.status === status)
+    }
     if (search.trim()) {
       const q = search.trim().toLowerCase()
       list = list.filter(
@@ -94,7 +51,6 @@ export const supportService = {
           t.id.toLowerCase().includes(q)
       )
     }
-
     return list
   },
 
@@ -103,176 +59,111 @@ export const supportService = {
     messages: SupportTicketMessage[]
     userProfile: SupportUserProfile | null
   }> {
-    try {
-      const t = await apiClient.get<{
-        id: string
-        subject: string
-        status: string
-        priority: string
-        category: string
-        userId: string
-        userName: string
-        userEmail: string
-        assignedTo: string | null
-        assigneeName: string | null
-        messages: Array<{
-          id: string
-          senderId: string
-          senderName: string
-          senderRole: string
-          message: string
-          isInternal: boolean
-          createdAt: string
-        }>
-        updatedAt: string
-      }>(`/api/v1/support/tickets/${ticketId}`)
+    const ticket = mockTickets.find((t) => t.id === ticketId) || null
+    const messages = mockMessages[ticketId] || []
+    const profile = ticket && mockProfiles[ticket.userId] ? mockProfiles[ticket.userId] : null
 
-      const ticketItem: SupportTicketItem = {
-        id: t.id,
-        title: t.subject,
-        userId: t.userId,
-        userName: t.userName,
-        userEmail: t.userEmail,
-        category: (t.category as SupportTicketItem['category']) || 'sync',
-        priority: (t.priority as SupportTicketItem['priority']) || 'medium',
-        status: (t.status === 'in_progress' ? 'in-progress' : t.status) as SupportTicketItem['status'],
-        updatedAt: t.updatedAt,
-        assignedTo: t.assigneeName || undefined,
-        messageCount: t.messages.length,
-      }
-
-      const messages: SupportTicketMessage[] = t.messages.map((m) => ({
-        id: m.id,
-        ticketId: t.id,
-        senderId: m.senderId,
-        senderName: m.senderName,
-        senderRole: (m.senderRole === 'support' ? 'support' : 'user') as SupportTicketMessage['senderRole'],
-        message: m.message,
-        timestamp: m.createdAt,
-      }))
-
-      let userProfile: SupportUserProfile | null = null
-      try {
-        const u = await apiClient.get<{
-          id: string
-          displayName: string
-          email: string
-          grade: string
-          role: string
-          status: string
-          createdAt: string
-          stats: { ticketCount: number; completedLessons: number }
-          recentTickets: Array<{ id: string; subject: string; status: string; createdAt: string }>
-        }>(`/api/v1/support/users/${t.userId}`)
-
-        userProfile = {
-          id: u.id,
-          email: u.email,
-          displayName: u.displayName,
-          role: 'learner',
-          status: (u.status as SupportUserProfile['status']) || 'active',
-          createdAt: u.createdAt,
-          lastLoginAt: undefined,
-          syncState: 'synced',
-          storageNamespace: `study_ai.${u.id}.v2`,
-          completedLessonsCount: u.stats.completedLessons || 0,
-          totalAttemptsCount: 0,
-          recentTicketHistory: (u.recentTickets || []).map((rt) => ({
-            id: rt.id,
-            title: rt.subject,
-            status: (rt.status as TicketStatus) || 'open',
-            date: rt.createdAt,
-          })),
-        }
-      } catch {
-        // Fallback userProfile from ticket header
-        userProfile = {
-          id: t.userId,
-          email: t.userEmail,
-          displayName: t.userName,
+    const userProfile: SupportUserProfile | null = ticket
+      ? profile || {
+          id: ticket.userId,
+          email: ticket.userEmail,
+          displayName: ticket.userName,
           role: 'learner',
           status: 'active',
-          createdAt: new Date().toISOString(),
+          createdAt: '2026-09-01T08:00:00Z',
+          lastLoginAt: '2026-10-27T10:30:00Z',
           syncState: 'synced',
-          storageNamespace: `study_ai.${t.userId}.v2`,
-          completedLessonsCount: 0,
-          totalAttemptsCount: 0,
-          recentTicketHistory: [],
+          storageNamespace: `study_ai.${ticket.userId}.v2`,
+          completedLessonsCount: 18,
+          totalAttemptsCount: 22,
+          recentTicketHistory: [
+            {
+              id: ticket.id,
+              title: ticket.title,
+              status: ticket.status,
+              date: '2026-10-27',
+            },
+          ],
         }
-      }
+      : null
 
-      return { ticket: ticketItem, messages, userProfile }
-    } catch {
-      return { ticket: null, messages: [], userProfile: null }
-    }
+    return { ticket, messages, userProfile }
   },
 
   async sendReply(ticketId: string, message: string): Promise<SupportTicketMessage> {
-    const res = await apiClient.post<{
-      id: string
-      ticketId: string
-      senderId: string
-      senderName: string
-      senderRole: string
-      message: string
-      createdAt: string
-    }>(`/api/v1/support/tickets/${ticketId}/messages`, {
-      message,
-      isInternal: false,
-    })
-
-    return {
-      id: res.id,
+    const newMsg: SupportTicketMessage = {
+      id: `msg-${Date.now()}`,
       ticketId,
-      senderId: res.senderId,
-      senderName: res.senderName,
+      senderId: 'usr-support-me',
+      senderName: 'Nhân viên Hỗ trợ',
       senderRole: 'support',
-      message: res.message,
-      timestamp: res.createdAt,
+      message,
+      timestamp: new Date().toISOString(),
     }
+    if (!mockMessages[ticketId]) {
+      mockMessages[ticketId] = []
+    }
+    mockMessages[ticketId].push(newMsg)
+
+    // Update ticket message count & timestamp
+    mockTickets = mockTickets.map((t) =>
+      t.id === ticketId
+        ? {
+            ...t,
+            messageCount: t.messageCount + 1,
+            updatedAt: newMsg.timestamp,
+          }
+        : t
+    )
+
+    return newMsg
   },
 
   async updateTicketStatus(ticketId: string, status: TicketStatus): Promise<boolean> {
-    const backendStatus = status === 'in-progress' ? 'in_progress' : status
-    await apiClient.patch(`/api/v1/support/tickets/${ticketId}`, { status: backendStatus })
-    return true
+    const ticket = mockTickets.find((t) => t.id === ticketId)
+    if (ticket) {
+      ticket.status = status
+      ticket.updatedAt = new Date().toISOString()
+      return true
+    }
+    return false
   },
 
   async lookupUser(query: string): Promise<SupportUserProfile | null> {
     if (!query.trim()) return null
-    try {
-      const res = await apiClient.get<{
-        items: Array<{
-          id: string
-          displayName: string
-          email: string
-          grade: string
-          role: string
-          status: string
-          ticketCount: number
-          createdAt: string
-        }>
-        total: number
-      }>(`/api/v1/support/users?search=${encodeURIComponent(query.trim())}&pageSize=1`)
+    const q = query.trim().toLowerCase()
+    const ticket = mockTickets.find(
+      (t) =>
+        t.userEmail.toLowerCase().includes(q) ||
+        t.userName.toLowerCase().includes(q) ||
+        t.userId.toLowerCase().includes(q)
+    )
+    if (!ticket) return null
 
-      const first = res.items?.[0]
-      if (!first) return null
-
-      return {
-        id: first.id,
-        email: first.email,
-        displayName: first.displayName,
-        role: 'learner',
-        status: (first.status as SupportUserProfile['status']) || 'active',
-        createdAt: first.createdAt,
-        syncState: 'synced',
-        storageNamespace: `study_ai.${first.id}.v2`,
-        completedLessonsCount: 0,
-        totalAttemptsCount: 0,
-        recentTicketHistory: [],
-      }
-    } catch {
-      return null
+    return {
+      id: ticket.userId,
+      email: ticket.userEmail,
+      displayName: ticket.userName,
+      role: 'learner',
+      status: 'active',
+      createdAt: '2026-09-01T08:00:00Z',
+      lastLoginAt: '2026-10-27T10:30:00Z',
+      syncState: 'synced',
+      storageNamespace: `study_ai.${ticket.userId}.v2`,
+      completedLessonsCount: 18,
+      totalAttemptsCount: 22,
+      recentTicketHistory: [
+        {
+          id: ticket.id,
+          title: ticket.title,
+          status: ticket.status,
+          date: '2026-10-27',
+        },
+      ],
     }
+  },
+
+  _resetMockState(): void {
+    mockTickets = [...INITIAL_MOCK_TICKETS]
   },
 }

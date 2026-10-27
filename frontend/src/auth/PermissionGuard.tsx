@@ -4,6 +4,7 @@ import { useAuth } from './useAuth'
 import { hasPermission, hasAnyPermission } from './permissions'
 import type { RolePermission } from './permissions'
 import { UnauthorizedPage } from '@/pages/Error/UnauthorizedPage'
+import { isPrototypeMode } from '@/config/prototype'
 
 export interface PermissionGuardProps {
   permission: RolePermission | RolePermission[]
@@ -16,6 +17,11 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
 }) => {
   const { user, state, isGuest } = useAuth()
   const location = useLocation()
+
+  // Development / UI Review Prototype Mode:
+  if (isPrototypeMode()) {
+    return children ? <>{children}</> : <Outlet />
+  }
 
   if (state === 'initializing') {
     return (
