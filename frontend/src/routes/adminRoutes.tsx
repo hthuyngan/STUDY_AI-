@@ -13,6 +13,14 @@ import { ContentLessonEditorPage } from '@/pages/Content/ContentLessonEditorPage
 import { AdminAssessmentsPage } from '@/pages/Admin/AdminAssessmentsPage'
 import { AdminTeachersPage } from '@/pages/Admin/AdminTeachersPage'
 import { AdminReportsPage } from '@/pages/Admin/AdminReportsPage'
+import { AdminClassesPage } from '@/pages/Admin/AdminClassesPage'
+import { AdminClassDetailPage } from '@/pages/Admin/AdminClassDetailPage'
+import { AdminStudentsPage } from '@/pages/Admin/AdminStudentsPage'
+import { AdminStudentProfilePage } from '@/pages/Admin/AdminStudentProfilePage'
+import { AdminAssignmentsPage } from '@/pages/Admin/AdminAssignmentsPage'
+import { AdminAssignmentDetailPage } from '@/pages/Admin/AdminAssignmentDetailPage'
+import { AdminGradesPage } from '@/pages/Admin/AdminGradesPage'
+import { AdminAlertsPage } from '@/pages/Admin/AdminAlertsPage'
 
 export function AdminRoutes() {
   return (
@@ -36,6 +44,18 @@ export function AdminRoutes() {
       <Route path="lessons" element={<AdminLessonsPage />} />
       <Route path="lessons/:id" element={<ContentLessonEditorPage />} />
       <Route path="assessments" element={<AdminAssessmentsPage />} />
+
+      {/* Quản lý giảng dạy (Classroom & Students) */}
+      <Route path="classes" element={<AdminClassesPage />} />
+      <Route path="classes/:classId" element={<AdminClassDetailPage />} />
+      <Route path="students" element={<AdminStudentsPage />} />
+      <Route path="students/:studentId" element={<AdminStudentProfilePage />} />
+      <Route path="assignments" element={<AdminAssignmentsPage />} />
+      <Route path="assignments/:assignmentId" element={<AdminAssignmentDetailPage />} />
+
+      {/* Kết quả học tập (Performance & Alerts) */}
+      <Route path="grades" element={<AdminGradesPage />} />
+      <Route path="alerts" element={<AdminAlertsPage />} />
 
       {/* Quản lý nhân sự (Staff Management) */}
       <Route path="teachers" element={<AdminTeachersPage />} />

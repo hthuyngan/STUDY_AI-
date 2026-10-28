@@ -1,5 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import {
+  AlertTriangle,
+  Award,
   BarChart3,
   BookOpen,
   CheckSquare,
@@ -9,6 +11,7 @@ import {
   Layers,
   LayoutDashboard,
   MessageSquare,
+  School,
   Search,
   Shield,
   Sliders,
@@ -86,6 +89,48 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
             label: 'Bài thu hoạch',
             path: '/admin/assessments',
             icon: CheckSquare,
+          },
+        ],
+      },
+      {
+        id: 'teaching',
+        title: 'Quản lý giảng dạy',
+        items: [
+          {
+            id: 'admin-classes',
+            label: 'Lớp học',
+            path: '/admin/classes',
+            icon: School,
+          },
+          {
+            id: 'admin-students',
+            label: 'Học viên',
+            path: '/admin/students',
+            icon: Users,
+          },
+          {
+            id: 'admin-assignments',
+            label: 'Bài tập',
+            path: '/admin/assignments',
+            icon: FileText,
+          },
+        ],
+      },
+      {
+        id: 'performance',
+        title: 'Kết quả học tập',
+        items: [
+          {
+            id: 'admin-grades',
+            label: 'Bảng điểm',
+            path: '/admin/grades',
+            icon: Award,
+          },
+          {
+            id: 'admin-alerts',
+            label: 'Cảnh báo học tập',
+            path: '/admin/alerts',
+            icon: AlertTriangle,
           },
         ],
       },

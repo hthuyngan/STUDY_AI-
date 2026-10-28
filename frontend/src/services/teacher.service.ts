@@ -5,20 +5,14 @@ import type {
   TeacherClassItem,
 } from '@/types/teacher'
 import {
-  INITIAL_MOCK_ASSIGNMENTS,
-  INITIAL_MOCK_CLASSES,
-  INITIAL_MOCK_STUDENTS,
   INITIAL_STUDENT_ACADEMIC_DETAIL,
   INITIAL_TEACHER_DASHBOARD,
   type TeacherAttentionStudent,
   type TeacherRecentSubmission,
 } from '@/data/staff/teacher.mock'
+import { classroomService } from '@/services/classroom.service'
 
 export type { TeacherRecentSubmission, TeacherAttentionStudent }
-
-let mockClasses = [...INITIAL_MOCK_CLASSES]
-let mockAssignments = [...INITIAL_MOCK_ASSIGNMENTS]
-const mockStudents = { ...INITIAL_MOCK_STUDENTS }
 
 export const teacherService = {
   async getDashboardSummary(): Promise<{
@@ -29,27 +23,37 @@ export const teacherService = {
     recentSubmissions: TeacherRecentSubmission[]
     attentionStudents: TeacherAttentionStudent[]
   }> {
+    const classes = await classroomService.getTeacherClasses()
+    const students = await classroomService.getStudents()
+    const assignments = await classroomService.getAssignments()
+    const alerts = await classroomService.getAlerts()
+
     return {
       ...INITIAL_TEACHER_DASHBOARD,
-      classesCount: mockClasses.length,
-      activeAssignmentsCount: mockAssignments.filter((a) => a.status === 'active').length,
+      classesCount: classes.length,
+      studentsCount: students.length,
+      activeAssignmentsCount: assignments.filter((a) => a.status === 'active').length,
+      studentsNeedingAttentionCount: alerts.filter((a) => a.status !== 'resolved').length,
     }
   },
 
   async getClasses(): Promise<TeacherClassItem[]> {
-    return [...mockClasses]
+    return classroomService.getTeacherClasses()
   },
 
   async getClassById(classId: string): Promise<TeacherClassItem | null> {
-    const c = mockClasses.find((item) => item.id === classId)
+    const classes = await classroomService.getTeacherClasses()
+    const c = classes.find((item) => item.id === classId)
     return c ? { ...c } : null
   },
 
   async getClassStudents(classId: string): Promise<ClassStudentItem[]> {
-    return mockStudents[classId] || mockStudents['cls-12a1'] || []
+    return classroomService.getTeacherClassStudents(classId)
   },
 
   async getStudentAcademicDetail(studentId: string): Promise<StudentAcademicDetail | null> {
+    const detail = await classroomService.getStudentAcademicDetail(studentId)
+    if (detail) return detail
     return {
       ...INITIAL_STUDENT_ACADEMIC_DETAIL,
       id: studentId,
@@ -57,31 +61,39 @@ export const teacherService = {
   },
 
   async getAssignments(): Promise<TeacherAssignmentItem[]> {
-    return [...mockAssignments]
+    return classroomService.getTeacherAssignments()
   },
 
   async createAssignment(
     assignment: Omit<TeacherAssignmentItem, 'id' | 'submissionsCount' | 'status'>
   ): Promise<TeacherAssignmentItem> {
-    const newAsg: TeacherAssignmentItem = {
-      ...assignment,
-      id: `asg-${Date.now()}`,
-      submissionsCount: 0,
+    const created = await classroomService.saveAssignment({
+      title: assignment.title,
+      classId: assignment.classId,
+      className: assignment.className,
+      subjectName: assignment.subject,
+      dueDate: assignment.dueDate,
+      instructions: assignment.instructions,
+      totalStudents: assignment.totalStudents || 35,
       status: 'active',
+    })
+
+    return {
+      id: created.id,
+      title: created.title,
+      classId: created.classId,
+      className: created.className,
+      subject: created.subjectName,
+      lessonIds: created.lessonId ? [created.lessonId] : [],
+      dueDate: created.dueDate,
+      submissionsCount: created.submissionsCount,
+      totalStudents: created.totalStudents,
+      status: created.status,
     }
-    mockAssignments = [newAsg, ...mockAssignments]
-    // Update active assignment count in class
-    mockClasses = mockClasses.map((cls) =>
-      cls.id === assignment.classId
-        ? { ...cls, activeAssignments: cls.activeAssignments + 1 }
-        : cls
-    )
-    return newAsg
   },
 
   // Reset helper for testing
   _resetMockState(): void {
-    mockClasses = [...INITIAL_MOCK_CLASSES]
-    mockAssignments = [...INITIAL_MOCK_ASSIGNMENTS]
+    classroomService._resetMockState()
   },
 }
