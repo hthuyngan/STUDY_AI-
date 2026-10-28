@@ -1,0 +1,381 @@
+/* ============================================================
+   ADMIN DASHBOARD POLISH — evondevKit review pass
+   Goals: quiet hierarchy, flat surfaces, predictable spacing,
+   no nested visual cards, stable states, responsive at 375px.
+   ============================================================ */
+
+.admin-dashboard-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+.admin-dashboard-page .admin-header-row {
+  align-items: flex-end;
+  gap: 20px;
+}
+
+.admin-dashboard-page .admin-dashboard-heading {
+  margin-bottom: 0;
+  min-width: 0;
+}
+
+.admin-dashboard-page .admin-header-actions {
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+}
+
+.admin-dashboard-page .admin-time-select {
+  height: 40px;
+  min-width: 152px;
+}
+
+.admin-dashboard-page .staff-metric-grid,
+.admin-dashboard-page .admin-analytics-grid,
+.admin-dashboard-page .admin-quick-actions-section {
+  margin: 0;
+}
+
+.admin-dashboard-page .staff-metric-grid {
+  gap: 12px;
+}
+
+.admin-dashboard-page .staff-metric-card,
+.admin-dashboard-page .staff-card,
+.admin-dashboard-page .admin-quick-action-card {
+  box-shadow: none;
+}
+
+.admin-dashboard-page .staff-metric-card,
+.admin-dashboard-page .staff-card {
+  min-width: 0;
+  border-radius: 10px;
+}
+
+.admin-dashboard-page .staff-metric-card {
+  min-height: 116px;
+  padding: 16px 18px;
+}
+
+.admin-dashboard-page .staff-metric-label {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.admin-dashboard-page .staff-metric-value {
+  font-size: 1.45rem;
+}
+
+.admin-dashboard-page .staff-card-header {
+  padding: 15px 18px;
+  gap: 12px;
+}
+
+.admin-dashboard-page .staff-card-body {
+  padding: 18px;
+}
+
+.admin-dashboard-page .admin-analytics-grid {
+  gap: 18px;
+}
+
+.admin-dashboard-page .admin-analytics-main-card,
+.admin-dashboard-page .admin-analytics-sub-card {
+  height: 100%;
+}
+
+.admin-dashboard-operations-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.admin-dashboard-card-header {
+  align-items: flex-start;
+}
+
+.admin-dashboard-card-header > div {
+  min-width: 0;
+}
+
+.admin-dashboard-page .admin-badge-count {
+  flex-shrink: 0;
+}
+
+.admin-dashboard-skeleton-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-dashboard-empty-copy {
+  margin: 0;
+  color: var(--text-muted, #627d98);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.admin-dashboard-page .staff-attention-list {
+  gap: 0;
+}
+
+.admin-dashboard-page .staff-attention-item {
+  margin: 0 -8px;
+  padding: 12px 8px;
+  border: 0;
+  border-bottom: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: 6px;
+  background: transparent;
+}
+
+.admin-dashboard-page .staff-attention-item:last-child {
+  border-bottom: 0;
+}
+
+.admin-dashboard-page .staff-attention-item:hover {
+  border-color: var(--border-subtle, #e2e8f0);
+  background: rgba(16, 42, 67, 0.035);
+}
+
+.admin-dashboard-page .staff-attention-item.severity-high,
+.admin-dashboard-page .staff-attention-item.severity-medium {
+  border-left: 0;
+}
+
+.admin-dashboard-page .staff-attention-item.severity-high {
+  box-shadow: inset 3px 0 0 #dc2626;
+}
+
+.admin-dashboard-page .staff-attention-item.severity-medium {
+  box-shadow: inset 3px 0 0 #b45309;
+}
+
+.admin-dashboard-page .staff-attention-time {
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-dashboard-page .admin-activity-stream {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-dashboard-page .admin-activity-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border-subtle, #e2e8f0);
+}
+
+.admin-dashboard-page .admin-activity-item:first-child {
+  padding-top: 0;
+}
+
+.admin-dashboard-page .admin-activity-item:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.admin-dashboard-page .admin-activity-content {
+  min-width: 0;
+  font-size: 0.83rem;
+  line-height: 1.45;
+}
+
+.admin-dashboard-page .admin-activity-time {
+  margin-left: 0;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.admin-dashboard-page .admin-quick-actions-header {
+  margin-bottom: 12px;
+}
+
+.admin-dashboard-page .admin-quick-actions-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: 10px;
+  background: var(--border-subtle, #e2e8f0);
+}
+
+.admin-dashboard-page .admin-quick-action-card {
+  min-width: 0;
+  min-height: 150px;
+  padding: 16px;
+  border: 0;
+  border-radius: 0;
+  background: var(--bg-card, #ffffff);
+  transform: none;
+}
+
+.admin-dashboard-page .admin-quick-action-card:hover {
+  transform: none;
+  border-color: transparent;
+  box-shadow: none;
+  background: rgba(16, 42, 67, 0.035);
+}
+
+.admin-dashboard-page .admin-quick-action-icon-wrap {
+  width: 34px;
+  height: 34px;
+}
+
+.admin-dashboard-page .admin-quick-action-arrow {
+  margin-top: 12px;
+}
+
+.admin-dashboard-health-card .staff-card-body {
+  padding-top: 0;
+}
+
+.admin-dashboard-page .admin-system-health-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+}
+
+.admin-dashboard-page .admin-health-row {
+  min-width: 0;
+  min-height: 82px;
+  padding: 14px 16px;
+  border-bottom: 0;
+  border-right: 1px solid var(--border-subtle, #e2e8f0);
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 8px;
+}
+
+.admin-dashboard-page .admin-health-row:first-child {
+  padding-left: 0;
+}
+
+.admin-dashboard-page .admin-health-row:last-child {
+  padding-right: 0;
+  border-right: 0;
+}
+
+.admin-dashboard-page .admin-health-name {
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.admin-dashboard-page .admin-status-pill {
+  white-space: nowrap;
+}
+
+.admin-dashboard-page .admin-report-note {
+  margin: 16px 0 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--text-muted, #627d98);
+}
+
+.admin-dashboard-page :is(a, button, select):focus-visible {
+  outline: 2px solid var(--navy-primary, #102a43);
+  outline-offset: 2px;
+}
+
+@media (max-width: 1080px) {
+  .admin-dashboard-page .admin-system-health-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-dashboard-page .admin-health-row {
+    border-right: 1px solid var(--border-subtle, #e2e8f0);
+    border-bottom: 1px solid var(--border-subtle, #e2e8f0);
+    padding: 14px 16px;
+  }
+
+  .admin-dashboard-page .admin-health-row:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .admin-dashboard-page .admin-health-row:nth-last-child(-n + 2) {
+    border-bottom: 0;
+  }
+}
+
+@media (max-width: 920px) {
+  .admin-dashboard-operations-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .admin-dashboard-page {
+    gap: 20px;
+  }
+
+  .admin-dashboard-page .admin-header-row {
+    align-items: stretch;
+  }
+
+  .admin-dashboard-page .admin-header-actions {
+    width: 100%;
+  }
+
+  .admin-dashboard-page .admin-time-select-wrap {
+    flex: 1;
+  }
+
+  .admin-dashboard-page .admin-time-select {
+    width: 100%;
+  }
+
+  .admin-dashboard-page .admin-quick-actions-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-dashboard-page .admin-quick-action-card {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-dashboard-page .admin-header-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .admin-dashboard-page .admin-time-select {
+    font-size: 1rem;
+  }
+
+  .admin-dashboard-page .admin-activity-item {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .admin-dashboard-page .admin-activity-time {
+    grid-column: 2;
+    text-align: left;
+  }
+}
+
+@media (max-width: 520px) {
+  .admin-dashboard-page .admin-system-health-list {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-dashboard-page .admin-health-row,
+  .admin-dashboard-page .admin-health-row:first-child,
+  .admin-dashboard-page .admin-health-row:last-child {
+    padding: 14px 0;
+    border-right: 0;
+    border-bottom: 1px solid var(--border-subtle, #e2e8f0);
+  }
+
+  .admin-dashboard-page .admin-health-row:last-child {
+    border-bottom: 0;
+  }
+}
