@@ -14,11 +14,13 @@ import type {
 } from '@/types/classroom'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import './TeacherPages.css'
 import '../Admin/AdminPages.css'
 import '@/components/admin/AdminComponents.css'
 
 export const TeacherAssignmentDetailPage: React.FC = () => {
-  const { assignmentId } = useParams<{ assignmentId: string }>()
+  const { id: paramId, assignmentId: routeId } = useParams<{ id?: string; assignmentId?: string }>()
+  const assignmentId = paramId || routeId
   const [assignment, setAssignment] = useState<AdminAssignmentItem | null>(null)
   const [submissions, setSubmissions] = useState<AdminSubmissionItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -92,7 +94,7 @@ export const TeacherAssignmentDetailPage: React.FC = () => {
         selectedSub.id,
         gradeScore,
         gradeFeedback,
-        'Quản trị viên'
+        'Giáo viên bộ môn'
       )
       showToast(`Đã lưu điểm cho học viên ${selectedSub.studentName}: ${gradeScore} điểm`)
       setIsGradingOpen(false)
@@ -172,7 +174,7 @@ export const TeacherAssignmentDetailPage: React.FC = () => {
 
   const submissionRate = Math.min(
     100,
-    Math.round((assignment.submissionsCount / assignment.totalStudents) * 100)
+    assignment.totalStudents > 0 ? Math.round((assignment.submissionsCount / assignment.totalStudents) * 100) : 0
   )
 
   return (
@@ -218,6 +220,7 @@ export const TeacherAssignmentDetailPage: React.FC = () => {
               type="button"
               className="btn btn-secondary"
               onClick={handleExportCSV}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
             >
               <Download size={16} />
               <span>Xuất kết quả bài nộp (CSV)</span>
@@ -226,143 +229,201 @@ export const TeacherAssignmentDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Overview Card */}
-      <div
-        className="admin-card"
-        style={{
-          background: '#fff',
-          border: '1px solid #e2e8f0',
-          borderRadius: 8,
-          padding: 20,
-          marginBottom: 24,
-        }}
-      >
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24 }}>
+      {/* Metadata Card (Section 34: No duplicate titles, quiet single surface) */}
+      <div className="admin-card" style={{ padding: 20, marginBottom: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
           <div>
-            <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#102a43', margin: '0 0 8px 0' }}>
+            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#627d98', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Hướng dẫn & Yêu cầu làm bài
-            </h3>
-            <p style={{ margin: 0, fontSize: '0.9rem', color: '#334e68', lineHeight: 1.5 }}>
-              {assignment.instructions || assignment.description || 'Chưa có hướng dẫn đặc biệt cho bài tập này.'}
+            </span>
+            <p style={{ margin: '8px 0 0 0', fontSize: '0.9rem', color: '#102a43', lineHeight: 1.5 }}>
+              {assignment.instructions || assignment.description || 'Chưa có ghi chú đặc biệt cho bài tập này.'}
             </p>
           </div>
 
-          <div style={{ borderLeft: '1px solid #e2e8f0', paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-              <span style={{ color: '#627d98' }}>Thang điểm:</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
+              <span style={{ color: '#627d98' }}>Thang điểm tối đa:</span>
               <strong>{assignment.maxScore} điểm</strong>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-              <span style={{ color: '#627d98' }}>Tỷ lệ nộp bài:</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
+              <span style={{ color: '#627d98' }}>Tỷ lệ bài nộp:</span>
               <strong>{assignment.submissionsCount} / {assignment.totalStudents} ({submissionRate}%)</strong>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-              <span style={{ color: '#627d98' }}>Điểm trung bình:</span>
-              <strong style={{ color: '#047857' }}>{assignment.averageScore || '—'}</strong>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
+              <span style={{ color: '#627d98' }}>Điểm trung bình lớp:</span>
+              <strong style={{ color: assignment.averageScore && assignment.averageScore >= 8 ? '#047857' : '#d97706' }}>
+                {assignment.averageScore ? `${assignment.averageScore.toFixed(1)} / 10` : 'Chưa có điểm'}
+              </strong>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Submissions Table */}
-      <div className="staff-table-wrapper">
-        <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#102a43', padding: '16px 20px', margin: 0, borderBottom: '1px solid #e2e8f0' }}>
-          Danh sách bài nộp của học viên ({submissions.length})
-        </h3>
+      {/* Submissions Section */}
+      <div className="teacher-classes-wrapper">
         {submissions.length === 0 ? (
           <EmptyState
-            title="Chưa có học viên nào nộp bài"
-            description="Các bài nộp của học viên trong lớp sẽ xuất hiện tại đây khi được gửi lên."
+            title="Chưa có học sinh nộp bài"
+            description="Bài nộp của học sinh sẽ hiển thị tại đây ngay khi được gửi lên."
           />
         ) : (
-          <table className="staff-table">
-            <thead>
-              <tr>
-                <th>Học viên</th>
-                <th>Thời gian nộp</th>
-                <th>Trạng thái</th>
-                <th>Điểm số</th>
-                <th>Nhận xét của giáo viên</th>
-                <th style={{ textAlign: 'right' }}>Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            {/* Desktop Table View */}
+            <div className="staff-table-wrapper teacher-desktop-table">
+              <table className="staff-table">
+                <thead>
+                  <tr>
+                    <th>Học sinh</th>
+                    <th>Email</th>
+                    <th>Thời gian nộp</th>
+                    <th>Điểm số</th>
+                    <th>Trạng thái</th>
+                    <th>Nhận xét</th>
+                    <th style={{ textAlign: 'right' }}>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {submissions.map((sub) => (
+                    <tr key={sub.id}>
+                      <td>
+                        <Link
+                          to={`/teacher/students/${sub.studentId}`}
+                          className="font-medium text-navy-primary hover:underline"
+                          style={{ fontWeight: 600, color: '#102a43' }}
+                        >
+                          {sub.studentName}
+                        </Link>
+                      </td>
+                      <td>{sub.studentEmail}</td>
+                      <td>
+                        {sub.submittedAt ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.85rem' }}>
+                            <Clock size={13} color="#627d98" />
+                            <span>{new Date(sub.submittedAt).toLocaleString('vi-VN')}</span>
+                          </div>
+                        ) : (
+                          <span style={{ color: '#94a3b8' }}>Chưa nộp</span>
+                        )}
+                      </td>
+                      <td>
+                        {sub.score !== undefined ? (
+                          <strong style={{ color: sub.score >= 8 ? '#047857' : sub.score >= 5 ? '#d97706' : '#dc2626' }}>
+                            {sub.score} / {sub.maxScore}
+                          </strong>
+                        ) : (
+                          <span style={{ color: '#94a3b8' }}>—</span>
+                        )}
+                      </td>
+                      <td>
+                        <span
+                          className={`status-badge ${
+                            sub.status === 'graded'
+                              ? 'status-success'
+                              : sub.status === 'pending'
+                              ? 'status-warning'
+                              : 'status-default'
+                          }`}
+                        >
+                          {sub.status === 'graded' ? 'Đã chấm' : sub.status === 'pending' ? 'Chờ chấm' : 'Chưa nộp'}
+                        </span>
+                      </td>
+                      <td style={{ color: '#627d98', fontSize: '0.85rem', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {sub.feedback || '—'}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => handleOpenGradeModal(sub)}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                        >
+                          <Edit2 size={13} />
+                          <span>{sub.status === 'graded' ? 'Chấm lại' : 'Chấm điểm'}</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Cards View (<768px) */}
+            <div className="teacher-mobile-cards-list">
               {submissions.map((sub) => (
-                <tr key={sub.id}>
-                  <td>
+                <div key={sub.id} className="teacher-card-item">
+                  <div className="teacher-card-item-header">
                     <div>
-                      <strong style={{ color: '#102a43' }}>{sub.studentName}</strong>
-                      <div style={{ fontSize: '0.78rem', color: '#627d98' }}>
-                        {sub.studentEmail} • {sub.className}
+                      <Link to={`/teacher/students/${sub.studentId}`} className="teacher-card-title">
+                        {sub.studentName}
+                      </Link>
+                      <div className="teacher-card-meta-line">
+                        <span>{sub.studentEmail}</span>
                       </div>
                     </div>
-                  </td>
-                  <td>
-                    {sub.submittedAt ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.85rem' }}>
-                        <Clock size={14} color="#627d98" />
-                        <span>{new Date(sub.submittedAt).toLocaleString('vi-VN')}</span>
-                      </div>
-                    ) : (
-                      <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.85rem' }}>Chưa nộp</span>
-                    )}
-                  </td>
-                  <td>
                     <span
                       className={`status-badge ${
                         sub.status === 'graded'
                           ? 'status-success'
                           : sub.status === 'pending'
                           ? 'status-warning'
-                          : 'status-danger'
+                          : 'status-default'
                       }`}
                     >
                       {sub.status === 'graded' ? 'Đã chấm' : sub.status === 'pending' ? 'Chờ chấm' : 'Chưa nộp'}
                     </span>
-                  </td>
-                  <td>
-                    <strong
-                      style={{
-                        fontSize: '0.95rem',
-                        color: sub.score !== undefined && sub.score >= 8 ? '#047857' : sub.score !== undefined ? '#0284c7' : '#94a3b8',
-                      }}
-                    >
-                      {sub.score !== undefined ? `${sub.score} / ${sub.maxScore}` : '—'}
-                    </strong>
-                  </td>
-                  <td style={{ maxWidth: 260 }}>
-                    <span style={{ fontSize: '0.85rem', color: '#334e68' }}>
-                      {sub.feedback || '—'}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
+                  </div>
+
+                  <div className="teacher-card-item-body">
+                    <div className="teacher-card-stat">
+                      <span className="teacher-stat-label">Thời gian nộp</span>
+                      <strong className="teacher-stat-val" style={{ fontSize: '0.82rem' }}>
+                        {sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString('vi-VN') : 'Chưa nộp'}
+                      </strong>
+                    </div>
+                    <div className="teacher-card-stat">
+                      <span className="teacher-stat-label">Điểm số</span>
+                      <strong className="teacher-stat-val">
+                        {sub.score !== undefined ? `${sub.score}/${sub.maxScore}` : '—'}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {sub.feedback && (
+                    <div style={{ fontSize: '0.82rem', color: '#627d98', background: '#f8fafc', padding: 8, borderRadius: 4 }}>
+                      Nhận xét: {sub.feedback}
+                    </div>
+                  )}
+
+                  <div className="teacher-card-item-footer">
                     <button
                       type="button"
-                      className="btn btn-secondary btn-sm"
-                      style={{ padding: '4px 10px', fontSize: '0.8rem' }}
+                      className="btn btn-primary btn-sm"
+                      style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }}
                       onClick={() => handleOpenGradeModal(sub)}
                     >
-                      <Edit2 size={14} style={{ marginRight: 4 }} />
-                      <span>{sub.status === 'graded' ? 'Sửa điểm' : 'Chấm bài'}</span>
+                      <Edit2 size={13} />
+                      <span>{sub.status === 'graded' ? 'Sửa điểm' : 'Chấm điểm'}</span>
                     </button>
-                  </td>
-                </tr>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </div>
 
       {/* Modal Chấm Điểm */}
       {isGradingOpen && selectedSub && (
         <div className="admin-modal-overlay" role="dialog" aria-modal="true">
-          <div className="admin-modal-card" style={{ maxWidth: 460 }}>
+          <div className="admin-modal-card" style={{ maxWidth: 500 }}>
             <div className="admin-modal-header">
               <h3 className="modal-title">Chấm điểm bài nộp</h3>
               <button
                 type="button"
                 className="modal-close-btn"
                 onClick={() => setIsGradingOpen(false)}
+                aria-label="Đóng"
               >
                 ✕
               </button>
@@ -370,10 +431,30 @@ export const TeacherAssignmentDetailPage: React.FC = () => {
 
             <form onSubmit={handleSaveGrade}>
               <div className="admin-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div style={{ background: '#f8fafc', padding: 12, borderRadius: 6 }}>
+                <div style={{ background: '#f8fafc', padding: 12, borderRadius: 6, border: '1px solid #e2e8f0' }}>
                   <div style={{ fontWeight: 600, color: '#102a43' }}>{selectedSub.studentName}</div>
-                  <div style={{ fontSize: '0.8rem', color: '#627d98' }}>{selectedSub.studentEmail} • {assignment.title}</div>
+                  <div style={{ fontSize: '0.82rem', color: '#627d98' }}>{selectedSub.studentEmail}</div>
                 </div>
+
+                {selectedSub.content && (
+                  <div>
+                    <label className="form-label">Nội dung bài làm của học sinh</label>
+                    <div
+                      style={{
+                        padding: 12,
+                        background: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: 6,
+                        fontSize: '0.88rem',
+                        color: '#334e68',
+                        maxHeight: 120,
+                        overflowY: 'auto',
+                      }}
+                    >
+                      {selectedSub.content}
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <label className="form-label" htmlFor="grade-score-input">
@@ -382,9 +463,9 @@ export const TeacherAssignmentDetailPage: React.FC = () => {
                   <input
                     id="grade-score-input"
                     type="number"
-                    step="0.1"
-                    min="0"
+                    min={0}
                     max={selectedSub.maxScore}
+                    step={0.25}
                     className="form-input"
                     value={gradeScore}
                     onChange={(e) => setGradeScore(Number(e.target.value))}
@@ -393,12 +474,14 @@ export const TeacherAssignmentDetailPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="form-label" htmlFor="grade-feedback-input">Nhận xét & Lời khuyên</label>
+                  <label className="form-label" htmlFor="grade-feedback-input">
+                    Nhận xét & Hướng dẫn sửa bài
+                  </label>
                   <textarea
                     id="grade-feedback-input"
                     className="form-input"
                     rows={3}
-                    placeholder="Ghi nhận xét về bài làm của học viên..."
+                    placeholder="Ghi nhận xét chi tiết giúp học sinh cải thiện bài làm..."
                     value={gradeFeedback}
                     onChange={(e) => setGradeFeedback(e.target.value)}
                   />

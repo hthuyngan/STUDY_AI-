@@ -1,16 +1,11 @@
-﻿import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import {
   ArrowLeft,
-  Users,
-  Award,
   CheckCircle2,
   Clock,
   Mail,
   Phone,
-  Shield,
   MoveRight,
-  AlertTriangle,
-  FileText,
 } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import { classroomService } from '@/services/classroom.service'
@@ -22,13 +17,15 @@ import type {
 } from '@/types/classroom'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import './TeacherPages.css'
 import '../Admin/AdminPages.css'
 import '@/components/admin/AdminComponents.css'
 
-type ProfileTab = 'overview' | 'subjects' | 'assignments' | 'grades' | 'activities'
+type ProfileTab = 'overview' | 'subjects' | 'assignments' | 'grades'
 
 export const TeacherStudentProfilePage: React.FC = () => {
-  const { studentId } = useParams<{ studentId: string }>()
+  const { id: paramId, studentId: routeId } = useParams<{ id?: string; studentId?: string }>()
+  const studentId = paramId || routeId
   const [activeTab, setActiveTab] = useState<ProfileTab>('overview')
 
   const [student, setStudent] = useState<AdminStudentItem | null>(null)
@@ -105,7 +102,7 @@ export const TeacherStudentProfilePage: React.FC = () => {
 
     try {
       await classroomService.moveStudentClass(student.id, targetClass.id, targetClass.name)
-      showToast(`ÄÃ£ chuyá»ƒn há»c viÃªn ${student.name} sang lá»›p ${targetClass.name}`)
+      showToast(`Đã chuyển học viên ${student.name} sang lớp ${targetClass.name}`)
       setIsMoveOpen(false)
       loadData()
     } catch (err: unknown) {
@@ -113,36 +110,36 @@ export const TeacherStudentProfilePage: React.FC = () => {
     }
   }
 
-  // Mock subjects progress for the student
+  // Subjects progress for the student
   const studentSubjects = useMemo(() => {
     if (!student) return []
     return [
       {
         id: 'sub-math-12',
-        name: 'ToÃ¡n há»c 12',
+        name: 'Toán học 12',
         lessonsCompleted: student.lessonsCompleted,
         totalLessons: 24,
         progress: student.progress,
         score: student.averageScore,
-        status: student.progress >= 70 ? 'Tá»‘t' : 'Cáº§n cá»‘ gáº¯ng',
+        status: student.progress >= 70 ? 'Tốt' : 'Cần cố gắng',
       },
       {
         id: 'sub-phys-12',
-        name: 'Váº­t lÃ½ 12',
+        name: 'Vật lý 12',
         lessonsCompleted: Math.max(2, student.lessonsCompleted - 4),
         totalLessons: 20,
         progress: Math.max(20, student.progress - 15),
         score: Number((student.averageScore * 0.95).toFixed(1)),
-        status: 'Äáº¡t chuáº©n',
+        status: 'Đạt chuẩn',
       },
       {
         id: 'sub-chem-12',
-        name: 'HÃ³a há»c 12',
+        name: 'Hóa học 12',
         lessonsCompleted: Math.max(3, student.lessonsCompleted - 5),
         totalLessons: 22,
         progress: Math.max(15, student.progress - 20),
         score: Number((student.averageScore * 0.9).toFixed(1)),
-        status: 'Äáº¡t chuáº©n',
+        status: 'Đạt chuẩn',
       },
     ]
   }, [student])
@@ -162,9 +159,9 @@ export const TeacherStudentProfilePage: React.FC = () => {
     return (
       <div className="admin-page-container">
         <EmptyState
-          title="KhÃ´ng tÃ¬m tháº¥y há»c viÃªn"
-          description="Há»“ sÆ¡ há»c viÃªn khÃ´ng tá»“n táº¡i trong há»‡ thá»‘ng."
-          actionLabel="Quay láº¡i danh sÃ¡ch há»c viÃªn"
+          title="Không tìm thấy học viên"
+          description="Hồ sơ học viên không tồn tại trong hệ thống hoặc đã bị xóa."
+          actionLabel="Quay lại danh sách học viên"
           onAction={() => window.history.back()}
         />
       </div>
@@ -188,7 +185,7 @@ export const TeacherStudentProfilePage: React.FC = () => {
         </div>
       )}
 
-      {/* Breadcrumb */}
+      {/* Breadcrumb Header */}
       <div style={{ marginBottom: 16 }}>
         <Link
           to="/teacher/students"
@@ -196,253 +193,213 @@ export const TeacherStudentProfilePage: React.FC = () => {
           style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#102a43', fontSize: '0.88rem' }}
         >
           <ArrowLeft size={16} />
-          <span>Quay láº¡i Quáº£n lÃ½ há»c viÃªn</span>
+          <span>Quay lại Quản lý học viên</span>
         </Link>
       </div>
 
-      {/* Profile Header Card */}
-      <div
-        className="admin-card"
-        style={{
-          background: '#fff',
-          border: '1px solid #e2e8f0',
-          borderRadius: 8,
-          padding: '24px',
-          marginBottom: 24,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div
-              style={{
-                width: 64,
-                height: 64,
-                borderRadius: '50%',
-                background: '#102a43',
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 700,
-                fontSize: '1.4rem',
-                border: '3px solid #FFF9EA',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-              }}
-            >
-              {initials}
+      {/* Primary Identity Card (Section 26 & 27: Student name is strongest identity, single card surface) */}
+      <div className="teacher-profile-hero-card">
+        <div className="teacher-profile-hero-left">
+          <div className="teacher-profile-avatar">
+            {initials}
+          </div>
+          <div className="teacher-profile-main-info">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <h1 className="teacher-profile-name">{student.name}</h1>
+              <span className="teacher-code-pill">{student.code}</span>
+              <span
+                className={`status-badge ${
+                  student.status === 'on-track'
+                    ? 'status-success'
+                    : student.status === 'needs-attention'
+                    ? 'status-danger'
+                    : 'status-default'
+                }`}
+              >
+                {student.status === 'on-track' ? 'Đang học tốt' : student.status === 'needs-attention' ? 'Cần chú ý' : 'Ngừng hoạt động'}
+              </span>
             </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                <h1 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#102a43', margin: 0 }}>
-                  {student.name}
-                </h1>
-                <code style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: 4, fontWeight: 700 }}>
-                  {student.code}
-                </code>
-                <span
-                  className={`status-badge ${
-                    student.status === 'on-track'
-                      ? 'status-success'
-                      : student.status === 'needs-attention'
-                      ? 'status-danger'
-                      : 'status-default'
-                  }`}
-                >
-                  {student.status === 'on-track' ? 'Äang há»c tá»‘t' : student.status === 'needs-attention' ? 'Cáº§n há»— trá»£' : 'Nghá»‰'}
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 8, fontSize: '0.88rem', color: '#627d98', flexWrap: 'wrap' }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  <Mail size={14} />
-                  {student.email}
-                </span>
-                {student.phone && (
+            <div className="teacher-profile-sub-meta">
+              <span>Lớp: <strong>{student.className}</strong> ({student.grade})</span>
+              <span>•</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <Mail size={13} /> {student.email}
+              </span>
+              {student.phone && (
+                <>
+                  <span>•</span>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                    <Phone size={14} />
-                    {student.phone}
+                    <Phone size={13} /> {student.phone}
                   </span>
-                )}
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  <Users size={14} />
-                  Lá»›p: <strong>{student.className}</strong> ({student.grade})
-                </span>
-              </div>
+                </>
+              )}
+              <span>•</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <Clock size={13} /> Hoạt động: {new Date(student.lastActive).toLocaleDateString('vi-VN')}
+              </span>
             </div>
           </div>
+        </div>
 
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => {
-                setTargetClassId('')
-                setIsMoveOpen(true)
-              }}
-            >
-              <MoveRight size={16} />
-              <span>Äá»•i lá»›p há»c</span>
-            </button>
-          </div>
+        <div className="teacher-profile-hero-actions">
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => {
+              setTargetClassId(classes.find((c) => c.id !== student.classId)?.id || '')
+              setIsMoveOpen(true)
+            }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            <MoveRight size={14} />
+            <span>Chuyển lớp</span>
+          </button>
         </div>
       </div>
 
-      {/* 5 Tabs Nav */}
-      <div className="admin-roles-tabs" style={{ marginBottom: 24, borderBottom: '1px solid #e2e8f0', display: 'flex', gap: 8 }}>
-        <button
-          type="button"
-          className={`btn ${activeTab === 'overview' ? 'btn-primary' : 'btn-secondary'}`}
-          style={{ borderRadius: '6px 6px 0 0' }}
-          onClick={() => setActiveTab('overview')}
-        >
-          Tá»•ng quan há»“ sÆ¡
-        </button>
-        <button
-          type="button"
-          className={`btn ${activeTab === 'subjects' ? 'btn-primary' : 'btn-secondary'}`}
-          style={{ borderRadius: '6px 6px 0 0' }}
-          onClick={() => setActiveTab('subjects')}
-        >
-          Tiáº¿n Ä‘á»™ mÃ´n há»c
-        </button>
-        <button
-          type="button"
-          className={`btn ${activeTab === 'assignments' ? 'btn-primary' : 'btn-secondary'}`}
-          style={{ borderRadius: '6px 6px 0 0' }}
-          onClick={() => setActiveTab('assignments')}
-        >
-          BÃ i táº­p & BÃ i ná»™p
-        </button>
-        <button
-          type="button"
-          className={`btn ${activeTab === 'grades' ? 'btn-primary' : 'btn-secondary'}`}
-          style={{ borderRadius: '6px 6px 0 0' }}
-          onClick={() => setActiveTab('grades')}
-        >
-          Báº£ng Ä‘iá»ƒm chi tiáº¿t
-        </button>
-        <button
-          type="button"
-          className={`btn ${activeTab === 'activities' ? 'btn-primary' : 'btn-secondary'}`}
-          style={{ borderRadius: '6px 6px 0 0' }}
-          onClick={() => setActiveTab('activities')}
-        >
-          Nháº­t kÃ½ há»c táº­p
-        </button>
+      {/* Compact Metrics Row */}
+      <div className="teacher-stats-strip">
+        <div className="teacher-stat-strip-box">
+          <span className="teacher-strip-label">Tiến độ chung</span>
+          <strong className="teacher-strip-value">{student.progress}%</strong>
+          <div className="teacher-strip-bar">
+            <div style={{ width: `${student.progress}%`, height: '100%', background: '#0284c7' }} />
+          </div>
+        </div>
+
+        <div className="teacher-stat-strip-box">
+          <span className="teacher-strip-label">Điểm trung bình (GPA)</span>
+          <strong className="teacher-strip-value" style={{ color: student.averageScore >= 8 ? '#047857' : '#d97706' }}>
+            {student.averageScore.toFixed(1)} / 10
+          </strong>
+          <span className="teacher-strip-sub">
+            {student.averageScore >= 8 ? 'Xếp loại Giỏi' : student.averageScore >= 6.5 ? 'Xếp loại Khá' : 'Trung bình'}
+          </span>
+        </div>
+
+        <div className="teacher-stat-strip-box">
+          <span className="teacher-strip-label">Bài học hoàn thành</span>
+          <strong className="teacher-strip-value">{student.lessonsCompleted}</strong>
+          <span className="teacher-strip-sub">Bài học trong học kỳ</span>
+        </div>
+
+        <div className="teacher-stat-strip-box">
+          <span className="teacher-strip-label">Thời gian học tập</span>
+          <strong className="teacher-strip-value">{Math.round(student.totalLearningMinutes / 60)} giờ</strong>
+          <span className="teacher-strip-sub">{student.totalLearningMinutes} phút trên hệ thống</span>
+        </div>
       </div>
 
-      {/* TAB 1: OVERVIEW */}
+      {/* Tabs with Horizontal Scroll - NO MULTI-ROW WRAP */}
+      <div className="teacher-tabs-container" style={{ marginTop: 20 }}>
+        <div className="teacher-tabs-scroll">
+          <button
+            type="button"
+            className={`teacher-tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
+            onClick={() => setActiveTab('overview')}
+          >
+            Tổng quan năng lực
+          </button>
+          <button
+            type="button"
+            className={`teacher-tab-btn ${activeTab === 'subjects' ? 'active' : ''}`}
+            onClick={() => setActiveTab('subjects')}
+          >
+            Tiến độ môn học ({studentSubjects.length})
+          </button>
+          <button
+            type="button"
+            className={`teacher-tab-btn ${activeTab === 'assignments' ? 'active' : ''}`}
+            onClick={() => setActiveTab('assignments')}
+          >
+            Bài tập đã giao ({submissions.length})
+          </button>
+          <button
+            type="button"
+            className={`teacher-tab-btn ${activeTab === 'grades' ? 'active' : ''}`}
+            onClick={() => setActiveTab('grades')}
+          >
+            Sổ điểm ({grades.length})
+          </button>
+        </div>
+      </div>
+
+      {/* Tab 1: Overview */}
       {activeTab === 'overview' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          {/* 4 KPIs */}
-          <div className="admin-kpi-grid">
-            <div className="admin-kpi-card">
-              <div className="kpi-top-row">
-                <span className="kpi-label">Thá»i gian tá»± há»c</span>
-                <div className="kpi-icon-wrap" style={{ background: 'rgba(16, 42, 67, 0.08)', color: '#102a43' }}>
-                  <Clock size={18} />
-                </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
+          <div className="admin-card" style={{ padding: 20 }}>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#102a43', marginBottom: 14 }}>
+              Thế mạnh học tập
+            </h3>
+            {student.strengths && student.strengths.length > 0 ? (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {student.strengths.map((str, idx) => (
+                  <span
+                    key={idx}
+                    style={{
+                      background: '#ecfdf5',
+                      color: '#047857',
+                      border: '1px solid #a7f3d0',
+                      padding: '4px 10px',
+                      borderRadius: 6,
+                      fontSize: '0.85rem',
+                      fontWeight: 500,
+                    }}
+                  >
+                    ✓ {str}
+                  </span>
+                ))}
               </div>
-              <div className="kpi-value-row">
-                <span className="kpi-num">{Math.round(student.totalLearningMinutes / 60)} giá»</span>
-                <span className="kpi-comparison">{student.totalLearningMinutes % 60} phÃºt tÆ°Æ¡ng tÃ¡c</span>
-              </div>
-            </div>
-
-            <div className="admin-kpi-card">
-              <div className="kpi-top-row">
-                <span className="kpi-label">Tiáº¿n Ä‘á»™ tá»•ng thá»ƒ</span>
-                <div className="kpi-icon-wrap" style={{ background: 'rgba(2, 132, 199, 0.08)', color: '#0284c7' }}>
-                  <Award size={18} />
-                </div>
-              </div>
-              <div className="kpi-value-row">
-                <span className="kpi-num">{student.progress}%</span>
-                <span className="kpi-comparison">{student.lessonsCompleted} bÃ i hoÃ n thÃ nh</span>
-              </div>
-            </div>
-
-            <div className="admin-kpi-card">
-              <div className="kpi-top-row">
-                <span className="kpi-label">Äiá»ƒm TB há»c táº­p</span>
-                <div className="kpi-icon-wrap" style={{ background: 'rgba(4, 120, 87, 0.08)', color: '#047857' }}>
-                  <Award size={18} />
-                </div>
-              </div>
-              <div className="kpi-value-row">
-                <span className="kpi-num">{student.averageScore}</span>
-                <span className="kpi-comparison">Thang Ä‘iá»ƒm 10</span>
-              </div>
-            </div>
-
-            <div className="admin-kpi-card">
-              <div className="kpi-top-row">
-                <span className="kpi-label">Xáº¿p loáº¡i hiá»‡n táº¡i</span>
-                <div className="kpi-icon-wrap" style={{ background: 'rgba(244, 185, 66, 0.15)', color: '#b45309' }}>
-                  <Shield size={18} />
-                </div>
-              </div>
-              <div className="kpi-value-row">
-                <span className="kpi-num" style={{ fontSize: '1.25rem' }}>
-                  {student.averageScore >= 8 ? 'Há»c sinh Giá»i' : student.averageScore >= 6.5 ? 'Há»c sinh KhÃ¡' : 'Cáº§n cá»‘ gáº¯ng'}
-                </span>
-                <span className="kpi-comparison">{student.status === 'on-track' ? 'Duy trÃ¬ phong Ä‘á»™' : 'Cáº§n kÃ¨m cáº·p'}</span>
-              </div>
-            </div>
+            ) : (
+              <p style={{ margin: 0, color: '#627d98', fontSize: '0.88rem' }}>
+                Đang học đều các dạng bài, nắm chắc kiến thức cơ bản.
+              </p>
+            )}
           </div>
 
-          {/* Strengths & Weak Areas */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-            <div className="admin-card" style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: 20 }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#047857', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <CheckCircle2 size={18} />
-                <span>Äiá»ƒm máº¡nh & Æ¯u tháº¿ há»c táº­p</span>
-              </h3>
-              {student.strengths && student.strengths.length > 0 ? (
-                <ul style={{ margin: 0, paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 8, fontSize: '0.9rem', color: '#334e68' }}>
-                  {student.strengths.map((st, i) => (
-                    <li key={i}>{st}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p style={{ margin: 0, color: '#627d98', fontSize: '0.88rem' }}>
-                  Há»c viÃªn Ä‘ang duy trÃ¬ tiáº¿n Ä‘á»™ cÆ¡ báº£n trÃªn táº¥t cáº£ cÃ¡c há»c pháº§n.
-                </p>
-              )}
-            </div>
-
-            <div className="admin-card" style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: 20 }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#b91c1c', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <AlertTriangle size={18} />
-                <span>Kiáº¿n thá»©c yáº¿u & Cáº§n há»— trá»£ can thiá»‡p</span>
-              </h3>
-              {student.weakAreas && student.weakAreas.length > 0 ? (
-                <ul style={{ margin: 0, paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 8, fontSize: '0.9rem', color: '#b91c1c' }}>
-                  {student.weakAreas.map((wk, i) => (
-                    <li key={i}>{wk}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p style={{ margin: 0, color: '#047857', fontSize: '0.88rem' }}>
-                  KhÃ´ng phÃ¡t hiá»‡n lá»— há»•ng kiáº¿n thá»©c nghiÃªm trá»ng trong ká»³ há»c nÃ y.
-                </p>
-              )}
-            </div>
+          <div className="admin-card" style={{ padding: 20 }}>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#102a43', marginBottom: 14 }}>
+              Khu vực cần lưu ý & Củng cố
+            </h3>
+            {student.weakAreas && student.weakAreas.length > 0 ? (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {student.weakAreas.map((w, idx) => (
+                  <span
+                    key={idx}
+                    style={{
+                      background: '#fffbeb',
+                      color: '#b45309',
+                      border: '1px solid #fde68a',
+                      padding: '4px 10px',
+                      borderRadius: 6,
+                      fontSize: '0.85rem',
+                      fontWeight: 500,
+                    }}
+                  >
+                    ⚠ {w}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p style={{ margin: 0, color: '#047857', fontSize: '0.88rem' }}>
+                Học sinh chưa ghi nhận lỗ hổng kiến thức nghiêm trọng nào.
+              </p>
+            )}
           </div>
         </div>
       )}
 
-      {/* TAB 2: SUBJECTS */}
+      {/* Tab 2: Subjects */}
       {activeTab === 'subjects' && (
         <div className="staff-table-wrapper">
           <table className="staff-table">
             <thead>
               <tr>
-                <th>MÃ´n há»c</th>
-                <th>Tiáº¿n Ä‘á»™ hoÃ n thÃ nh</th>
-                <th>Sá»‘ bÃ i Ä‘Ã£ há»c</th>
-                <th>Äiá»ƒm Ä‘Ã¡nh giÃ¡</th>
-                <th>ÄÃ¡nh giÃ¡ tráº¡ng thÃ¡i</th>
+                <th>Môn học</th>
+                <th>Bài học hoàn thành</th>
+                <th>Tiến độ chương trình</th>
+                <th>Điểm đánh giá</th>
+                <th>Đánh giá tổng quát</th>
               </tr>
             </thead>
             <tbody>
@@ -451,26 +408,24 @@ export const TeacherStudentProfilePage: React.FC = () => {
                   <td>
                     <strong style={{ color: '#102a43' }}>{sub.name}</strong>
                   </td>
+                  <td>{sub.lessonsCompleted} / {sub.totalLessons} bài</td>
                   <td>
-                    <div style={{ minWidth: 140 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: 2 }}>
-                        <span>{sub.progress}%</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div className="progress-bar-wrap" style={{ width: 80, height: 6 }}>
+                        <div className="progress-bar-fill" style={{ width: `${sub.progress}%`, background: '#0284c7' }} />
                       </div>
-                      <div style={{ height: 6, background: '#e2e8f0', borderRadius: 3, overflow: 'hidden' }}>
-                        <div style={{ width: `${sub.progress}%`, height: '100%', background: '#0284c7' }} />
-                      </div>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{sub.progress}%</span>
                     </div>
                   </td>
                   <td>
-                    {sub.lessonsCompleted} / {sub.totalLessons} bÃ i há»c
-                  </td>
-                  <td>
-                    <strong style={{ color: sub.score >= 8 ? '#047857' : sub.score >= 6.5 ? '#0284c7' : '#dc2626' }}>
-                      {sub.score}
+                    <strong style={{ color: sub.score >= 8 ? '#047857' : '#d97706' }}>
+                      {sub.score.toFixed(1)}
                     </strong>
                   </td>
                   <td>
-                    <span className="status-badge status-success">{sub.status}</span>
+                    <span className={`status-badge ${sub.score >= 8 ? 'status-success' : 'status-default'}`}>
+                      {sub.status}
+                    </span>
                   </td>
                 </tr>
               ))}
@@ -479,56 +434,48 @@ export const TeacherStudentProfilePage: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 3: ASSIGNMENTS */}
+      {/* Tab 3: Assignments */}
       {activeTab === 'assignments' && (
         <div className="staff-table-wrapper">
           {submissions.length === 0 ? (
             <EmptyState
-              title="ChÆ°a cÃ³ bÃ i táº­p nÃ o Ä‘Ã£ ná»™p"
-              description="Há»c viÃªn chÆ°a cÃ³ bÃ i táº­p ná»™p trong danh má»¥c bÃ i táº­p cá»§a lá»›p."
+              title="Chưa có bài nộp nào"
+              description="Học viên chưa có bài tập nộp trong thời gian này."
             />
           ) : (
             <table className="staff-table">
               <thead>
                 <tr>
-                  <th>TiÃªu Ä‘á» bÃ i táº­p</th>
-                  <th>Thá»i gian ná»™p</th>
-                  <th>Äiá»ƒm sá»‘</th>
-                  <th>Nháº­n xÃ©t cá»§a giÃ¡o viÃªn</th>
-                  <th>Tráº¡ng thÃ¡i</th>
+                  <th>Tên bài tập</th>
+                  <th>Thời gian nộp</th>
+                  <th>Điểm số</th>
+                  <th>Trạng thái</th>
+                  <th>Nhận xét của giáo viên</th>
                 </tr>
               </thead>
               <tbody>
                 {submissions.map((sub) => (
                   <tr key={sub.id}>
                     <td>
-                      <strong style={{ color: '#102a43' }}>{sub.assignmentTitle}</strong>
-                    </td>
-                    <td>
-                      {sub.submittedAt ? new Date(sub.submittedAt).toLocaleString('vi-VN') : 'ChÆ°a ná»™p'}
-                    </td>
-                    <td>
-                      <strong style={{ color: sub.score && sub.score >= 8 ? '#047857' : '#0284c7' }}>
-                        {sub.score !== undefined ? `${sub.score} / ${sub.maxScore}` : 'ChÆ°a cháº¥m'}
-                      </strong>
-                    </td>
-                    <td style={{ maxWidth: 280 }}>
-                      <span style={{ fontSize: '0.85rem', color: '#334e68' }}>
-                        {sub.feedback || 'ChÆ°a cÃ³ nháº­n xÃ©t'}
-                      </span>
-                    </td>
-                    <td>
-                      <span
-                        className={`status-badge ${
-                          sub.status === 'graded'
-                            ? 'status-success'
-                            : sub.status === 'pending'
-                            ? 'status-warning'
-                            : 'status-danger'
-                        }`}
+                      <Link
+                        to={`/teacher/assignments/${sub.assignmentId}`}
+                        className="font-medium text-navy-primary hover:underline"
+                        style={{ fontWeight: 600, color: '#102a43' }}
                       >
-                        {sub.status === 'graded' ? 'ÄÃ£ cháº¥m' : sub.status === 'pending' ? 'Chá» cháº¥m' : 'ChÆ°a ná»™p'}
+                        {sub.assignmentTitle}
+                      </Link>
+                    </td>
+                    <td>{sub.submittedAt ? new Date(sub.submittedAt).toLocaleString('vi-VN') : '—'}</td>
+                    <td>
+                      <strong>{sub.score !== undefined ? `${sub.score} / ${sub.maxScore}` : '—'}</strong>
+                    </td>
+                    <td>
+                      <span className={`status-badge ${sub.status === 'graded' ? 'status-success' : 'status-warning'}`}>
+                        {sub.status === 'graded' ? 'Đã chấm' : 'Chờ chấm'}
                       </span>
+                    </td>
+                    <td style={{ color: '#627d98', fontSize: '0.85rem' }}>
+                      {sub.feedback || 'Chưa có nhận xét'}
                     </td>
                   </tr>
                 ))}
@@ -538,24 +485,24 @@ export const TeacherStudentProfilePage: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 4: GRADES */}
+      {/* Tab 4: Grades */}
       {activeTab === 'grades' && (
         <div className="staff-table-wrapper">
           {grades.length === 0 ? (
             <EmptyState
-              title="ChÆ°a cÃ³ báº£ng Ä‘iá»ƒm"
-              description="ChÆ°a cÃ³ káº¿t quáº£ kiá»ƒm tra hoáº·c bÃ i thu hoáº¡ch cho há»c viÃªn nÃ y."
+              title="Chưa có điểm bài kiểm tra"
+              description="Học viên chưa hoàn thành bài kiểm tra hoặc bài thu hoạch nào."
             />
           ) : (
             <table className="staff-table">
               <thead>
                 <tr>
-                  <th>BÃ i kiá»ƒm tra / Thu hoáº¡ch</th>
-                  <th>MÃ´n há»c</th>
-                  <th>Loáº¡i bÃ i</th>
-                  <th>Äiá»ƒm sá»‘</th>
-                  <th>Káº¿t quáº£</th>
-                  <th>NgÃ y lÃ m bÃ i</th>
+                  <th>Nội dung đánh giá</th>
+                  <th>Môn học</th>
+                  <th>Hình thức</th>
+                  <th>Điểm số</th>
+                  <th>Kết quả</th>
+                  <th>Ngày làm bài</th>
                 </tr>
               </thead>
               <tbody>
@@ -566,23 +513,18 @@ export const TeacherStudentProfilePage: React.FC = () => {
                     </td>
                     <td>{grd.subjectName}</td>
                     <td>
-                      <span className="status-badge status-default">
-                        {grd.activityType === 'assignment' ? 'BÃ i táº­p' : 'Thu hoáº¡ch'}
+                      <span className="subject-badge-pill">
+                        {grd.activityType === 'assignment' ? 'Bài tập về nhà' : 'Thu hoạch'}
                       </span>
                     </td>
                     <td>
-                      <strong
-                        style={{
-                          fontSize: '0.95rem',
-                          color: grd.score >= 8 ? '#047857' : grd.score >= 6.5 ? '#0284c7' : '#dc2626',
-                        }}
-                      >
-                        {grd.score} / {grd.maxScore}
+                      <strong style={{ color: grd.score >= 8 ? '#047857' : grd.score >= 5 ? '#d97706' : '#dc2626' }}>
+                        {grd.score.toFixed(1)} / {grd.maxScore}
                       </strong>
                     </td>
                     <td>
                       <span className={`status-badge ${grd.passed ? 'status-success' : 'status-danger'}`}>
-                        {grd.passed ? 'Äáº¡t' : 'ChÆ°a Ä‘áº¡t'}
+                        {grd.passed ? 'Đạt' : 'Chưa đạt'}
                       </span>
                     </td>
                     <td>{new Date(grd.date).toLocaleDateString('vi-VN')}</td>
@@ -594,71 +536,46 @@ export const TeacherStudentProfilePage: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 5: ACTIVITIES */}
-      {activeTab === 'activities' && (
-        <div style={{ maxWidth: 640 }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#102a43', marginBottom: 16 }}>
-            Nháº­t kÃ½ truy cáº­p vÃ  tÆ°Æ¡ng tÃ¡c há»c táº­p
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ padding: '14px 18px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, display: 'flex', gap: 12 }}>
-              <Clock size={16} color="#047857" style={{ marginTop: 2 }} />
-              <div>
-                <strong style={{ fontSize: '0.9rem', color: '#102a43' }}>ÄÄƒng nháº­p vÃ  hoÃ n thÃ nh bÃ i há»c ToÃ¡n 12</strong>
-                <p style={{ margin: '2px 0 0 0', fontSize: '0.82rem', color: '#627d98' }}>
-                  {new Date(student.lastActive).toLocaleString('vi-VN')} â€¢ BÃ i: Kháº£o sÃ¡t vÃ  váº½ Ä‘á»“ thá»‹ hÃ m sá»‘
-                </p>
-              </div>
-            </div>
-            <div style={{ padding: '14px 18px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, display: 'flex', gap: 12 }}>
-              <FileText size={16} color="#0284c7" style={{ marginTop: 2 }} />
-              <div>
-                <strong style={{ fontSize: '0.9rem', color: '#102a43' }}>Ná»™p bÃ i táº­p trá»±c tuyáº¿n</strong>
-                <p style={{ margin: '2px 0 0 0', fontSize: '0.82rem', color: '#627d98' }}>
-                  BÃ i táº­p phÆ°Æ¡ng trÃ¬nh phÃ¢n thá»©c â€¢ Äiá»ƒm sá»‘ ghi nháº­n: {student.averageScore}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: Äá»”I Lá»šP */}
+      {/* Move Class Modal */}
       {isMoveOpen && (
         <div className="admin-modal-overlay" role="dialog" aria-modal="true">
           <div className="admin-modal-card" style={{ maxWidth: 440 }}>
             <div className="admin-modal-header">
-              <h3 className="modal-title">Äá»•i lá»›p há»c cho {student.name}</h3>
+              <h3 className="modal-title">Chuyển lớp học viên</h3>
               <button
                 type="button"
                 className="modal-close-btn"
                 onClick={() => setIsMoveOpen(false)}
+                aria-label="Đóng"
               >
-                âœ•
+                ✕
               </button>
             </div>
 
             <form onSubmit={handleMoveClass}>
               <div className="admin-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <p style={{ margin: 0, fontSize: '0.9rem', color: '#334e68' }}>
-                  Há»c viÃªn hiá»‡n Ä‘ang thuá»™c lá»›p <strong>{student.className}</strong>.
-                </p>
+                <div style={{ background: '#f8fafc', padding: 12, borderRadius: 6, border: '1px solid #e2e8f0' }}>
+                  <div style={{ fontWeight: 600, color: '#102a43' }}>{student.name} ({student.code})</div>
+                  <div style={{ fontSize: '0.82rem', color: '#627d98' }}>Lớp hiện tại: {student.className}</div>
+                </div>
 
                 <div>
-                  <label className="form-label" htmlFor="new-class-select">Chá»n lá»›p há»c má»›i <span className="text-danger">*</span></label>
+                  <label className="form-label" htmlFor="target-class-select">
+                    Chọn lớp chuyển đến <span className="text-danger">*</span>
+                  </label>
                   <select
-                    id="new-class-select"
+                    id="target-class-select"
                     className="form-input"
                     value={targetClassId}
                     onChange={(e) => setTargetClassId(e.target.value)}
                     required
                   >
-                    <option value="">-- Chá»n lá»›p há»c --</option>
+                    <option value="">-- Chọn lớp học --</option>
                     {classes
                       .filter((c) => c.id !== student.classId)
                       .map((c) => (
                         <option key={c.id} value={c.id}>
-                          {c.name} ({c.grade}) - SÄ© sá»‘: {c.studentCount}
+                          {c.name} ({c.grade} - Sĩ số: {c.studentCount}/{c.maxStudents})
                         </option>
                       ))}
                   </select>
@@ -671,14 +588,14 @@ export const TeacherStudentProfilePage: React.FC = () => {
                   className="btn btn-secondary"
                   onClick={() => setIsMoveOpen(false)}
                 >
-                  Há»§y
+                  Hủy
                 </button>
                 <button
                   type="submit"
                   className="btn btn-primary"
                   disabled={!targetClassId}
                 >
-                  XÃ¡c nháº­n Ä‘á»•i lá»›p
+                  Xác nhận chuyển lớp
                 </button>
               </div>
             </form>

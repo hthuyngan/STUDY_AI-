@@ -17,6 +17,7 @@ import { classroomService } from '@/services/classroom.service'
 import type { AdminClassItem, ClassStatus } from '@/types/classroom'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import './TeacherPages.css'
 import '../Admin/AdminPages.css'
 import '@/components/admin/AdminComponents.css'
 
@@ -262,7 +263,7 @@ export const TeacherClassesPage: React.FC = () => {
       <div className="staff-page-header">
         <div className="admin-prototype-badge">
           <span className="prototype-dot"></span>
-          <span>TEACHER WORKSPACE • QUẢN LÝ GIẢNG DẠY</span>
+          <span>TEACHER WORKSPACE • QUẢN LÝ LỚP HỌC</span>
         </div>
         <div className="admin-header-row">
           <div>
@@ -271,7 +272,7 @@ export const TeacherClassesPage: React.FC = () => {
               <span style={{ margin: '0 6px', color: '#94a3b8' }}>/</span>
               <span aria-current="page" style={{ color: '#102a43', fontWeight: 600 }}>Lớp học</span>
             </nav>
-            <h1 className="staff-page-title">Quản lý lớp học (Classrooms)</h1>
+            <h1 className="staff-page-title">Quản lý lớp học</h1>
             <p className="staff-page-desc">
               Theo dõi danh sách lớp phụ trách, giáo viên chủ nhiệm, sĩ số học viên và tiến độ học tập trung bình.
             </p>
@@ -281,6 +282,7 @@ export const TeacherClassesPage: React.FC = () => {
               type="button"
               className="btn btn-secondary"
               onClick={handleExportCSV}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
             >
               <Download size={16} />
               <span>Xuất CSV</span>
@@ -289,6 +291,7 @@ export const TeacherClassesPage: React.FC = () => {
               type="button"
               className="btn btn-primary"
               onClick={handleOpenCreate}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
             >
               <Plus size={16} />
               <span>Thêm lớp học</span>
@@ -298,10 +301,10 @@ export const TeacherClassesPage: React.FC = () => {
       </div>
 
       {/* Teacher Demo Filter Selector */}
-      <div style={{ background: '#f8fafc', padding: '10px 16px', borderRadius: 8, border: '1px solid #e2e8f0', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+      <div className="teacher-filter-banner">
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#102a43', fontWeight: 600, fontSize: '0.88rem' }}>
           <Filter size={15} color="#0284c7" />
-          <span>Đang xem theo giáo viên:</span>
+          <span>Lọc theo giáo viên:</span>
         </div>
         <select
           aria-label="Chọn hồ sơ giáo viên demo"
@@ -318,7 +321,7 @@ export const TeacherClassesPage: React.FC = () => {
           ))}
         </select>
         {teacherFilter !== 'all' && (
-          <span style={{ fontSize: '0.82rem', color: '#0284c7', background: 'rgba(2, 132, 199, 0.08)', padding: '2px 8px', borderRadius: 9999 }}>
+          <span className="teacher-filter-active-pill">
             Đang lọc lớp phân công của {teacherFilter}
           </span>
         )}
@@ -414,10 +417,24 @@ export const TeacherClassesPage: React.FC = () => {
           <option value="active">Đang hoạt động</option>
           <option value="archived">Lưu trữ</option>
         </select>
+
+        {(searchTerm || gradeFilter !== 'all' || statusFilter !== 'all') && (
+          <button
+            type="button"
+            className="admin-filter-btn-clear"
+            onClick={() => {
+              setSearchTerm('')
+              setGradeFilter('all')
+              setStatusFilter('all')
+            }}
+          >
+            Xóa bộ lọc
+          </button>
+        )}
       </div>
 
-      {/* Classes Table */}
-      <div className="staff-table-wrapper">
+      {/* Classes Responsive Display: Table on Desktop, Cards on Mobile */}
+      <div className="teacher-classes-wrapper">
         {loading ? (
           <div style={{ padding: '24px' }}>
             <Skeleton height={48} />
@@ -428,114 +445,190 @@ export const TeacherClassesPage: React.FC = () => {
             description="Hãy thử thay đổi điều kiện tìm kiếm hoặc tạo một lớp học mới."
           />
         ) : (
-          <table className="staff-table">
-            <thead>
-              <tr>
-                <th>Lớp học</th>
-                <th>Khối lớp</th>
-                <th>Giáo viên chủ nhiệm</th>
-                <th>Sĩ số</th>
-                <th>Tiến độ TB</th>
-                <th>Điểm TB</th>
-                <th>Bài tập mở</th>
-                <th>Trạng thái</th>
-                <th style={{ textAlign: 'right' }}>Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
+          <>
+            {/* Desktop Table View */}
+            <div className="staff-table-wrapper teacher-desktop-table">
+              <table className="staff-table">
+                <thead>
+                  <tr>
+                    <th>Lớp học</th>
+                    <th>Khối lớp</th>
+                    <th>Giáo viên chủ nhiệm</th>
+                    <th>Sĩ số</th>
+                    <th>Tiến độ TB</th>
+                    <th>Điểm TB</th>
+                    <th>Bài tập mở</th>
+                    <th>Trạng thái</th>
+                    <th style={{ textAlign: 'right' }}>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredClasses.map((cls) => (
+                    <tr key={cls.id}>
+                      <td>
+                        <div>
+                          <Link
+                            to={`/teacher/classes/${cls.id}`}
+                            className="font-medium text-navy-primary hover:underline"
+                            style={{ fontWeight: 700, color: '#102a43' }}
+                          >
+                            {cls.name}
+                          </Link>
+                          <div style={{ fontSize: '0.75rem', color: '#627d98', marginTop: 2 }}>
+                            Mã: <code>{cls.code}</code> • Phòng: {cls.room}
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span className="subject-badge-pill">{cls.grade}</span>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 500, color: '#334e68' }}>{cls.homeroomTeacherName}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#627d98' }}>Năm học: {cls.academicYear}</div>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 600 }}>
+                          {cls.studentCount} / {cls.maxStudents}
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div className="progress-bar-wrap" style={{ width: 60, height: 6 }}>
+                            <div
+                              className="progress-bar-fill"
+                              style={{
+                                width: `${cls.averageProgress}%`,
+                                background: cls.averageProgress < 60 ? '#dc2626' : '#10b981',
+                              }}
+                            />
+                          </div>
+                          <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{cls.averageProgress}%</span>
+                        </div>
+                      </td>
+                      <td>
+                        <span
+                          style={{
+                            fontWeight: 700,
+                            color: cls.averageScore >= 8.0 ? '#047857' : cls.averageScore < 6.5 ? '#dc2626' : '#d97706',
+                          }}
+                        >
+                          {cls.averageScore.toFixed(1)}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="badge-count-link">
+                          {cls.activeAssignments} bài
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`status-badge ${cls.status === 'active' ? 'status-success' : 'status-default'}`}>
+                          {cls.status === 'active' ? 'Đang hoạt động' : 'Lưu trữ'}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div className="table-actions" style={{ justifyContent: 'flex-end', gap: 6 }}>
+                          <Link
+                            to={`/teacher/classes/${cls.id}`}
+                            className="btn btn-secondary btn-sm"
+                            title="Xem chi tiết lớp học"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                          >
+                            <Eye size={14} />
+                            <span>Xem lớp</span>
+                          </Link>
+                          <button
+                            type="button"
+                            className="table-action-btn"
+                            onClick={() => handleOpenEdit(cls)}
+                            title="Chỉnh sửa lớp học"
+                          >
+                            <Edit2 size={15} />
+                          </button>
+                          <button
+                            type="button"
+                            className="table-action-btn text-danger"
+                            onClick={() => handleDeleteClass(cls)}
+                            title="Xóa lớp học"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Cards View (<768px) */}
+            <div className="teacher-mobile-cards-list">
               {filteredClasses.map((cls) => (
-                <tr key={cls.id}>
-                  <td>
+                <div key={cls.id} className="teacher-card-item">
+                  <div className="teacher-card-item-header">
                     <div>
-                      <Link
-                        to={`/teacher/classes/${cls.id}`}
-                        className="font-medium text-navy-primary hover:underline"
-                        style={{ fontWeight: 700, color: '#102a43' }}
-                      >
+                      <Link to={`/teacher/classes/${cls.id}`} className="teacher-card-title">
                         {cls.name}
                       </Link>
-                      <div style={{ fontSize: '0.75rem', color: '#627d98', marginTop: 2 }}>
-                        Mã: <code>{cls.code}</code> • Phòng: {cls.room}
+                      <div className="teacher-card-meta-line">
+                        <span>{cls.grade}</span>
+                        <span>•</span>
+                        <span>Phòng {cls.room}</span>
+                        <span>•</span>
+                        <span>{cls.homeroomTeacherName}</span>
                       </div>
                     </div>
-                  </td>
-                  <td>
-                    <span className="subject-badge-pill">{cls.grade}</span>
-                  </td>
-                  <td>
-                    <div style={{ fontWeight: 500, color: '#334e68' }}>{cls.homeroomTeacherName}</div>
-                    <div style={{ fontSize: '0.75rem', color: '#627d98' }}>Năm học: {cls.academicYear}</div>
-                  </td>
-                  <td>
-                    <div style={{ fontWeight: 600 }}>
-                      {cls.studentCount} / {cls.maxStudents}
-                    </div>
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <div className="progress-bar-wrap" style={{ width: 60, height: 6 }}>
-                        <div
-                          className="progress-bar-fill"
-                          style={{
-                            width: `${cls.averageProgress}%`,
-                            background: cls.averageProgress < 60 ? '#dc2626' : '#10b981',
-                          }}
-                        />
-                      </div>
-                      <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{cls.averageProgress}%</span>
-                    </div>
-                  </td>
-                  <td>
-                    <span
-                      style={{
-                        fontWeight: 700,
-                        color: cls.averageScore >= 8.0 ? '#047857' : cls.averageScore < 6.5 ? '#dc2626' : '#d97706',
-                      }}
-                    >
-                      {cls.averageScore.toFixed(1)}
-                    </span>
-                  </td>
-                  <td>
-                    <span className="badge-count-link">
-                      {cls.activeAssignments} bài
-                    </span>
-                  </td>
-                  <td>
                     <span className={`status-badge ${cls.status === 'active' ? 'status-success' : 'status-default'}`}>
                       {cls.status === 'active' ? 'Đang hoạt động' : 'Lưu trữ'}
                     </span>
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <div className="table-actions" style={{ justifyContent: 'flex-end', gap: 6 }}>
-                      <Link
-                        to={`/teacher/classes/${cls.id}`}
-                        className="table-action-btn"
-                        title="Xem chi tiết lớp học"
-                      >
-                        <Eye size={16} />
-                      </Link>
-                      <button
-                        type="button"
-                        className="table-action-btn"
-                        onClick={() => handleOpenEdit(cls)}
-                        title="Chỉnh sửa lớp học"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button
-                        type="button"
-                        className="table-action-btn text-danger"
-                        onClick={() => handleDeleteClass(cls)}
-                        title="Xóa lớp học"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                  </div>
+
+                  <div className="teacher-card-item-body">
+                    <div className="teacher-card-stat">
+                      <span className="teacher-stat-label">Sĩ số</span>
+                      <strong className="teacher-stat-val">{cls.studentCount}/{cls.maxStudents}</strong>
                     </div>
-                  </td>
-                </tr>
+                    <div className="teacher-card-stat">
+                      <span className="teacher-stat-label">Tiến độ TB</span>
+                      <strong className="teacher-stat-val">{cls.averageProgress}%</strong>
+                    </div>
+                    <div className="teacher-card-stat">
+                      <span className="teacher-stat-label">Điểm TB</span>
+                      <strong className="teacher-stat-val" style={{ color: cls.averageScore >= 8 ? '#047857' : '#d97706' }}>
+                        {cls.averageScore.toFixed(1)}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <div className="teacher-card-item-footer">
+                    <Link
+                      to={`/teacher/classes/${cls.id}`}
+                      className="btn btn-primary btn-sm"
+                      style={{ flex: 1, textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }}
+                    >
+                      <Eye size={14} />
+                      <span>Xem lớp</span>
+                    </Link>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => handleOpenEdit(cls)}
+                      title="Chỉnh sửa"
+                    >
+                      <Edit2 size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm text-danger"
+                      onClick={() => handleDeleteClass(cls)}
+                      title="Xóa"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </div>
 
@@ -551,6 +644,7 @@ export const TeacherClassesPage: React.FC = () => {
                 type="button"
                 className="modal-close-btn"
                 onClick={() => setIsModalOpen(false)}
+                aria-label="Đóng"
               >
                 ✕
               </button>
@@ -559,37 +653,36 @@ export const TeacherClassesPage: React.FC = () => {
             <form onSubmit={handleSaveClass}>
               <div className="admin-modal-body">
                 {formError && (
-                  <div className="form-error-banner" style={{ marginBottom: 14 }}>
-                    {formError}
+                  <div className="form-error-banner" style={{ marginBottom: 16 }}>
+                    <AlertCircle size={16} />
+                    <span>{formError}</span>
                   </div>
                 )}
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="cls-code-input">
+                <div className="form-row">
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label className="form-label" htmlFor="cls-code">
                       Mã lớp học <span className="text-danger">*</span>
                     </label>
                     <input
-                      id="cls-code-input"
+                      id="cls-code"
                       type="text"
                       className="form-input"
-                      placeholder="VD: 12A1, 10B2..."
+                      placeholder="VD: 12A1, 11B2..."
                       value={formData.code}
                       onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                       required
-                      autoFocus
                     />
                   </div>
-
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="cls-name-input">
-                      Tên lớp học <span className="text-danger">*</span>
+                  <div className="form-group" style={{ flex: 2 }}>
+                    <label className="form-label" htmlFor="cls-name">
+                      Tên hiển thị lớp <span className="text-danger">*</span>
                     </label>
                     <input
-                      id="cls-name-input"
+                      id="cls-name"
                       type="text"
                       className="form-input"
-                      placeholder="VD: Lớp 12A1 Chuyên Toán"
+                      placeholder="VD: Lớp 12A1 Chuyên Toán..."
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       required
@@ -597,13 +690,11 @@ export const TeacherClassesPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="cls-grade-select">
-                      Khối lớp
-                    </label>
+                <div className="form-row">
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label className="form-label" htmlFor="cls-grade">Khối lớp</label>
                     <select
-                      id="cls-grade-select"
+                      id="cls-grade"
                       className="form-input"
                       value={formData.grade}
                       onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
@@ -613,62 +704,51 @@ export const TeacherClassesPage: React.FC = () => {
                       <option value="Lớp 12">Lớp 12</option>
                     </select>
                   </div>
-
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="cls-teacher-input">
-                      Giáo viên chủ nhiệm
-                    </label>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label className="form-label" htmlFor="cls-room">Phòng học</label>
                     <input
-                      id="cls-teacher-input"
+                      id="cls-room"
                       type="text"
                       className="form-input"
-                      placeholder="VD: ThS. Nguyễn Văn Hải"
-                      value={formData.homeroomTeacherName}
-                      onChange={(e) => setFormData({ ...formData, homeroomTeacherName: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="cls-room-input">
-                      Phòng học
-                    </label>
-                    <input
-                      id="cls-room-input"
-                      type="text"
-                      className="form-input"
-                      placeholder="VD: P.302, Khu B"
+                      placeholder="VD: P.302"
                       value={formData.room}
                       onChange={(e) => setFormData({ ...formData, room: e.target.value })}
                     />
                   </div>
+                </div>
 
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="cls-max-input">
-                      Sĩ số tối đa
-                    </label>
+                <div className="form-row">
+                  <div className="form-group" style={{ flex: 1.5 }}>
+                    <label className="form-label" htmlFor="cls-teacher">Giáo viên chủ nhiệm</label>
                     <input
-                      id="cls-max-input"
-                      type="number"
+                      id="cls-teacher"
+                      type="text"
                       className="form-input"
+                      value={formData.homeroomTeacherName}
+                      onChange={(e) => setFormData({ ...formData, homeroomTeacherName: e.target.value })}
+                    />
+                  </div>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label className="form-label" htmlFor="cls-max">Sĩ số tối đa</label>
+                    <input
+                      id="cls-max"
+                      type="number"
                       min={10}
                       max={60}
+                      className="form-input"
                       value={formData.maxStudents}
-                      onChange={(e) => setFormData({ ...formData, maxStudents: Number(e.target.value) || 40 })}
+                      onChange={(e) => setFormData({ ...formData, maxStudents: Number(e.target.value) })}
                     />
                   </div>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label" htmlFor="cls-desc-input">
-                    Mô tả định hướng lớp
-                  </label>
+                  <label className="form-label" htmlFor="cls-desc">Ghi chú / Mô tả</label>
                   <textarea
-                    id="cls-desc-input"
+                    id="cls-desc"
                     className="form-input"
                     rows={2}
-                    placeholder="Mô tả định hướng môn chuyên, mục tiêu kỳ thi..."
+                    placeholder="Mô tả về định hướng đào tạo hoặc mục tiêu lớp..."
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   />
@@ -687,8 +767,7 @@ export const TeacherClassesPage: React.FC = () => {
                   type="submit"
                   className="btn btn-primary"
                 >
-                  <Users size={16} />
-                  <span>{editingClass ? 'Lưu thay đổi' : 'Tạo lớp học'}</span>
+                  {editingClass ? 'Lưu thay đổi' : 'Tạo lớp học'}
                 </button>
               </div>
             </form>

@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import {
   Users,
   Search,
@@ -6,7 +6,6 @@ import {
   Eye,
   MoveRight,
   Award,
-  Clock,
   CheckCircle2,
   AlertTriangle,
 } from 'lucide-react'
@@ -15,6 +14,7 @@ import { classroomService } from '@/services/classroom.service'
 import type { AdminClassItem, AdminStudentItem, StudentStatus } from '@/types/classroom'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import './TeacherPages.css'
 import '../Admin/AdminPages.css'
 import '@/components/admin/AdminComponents.css'
 
@@ -108,10 +108,10 @@ export const TeacherStudentsPage: React.FC = () => {
       await classroomService.moveStudentClass(selectedStudent.id, targetClass.id, targetClass.name)
       await classroomService.addClassActivity(
         targetClass.id,
-        'Tiáº¿p nháº­n há»c viÃªn chuyá»ƒn lá»›p',
-        `Há»c viÃªn ${selectedStudent.name} (${selectedStudent.code}) Ä‘Ã£ Ä‘Æ°á»£c chuyá»ƒn vÃ o lá»›p`
+        'Tiếp nhận học viên chuyển lớp',
+        `Học viên ${selectedStudent.name} (${selectedStudent.code}) đã được chuyển vào lớp`
       )
-      showToast(`ÄÃ£ chuyá»ƒn há»c viÃªn ${selectedStudent.name} sang lá»›p ${targetClass.name}`)
+      showToast(`Đã chuyển học viên ${selectedStudent.name} sang lớp ${targetClass.name}`)
       setIsMoveOpen(false)
       setSelectedStudent(null)
       loadData()
@@ -123,18 +123,18 @@ export const TeacherStudentsPage: React.FC = () => {
   // Handle Export CSV
   const handleExportCSV = () => {
     const headers = [
-      'MÃ£ HV',
-      'Há» vÃ  tÃªn',
+      'Mã HV',
+      'Họ và tên',
       'Email',
-      'Sá»‘ Ä‘iá»‡n thoáº¡i',
-      'Lá»›p',
-      'Khá»‘i',
-      'Tiáº¿n Ä‘á»™ (%)',
-      'Sá»‘ bÃ i hoÃ n thÃ nh',
-      'Äiá»ƒm TB',
-      'Thá»i gian há»c (phÃºt)',
-      'Láº§n hoáº¡t Ä‘á»™ng cuá»‘i',
-      'Tráº¡ng thÃ¡i',
+      'Số điện thoại',
+      'Lớp',
+      'Khối',
+      'Tiến độ (%)',
+      'Số bài hoàn thành',
+      'Điểm TB',
+      'Thời gian học (phút)',
+      'Lần hoạt động cuối',
+      'Trạng thái',
     ]
 
     const rows = filteredStudents.map((s) => [
@@ -149,7 +149,7 @@ export const TeacherStudentsPage: React.FC = () => {
       s.averageScore,
       s.totalLearningMinutes,
       new Date(s.lastActive).toLocaleDateString('vi-VN'),
-      s.status === 'on-track' ? 'Äang há»c tá»‘t' : s.status === 'needs-attention' ? 'Cáº§n há»— trá»£' : 'Ngá»«ng hoáº¡t Ä‘á»™ng',
+      s.status === 'on-track' ? 'Đang học tốt' : s.status === 'needs-attention' ? 'Cần hỗ trợ' : 'Ngừng hoạt động',
     ])
 
     const csvContent =
@@ -178,7 +178,7 @@ export const TeacherStudentsPage: React.FC = () => {
     link.click()
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
-    showToast('ÄÃ£ xuáº¥t danh sÃ¡ch há»c viÃªn (CSV) thÃ nh cÃ´ng')
+    showToast('Đã xuất danh sách học viên (CSV) thành công')
   }
 
   return (
@@ -195,13 +195,18 @@ export const TeacherStudentsPage: React.FC = () => {
       <div className="staff-page-header">
         <div className="admin-prototype-badge">
           <span className="prototype-dot"></span>
-          <span>ADMIN WORKSPACE â€¢ QUáº¢N LÃ GIáº¢NG Dáº Y</span>
+          <span>TEACHER WORKSPACE • HỌC VIÊN</span>
         </div>
         <div className="admin-header-row">
           <div>
-            <h1 className="staff-page-title">Quáº£n lÃ½ há»c viÃªn</h1>
+            <nav className="staff-breadcrumbs" aria-label="Breadcrumb" style={{ marginBottom: 4 }}>
+              <Link to="/teacher">Giáo viên</Link>
+              <span style={{ margin: '0 6px', color: '#94a3b8' }}>/</span>
+              <span aria-current="page" style={{ color: '#102a43', fontWeight: 600 }}>Học viên</span>
+            </nav>
+            <h1 className="staff-page-title">Quản lý học viên</h1>
             <p className="staff-page-desc">
-              Theo dÃµi há»“ sÆ¡, tiáº¿n Ä‘á»™ vÃ  káº¿t quáº£ há»c táº­p cá»§a toÃ n bá»™ há»c viÃªn trÃªn ná»n táº£ng STUDY_AI.
+              Theo dõi hồ sơ, tiến độ và kết quả học tập của học viên thuộc các lớp giảng dạy.
             </p>
           </div>
           <div className="admin-header-actions">
@@ -209,10 +214,11 @@ export const TeacherStudentsPage: React.FC = () => {
               type="button"
               className="btn btn-secondary"
               onClick={handleExportCSV}
-              title="Xuáº¥t danh sÃ¡ch há»c viÃªn ra file CSV"
+              title="Xuất danh sách học viên ra file CSV"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
             >
               <Download size={16} />
-              <span>Xuáº¥t dá»¯ liá»‡u há»c viÃªn (CSV)</span>
+              <span>Xuất dữ liệu học viên (CSV)</span>
             </button>
           </div>
         </div>
@@ -222,108 +228,106 @@ export const TeacherStudentsPage: React.FC = () => {
       <div className="admin-kpi-grid">
         <div className="admin-kpi-card">
           <div className="kpi-top-row">
-            <span className="kpi-label">Tá»•ng há»c viÃªn</span>
+            <span className="kpi-label">Tổng học viên</span>
             <div className="kpi-icon-wrap" style={{ background: 'rgba(16, 42, 67, 0.08)', color: '#102a43' }}>
               <Users size={20} />
             </div>
           </div>
           <div className="kpi-value-row">
             <span className="kpi-num">{totalStudents}</span>
-            <span className="kpi-comparison">ÄÃ£ ghi danh</span>
+            <span className="kpi-comparison">Đã ghi danh</span>
           </div>
         </div>
 
         <div className="admin-kpi-card">
           <div className="kpi-top-row">
-            <span className="kpi-label">Äang há»c tÃ­ch cá»±c</span>
+            <span className="kpi-label">Đang học tốt</span>
             <div className="kpi-icon-wrap" style={{ background: 'rgba(4, 120, 87, 0.08)', color: '#047857' }}>
               <Award size={20} />
             </div>
           </div>
           <div className="kpi-value-row">
             <span className="kpi-num">{onTrackCount}</span>
-            <span className="kpi-comparison">Tiáº¿n Ä‘á»™ & Ä‘iá»ƒm Ä‘áº¡t chuáº©n</span>
+            <span className="kpi-comparison">Tiến độ & Điểm đạt chuẩn</span>
           </div>
         </div>
 
         <div className="admin-kpi-card">
           <div className="kpi-top-row">
-            <span className="kpi-label">Cáº§n há»— trá»£</span>
+            <span className="kpi-label">Cần hỗ trợ</span>
             <div className="kpi-icon-wrap" style={{ background: 'rgba(220, 38, 38, 0.08)', color: '#dc2626' }}>
               <AlertTriangle size={20} />
             </div>
           </div>
           <div className="kpi-value-row">
-            <span className="kpi-num">{needsAttentionCount}</span>
-            <span className="kpi-comparison" style={{ color: needsAttentionCount > 0 ? '#b91c1c' : '#047857' }}>
-              {needsAttentionCount > 0 ? 'CÃ³ nguy cÆ¡ tá»¥t láº¡i' : 'Táº¥t cáº£ Ä‘áº¡t chuáº©n'}
-            </span>
+            <span className="kpi-num" style={{ color: '#dc2626' }}>{needsAttentionCount}</span>
+            <span className="kpi-comparison">Tiến độ &lt; 50% hoặc ĐTB &lt; 6.5</span>
           </div>
         </div>
 
         <div className="admin-kpi-card">
           <div className="kpi-top-row">
-            <span className="kpi-label">Äiá»ƒm trung bÃ¬nh toÃ n há»‡</span>
+            <span className="kpi-label">Điểm trung bình</span>
             <div className="kpi-icon-wrap" style={{ background: 'rgba(2, 132, 199, 0.08)', color: '#0284c7' }}>
               <Award size={20} />
             </div>
           </div>
           <div className="kpi-value-row">
             <span className="kpi-num">{systemAvgScore}</span>
-            <span className="kpi-comparison">Thang Ä‘iá»ƒm 10</span>
+            <span className="kpi-comparison">Thang điểm 10</span>
           </div>
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Filter Bar */}
       <div className="admin-filter-bar">
         <div className="admin-search-input-wrap">
           <Search size={16} className="admin-search-icon" />
           <input
             type="text"
             className="admin-search-input"
-            placeholder="TÃ¬m theo tÃªn há»c viÃªn, email hoáº·c mÃ£ HV..."
+            placeholder="Tìm theo tên học viên, mã học viên hoặc email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
 
         <select
+          aria-label="Lọc theo lớp học"
           className="admin-filter-select"
           value={classFilter}
           onChange={(e) => setClassFilter(e.target.value)}
-          aria-label="Lá»c theo lá»›p há»c"
         >
-          <option value="all">Táº¥t cáº£ lá»›p há»c</option>
+          <option value="all">Tất cả lớp học</option>
           {classes.map((c) => (
             <option key={c.id} value={c.id}>
-              {c.name} ({c.grade})
+              {c.name} ({c.code})
             </option>
           ))}
         </select>
 
         <select
+          aria-label="Lọc theo khối lớp"
           className="admin-filter-select"
           value={gradeFilter}
           onChange={(e) => setGradeFilter(e.target.value)}
-          aria-label="Lá»c theo khá»‘i lá»›p"
         >
-          <option value="all">Táº¥t cáº£ khá»‘i lá»›p</option>
-          <option value="Lá»›p 10">Lá»›p 10</option>
-          <option value="Lá»›p 11">Lá»›p 11</option>
-          <option value="Lá»›p 12">Lá»›p 12</option>
+          <option value="all">Tất cả khối lớp</option>
+          <option value="Lớp 10">Lớp 10</option>
+          <option value="Lớp 11">Lớp 11</option>
+          <option value="Lớp 12">Lớp 12</option>
         </select>
 
         <select
+          aria-label="Lọc theo trạng thái"
           className="admin-filter-select"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as 'all' | StudentStatus)}
-          aria-label="Lá»c theo tráº¡ng thÃ¡i"
         >
-          <option value="all">Táº¥t cáº£ tráº¡ng thÃ¡i</option>
-          <option value="on-track">Äang há»c tá»‘t</option>
-          <option value="needs-attention">Cáº§n chÃº Ã½</option>
-          <option value="idle">Ngá»«ng hoáº¡t Ä‘á»™ng</option>
+          <option value="all">Tất cả trạng thái</option>
+          <option value="on-track">Đang học tốt</option>
+          <option value="needs-attention">Cần chú ý</option>
+          <option value="idle">Ngừng hoạt động</option>
         </select>
 
         {(search || classFilter !== 'all' || gradeFilter !== 'all' || statusFilter !== 'all') && (
@@ -337,211 +341,250 @@ export const TeacherStudentsPage: React.FC = () => {
               setStatusFilter('all')
             }}
           >
-            XÃ³a bá»™ lá»c
+            Xóa bộ lọc
           </button>
         )}
       </div>
 
-      {/* Data Table */}
-      <div className="staff-table-wrapper">
+      {/* Student List View: Desktop Table + Mobile Cards */}
+      <div className="teacher-classes-wrapper">
         {loading ? (
           <div style={{ padding: '24px' }}>
             <Skeleton height={48} />
           </div>
         ) : filteredStudents.length === 0 ? (
           <EmptyState
-            title="KhÃ´ng tÃ¬m tháº¥y há»c viÃªn nÃ o"
-            description="Thá»­ thay Ä‘á»•i bá»™ lá»c hoáº·c tá»« khÃ³a tÃ¬m kiáº¿m."
+            title="Không tìm thấy học viên nào"
+            description="Hãy thử thay đổi điều kiện tìm kiếm hoặc chọn lớp học khác."
           />
         ) : (
-          <table className="staff-table">
-            <thead>
-              <tr>
-                <th>Há»c viÃªn</th>
-                <th>Lá»›p há»c</th>
-                <th>Tiáº¿n Ä‘á»™ tá»•ng thá»ƒ</th>
-                <th>BÃ i Ä‘Ã£ hoÃ n thÃ nh</th>
-                <th>Äiá»ƒm TB</th>
-                <th>Thá»i gian há»c</th>
-                <th>Hoáº¡t Ä‘á»™ng gáº§n nháº¥t</th>
-                <th>Tráº¡ng thÃ¡i</th>
-                <th style={{ textAlign: 'right' }}>Thao tÃ¡c</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredStudents.map((stu) => {
-                const initials = stu.name
-                  .split(' ')
-                  .map((w) => w[0])
-                  .slice(-2)
-                  .join('')
-                  .toUpperCase()
-
-                return (
-                  <tr key={stu.id}>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div
-                          style={{
-                            width: 34,
-                            height: 34,
-                            borderRadius: '50%',
-                            background: '#102a43',
-                            color: '#fff',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontWeight: 700,
-                            fontSize: '0.78rem',
-                            flexShrink: 0,
-                          }}
-                        >
-                          {initials}
-                        </div>
-                        <div>
-                          <Link
-                            to={`/teacher/students/${stu.id}`}
-                            className="font-medium text-navy-primary hover:underline"
-                            style={{ fontWeight: 600, color: '#102a43' }}
-                          >
-                            {stu.name}
-                          </Link>
-                          <div style={{ fontSize: '0.78rem', color: '#627d98' }}>
-                            <code>{stu.code}</code> â€¢ {stu.email}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <div>
-                        <strong style={{ color: '#102a43', fontSize: '0.88rem' }}>{stu.className}</strong>
-                        <div style={{ fontSize: '0.78rem', color: '#627d98' }}>{stu.grade}</div>
-                      </div>
-                    </td>
-                    <td>
-                      <div style={{ minWidth: 100 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: 2 }}>
-                          <span style={{ fontWeight: 600 }}>{stu.progress}%</span>
-                        </div>
-                        <div style={{ height: 5, background: '#e2e8f0', borderRadius: 3, overflow: 'hidden' }}>
-                          <div
-                            style={{
-                              width: `${stu.progress}%`,
-                              height: '100%',
-                              background: stu.progress >= 70 ? '#047857' : stu.progress >= 50 ? '#0284c7' : '#dc2626',
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <span style={{ fontWeight: 500 }}>{stu.lessonsCompleted} bÃ i</span>
-                    </td>
-                    <td>
-                      <span
-                        style={{
-                          fontWeight: 700,
-                          fontSize: '0.92rem',
-                          color: stu.averageScore >= 8 ? '#047857' : stu.averageScore >= 6.5 ? '#0284c7' : '#dc2626',
-                        }}
-                      >
-                        {stu.averageScore > 0 ? stu.averageScore : 'â€”'}
-                      </span>
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.82rem', color: '#486581' }}>
-                        <Clock size={13} />
-                        <span>{Math.round(stu.totalLearningMinutes / 60)}h {stu.totalLearningMinutes % 60}p</span>
-                      </div>
-                    </td>
-                    <td>
-                      <span style={{ fontSize: '0.82rem', color: '#627d98' }}>
-                        {new Date(stu.lastActive).toLocaleDateString('vi-VN')}
-                      </span>
-                    </td>
-                    <td>
-                      <span
-                        className={`status-badge ${
-                          stu.status === 'on-track'
-                            ? 'status-success'
-                            : stu.status === 'needs-attention'
-                            ? 'status-danger'
-                            : 'status-default'
-                        }`}
-                      >
-                        {stu.status === 'on-track' ? 'Äang há»c tá»‘t' : stu.status === 'needs-attention' ? 'Cáº§n chÃº Ã½' : 'Nghá»‰'}
-                      </span>
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div className="table-actions" style={{ justifyContent: 'flex-end', gap: 6 }}>
-                        <Link
-                          to={`/teacher/students/${stu.id}`}
-                          className="table-action-btn"
-                          title="Há»“ sÆ¡ há»c táº­p"
-                        >
-                          <Eye size={16} />
-                        </Link>
-                        <button
-                          type="button"
-                          className="table-action-btn"
-                          onClick={() => {
-                            setSelectedStudent(stu)
-                            setTargetClassId('')
-                            setIsMoveOpen(true)
-                          }}
-                          title="Chuyá»ƒn lá»›p"
-                        >
-                          <MoveRight size={16} />
-                        </button>
-                      </div>
-                    </td>
+          <>
+            {/* Desktop Table View */}
+            <div className="staff-table-wrapper teacher-desktop-table">
+              <table className="staff-table">
+                <thead>
+                  <tr>
+                    <th>Mã HV</th>
+                    <th>Học viên</th>
+                    <th>Lớp học</th>
+                    <th>Khối</th>
+                    <th>Tiến độ</th>
+                    <th>Bài đã xong</th>
+                    <th>Điểm TB</th>
+                    <th>Hoạt động cuối</th>
+                    <th>Trạng thái</th>
+                    <th style={{ textAlign: 'right' }}>Thao tác</th>
                   </tr>
-                )
-              })}
-            </tbody>
-          </table>
+                </thead>
+                <tbody>
+                  {filteredStudents.map((s) => (
+                    <tr key={s.id}>
+                      <td><code>{s.code}</code></td>
+                      <td>
+                        <Link
+                          to={`/teacher/students/${s.id}`}
+                          className="font-medium text-navy-primary hover:underline"
+                          style={{ fontWeight: 600, color: '#102a43' }}
+                        >
+                          {s.name}
+                        </Link>
+                        <div style={{ fontSize: '0.78rem', color: '#627d98' }}>{s.email}</div>
+                      </td>
+                      <td>
+                        <span style={{ fontWeight: 500 }}>{s.className}</span>
+                      </td>
+                      <td>
+                        <span className="subject-badge-pill">{s.grade}</span>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div className="progress-bar-wrap" style={{ width: 60, height: 6 }}>
+                            <div
+                              className="progress-bar-fill"
+                              style={{
+                                width: `${s.progress}%`,
+                                background: s.progress < 50 ? '#dc2626' : '#10b981',
+                              }}
+                            />
+                          </div>
+                          <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{s.progress}%</span>
+                        </div>
+                      </td>
+                      <td>{s.lessonsCompleted} bài</td>
+                      <td>
+                        <strong
+                          style={{
+                            color: s.averageScore >= 8.0 ? '#047857' : s.averageScore < 6.5 ? '#dc2626' : '#d97706',
+                          }}
+                        >
+                          {s.averageScore.toFixed(1)}
+                        </strong>
+                      </td>
+                      <td>
+                        <span style={{ fontSize: '0.8rem', color: '#627d98' }}>
+                          {new Date(s.lastActive).toLocaleDateString('vi-VN')}
+                        </span>
+                      </td>
+                      <td>
+                        <span
+                          className={`status-badge ${
+                            s.status === 'on-track'
+                              ? 'status-success'
+                              : s.status === 'needs-attention'
+                              ? 'status-danger'
+                              : 'status-default'
+                          }`}
+                        >
+                          {s.status === 'on-track'
+                            ? 'Đang học tốt'
+                            : s.status === 'needs-attention'
+                            ? 'Cần chú ý'
+                            : 'Ngừng học'}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div className="table-actions" style={{ justifyContent: 'flex-end', gap: 6 }}>
+                          <Link
+                            to={`/teacher/students/${s.id}`}
+                            className="table-action-btn"
+                            title="Xem chi tiết hồ sơ học viên"
+                          >
+                            <Eye size={16} />
+                          </Link>
+                          <button
+                            type="button"
+                            className="table-action-btn"
+                            onClick={() => {
+                              setSelectedStudent(s)
+                              setTargetClassId(classes.find((c) => c.id !== s.classId)?.id || '')
+                              setIsMoveOpen(true)
+                            }}
+                            title="Chuyển lớp cho học viên"
+                          >
+                            <MoveRight size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Cards List (<768px) */}
+            <div className="teacher-mobile-cards-list">
+              {filteredStudents.map((s) => (
+                <div key={s.id} className="teacher-card-item">
+                  <div className="teacher-card-item-header">
+                    <div>
+                      <Link to={`/teacher/students/${s.id}`} className="teacher-card-title">
+                        {s.name}
+                      </Link>
+                      <div className="teacher-card-meta-line">
+                        <span>{s.className}</span>
+                        <span>•</span>
+                        <span>Mã: <code>{s.code}</code></span>
+                      </div>
+                    </div>
+                    <span
+                      className={`status-badge ${
+                        s.status === 'on-track'
+                          ? 'status-success'
+                          : s.status === 'needs-attention'
+                          ? 'status-danger'
+                          : 'status-default'
+                      }`}
+                    >
+                      {s.status === 'on-track' ? 'Học tốt' : 'Cần chú ý'}
+                    </span>
+                  </div>
+
+                  <div className="teacher-card-item-body">
+                    <div className="teacher-card-stat">
+                      <span className="teacher-stat-label">Tiến độ</span>
+                      <strong className="teacher-stat-val">{s.progress}%</strong>
+                    </div>
+                    <div className="teacher-card-stat">
+                      <span className="teacher-stat-label">Điểm TB</span>
+                      <strong className="teacher-stat-val" style={{ color: s.averageScore >= 8 ? '#047857' : '#d97706' }}>
+                        {s.averageScore.toFixed(1)}
+                      </strong>
+                    </div>
+                    <div className="teacher-card-stat">
+                      <span className="teacher-stat-label">Đã học</span>
+                      <strong className="teacher-stat-val">{s.lessonsCompleted} bài</strong>
+                    </div>
+                  </div>
+
+                  <div className="teacher-card-item-footer">
+                    <Link
+                      to={`/teacher/students/${s.id}`}
+                      className="btn btn-primary btn-sm"
+                      style={{ flex: 1, textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }}
+                    >
+                      <Eye size={14} />
+                      <span>Xem hồ sơ</span>
+                    </Link>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => {
+                        setSelectedStudent(s)
+                        setTargetClassId(classes.find((c) => c.id !== s.classId)?.id || '')
+                        setIsMoveOpen(true)
+                      }}
+                      title="Chuyển lớp"
+                    >
+                      <MoveRight size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
 
-      {/* Modal Chuyá»ƒn Lá»›p */}
+      {/* Modal Chuyển Lớp */}
       {isMoveOpen && selectedStudent && (
         <div className="admin-modal-overlay" role="dialog" aria-modal="true">
           <div className="admin-modal-card" style={{ maxWidth: 440 }}>
             <div className="admin-modal-header">
-              <h3 className="modal-title">Chuyá»ƒn lá»›p cho há»c viÃªn</h3>
+              <h3 className="modal-title">Chuyển lớp học viên</h3>
               <button
                 type="button"
                 className="modal-close-btn"
                 onClick={() => setIsMoveOpen(false)}
+                aria-label="Đóng"
               >
-                âœ•
+                ✕
               </button>
             </div>
 
             <form onSubmit={handleMoveSubmit}>
               <div className="admin-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <p style={{ margin: 0, fontSize: '0.9rem', color: '#334e68' }}>
-                  Chuyá»ƒn há»c viÃªn: <strong>{selectedStudent.name}</strong> ({selectedStudent.code})
-                </p>
-                <div style={{ background: '#f8fafc', padding: 10, borderRadius: 6 }}>
-                  Lá»›p hiá»‡n táº¡i: <strong>{selectedStudent.className}</strong> ({selectedStudent.grade})
+                <div style={{ background: '#f8fafc', padding: 12, borderRadius: 6, border: '1px solid #e2e8f0' }}>
+                  <div style={{ fontWeight: 600, color: '#102a43' }}>{selectedStudent.name} ({selectedStudent.code})</div>
+                  <div style={{ fontSize: '0.82rem', color: '#627d98' }}>Lớp hiện tại: {selectedStudent.className} ({selectedStudent.grade})</div>
                 </div>
 
                 <div>
-                  <label className="form-label" htmlFor="select-target-class">Chá»n lá»›p má»›i <span className="text-danger">*</span></label>
+                  <label className="form-label" htmlFor="target-class-select">
+                    Chọn lớp chuyển đến <span className="text-danger">*</span>
+                  </label>
                   <select
-                    id="select-target-class"
+                    id="target-class-select"
                     className="form-input"
                     value={targetClassId}
                     onChange={(e) => setTargetClassId(e.target.value)}
                     required
                   >
-                    <option value="">-- Chá»n lá»›p há»c --</option>
+                    <option value="">-- Chọn lớp học --</option>
                     {classes
                       .filter((c) => c.id !== selectedStudent.classId)
                       .map((c) => (
                         <option key={c.id} value={c.id}>
-                          {c.name} ({c.grade}) - SÄ© sá»‘ hiá»‡n táº¡i: {c.studentCount}
+                          {c.name} ({c.grade} - Sĩ số: {c.studentCount}/{c.maxStudents})
                         </option>
                       ))}
                   </select>
@@ -554,14 +597,14 @@ export const TeacherStudentsPage: React.FC = () => {
                   className="btn btn-secondary"
                   onClick={() => setIsMoveOpen(false)}
                 >
-                  Há»§y
+                  Hủy
                 </button>
                 <button
                   type="submit"
                   className="btn btn-primary"
                   disabled={!targetClassId}
                 >
-                  XÃ¡c nháº­n chuyá»ƒn
+                  Xác nhận chuyển lớp
                 </button>
               </div>
             </form>

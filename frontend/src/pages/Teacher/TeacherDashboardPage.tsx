@@ -5,12 +5,14 @@ import {
   CheckSquare,
   GraduationCap,
   Users,
-  Award,
+  Plus,
   BookOpen,
+  Calendar,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { classroomService } from '@/services/classroom.service'
 import type {
+  AdminAssignmentItem,
   AdminClassItem,
   AdminLearningAlert,
   AdminSubmissionItem,
@@ -24,6 +26,7 @@ export const TeacherDashboardPage: React.FC = () => {
   const [classes, setClasses] = useState<AdminClassItem[]>([])
   const [submissions, setSubmissions] = useState<AdminSubmissionItem[]>([])
   const [alerts, setAlerts] = useState<AdminLearningAlert[]>([])
+  const [assignments, setAssignments] = useState<AdminAssignmentItem[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -32,12 +35,14 @@ export const TeacherDashboardPage: React.FC = () => {
       classroomService.getClasses(),
       classroomService.getSubmissions(),
       classroomService.getAlerts(),
+      classroomService.getAssignments(),
     ])
-      .then(([clsList, subsList, alertsList]) => {
+      .then(([clsList, subsList, alertsList, asgList]) => {
         if (!active) return
         setClasses(clsList)
         setSubmissions(subsList)
         setAlerts(alertsList)
+        setAssignments(asgList)
         setLoading(false)
       })
       .catch(() => {
@@ -53,14 +58,30 @@ export const TeacherDashboardPage: React.FC = () => {
   const totalStudents = classes.reduce((sum, c) => sum + (c.studentCount || 0), 0)
   const pendingSubs = submissions.filter((s) => s.status === 'pending')
   const activeAlerts = alerts.filter((a) => a.status !== 'resolved')
+  const activeAssignments = assignments.filter((a) => a.status === 'active')
 
   return (
     <div className="teacher-dashboard-page">
+      {/* Header */}
       <div className="staff-page-header">
-        <h1 className="staff-page-title">Bàn làm việc Giáo viên</h1>
-        <p className="staff-page-desc">
-          Theo dõi tiến độ học tập các lớp, giao bài tập nhiệm vụ và can thiệp hỗ trợ học sinh kịp thời.
-        </p>
+        <div className="admin-prototype-badge">
+          <span className="prototype-dot"></span>
+          <span>TEACHER WORKSPACE • BÀN LÀM VIỆC</span>
+        </div>
+        <div className="admin-header-row">
+          <div>
+            <h1 className="staff-page-title">Bàn làm việc Giáo viên</h1>
+            <p className="staff-page-desc">
+              Tổng quan tình hình giảng dạy, quản lý lớp học, theo dõi bài tập và hỗ trợ học sinh kịp thời.
+            </p>
+          </div>
+          <div className="admin-header-actions">
+            <Link to="/teacher/assignments/new" className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <Plus size={16} />
+              <span>Giao bài tập mới</span>
+            </Link>
+          </div>
+        </div>
       </div>
 
       {/* 4 Compact Metrics */}
@@ -87,15 +108,15 @@ export const TeacherDashboardPage: React.FC = () => {
               icon={Users}
             />
             <StaffMetricCard
-              label="Bài nộp chờ chấm"
-              value={pendingSubs.length}
-              context="Cần phản hồi kết quả"
-              icon={CheckSquare}
+              label="Bài tập đang mở"
+              value={activeAssignments.length}
+              context="Đang trong thời hạn nộp"
+              icon={BookOpen}
             />
             <StaffMetricCard
-              label="Cảnh báo cần can thiệp"
+              label="Cần can thiệp hỗ trợ"
               value={activeAlerts.length}
-              context="Chậm tiến độ hoặc điểm thấp"
+              context="Cảnh báo tiến độ / điểm thấp"
               icon={AlertTriangle}
               trend={{ value: `${activeAlerts.length} học sinh`, isPositive: false }}
             />
@@ -103,46 +124,171 @@ export const TeacherDashboardPage: React.FC = () => {
         )}
       </div>
 
-      {/* Quick Action Navigation Buttons */}
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 12,
-          margin: '20px 0',
-        }}
-      >
-        <Link to="/teacher/classes" className="btn btn-secondary">
-          <GraduationCap size={16} /> Danh sách lớp học
-        </Link>
-        <Link to="/teacher/students" className="btn btn-secondary">
-          <Users size={16} /> Danh sách học viên
-        </Link>
-        <Link to="/teacher/assignments" className="btn btn-secondary">
-          <BookOpen size={16} /> Quản lý bài tập
-        </Link>
-        <Link to="/teacher/grades" className="btn btn-secondary">
-          <Award size={16} /> Sổ điểm lớp học
-        </Link>
-        <Link to="/teacher/alerts" className="btn btn-secondary">
-          <AlertTriangle size={16} /> Cảnh báo học tập
-        </Link>
-      </div>
-
-      {/* Split Grid */}
-      <div className="staff-split-grid">
-        {/* Left: Recent submissions */}
+      {/* Main Operational Row 1: Classes Overview & Students Needing Attention */}
+      <div className="teacher-split-grid" style={{ marginTop: 24 }}>
+        {/* Classes Overview */}
         <div className="staff-card">
           <div className="staff-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 className="staff-card-title">Bài làm thu hoạch nộp gần đây</h2>
-            <Link to="/teacher/assignments" style={{ fontSize: '0.85rem', color: '#102A43', textDecoration: 'none', fontWeight: 600 }}>
-              Xem tất cả &rarr;
+            <h2 className="staff-card-title">Lớp học phụ trách & Tiến độ</h2>
+            <Link to="/teacher/classes" className="teacher-card-link">
+              Xem tất cả lớp ({classes.length}) &rarr;
+            </Link>
+          </div>
+          <div className="staff-card-body">
+            {loading ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <Skeleton height={48} />
+                <Skeleton height={48} />
+                <Skeleton height={48} />
+              </div>
+            ) : classes.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)' }}>Chưa có lớp học nào được phân công.</p>
+            ) : (
+              <div className="teacher-compact-classes-list">
+                {classes.slice(0, 4).map((cls) => (
+                  <div key={cls.id} className="teacher-compact-class-item">
+                    <div className="teacher-class-item-info">
+                      <Link to={`/teacher/classes/${cls.id}`} className="teacher-class-item-name">
+                        {cls.name}
+                      </Link>
+                      <div className="teacher-class-item-meta">
+                        <span>{cls.grade}</span>
+                        <span>•</span>
+                        <span>Phòng {cls.room}</span>
+                        <span>•</span>
+                        <span>{cls.studentCount}/{cls.maxStudents} HS</span>
+                      </div>
+                    </div>
+                    <div className="teacher-class-item-stats">
+                      <div className="teacher-progress-inline">
+                        <div className="teacher-progress-track">
+                          <div
+                            className="teacher-progress-fill"
+                            style={{
+                              width: `${cls.averageProgress}%`,
+                              backgroundColor: cls.averageProgress < 60 ? '#dc2626' : '#10b981',
+                            }}
+                          />
+                        </div>
+                        <span className="teacher-progress-text">{cls.averageProgress}%</span>
+                      </div>
+                      <span className="teacher-score-pill">
+                        ĐTB: <strong>{cls.averageScore.toFixed(1)}</strong>
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Students Needing Attention */}
+        <div className="staff-card">
+          <div className="staff-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 className="staff-card-title">Học sinh cần chú ý can thiệp</h2>
+            <Link to="/teacher/alerts" className="teacher-card-link">
+              Hàng đợi xử lý ({activeAlerts.length}) &rarr;
+            </Link>
+          </div>
+          <div className="staff-card-body">
+            {loading ? (
+              <Skeleton height={120} />
+            ) : activeAlerts.length === 0 ? (
+              <div className="teacher-empty-quiet">
+                <CheckSquare size={20} color="#047857" style={{ marginBottom: 6 }} />
+                <p style={{ margin: 0, fontWeight: 500, color: '#102a43' }}>Tất cả học sinh đều đang học tập tốt!</p>
+                <span style={{ fontSize: '0.8rem', color: '#627d98' }}>Không có cảnh báo trễ hạn hoặc điểm kém nào.</span>
+              </div>
+            ) : (
+              <div className="staff-attention-list">
+                {activeAlerts.slice(0, 4).map((alr) => (
+                  <Link
+                    key={alr.id}
+                    to={`/teacher/students/${alr.studentId}`}
+                    className={`staff-attention-item ${alr.severity === 'high' ? 'severity-high' : 'severity-medium'}`}
+                  >
+                    <div className="staff-attention-header">
+                      <span className="staff-attention-title">
+                        {alr.studentName} <span style={{ fontWeight: 400, color: '#627d98' }}>({alr.className})</span>
+                      </span>
+                      <ArrowRight size={13} style={{ color: 'var(--text-muted)' }} />
+                    </div>
+                    <p className="staff-attention-desc">{alr.reason}</p>
+                    <span className="staff-attention-time">{new Date(alr.detectedAt).toLocaleDateString('vi-VN')}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Operational Row 2: Assignments Due & Recent Submissions */}
+      <div className="teacher-split-grid" style={{ marginTop: 24 }}>
+        {/* Assignments Due */}
+        <div className="staff-card">
+          <div className="staff-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 className="staff-card-title">Bài tập đang mở & Sắp đến hạn</h2>
+            <Link to="/teacher/assignments" className="teacher-card-link">
+              Xem tất cả ({assignments.length}) &rarr;
             </Link>
           </div>
           <div className="staff-card-body">
             {loading ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <Skeleton height={44} />
+                <Skeleton height={44} />
+              </div>
+            ) : assignments.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)' }}>Chưa có bài tập nào được tạo.</p>
+            ) : (
+              <div className="teacher-compact-assignments-list">
+                {assignments.slice(0, 4).map((asg) => {
+                  const rate = asg.totalStudents > 0 ? Math.round((asg.submissionsCount / asg.totalStudents) * 100) : 0
+                  return (
+                    <div key={asg.id} className="teacher-assignment-row">
+                      <div className="teacher-assignment-info">
+                        <Link to={`/teacher/assignments/${asg.id}`} className="teacher-assignment-title">
+                          {asg.title}
+                        </Link>
+                        <div className="teacher-assignment-submeta">
+                          <span>{asg.className}</span>
+                          <span>•</span>
+                          <span>{asg.subjectName}</span>
+                          <span>•</span>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <Calendar size={12} /> Hạn: {new Date(asg.dueDate).toLocaleDateString('vi-VN')}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="teacher-assignment-badge-group">
+                        <span className="badge badge-secondary" style={{ fontSize: '0.75rem' }}>
+                          Nộp: {asg.submissionsCount}/{asg.totalStudents} ({rate}%)
+                        </span>
+                        <span className={`status-badge ${asg.status === 'active' ? 'status-success' : 'status-default'}`}>
+                          {asg.status === 'active' ? 'Đang mở' : 'Đã đóng'}
+                        </span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Recent Submissions */}
+        <div className="staff-card">
+          <div className="staff-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 className="staff-card-title">Bài làm nộp gần đây ({pendingSubs.length} chờ chấm)</h2>
+            <Link to="/teacher/assignments" className="teacher-card-link">
+              Xem sổ chấm &rarr;
+            </Link>
+          </div>
+          <div className="staff-card-body">
+            {loading ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <Skeleton height={44} />
                 <Skeleton height={44} />
               </div>
@@ -160,14 +306,16 @@ export const TeacherDashboardPage: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {submissions.slice(0, 5).map((sub) => (
+                    {submissions.slice(0, 4).map((sub) => (
                       <tr key={sub.id}>
                         <td style={{ fontWeight: 600 }}>
                           <Link to={`/teacher/students/${sub.studentId}`} style={{ color: '#102A43', textDecoration: 'none' }}>
                             {sub.studentName}
                           </Link>
                         </td>
-                        <td style={{ color: 'var(--text-muted)' }}>{sub.assignmentTitle}</td>
+                        <td style={{ color: 'var(--text-muted)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {sub.assignmentTitle}
+                        </td>
                         <td>
                           <span className={`badge ${sub.status === 'graded' ? 'badge-success' : 'badge-warning'}`}>
                             {sub.status === 'graded' ? 'Đã chấm' : 'Chờ chấm'}
@@ -187,42 +335,6 @@ export const TeacherDashboardPage: React.FC = () => {
                     ))}
                   </tbody>
                 </table>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right: Students needing attention */}
-        <div className="staff-card">
-          <div className="staff-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 className="staff-card-title">Cảnh báo học sinh cần can thiệp</h2>
-            <Link to="/teacher/alerts" style={{ fontSize: '0.85rem', color: '#102A43', textDecoration: 'none', fontWeight: 600 }}>
-              Xem tất cả &rarr;
-            </Link>
-          </div>
-          <div className="staff-card-body">
-            {loading ? (
-              <Skeleton height={80} />
-            ) : activeAlerts.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)' }}>Không có học sinh nào bị cảnh báo.</p>
-            ) : (
-              <div className="staff-attention-list">
-                {activeAlerts.slice(0, 4).map((alr) => (
-                  <Link
-                    key={alr.id}
-                    to={`/teacher/students/${alr.studentId}`}
-                    className={`staff-attention-item ${alr.severity === 'high' ? 'severity-high' : 'severity-medium'}`}
-                  >
-                    <div className="staff-attention-header">
-                      <span className="staff-attention-title">
-                        {alr.studentName} ({alr.className})
-                      </span>
-                      <ArrowRight size={13} style={{ color: 'var(--text-muted)' }} />
-                    </div>
-                    <p className="staff-attention-desc">{alr.reason}</p>
-                    <span className="staff-attention-time">{new Date(alr.detectedAt).toLocaleDateString('vi-VN')}</span>
-                  </Link>
-                ))}
               </div>
             )}
           </div>

@@ -17,6 +17,7 @@ import type {
 } from '@/types/classroom'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import './TeacherPages.css'
 import '../Admin/AdminPages.css'
 import '@/components/admin/AdminComponents.css'
 
@@ -236,11 +237,11 @@ export const TeacherClassDetailPage: React.FC = () => {
               </span>
             </div>
             <p className="staff-page-desc" style={{ marginTop: 6 }}>
-              {classData.grade} • Giáo viên: <strong>{classData.homeroomTeacherName}</strong> • Phòng {classData.room} • Năm học {classData.academicYear}
+              {classData.grade} • Giáo viên CN: <strong>{classData.homeroomTeacherName}</strong> • Phòng {classData.room} • Năm học {classData.academicYear}
             </p>
           </div>
 
-          <div className="admin-header-actions" style={{ display: 'flex', gap: 10 }}>
+          <div className="admin-header-actions" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <button
               type="button"
               className="btn btn-secondary"
@@ -263,29 +264,31 @@ export const TeacherClassDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="admin-roles-tabs" style={{ marginBottom: 20, borderBottom: '1px solid #e2e8f0', display: 'flex', gap: 8 }}>
-        <button
-          type="button"
-          className={`btn ${activeTab === 'students' ? 'btn-primary' : 'btn-secondary'}`}
-          onClick={() => setActiveTab('students')}
-        >
-          Học viên ({students.length})
-        </button>
-        <button
-          type="button"
-          className={`btn ${activeTab === 'assignments' ? 'btn-primary' : 'btn-secondary'}`}
-          onClick={() => setActiveTab('assignments')}
-        >
-          Bài tập ({assignments.length})
-        </button>
-        <button
-          type="button"
-          className={`btn ${activeTab === 'reports' ? 'btn-primary' : 'btn-secondary'}`}
-          onClick={() => setActiveTab('reports')}
-        >
-          Nhật ký hoạt động ({activities.length})
-        </button>
+      {/* Tabs with Horizontal Scroll on Mobile - NO MULTI-ROW WRAP */}
+      <div className="teacher-tabs-container">
+        <div className="teacher-tabs-scroll">
+          <button
+            type="button"
+            className={`teacher-tab-btn ${activeTab === 'students' ? 'active' : ''}`}
+            onClick={() => setActiveTab('students')}
+          >
+            Học viên ({students.length})
+          </button>
+          <button
+            type="button"
+            className={`teacher-tab-btn ${activeTab === 'assignments' ? 'active' : ''}`}
+            onClick={() => setActiveTab('assignments')}
+          >
+            Bài tập ({assignments.length})
+          </button>
+          <button
+            type="button"
+            className={`teacher-tab-btn ${activeTab === 'reports' ? 'active' : ''}`}
+            onClick={() => setActiveTab('reports')}
+          >
+            Nhật ký lớp học ({activities.length})
+          </button>
+        </div>
       </div>
 
       {/* Tab: Students */}
@@ -303,82 +306,146 @@ export const TeacherClassDetailPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="staff-table-wrapper">
+          <div className="teacher-classes-wrapper">
             {filteredStudents.length === 0 ? (
               <EmptyState
                 title="Chưa có học viên nào trong lớp"
                 description="Bấm 'Thêm học viên' ở góc trên để phân học viên vào lớp học này."
               />
             ) : (
-              <table className="staff-table">
-                <thead>
-                  <tr>
-                    <th>Mã HV</th>
-                    <th>Họ và tên</th>
-                    <th>Email</th>
-                    <th>Tiến độ</th>
-                    <th>Bài đã hoàn thành</th>
-                    <th>Điểm TB</th>
-                    <th>Trạng thái</th>
-                    <th style={{ textAlign: 'right' }}>Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <>
+                {/* Desktop Table View */}
+                <div className="staff-table-wrapper teacher-desktop-table">
+                  <table className="staff-table">
+                    <thead>
+                      <tr>
+                        <th>Mã HV</th>
+                        <th>Họ và tên</th>
+                        <th>Email</th>
+                        <th>Tiến độ</th>
+                        <th>Bài đã hoàn thành</th>
+                        <th>Điểm TB</th>
+                        <th>Trạng thái</th>
+                        <th style={{ textAlign: 'right' }}>Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredStudents.map((s) => (
+                        <tr key={s.id}>
+                          <td><code>{s.code}</code></td>
+                          <td>
+                            <Link
+                              to={`/teacher/students/${s.id}`}
+                              className="font-medium text-navy-primary hover:underline"
+                              style={{ fontWeight: 600, color: '#102a43' }}
+                            >
+                              {s.name}
+                            </Link>
+                          </td>
+                          <td>{s.email}</td>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{ flex: 1, minWidth: 60, height: 6, background: '#e2e8f0', borderRadius: 3, overflow: 'hidden' }}>
+                                <div style={{ width: `${s.progress}%`, height: '100%', background: '#0284c7' }} />
+                              </div>
+                              <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{s.progress}%</span>
+                            </div>
+                          </td>
+                          <td>{s.lessonsCompleted} bài</td>
+                          <td>
+                            <strong style={{ color: s.averageScore >= 8 ? '#047857' : s.averageScore >= 5 ? '#b45309' : '#dc2626' }}>
+                              {s.averageScore.toFixed(1)}
+                            </strong>
+                          </td>
+                          <td>
+                            <span className={`status-badge ${s.status === 'on-track' ? 'status-success' : s.status === 'needs-attention' ? 'status-warning' : 'status-danger'}`}>
+                              {s.status === 'on-track' ? 'Đang học tốt' : s.status === 'needs-attention' ? 'Cần chú ý' : 'Ngừng hoạt động'}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <div className="table-actions" style={{ justifyContent: 'flex-end', gap: 6 }}>
+                              <Link
+                                to={`/teacher/students/${s.id}`}
+                                className="table-action-btn"
+                                title="Xem chi tiết học viên"
+                              >
+                                <Eye size={15} />
+                              </Link>
+                              <button
+                                type="button"
+                                className="table-action-btn text-danger"
+                                onClick={() => handleRemoveStudent(s)}
+                                title="Rút học viên khỏi lớp"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile Cards List (<768px) */}
+                <div className="teacher-mobile-cards-list">
                   {filteredStudents.map((s) => (
-                    <tr key={s.id}>
-                      <td><code>{s.code}</code></td>
-                      <td>
+                    <div key={s.id} className="teacher-card-item">
+                      <div className="teacher-card-item-header">
+                        <div>
+                          <Link to={`/teacher/students/${s.id}`} className="teacher-card-title">
+                            {s.name}
+                          </Link>
+                          <div className="teacher-card-meta-line">
+                            <span>Mã: <code>{s.code}</code></span>
+                            <span>•</span>
+                            <span>{s.email}</span>
+                          </div>
+                        </div>
+                        <span className={`status-badge ${s.status === 'on-track' ? 'status-success' : s.status === 'needs-attention' ? 'status-warning' : 'status-danger'}`}>
+                          {s.status === 'on-track' ? 'Đang học tốt' : 'Cần chú ý'}
+                        </span>
+                      </div>
+
+                      <div className="teacher-card-item-body">
+                        <div className="teacher-card-stat">
+                          <span className="teacher-stat-label">Tiến độ</span>
+                          <strong className="teacher-stat-val">{s.progress}%</strong>
+                        </div>
+                        <div className="teacher-card-stat">
+                          <span className="teacher-stat-label">Đã học</span>
+                          <strong className="teacher-stat-val">{s.lessonsCompleted} bài</strong>
+                        </div>
+                        <div className="teacher-card-stat">
+                          <span className="teacher-stat-label">Điểm TB</span>
+                          <strong className="teacher-stat-val" style={{ color: s.averageScore >= 8 ? '#047857' : '#d97706' }}>
+                            {s.averageScore.toFixed(1)}
+                          </strong>
+                        </div>
+                      </div>
+
+                      <div className="teacher-card-item-footer">
                         <Link
                           to={`/teacher/students/${s.id}`}
-                          className="font-medium text-navy-primary hover:underline"
-                          style={{ fontWeight: 600, color: '#102a43' }}
+                          className="btn btn-secondary btn-sm"
+                          style={{ flex: 1, textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }}
                         >
-                          {s.name}
+                          <Eye size={14} />
+                          <span>Hồ sơ học viên</span>
                         </Link>
-                      </td>
-                      <td>{s.email}</td>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div style={{ flex: 1, height: 6, background: '#e2e8f0', borderRadius: 3, overflow: 'hidden' }}>
-                            <div style={{ width: `${s.progress}%`, height: '100%', background: '#0284c7' }} />
-                          </div>
-                          <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{s.progress}%</span>
-                        </div>
-                      </td>
-                      <td>{s.lessonsCompleted} bài</td>
-                      <td>
-                        <strong style={{ color: s.averageScore >= 8 ? '#047857' : s.averageScore >= 5 ? '#b45309' : '#dc2626' }}>
-                          {s.averageScore.toFixed(1)}
-                        </strong>
-                      </td>
-                      <td>
-                        <span className={`status-badge ${s.status === 'on-track' ? 'status-success' : s.status === 'needs-attention' ? 'status-warning' : 'status-danger'}`}>
-                          {s.status === 'on-track' ? 'Đang học tốt' : s.status === 'needs-attention' ? 'Cần chú ý' : 'Ngừng hoạt động'}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        <div className="table-actions" style={{ justifyContent: 'flex-end', gap: 6 }}>
-                          <Link
-                            to={`/teacher/students/${s.id}`}
-                            className="table-action-btn"
-                            title="Xem chi tiết học viên"
-                          >
-                            <Eye size={15} />
-                          </Link>
-                          <button
-                            type="button"
-                            className="table-action-btn text-danger"
-                            onClick={() => handleRemoveStudent(s)}
-                            title="Rút học viên khỏi lớp"
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm text-danger"
+                          onClick={() => handleRemoveStudent(s)}
+                          title="Rút khỏi lớp"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
                   ))}
-                </tbody>
-              </table>
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -484,6 +551,7 @@ export const TeacherClassDetailPage: React.FC = () => {
                 type="button"
                 className="modal-close-btn"
                 onClick={() => setIsAddStudentOpen(false)}
+                aria-label="Đóng"
               >
                 ✕
               </button>

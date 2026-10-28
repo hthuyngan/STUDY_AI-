@@ -1,290 +1,243 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useTeacherAssignments } from '@/hooks/useTeacher'
+import { ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react'
+import { classroomService } from '@/services/classroom.service'
+import './TeacherPages.css'
+import '../Admin/AdminPages.css'
+import '@/components/admin/AdminComponents.css'
 
 export function TeacherCreateAssignmentPage() {
   const navigate = useNavigate()
-  const { createAssignment } = useTeacherAssignments()
 
   const [title, setTitle] = useState('')
   const [classId, setClassId] = useState('cls-12a1')
   const [subject, setSubject] = useState('Toán học 12')
-  const [lessonId, setLessonId] = useState('lesson-math-08')
-  const [assessmentId, setAssessmentId] = useState('asm-math-08')
-  const [dueDate, setDueDate] = useState('2026-11-05T23:59')
+  const [lessonTitle, setLessonTitle] = useState('Bài 08: Khảo sát và vẽ đồ thị hàm số phân thức')
+  const [dueDate, setDueDate] = useState(() => {
+    const d = new Date(Date.now() + 7 * 86400000)
+    return d.toISOString().slice(0, 10)
+  })
+  const [maxScore, setMaxScore] = useState<number>(10)
   const [instructions, setInstructions] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState('')
 
   const classMap: Record<string, { name: string; count: number }> = {
     'cls-12a1': { name: 'Lớp 12A1', count: 38 },
     'cls-12a2': { name: 'Lớp 12A2', count: 35 },
     'cls-11b1': { name: 'Lớp 11B1', count: 40 },
+    'cls-10c1': { name: 'Lớp 10C1', count: 35 },
   }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    if (!title.trim()) return
+    if (!title.trim()) {
+      setError('Vui lòng nhập tiêu đề bài tập.')
+      return
+    }
 
     setSubmitting(true)
+    setError(null)
     try {
       const cls = classMap[classId] || { name: 'Lớp 12A1', count: 35 }
-      await createAssignment({
+      await classroomService.saveAssignment({
         title: title.trim(),
         classId,
         className: cls.name,
-        subject,
-        lessonIds: [lessonId],
-        assessmentId: assessmentId || undefined,
+        subjectName: subject,
+        lessonTitle,
         instructions: instructions.trim() || undefined,
         dueDate: new Date(dueDate).toISOString(),
         totalStudents: cls.count,
+        maxScore,
+        status: 'active',
       })
-      setSuccessMessage('Giao bài tập thành công!')
+      setSuccessMessage('Đã tạo và giao bài tập thành công cho học sinh!')
       setTimeout(() => {
         navigate('/teacher/assignments')
       }, 700)
-    } finally {
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Lỗi khi tạo bài tập.')
       setSubmitting(false)
     }
   }
 
   return (
-    <div className="staff-page">
+    <div className="admin-page-container">
+      {/* Toast Feedback */}
+      {successMessage && (
+        <div className="admin-toast-notification">
+          <CheckCircle2 size={18} color="#047857" />
+          <span>{successMessage}</span>
+        </div>
+      )}
+
+      {/* Header */}
       <div className="staff-page-header">
-        <div className="staff-page-title-row">
+        <div style={{ marginBottom: 12 }}>
+          <Link
+            to="/teacher/assignments"
+            className="flex items-center gap-1.5 text-sm font-medium text-navy-primary hover:underline"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#102a43', fontSize: '0.88rem' }}
+          >
+            <ArrowLeft size={16} />
+            <span>Quay lại Quản lý bài tập</span>
+          </Link>
+        </div>
+
+        <div className="admin-header-row">
           <div>
-            <nav className="staff-breadcrumbs" aria-label="Breadcrumb">
-              <Link to="/teacher">Giáo viên</Link>
-              <span>/</span>
-              <Link to="/teacher/assignments">Bài tập</Link>
-              <span>/</span>
-              <span aria-current="page">Giao bài tập mới</span>
-            </nav>
-            <h1>Giao bài tập cho học sinh</h1>
-            <p className="staff-page-desc">Chỉ định bài học, bài thu hoạch và thời hạn hoàn thành cho lớp.</p>
+            <h1 className="staff-page-title">Giao bài tập mới</h1>
+            <p className="staff-page-desc">
+              Chỉ định bài học trọng tâm, hướng dẫn làm bài và thời hạn hoàn thành cho lớp học.
+            </p>
           </div>
         </div>
       </div>
 
-      {successMessage && (
-        <div
-          style={{
-            padding: '12px 16px',
-            marginBottom: '16px',
-            borderRadius: '6px',
-            background: 'var(--color-success-bg, #ebfbee)',
-            color: 'var(--color-success, #2b8a3e)',
-            border: '1px solid var(--color-success-border, #d3f9d8)',
-            fontSize: '14px',
-          }}
-        >
-          {successMessage}
-        </div>
-      )}
+      {/* Form Card (Quiet flat container, Section 31-33 compliant) */}
+      <div className="admin-card teacher-form-card" style={{ maxWidth: 760, padding: 24 }}>
+        {error && (
+          <div className="form-error-banner" style={{ marginBottom: 20 }}>
+            <AlertCircle size={16} />
+            <span>{error}</span>
+          </div>
+        )}
 
-      <form onSubmit={handleSubmit} style={{ maxWidth: '720px' }}>
-        <div className="staff-card" style={{ display: 'grid', gap: '20px' }}>
-          <div>
-            <label
-              htmlFor="asg-title"
-              style={{ display: 'block', fontSize: '14px', fontWeight: 500, marginBottom: '6px' }}
-            >
-              Tiêu đề bài tập <span style={{ color: 'var(--color-danger, #e03131)' }}>*</span>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group" style={{ marginBottom: 18 }}>
+            <label className="form-label" htmlFor="asg-title">
+              Tiêu đề bài tập <span className="text-danger">*</span>
             </label>
             <input
               id="asg-title"
               type="text"
               required
+              className="form-input"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="VD: Khảo sát và vẽ đồ thị hàm phân thức"
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                fontSize: '14px',
-                border: '1px solid var(--color-border)',
-                borderRadius: '6px',
-                background: 'var(--color-surface)',
-                color: 'var(--color-text)',
-              }}
+              placeholder="VD: Khảo sát và vẽ đồ thị hàm phân thức bậc nhất trên bậc nhất"
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div>
-              <label
-                htmlFor="asg-class"
-                style={{ display: 'block', fontSize: '14px', fontWeight: 500, marginBottom: '6px' }}
-              >
-                Lớp học áp dụng
+          <div className="teacher-form-grid-2">
+            <div className="form-group">
+              <label className="form-label" htmlFor="asg-class">
+                Lớp học áp dụng <span className="text-danger">*</span>
               </label>
               <select
                 id="asg-class"
+                className="form-input"
                 value={classId}
                 onChange={(e) => setClassId(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  fontSize: '14px',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: '6px',
-                  background: 'var(--color-surface)',
-                  color: 'var(--color-text)',
-                }}
               >
                 <option value="cls-12a1">Lớp 12A1 (38 học sinh)</option>
                 <option value="cls-12a2">Lớp 12A2 (35 học sinh)</option>
                 <option value="cls-11b1">Lớp 11B1 (40 học sinh)</option>
+                <option value="cls-10c1">Lớp 10C1 (35 học sinh)</option>
               </select>
             </div>
 
-            <div>
-              <label
-                htmlFor="asg-subject"
-                style={{ display: 'block', fontSize: '14px', fontWeight: 500, marginBottom: '6px' }}
-              >
-                Môn học
+            <div className="form-group">
+              <label className="form-label" htmlFor="asg-subject">
+                Môn học <span className="text-danger">*</span>
               </label>
               <select
                 id="asg-subject"
+                className="form-input"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  fontSize: '14px',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: '6px',
-                  background: 'var(--color-surface)',
-                  color: 'var(--color-text)',
-                }}
               >
                 <option value="Toán học 12">Toán học 12</option>
                 <option value="Toán học 11">Toán học 11</option>
+                <option value="Toán học 10">Toán học 10</option>
                 <option value="Vật lý 12">Vật lý 12</option>
+                <option value="Hóa học 12">Hóa học 12</option>
               </select>
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div>
-              <label
-                htmlFor="asg-lesson"
-                style={{ display: 'block', fontSize: '14px', fontWeight: 500, marginBottom: '6px' }}
-              >
-                Chọn bài học trọng tâm
+          <div className="teacher-form-grid-2">
+            <div className="form-group">
+              <label className="form-label" htmlFor="asg-lesson">
+                Bài học trọng tâm
               </label>
               <select
                 id="asg-lesson"
-                value={lessonId}
-                onChange={(e) => setLessonId(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  fontSize: '14px',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: '6px',
-                  background: 'var(--color-surface)',
-                  color: 'var(--color-text)',
-                }}
+                className="form-input"
+                value={lessonTitle}
+                onChange={(e) => setLessonTitle(e.target.value)}
               >
-                <option value="lesson-math-08">Bài 08: Khảo sát và vẽ đồ thị hàm số phân thức</option>
-                <option value="lesson-math-01">Bài 01: Sự đồng biến, nghịch biến của hàm số</option>
-                <option value="lesson-math-02">Bài 02: Cực trị của hàm số</option>
-                <option value="lesson-math-03">Bài 03: Giá trị lớn nhất và nhỏ nhất</option>
+                <option value="Bài 08: Khảo sát và vẽ đồ thị hàm số phân thức">
+                  Bài 08: Khảo sát và vẽ đồ thị hàm số phân thức
+                </option>
+                <option value="Bài 01: Sự đồng biến, nghịch biến của hàm số">
+                  Bài 01: Sự đồng biến, nghịch biến của hàm số
+                </option>
+                <option value="Bài 02: Cực trị của hàm số">Bài 02: Cực trị của hàm số</option>
+                <option value="Bài 03: Giá trị lớn nhất và nhỏ nhất của hàm số">
+                  Bài 03: Giá trị lớn nhất và nhỏ nhất
+                </option>
               </select>
             </div>
 
-            <div>
-              <label
-                htmlFor="asg-assessment"
-                style={{ display: 'block', fontSize: '14px', fontWeight: 500, marginBottom: '6px' }}
-              >
-                Bài thu hoạch đi kèm (tùy chọn)
+            <div className="form-group">
+              <label className="form-label" htmlFor="asg-max-score">
+                Thang điểm tối đa
               </label>
-              <select
-                id="asg-assessment"
-                value={assessmentId}
-                onChange={(e) => setAssessmentId(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  fontSize: '14px',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: '6px',
-                  background: 'var(--color-surface)',
-                  color: 'var(--color-text)',
-                }}
-              >
-                <option value="asm-math-08">Thu hoạch: Khảo sát hàm số (Trắc nghiệm 10 câu)</option>
-                <option value="asm-math-01">Thu hoạch: Tính đơn điệu hàm số</option>
-                <option value="">Không yêu cầu bài thu hoạch</option>
-              </select>
+              <input
+                id="asg-max-score"
+                type="number"
+                min={1}
+                max={100}
+                className="form-input"
+                value={maxScore}
+                onChange={(e) => setMaxScore(Number(e.target.value) || 10)}
+              />
             </div>
           </div>
 
-          <div>
-            <label
-              htmlFor="asg-due"
-              style={{ display: 'block', fontSize: '14px', fontWeight: 500, marginBottom: '6px' }}
-            >
-              Hạn nộp bài
+          <div className="form-group" style={{ marginBottom: 18 }}>
+            <label className="form-label" htmlFor="asg-due">
+              Hạn nộp bài <span className="text-danger">*</span>
             </label>
             <input
               id="asg-due"
-              type="datetime-local"
+              type="date"
+              required
+              className="form-input"
+              style={{ maxWidth: 280 }}
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              style={{
-                width: '100%',
-                maxWidth: '320px',
-                padding: '8px 12px',
-                fontSize: '14px',
-                border: '1px solid var(--color-border)',
-                borderRadius: '6px',
-                background: 'var(--color-surface)',
-                color: 'var(--color-text)',
-              }}
             />
           </div>
 
-          <div>
-            <label
-              htmlFor="asg-instructions"
-              style={{ display: 'block', fontSize: '14px', fontWeight: 500, marginBottom: '6px' }}
-            >
+          <div className="form-group" style={{ marginBottom: 24 }}>
+            <label className="form-label" htmlFor="asg-instructions">
               Hướng dẫn / Ghi chú cho học sinh
             </label>
             <textarea
               id="asg-instructions"
               rows={4}
+              className="form-input"
               value={instructions}
               onChange={(e) => setInstructions(e.target.value)}
-              placeholder="VD: Các em đọc kỹ phần tìm tiệm cận đứng và tiệm cận xiên trước khi làm bài thu hoạch."
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                fontSize: '14px',
-                border: '1px solid var(--color-border)',
-                borderRadius: '6px',
-                background: 'var(--color-surface)',
-                color: 'var(--color-text)',
-                resize: 'vertical',
-              }}
+              placeholder="VD: Các em đọc kỹ phần tìm tiệm cận đứng và tiệm cận xiên trước khi làm bài tự luận..."
             />
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '8px' }}>
-            <Link to="/teacher/assignments" className="staff-btn staff-btn-secondary">
+          {/* Form Actions (Section 33: Only one primary, no unnecessary icons) */}
+          <div className="teacher-form-actions">
+            <Link to="/teacher/assignments" className="btn btn-secondary">
               Hủy
             </Link>
-            <button type="submit" className="staff-btn staff-btn-primary" disabled={submitting}>
-              {submitting ? 'Đang tạo...' : 'Giao bài tập'}
+            <button type="submit" className="btn btn-primary" disabled={submitting}>
+              {submitting ? 'Đang tạo bài tập...' : 'Giao bài tập'}
             </button>
           </div>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   )
 }
