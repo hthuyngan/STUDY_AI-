@@ -5,6 +5,11 @@ import {
   BookOpen,
   GraduationCap,
   Headphones,
+  CheckCircle2,
+  LifeBuoy,
+  Bell,
+  ShieldCheck,
+  Settings,
   ArrowRight,
 } from 'lucide-react'
 import './AdminComponents.css'
@@ -50,6 +55,46 @@ const DEFAULT_QUICK_ACTIONS: QuickActionItem[] = [
     url: '/support',
     icon: Headphones,
     badge: 'Vận hành',
+  },
+  {
+    id: 'approvals',
+    title: 'Duyệt nội dung',
+    description: 'Thẩm định bài học, tài liệu chờ duyệt và phát hành giáo trình.',
+    url: '/admin/approvals',
+    icon: CheckCircle2,
+    badge: 'Kiểm soát',
+  },
+  {
+    id: 'tickets',
+    title: 'Yêu cầu hỗ trợ',
+    description: 'Tiếp nhận sự cố kỹ thuật, học tập từ học viên và phân công xử lý.',
+    url: '/admin/tickets',
+    icon: LifeBuoy,
+    badge: 'Vận hành',
+  },
+  {
+    id: 'announcements',
+    title: 'Thông báo hệ thống',
+    description: 'Phát thanh tin tức khẩn, bảo trì và thông điệp tới toàn trường.',
+    url: '/admin/announcements',
+    icon: Bell,
+    badge: 'Truyền thông',
+  },
+  {
+    id: 'audit_logs',
+    title: 'Nhật ký quản trị',
+    description: 'Theo dõi lịch sử truy vết và thao tác quản trị viên trên hệ thống.',
+    url: '/admin/audit-logs',
+    icon: ShieldCheck,
+    badge: 'Bảo mật',
+  },
+  {
+    id: 'settings',
+    title: 'Cấu hình vận hành',
+    description: 'Thiết lập ngưỡng điểm liệt, quy tắc kiểm duyệt và dữ liệu mẫu.',
+    url: '/admin/settings',
+    icon: Settings,
+    badge: 'Cấu hình',
   },
 ]
 

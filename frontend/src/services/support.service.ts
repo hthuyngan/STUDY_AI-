@@ -9,19 +9,67 @@ import {
   INITIAL_MOCK_TICKETS,
   INITIAL_SUPPORT_PROFILES,
 } from '@/data/staff/support.mock'
+import { operationsService } from './operations.service'
 
-let mockTickets = [...INITIAL_MOCK_TICKETS]
-const mockMessages: Record<string, SupportTicketMessage[]> = { ...INITIAL_MOCK_MESSAGES }
+const STORAGE_KEYS = {
+  TICKETS: 'study_ai_support_tickets_v5',
+  MESSAGES: 'study_ai_support_messages_v5',
+}
+
+function loadTickets(): SupportTicketItem[] {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return JSON.parse(JSON.stringify(INITIAL_MOCK_TICKETS))
+  }
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.TICKETS)
+    return raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(INITIAL_MOCK_TICKETS))
+  } catch {
+    return JSON.parse(JSON.stringify(INITIAL_MOCK_TICKETS))
+  }
+}
+
+function saveTickets(data: SupportTicketItem[]): void {
+  if (typeof window === 'undefined' || !window.localStorage) return
+  try {
+    localStorage.setItem(STORAGE_KEYS.TICKETS, JSON.stringify(data))
+    window.dispatchEvent(new CustomEvent('study_ai_operations_change', { detail: { key: STORAGE_KEYS.TICKETS } }))
+  } catch (e) {
+    console.error('Failed to save tickets:', e)
+  }
+}
+
+function loadMessages(): Record<string, SupportTicketMessage[]> {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return JSON.parse(JSON.stringify(INITIAL_MOCK_MESSAGES))
+  }
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.MESSAGES)
+    return raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(INITIAL_MOCK_MESSAGES))
+  } catch {
+    return JSON.parse(JSON.stringify(INITIAL_MOCK_MESSAGES))
+  }
+}
+
+function saveMessages(data: Record<string, SupportTicketMessage[]>): void {
+  if (typeof window === 'undefined' || !window.localStorage) return
+  try {
+    localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(data))
+  } catch (e) {
+    console.error('Failed to save messages:', e)
+  }
+}
+
 const mockProfiles: Record<string, SupportUserProfile> = { ...INITIAL_SUPPORT_PROFILES }
 
 export const supportService = {
   async getDashboardSummary() {
+    const tickets = loadTickets()
     return {
-      openCount: mockTickets.filter((t) => t.status === 'open').length,
-      waitingCount: mockTickets.filter((t) => t.status === 'in-progress' || t.status === 'waiting').length,
-      escalatedCount: mockTickets.filter((t) => t.priority === 'urgent' || t.priority === 'high').length,
-      resolvedTodayCount: mockTickets.filter((t) => t.status === 'resolved').length,
-      recentTickets: [...mockTickets],
+      openCount: tickets.filter((t) => t.status === 'open').length,
+      waitingCount: tickets.filter((t) => t.status === 'in-progress' || t.status === 'waiting').length,
+      escalatedCount: tickets.filter((t) => t.priority === 'urgent' || t.priority === 'high').length,
+      resolvedTodayCount: tickets.filter((t) => t.status === 'resolved').length,
+      recentTickets: [...tickets],
     }
   },
 
@@ -31,7 +79,7 @@ export const supportService = {
     status = 'all',
     search = ''
   ): Promise<SupportTicketItem[]> {
-    let list = [...mockTickets]
+    let list = loadTickets()
     if (category && category !== 'all') {
       list = list.filter((t) => t.category === category)
     }
@@ -48,7 +96,8 @@ export const supportService = {
           t.title.toLowerCase().includes(q) ||
           t.userName.toLowerCase().includes(q) ||
           t.userEmail.toLowerCase().includes(q) ||
-          t.id.toLowerCase().includes(q)
+          t.id.toLowerCase().includes(q) ||
+          (t.assignedTo && t.assignedTo.toLowerCase().includes(q))
       )
     }
     return list
@@ -59,8 +108,10 @@ export const supportService = {
     messages: SupportTicketMessage[]
     userProfile: SupportUserProfile | null
   }> {
-    const ticket = mockTickets.find((t) => t.id === ticketId) || null
-    const messages = mockMessages[ticketId] || []
+    const tickets = loadTickets()
+    const ticket = tickets.find((t) => t.id === ticketId) || null
+    const allMessages = loadMessages()
+    const messages = allMessages[ticketId] || []
     const profile = ticket && mockProfiles[ticket.userId] ? mockProfiles[ticket.userId] : null
 
     const userProfile: SupportUserProfile | null = ticket
@@ -90,23 +141,31 @@ export const supportService = {
     return { ticket, messages, userProfile }
   },
 
-  async sendReply(ticketId: string, message: string): Promise<SupportTicketMessage> {
+  async sendReply(
+    ticketId: string,
+    message: string,
+    senderName = 'Nhân viên Hỗ trợ',
+    senderRole: 'user' | 'support' = 'support'
+  ): Promise<SupportTicketMessage> {
     const newMsg: SupportTicketMessage = {
       id: `msg-${Date.now()}`,
       ticketId,
       senderId: 'usr-support-me',
-      senderName: 'Nhân viên Hỗ trợ',
-      senderRole: 'support',
+      senderName,
+      senderRole,
       message,
       timestamp: new Date().toISOString(),
     }
-    if (!mockMessages[ticketId]) {
-      mockMessages[ticketId] = []
+    const allMessages = loadMessages()
+    if (!allMessages[ticketId]) {
+      allMessages[ticketId] = []
     }
-    mockMessages[ticketId].push(newMsg)
+    allMessages[ticketId].push(newMsg)
+    saveMessages(allMessages)
 
     // Update ticket message count & timestamp
-    mockTickets = mockTickets.map((t) =>
+    const tickets = loadTickets()
+    const updated = tickets.map((t) =>
       t.id === ticketId
         ? {
             ...t,
@@ -115,24 +174,79 @@ export const supportService = {
           }
         : t
     )
+    saveTickets(updated)
 
     return newMsg
   },
 
-  async updateTicketStatus(ticketId: string, status: TicketStatus): Promise<boolean> {
-    const ticket = mockTickets.find((t) => t.id === ticketId)
-    if (ticket) {
-      ticket.status = status
-      ticket.updatedAt = new Date().toISOString()
+  async updateTicketStatus(
+    ticketId: string,
+    status: TicketStatus,
+    actor = 'Demo Admin'
+  ): Promise<boolean> {
+    const tickets = loadTickets()
+    const idx = tickets.findIndex((t) => t.id === ticketId)
+    if (idx !== -1) {
+      const current = tickets[idx]
+      tickets[idx] = {
+        ...current,
+        status,
+        updatedAt: new Date().toISOString(),
+      }
+      saveTickets(tickets)
+
+      await operationsService.recordAuditLog({
+        actor,
+        workspace: 'support',
+        action: 'Cập nhật trạng thái ticket',
+        target: current.title,
+        targetId: current.id,
+        result: 'success',
+        details: `Trạng thái: ${status}`,
+      })
+
       return true
     }
     return false
   },
 
+  async assignTicket(
+    ticketId: string,
+    staffName: string,
+    actor = 'Demo Admin'
+  ): Promise<SupportTicketItem> {
+    const tickets = loadTickets()
+    const idx = tickets.findIndex((t) => t.id === ticketId)
+    if (idx === -1) throw new Error('Không tìm thấy ticket')
+
+    const current = tickets[idx]
+    const updated: SupportTicketItem = {
+      ...current,
+      assignedTo: staffName,
+      status: current.status === 'open' ? 'in-progress' : current.status,
+      updatedAt: new Date().toISOString(),
+    }
+    tickets[idx] = updated
+    saveTickets(tickets)
+
+    await operationsService.recordAuditLog({
+      actor,
+      workspace: 'support',
+      action: 'Phân công ticket hỗ trợ',
+      target: current.title,
+      targetId: current.id,
+      result: 'success',
+      details: `Phân công cho nhân viên: ${staffName}`,
+    })
+
+    return updated
+  },
+
   async lookupUser(query: string): Promise<SupportUserProfile | null> {
     if (!query.trim()) return null
     const q = query.trim().toLowerCase()
-    const ticket = mockTickets.find(
+    const tickets = loadTickets()
+    const ticket = tickets.find(
       (t) =>
         t.userEmail.toLowerCase().includes(q) ||
         t.userName.toLowerCase().includes(q) ||
@@ -164,6 +278,9 @@ export const supportService = {
   },
 
   _resetMockState(): void {
-    mockTickets = [...INITIAL_MOCK_TICKETS]
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.removeItem(STORAGE_KEYS.TICKETS)
+      localStorage.removeItem(STORAGE_KEYS.MESSAGES)
+    }
   },
 }

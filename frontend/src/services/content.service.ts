@@ -7,11 +7,10 @@ import type {
 } from '@/types/content'
 import {
   INITIAL_MOCK_LESSON_CONTENT,
-  INITIAL_MOCK_REVIEW_QUEUE,
 } from '@/data/staff/content.mock'
 import { educationService } from './education.service'
+import { operationsService } from './operations.service'
 
-let mockReviewQueue = [...INITIAL_MOCK_REVIEW_QUEUE]
 const mockLessonContents: Record<string, LessonEditorData> = { ...INITIAL_MOCK_LESSON_CONTENT }
 
 export const contentService = {
@@ -24,12 +23,13 @@ export const contentService = {
     recentLessons: ContentLessonItem[]
   }> {
     const lessons = await educationService.getLessons()
+    const reviewQueue = await this.getReviewQueue()
     return {
       draftCount: lessons.filter((l) => l.status === 'draft').length,
       needsReviewCount: lessons.filter((l) => l.status === 'in-review').length,
       publishedThisWeek: lessons.filter((l) => l.status === 'published').length,
       assessmentCoveragePercent: 86,
-      reviewQueue: [...mockReviewQueue],
+      reviewQueue,
       recentLessons: [...lessons.slice(0, 4)],
     }
   },
@@ -87,6 +87,31 @@ export const contentService = {
       status: data.status,
     })
 
+    // If status is in-review, ensure an approval item exists in operationsService
+    if (data.status === 'in-review') {
+      const approvals = await operationsService.getApprovals()
+      const existing = approvals.find((a) => a.contentId === data.id)
+      if (!existing) {
+        await operationsService.submitForApproval({
+          title: data.title,
+          contentType: 'lesson',
+          contentId: data.id,
+          subjectId: data.subjectId,
+          subjectName: data.subjectId === 'math' ? 'Toán học 12' : 'Vật lý 12',
+          authorName: 'Biên soạn nội dung',
+          authorRole: 'Content Specialist',
+          version: 'v1.0',
+          contentPreview: {
+            introduction: data.introduction,
+            definitions: data.definitions,
+            formulas: data.formulas,
+            examples: data.examples,
+            summary: data.summary,
+          },
+        })
+      }
+    }
+
     return updated
   },
 
@@ -104,26 +129,48 @@ export const contentService = {
   },
 
   async getReviewQueue(): Promise<ContentReviewQueueItem[]> {
-    return [...mockReviewQueue]
+    const approvals = await operationsService.getApprovals()
+    return approvals.map((a) => ({
+      id: a.id,
+      title: a.title,
+      type: a.contentType === 'assessment' ? 'assessment' : 'lesson',
+      subject: a.subjectName,
+      author: a.authorName,
+      submittedAt: a.submittedAt,
+      status:
+        a.status === 'changes-requested'
+          ? 'changes-requested'
+          : a.status === 'approved' || a.status === 'published'
+          ? 'approved'
+          : 'pending',
+      reviewer: a.reviewedBy,
+      commentsCount: a.history.length,
+    }))
   },
 
   async reviewAction(id: string, action: 'approve' | 'request-changes'): Promise<boolean> {
-    const item = mockReviewQueue.find((r) => r.id === id)
-    if (item) {
-      item.status = action === 'approve' ? 'approved' : 'changes-requested'
-      const newStatus = action === 'approve' ? 'published' : 'draft'
-      const lessons = await educationService.getLessons()
-      const matched = lessons.find((l) => l.title === item.title)
-      if (matched) {
-        await educationService.changeLessonStatus(matched.id, newStatus)
+    try {
+      if (action === 'approve') {
+        await operationsService.approveContent(
+          id,
+          'Phê duyệt từ Content Workspace',
+          'Ban Giám Định Chuyên Môn'
+        )
+      } else {
+        await operationsService.requestChanges(
+          id,
+          'Yêu cầu chỉnh sửa từ Content Workspace',
+          'Ban Giám Định Chuyên Môn'
+        )
       }
       return true
+    } catch {
+      return false
     }
-    return false
   },
 
   _resetMockState(): void {
     educationService._resetEducationMockState()
-    mockReviewQueue = [...INITIAL_MOCK_REVIEW_QUEUE]
+    operationsService._resetMockState()
   },
 }

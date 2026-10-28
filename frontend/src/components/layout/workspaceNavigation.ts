@@ -1,18 +1,23 @@
 import type { LucideIcon } from 'lucide-react'
 import {
+  Activity,
   AlertTriangle,
   Award,
   BarChart3,
+  Bell,
   BookOpen,
   CheckSquare,
   FileCheck,
   FileText,
   GraduationCap,
+  History,
   Layers,
   LayoutDashboard,
+  LifeBuoy,
   MessageSquare,
   School,
   Search,
+  Settings,
   Shield,
   Sliders,
   Users,
@@ -135,6 +140,48 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
         ],
       },
       {
+        id: 'content_control',
+        title: 'Kiểm soát nội dung',
+        items: [
+          {
+            id: 'admin-approvals',
+            label: 'Phê duyệt nội dung',
+            path: '/admin/approvals',
+            icon: FileCheck,
+          },
+          {
+            id: 'admin-publications',
+            label: 'Lịch sử xuất bản',
+            path: '/admin/publications',
+            icon: History,
+          },
+        ],
+      },
+      {
+        id: 'operations',
+        title: 'Vận hành & Hỗ trợ',
+        items: [
+          {
+            id: 'admin-tickets',
+            label: 'Yêu cầu hỗ trợ',
+            path: '/admin/tickets',
+            icon: LifeBuoy,
+          },
+          {
+            id: 'admin-announcements',
+            label: 'Thông báo hệ thống',
+            path: '/admin/announcements',
+            icon: Bell,
+          },
+          {
+            id: 'admin-audit-logs',
+            label: 'Nhật ký quản trị',
+            path: '/admin/audit-logs',
+            icon: Activity,
+          },
+        ],
+      },
+      {
         id: 'staff',
         title: 'Quản lý nhân sự',
         items: [
@@ -185,6 +232,18 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
             label: 'Trạng thái hệ thống',
             path: '/admin/system',
             icon: Sliders,
+          },
+        ],
+      },
+      {
+        id: 'configuration',
+        title: 'Cấu hình',
+        items: [
+          {
+            id: 'admin-settings',
+            label: 'Thiết lập vận hành',
+            path: '/admin/settings',
+            icon: Settings,
           },
         ],
       },

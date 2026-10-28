@@ -21,6 +21,14 @@ import { AdminAssignmentsPage } from '@/pages/Admin/AdminAssignmentsPage'
 import { AdminAssignmentDetailPage } from '@/pages/Admin/AdminAssignmentDetailPage'
 import { AdminGradesPage } from '@/pages/Admin/AdminGradesPage'
 import { AdminAlertsPage } from '@/pages/Admin/AdminAlertsPage'
+import { AdminApprovalsPage } from '@/pages/Admin/AdminApprovalsPage'
+import { AdminApprovalDetailPage } from '@/pages/Admin/AdminApprovalDetailPage'
+import { AdminPublicationsPage } from '@/pages/Admin/AdminPublicationsPage'
+import { AdminTicketsPage } from '@/pages/Admin/AdminTicketsPage'
+import { AdminTicketDetailPage } from '@/pages/Admin/AdminTicketDetailPage'
+import { AdminAnnouncementsPage } from '@/pages/Admin/AdminAnnouncementsPage'
+import { AdminAuditLogsPage } from '@/pages/Admin/AdminAuditLogsPage'
+import { AdminSettingsPage } from '@/pages/Admin/AdminSettingsPage'
 
 export function AdminRoutes() {
   return (
@@ -62,6 +70,20 @@ export function AdminRoutes() {
 
       {/* Báo cáo (Analytics & Reporting) */}
       <Route path="reports" element={<AdminReportsPage />} />
+
+      {/* Kiểm soát nội dung (Content Approval & Publications) */}
+      <Route path="approvals" element={<AdminApprovalsPage />} />
+      <Route path="approvals/:approvalId" element={<AdminApprovalDetailPage />} />
+      <Route path="publications" element={<AdminPublicationsPage />} />
+
+      {/* Vận hành & Hỗ trợ (Operations & Support) */}
+      <Route path="tickets" element={<AdminTicketsPage />} />
+      <Route path="tickets/:ticketId" element={<AdminTicketDetailPage />} />
+      <Route path="announcements" element={<AdminAnnouncementsPage />} />
+      <Route path="audit-logs" element={<AdminAuditLogsPage />} />
+
+      {/* Cấu hình vận hành (Configuration) */}
+      <Route path="settings" element={<AdminSettingsPage />} />
     </Route>
   )
 }
