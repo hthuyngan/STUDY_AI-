@@ -849,3 +849,239 @@
 [data-theme='dark'] .sandbox-notice-desc {
   color: #fed7aa;
 }
+
+/* ── EDUCATION MANAGEMENT EXTENSIONS ─────────────────────── */
+.admin-education-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.admin-subject-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.admin-subject-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-radius: var(--radius-lg, 12px);
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  padding: 20px;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.admin-subject-card:hover {
+  border-color: var(--navy-primary, #102a43);
+  box-shadow: 0 4px 12px rgba(16, 42, 67, 0.08);
+}
+
+.admin-subject-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.admin-subject-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md, 8px);
+  background: rgba(16, 42, 67, 0.06);
+  color: var(--navy-primary, #102a43);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.admin-subject-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-main, #102a43);
+  margin: 0 0 4px 0;
+}
+
+.admin-subject-code {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(16, 42, 67, 0.06);
+  color: var(--text-muted, #627d98);
+}
+
+.admin-subject-desc {
+  font-size: 0.83rem;
+  color: var(--text-muted, #627d98);
+  margin: 0 0 16px 0;
+  line-height: 1.45;
+  min-height: 40px;
+}
+
+.admin-subject-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 12px;
+  background: var(--surface-sunken, #f8f9fa);
+  border-radius: var(--radius-md, 8px);
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.admin-subject-metric-val {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--navy-primary, #102a43);
+}
+
+.admin-subject-metric-label {
+  font-size: 0.72rem;
+  color: var(--text-muted, #627d98);
+}
+
+.admin-subject-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--border-subtle, #e2e8f0);
+  padding-top: 14px;
+  margin-top: auto;
+}
+
+.admin-order-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.admin-order-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  background: var(--bg-card, #ffffff);
+  color: var(--text-muted, #627d98);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.admin-order-btn:hover:not(:disabled) {
+  border-color: var(--navy-primary, #102a43);
+  color: var(--navy-primary, #102a43);
+  background: rgba(16, 42, 67, 0.05);
+}
+
+.admin-order-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.admin-question-preview-box {
+  background: var(--surface-sunken, #f8f9fa);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: var(--radius-md, 8px);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.admin-question-prompt {
+  font-weight: 600;
+  color: var(--text-main, #102a43);
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+}
+
+.admin-question-options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.admin-question-option-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+}
+
+.admin-question-option-item.correct {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.08);
+  font-weight: 600;
+  color: #065f46;
+}
+
+.admin-question-explanation {
+  font-size: 0.8rem;
+  color: var(--text-muted, #627d98);
+  border-left: 2px solid var(--navy-primary, #102a43);
+  padding-left: 10px;
+  margin-top: 8px;
+  font-style: italic;
+}
+
+.admin-teacher-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(16, 42, 67, 0.06);
+  color: var(--navy-primary, #102a43);
+}
+
+.admin-report-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: var(--radius-lg, 12px);
+  margin-bottom: 24px;
+}
+
+[data-theme='dark'] .admin-subject-card {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+[data-theme='dark'] .admin-subject-metrics {
+  background: #0f172a;
+}
+
+[data-theme='dark'] .admin-question-preview-box {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+[data-theme='dark'] .admin-question-option-item {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+[data-theme='dark'] .admin-report-filter-bar {
+  background: #1e293b;
+  border-color: #334155;
+}

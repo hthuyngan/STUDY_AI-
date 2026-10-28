@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
 import {
+  BarChart3,
   BookOpen,
   CheckSquare,
   FileCheck,
@@ -55,6 +56,60 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
             label: 'Bảng điều khiển',
             path: '/admin',
             icon: LayoutDashboard,
+          },
+        ],
+      },
+      {
+        id: 'education',
+        title: 'Quản lý học tập',
+        items: [
+          {
+            id: 'admin-subjects',
+            label: 'Môn học',
+            path: '/admin/subjects',
+            icon: BookOpen,
+          },
+          {
+            id: 'admin-chapters',
+            label: 'Chương học',
+            path: '/admin/chapters',
+            icon: Layers,
+          },
+          {
+            id: 'admin-lessons',
+            label: 'Bài học',
+            path: '/admin/lessons',
+            icon: FileText,
+          },
+          {
+            id: 'admin-assessments',
+            label: 'Bài thu hoạch',
+            path: '/admin/assessments',
+            icon: CheckSquare,
+          },
+        ],
+      },
+      {
+        id: 'staff',
+        title: 'Quản lý nhân sự',
+        items: [
+          {
+            id: 'admin-teachers',
+            label: 'Giáo viên',
+            path: '/admin/teachers',
+            icon: GraduationCap,
+          },
+        ],
+      },
+      {
+        id: 'analytics',
+        title: 'Báo cáo',
+        items: [
+          {
+            id: 'admin-reports',
+            label: 'Báo cáo học tập',
+            path: '/admin/reports',
+            icon: BarChart3,
           },
         ],
       },

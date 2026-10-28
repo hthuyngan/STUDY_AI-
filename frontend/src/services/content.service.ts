@@ -6,16 +6,11 @@ import type {
   LessonEditorData,
 } from '@/types/content'
 import {
-  INITIAL_MOCK_ASSESSMENTS,
   INITIAL_MOCK_LESSON_CONTENT,
-  INITIAL_MOCK_LESSONS,
   INITIAL_MOCK_REVIEW_QUEUE,
-  INITIAL_MOCK_SUBJECTS,
 } from '@/data/staff/content.mock'
+import { educationService } from './education.service'
 
-let mockSubjects = [...INITIAL_MOCK_SUBJECTS]
-let mockLessons = [...INITIAL_MOCK_LESSONS]
-let mockAssessments = [...INITIAL_MOCK_ASSESSMENTS]
 let mockReviewQueue = [...INITIAL_MOCK_REVIEW_QUEUE]
 const mockLessonContents: Record<string, LessonEditorData> = { ...INITIAL_MOCK_LESSON_CONTENT }
 
@@ -28,18 +23,19 @@ export const contentService = {
     reviewQueue: ContentReviewQueueItem[]
     recentLessons: ContentLessonItem[]
   }> {
+    const lessons = await educationService.getLessons()
     return {
-      draftCount: mockLessons.filter((l) => l.status === 'draft').length,
-      needsReviewCount: mockLessons.filter((l) => l.status === 'in-review').length,
-      publishedThisWeek: mockLessons.filter((l) => l.status === 'published').length,
+      draftCount: lessons.filter((l) => l.status === 'draft').length,
+      needsReviewCount: lessons.filter((l) => l.status === 'in-review').length,
+      publishedThisWeek: lessons.filter((l) => l.status === 'published').length,
       assessmentCoveragePercent: 86,
       reviewQueue: [...mockReviewQueue],
-      recentLessons: [...mockLessons.slice(0, 4)],
+      recentLessons: [...lessons.slice(0, 4)],
     }
   },
 
   async getSubjects(): Promise<CurriculumSubjectItem[]> {
-    return [...mockSubjects]
+    return educationService.getSubjects()
   },
 
   async getLessons(
@@ -47,29 +43,18 @@ export const contentService = {
     statusFilter = 'all',
     search = ''
   ): Promise<ContentLessonItem[]> {
-    let list = [...mockLessons]
-    if (subjectFilter && subjectFilter !== 'all') {
-      list = list.filter((l) => l.subjectId === subjectFilter)
-    }
-    if (statusFilter && statusFilter !== 'all') {
-      list = list.filter((l) => l.status === statusFilter)
-    }
-    if (search.trim()) {
-      const q = search.trim().toLowerCase()
-      list = list.filter(
-        (l) =>
-          l.title.toLowerCase().includes(q) ||
-          l.authorName.toLowerCase().includes(q)
-      )
-    }
-    return list
+    return educationService.getLessons({
+      subjectId: subjectFilter,
+      status: statusFilter,
+      search,
+    })
   },
 
   async getLessonEditor(lessonId: string): Promise<LessonEditorData> {
     if (mockLessonContents[lessonId]) {
       return { ...mockLessonContents[lessonId] }
     }
-    const lesson = mockLessons.find((l) => l.id === lessonId)
+    const lesson = await educationService.getLessonById(lessonId)
     const editorData: LessonEditorData = {
       id: lessonId,
       title: lesson ? lesson.title : 'Bài học mới',
@@ -96,22 +81,26 @@ export const contentService = {
     }
     mockLessonContents[data.id] = updated
 
-    // Also update in lessons list
-    mockLessons = mockLessons.map((l) =>
-      l.id === data.id
-        ? {
-            ...l,
-            title: data.title,
-            status: data.status,
-            updatedAt: updated.lastSavedAt || new Date().toISOString(),
-          }
-        : l
-    )
+    // Update in shared education service
+    await educationService.updateLesson(data.id, {
+      title: data.title,
+      status: data.status,
+    })
+
     return updated
   },
 
   async getAssessments(): Promise<ContentAssessmentSummary[]> {
-    return [...mockAssessments]
+    const asm = await educationService.getAssessments()
+    return asm.map((a) => ({
+      id: a.id,
+      lessonId: a.lessonId,
+      lessonTitle: a.lessonTitle,
+      questionCount: a.questionCount,
+      passingScore: a.passingScore,
+      status: a.status,
+      updatedAt: a.updatedAt,
+    }))
   },
 
   async getReviewQueue(): Promise<ContentReviewQueueItem[]> {
@@ -122,21 +111,19 @@ export const contentService = {
     const item = mockReviewQueue.find((r) => r.id === id)
     if (item) {
       item.status = action === 'approve' ? 'approved' : 'changes-requested'
-      // Update corresponding lesson status if applicable
-      mockLessons = mockLessons.map((l) =>
-        l.title === item.title
-          ? { ...l, status: action === 'approve' ? 'published' : 'draft' }
-          : l
-      )
+      const newStatus = action === 'approve' ? 'published' : 'draft'
+      const lessons = await educationService.getLessons()
+      const matched = lessons.find((l) => l.title === item.title)
+      if (matched) {
+        await educationService.changeLessonStatus(matched.id, newStatus)
+      }
       return true
     }
     return false
   },
 
   _resetMockState(): void {
-    mockSubjects = [...INITIAL_MOCK_SUBJECTS]
-    mockLessons = [...INITIAL_MOCK_LESSONS]
-    mockAssessments = [...INITIAL_MOCK_ASSESSMENTS]
+    educationService._resetEducationMockState()
     mockReviewQueue = [...INITIAL_MOCK_REVIEW_QUEUE]
   },
 }
