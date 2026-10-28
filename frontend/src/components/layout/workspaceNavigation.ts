@@ -28,7 +28,7 @@ export interface WorkspaceNavItem {
   label: string
   path: string
   icon: LucideIcon
-  badge?: string
+  badge?: string | number
 }
 
 export interface WorkspaceNavGroup {
@@ -56,7 +56,7 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
     groups: [
       {
         id: 'overview',
-        title: 'Tổng quan',
+        title: 'TỔNG QUAN',
         items: [
           {
             id: 'admin-dashboard',
@@ -67,8 +67,8 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
         ],
       },
       {
-        id: 'management',
-        title: 'Quản trị người dùng',
+        id: 'users-staff',
+        title: 'NGƯỜI DÙNG & NHÂN SỰ',
         items: [
           {
             id: 'admin-users',
@@ -77,58 +77,60 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
             icon: Users,
           },
           {
-            id: 'admin-roles',
-            label: 'Phân quyền & Vai trò',
-            path: '/admin/roles',
-            icon: Shield,
-          },
-          {
             id: 'admin-teachers',
             label: 'Quản lý nhân sự',
             path: '/admin/teachers',
             icon: GraduationCap,
           },
+          {
+            id: 'admin-roles',
+            label: 'Phân quyền & Vai trò',
+            path: '/admin/roles',
+            icon: Shield,
+          },
         ],
       },
       {
         id: 'monitoring',
-        title: 'Giám sát & Báo cáo',
+        title: 'GIÁM SÁT & BÁO CÁO',
         items: [
-          {
-            id: 'admin-reports',
-            label: 'Báo cáo tổng hợp',
-            path: '/admin/reports',
-            icon: BarChart3,
-          },
-          {
-            id: 'admin-audit-logs',
-            label: 'Nhật ký quản trị',
-            path: '/admin/audit-logs',
-            icon: Activity,
-          },
           {
             id: 'admin-content-monitor',
             label: 'Giám sát nội dung',
             path: '/admin/content-monitor',
             icon: FileCheck,
+            badge: 2,
           },
           {
             id: 'admin-support-monitor',
             label: 'Giám sát hỗ trợ',
             path: '/admin/support-monitor',
             icon: LifeBuoy,
+            badge: 3,
+          },
+          {
+            id: 'admin-reports',
+            label: 'Báo cáo tổng hợp',
+            path: '/admin/reports',
+            icon: BarChart3,
           },
         ],
       },
       {
         id: 'operations',
-        title: 'Vận hành hệ thống',
+        title: 'VẬN HÀNH HỆ THỐNG',
         items: [
           {
             id: 'admin-announcements',
             label: 'Thông báo hệ thống',
             path: '/admin/announcements',
             icon: Bell,
+          },
+          {
+            id: 'admin-audit-logs',
+            label: 'Nhật ký quản trị',
+            path: '/admin/audit-logs',
+            icon: Activity,
           },
           {
             id: 'admin-system',
@@ -149,7 +151,7 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
 
   teacher: {
     role: 'teacher',
-    name: 'Không gian giảng dạy',
+    name: 'Không gian giáo viên',
     subLabel: 'TEACHER',
     badgeText: 'Giáo viên',
     basePath: '/teacher',
@@ -205,6 +207,7 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
             label: 'Cảnh báo học tập',
             path: '/teacher/alerts',
             icon: AlertTriangle,
+            badge: 3,
           },
         ],
       },
@@ -213,14 +216,14 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
 
   content: {
     role: 'content',
-    name: 'Biên tập giáo trình',
+    name: 'Quản lý nội dung',
     subLabel: 'CONTENT',
     badgeText: 'Nội dung',
     basePath: '/content',
     groups: [
       {
         id: 'overview',
-        title: 'Tổng quan',
+        title: 'TỔNG QUAN',
         items: [
           {
             id: 'content-dashboard',
@@ -232,7 +235,7 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
       },
       {
         id: 'curriculum',
-        title: 'Quản lý chương trình',
+        title: 'GIÁO TRÌNH',
         items: [
           {
             id: 'content-subjects',
@@ -252,6 +255,12 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
             path: '/content/lessons',
             icon: FileText,
           },
+        ],
+      },
+      {
+        id: 'assessments-group',
+        title: 'ĐÁNH GIÁ',
+        items: [
           {
             id: 'content-assessments',
             label: 'Bài thu hoạch',
@@ -262,13 +271,14 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
       },
       {
         id: 'editorial',
-        title: 'Biên tập & Kiểm duyệt',
+        title: 'KIỂM DUYỆT',
         items: [
           {
             id: 'content-review',
             label: 'Hàng đợi duyệt',
             path: '/content/review',
             icon: FileCheck,
+            badge: 2,
           },
           {
             id: 'content-publications',
@@ -283,14 +293,14 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
 
   support: {
     role: 'support',
-    name: 'Hỗ trợ người dùng',
+    name: 'Trung tâm hỗ trợ',
     subLabel: 'SUPPORT',
     badgeText: 'Hỗ trợ',
     basePath: '/support',
     groups: [
       {
         id: 'overview',
-        title: 'Tổng quan',
+        title: 'TỔNG QUAN',
         items: [
           {
             id: 'support-dashboard',
@@ -302,19 +312,20 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
       },
       {
         id: 'tickets',
-        title: 'Ticket & Yêu cầu',
+        title: 'HỖ TRỢ',
         items: [
           {
             id: 'support-tickets',
             label: 'Tất cả tickets',
             path: '/support/tickets',
             icon: MessageSquare,
+            badge: 3,
           },
         ],
       },
       {
         id: 'users',
-        title: 'Tra cứu thông tin',
+        title: 'NGƯỜI DÙNG',
         items: [
           {
             id: 'support-users',
