@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import {
   Menu,
   LogOut,
@@ -7,7 +7,7 @@ import {
   ChevronDown,
   ArrowLeft,
 } from 'lucide-react'
-import { Link, useNavigate, Outlet } from 'react-router-dom'
+import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom'
 import { useAuth } from '@/auth/useAuth'
 import type { UserRole } from '@/auth/auth.types'
 import {
@@ -30,13 +30,22 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
 }) => {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const config = getWorkspaceConfig(role)
 
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     return localStorage.getItem('study_ai_workspace_sidebar_collapsed') === 'true'
   })
   const [mobileOpen, setMobileOpen] = useState<boolean>(false)
+  const [prevPath, setPrevPath] = useState(location.pathname)
   const [accountMenuOpen, setAccountMenuOpen] = useState<boolean>(false)
+
+  // Auto-close mobile drawer and dropdown on route change without cascading effects
+  if (location.pathname !== prevPath) {
+    setPrevPath(location.pathname)
+    setMobileOpen(false)
+    setAccountMenuOpen(false)
+  }
 
   const toggleCollapse = () => {
     setCollapsed((prev) => {
@@ -46,12 +55,15 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     })
   }
 
-  // Keyboard shortcut Ctrl+B or Cmd+B to toggle sidebar
+  // Keyboard shortcut Ctrl+B or Cmd+B to toggle sidebar, Escape to close menus
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b') {
         e.preventDefault()
         toggleCollapse()
+      } else if (e.key === 'Escape') {
+        setMobileOpen(false)
+        setAccountMenuOpen(false)
       }
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -76,6 +88,26 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   }
 
   const roleLabel = ROLE_LABELS[user?.role || role]
+
+  // Compute active navigation title for breadcrumbs if not explicitly passed
+  const currentNavTitle = useMemo(() => {
+    if (title) return title
+    const currentPath = location.pathname.replace(/\/$/, '') || '/'
+    const basePath = config.basePath.replace(/\/$/, '') || '/'
+
+    for (const group of config.groups) {
+      for (const item of group.items) {
+        const itemPath = item.path.replace(/\/$/, '') || '/'
+        if (currentPath === itemPath) {
+          return item.label
+        }
+        if (itemPath !== basePath && currentPath.startsWith(itemPath + '/')) {
+          return item.label
+        }
+      }
+    }
+    return undefined
+  }, [title, location.pathname, config])
 
   return (
     <div className="workspace-shell">
@@ -103,8 +135,8 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
             </button>
             <div className="workspace-breadcrumb">
               <span className="workspace-name">{config.name}</span>
-              {title && <span className="workspace-title-separator">/</span>}
-              {title && <span className="workspace-current-title">{title}</span>}
+              {currentNavTitle && <span className="workspace-title-separator">/</span>}
+              {currentNavTitle && <span className="workspace-current-title">{currentNavTitle}</span>}
             </div>
           </div>
 

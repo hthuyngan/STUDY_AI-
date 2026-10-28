@@ -28,11 +28,32 @@
   top: 0;
   bottom: 0;
   left: 0;
-  z-index: 40;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--surface-card, #ffffff);
+  border-right: 1px solid var(--border-default, #e2e8f0);
 }
 
 .workspace-sidebar.collapsed {
   width: 72px;
+}
+
+.workspace-sidebar.collapsed .sidebar-nav-link {
+  justify-content: center;
+  padding: 0;
+}
+
+.workspace-sidebar.collapsed .workspace-sidebar-back-link {
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.sidebar-mobile-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.4);
+  z-index: 490;
 }
 
 .brand-role-badge {
@@ -295,18 +316,49 @@
 }
 
 /* Mobile & Tablet Responsiveness */
-@media (max-width: 1023px) {
+@media (max-width: 1024px) {
   .workspace-main {
     margin-left: 0 !important;
   }
 
   .workspace-sidebar {
+    width: 260px !important;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 500;
     transform: translateX(-100%);
     transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: none;
   }
 
   .workspace-sidebar.mobile-open {
-    transform: translateX(0);
+    transform: translateX(0) !important;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+  }
+
+  .workspace-sidebar.mobile-open .sidebar-brand-text,
+  .workspace-sidebar.mobile-open .sidebar-group-title,
+  .workspace-sidebar.mobile-open .sidebar-nav-label,
+  .workspace-sidebar.mobile-open .sidebar-nav-count,
+  .workspace-sidebar.mobile-open .sidebar-user-info {
+    display: flex !important;
+    pointer-events: auto !important;
+  }
+
+  .workspace-sidebar.mobile-open .sidebar-nav-link {
+    justify-content: flex-start !important;
+    padding: 0 12px !important;
+  }
+
+  .workspace-sidebar.mobile-open .workspace-sidebar-back-link {
+    justify-content: flex-start !important;
+    padding: 8px 10px !important;
+  }
+
+  .workspace-sidebar.mobile-open .workspace-sidebar-back-link span {
+    display: inline !important;
   }
 
   .workspace-mobile-menu-btn {

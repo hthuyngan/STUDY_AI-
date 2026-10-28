@@ -25,10 +25,12 @@ function App() {
     })
   }, [])
 
+  const appBasename = (import.meta.env.BASE_URL || '/').replace(/\/$/, '') || '/'
+
   return (
     <AuthProvider>
       <MigrationDialog />
-      <BrowserRouter basename={import.meta.env.BASE_URL}>
+      <BrowserRouter basename={appBasename}>
         <Routes>
           {/* Authentication Routes */}
           <Route

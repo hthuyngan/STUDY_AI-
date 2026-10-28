@@ -20,6 +20,10 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
 }) => {
   const location = useLocation()
 
+  // Normalize paths for reliable active state matching
+  const currentPath = location.pathname.replace(/\/$/, '') || '/'
+  const basePath = config.basePath.replace(/\/$/, '') || '/'
+
   return (
     <>
       {mobileOpen && (
@@ -56,7 +60,7 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
           {onToggleCollapse && (
             <button
               type="button"
-              className="sidebar-toggle-btn"
+              className="sidebar-collapse-btn desktop-only"
               onClick={onToggleCollapse}
               aria-label={collapsed ? 'Mở rộng thanh điều hướng' : 'Thu gọn thanh điều hướng'}
               title={collapsed ? 'Mở rộng (Ctrl+B)' : 'Thu gọn (Ctrl+B)'}
@@ -67,43 +71,45 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
         </div>
 
         {/* Navigation list */}
-        <nav className="sidebar-nav">
+        <nav className="sidebar-nav scrollbar-clean">
           {config.groups.map((group) => (
-            <div key={group.id} className="sidebar-section">
+            <div key={group.id} className="sidebar-nav-group">
               {!collapsed && (
-                <div className="sidebar-section-title">{group.title}</div>
+                <div className="sidebar-group-header">
+                  <span className="sidebar-group-title">{group.title}</span>
+                </div>
               )}
-              <ul className="sidebar-list">
+              <div className="sidebar-sub-items">
                 {group.items.map((item) => {
                   const Icon = item.icon
+                  const itemPath = item.path.replace(/\/$/, '') || '/'
                   const isActive =
-                    location.pathname === item.path ||
-                    (item.path !== config.basePath &&
-                      location.pathname.startsWith(item.path))
+                    currentPath === itemPath ||
+                    (itemPath !== basePath && (currentPath === itemPath || currentPath.startsWith(itemPath + '/')))
 
                   return (
-                    <li key={item.id} className="sidebar-item-wrapper">
-                      <Link
-                        to={item.path}
-                        className={`sidebar-item ${isActive ? 'active' : ''}`.trim()}
-                        onClick={onCloseMobile}
-                        aria-current={isActive ? 'page' : undefined}
-                        title={collapsed ? item.label : undefined}
-                      >
-                        <span className="sidebar-item-icon" aria-hidden="true">
-                          <Icon size={18} />
-                        </span>
-                        {!collapsed && (
-                          <span className="sidebar-item-label">{item.label}</span>
-                        )}
-                        {!collapsed && item.badge && (
-                          <span className="sidebar-item-badge">{item.badge}</span>
-                        )}
-                      </Link>
-                    </li>
+                    <Link
+                      key={item.id}
+                      to={item.path}
+                      className={`sidebar-nav-link ${isActive ? 'active' : ''} ${collapsed ? 'collapsed' : ''}`.trim()}
+                      onClick={onCloseMobile}
+                      aria-current={isActive ? 'page' : undefined}
+                      title={collapsed ? item.label : undefined}
+                    >
+                      <Icon className="sidebar-nav-icon" size={18} aria-hidden="true" />
+                      {!collapsed && (
+                        <span className="sidebar-nav-label">{item.label}</span>
+                      )}
+                      {!collapsed && item.badge && (
+                        <span className="sidebar-nav-count">{item.badge}</span>
+                      )}
+                      {collapsed && item.badge && (
+                        <span className="sidebar-nav-dot" aria-hidden="true" />
+                      )}
+                    </Link>
                   )
                 })}
-              </ul>
+              </div>
             </div>
           ))}
         </nav>
