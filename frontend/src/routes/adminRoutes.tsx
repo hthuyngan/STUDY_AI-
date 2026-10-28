@@ -1,34 +1,26 @@
-import { Route } from 'react-router-dom'
+import { Navigate, Route, useParams } from 'react-router-dom'
 import { RoleGuard } from '@/auth/RoleGuard'
 import { WorkspaceShell } from '@/components/layout/WorkspaceShell'
 import { AdminDashboardPage } from '@/pages/Admin/AdminDashboardPage'
 import { AdminUsersPage } from '@/pages/Admin/AdminUsersPage'
 import { AdminUserDetailPage } from '@/pages/Admin/AdminUserDetailPage'
 import { AdminRolesPage } from '@/pages/Admin/AdminRolesPage'
-import { AdminSystemPage } from '@/pages/Admin/AdminSystemPage'
-import { AdminSubjectsPage } from '@/pages/Admin/AdminSubjectsPage'
-import { AdminChaptersPage } from '@/pages/Admin/AdminChaptersPage'
-import { AdminLessonsPage } from '@/pages/Admin/AdminLessonsPage'
-import { ContentLessonEditorPage } from '@/pages/Content/ContentLessonEditorPage'
-import { AdminAssessmentsPage } from '@/pages/Admin/AdminAssessmentsPage'
 import { AdminTeachersPage } from '@/pages/Admin/AdminTeachersPage'
 import { AdminReportsPage } from '@/pages/Admin/AdminReportsPage'
-import { AdminClassesPage } from '@/pages/Admin/AdminClassesPage'
-import { AdminClassDetailPage } from '@/pages/Admin/AdminClassDetailPage'
-import { AdminStudentsPage } from '@/pages/Admin/AdminStudentsPage'
-import { AdminStudentProfilePage } from '@/pages/Admin/AdminStudentProfilePage'
-import { AdminAssignmentsPage } from '@/pages/Admin/AdminAssignmentsPage'
-import { AdminAssignmentDetailPage } from '@/pages/Admin/AdminAssignmentDetailPage'
-import { AdminGradesPage } from '@/pages/Admin/AdminGradesPage'
-import { AdminAlertsPage } from '@/pages/Admin/AdminAlertsPage'
-import { AdminApprovalsPage } from '@/pages/Admin/AdminApprovalsPage'
-import { AdminApprovalDetailPage } from '@/pages/Admin/AdminApprovalDetailPage'
-import { AdminPublicationsPage } from '@/pages/Admin/AdminPublicationsPage'
-import { AdminTicketsPage } from '@/pages/Admin/AdminTicketsPage'
-import { AdminTicketDetailPage } from '@/pages/Admin/AdminTicketDetailPage'
 import { AdminAnnouncementsPage } from '@/pages/Admin/AdminAnnouncementsPage'
 import { AdminAuditLogsPage } from '@/pages/Admin/AdminAuditLogsPage'
+import { AdminSystemPage } from '@/pages/Admin/AdminSystemPage'
 import { AdminSettingsPage } from '@/pages/Admin/AdminSettingsPage'
+import { AdminContentMonitorPage } from '@/pages/Admin/AdminContentMonitorPage'
+import { AdminSupportMonitorPage } from '@/pages/Admin/AdminSupportMonitorPage'
+
+// Helper component to preserve URL params on legacy redirect
+function RedirectWithParam({ basePath, paramName }: { basePath: string; paramName: string }) {
+  const params = useParams()
+  const paramVal = params[paramName]
+  const target = paramVal ? `${basePath}/${paramVal}` : basePath
+  return <Navigate to={target} replace />
+}
 
 export function AdminRoutes() {
   return (
@@ -40,50 +32,46 @@ export function AdminRoutes() {
         </RoleGuard>
       }
     >
+      {/* 1. Core Administration & System Monitoring */}
       <Route index element={<AdminDashboardPage />} />
       <Route path="users" element={<AdminUsersPage />} />
       <Route path="users/:id" element={<AdminUserDetailPage />} />
       <Route path="roles" element={<AdminRolesPage />} />
-      <Route path="system" element={<AdminSystemPage />} />
-
-      {/* Quản lý học tập (Education Management) */}
-      <Route path="subjects" element={<AdminSubjectsPage />} />
-      <Route path="chapters" element={<AdminChaptersPage />} />
-      <Route path="lessons" element={<AdminLessonsPage />} />
-      <Route path="lessons/:id" element={<ContentLessonEditorPage />} />
-      <Route path="assessments" element={<AdminAssessmentsPage />} />
-
-      {/* Quản lý giảng dạy (Classroom & Students) */}
-      <Route path="classes" element={<AdminClassesPage />} />
-      <Route path="classes/:classId" element={<AdminClassDetailPage />} />
-      <Route path="students" element={<AdminStudentsPage />} />
-      <Route path="students/:studentId" element={<AdminStudentProfilePage />} />
-      <Route path="assignments" element={<AdminAssignmentsPage />} />
-      <Route path="assignments/:assignmentId" element={<AdminAssignmentDetailPage />} />
-
-      {/* Kết quả học tập (Performance & Alerts) */}
-      <Route path="grades" element={<AdminGradesPage />} />
-      <Route path="alerts" element={<AdminAlertsPage />} />
-
-      {/* Quản lý nhân sự (Staff Management) */}
       <Route path="teachers" element={<AdminTeachersPage />} />
-
-      {/* Báo cáo (Analytics & Reporting) */}
       <Route path="reports" element={<AdminReportsPage />} />
-
-      {/* Kiểm soát nội dung (Content Approval & Publications) */}
-      <Route path="approvals" element={<AdminApprovalsPage />} />
-      <Route path="approvals/:approvalId" element={<AdminApprovalDetailPage />} />
-      <Route path="publications" element={<AdminPublicationsPage />} />
-
-      {/* Vận hành & Hỗ trợ (Operations & Support) */}
-      <Route path="tickets" element={<AdminTicketsPage />} />
-      <Route path="tickets/:ticketId" element={<AdminTicketDetailPage />} />
       <Route path="announcements" element={<AdminAnnouncementsPage />} />
       <Route path="audit-logs" element={<AdminAuditLogsPage />} />
-
-      {/* Cấu hình vận hành (Configuration) */}
+      <Route path="system" element={<AdminSystemPage />} />
       <Route path="settings" element={<AdminSettingsPage />} />
+
+      {/* 2. Cross-Workspace Oversight & Performance Monitoring (V6) */}
+      <Route path="content-monitor" element={<AdminContentMonitorPage />} />
+      <Route path="support-monitor" element={<AdminSupportMonitorPage />} />
+
+      {/* 3. Backward Compatibility Redirects (Seamless Transition from V3/V4/V5) */}
+      {/* Curriculum Management -> Content Workspace */}
+      <Route path="subjects" element={<Navigate to="/content/subjects" replace />} />
+      <Route path="chapters" element={<Navigate to="/content/chapters" replace />} />
+      <Route path="lessons" element={<Navigate to="/content/lessons" replace />} />
+      <Route path="lessons/:id" element={<RedirectWithParam basePath="/content/lessons" paramName="id" />} />
+      <Route path="assessments" element={<Navigate to="/content/assessments" replace />} />
+      <Route path="approvals" element={<Navigate to="/content/review" replace />} />
+      <Route path="approvals/:approvalId" element={<RedirectWithParam basePath="/content/review" paramName="approvalId" />} />
+      <Route path="publications" element={<Navigate to="/content/publications" replace />} />
+
+      {/* Classroom, Teaching & Grades -> Teacher Workspace */}
+      <Route path="classes" element={<Navigate to="/teacher/classes" replace />} />
+      <Route path="classes/:classId" element={<RedirectWithParam basePath="/teacher/classes" paramName="classId" />} />
+      <Route path="students" element={<Navigate to="/teacher/students" replace />} />
+      <Route path="students/:studentId" element={<RedirectWithParam basePath="/teacher/students" paramName="studentId" />} />
+      <Route path="assignments" element={<Navigate to="/teacher/assignments" replace />} />
+      <Route path="assignments/:assignmentId" element={<RedirectWithParam basePath="/teacher/assignments" paramName="assignmentId" />} />
+      <Route path="grades" element={<Navigate to="/teacher/grades" replace />} />
+      <Route path="alerts" element={<Navigate to="/teacher/alerts" replace />} />
+
+      {/* User Support Tickets -> Support Workspace */}
+      <Route path="tickets" element={<Navigate to="/support/tickets" replace />} />
+      <Route path="tickets/:ticketId" element={<RedirectWithParam basePath="/support/tickets" paramName="ticketId" />} />
     </Route>
   )
 }

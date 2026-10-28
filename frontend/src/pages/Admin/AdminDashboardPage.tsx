@@ -82,7 +82,7 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
           <h1 className="staff-page-title">Tổng quan hệ thống</h1>
           <p className="staff-page-desc">
-            Quản lý hoạt động, tài khoản và chất lượng học tập trên STUDY_AI.
+            Quản lý hoạt động, tài khoản và chất lượng học tập trên nền tảng STUDY_AI.
           </p>
         </div>
 
@@ -108,13 +108,13 @@ export const AdminDashboardPage: React.FC = () => {
             onClick={() => setReportModalOpen(true)}
             aria-label="Xem báo cáo tổng quan"
           >
-            <span>Xem báo cáo</span>
+            Báo cáo nhanh
           </Button>
         </div>
       </div>
 
-      {/* Hàng 2 — 4 KPI compact */}
-      <div className="staff-metric-grid" style={{ marginTop: '24px' }}>
+      {/* Hàng 2 — Top Metric Grid (4 cards chuẩn) */}
+      <div className="staff-metric-grid" aria-label="Thống kê chính">
         {loading ? (
           <>
             <Skeleton height={96} />
@@ -126,103 +126,79 @@ export const AdminDashboardPage: React.FC = () => {
           <>
             <StaffMetricCard
               label="Tổng người dùng"
-              value={metrics?.totalUsers.toLocaleString('vi-VN') || 0}
-              context="Bao gồm học viên và nhân sự"
+              value={metrics?.totalUsers ?? 0}
+              context={`${metrics?.activeLearners ?? 0} người hoạt động tuần này`}
               icon={Users}
-              trend={{ value: '12% kỳ này', isPositive: true }}
+              trend={{
+                value: '+12.4% so với kỳ trước',
+                isPositive: true,
+              }}
             />
             <StaffMetricCard
               label="Học viên đang hoạt động"
-              value={metrics?.activeLearners.toLocaleString('vi-VN') || 0}
-              context="Tương tác trong 30 ngày qua"
+              value={metrics?.activeLearners ?? 0}
+              context="Đang theo học các môn"
               icon={GraduationCap}
-              trend={{ value: '8% tuần này', isPositive: true }}
+              trend={{
+                value: '+8.1%',
+                isPositive: true,
+              }}
             />
             <StaffMetricCard
               label="Bài học đã hoàn thành"
               value={(metrics?.completedLessonsTotal || 8642).toLocaleString('vi-VN')}
-              context="Tiến trình học tập tích lũy"
+              context="Tiến độ học tập tích cực"
               icon={BookCheck}
-              trend={{ value: '15% tháng này', isPositive: true }}
+              trend={{
+                value: '+18.5%',
+                isPositive: true,
+              }}
             />
             <StaffMetricCard
               label="Yêu cầu cần xử lý"
               value={attentionItems.length}
-              context="Hàng đợi cần duyệt hoặc hỗ trợ"
+              context="Tài khoản chờ duyệt & khiếu nại"
               icon={AlertCircle}
-              trend={
-                attentionItems.length > 0
-                  ? { value: `${attentionItems.filter((i) => i.severity === 'high').length} mục ưu tiên cao`, isPositive: false }
-                  : undefined
-              }
+              trend={{
+                value: `${attentionItems.length} mục đang chờ`,
+                isPositive: attentionItems.length === 0,
+              }}
             />
           </>
         )}
       </div>
 
-      {/* Hàng 3 — Analytics (2/3 và 1/3) */}
-      <AdminAnalyticsChart
-        trends={trends}
-        timeRange={timeRange}
-        onTimeRangeChange={setTimeRange}
-        roleDistribution={roleDistribution}
-        statusDistribution={statusDistribution}
-      />
-
-      {/* Hàng 4 — Điều hành (1/2 và 1/2) */}
-      <div className="admin-operations-grid">
-        {/* Cột trái: Hoạt động gần đây */}
+      {/* Hàng 3 — Split Grid: Chart + Attention List */}
+      <div className="staff-split-grid">
+        {/* Left: Analytics Chart Card */}
         <div className="staff-card">
           <div className="staff-card-header">
-            <h2 className="staff-card-title">Hoạt động gần đây</h2>
-            <span className="admin-badge-count">{activities.length} sự kiện</span>
+            <h2 className="staff-card-title">Xu hướng hoạt động học tập</h2>
+            <span className="admin-card-subtitle">
+              Lượt truy cập và mức độ hoàn thành bài học theo ngày
+            </span>
           </div>
           <div className="staff-card-body">
             {loading ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <Skeleton height={36} />
-                <Skeleton height={36} />
-                <Skeleton height={36} />
-              </div>
-            ) : activities.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>
-                Chưa có hoạt động quản trị nào gần đây.
-              </p>
+              <Skeleton height={240} />
             ) : (
-              <div className="staff-activity-timeline">
-                {activities.slice(0, 5).map((act) => (
-                  <div key={act.id} className="staff-activity-row">
-                    <span className="staff-activity-actor">{act.actorName}</span>
-                    <span className="staff-activity-action">{act.action}</span>
-                    <span className="staff-activity-target">{act.target}</span>
-                    <span className="staff-activity-time">
-                      {new Date(act.timestamp).toLocaleTimeString('vi-VN', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </span>
-                  </div>
-                ))}
-              </div>
+              <AdminAnalyticsChart
+                trends={trends}
+                timeRange={timeRange}
+                onTimeRangeChange={setTimeRange}
+                roleDistribution={roleDistribution}
+                statusDistribution={statusDistribution}
+              />
             )}
           </div>
         </div>
 
-        {/* Cột phải: Việc cần xử lý */}
+        {/* Right: Items Needing Attention */}
         <div className="staff-card">
           <div className="staff-card-header">
             <h2 className="staff-card-title">Việc cần xử lý</h2>
-            <span
-              style={{
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                color: '#dc2626',
-                background: 'rgba(220, 38, 38, 0.08)',
-                padding: '2px 8px',
-                borderRadius: '9999px',
-              }}
-            >
-              {attentionItems.length} mục
+            <span className="admin-card-subtitle">
+              Sự cố và hành động cần quản trị viên can thiệp
             </span>
           </div>
           <div className="staff-card-body">
@@ -230,25 +206,27 @@ export const AdminDashboardPage: React.FC = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <Skeleton height={60} />
                 <Skeleton height={60} />
+                <Skeleton height={60} />
               </div>
             ) : attentionItems.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)' }}>
-                Không có mục nào cần xử lý.
-              </div>
+              <p style={{ color: 'var(--text-muted)' }}>
+                Không có sự cố nào cần xử lý ngay. Hệ thống ổn định.
+              </p>
             ) : (
               <div className="staff-attention-list">
                 {attentionItems.map((item) => (
                   <Link
                     key={item.id}
-                    to={item.actionUrl}
+                    to={item.actionUrl || '/admin'}
                     className={`staff-attention-item severity-${item.severity}`}
-                    title={`Mở màn hình xử lý: ${item.actionUrl}`}
+                    aria-label={`Chi tiết ${item.title}`}
                   >
                     <div className="staff-attention-header">
                       <span className="staff-attention-title">{item.title}</span>
-                      <ArrowRight size={14} style={{ color: 'var(--text-muted)' }} />
+                      <ArrowRight size={13} className="admin-attention-arrow" aria-hidden="true" />
                     </div>
                     <p className="staff-attention-desc">{item.description}</p>
+                    <span className="staff-attention-time">{item.timestamp}</span>
                   </Link>
                 ))}
               </div>
@@ -257,26 +235,88 @@ export const AdminDashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Hàng 5 — Quick Actions */}
+      {/* Hàng 4 — Lối tắt tác vụ điều hành & Chuyển không gian */}
       <AdminQuickActions />
 
-      {/* Report Modal */}
-      {reportModalOpen && (
-        <div className="confirm-dialog-backdrop" onClick={() => setReportModalOpen(false)}>
-          <div
-            className="confirm-dialog-modal admin-report-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="report-modal-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="confirm-dialog-header">
-              <div className="confirm-dialog-title-wrap">
-                <FileText size={18} style={{ color: 'var(--navy-primary, #102a43)' }} />
-                <h3 id="report-modal-title" className="confirm-dialog-title">
-                  Báo cáo tổng kết điều hành hệ thống
-                </h3>
+      {/* Hàng 5 — System Health + Activity Log */}
+      <div className="admin-lower-grid">
+        {/* System Health Card */}
+        <div className="staff-card">
+          <div className="staff-card-header">
+            <h2 className="staff-card-title">Tình trạng hạ tầng kỹ thuật</h2>
+            <span className="admin-card-subtitle">
+              Thời gian uptime 99.98% trong 30 ngày qua
+            </span>
+          </div>
+          <div className="staff-card-body">
+            {loading ? (
+              <Skeleton height={140} />
+            ) : (
+              <div className="admin-system-health-list">
+                <div className="admin-health-row">
+                  <span className="admin-health-name">Frontend Prototype</span>
+                  <span className="admin-status-pill online">Hoạt động tốt</span>
+                </div>
+                <div className="admin-health-row">
+                  <span className="admin-health-name">Backend Mock Services</span>
+                  <span className="admin-status-pill online">Phản hồi 12ms</span>
+                </div>
+                <div className="admin-health-row">
+                  <span className="admin-health-name">Bộ nhớ đệm localStorage</span>
+                  <span className="admin-status-pill online">Đã đồng bộ</span>
+                </div>
+                <div className="admin-health-row">
+                  <span className="admin-health-name">Cơ chế định tuyến RBAC Mock</span>
+                  <span className="admin-status-pill online">Bảo mật</span>
+                </div>
               </div>
+            )}
+          </div>
+        </div>
+
+        {/* Activity Stream */}
+        <div className="staff-card">
+          <div className="staff-card-header">
+            <h2 className="staff-card-title">Hoạt động gần đây</h2>
+            <span className="admin-card-subtitle">
+              Nhật ký hành động người dùng và sự kiện hệ thống
+            </span>
+          </div>
+          <div className="staff-card-body">
+            {loading ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <Skeleton height={40} />
+                <Skeleton height={40} />
+                <Skeleton height={40} />
+              </div>
+            ) : activities.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)' }}>Chưa có hoạt động nào được ghi nhận.</p>
+            ) : (
+              <ul className="admin-activity-stream" aria-label="Nhật ký hoạt động">
+                {activities.slice(0, 6).map((act) => (
+                  <li key={act.id} className="admin-activity-item">
+                    <span className="admin-activity-dot" aria-hidden="true" />
+                    <div className="admin-activity-content">
+                      <span className="admin-activity-actor">{act.actorName}</span>{' '}
+                      <span className="admin-activity-action">{act.action}</span>
+                    </div>
+                    <span className="admin-activity-time">{act.timestamp}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Modal Báo cáo nhanh */}
+      {reportModalOpen && (
+        <div className="confirm-dialog-backdrop" role="dialog" aria-modal="true" aria-labelledby="report-modal-title">
+          <div className="confirm-dialog-container" style={{ maxWidth: 540 }}>
+            <div className="confirm-dialog-header">
+              <h2 id="report-modal-title" className="confirm-dialog-title">
+                Báo cáo tổng kết điều hành hệ thống
+              </h2>
               <button
                 type="button"
                 className="confirm-dialog-close-btn"

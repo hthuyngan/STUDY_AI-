@@ -15,7 +15,6 @@ import {
   LayoutDashboard,
   LifeBuoy,
   MessageSquare,
-  School,
   Search,
   Settings,
   Shield,
@@ -68,144 +67,6 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
         ],
       },
       {
-        id: 'education',
-        title: 'Quản lý học tập',
-        items: [
-          {
-            id: 'admin-subjects',
-            label: 'Môn học',
-            path: '/admin/subjects',
-            icon: BookOpen,
-          },
-          {
-            id: 'admin-chapters',
-            label: 'Chương học',
-            path: '/admin/chapters',
-            icon: Layers,
-          },
-          {
-            id: 'admin-lessons',
-            label: 'Bài học',
-            path: '/admin/lessons',
-            icon: FileText,
-          },
-          {
-            id: 'admin-assessments',
-            label: 'Bài thu hoạch',
-            path: '/admin/assessments',
-            icon: CheckSquare,
-          },
-        ],
-      },
-      {
-        id: 'teaching',
-        title: 'Quản lý giảng dạy',
-        items: [
-          {
-            id: 'admin-classes',
-            label: 'Lớp học',
-            path: '/admin/classes',
-            icon: School,
-          },
-          {
-            id: 'admin-students',
-            label: 'Học viên',
-            path: '/admin/students',
-            icon: Users,
-          },
-          {
-            id: 'admin-assignments',
-            label: 'Bài tập',
-            path: '/admin/assignments',
-            icon: FileText,
-          },
-        ],
-      },
-      {
-        id: 'performance',
-        title: 'Kết quả học tập',
-        items: [
-          {
-            id: 'admin-grades',
-            label: 'Bảng điểm',
-            path: '/admin/grades',
-            icon: Award,
-          },
-          {
-            id: 'admin-alerts',
-            label: 'Cảnh báo học tập',
-            path: '/admin/alerts',
-            icon: AlertTriangle,
-          },
-        ],
-      },
-      {
-        id: 'content_control',
-        title: 'Kiểm soát nội dung',
-        items: [
-          {
-            id: 'admin-approvals',
-            label: 'Phê duyệt nội dung',
-            path: '/admin/approvals',
-            icon: FileCheck,
-          },
-          {
-            id: 'admin-publications',
-            label: 'Lịch sử xuất bản',
-            path: '/admin/publications',
-            icon: History,
-          },
-        ],
-      },
-      {
-        id: 'operations',
-        title: 'Vận hành & Hỗ trợ',
-        items: [
-          {
-            id: 'admin-tickets',
-            label: 'Yêu cầu hỗ trợ',
-            path: '/admin/tickets',
-            icon: LifeBuoy,
-          },
-          {
-            id: 'admin-announcements',
-            label: 'Thông báo hệ thống',
-            path: '/admin/announcements',
-            icon: Bell,
-          },
-          {
-            id: 'admin-audit-logs',
-            label: 'Nhật ký quản trị',
-            path: '/admin/audit-logs',
-            icon: Activity,
-          },
-        ],
-      },
-      {
-        id: 'staff',
-        title: 'Quản lý nhân sự',
-        items: [
-          {
-            id: 'admin-teachers',
-            label: 'Giáo viên',
-            path: '/admin/teachers',
-            icon: GraduationCap,
-          },
-        ],
-      },
-      {
-        id: 'analytics',
-        title: 'Báo cáo',
-        items: [
-          {
-            id: 'admin-reports',
-            label: 'Báo cáo học tập',
-            path: '/admin/reports',
-            icon: BarChart3,
-          },
-        ],
-      },
-      {
         id: 'management',
         title: 'Quản trị người dùng',
         items: [
@@ -221,24 +82,60 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
             path: '/admin/roles',
             icon: Shield,
           },
+          {
+            id: 'admin-teachers',
+            label: 'Quản lý nhân sự',
+            path: '/admin/teachers',
+            icon: GraduationCap,
+          },
         ],
       },
       {
-        id: 'system',
-        title: 'Hạ tầng & Hệ thống',
+        id: 'monitoring',
+        title: 'Giám sát & Báo cáo',
         items: [
+          {
+            id: 'admin-reports',
+            label: 'Báo cáo tổng hợp',
+            path: '/admin/reports',
+            icon: BarChart3,
+          },
+          {
+            id: 'admin-audit-logs',
+            label: 'Nhật ký quản trị',
+            path: '/admin/audit-logs',
+            icon: Activity,
+          },
+          {
+            id: 'admin-content-monitor',
+            label: 'Giám sát nội dung',
+            path: '/admin/content-monitor',
+            icon: FileCheck,
+          },
+          {
+            id: 'admin-support-monitor',
+            label: 'Giám sát hỗ trợ',
+            path: '/admin/support-monitor',
+            icon: LifeBuoy,
+          },
+        ],
+      },
+      {
+        id: 'operations',
+        title: 'Vận hành hệ thống',
+        items: [
+          {
+            id: 'admin-announcements',
+            label: 'Thông báo hệ thống',
+            path: '/admin/announcements',
+            icon: Bell,
+          },
           {
             id: 'admin-system',
             label: 'Trạng thái hệ thống',
             path: '/admin/system',
             icon: Sliders,
           },
-        ],
-      },
-      {
-        id: 'configuration',
-        title: 'Cấu hình',
-        items: [
           {
             id: 'admin-settings',
             label: 'Thiết lập vận hành',
@@ -259,7 +156,7 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
     groups: [
       {
         id: 'overview',
-        title: 'Hoạt động',
+        title: 'Tổng quan',
         items: [
           {
             id: 'teacher-dashboard',
@@ -270,26 +167,44 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
         ],
       },
       {
-        id: 'classes',
-        title: 'Lớp học & Học sinh',
+        id: 'teaching',
+        title: 'Quản lý giảng dạy',
         items: [
           {
             id: 'teacher-classes',
-            label: 'Danh sách lớp học',
+            label: 'Lớp học',
             path: '/teacher/classes',
             icon: GraduationCap,
+          },
+          {
+            id: 'teacher-students',
+            label: 'Học viên',
+            path: '/teacher/students',
+            icon: Users,
+          },
+          {
+            id: 'teacher-assignments',
+            label: 'Bài tập',
+            path: '/teacher/assignments',
+            icon: FileText,
           },
         ],
       },
       {
-        id: 'assignments',
-        title: 'Nhiệm vụ & Bài tập',
+        id: 'performance',
+        title: 'Kết quả học tập',
         items: [
           {
-            id: 'teacher-assignments',
-            label: 'Quản lý bài tập',
-            path: '/teacher/assignments',
-            icon: CheckSquare,
+            id: 'teacher-grades',
+            label: 'Bảng điểm',
+            path: '/teacher/grades',
+            icon: Award,
+          },
+          {
+            id: 'teacher-alerts',
+            label: 'Cảnh báo học tập',
+            path: '/teacher/alerts',
+            icon: AlertTriangle,
           },
         ],
       },
@@ -317,37 +232,49 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
       },
       {
         id: 'curriculum',
-        title: 'Chương trình & Bài học',
+        title: 'Quản lý chương trình',
         items: [
           {
             id: 'content-subjects',
-            label: 'Cấu trúc môn học',
+            label: 'Môn học',
             path: '/content/subjects',
             icon: BookOpen,
           },
           {
+            id: 'content-chapters',
+            label: 'Chương học',
+            path: '/content/chapters',
+            icon: Layers,
+          },
+          {
             id: 'content-lessons',
-            label: 'Kho bài học',
+            label: 'Bài học',
             path: '/content/lessons',
             icon: FileText,
           },
           {
             id: 'content-assessments',
-            label: 'Bộ bài thu hoạch',
+            label: 'Bài thu hoạch',
             path: '/content/assessments',
-            icon: Layers,
+            icon: CheckSquare,
           },
         ],
       },
       {
         id: 'editorial',
-        title: 'Kiểm duyệt',
+        title: 'Biên tập & Kiểm duyệt',
         items: [
           {
             id: 'content-review',
             label: 'Hàng đợi duyệt',
             path: '/content/review',
             icon: FileCheck,
+          },
+          {
+            id: 'content-publications',
+            label: 'Lịch sử xuất bản',
+            path: '/content/publications',
+            icon: History,
           },
         ],
       },

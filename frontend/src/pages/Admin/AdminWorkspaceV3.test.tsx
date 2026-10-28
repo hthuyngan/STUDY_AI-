@@ -53,9 +53,9 @@ describe('Admin Workspace V3 — Education Management Suite', () => {
     })
   })
 
-  describe('1. Admin Navigation V3 Expansion', () => {
-    it('renders all new navigation items for Quản lý học tập, Nhân sự và Báo cáo', () => {
-      render(
+  describe('1. Admin Navigation V3 Expansion & V6 Role Re-alignment', () => {
+    it('renders correct navigation in Admin and Content workspaces', () => {
+      const { unmount } = render(
         <MemoryRouter initialEntries={['/admin']}>
           <WorkspaceShell role="admin">
             <div>Dashboard Content</div>
@@ -63,12 +63,23 @@ describe('Admin Workspace V3 — Education Management Suite', () => {
         </MemoryRouter>
       )
 
-      expect(screen.getByRole('link', { name: /Môn học/i })).toHaveAttribute('href', '/admin/subjects')
-      expect(screen.getByRole('link', { name: /Chương học/i })).toHaveAttribute('href', '/admin/chapters')
-      expect(screen.getByRole('link', { name: /Bài học/i })).toHaveAttribute('href', '/admin/lessons')
-      expect(screen.getByRole('link', { name: /Bài thu hoạch/i })).toHaveAttribute('href', '/admin/assessments')
-      expect(screen.getByRole('link', { name: /Giáo viên/i })).toHaveAttribute('href', '/admin/teachers')
-      expect(screen.getByRole('link', { name: /Báo cáo học tập/i })).toHaveAttribute('href', '/admin/reports')
+      expect(screen.getByRole('link', { name: /Quản lý nhân sự/i })).toHaveAttribute('href', '/admin/teachers')
+      expect(screen.getByRole('link', { name: /Báo cáo tổng hợp/i })).toHaveAttribute('href', '/admin/reports')
+      expect(screen.getByRole('link', { name: /Giám sát nội dung/i })).toHaveAttribute('href', '/admin/content-monitor')
+      unmount()
+
+      render(
+        <MemoryRouter initialEntries={['/content']}>
+          <WorkspaceShell role="content">
+            <div>Content Content</div>
+          </WorkspaceShell>
+        </MemoryRouter>
+      )
+
+      expect(screen.getByRole('link', { name: /Môn học/i })).toHaveAttribute('href', '/content/subjects')
+      expect(screen.getByRole('link', { name: /Chương học/i })).toHaveAttribute('href', '/content/chapters')
+      expect(screen.getByRole('link', { name: /Bài học/i })).toHaveAttribute('href', '/content/lessons')
+      expect(screen.getByRole('link', { name: /Bài thu hoạch/i })).toHaveAttribute('href', '/content/assessments')
     })
   })
 

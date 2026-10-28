@@ -45,9 +45,9 @@ describe('Admin Workspace V5 — Operations, Content Approval & Quality Control 
     })
   })
 
-  describe('1. Navigation V5 Expansion', () => {
-    it('renders all navigation items for Kiểm soát nội dung, Vận hành & Hỗ trợ, and Cấu hình', () => {
-      render(
+  describe('1. Navigation V5 Expansion & V6 Role Re-alignment', () => {
+    it('renders all navigation items in Admin, Content, and Support according to V6 responsibilities', () => {
+      const { unmount: unmountAdmin } = render(
         <MemoryRouter initialEntries={['/admin']}>
           <WorkspaceShell role="admin">
             <div>Dashboard Content</div>
@@ -55,20 +55,35 @@ describe('Admin Workspace V5 — Operations, Content Approval & Quality Control 
         </MemoryRouter>
       )
 
-      // Kiểm soát nội dung
-      expect(screen.getByText('Kiểm soát nội dung')).toBeInTheDocument()
-      expect(screen.getByRole('link', { name: /^phê duyệt nội dung$/i })).toHaveAttribute('href', '/admin/approvals')
-      expect(screen.getByRole('link', { name: /^lịch sử xuất bản$/i })).toHaveAttribute('href', '/admin/publications')
-
-      // Vận hành & Hỗ trợ
-      expect(screen.getByText('Vận hành & Hỗ trợ')).toBeInTheDocument()
-      expect(screen.getByRole('link', { name: /^yêu cầu hỗ trợ$/i })).toHaveAttribute('href', '/admin/tickets')
+      // Admin V6 oversight & operations
+      expect(screen.getByRole('link', { name: /^giám sát nội dung$/i })).toHaveAttribute('href', '/admin/content-monitor')
+      expect(screen.getByRole('link', { name: /^giám sát hỗ trợ$/i })).toHaveAttribute('href', '/admin/support-monitor')
       expect(screen.getByRole('link', { name: /^thông báo hệ thống$/i })).toHaveAttribute('href', '/admin/announcements')
       expect(screen.getByRole('link', { name: /^nhật ký quản trị$/i })).toHaveAttribute('href', '/admin/audit-logs')
-
-      // Cấu hình
-      expect(screen.getByText('Cấu hình')).toBeInTheDocument()
       expect(screen.getByRole('link', { name: /^thiết lập vận hành$/i })).toHaveAttribute('href', '/admin/settings')
+      unmountAdmin()
+
+      // Content Workspace editorial navigation
+      const { unmount: unmountContent } = render(
+        <MemoryRouter initialEntries={['/content']}>
+          <WorkspaceShell role="content">
+            <div>Content Content</div>
+          </WorkspaceShell>
+        </MemoryRouter>
+      )
+      expect(screen.getByRole('link', { name: /^hàng đợi duyệt$/i })).toHaveAttribute('href', '/content/review')
+      expect(screen.getByRole('link', { name: /^lịch sử xuất bản$/i })).toHaveAttribute('href', '/content/publications')
+      unmountContent()
+
+      // Support Workspace ticket navigation
+      render(
+        <MemoryRouter initialEntries={['/support']}>
+          <WorkspaceShell role="support">
+            <div>Support Content</div>
+          </WorkspaceShell>
+        </MemoryRouter>
+      )
+      expect(screen.getByRole('link', { name: /^tất cả tickets$/i })).toHaveAttribute('href', '/support/tickets')
     })
   })
 

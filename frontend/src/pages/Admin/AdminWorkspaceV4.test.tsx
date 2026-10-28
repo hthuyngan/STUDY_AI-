@@ -43,26 +43,40 @@ describe('Admin Workspace V4 — Classroom, Student & Learning Performance Suite
     })
   })
 
-  describe('1. Navigation V4 Expansion', () => {
-    it('renders all new navigation items for Quản lý giảng dạy and Kết quả học tập', () => {
-      render(
-        <MemoryRouter initialEntries={['/admin']}>
-          <WorkspaceShell role="admin">
-            <div>Dashboard Content</div>
+  describe('1. Navigation V4 Expansion & V6 Role Re-alignment', () => {
+    it('renders all teaching and grading navigation items in Teacher workspace', () => {
+      const { unmount } = render(
+        <MemoryRouter initialEntries={['/teacher']}>
+          <WorkspaceShell role="teacher">
+            <div>Teacher Dashboard Content</div>
           </WorkspaceShell>
         </MemoryRouter>
       )
 
-      // Quản lý giảng dạy
+      // Quản lý giảng dạy in Teacher Workspace
       expect(screen.getByText('Quản lý giảng dạy')).toBeInTheDocument()
-      expect(screen.getByRole('link', { name: /^lớp học$/i })).toHaveAttribute('href', '/admin/classes')
-      expect(screen.getByRole('link', { name: /^học viên$/i })).toHaveAttribute('href', '/admin/students')
-      expect(screen.getByRole('link', { name: /^bài tập$/i })).toHaveAttribute('href', '/admin/assignments')
+      expect(screen.getByRole('link', { name: /^lớp học$/i })).toHaveAttribute('href', '/teacher/classes')
+      expect(screen.getByRole('link', { name: /^học viên$/i })).toHaveAttribute('href', '/teacher/students')
+      expect(screen.getByRole('link', { name: /^bài tập$/i })).toHaveAttribute('href', '/teacher/assignments')
 
-      // Kết quả học tập
+      // Kết quả học tập in Teacher Workspace
       expect(screen.getByText('Kết quả học tập')).toBeInTheDocument()
-      expect(screen.getByRole('link', { name: /^bảng điểm$/i })).toHaveAttribute('href', '/admin/grades')
-      expect(screen.getByRole('link', { name: /^cảnh báo học tập$/i })).toHaveAttribute('href', '/admin/alerts')
+      expect(screen.getByRole('link', { name: /^bảng điểm$/i })).toHaveAttribute('href', '/teacher/grades')
+      expect(screen.getByRole('link', { name: /^cảnh báo học tập$/i })).toHaveAttribute('href', '/teacher/alerts')
+      unmount()
+
+      render(
+        <MemoryRouter initialEntries={['/admin']}>
+          <WorkspaceShell role="admin">
+            <div>Admin Dashboard Content</div>
+          </WorkspaceShell>
+        </MemoryRouter>
+      )
+
+      // Admin has oversight monitors instead of direct classroom operations
+      expect(screen.queryByText('Quản lý giảng dạy')).not.toBeInTheDocument()
+      expect(screen.getByRole('link', { name: /Giám sát nội dung/i })).toHaveAttribute('href', '/admin/content-monitor')
+      expect(screen.getByRole('link', { name: /Giám sát hỗ trợ/i })).toHaveAttribute('href', '/admin/support-monitor')
     })
   })
 

@@ -1,10 +1,12 @@
 import { Link } from 'react-router-dom'
+import { LifeBuoy, AlertTriangle, Clock, CheckCircle2, UserCheck } from 'lucide-react'
 import { useSupportDashboard } from '@/hooks/useSupport'
 import { StaffMetricCard } from '@/components/ui/StaffMetricCard'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { PageErrorState } from '@/components/ui/PageErrorState'
 import './SupportPages.css'
+import '../Admin/AdminPages.css'
 
 export function SupportDashboardPage() {
   const { data, loading, error, refresh } = useSupportDashboard()
@@ -26,7 +28,11 @@ export function SupportDashboardPage() {
   if (error || !data) {
     return (
       <div className="staff-page">
-        <PageErrorState title="Không thể kết nối máy chủ quản trị." message={error || 'Không có dữ liệu'} onRetry={refresh} />
+        <PageErrorState
+          title="Không thể kết nối máy chủ quản trị."
+          message={error || 'Không có dữ liệu hỗ trợ'}
+          onRetry={refresh}
+        />
       </div>
     )
   }
@@ -34,58 +40,74 @@ export function SupportDashboardPage() {
   return (
     <div className="staff-page">
       <div className="staff-page-header">
-        <div className="staff-page-title-row">
-          <div>
-            <nav className="staff-breadcrumbs" aria-label="Breadcrumb">
-              <span>Không gian làm việc</span>
-              <span>/</span>
-              <span aria-current="page">Hỗ trợ kỹ thuật & người dùng</span>
-            </nav>
-            <h1>Trung tâm Hỗ trợ & Tiếp nhận Yêu cầu</h1>
-            <p className="staff-page-desc">
-              Xử lý khiếu nại tài khoản, sự cố đồng bộ dữ liệu ngoại tuyến và hỗ trợ nội dung học tập.
-            </p>
-          </div>
-          <div className="staff-page-actions">
-            <Link to="/support/users" className="staff-btn staff-btn-secondary">
-              Tra cứu người dùng
-            </Link>
-            <Link to="/support/tickets" className="staff-btn staff-btn-primary">
-              Danh sách ticket
-            </Link>
-          </div>
-        </div>
+        <h1 className="staff-page-title">Bàn làm việc Hỗ trợ người dùng</h1>
+        <p className="staff-page-desc">
+          Theo dõi hàng đợi yêu cầu hỗ trợ (tickets), kiểm soát SLA phản hồi và giải quyết sự cố kỹ thuật.
+        </p>
       </div>
 
-      <div className="staff-metrics-grid">
-        <StaffMetricCard label="Ticket đang mở" value={data.openCount} hint="Chưa được gán hoặc đang chờ xử lý" />
-        <StaffMetricCard label="Chờ phản hồi người dùng" value={data.waitingCount} hint="Đã gửi câu trả lời" />
-        <StaffMetricCard label="Cần leo thang (Escalated)" value={data.escalatedCount} hint="Sự cố đồng bộ / kỹ thuật nặng" />
-        <StaffMetricCard label="Đã giải quyết hôm nay" value={data.resolvedTodayCount} hint="Hoàn tất trong 24h qua" />
+      {/* 4 KPIs */}
+      <div className="staff-metric-grid">
+        <StaffMetricCard
+          label="Yêu cầu đang mở"
+          value={data.openCount}
+          context="Chờ tiếp nhận & phân công"
+          icon={LifeBuoy}
+          trend={{ value: 'Cần giải quyết', isPositive: false }}
+        />
+        <StaffMetricCard
+          label="Mức độ khẩn cấp (P1/P2)"
+          value={data.escalatedCount}
+          context="Cần xử lý trong 2 giờ"
+          icon={AlertTriangle}
+          trend={{ value: 'Ưu tiên cao', isPositive: false }}
+        />
+        <StaffMetricCard
+          label="Thời gian xử lý TB"
+          value="1.8h"
+          context="Mục tiêu SLA: < 4 giờ"
+          icon={Clock}
+        />
+        <StaffMetricCard
+          label="Tỷ lệ giải quyết SLA"
+          value="96%"
+          context="Tuân thủ cam kết dịch vụ"
+          icon={CheckCircle2}
+          trend={{ value: '96% đạt chuẩn', isPositive: true }}
+        />
       </div>
 
-      <div className="staff-card" style={{ marginTop: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h2 className="staff-card-title" style={{ margin: 0 }}>
-            Hàng đợi ticket cần xử lý
-          </h2>
-          <Link to="/support/tickets" className="staff-btn staff-btn-secondary" style={{ fontSize: '13px', padding: '4px 10px' }}>
-            Xem tất cả
+      {/* Quick Action Navigation Buttons */}
+      <div style={{ display: 'flex', gap: 12, margin: '20px 0' }}>
+        <Link to="/support/tickets" className="btn btn-secondary">
+          <LifeBuoy size={16} /> Danh sách yêu cầu hỗ trợ
+        </Link>
+        <Link to="/support/users" className="btn btn-secondary">
+          <UserCheck size={16} /> Tra cứu hồ sơ người dùng
+        </Link>
+      </div>
+
+      {/* Recent Tickets Table */}
+      <div className="staff-card" style={{ marginTop: '20px' }}>
+        <div className="staff-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 className="staff-card-title">Yêu cầu hỗ trợ ưu tiên gần đây</h2>
+          <Link to="/support/tickets" style={{ fontSize: '0.85rem', color: '#102A43', textDecoration: 'none', fontWeight: 600 }}>
+            Xem toàn bộ hàng đợi &rarr;
           </Link>
         </div>
 
-        <div className="staff-table-wrapper">
-          <table className="staff-table">
+        <div className="staff-table-wrapper" style={{ border: 'none' }}>
+          <table className="staff-table" aria-label="Yêu cầu hỗ trợ gần đây">
             <thead>
               <tr>
-                <th>Mã</th>
-                <th>Tiêu đề yêu cầu</th>
-                <th>Người dùng</th>
-                <th>Phân loại</th>
-                <th>Độ ưu tiên</th>
-                <th>Trạng thái</th>
-                <th>Người phụ trách</th>
-                <th>Cập nhật</th>
+                <th scope="col">Mã</th>
+                <th scope="col">Tiêu đề yêu cầu</th>
+                <th scope="col">Người gửi</th>
+                <th scope="col">Chuyên mục</th>
+                <th scope="col">Ưu tiên</th>
+                <th scope="col">Trạng thái</th>
+                <th scope="col">Phụ trách</th>
+                <th scope="col">Cập nhật</th>
               </tr>
             </thead>
             <tbody>
@@ -135,10 +157,10 @@ export function SupportDashboardPage() {
                         t.status === 'open'
                           ? 'Mới mở'
                           : t.status === 'in-progress'
-                            ? 'Đang xử lý'
-                            : t.status === 'waiting'
-                              ? 'Chờ phản hồi'
-                              : 'Đã giải quyết'
+                          ? 'Đang xử lý'
+                          : t.status === 'waiting'
+                          ? 'Chờ phản hồi'
+                          : 'Đã giải quyết'
                       }
                     />
                   </td>
