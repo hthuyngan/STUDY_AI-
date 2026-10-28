@@ -3,6 +3,7 @@ import type {
   AdminAttentionItem,
   AdminSystemMetrics,
   AdminUserItem,
+  AnalyticsTrendPoint,
 } from '@/types/admin'
 
 export const INITIAL_MOCK_USERS: AdminUserItem[] = [
@@ -14,8 +15,54 @@ export const INITIAL_MOCK_USERS: AdminUserItem[] = [
     status: 'active',
     createdAt: '2026-09-01T08:00:00Z',
     lastLoginAt: '2026-10-27T10:30:00Z',
-    totalCompletedLessons: 18,
+    className: '12A1',
+    totalCompletedLessons: 24,
     averageScore: 88,
+    learningProgress: {
+      completedLessons: 24,
+      totalLessons: 32,
+      streakDays: 14,
+      recentSubjects: [
+        { name: 'Toán học 12', progress: 75, lastStudied: '2026-10-27T10:15:00Z' },
+        { name: 'Vật lý 12', progress: 60, lastStudied: '2026-10-26T16:30:00Z' },
+        { name: 'Hóa học 12', progress: 80, lastStudied: '2026-10-25T09:20:00Z' },
+      ],
+    },
+    assessments: [
+      {
+        id: 'asm-101',
+        title: 'Khảo sát hàm số & Cực trị',
+        score: 9.2,
+        maxScore: 10,
+        submittedAt: '2026-10-26T14:20:00Z',
+        status: 'passed',
+        feedback: 'Nắm vững phương pháp đạo hàm, vẽ bảng biến thiên chính xác.',
+      },
+      {
+        id: 'asm-102',
+        title: 'Dao động điều hòa & Con lắc lò xo',
+        score: 8.5,
+        maxScore: 10,
+        submittedAt: '2026-10-24T15:10:00Z',
+        status: 'passed',
+        feedback: 'Bài làm tốt, chú ý đơn vị khi tính năng lượng.',
+      },
+      {
+        id: 'asm-103',
+        title: 'Este - Lipit và phản ứng xà phòng hóa',
+        score: 8.8,
+        maxScore: 10,
+        submittedAt: '2026-10-21T11:00:00Z',
+        status: 'passed',
+        feedback: 'Hiểu bản chất liên kết este.',
+      },
+    ],
+    activities: [
+      { id: 'uact-1', action: 'Đăng nhập vào hệ thống', timestamp: '2026-10-27T10:30:00Z', ipAddress: '113.161.42.10', device: 'Chrome trên macOS' },
+      { id: 'uact-2', action: 'Hoàn thành bài học: Giá trị lớn nhất, nhỏ nhất của hàm số', timestamp: '2026-10-27T10:15:00Z' },
+      { id: 'uact-3', action: 'Nộp bài thu hoạch Khảo sát hàm số', timestamp: '2026-10-26T14:20:00Z' },
+      { id: 'uact-4', action: 'Luyện tập câu hỏi trắc nghiệm với AI Tutor', timestamp: '2026-10-25T20:05:00Z' },
+    ],
   },
   {
     id: 'usr-102',
@@ -25,8 +72,33 @@ export const INITIAL_MOCK_USERS: AdminUserItem[] = [
     status: 'active',
     createdAt: '2026-09-05T09:15:00Z',
     lastLoginAt: '2026-10-26T15:20:00Z',
-    totalCompletedLessons: 12,
+    className: '12A2',
+    totalCompletedLessons: 16,
     averageScore: 76,
+    learningProgress: {
+      completedLessons: 16,
+      totalLessons: 32,
+      streakDays: 5,
+      recentSubjects: [
+        { name: 'Toán học 12', progress: 50, lastStudied: '2026-10-26T15:10:00Z' },
+        { name: 'Sinh học 12', progress: 45, lastStudied: '2026-10-24T14:00:00Z' },
+      ],
+    },
+    assessments: [
+      {
+        id: 'asm-104',
+        title: 'Đường tiệm cận của đồ thị hàm số',
+        score: 7.5,
+        maxScore: 10,
+        submittedAt: '2026-10-26T15:00:00Z',
+        status: 'passed',
+        feedback: 'Cần phân biệt rõ tiệm cận đứng và ngang.',
+      },
+    ],
+    activities: [
+      { id: 'uact-5', action: 'Đăng nhập vào hệ thống', timestamp: '2026-10-26T15:20:00Z', ipAddress: '14.162.88.92', device: 'Edge trên Windows' },
+      { id: 'uact-6', action: 'Xem lại lý thuyết Tiệm cận đứng', timestamp: '2026-10-26T14:40:00Z' },
+    ],
   },
   {
     id: 'usr-103',
@@ -36,6 +108,12 @@ export const INITIAL_MOCK_USERS: AdminUserItem[] = [
     status: 'active',
     createdAt: '2026-08-15T11:00:00Z',
     lastLoginAt: '2026-10-27T08:45:00Z',
+    className: 'Tổ Toán - Tin',
+    activities: [
+      { id: 'uact-7', action: 'Đăng nhập vào không gian giáo viên', timestamp: '2026-10-27T08:45:00Z' },
+      { id: 'uact-8', action: 'Giao bài tập chương 1 cho lớp 12A1', timestamp: '2026-10-27T08:30:00Z' },
+      { id: 'uact-9', action: 'Chấm điểm 24 bài thu hoạch', timestamp: '2026-10-26T16:00:00Z' },
+    ],
   },
   {
     id: 'usr-104',
@@ -45,6 +123,10 @@ export const INITIAL_MOCK_USERS: AdminUserItem[] = [
     status: 'active',
     createdAt: '2026-08-20T14:00:00Z',
     lastLoginAt: '2026-10-27T09:10:00Z',
+    activities: [
+      { id: 'uact-10', action: 'Gửi yêu cầu duyệt bài học Cực trị hàm số', timestamp: '2026-10-27T08:15:00Z' },
+      { id: 'uact-11', action: 'Biên soạn 15 câu trắc nghiệm Toán 12', timestamp: '2026-10-26T11:20:00Z' },
+    ],
   },
   {
     id: 'usr-105',
@@ -54,6 +136,10 @@ export const INITIAL_MOCK_USERS: AdminUserItem[] = [
     status: 'active',
     createdAt: '2026-09-10T10:00:00Z',
     lastLoginAt: '2026-10-27T11:00:00Z',
+    activities: [
+      { id: 'uact-12', action: 'Đóng ticket hỗ trợ kỹ thuật #TK-4821', timestamp: '2026-10-26T17:30:00Z' },
+      { id: 'uact-13', action: 'Phản hồi khiếu nại đồng bộ điểm bài thi', timestamp: '2026-10-26T14:10:00Z' },
+    ],
   },
   {
     id: 'usr-106',
@@ -63,6 +149,10 @@ export const INITIAL_MOCK_USERS: AdminUserItem[] = [
     status: 'active',
     createdAt: '2026-08-01T00:00:00Z',
     lastLoginAt: '2026-10-27T12:00:00Z',
+    activities: [
+      { id: 'uact-14', action: 'Đăng nhập phiên Quản trị viên', timestamp: '2026-10-27T12:00:00Z' },
+      { id: 'uact-15', action: 'Kiểm tra trạng thái bộ đệm đồng bộ ngoại tuyến', timestamp: '2026-10-27T11:45:00Z' },
+    ],
   },
   {
     id: 'usr-107',
@@ -72,8 +162,31 @@ export const INITIAL_MOCK_USERS: AdminUserItem[] = [
     status: 'suspended',
     createdAt: '2026-09-12T16:00:00Z',
     lastLoginAt: '2026-10-20T14:30:00Z',
+    className: '12B1',
     totalCompletedLessons: 4,
     averageScore: 45,
+    learningProgress: {
+      completedLessons: 4,
+      totalLessons: 32,
+      streakDays: 0,
+      recentSubjects: [
+        { name: 'Toán học 12', progress: 12, lastStudied: '2026-10-20T14:20:00Z' },
+      ],
+    },
+    assessments: [
+      {
+        id: 'asm-105',
+        title: 'Tính đơn điệu của hàm số',
+        score: 4.5,
+        maxScore: 10,
+        submittedAt: '2026-10-20T14:15:00Z',
+        status: 'failed',
+        feedback: 'Chưa làm chủ dấu của đạo hàm cấp một.',
+      },
+    ],
+    activities: [
+      { id: 'uact-16', action: 'Tài khoản bị tạm khóa do vi phạm nội quy', timestamp: '2026-10-21T09:00:00Z' },
+    ],
   },
   {
     id: 'usr-108',
@@ -83,6 +196,142 @@ export const INITIAL_MOCK_USERS: AdminUserItem[] = [
     status: 'pending',
     createdAt: '2026-10-25T14:00:00Z',
     lastLoginAt: undefined,
+    className: 'Tổ Toán học',
+    activities: [
+      { id: 'uact-17', action: 'Nộp hồ sơ nhân sự giáo viên chờ kích hoạt', timestamp: '2026-10-25T14:00:00Z' },
+    ],
+  },
+  {
+    id: 'usr-109',
+    email: 'tuan.kiet@example.com',
+    displayName: 'Bùi Tuấn Kiệt',
+    role: 'learner',
+    status: 'active',
+    createdAt: '2026-09-15T08:30:00Z',
+    lastLoginAt: '2026-10-27T07:15:00Z',
+    className: '12A1',
+    totalCompletedLessons: 28,
+    averageScore: 94,
+    learningProgress: {
+      completedLessons: 28,
+      totalLessons: 32,
+      streakDays: 21,
+      recentSubjects: [
+        { name: 'Toán học 12', progress: 90, lastStudied: '2026-10-27T07:10:00Z' },
+        { name: 'Tiếng Anh 12', progress: 85, lastStudied: '2026-10-26T21:00:00Z' },
+      ],
+    },
+    assessments: [
+      {
+        id: 'asm-106',
+        title: 'Ứng dụng hình học của tích phân',
+        score: 9.8,
+        maxScore: 10,
+        submittedAt: '2026-10-26T20:30:00Z',
+        status: 'passed',
+        feedback: 'Lời giải xuất sắc, áp dụng công thức chính xác tuyệt đối.',
+      },
+    ],
+    activities: [
+      { id: 'uact-18', action: 'Đăng nhập vào hệ thống', timestamp: '2026-10-27T07:15:00Z' },
+    ],
+  },
+  {
+    id: 'usr-110',
+    email: 'ngoc.mai@example.com',
+    displayName: 'Đặng Ngọc Mai',
+    role: 'learner',
+    status: 'active',
+    createdAt: '2026-09-18T10:00:00Z',
+    lastLoginAt: '2026-10-26T19:45:00Z',
+    className: '12A3',
+    totalCompletedLessons: 19,
+    averageScore: 82,
+    learningProgress: {
+      completedLessons: 19,
+      totalLessons: 32,
+      streakDays: 8,
+      recentSubjects: [
+        { name: 'Toán học 12', progress: 65, lastStudied: '2026-10-26T19:30:00Z' },
+        { name: 'Hóa học 12', progress: 70, lastStudied: '2026-10-25T16:00:00Z' },
+      ],
+    },
+    assessments: [
+      {
+        id: 'asm-107',
+        title: 'Cacbohiđrat & Glucozơ',
+        score: 8.0,
+        maxScore: 10,
+        submittedAt: '2026-10-25T15:45:00Z',
+        status: 'passed',
+        feedback: 'Hiểu tính chất hóa học đặc trưng.',
+      },
+    ],
+    activities: [
+      { id: 'uact-19', action: 'Luyện tập trắc nghiệm chương Este', timestamp: '2026-10-25T15:00:00Z' },
+    ],
+  },
+  {
+    id: 'usr-111',
+    email: 'quoc.bao@example.com',
+    displayName: 'Lý Quốc Bảo',
+    role: 'teacher',
+    status: 'active',
+    createdAt: '2026-08-10T09:00:00Z',
+    lastLoginAt: '2026-10-27T08:00:00Z',
+    className: 'Tổ Vật lý',
+    activities: [
+      { id: 'uact-20', action: 'Tạo bộ câu hỏi thực hành con lắc đơn', timestamp: '2026-10-26T15:30:00Z' },
+    ],
+  },
+  {
+    id: 'usr-112',
+    email: 'thu.ha@example.com',
+    displayName: 'Nguyễn Thu Hà',
+    role: 'content',
+    status: 'active',
+    createdAt: '2026-09-02T13:00:00Z',
+    lastLoginAt: '2026-10-26T16:20:00Z',
+    activities: [
+      { id: 'uact-21', action: 'Biên soạn nội dung lý thuyết Sóng cơ', timestamp: '2026-10-26T16:00:00Z' },
+    ],
+  },
+  {
+    id: 'usr-113',
+    email: 'minh.duc@example.com',
+    displayName: 'Phan Minh Đức',
+    role: 'learner',
+    status: 'pending',
+    createdAt: '2026-10-26T11:00:00Z',
+    className: '12A2',
+    totalCompletedLessons: 0,
+    averageScore: 0,
+    activities: [
+      { id: 'uact-22', action: 'Đăng ký tài khoản học viên mới', timestamp: '2026-10-26T11:00:00Z' },
+    ],
+  },
+  {
+    id: 'usr-114',
+    email: 'khanh.linh@example.com',
+    displayName: 'Trương Khánh Linh',
+    role: 'learner',
+    status: 'active',
+    createdAt: '2026-09-20T14:30:00Z',
+    lastLoginAt: '2026-10-27T09:40:00Z',
+    className: '12A1',
+    totalCompletedLessons: 22,
+    averageScore: 89,
+    learningProgress: {
+      completedLessons: 22,
+      totalLessons: 32,
+      streakDays: 12,
+      recentSubjects: [
+        { name: 'Toán học 12', progress: 70, lastStudied: '2026-10-27T09:30:00Z' },
+      ],
+    },
+    activities: [
+      { id: 'uact-23', action: 'Đăng nhập vào hệ thống', timestamp: '2026-10-27T09:40:00Z' },
+    ],
   },
 ]
 
@@ -103,7 +352,7 @@ export const INITIAL_MOCK_ATTENTION_ITEMS: AdminAttentionItem[] = [
     description: 'Chương Khảo sát hàm số có 3 bài hoàn thiện biên soạn cần quản trị viên duyệt.',
     timestamp: '2026-10-27T08:00:00Z',
     severity: 'medium',
-    actionUrl: '/content/review',
+    actionUrl: '/content',
   },
   {
     id: 'att-3',
@@ -112,7 +361,7 @@ export const INITIAL_MOCK_ATTENTION_ITEMS: AdminAttentionItem[] = [
     description: 'Học viên báo tiến độ làm bài thu hoạch môn Toán chưa đồng bộ sau khi đổi máy.',
     timestamp: '2026-10-26T22:15:00Z',
     severity: 'high',
-    actionUrl: '/support/tickets',
+    actionUrl: '/support',
   },
 ]
 
@@ -138,6 +387,20 @@ export const INITIAL_MOCK_ACTIVITIES: AdminActivityItem[] = [
     target: '#TK-4821',
     timestamp: '2026-10-26T17:30:00Z',
   },
+  {
+    id: 'act-4',
+    actorName: 'Hệ thống tự động',
+    action: 'đồng bộ bộ đệm ngoại tuyến',
+    target: '142 bản ghi tiến trình học tập',
+    timestamp: '2026-10-26T16:00:00Z',
+  },
+  {
+    id: 'act-5',
+    actorName: 'Quản trị viên Hệ thống',
+    action: 'kích hoạt tài khoản người dùng',
+    target: 'Trương Khánh Linh',
+    timestamp: '2026-10-25T10:15:00Z',
+  },
 ]
 
 export const INITIAL_MOCK_METRICS: AdminSystemMetrics = {
@@ -145,10 +408,37 @@ export const INITIAL_MOCK_METRICS: AdminSystemMetrics = {
   activeLearners: 1180,
   staffAccounts: 48,
   openSupportTickets: 7,
+  completedLessonsTotal: 8642,
   systemStatus: 'healthy',
   apiLatencyMs: 42,
   databaseStatus: 'connected',
-  frontendVersion: 'v2.1.0',
-  backendVersion: 'v1.4.0 (Prototype)',
+  frontendVersion: 'v2.2.0',
+  backendVersion: 'v1.4.0 (Prototype Mode)',
   environment: 'development / prototype',
+  isPrototypeMode: true,
 }
+
+// Demo trends for Analytics
+export const MOCK_TRENDS_7D: AnalyticsTrendPoint[] = [
+  { date: '21/10', label: 'Thứ 4', completedLessons: 320, activeUsers: 480, assessments: 140 },
+  { date: '22/10', label: 'Thứ 5', completedLessons: 410, activeUsers: 530, assessments: 180 },
+  { date: '23/10', label: 'Thứ 6', completedLessons: 390, activeUsers: 510, assessments: 165 },
+  { date: '24/10', label: 'Thứ 7', completedLessons: 520, activeUsers: 680, assessments: 240 },
+  { date: '25/10', label: 'CN',    completedLessons: 640, activeUsers: 790, assessments: 310 },
+  { date: '26/10', label: 'Thứ 2', completedLessons: 480, activeUsers: 620, assessments: 215 },
+  { date: '27/10', label: 'Hôm nay', completedLessons: 510, activeUsers: 650, assessments: 230 },
+]
+
+export const MOCK_TRENDS_30D: AnalyticsTrendPoint[] = [
+  { date: 'Tuần 1', label: '01/10 - 07/10', completedLessons: 2450, activeUsers: 920, assessments: 980 },
+  { date: 'Tuần 2', label: '08/10 - 14/10', completedLessons: 2780, activeUsers: 1040, assessments: 1120 },
+  { date: 'Tuần 3', label: '15/10 - 21/10', completedLessons: 3120, activeUsers: 1110, assessments: 1260 },
+  { date: 'Tuần 4', label: '22/10 - 28/10', completedLessons: 3480, activeUsers: 1180, assessments: 1420 },
+]
+
+export const MOCK_TRENDS_MONTH: AnalyticsTrendPoint[] = [
+  { date: 'T7', label: 'Tháng 7', completedLessons: 5800, activeUsers: 750, assessments: 2200 },
+  { date: 'T8', label: 'Tháng 8', completedLessons: 7200, activeUsers: 940, assessments: 2900 },
+  { date: 'T9', label: 'Tháng 9', completedLessons: 9100, activeUsers: 1080, assessments: 3600 },
+  { date: 'T10', label: 'Tháng 10', completedLessons: 11200, activeUsers: 1180, assessments: 4500 },
+]
