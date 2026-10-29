@@ -929,3 +929,489 @@
   background-color: #2d3748;
 }
 
+/* ==========================================================================
+   STUDY_AI MODAL DIALOGS & ACTION SYSTEM (evondevKit & Navy Notebook Spec)
+   ========================================================================== */
+
+/* ── Modal Backdrop & Animations ────────────────────────────────────────── */
+.admin-dialog-backdrop,
+.admin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 42, 67, 0.52);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow-y: auto;
+  animation: adminDialogFadeIn 0.15s ease-out;
+}
+
+@keyframes adminDialogFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes adminDialogPopIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* ── Modal Dialog Card ─────────────────────────────────────────────────── */
+.admin-dialog-card {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  max-height: calc(100vh - 48px);
+  background: var(--staff-surface, #ffffff);
+  border: 1px solid var(--staff-border, #e2e8f0);
+  border-radius: var(--staff-radius-xl, 12px);
+  box-shadow: 0 20px 45px -10px rgba(16, 42, 67, 0.22), 0 0 0 1px rgba(16, 42, 67, 0.04);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: adminDialogPopIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+.admin-dialog-card.admin-form-dialog {
+  max-width: 580px;
+}
+
+/* ── Dialog Header ─────────────────────────────────────────────────────── */
+.admin-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background-color: var(--staff-surface, #ffffff);
+  border-bottom: 1px solid var(--staff-border, #e2e8f0);
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.admin-dialog-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--staff-text-main, #102a43);
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+}
+
+.admin-dialog-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  border-radius: var(--staff-radius-md, 8px);
+  border: none;
+  background: transparent;
+  color: var(--staff-text-muted, #627d98);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.admin-dialog-close:hover {
+  background-color: var(--staff-surface-hover, #f1f5f9);
+  color: var(--staff-text-main, #102a43);
+}
+
+/* ── Dialog Body & Scrollable View ─────────────────────────────────────── */
+.admin-dialog-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 20px;
+  min-height: 0;
+}
+
+.admin-dialog-body.admin-form-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Dialog Footer ─────────────────────────────────────────────────────── */
+.admin-dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 20px;
+  background-color: var(--staff-bg-app, #f8fafc);
+  border-top: 1px solid var(--staff-border, #e2e8f0);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+/* ── Form Controls inside Dialog ───────────────────────────────────────── */
+.admin-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-form-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--staff-text-main, #102a43);
+}
+
+.admin-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.admin-form-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--staff-radius-md, 8px);
+  background-color: var(--staff-navy-light, rgba(16, 42, 67, 0.08));
+  color: var(--staff-navy-primary, #102a43);
+  margin-right: 10px;
+  flex-shrink: 0;
+}
+
+/* ── Question Preview inside Assessment Modal ──────────────────────────── */
+.admin-question-preview-box {
+  background: var(--staff-bg-app, #f8fafc);
+  border: 1px solid var(--staff-border, #e2e8f0);
+  border-radius: var(--staff-radius-md, 8px);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.admin-question-preview-box:last-child {
+  margin-bottom: 0;
+}
+
+.admin-question-prompt {
+  font-weight: 600;
+  color: var(--staff-text-main, #102a43);
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+  line-height: 1.45;
+}
+
+.admin-question-options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.admin-question-option-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  padding: 8px 12px;
+  border-radius: var(--staff-radius-md, 6px);
+  background: var(--staff-surface, #ffffff);
+  border: 1px solid var(--staff-border, #e2e8f0);
+  color: var(--staff-text-main, #102a43);
+}
+
+.admin-question-option-item.correct {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.08);
+  font-weight: 600;
+  color: #065f46;
+}
+
+.admin-question-explanation {
+  font-size: 0.8rem;
+  color: var(--staff-text-muted, #627d98);
+  border-left: 3px solid var(--staff-navy-primary, #102a43);
+  padding-left: 10px;
+  margin-top: 8px;
+  font-style: italic;
+  line-height: 1.45;
+}
+
+/* ── Action Buttons & Dropdown Menus ───────────────────────────────────── */
+.admin-btn-outline,
+.staff-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: var(--staff-radius-md, 6px);
+  border: 1px solid var(--staff-border, #e2e8f0);
+  background-color: var(--staff-surface, #ffffff);
+  color: var(--staff-text-main, #102a43);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.admin-btn-outline:hover,
+.staff-btn-outline:hover {
+  background-color: var(--staff-surface-hover, #f1f5f9);
+  border-color: var(--staff-border-strong, #cbd5e1);
+  color: var(--staff-navy-primary, #102a43);
+}
+
+.admin-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: var(--staff-radius-md, 8px);
+  border: 1px solid var(--staff-border, #e2e8f0);
+  background-color: var(--staff-surface, #ffffff);
+  color: var(--staff-text-main, #102a43);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.admin-btn-secondary:hover {
+  background-color: var(--staff-surface-hover, #f1f5f9);
+  border-color: var(--staff-border-strong, #cbd5e1);
+}
+
+.table-action-group {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.table-action-btn-danger {
+  color: var(--staff-danger, #dc2626) !important;
+}
+
+.table-action-btn-danger:hover {
+  background-color: var(--staff-danger-bg, rgba(220, 38, 38, 0.08)) !important;
+  border-color: rgba(220, 38, 38, 0.3) !important;
+}
+
+/* Action Dropdown / Popover */
+.action-dropdown-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.action-dropdown-trigger {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--staff-radius-md, 6px);
+  border: 1px solid var(--staff-border, #e2e8f0);
+  background-color: var(--staff-surface, #ffffff);
+  color: var(--staff-text-muted, #627d98);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.action-dropdown-trigger:hover,
+.action-dropdown-trigger[aria-expanded='true'] {
+  background-color: var(--staff-surface-hover, #f1f5f9);
+  border-color: var(--staff-border-strong, #cbd5e1);
+  color: var(--staff-text-main, #102a43);
+}
+
+.action-dropdown-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 100;
+  min-width: 180px;
+  background: var(--staff-surface, #ffffff);
+  border: 1px solid var(--staff-border, #e2e8f0);
+  border-radius: var(--staff-radius-md, 8px);
+  box-shadow: 0 10px 25px -5px rgba(16, 42, 67, 0.15);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: adminDropdownFadeIn 0.12s ease-out;
+}
+
+@keyframes adminDropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.action-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--staff-text-main, #102a43);
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+.action-dropdown-item:hover {
+  background-color: var(--staff-surface-hover, #f1f5f9);
+  color: var(--staff-navy-primary, #102a43);
+}
+
+.action-dropdown-item.danger {
+  color: var(--staff-danger, #dc2626);
+}
+
+.action-dropdown-item.danger:hover {
+  background-color: var(--staff-danger-bg, rgba(220, 38, 38, 0.08));
+}
+
+.action-dropdown-divider {
+  height: 1px;
+  background-color: var(--staff-border-subtle, #f1f5f9);
+  margin: 4px 0;
+}
+
+/* ── Mobile Responsive Overrides for Dialogs ───────────────────────────── */
+@media (max-width: 640px) {
+  .admin-dialog-backdrop {
+    padding: 8px;
+    align-items: flex-end;
+  }
+  .admin-dialog-card {
+    max-width: 100% !important;
+    max-height: 90vh !important;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+  .admin-form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Dark Mode Overrides for Dialogs & Actions ─────────────────────────── */
+[data-theme='dark'] .admin-dialog-backdrop {
+  background: rgba(0, 0, 0, 0.72);
+}
+
+[data-theme='dark'] .admin-dialog-card {
+  background: var(--staff-surface, #1e293b);
+  border-color: var(--staff-border, #334155);
+  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.55);
+}
+
+[data-theme='dark'] .admin-dialog-header {
+  background: var(--staff-surface, #1e293b);
+  border-bottom-color: var(--staff-border, #334155);
+}
+
+[data-theme='dark'] .admin-dialog-footer {
+  background: #0f172a;
+  border-top-color: var(--staff-border, #334155);
+}
+
+[data-theme='dark'] .admin-dialog-close:hover {
+  background: #334155;
+  color: #f8fafc;
+}
+
+[data-theme='dark'] .admin-form-label {
+  color: #f8fafc;
+}
+
+[data-theme='dark'] .admin-question-preview-box {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+[data-theme='dark'] .admin-question-option-item {
+  background: #1e293b;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+[data-theme='dark'] .admin-question-option-item.correct {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: #10b981;
+  color: #34d399;
+}
+
+[data-theme='dark'] .admin-btn-outline,
+[data-theme='dark'] .staff-btn-outline,
+[data-theme='dark'] .admin-btn-secondary,
+[data-theme='dark'] .action-dropdown-trigger {
+  background: #1e293b;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+[data-theme='dark'] .admin-btn-outline:hover,
+[data-theme='dark'] .staff-btn-outline:hover,
+[data-theme='dark'] .admin-btn-secondary:hover,
+[data-theme='dark'] .action-dropdown-trigger:hover,
+[data-theme='dark'] .action-dropdown-trigger[aria-expanded='true'] {
+  background: #334155;
+  border-color: #475569;
+}
+
+[data-theme='dark'] .action-dropdown-menu {
+  background: #1e293b;
+  border-color: #334155;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme='dark'] .action-dropdown-item {
+  color: #f8fafc;
+}
+
+[data-theme='dark'] .action-dropdown-item:hover {
+  background: #334155;
+  color: #38bdf8;
+}
+
+[data-theme='dark'] .action-dropdown-divider {
+  background-color: #334155;
+}
+
+

@@ -12,6 +12,7 @@ import {
   Send,
   Globe,
   FileEdit,
+  MoreHorizontal,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { educationService } from '@/services/education.service'
@@ -46,6 +47,41 @@ export const ContentLessonsPage: React.FC = () => {
   const [formAuthor, setFormAuthor] = useState('Quản trị viên')
   const [formStatus, setFormStatus] = useState<ContentStatus>('draft')
   const [formError, setFormError] = useState<string | null>(null)
+
+  // Action Menu Dropdown State
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+
+  // Listen for Escape key and outside clicks to dismiss modal and dropdown
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest('.action-dropdown-wrap')) {
+        setOpenMenuId(null)
+      }
+    }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpenMenuId(null)
+        if (isCreateOpen) setIsCreateOpen(false)
+      }
+    }
+    document.addEventListener('click', handleClickOutside)
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('click', handleClickOutside)
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isCreateOpen])
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isCreateOpen) {
+      const originalOverflow = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+      return () => {
+        document.body.style.overflow = originalOverflow
+      }
+    }
+  }, [isCreateOpen])
 
   const showToast = (msg: string) => {
     setToastMessage(msg)
@@ -344,70 +380,103 @@ export const ContentLessonsPage: React.FC = () => {
                     <StatusBadge status={l.status} />
                   </td>
                   <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
-                      {/* Fast status actions */}
-                      {l.status !== 'published' && (
-                        <button
-                          type="button"
-                          className="admin-btn-outline"
-                          style={{ color: '#047857', fontSize: '0.75rem', padding: '4px 8px' }}
-                          onClick={() => handleStatusChange(l.id, 'published', l.title)}
-                          title="Xuất bản demo ngay"
-                          aria-label={`Xuất bản ${l.title}`}
-                        >
-                          <Globe size={13} />
-                          <span>Xuất bản</span>
-                        </button>
-                      )}
-                      {l.status === 'draft' && (
-                        <button
-                          type="button"
-                          className="admin-btn-outline"
-                          style={{ color: '#b45309', fontSize: '0.75rem', padding: '4px 8px' }}
-                          onClick={() => handleStatusChange(l.id, 'in-review', l.title)}
-                          title="Gửi kiểm duyệt"
-                          aria-label={`Gửi duyệt ${l.title}`}
-                        >
-                          <Send size={13} />
-                          <span>Gửi duyệt</span>
-                        </button>
-                      )}
-                      {l.status === 'published' && (
-                        <button
-                          type="button"
-                          className="admin-btn-outline"
-                          style={{ fontSize: '0.75rem', padding: '4px 8px' }}
-                          onClick={() => handleStatusChange(l.id, 'draft', l.title)}
-                          title="Thu về bản nháp"
-                          aria-label={`Chuyển nháp ${l.title}`}
-                        >
-                          <FileEdit size={13} />
-                          <span>Về nháp</span>
-                        </button>
-                      )}
-
-                      {/* Open Editor */}
+                    <div className="table-action-group">
+                      {/* Primary Action: Open Editor */}
                       <Link
                         to={`/content/lessons/${l.id}`}
                         className="admin-btn-outline"
-                        style={{ padding: '4px 8px' }}
                         title="Mở giao diện soạn thảo bài học"
                         aria-label={`Soạn thảo ${l.title}`}
                       >
-                        <ExternalLink size={13} />
+                        <ExternalLink size={13} aria-hidden />
+                        <span>Soạn thảo</span>
                       </Link>
 
-                      {/* Delete */}
-                      <button
-                        type="button"
-                        className="admin-btn-outline"
-                        onClick={() => handleDelete(l.id, l.title)}
-                        title="Xóa bài học"
-                        aria-label={`Xóa ${l.title}`}
-                        style={{ color: '#dc2626', padding: '4px 8px' }}
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                      {/* Secondary Actions Dropdown */}
+                      <div className="action-dropdown-wrap">
+                        <button
+                          type="button"
+                          className="action-dropdown-trigger"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setOpenMenuId(openMenuId === l.id ? null : l.id)
+                          }}
+                          title="Thao tác khác"
+                          aria-label={`Thao tác khác ${l.title}`}
+                          aria-haspopup="true"
+                          aria-expanded={openMenuId === l.id}
+                        >
+                          <MoreHorizontal size={15} aria-hidden />
+                        </button>
+
+                        {openMenuId === l.id && (
+                          <div className="action-dropdown-menu" role="menu">
+                            {l.status !== 'published' && (
+                              <button
+                                type="button"
+                                className="action-dropdown-item"
+                                role="menuitem"
+                                onClick={() => {
+                                  setOpenMenuId(null)
+                                  handleStatusChange(l.id, 'published', l.title)
+                                }}
+                                aria-label={`Xuất bản ${l.title}`}
+                              >
+                                <Globe size={14} style={{ color: '#047857' }} aria-hidden />
+                                <span>Xuất bản ngay</span>
+                              </button>
+                            )}
+
+                            {l.status === 'draft' && (
+                              <button
+                                type="button"
+                                className="action-dropdown-item"
+                                role="menuitem"
+                                onClick={() => {
+                                  setOpenMenuId(null)
+                                  handleStatusChange(l.id, 'in-review', l.title)
+                                }}
+                                aria-label={`Gửi duyệt ${l.title}`}
+                              >
+                                <Send size={14} style={{ color: '#b45309' }} aria-hidden />
+                                <span>Gửi kiểm duyệt</span>
+                              </button>
+                            )}
+
+                            {l.status === 'published' && (
+                              <button
+                                type="button"
+                                className="action-dropdown-item"
+                                role="menuitem"
+                                onClick={() => {
+                                  setOpenMenuId(null)
+                                  handleStatusChange(l.id, 'draft', l.title)
+                                }}
+                                aria-label={`Chuyển nháp ${l.title}`}
+                              >
+                                <FileEdit size={14} style={{ color: '#475569' }} aria-hidden />
+                                <span>Chuyển về nháp</span>
+                              </button>
+                            )}
+
+                            <div className="action-dropdown-divider" />
+
+                            <button
+                              type="button"
+                              className="action-dropdown-item danger"
+                              role="menuitem"
+                              onClick={() => {
+                                setOpenMenuId(null)
+                                handleDelete(l.id, l.title)
+                              }}
+                              aria-label={`Xóa ${l.title}`}
+                            >
+                              <Trash2 size={14} aria-hidden />
+                              <span>Xóa bài học</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </td>
                 </tr>

@@ -38,6 +38,28 @@ export const ContentChaptersPage: React.FC = () => {
   const [formStatus, setFormStatus] = useState<ContentStatus>('published')
   const [formError, setFormError] = useState<string | null>(null)
 
+  // Listen for Escape key to close dialog
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isDialogOpen) {
+        setIsDialogOpen(false)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isDialogOpen])
+
+  // Lock body scroll when dialog is open
+  useEffect(() => {
+    if (isDialogOpen) {
+      const originalOverflow = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+      return () => {
+        document.body.style.overflow = originalOverflow
+      }
+    }
+  }, [isDialogOpen])
+
   const showToast = (msg: string) => {
     setToastMessage(msg)
     setTimeout(() => setToastMessage(null), 3000)

@@ -12,6 +12,7 @@ import {
   HelpCircle,
   Globe,
   Send,
+  MoreHorizontal,
 } from 'lucide-react'
 import { educationService } from '@/services/education.service'
 import type {
@@ -63,6 +64,44 @@ export const ContentAssessmentsPage: React.FC = () => {
   const [formPassingScore, setFormPassingScore] = useState(60)
   const [formStatus, setFormStatus] = useState<ContentStatus>('published')
   const [formError, setFormError] = useState<string | null>(null)
+
+  // Action Menu Dropdown State
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+
+  // Listen for Escape key and outside clicks to dismiss modals and dropdowns
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest('.action-dropdown-wrap')) {
+        setOpenMenuId(null)
+      }
+    }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpenMenuId(null)
+        if (previewItem) setPreviewItem(null)
+        if (questionTargetId) setQuestionTargetId(null)
+        if (isFormOpen) setIsFormOpen(false)
+      }
+    }
+    document.addEventListener('click', handleClickOutside)
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('click', handleClickOutside)
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [previewItem, questionTargetId, isFormOpen])
+
+  // Lock body scroll when any modal is open
+  useEffect(() => {
+    const isAnyModalOpen = Boolean(previewItem || questionTargetId || isFormOpen)
+    if (isAnyModalOpen) {
+      const originalOverflow = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+      return () => {
+        document.body.style.overflow = originalOverflow
+      }
+    }
+  }, [previewItem, questionTargetId, isFormOpen])
 
   const showToast = (msg: string) => {
     setToastMessage(msg)
@@ -365,81 +404,114 @@ export const ContentAssessmentsPage: React.FC = () => {
                     <StatusBadge status={asm.status} />
                   </td>
                   <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'inline-flex', gap: '6px', alignItems: 'center' }}>
-                      {/* Preview Button */}
+                    <div className="table-action-group">
+                      {/* Primary Action: Preview */}
                       <button
                         type="button"
                         className="admin-btn-outline"
-                        style={{ padding: '4px 8px', fontSize: '0.75rem', gap: '4px' }}
                         onClick={() => setPreviewItem(asm)}
                         title="Xem trước bài thu hoạch"
                         aria-label={`Xem trước ${asm.lessonTitle}`}
                       >
-                        <Eye size={13} />
+                        <Eye size={13} aria-hidden />
                         <span>Xem trước</span>
                       </button>
 
-                      {/* Add Question Button */}
-                      <button
-                        type="button"
-                        className="admin-btn-outline"
-                        style={{ padding: '4px 8px', fontSize: '0.75rem', gap: '4px', color: '#0369a1' }}
-                        onClick={() => openAddQuestion(asm.id)}
-                        title="Thêm câu hỏi vào bài này"
-                        aria-label={`Thêm câu hỏi ${asm.lessonTitle}`}
-                      >
-                        <Plus size={13} />
-                        <span>Thêm câu</span>
-                      </button>
-
-                      {/* Status Fast Toggle */}
-                      {asm.status !== 'published' ? (
+                      {/* Secondary Actions Dropdown */}
+                      <div className="action-dropdown-wrap">
                         <button
                           type="button"
-                          className="admin-btn-outline"
-                          style={{ padding: '4px 8px', fontSize: '0.75rem', color: '#047857' }}
-                          onClick={() => handleStatusToggle(asm.id, 'published', asm.lessonTitle)}
-                          title="Xuất bản bài thu hoạch"
-                          aria-label={`Xuất bản ${asm.lessonTitle}`}
+                          className="action-dropdown-trigger"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setOpenMenuId(openMenuId === asm.id ? null : asm.id)
+                          }}
+                          title="Thao tác khác"
+                          aria-label={`Thao tác khác ${asm.lessonTitle}`}
+                          aria-haspopup="true"
+                          aria-expanded={openMenuId === asm.id}
                         >
-                          <Globe size={13} />
+                          <MoreHorizontal size={15} aria-hidden />
                         </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className="admin-btn-outline"
-                          style={{ padding: '4px 8px', fontSize: '0.75rem', color: '#b45309' }}
-                          onClick={() => handleStatusToggle(asm.id, 'draft', asm.lessonTitle)}
-                          title="Chuyển về bản nháp"
-                          aria-label={`Chuyển nháp ${asm.lessonTitle}`}
-                        >
-                          <Send size={13} />
-                        </button>
-                      )}
 
-                      {/* Edit */}
-                      <button
-                        type="button"
-                        className="admin-btn-outline"
-                        style={{ padding: '4px 8px' }}
-                        onClick={() => openEditDialog(asm)}
-                        title="Chỉnh sửa thông tin"
-                        aria-label={`Sửa ${asm.lessonTitle}`}
-                      >
-                        <Edit2 size={13} />
-                      </button>
+                        {openMenuId === asm.id && (
+                          <div className="action-dropdown-menu" role="menu">
+                            <button
+                              type="button"
+                              className="action-dropdown-item"
+                              role="menuitem"
+                              onClick={() => {
+                                setOpenMenuId(null)
+                                openAddQuestion(asm.id)
+                              }}
+                              aria-label={`Thêm câu hỏi ${asm.lessonTitle}`}
+                            >
+                              <Plus size={14} style={{ color: '#0369a1' }} aria-hidden />
+                              <span>Thêm câu hỏi</span>
+                            </button>
 
-                      {/* Delete */}
-                      <button
-                        type="button"
-                        className="admin-btn-outline"
-                        style={{ color: '#dc2626', padding: '4px 8px' }}
-                        onClick={() => handleDelete(asm.id, asm.lessonTitle)}
-                        title="Xóa bài thu hoạch"
-                        aria-label={`Xóa ${asm.lessonTitle}`}
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                            <button
+                              type="button"
+                              className="action-dropdown-item"
+                              role="menuitem"
+                              onClick={() => {
+                                setOpenMenuId(null)
+                                openEditDialog(asm)
+                              }}
+                              aria-label={`Sửa ${asm.lessonTitle}`}
+                            >
+                              <Edit2 size={14} style={{ color: '#475569' }} aria-hidden />
+                              <span>Sửa thông tin</span>
+                            </button>
+
+                            {asm.status !== 'published' ? (
+                              <button
+                                type="button"
+                                className="action-dropdown-item"
+                                role="menuitem"
+                                onClick={() => {
+                                setOpenMenuId(null)
+                                handleStatusToggle(asm.id, 'published', asm.lessonTitle)
+                              }}
+                              aria-label={`Xuất bản ${asm.lessonTitle}`}
+                            >
+                              <Globe size={14} style={{ color: '#047857' }} aria-hidden />
+                              <span>Xuất bản ngay</span>
+                            </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className="action-dropdown-item"
+                                role="menuitem"
+                                onClick={() => {
+                                  setOpenMenuId(null)
+                                  handleStatusToggle(asm.id, 'draft', asm.lessonTitle)
+                                }}
+                                aria-label={`Chuyển nháp ${asm.lessonTitle}`}
+                              >
+                                <Send size={14} style={{ color: '#b45309' }} aria-hidden />
+                                <span>Chuyển về nháp</span>
+                              </button>
+                            )}
+
+                            <div className="action-dropdown-divider" />
+
+                            <button
+                              type="button"
+                              className="action-dropdown-item danger"
+                              role="menuitem"
+                              onClick={() => {
+                                setOpenMenuId(null)
+                                handleDelete(asm.id, asm.lessonTitle)
+                              }}
+                              aria-label={`Xóa ${asm.lessonTitle}`}
+                            >
+                              <Trash2 size={14} aria-hidden />
+                              <span>Xóa bài thu hoạch</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </td>
                 </tr>
@@ -451,10 +523,13 @@ export const ContentAssessmentsPage: React.FC = () => {
 
       {/* PREVIEW MODAL */}
       {previewItem && (
-        <div className="admin-dialog-backdrop" onClick={() => setPreviewItem(null)}>
+        <div
+          className="admin-dialog-backdrop"
+          onClick={() => setPreviewItem(null)}
+          role="presentation"
+        >
           <div
             className="admin-dialog-card"
-            style={{ maxWidth: '640px', width: '92%', maxHeight: '85vh', display: 'flex', flexDirection: 'column' }}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
@@ -465,7 +540,7 @@ export const ContentAssessmentsPage: React.FC = () => {
                 <h2 id="preview-title" className="admin-dialog-title">
                   Xem trước: {previewItem.lessonTitle}
                 </h2>
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted, #627d98)', marginTop: '2px' }}>
+                <div style={{ fontSize: '0.78rem', color: 'var(--staff-text-muted, #627d98)', marginTop: '2px' }}>
                   {previewItem.subjectName} · Thời lượng: {previewItem.durationMinutes} phút · Điểm đạt: {previewItem.passingScore}%
                 </div>
               </div>
@@ -474,39 +549,40 @@ export const ContentAssessmentsPage: React.FC = () => {
                 className="admin-dialog-close"
                 onClick={() => setPreviewItem(null)}
                 aria-label="Đóng"
+                title="Đóng cửa sổ"
               >
-                <X size={16} />
+                <X size={16} aria-hidden />
               </button>
             </div>
 
-            <div className="admin-dialog-body" style={{ overflowY: 'auto', flex: 1, padding: '16px 20px' }}>
+            <div className="admin-dialog-body">
               {(!previewItem.questions || previewItem.questions.length === 0) ? (
-                <div style={{ textAlign: 'center', padding: '30px 0', color: 'var(--text-muted, #627d98)' }}>
-                  <HelpCircle size={36} style={{ margin: '0 auto 10px', opacity: 0.5 }} />
-                  <p>Bài thu hoạch này hiện chưa có câu hỏi nào.</p>
+                <div style={{ textAlign: 'center', padding: '36px 0', color: 'var(--staff-text-muted, #627d98)' }}>
+                  <HelpCircle size={40} style={{ margin: '0 auto 12px', opacity: 0.5 }} aria-hidden />
+                  <p style={{ margin: '0 0 14px' }}>Bài thu hoạch này hiện chưa có câu hỏi nào.</p>
                   <button
                     type="button"
-                    className="btn btn-primary"
-                    style={{ marginTop: '10px' }}
+                    className="staff-btn staff-btn-primary"
                     onClick={() => {
                       const id = previewItem.id
                       setPreviewItem(null)
                       openAddQuestion(id)
                     }}
                   >
+                    <Plus size={14} aria-hidden />
                     Thêm câu hỏi đầu tiên
                   </button>
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                   {previewItem.questions.map((q, idx) => (
                     <div key={q.id} className="admin-question-preview-box">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--navy-primary, #102a43)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--staff-navy-primary, #102a43)' }}>
                           Câu {idx + 1}
                         </span>
                         {q.topic && (
-                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #627d98)' }}>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--staff-text-muted, #627d98)' }}>
                             Chủ đề: {q.topic}
                           </span>
                         )}
@@ -523,7 +599,7 @@ export const ContentAssessmentsPage: React.FC = () => {
                             <span style={{ fontWeight: 700 }}>{opt.label}.</span>
                             <span>{opt.text}</span>
                             {opt.id === q.correctOptionId && (
-                              <span style={{ marginLeft: 'auto', fontSize: '0.7rem', color: '#065f46' }}>
+                              <span style={{ marginLeft: 'auto', fontSize: '0.72rem', color: '#065f46', fontWeight: 600 }}>
                                 ✓ Đáp án đúng
                               </span>
                             )}
@@ -551,13 +627,14 @@ export const ContentAssessmentsPage: React.FC = () => {
               </button>
               <button
                 type="button"
-                className="btn btn-primary"
+                className="staff-btn staff-btn-primary"
                 onClick={() => {
                   const id = previewItem.id
                   setPreviewItem(null)
                   openAddQuestion(id)
                 }}
               >
+                <Plus size={14} aria-hidden />
                 Thêm câu hỏi mới
               </button>
             </div>

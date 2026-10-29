@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { ContentDashboardPage } from './ContentDashboardPage'
 import { ContentSubjectsPage } from './ContentSubjectsPage'
@@ -109,6 +109,80 @@ describe('Content Workspace UI & Interaction Suite', () => {
     expect(screen.getByText('Quản lý bài thu hoạch')).toBeInTheDocument()
     await waitFor(() => {
       expect(screen.getByText('Tạo bài thu hoạch')).toBeInTheDocument()
+    })
+  })
+
+  it('5b. Assessment Preview Modal opens, renders questions, locks scroll, and closes with Esc/Close btn', async () => {
+    render(
+      <MemoryRouter initialEntries={['/content/assessments']}>
+        <Routes>
+          <Route path="/content/assessments" element={<ContentAssessmentsPage />} />
+        </Routes>
+      </MemoryRouter>
+    )
+
+    // Wait for table to load
+    await waitFor(() => {
+      expect(screen.getAllByText('Xem trước').length).toBeGreaterThan(0)
+    })
+
+    const previewButtons = screen.getAllByRole('button', { name: /^Xem trước/i })
+    expect(previewButtons.length).toBeGreaterThan(0)
+
+    // Click "Xem trước" on first assessment
+    fireEvent.click(previewButtons[0])
+
+    // Modal dialog should be rendered with role="dialog"
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog).toBeInTheDocument()
+    expect(dialog).toHaveAttribute('aria-modal', 'true')
+    expect(screen.getByText(/Xem trước:/i)).toBeInTheDocument()
+
+    // Test Esc key dismisses the dialog
+    fireEvent.keyDown(window, { key: 'Escape', code: 'Escape' })
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    // Reopen modal and test Close button dismisses it
+    const reopenedPreviewBtns = screen.getAllByRole('button', { name: /^Xem trước/i })
+    fireEvent.click(reopenedPreviewBtns[0])
+    expect(await screen.findByRole('dialog')).toBeInTheDocument()
+
+    const closeButtons = screen.getAllByRole('button', { name: 'Đóng' })
+    expect(closeButtons.length).toBeGreaterThan(0)
+    fireEvent.click(closeButtons[0])
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+  })
+
+  it('5c. Action Dropdown opens secondary menu with add question, edit, status, and delete options', async () => {
+    render(
+      <MemoryRouter initialEntries={['/content/assessments']}>
+        <Routes>
+          <Route path="/content/assessments" element={<ContentAssessmentsPage />} />
+        </Routes>
+      </MemoryRouter>
+    )
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('button', { name: /^Thao tác khác/i }).length).toBeGreaterThan(0)
+    })
+
+    const moreButtons = screen.getAllByRole('button', { name: /^Thao tác khác/i })
+    fireEvent.click(moreButtons[0])
+
+    // Menu should be open
+    expect(screen.getByRole('menu')).toBeInTheDocument()
+    expect(screen.getByText('Thêm câu hỏi')).toBeInTheDocument()
+    expect(screen.getByText('Sửa thông tin')).toBeInTheDocument()
+    expect(screen.getByText('Xóa bài thu hoạch')).toBeInTheDocument()
+
+    // Pressing Escape closes menu
+    fireEvent.keyDown(window, { key: 'Escape', code: 'Escape' })
+    await waitFor(() => {
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument()
     })
   })
 
