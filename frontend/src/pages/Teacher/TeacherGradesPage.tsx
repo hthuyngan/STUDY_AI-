@@ -360,8 +360,8 @@ export const TeacherGradesPage: React.FC = () => {
               <table className="staff-table">
                 <thead>
                   <tr>
-                    <th style={{ position: 'sticky', left: 0, background: '#f8fafc', zIndex: 2 }}>Mã HV</th>
-                    <th style={{ position: 'sticky', left: 80, background: '#f8fafc', zIndex: 2 }}>Học sinh</th>
+                    <th style={{ position: 'sticky', left: 0, backgroundColor: 'var(--staff-bg-app, #f8fafc)', zIndex: 2 }}>Mã HV</th>
+                    <th style={{ position: 'sticky', left: 80, backgroundColor: 'var(--staff-bg-app, #f8fafc)', zIndex: 2 }}>Học sinh</th>
                     <th>Lớp học</th>
                     <th>Môn học</th>
                     <th>Nội dung đánh giá</th>
@@ -374,10 +374,10 @@ export const TeacherGradesPage: React.FC = () => {
                 <tbody>
                   {filteredGrades.map((g) => (
                     <tr key={g.id}>
-                      <td style={{ position: 'sticky', left: 0, background: '#fff', zIndex: 1 }}>
+                      <td style={{ position: 'sticky', left: 0, backgroundColor: 'var(--staff-surface, #ffffff)', zIndex: 1 }}>
                         <code>{g.studentCode}</code>
                       </td>
-                      <td style={{ position: 'sticky', left: 80, background: '#fff', zIndex: 1 }}>
+                      <td style={{ position: 'sticky', left: 80, backgroundColor: 'var(--staff-surface, #ffffff)', zIndex: 1 }}>
                         <Link
                           to={`/teacher/students/${g.studentId}`}
                           className="font-medium text-navy-primary hover:underline"

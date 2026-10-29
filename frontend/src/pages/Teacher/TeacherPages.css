@@ -1,6 +1,7 @@
 /* ==========================================================================
    STUDY_AI — TEACHER WORKSPACE STYLES (EVONDEVKIT & NAVY NOTEBOOK SPEC)
    ========================================================================== */
+@import '../../components/staff/staff-shared.css';
 
 /* --------------------------------------------------------------------------
    DASHBOARD SPLIT GRID & SECTION STYLES
@@ -201,13 +202,13 @@
 }
 
 /* --------------------------------------------------------------------------
-   TEACHER FILTER BANNER
+   TEACHER FILTER BANNER & CONTROLS
    -------------------------------------------------------------------------- */
 .teacher-filter-banner {
-  background: #f8fafc;
-  padding: 10px 16px;
-  border-radius: var(--radius-md, 8px);
-  border: 1px solid var(--border-subtle, #e2e8f0);
+  background: var(--staff-surface, #ffffff);
+  padding: 12px 16px;
+  border-radius: var(--staff-radius-lg, 10px);
+  border: 1px solid var(--staff-border, #e2e8f0);
   margin-bottom: 20px;
   display: flex;
   align-items: center;
@@ -215,13 +216,140 @@
   flex-wrap: wrap;
 }
 
+.teacher-filter-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--staff-text-main, #102a43);
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
 .teacher-filter-active-pill {
   font-size: 0.82rem;
-  color: #0284c7;
-  background: rgba(2, 132, 199, 0.08);
-  padding: 2px 10px;
+  color: var(--staff-info, #0284c7);
+  background: var(--staff-info-bg, rgba(2, 132, 199, 0.08));
+  border: 1px solid rgba(2, 132, 199, 0.2);
+  padding: 3px 12px;
   border-radius: 9999px;
-  font-weight: 500;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* --------------------------------------------------------------------------
+   TABLE CELLS, BADGES & PROGRESS BAR (EVONDEVKIT STANDARD)
+   -------------------------------------------------------------------------- */
+.progress-bar-wrap {
+  width: 68px;
+  height: 6px;
+  background-color: var(--staff-border, #e2e8f0);
+  border-radius: 9999px;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+.subject-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border-radius: 6px;
+  background-color: var(--staff-navy-light, rgba(16, 42, 67, 0.06));
+  color: var(--staff-navy-primary, #102a43);
+  border: 1px solid var(--staff-navy-border, rgba(16, 42, 67, 0.12));
+  white-space: nowrap;
+}
+
+.badge-count-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 9999px;
+  background-color: var(--staff-surface-hover, #f1f5f9);
+  color: var(--staff-text-main, #102a43);
+  border: 1px solid var(--staff-border, #e2e8f0);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border-radius: 9999px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.status-badge.status-success {
+  background-color: var(--staff-success-bg, rgba(22, 163, 74, 0.08));
+  color: var(--staff-success, #16a34a);
+  border: 1px solid rgba(22, 163, 74, 0.2);
+}
+
+.status-badge.status-default {
+  background-color: var(--staff-surface-hover, #f1f5f9);
+  color: var(--staff-text-muted, #627d98);
+  border: 1px solid var(--staff-border, #e2e8f0);
+}
+
+.status-badge.status-warning {
+  background-color: var(--staff-warning-bg, rgba(217, 119, 6, 0.08));
+  color: var(--staff-warning, #d97706);
+  border: 1px solid rgba(217, 119, 6, 0.2);
+}
+
+.status-badge.status-danger {
+  background-color: var(--staff-danger-bg, rgba(220, 38, 38, 0.08));
+  color: var(--staff-danger, #dc2626);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+}
+
+.table-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.table-action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid var(--staff-border, #e2e8f0);
+  background-color: var(--staff-surface, #ffffff);
+  color: var(--staff-text-muted, #627d98);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.table-action-btn:hover {
+  background-color: var(--staff-surface-hover, #f1f5f9);
+  color: var(--staff-text-main, #102a43);
+  border-color: var(--staff-border-strong, #cbd5e1);
+}
+
+.table-action-btn.text-danger:hover {
+  background-color: var(--staff-danger-bg, rgba(220, 38, 38, 0.08));
+  color: var(--staff-danger, #dc2626);
+  border-color: rgba(220, 38, 38, 0.25);
 }
 
 /* --------------------------------------------------------------------------
@@ -577,4 +705,27 @@
 [data-theme='dark'] .teacher-score-pill {
   background: #334155;
   color: #f8fafc;
+}
+
+[data-theme='dark'] .table-action-btn {
+  background: #1e293b;
+  border-color: #334155;
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .table-action-btn:hover {
+  background: #334155;
+  color: #f8fafc;
+}
+
+[data-theme='dark'] .badge-count-link {
+  background: #1e293b;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+[data-theme='dark'] .subject-badge-pill {
+  background: rgba(56, 189, 248, 0.1);
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.25);
 }

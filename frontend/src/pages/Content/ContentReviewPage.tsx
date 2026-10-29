@@ -160,7 +160,7 @@ export const ContentReviewPage: React.FC = () => {
       <div className="staff-page-header">
         <div className="admin-prototype-badge">
           <span className="prototype-dot"></span>
-          <span>ADMIN WORKSPACE • KIỂM SOÁT NỘI DUNG</span>
+          <span>CONTENT WORKSPACE • PHÊ DUYỆT NỘI DUNG</span>
         </div>
         <div className="admin-header-row">
           <div>

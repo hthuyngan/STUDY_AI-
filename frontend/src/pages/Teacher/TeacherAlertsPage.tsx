@@ -375,6 +375,7 @@ export const TeacherAlertsPage: React.FC = () => {
                             to={`/teacher/students/${alr.studentId}`}
                             className="table-action-btn"
                             title="Xem hồ sơ học sinh"
+                            aria-label={`Xem hồ sơ ${alr.studentName}`}
                           >
                             <Eye size={16} />
                           </Link>
@@ -383,6 +384,7 @@ export const TeacherAlertsPage: React.FC = () => {
                             className="table-action-btn"
                             onClick={() => handleOpenActionModal(alr)}
                             title="Cập nhật trạng thái can thiệp"
+                            aria-label={`Cập nhật can thiệp ${alr.studentName}`}
                           >
                             <Edit2 size={16} />
                           </button>

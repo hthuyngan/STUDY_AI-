@@ -113,7 +113,7 @@ export const ContentPublicationsPage: React.FC = () => {
       <div className="staff-page-header">
         <div className="admin-prototype-badge">
           <span className="prototype-dot"></span>
-          <span>ADMIN WORKSPACE • KIỂM SOÁT NỘI DUNG</span>
+          <span>CONTENT WORKSPACE • LỊCH SỬ XUẤT BẢN</span>
         </div>
         <div className="admin-header-row">
           <div>

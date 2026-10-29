@@ -102,14 +102,13 @@ export function ContentCurriculumPage() {
             <h2 className="staff-card-title" style={{ margin: 0 }}>
               Các chương ({chapters.length})
             </h2>
-            <button
-              type="button"
+            <Link
+              to={`/content/chapters?subject=${subjectId || 'math'}`}
               className="staff-btn staff-btn-secondary"
               style={{ fontSize: '12px', padding: '4px 8px' }}
-              onClick={() => alert('Thêm chương mới (Tính năng Phase 2)')}
             >
-              + Thêm chương
-            </button>
+              + Quản lý chương
+            </Link>
           </div>
 
           <div>

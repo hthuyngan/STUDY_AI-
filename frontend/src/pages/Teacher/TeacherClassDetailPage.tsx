@@ -368,6 +368,7 @@ export const TeacherClassDetailPage: React.FC = () => {
                                 to={`/teacher/students/${s.id}`}
                                 className="table-action-btn"
                                 title="Xem chi tiết học viên"
+                                aria-label={`Xem chi tiết học viên ${s.name}`}
                               >
                                 <Eye size={15} />
                               </Link>
@@ -376,6 +377,7 @@ export const TeacherClassDetailPage: React.FC = () => {
                                 className="table-action-btn text-danger"
                                 onClick={() => handleRemoveStudent(s)}
                                 title="Rút học viên khỏi lớp"
+                                aria-label={`Rút học viên ${s.name} khỏi lớp`}
                               >
                                 <Trash2 size={15} />
                               </button>

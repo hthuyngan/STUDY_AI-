@@ -1,5 +1,331 @@
-/* Content Workspace styles */
+/* ==========================================================================
+   STUDY_AI — CONTENT WORKSPACE STYLES (EVONDEVKIT & NAVY NOTEBOOK SPEC)
+   ========================================================================== */
+@import '../../components/staff/staff-shared.css';
 
+/* ── Staff Page Container & Header ──────────────────────────────────────── */
+.staff-page {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}
+
+.staff-page-header {
+  margin-bottom: 24px;
+}
+
+.staff-page-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.staff-page-title-row h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--staff-text-main, #102a43);
+  margin: 0 0 6px 0;
+  letter-spacing: -0.01em;
+}
+
+.staff-page-desc {
+  font-size: 0.9rem;
+  color: var(--staff-text-muted, #627d98);
+  margin: 0;
+  max-width: 680px;
+  line-height: 1.45;
+}
+
+.staff-page-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ── Buttons (evondevKit compact standards) ─────────────────────────────── */
+.staff-btn,
+.admin-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: var(--staff-radius-md, 8px);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.staff-btn-primary,
+.admin-btn-primary {
+  background-color: var(--staff-navy-primary, #102a43);
+  color: #ffffff;
+  border: 1px solid var(--staff-navy-primary, #102a43);
+}
+
+.staff-btn-primary:hover,
+.admin-btn-primary:hover {
+  background-color: var(--staff-navy-hover, #173f5f);
+  border-color: var(--staff-navy-hover, #173f5f);
+}
+
+.staff-btn-secondary {
+  background-color: var(--staff-surface, #ffffff);
+  color: var(--staff-text-main, #102a43);
+  border: 1px solid var(--staff-border, #e2e8f0);
+}
+
+.staff-btn-secondary:hover {
+  background-color: var(--staff-surface-hover, #f1f5f9);
+  border-color: var(--staff-border-strong, #cbd5e1);
+}
+
+/* ── Toolbars (Search & Filter) ─────────────────────────────────────────── */
+.admin-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  background-color: var(--staff-surface, #ffffff);
+  border: 1px solid var(--staff-border, #e2e8f0);
+  border-radius: var(--staff-radius-lg, 10px);
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.admin-toolbar-summary {
+  font-size: 13px;
+  color: var(--staff-text-muted, #627d98);
+}
+
+.admin-toolbar-summary strong {
+  color: var(--staff-text-main, #102a43);
+}
+
+.admin-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .admin-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  .admin-search-wrap {
+    min-width: 0 !important;
+    width: 100%;
+  }
+  .admin-filter-group {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .admin-filter-group select,
+  .admin-filter-group .admin-select {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .admin-pagination-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+
+/* ── Tables & Table Containers ──────────────────────────────────────────── */
+.admin-table-container,
+.staff-table-wrapper {
+  width: 100%;
+  background-color: var(--staff-surface, #ffffff);
+  border: 1px solid var(--staff-border, #e2e8f0);
+  border-radius: var(--staff-radius-lg, 10px);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-table,
+.staff-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+
+.admin-table thead th,
+.staff-table thead th {
+  background-color: var(--staff-bg-app, #f8fafc);
+  color: var(--staff-text-muted, #627d98);
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--staff-border, #e2e8f0);
+  white-space: nowrap;
+}
+
+.admin-table tbody td,
+.staff-table tbody td {
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--staff-border-subtle, #f1f5f9);
+  color: var(--staff-text-main, #102a43);
+  vertical-align: middle;
+}
+
+.admin-table tbody tr,
+.staff-table tbody tr {
+  transition: background-color 0.12s ease;
+}
+
+.admin-table tbody tr:hover,
+.staff-table tbody tr:hover {
+  background-color: var(--staff-surface-hover, #f1f5f9);
+}
+
+.admin-table tbody tr:last-child td,
+.staff-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* ── Chapter Table Specific Layout (Section 5.3 & 5.4) ──────────────────── */
+.chapter-table {
+  table-layout: fixed;
+  min-width: 760px;
+}
+
+.chapter-col-order {
+  width: 100px;
+  text-align: center;
+}
+
+.chapter-col-title {
+  width: auto;
+  min-width: 220px;
+}
+
+.chapter-col-subject {
+  width: 150px;
+}
+
+.chapter-col-lessons {
+  width: 110px;
+  text-align: center;
+}
+
+.chapter-col-status {
+  width: 140px;
+}
+
+.chapter-col-actions {
+  width: 110px;
+  text-align: right;
+}
+
+.chapter-title-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 100%;
+}
+
+.chapter-title-text {
+  font-weight: 600;
+  color: var(--staff-text-main, #102a43);
+  line-height: 1.35;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.chapter-id-sub {
+  font-size: 0.72rem;
+  color: var(--staff-text-muted, #627d98);
+  font-family: monospace;
+}
+
+/* ── Order Controls (Up / Down) ─────────────────────────────────────────── */
+.admin-order-controls {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.admin-order-btn {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  border: 1px solid var(--staff-border, #e2e8f0);
+  background-color: var(--staff-surface, #ffffff);
+  color: var(--staff-text-muted, #627d98);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.admin-order-btn:hover:not(:disabled) {
+  background-color: var(--staff-surface-hover, #f1f5f9);
+  color: var(--staff-navy-primary, #102a43);
+  border-color: var(--staff-border-strong, #cbd5e1);
+}
+
+.admin-order-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  border-color: transparent;
+  background: transparent;
+}
+
+/* ── Content Dashboard Grid ─────────────────────────────────────────────── */
+.staff-dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 1024px) {
+  .staff-dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+.staff-card {
+  background-color: var(--staff-surface, #ffffff);
+  border: 1px solid var(--staff-border, #e2e8f0);
+  border-radius: var(--staff-radius-xl, 12px);
+  padding: 20px;
+  box-shadow: none;
+}
+
+.staff-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--staff-text-main, #102a43);
+  margin: 0;
+}
+
+/* ── Two-Column Layout (Curriculum / Editor) ────────────────────────────── */
 .content-two-column {
   display: grid;
   grid-template-columns: 320px 1fr;
@@ -15,23 +341,24 @@
 
 .curriculum-chapter-item {
   padding: 12px 14px;
-  border-radius: 6px;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
+  border-radius: 8px;
+  border: 1px solid var(--staff-border, #e2e8f0);
+  background: var(--staff-surface, #ffffff);
   cursor: pointer;
   transition: border-color 0.15s ease, background-color 0.15s ease;
   margin-bottom: 8px;
 }
 
 .curriculum-chapter-item:hover {
-  border-color: var(--color-primary);
+  border-color: var(--staff-navy-primary, #102a43);
 }
 
 .curriculum-chapter-item.active {
-  border-color: var(--color-primary);
-  background: var(--color-surface-hover, rgba(16, 42, 67, 0.04));
+  border-color: var(--staff-navy-primary, #102a43);
+  background: var(--staff-navy-light, rgba(16, 42, 67, 0.04));
 }
 
+/* ── Lesson Editor Styles ───────────────────────────────────────────────── */
 .editor-sticky-bar {
   position: sticky;
   bottom: 0;
@@ -39,11 +366,11 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 20px;
-  background: var(--color-surface);
-  border-top: 1px solid var(--color-border);
+  background: var(--staff-surface, #ffffff);
+  border-top: 1px solid var(--staff-border, #e2e8f0);
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
   z-index: 10;
-  border-radius: 0 0 8px 8px;
+  border-radius: 0 0 10px 10px;
 }
 
 .editor-form-section {
@@ -54,32 +381,73 @@
 }
 
 .editor-form-section label {
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
-  color: var(--color-navy-dark, #102a43);
+  color: var(--staff-text-main, #102a43);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.04em;
 }
 
 .editor-form-section textarea,
 .editor-form-section input {
   font-family: inherit;
-  font-size: 14px;
+  font-size: 13.5px;
   line-height: 1.5;
   padding: 10px 12px;
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  background: var(--color-surface);
-  color: var(--color-text);
+  border: 1px solid var(--staff-border, #e2e8f0);
+  border-radius: var(--staff-radius-md, 8px);
+  background: var(--staff-surface, #ffffff);
+  color: var(--staff-text-main, #102a43);
+  outline: none;
+  transition: border-color 0.15s ease;
 }
 
 .editor-form-section textarea:focus,
 .editor-form-section input:focus {
-  outline: none;
-  border-color: var(--color-primary);
+  border-color: var(--staff-navy-primary, #102a43);
 }
 
 .editor-form-section .hint {
   font-size: 12px;
-  color: var(--color-ink-muted);
+  color: var(--staff-text-muted, #627d98);
+}
+
+/* ── Dark Mode Overrides ────────────────────────────────────────────────── */
+[data-theme='dark'] .admin-toolbar,
+[data-theme='dark'] .admin-table-container,
+[data-theme='dark'] .staff-card,
+[data-theme='dark'] .curriculum-chapter-item,
+[data-theme='dark'] .editor-sticky-bar {
+  background-color: var(--staff-surface, #1e293b);
+  border-color: var(--staff-border, #334155);
+}
+
+[data-theme='dark'] .staff-btn-secondary,
+[data-theme='dark'] .admin-order-btn {
+  background-color: #1e293b;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+[data-theme='dark'] .staff-btn-secondary:hover,
+[data-theme='dark'] .admin-order-btn:hover:not(:disabled) {
+  background-color: #334155;
+  border-color: #475569;
+}
+
+[data-theme='dark'] .editor-form-section textarea,
+[data-theme='dark'] .editor-form-section input {
+  background-color: #0f172a;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+[data-theme='dark'] .chapter-title-text,
+[data-theme='dark'] .editor-form-section label {
+  color: #f8fafc;
+}
+
+[data-theme='dark'] .curriculum-chapter-item.active {
+  background-color: rgba(56, 189, 248, 0.1);
+  border-color: #38bdf8;
 }

@@ -422,6 +422,7 @@ export const TeacherAssignmentsPage: React.FC = () => {
                               to={`/teacher/assignments/${asg.id}`}
                               className="table-action-btn"
                               title="Xem danh sách bài nộp và chấm điểm"
+                              aria-label={`Xem bài nộp và chấm điểm ${asg.title}`}
                             >
                               <Eye size={16} />
                             </Link>
@@ -430,6 +431,7 @@ export const TeacherAssignmentsPage: React.FC = () => {
                               className="table-action-btn"
                               onClick={() => handleOpenEdit(asg)}
                               title="Chỉnh sửa bài tập"
+                              aria-label={`Chỉnh sửa bài tập ${asg.title}`}
                             >
                               <Edit2 size={16} />
                             </button>
@@ -438,6 +440,7 @@ export const TeacherAssignmentsPage: React.FC = () => {
                               className="table-action-btn text-danger"
                               onClick={() => handleDelete(asg)}
                               title="Xóa bài tập"
+                              aria-label={`Xóa bài tập ${asg.title}`}
                             >
                               <Trash2 size={16} />
                             </button>
@@ -505,6 +508,7 @@ export const TeacherAssignmentsPage: React.FC = () => {
                         className="btn btn-secondary btn-sm"
                         onClick={() => handleOpenEdit(asg)}
                         title="Sửa"
+                        aria-label={`Chỉnh sửa ${asg.title}`}
                       >
                         <Edit2 size={14} />
                       </button>
@@ -513,6 +517,7 @@ export const TeacherAssignmentsPage: React.FC = () => {
                         className="btn btn-secondary btn-sm text-danger"
                         onClick={() => handleDelete(asg)}
                         title="Xóa"
+                        aria-label={`Xóa ${asg.title}`}
                       >
                         <Trash2 size={14} />
                       </button>

@@ -19,6 +19,7 @@ import type { CurriculumLessonItem, CurriculumSubjectItem, CurriculumChapterItem
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import './ContentPages.css'
 import '../Admin/AdminPages.css'
 import '@/components/admin/AdminComponents.css'
 
@@ -153,7 +154,7 @@ export const ContentLessonsPage: React.FC = () => {
   }
 
   return (
-    <div className="staff-page">
+    <div className="admin-page-container">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="admin-toast">
@@ -178,7 +179,7 @@ export const ContentLessonsPage: React.FC = () => {
           <div className="admin-header-actions">
             <button
               type="button"
-              className="admin-btn-primary"
+              className="btn btn-primary"
               onClick={() => {
                 setFormSubjectId(subjects[0]?.id || 'math')
                 setFormChapterId(chapters[0]?.id || 'ch-01')
@@ -298,8 +299,8 @@ export const ContentLessonsPage: React.FC = () => {
           onAction={() => setIsCreateOpen(true)}
         />
       ) : (
-        <div className="admin-table-container">
-          <table className="admin-table" aria-label="Bảng danh sách bài học">
+        <div className="staff-table-wrapper">
+          <table className="staff-table" aria-label="Bảng danh sách bài học">
             <thead>
               <tr>
                 <th>Tên bài học</th>

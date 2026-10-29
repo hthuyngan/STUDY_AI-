@@ -9,12 +9,13 @@ import {
   CheckCircle2,
   X,
 } from 'lucide-react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { educationService } from '@/services/education.service'
 import type { CurriculumChapterItem, CurriculumSubjectItem, ContentStatus } from '@/types/education'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import './ContentPages.css'
 import '../Admin/AdminPages.css'
 import '@/components/admin/AdminComponents.css'
 
@@ -163,54 +164,61 @@ export const ContentChaptersPage: React.FC = () => {
   }
 
   return (
-    <div className="staff-page">
+    <div className="admin-page-container">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="admin-toast">
-          <CheckCircle2 size={16} />
+        <div className="admin-toast-notification">
+          <CheckCircle2 size={18} color="#047857" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Page Header */}
+      {/* Page Header (Section 5.1 compliant) */}
       <div className="staff-page-header">
+        <div className="admin-prototype-badge">
+          <span className="prototype-dot" />
+          <span>CONTENT WORKSPACE • QUẢN LÝ CHƯƠNG TRÌNH</span>
+        </div>
         <div className="admin-header-row">
           <div>
-            <div className="admin-prototype-badge">
-              <span className="prototype-dot" />
-              <span>Dữ liệu mô phỏng · Lưu cục bộ</span>
-            </div>
+            <nav className="staff-breadcrumbs" aria-label="Breadcrumb" style={{ marginBottom: 4 }}>
+              <Link to="/content/subjects">Giáo trình</Link>
+              <span style={{ margin: '0 6px', color: '#94a3b8' }}>/</span>
+              <span aria-current="page" style={{ color: '#102a43', fontWeight: 600 }}>Chương học</span>
+            </nav>
             <h1 className="staff-page-title">Quản lý chương học</h1>
             <p className="staff-page-desc">
-              Phân bổ chương mục theo môn học, sắp xếp thứ tự logic giảng dạy và theo dõi số lượng bài học trong từng chương.
+              Quản lý cấu trúc chương, thứ tự giảng dạy và số lượng bài học theo từng môn.
             </p>
           </div>
           <div className="admin-header-actions">
             <button
               type="button"
-              className="admin-btn-primary"
+              className="btn btn-primary"
               onClick={openCreateDialog}
-              aria-label="Thêm chương học"
+              aria-label="Thêm chương học mới"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
             >
               <Plus size={16} />
-              <span>Thêm chương</span>
+              <span>Thêm chương học</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Subject Filter Toolbar */}
-      <div className="admin-toolbar" style={{ marginBottom: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <label htmlFor="chapter-subject-filter" style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+      {/* Subject Filter Toolbar (Section 5.2 compliant) */}
+      <div className="admin-filter-bar">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <label htmlFor="chapter-subject-filter" style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--staff-text-main, #102a43)' }}>
             Môn học:
           </label>
           <select
             id="chapter-subject-filter"
             value={selectedSubjectId}
             onChange={(e) => handleSubjectChange(e.target.value)}
-            className="admin-select"
+            className="admin-filter-select"
             aria-label="Chọn môn học để xem chương"
+            style={{ minWidth: 220 }}
           >
             <option value="all">Tất cả môn học</option>
             {subjects.map((s) => (
@@ -226,34 +234,38 @@ export const ContentChaptersPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Chapters Table */}
+      {/* Chapters Table (Section 5.3 & 5.4 compliant) */}
       {loading ? (
-        <div className="admin-table-container">
+        <div className="staff-table-wrapper" style={{ padding: '24px' }}>
           {[1, 2, 3].map((i) => (
-            <div key={i} style={{ padding: '16px' }}>
-              <Skeleton width="100%" height="40px" />
+            <div key={i} style={{ marginBottom: i < 3 ? '12px' : 0 }}>
+              <Skeleton width="100%" height="42px" />
             </div>
           ))}
         </div>
       ) : chapters.length === 0 ? (
         <EmptyState
-          title="Chưa có chương học nào"
-          description="Hãy thêm chương học mới cho môn học này để bắt đầu xây dựng bài giảng."
+          title={selectedSubjectId !== 'all' ? 'Không tìm thấy chương học phù hợp' : 'Chưa có chương học nào'}
+          description={
+            selectedSubjectId !== 'all'
+              ? 'Môn học này hiện chưa có chương nào được phân bổ. Hãy bấm thêm chương học mới.'
+              : 'Hãy thêm chương học mới cho môn học này để bắt đầu xây dựng bài giảng.'
+          }
           icon={Layers}
-          actionLabel="Thêm chương mới"
+          actionLabel="Thêm chương học mới"
           onAction={openCreateDialog}
         />
       ) : (
-        <div className="admin-table-container">
-          <table className="admin-table" aria-label="Bảng danh sách chương học">
+        <div className="staff-table-wrapper">
+          <table className="staff-table chapter-table" aria-label="Bảng danh sách chương học">
             <thead>
               <tr>
-                <th style={{ width: '100px', textAlign: 'center' }}>Thứ tự</th>
-                <th>Tên chương học</th>
-                <th>Môn học</th>
-                <th style={{ textAlign: 'center' }}>Số bài học</th>
-                <th>Trạng thái</th>
-                <th style={{ textAlign: 'right' }}>Thao tác</th>
+                <th className="chapter-col-order">Thứ tự</th>
+                <th className="chapter-col-title">Tên chương học</th>
+                <th className="chapter-col-subject">Môn học</th>
+                <th className="chapter-col-lessons">Số bài học</th>
+                <th className="chapter-col-status">Trạng thái</th>
+                <th className="chapter-col-actions">Thao tác</th>
               </tr>
             </thead>
             <tbody>
@@ -261,9 +273,9 @@ export const ContentChaptersPage: React.FC = () => {
                 const subject = subjects.find((s) => s.id === ch.subjectId)
                 return (
                   <tr key={ch.id}>
-                    <td style={{ textAlign: 'center' }}>
+                    <td className="chapter-col-order">
                       <div className="admin-order-controls">
-                        <span style={{ fontWeight: 700, width: '20px', textAlign: 'center' }}>
+                        <span style={{ fontWeight: 700, width: '22px', textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
                           #{ch.order}
                         </span>
                         <button
@@ -271,60 +283,72 @@ export const ContentChaptersPage: React.FC = () => {
                           className="admin-order-btn"
                           disabled={idx === 0}
                           onClick={() => handleMoveOrder(idx, 'up')}
-                          aria-label={`Di chuyển chương ${ch.title} lên`}
+                          aria-label={`Di chuyển chương "${ch.title}" lên`}
                           title="Di chuyển lên"
                         >
-                          <ArrowUp size={12} />
+                          <ArrowUp size={13} />
                         </button>
                         <button
                           type="button"
                           className="admin-order-btn"
                           disabled={idx === chapters.length - 1}
                           onClick={() => handleMoveOrder(idx, 'down')}
-                          aria-label={`Di chuyển chương ${ch.title} xuống`}
+                          aria-label={`Di chuyển chương "${ch.title}" xuống`}
                           title="Di chuyển xuống"
                         >
-                          <ArrowDown size={12} />
+                          <ArrowDown size={13} />
                         </button>
                       </div>
                     </td>
-                    <td>
-                      <div style={{ fontWeight: 600, color: 'var(--text-main, #102a43)' }}>
-                        {ch.title}
-                      </div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted, #627d98)', marginTop: '2px' }}>
-                        ID: {ch.id}
+                    <td className="chapter-col-title">
+                      <div className="chapter-title-cell">
+                        <div className="chapter-title-text" title={ch.title}>
+                          {ch.title}
+                        </div>
+                        <div className="chapter-id-sub">
+                          MÃ: {ch.id}
+                        </div>
                       </div>
                     </td>
-                    <td>
-                      <span className="admin-badge-role">
+                    <td className="chapter-col-subject">
+                      <span className="subject-badge-pill">
                         {subject ? subject.name : ch.subjectName || ch.subjectId}
                       </span>
                     </td>
-                    <td style={{ textAlign: 'center', fontWeight: 600 }}>
-                      {ch.lessonsCount || 0} bài
+                    <td className="chapter-col-lessons" style={{ fontWeight: 600 }}>
+                      <span className="badge-count-link">
+                        {ch.lessonsCount || 0} bài
+                      </span>
                     </td>
-                    <td>
-                      <StatusBadge status={ch.status} />
+                    <td className="chapter-col-status">
+                      <StatusBadge
+                        status={ch.status}
+                        label={
+                          ch.status === 'published'
+                            ? 'Đã xuất bản'
+                            : ch.status === 'in-review'
+                              ? 'Chờ duyệt'
+                              : 'Bản nháp'
+                        }
+                      />
                     </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'inline-flex', gap: '6px' }}>
+                    <td className="chapter-col-actions">
+                      <div className="table-actions" style={{ justifyContent: 'flex-end', gap: 6 }}>
                         <button
                           type="button"
-                          className="admin-btn-outline"
+                          className="table-action-btn"
                           onClick={() => openEditDialog(ch)}
                           title="Chỉnh sửa chương"
-                          aria-label={`Chỉnh sửa ${ch.title}`}
+                          aria-label={`Chỉnh sửa chương ${ch.title}`}
                         >
                           <Edit2 size={14} />
                         </button>
                         <button
                           type="button"
-                          className="admin-btn-outline"
+                          className="table-action-btn text-danger"
                           onClick={() => handleDelete(ch.id, ch.title)}
                           title="Xóa chương"
-                          aria-label={`Xóa ${ch.title}`}
-                          style={{ color: '#dc2626' }}
+                          aria-label={`Xóa chương ${ch.title}`}
                         >
                           <Trash2 size={14} />
                         </button>
@@ -453,13 +477,13 @@ export const ContentChaptersPage: React.FC = () => {
               <div className="admin-dialog-footer">
                 <button
                   type="button"
-                  className="admin-btn-secondary"
+                  className="btn btn-secondary"
                   onClick={() => setIsDialogOpen(false)}
                 >
                   Hủy
                 </button>
-                <button type="submit" className="admin-btn-primary">
-                  {editingChapter ? 'Lưu thay đổi' : 'Thêm chương'}
+                <button type="submit" className="btn btn-primary">
+                  {editingChapter ? 'Lưu thay đổi' : 'Thêm chương học'}
                 </button>
               </div>
             </form>

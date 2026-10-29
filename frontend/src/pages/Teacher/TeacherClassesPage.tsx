@@ -302,14 +302,15 @@ export const TeacherClassesPage: React.FC = () => {
 
       {/* Teacher Demo Filter Selector */}
       <div className="teacher-filter-banner">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#102a43', fontWeight: 600, fontSize: '0.88rem' }}>
-          <Filter size={15} color="#0284c7" />
+        <label htmlFor="teacher-profile-select" className="teacher-filter-label">
+          <Filter size={15} color="#0284c7" aria-hidden="true" />
           <span>Lọc theo giáo viên:</span>
-        </div>
+        </label>
         <select
+          id="teacher-profile-select"
           aria-label="Chọn hồ sơ giáo viên demo"
           className="admin-filter-select"
-          style={{ minWidth: 240, background: '#fff' }}
+          style={{ minWidth: 240 }}
           value={teacherFilter}
           onChange={(e) => setTeacherFilter(e.target.value)}
         >
@@ -541,6 +542,7 @@ export const TeacherClassesPage: React.FC = () => {
                             className="table-action-btn"
                             onClick={() => handleOpenEdit(cls)}
                             title="Chỉnh sửa lớp học"
+                            aria-label={`Chỉnh sửa lớp học ${cls.name}`}
                           >
                             <Edit2 size={15} />
                           </button>
@@ -549,6 +551,7 @@ export const TeacherClassesPage: React.FC = () => {
                             className="table-action-btn text-danger"
                             onClick={() => handleDeleteClass(cls)}
                             title="Xóa lớp học"
+                            aria-label={`Xóa lớp học ${cls.name}`}
                           >
                             <Trash2 size={15} />
                           </button>
@@ -613,6 +616,7 @@ export const TeacherClassesPage: React.FC = () => {
                       className="btn btn-secondary btn-sm"
                       onClick={() => handleOpenEdit(cls)}
                       title="Chỉnh sửa"
+                      aria-label={`Chỉnh sửa lớp ${cls.name}`}
                     >
                       <Edit2 size={14} />
                     </button>
@@ -621,6 +625,7 @@ export const TeacherClassesPage: React.FC = () => {
                       className="btn btn-secondary btn-sm text-danger"
                       onClick={() => handleDeleteClass(cls)}
                       title="Xóa"
+                      aria-label={`Xóa lớp ${cls.name}`}
                     >
                       <Trash2 size={14} />
                     </button>

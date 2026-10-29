@@ -448,6 +448,7 @@ export const TeacherStudentsPage: React.FC = () => {
                             to={`/teacher/students/${s.id}`}
                             className="table-action-btn"
                             title="Xem chi tiết hồ sơ học viên"
+                            aria-label={`Xem chi tiết hồ sơ ${s.name}`}
                           >
                             <Eye size={16} />
                           </Link>
@@ -460,6 +461,7 @@ export const TeacherStudentsPage: React.FC = () => {
                               setIsMoveOpen(true)
                             }}
                             title="Chuyển lớp cho học viên"
+                            aria-label={`Chuyển lớp cho học viên ${s.name}`}
                           >
                             <MoveRight size={16} />
                           </button>
