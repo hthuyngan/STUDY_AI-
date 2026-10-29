@@ -37,11 +37,6 @@ export function ContentDashboardPage() {
       <div className="staff-page-header">
         <div className="staff-page-title-row">
           <div>
-            <nav className="staff-breadcrumbs" aria-label="Breadcrumb">
-              <span>Không gian làm việc</span>
-              <span>/</span>
-              <span aria-current="page">Nội dung học tập</span>
-            </nav>
             <h1>Biên tập & Xuất bản Giáo trình</h1>
             <p className="staff-page-desc">
               Quản lý tiến độ soạn thảo bài học, bộ câu hỏi thu hoạch và hàng đợi kiểm duyệt chất lượng.

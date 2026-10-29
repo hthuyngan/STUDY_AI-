@@ -75,13 +75,6 @@ export function ContentCurriculumPage() {
       <div className="staff-page-header">
         <div className="staff-page-title-row">
           <div>
-            <nav className="staff-breadcrumbs" aria-label="Breadcrumb">
-              <Link to="/content">Nội dung</Link>
-              <span>/</span>
-              <Link to="/content/subjects">Môn học</Link>
-              <span>/</span>
-              <span aria-current="page">Quản lý giáo trình: {subjectId?.toUpperCase() || 'TOÁN 12'}</span>
-            </nav>
             <h1>Cấu trúc giáo trình môn học</h1>
             <p className="staff-page-desc">
               Phân bổ chương mục, sắp xếp thứ tự giảng dạy và biên tập nội dung bài học.

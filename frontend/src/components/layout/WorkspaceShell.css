@@ -60,7 +60,7 @@
 
 /* 1. Sidebar Brand Header */
 .sidebar-header {
-  height: 60px;
+  height: 52px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -482,11 +482,11 @@
    TOPBAR (WorkspaceShell)
    ========================================================================== */
 .workspace-topbar {
-  height: var(--staff-header-height, 60px);
+  height: var(--staff-header-height, 52px);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
+  padding: 0 18px;
   background: var(--staff-surface, #ffffff);
   border-bottom: 1px solid var(--staff-border, #e2e8f0);
   position: sticky;
@@ -904,7 +904,7 @@
    ========================================================================== */
 .workspace-content-container {
   flex: 1;
-  padding: clamp(16px, 2.5vw, 28px);
+  padding: clamp(12px, 1.6vw, 20px);
   width: 100%;
   max-width: var(--staff-max-content-width, 1680px);
   margin: 0 auto;

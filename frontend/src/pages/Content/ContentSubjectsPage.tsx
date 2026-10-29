@@ -176,17 +176,8 @@ export const ContentSubjectsPage: React.FC = () => {
 
       {/* Page Header */}
       <div className="staff-page-header">
-        <div className="admin-prototype-badge">
-          <span className="prototype-dot"></span>
-          <span>CONTENT WORKSPACE • QUẢN LÝ CHƯƠNG TRÌNH</span>
-        </div>
         <div className="admin-header-row">
           <div>
-            <nav className="staff-breadcrumbs" aria-label="Breadcrumb" style={{ marginBottom: 4 }}>
-              <Link to="/content">Nội dung</Link>
-              <span style={{ margin: '0 6px', color: '#94a3b8' }}>/</span>
-              <span aria-current="page" style={{ color: '#102a43', fontWeight: 600 }}>Môn học</span>
-            </nav>
             <h1 className="staff-page-title">Quản lý môn học (Subjects)</h1>
             <p className="staff-page-desc">
               Khung chương trình giảng dạy, thiết lập danh mục môn học và theo dõi độ phủ bài học trên STUDY_AI.

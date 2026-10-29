@@ -7,13 +7,13 @@
 .admin-dashboard-page {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 14px;
   min-width: 0;
 }
 
 .admin-dashboard-page .admin-header-row {
   align-items: flex-end;
-  gap: 20px;
+  gap: 14px;
 }
 
 .admin-dashboard-page .admin-dashboard-heading {
@@ -27,8 +27,8 @@
 }
 
 .admin-dashboard-page .admin-time-select {
-  height: 40px;
-  min-width: 152px;
+  height: 32px;
+  min-width: 140px;
 }
 
 .admin-dashboard-page .staff-metric-grid,
@@ -50,36 +50,36 @@
 .admin-dashboard-page .staff-metric-card,
 .admin-dashboard-page .staff-card {
   min-width: 0;
-  border-radius: 10px;
+  border-radius: 8px;
 }
 
 .admin-dashboard-page .staff-metric-card {
-  min-height: 116px;
-  padding: 16px 18px;
+  min-height: 82px;
+  padding: 11px 14px;
 }
 
 .admin-dashboard-page .staff-metric-label {
   text-transform: none;
   letter-spacing: 0;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 600;
 }
 
 .admin-dashboard-page .staff-metric-value {
-  font-size: 1.45rem;
+  font-size: 1.35rem;
 }
 
 .admin-dashboard-page .staff-card-header {
-  padding: 15px 18px;
-  gap: 12px;
+  padding: 10px 14px;
+  gap: 10px;
 }
 
 .admin-dashboard-page .staff-card-body {
-  padding: 18px;
+  padding: 12px 14px;
 }
 
 .admin-dashboard-page .admin-analytics-grid {
-  gap: 18px;
+  gap: 12px;
 }
 
 .admin-dashboard-page .admin-analytics-main-card,
@@ -90,7 +90,7 @@
 .admin-dashboard-operations-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
-  gap: 18px;
+  gap: 14px;
   align-items: start;
 }
 

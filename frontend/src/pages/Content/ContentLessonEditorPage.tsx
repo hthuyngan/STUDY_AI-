@@ -72,13 +72,6 @@ function LessonEditorForm({ lessonData, isSaving, onSave }: LessonEditorFormProp
       <div className="staff-page-header">
         <div className="staff-page-title-row">
           <div>
-            <nav className="staff-breadcrumbs" aria-label="Breadcrumb">
-              <Link to="/content">Nội dung</Link>
-              <span>/</span>
-              <Link to="/content/lessons">Bài học</Link>
-              <span>/</span>
-              <span aria-current="page">Soạn thảo bài học</span>
-            </nav>
             <h1>Biên soạn bài giảng</h1>
             <p className="staff-page-desc">
               Cấu trúc bài học theo chuẩn sư phạm: Khái niệm, công thức, ví dụ minh họa và bài tập thu hoạch.

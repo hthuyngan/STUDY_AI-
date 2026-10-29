@@ -158,10 +158,6 @@ export const ContentReviewPage: React.FC = () => {
 
       {/* Page Header */}
       <div className="staff-page-header">
-        <div className="admin-prototype-badge">
-          <span className="prototype-dot"></span>
-          <span>CONTENT WORKSPACE • PHÊ DUYỆT NỘI DUNG</span>
-        </div>
         <div className="admin-header-row">
           <div>
             <h1 className="staff-page-title">Phê duyệt nội dung</h1>

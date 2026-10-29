@@ -203,10 +203,6 @@ export const ContentLessonsPage: React.FC = () => {
       <div className="staff-page-header">
         <div className="admin-header-row">
           <div>
-            <div className="admin-prototype-badge">
-              <span className="prototype-dot" />
-              <span>Dữ liệu mô phỏng · Lưu cục bộ</span>
-            </div>
             <h1 className="staff-page-title">Quản lý bài học</h1>
             <p className="staff-page-desc">
               Kiểm soát quy trình biên soạn bài giảng, duyệt nội dung và xuất bản học liệu học tập chuẩn theo chương trình.
@@ -231,7 +227,7 @@ export const ContentLessonsPage: React.FC = () => {
       </div>
 
       {/* Filter Toolbar */}
-      <div className="admin-toolbar" style={{ marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+      <div className="admin-toolbar" style={{ marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
         <div className="admin-search-wrap">
           <Search size={16} className="admin-search-icon" />
           <input

@@ -156,17 +156,8 @@ export const TeacherGradesPage: React.FC = () => {
 
       {/* Page Header */}
       <div className="staff-page-header">
-        <div className="admin-prototype-badge">
-          <span className="prototype-dot"></span>
-          <span>TEACHER WORKSPACE • SỔ ĐIỂM</span>
-        </div>
         <div className="admin-header-row">
           <div>
-            <nav className="staff-breadcrumbs" aria-label="Breadcrumb" style={{ marginBottom: 4 }}>
-              <Link to="/teacher">Giáo viên</Link>
-              <span style={{ margin: '0 6px', color: '#94a3b8' }}>/</span>
-              <span aria-current="page" style={{ color: '#102a43', fontWeight: 600 }}>Sổ điểm</span>
-            </nav>
             <h1 className="staff-page-title">Sổ điểm học tập</h1>
             <p className="staff-page-desc">
               Tổng hợp và phân tích điểm số các bài kiểm tra, bài tập và thu hoạch của học sinh theo lớp học.

@@ -9,7 +9,7 @@ import {
   CheckCircle2,
   X,
 } from 'lucide-react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { educationService } from '@/services/education.service'
 import type { CurriculumChapterItem, CurriculumSubjectItem, ContentStatus } from '@/types/education'
 import { StatusBadge } from '@/components/ui/StatusBadge'
@@ -197,17 +197,8 @@ export const ContentChaptersPage: React.FC = () => {
 
       {/* Page Header (Section 5.1 compliant) */}
       <div className="staff-page-header">
-        <div className="admin-prototype-badge">
-          <span className="prototype-dot" />
-          <span>CONTENT WORKSPACE • QUẢN LÝ CHƯƠNG TRÌNH</span>
-        </div>
         <div className="admin-header-row">
           <div>
-            <nav className="staff-breadcrumbs" aria-label="Breadcrumb" style={{ marginBottom: 4 }}>
-              <Link to="/content/subjects">Giáo trình</Link>
-              <span style={{ margin: '0 6px', color: '#94a3b8' }}>/</span>
-              <span aria-current="page" style={{ color: '#102a43', fontWeight: 600 }}>Chương học</span>
-            </nav>
             <h1 className="staff-page-title">Quản lý chương học</h1>
             <p className="staff-page-desc">
               Quản lý cấu trúc chương, thứ tự giảng dạy và số lượng bài học theo từng môn.

@@ -193,17 +193,8 @@ export const TeacherStudentsPage: React.FC = () => {
 
       {/* Page Header */}
       <div className="staff-page-header">
-        <div className="admin-prototype-badge">
-          <span className="prototype-dot"></span>
-          <span>TEACHER WORKSPACE • HỌC VIÊN</span>
-        </div>
         <div className="admin-header-row">
           <div>
-            <nav className="staff-breadcrumbs" aria-label="Breadcrumb" style={{ marginBottom: 4 }}>
-              <Link to="/teacher">Giáo viên</Link>
-              <span style={{ margin: '0 6px', color: '#94a3b8' }}>/</span>
-              <span aria-current="page" style={{ color: '#102a43', fontWeight: 600 }}>Học viên</span>
-            </nav>
             <h1 className="staff-page-title">Quản lý học viên</h1>
             <p className="staff-page-desc">
               Theo dõi hồ sơ, tiến độ và kết quả học tập của học viên thuộc các lớp giảng dạy.

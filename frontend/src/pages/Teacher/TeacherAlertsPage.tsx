@@ -140,17 +140,8 @@ export const TeacherAlertsPage: React.FC = () => {
 
       {/* Page Header */}
       <div className="staff-page-header">
-        <div className="admin-prototype-badge">
-          <span className="prototype-dot"></span>
-          <span>TEACHER WORKSPACE • CẢNH BÁO HỌC TẬP</span>
-        </div>
         <div className="admin-header-row">
           <div>
-            <nav className="staff-breadcrumbs" aria-label="Breadcrumb" style={{ marginBottom: 4 }}>
-              <Link to="/teacher">Giáo viên</Link>
-              <span style={{ margin: '0 6px', color: '#94a3b8' }}>/</span>
-              <span aria-current="page" style={{ color: '#102a43', fontWeight: 600 }}>Cảnh báo</span>
-            </nav>
             <h1 className="staff-page-title">Cảnh báo học tập</h1>
             <p className="staff-page-desc">
               Phát hiện sớm học sinh chậm tiến độ, chưa nộp bài hoặc điểm số dưới chuẩn để can thiệp sư phạm kịp thời.

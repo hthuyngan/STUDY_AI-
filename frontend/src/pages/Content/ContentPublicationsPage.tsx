@@ -111,10 +111,6 @@ export const ContentPublicationsPage: React.FC = () => {
 
       {/* Page Header */}
       <div className="staff-page-header">
-        <div className="admin-prototype-badge">
-          <span className="prototype-dot"></span>
-          <span>CONTENT WORKSPACE • LỊCH SỬ XUẤT BẢN</span>
-        </div>
         <div className="admin-header-row">
           <div>
             <h1 className="staff-page-title">Lịch sử xuất bản</h1>

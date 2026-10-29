@@ -31,11 +31,6 @@ export function SupportUserLookupPage() {
       <div className="staff-page-header">
         <div className="staff-page-title-row">
           <div>
-            <nav className="staff-breadcrumbs" aria-label="Breadcrumb">
-              <Link to="/support">Hỗ trợ</Link>
-              <span>/</span>
-              <span aria-current="page">Tra cứu hồ sơ người dùng</span>
-            </nav>
             <h1>Tra cứu & Hỗ trợ kỹ thuật người dùng</h1>
             <p className="staff-page-desc">
               Kiểm tra trạng thái đồng bộ dữ liệu ngoại tuyến, thông tin tiến trình và lịch sử khiếu nại.

@@ -64,10 +64,6 @@ export const TeacherDashboardPage: React.FC = () => {
     <div className="teacher-dashboard-page">
       {/* Header */}
       <div className="staff-page-header">
-        <div className="admin-prototype-badge">
-          <span className="prototype-dot"></span>
-          <span>TEACHER WORKSPACE • BÀN LÀM VIỆC</span>
-        </div>
         <div className="admin-header-row">
           <div>
             <h1 className="staff-page-title">Bàn làm việc Giáo viên</h1>

@@ -7,7 +7,7 @@
 :root {
   --staff-sidebar-width: 256px;
   --staff-sidebar-collapsed-width: 72px;
-  --staff-header-height: 60px;
+  --staff-header-height: 52px;
   --staff-max-content-width: 1680px;
 
   /* Navy Notebook Palette */
@@ -73,88 +73,88 @@
 }
 
 /* ==========================================================================
-   PAGE HEADER (StaffPageHeader)
+   PAGE HEADER (StaffPageHeader) — Compact Standards
    ========================================================================== */
 .staff-page-header-root {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: 12px;
+  margin-bottom: 14px;
   flex-wrap: wrap;
 }
 
 .staff-header-titles {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
   min-width: 0;
 }
 
 .staff-header-eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11px;
+  gap: 5px;
+  font-size: 10.5px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   color: var(--staff-text-muted);
 }
 
 .staff-header-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 2px 8px;
+  gap: 5px;
+  padding: 1.5px 7px;
   background-color: var(--staff-navy-light);
   border: 1px solid var(--staff-navy-border);
   color: var(--staff-navy-primary);
   border-radius: var(--staff-radius-full);
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
   width: fit-content;
 }
 
 .staff-header-badge .badge-dot {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background-color: var(--staff-accent-gold);
 }
 
 .staff-header-title {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--staff-text-main);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.015em;
   line-height: 1.25;
   margin: 0;
 }
 
 .staff-header-subtitle {
-  font-size: 13.5px;
+  font-size: 13px;
   color: var(--staff-text-muted);
-  line-height: 1.45;
+  line-height: 1.4;
   margin: 0;
-  max-width: 720px;
+  max-width: 680px;
 }
 
 .staff-header-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 /* ==========================================================================
-   METRICS GRID & METRIC CARD
+   METRICS GRID & METRIC CARD — Compact Standards
    ========================================================================== */
 .staff-metrics-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: 12px;
+  margin-bottom: 14px;
   width: 100%;
 }
 
@@ -167,19 +167,19 @@
 @media (max-width: 640px) {
   .staff-metrics-grid {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 10px;
   }
 }
 
 .staff-metric-card-box {
   background-color: var(--staff-surface);
   border: 1px solid var(--staff-border);
-  border-radius: var(--staff-radius-lg);
-  padding: 18px 20px;
+  border-radius: var(--staff-radius-md, 8px);
+  padding: 11px 14px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 116px;
+  min-height: 82px;
   box-shadow: none;
   transition: border-color 0.15s ease, background-color 0.15s ease;
 }
@@ -193,11 +193,11 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
 }
 
 .staff-metric-card-title {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   color: var(--staff-text-muted);
   text-transform: uppercase;
@@ -209,9 +209,9 @@
 }
 
 .staff-metric-icon-bubble {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--staff-radius-md);
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   background-color: var(--staff-navy-light);
   color: var(--staff-navy-primary);
   display: flex;
@@ -223,25 +223,25 @@
 .staff-metric-value-row {
   display: flex;
   align-items: baseline;
-  gap: 10px;
-  margin-bottom: 4px;
+  gap: 8px;
+  margin-bottom: 2px;
 }
 
 .staff-metric-value-text {
-  font-size: 26px;
+  font-size: 21px;
   font-weight: 700;
   color: var(--staff-text-main);
   line-height: 1.15;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.015em;
 }
 
 .staff-metric-delta-tag {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
-  padding: 1px 7px;
+  padding: 1px 6px;
   border-radius: var(--staff-radius-full);
 }
 
@@ -261,21 +261,21 @@
 }
 
 .staff-metric-context-text {
-  font-size: 11.5px;
+  font-size: 11px;
   color: var(--staff-text-muted);
   margin: 0;
   line-height: 1.4;
 }
 
 /* ==========================================================================
-   ANALYTICS ROW (65% / 35%) & OPERATIONS ROW (50% / 50%)
+   ANALYTICS ROW (65% / 35%) & OPERATIONS ROW (50% / 50%) — Compact
    ========================================================================== */
 .staff-analytics-grid-row {
   display: grid;
   grid-template-columns: 65fr 35fr;
-  gap: 20px;
+  gap: 12px;
   align-items: stretch;
-  margin-bottom: 24px;
+  margin-bottom: 14px;
 }
 
 @media (max-width: 1180px) {
@@ -287,9 +287,9 @@
 .staff-operations-grid-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  gap: 12px;
   align-items: stretch;
-  margin-bottom: 24px;
+  margin-bottom: 14px;
 }
 
 @media (max-width: 1024px) {
@@ -301,8 +301,8 @@
 .staff-panel-card {
   background-color: var(--staff-surface);
   border: 1px solid var(--staff-border);
-  border-radius: var(--staff-radius-xl);
-  padding: 20px;
+  border-radius: var(--staff-radius-lg, 10px);
+  padding: 13px 16px;
   display: flex;
   flex-direction: column;
   box-shadow: none;
@@ -312,46 +312,46 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 10px;
+  margin-bottom: 10px;
   flex-wrap: wrap;
 }
 
 .staff-panel-title {
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 700;
   color: var(--staff-text-main);
   margin: 0;
 }
 
 .staff-panel-subtitle {
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--staff-text-muted);
   margin: 2px 0 0 0;
 }
 
 /* ==========================================================================
-   TABLE TOOLBAR & CONTROLS
+   TABLE TOOLBAR & CONTROLS — Compact
    ========================================================================== */
 .staff-table-toolbar-root {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: 8px;
+  padding: 7px 12px;
   background-color: var(--staff-surface);
   border: 1px solid var(--staff-border);
-  border-radius: var(--staff-radius-lg);
-  margin-bottom: 16px;
+  border-radius: var(--staff-radius-md, 8px);
+  margin-bottom: 12px;
   flex-wrap: wrap;
 }
 
 .staff-toolbar-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex: 1;
-  min-width: 240px;
+  min-width: 220px;
   flex-wrap: wrap;
 }
 
@@ -359,26 +359,26 @@
   position: relative;
   display: flex;
   align-items: center;
-  min-width: 200px;
-  max-width: 340px;
+  min-width: 180px;
+  max-width: 320px;
   flex: 1;
 }
 
 .staff-search-input-wrap .search-icon {
   position: absolute;
-  left: 10px;
+  left: 9px;
   color: var(--staff-text-muted);
   pointer-events: none;
 }
 
 .staff-search-input {
   width: 100%;
-  height: 36px;
-  padding: 0 12px 0 34px;
+  height: 34px;
+  padding: 0 10px 0 30px;
   font-size: 13px;
   background-color: var(--staff-bg-app);
   border: 1px solid var(--staff-border);
-  border-radius: var(--staff-radius-md);
+  border-radius: var(--staff-radius-md, 6px);
   color: var(--staff-text-main);
   outline: none;
   transition: border-color 0.15s ease;
@@ -396,12 +396,12 @@
 }
 
 .staff-select-control {
-  height: 36px;
-  padding: 0 12px;
+  height: 34px;
+  padding: 0 10px;
   font-size: 13px;
   background-color: var(--staff-bg-app);
   border: 1px solid var(--staff-border);
-  border-radius: var(--staff-radius-md);
+  border-radius: var(--staff-radius-md, 6px);
   color: var(--staff-text-main);
   outline: none;
   cursor: pointer;
@@ -415,17 +415,17 @@
 .staff-toolbar-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 /* ==========================================================================
-   STANDARDIZED DATA TABLE
+   STANDARDIZED DATA TABLE — Compact
    ========================================================================== */
 .staff-table-container {
   width: 100%;
   background-color: var(--staff-surface);
   border: 1px solid var(--staff-border);
-  border-radius: var(--staff-radius-lg);
+  border-radius: var(--staff-radius-md, 8px);
   overflow: hidden;
   box-shadow: none;
 }
@@ -446,17 +446,17 @@
 .staff-data-table thead th {
   background-color: var(--staff-bg-app);
   color: var(--staff-text-muted);
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  padding: 10px 16px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--staff-border);
   white-space: nowrap;
 }
 
 .staff-data-table tbody td {
-  padding: 12px 16px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--staff-border-subtle);
   color: var(--staff-text-main);
   vertical-align: middle;
@@ -851,12 +851,12 @@
   color: var(--staff-text-main, #102a43);
 }
 
-/* ── Staff Table Wrapper & Staff Table ─────────────────────────────────── */
+/* ── Staff Table Wrapper & Staff Table — Compact ──────────────────────── */
 .staff-table-wrapper {
   width: 100%;
   background-color: var(--staff-surface, #ffffff);
   border: 1px solid var(--staff-border, #e2e8f0);
-  border-radius: var(--staff-radius-lg, 10px);
+  border-radius: var(--staff-radius-md, 8px);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -871,17 +871,17 @@
 .staff-table thead th {
   background-color: var(--staff-bg-app, #f8fafc);
   color: var(--staff-text-muted, #627d98);
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  padding: 11px 16px;
+  padding: 7px 12px;
   border-bottom: 1px solid var(--staff-border, #e2e8f0);
   white-space: nowrap;
 }
 
 .staff-table tbody td {
-  padding: 13px 16px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--staff-border-subtle, #f1f5f9);
   color: var(--staff-text-main, #102a43);
   vertical-align: middle;
@@ -970,25 +970,25 @@
   }
 }
 
-/* ── Modal Dialog Card ─────────────────────────────────────────────────── */
+/* ── Modal Dialog Card — Compact ───────────────────────────────────────── */
 .admin-dialog-card {
   position: relative;
   width: 100%;
-  max-width: 640px;
-  max-height: calc(100vh - 48px);
+  max-width: 600px;
+  max-height: calc(100vh - 40px);
   background: var(--staff-surface, #ffffff);
   border: 1px solid var(--staff-border, #e2e8f0);
-  border-radius: var(--staff-radius-xl, 12px);
-  box-shadow: 0 20px 45px -10px rgba(16, 42, 67, 0.22), 0 0 0 1px rgba(16, 42, 67, 0.04);
+  border-radius: var(--staff-radius-lg, 10px);
+  box-shadow: 0 16px 36px -8px rgba(16, 42, 67, 0.2), 0 0 0 1px rgba(16, 42, 67, 0.04);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: adminDialogPopIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: adminDialogPopIn 0.16s cubic-bezier(0.16, 1, 0.3, 1);
   box-sizing: border-box;
 }
 
 .admin-dialog-card.admin-form-dialog {
-  max-width: 580px;
+  max-width: 540px;
 }
 
 /* ── Dialog Header ─────────────────────────────────────────────────────── */
@@ -996,37 +996,37 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: 12px 16px;
   background-color: var(--staff-surface, #ffffff);
   border-bottom: 1px solid var(--staff-border, #e2e8f0);
-  gap: 12px;
+  gap: 10px;
   flex-shrink: 0;
 }
 
 .admin-dialog-title {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1.02rem;
   font-weight: 700;
   color: var(--staff-text-main, #102a43);
   letter-spacing: -0.01em;
-  line-height: 1.35;
+  line-height: 1.3;
 }
 
 .admin-dialog-close {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  min-width: 32px;
-  min-height: 32px;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
   padding: 0;
-  border-radius: var(--staff-radius-md, 8px);
+  border-radius: var(--staff-radius-sm, 6px);
   border: none;
   background: transparent;
   color: var(--staff-text-muted, #627d98);
   cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition: background-color 0.12s ease, color 0.12s ease;
 }
 
 .admin-dialog-close:hover {
@@ -1039,14 +1039,14 @@
   flex: 1 1 auto;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 20px;
+  padding: 14px 16px;
   min-height: 0;
 }
 
 .admin-dialog-body.admin-form-body {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 /* ── Dialog Footer ─────────────────────────────────────────────────────── */
@@ -1054,8 +1054,8 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px;
-  padding: 14px 20px;
+  gap: 8px;
+  padding: 10px 16px;
   background-color: var(--staff-bg-app, #f8fafc);
   border-top: 1px solid var(--staff-border, #e2e8f0);
   flex-shrink: 0;
@@ -1066,11 +1066,11 @@
 .admin-form-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .admin-form-label {
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--staff-text-main, #102a43);
 }
@@ -1078,29 +1078,29 @@
 .admin-form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: 10px;
 }
 
 .admin-form-icon-wrap {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--staff-radius-md, 8px);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--staff-radius-sm, 6px);
   background-color: var(--staff-navy-light, rgba(16, 42, 67, 0.08));
   color: var(--staff-navy-primary, #102a43);
-  margin-right: 10px;
+  margin-right: 8px;
   flex-shrink: 0;
 }
 
-/* ── Question Preview inside Assessment Modal ──────────────────────────── */
+/* ── Question Preview inside Assessment Modal — Compact ────────────────── */
 .admin-question-preview-box {
   background: var(--staff-bg-app, #f8fafc);
   border: 1px solid var(--staff-border, #e2e8f0);
-  border-radius: var(--staff-radius-md, 8px);
-  padding: 16px;
-  margin-bottom: 12px;
+  border-radius: var(--staff-radius-md, 6px);
+  padding: 11px 13px;
+  margin-bottom: 8px;
 }
 
 .admin-question-preview-box:last-child {
@@ -1110,25 +1110,25 @@
 .admin-question-prompt {
   font-weight: 600;
   color: var(--staff-text-main, #102a43);
-  font-size: 0.9rem;
-  margin-bottom: 10px;
-  line-height: 1.45;
+  font-size: 0.86rem;
+  margin-bottom: 7px;
+  line-height: 1.4;
 }
 
 .admin-question-options-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-bottom: 10px;
+  gap: 4px;
+  margin-bottom: 7px;
 }
 
 .admin-question-option-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.85rem;
-  padding: 8px 12px;
-  border-radius: var(--staff-radius-md, 6px);
+  gap: 6px;
+  font-size: 0.82rem;
+  padding: 5px 9px;
+  border-radius: var(--staff-radius-sm, 5px);
   background: var(--staff-surface, #ffffff);
   border: 1px solid var(--staff-border, #e2e8f0);
   color: var(--staff-text-main, #102a43);
@@ -1142,32 +1142,32 @@
 }
 
 .admin-question-explanation {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: var(--staff-text-muted, #627d98);
-  border-left: 3px solid var(--staff-navy-primary, #102a43);
-  padding-left: 10px;
-  margin-top: 8px;
+  border-left: 2px solid var(--staff-navy-primary, #102a43);
+  padding-left: 8px;
+  margin-top: 6px;
   font-style: italic;
-  line-height: 1.45;
+  line-height: 1.4;
 }
 
-/* ── Action Buttons & Dropdown Menus ───────────────────────────────────── */
+/* ── Action Buttons & Dropdown Menus — Compact ────────────────────────── */
 .admin-btn-outline,
 .staff-btn-outline {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  height: 32px;
-  padding: 0 10px;
-  font-size: 12px;
+  gap: 4px;
+  height: 29px;
+  padding: 0 8px;
+  font-size: 11.5px;
   font-weight: 600;
-  border-radius: var(--staff-radius-md, 6px);
+  border-radius: var(--staff-radius-sm, 5px);
   border: 1px solid var(--staff-border, #e2e8f0);
   background-color: var(--staff-surface, #ffffff);
   color: var(--staff-text-main, #102a43);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.12s ease;
   text-decoration: none;
   white-space: nowrap;
 }
@@ -1183,17 +1183,17 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  height: 36px;
-  padding: 0 14px;
-  font-size: 13px;
+  gap: 5px;
+  height: 32px;
+  padding: 0 11px;
+  font-size: 12px;
   font-weight: 600;
-  border-radius: var(--staff-radius-md, 8px);
+  border-radius: var(--staff-radius-md, 6px);
   border: 1px solid var(--staff-border, #e2e8f0);
   background-color: var(--staff-surface, #ffffff);
   color: var(--staff-text-main, #102a43);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.12s ease;
 }
 
 .admin-btn-secondary:hover {
@@ -1205,7 +1205,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 6px;
+  gap: 5px;
 }
 
 .table-action-btn-danger {
@@ -1217,26 +1217,26 @@
   border-color: rgba(220, 38, 38, 0.3) !important;
 }
 
-/* Action Dropdown / Popover */
+/* Action Dropdown / Popover — Compact */
 .action-dropdown-wrap {
   position: relative;
   display: inline-block;
 }
 
 .action-dropdown-trigger {
-  width: 32px;
-  height: 32px;
-  min-width: 32px;
-  min-height: 32px;
+  width: 29px;
+  height: 29px;
+  min-width: 29px;
+  min-height: 29px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--staff-radius-md, 6px);
+  border-radius: var(--staff-radius-sm, 5px);
   border: 1px solid var(--staff-border, #e2e8f0);
   background-color: var(--staff-surface, #ffffff);
   color: var(--staff-text-muted, #627d98);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.12s ease;
   padding: 0;
 }
 
@@ -1250,24 +1250,24 @@
 .action-dropdown-menu {
   position: absolute;
   right: 0;
-  top: calc(100% + 4px);
+  top: calc(100% + 3px);
   z-index: 100;
-  min-width: 180px;
+  min-width: 170px;
   background: var(--staff-surface, #ffffff);
   border: 1px solid var(--staff-border, #e2e8f0);
-  border-radius: var(--staff-radius-md, 8px);
-  box-shadow: 0 10px 25px -5px rgba(16, 42, 67, 0.15);
-  padding: 6px;
+  border-radius: var(--staff-radius-md, 6px);
+  box-shadow: 0 8px 20px -4px rgba(16, 42, 67, 0.15);
+  padding: 4px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   animation: adminDropdownFadeIn 0.12s ease-out;
 }
 
 @keyframes adminDropdownFadeIn {
   from {
     opacity: 0;
-    transform: translateY(-4px);
+    transform: translateY(-3px);
   }
   to {
     opacity: 1;
@@ -1278,18 +1278,18 @@
 .action-dropdown-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   width: 100%;
-  padding: 8px 10px;
-  font-size: 12.5px;
+  padding: 6px 8px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--staff-text-main, #102a43);
-  border-radius: 5px;
+  border-radius: 4px;
   border: none;
   background: transparent;
   text-align: left;
   cursor: pointer;
-  transition: background-color 0.12s ease, color 0.12s ease;
+  transition: background-color 0.1s ease, color 0.1s ease;
   text-decoration: none;
   box-sizing: border-box;
 }
@@ -1310,7 +1310,7 @@
 .action-dropdown-divider {
   height: 1px;
   background-color: var(--staff-border-subtle, #f1f5f9);
-  margin: 4px 0;
+  margin: 3px 0;
 }
 
 /* ── Mobile Responsive Overrides for Dialogs ───────────────────────────── */
