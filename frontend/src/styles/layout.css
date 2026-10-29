@@ -27,9 +27,20 @@
   padding: 24px 28px;
 }
 
+.app-content-container.app-content-ai-tutor {
+  padding: 0;
+  height: calc(100dvh - var(--topbar-height, 64px));
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 @media (min-width: 1400px) {
   .app-content-container {
     padding: 28px 32px;
+  }
+  .app-content-container.app-content-ai-tutor {
+    padding: 0;
   }
 }
 
@@ -37,6 +48,15 @@
   max-width: var(--content-max-width, 1340px);
   width: 100%;
   margin: 0 auto;
+}
+
+.app-content-inner.app-content-inner-full {
+  max-width: 100%;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
 }
 
 /* ── SIDEBAR STYLES ────────────────────────────────────────── */
