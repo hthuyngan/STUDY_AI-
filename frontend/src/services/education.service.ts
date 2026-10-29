@@ -351,56 +351,81 @@ const INITIAL_TEACHERS: AdminTeacherItem[] = [
     id: 'tch-01',
     name: 'Lê Thanh Thảo',
     email: 'thanh.thao@example.com',
+    phone: '0912 345 678',
     subject: 'Vật lý 12',
     classes: ['12A1', '12A2'],
     studentCount: 73,
     status: 'active',
     joinedAt: '2026-08-15T11:00:00Z',
     rating: 4.9,
+    qualifications: 'Thạc sĩ Vật lý Lý thuyết',
+    experienceYears: 6,
+    bio: 'Chuyên bồi dưỡng học sinh thi THPT Quốc gia chuyên đề Sóng cơ và Dao động.',
+    accountStatus: 'ACTIVE',
   },
   {
     id: 'tch-02',
     name: 'Phạm Văn Nam',
     email: 'nam.pham@example.com',
+    phone: '0988 765 432',
     subject: 'Toán học 12',
     classes: ['12A1', '11B1'],
     studentCount: 78,
     status: 'active',
     joinedAt: '2026-07-10T09:00:00Z',
     rating: 4.85,
+    qualifications: 'Thạc sĩ Toán ứng dụng',
+    experienceYears: 8,
+    bio: 'Tác giả nhiều chuyên đề Giải tích 12, phương pháp giải nhanh trắc nghiệm.',
+    accountStatus: 'ACTIVE',
   },
   {
     id: 'tch-03',
     name: 'Hoàng Mai Anh',
     email: 'mai.anh@example.com',
+    phone: '0977 123 999',
     subject: 'Toán học 12',
     classes: ['12A2'],
     studentCount: 35,
     status: 'pending',
     joinedAt: '2026-10-25T14:00:00Z',
     rating: 4.7,
+    qualifications: 'Cử nhân ĐH Sư phạm Hà Nội',
+    experienceYears: 2,
+    bio: 'Giáo viên trẻ năng động, ứng dụng phương pháp sư phạm kích hoạt tư duy.',
+    accountStatus: 'PENDING',
   },
   {
     id: 'tch-04',
     name: 'Lý Quốc Bảo',
     email: 'quoc.bao@example.com',
+    phone: '0934 555 777',
     subject: 'Vật lý 12',
     classes: ['11B1'],
     studentCount: 40,
     status: 'active',
     joinedAt: '2026-08-10T09:00:00Z',
     rating: 4.8,
+    qualifications: 'Cử nhân Sư phạm Vật lý',
+    experienceYears: 4,
+    bio: 'Kinh nghiệm luyện thi trắc nghiệm và trực quan hóa thí nghiệm Vật lý số.',
+    accountStatus: 'ACTIVE',
   },
   {
     id: 'tch-05',
     name: 'Vũ Thị Ngọc',
     email: 'ngoc.vu@example.com',
+    phone: '0903 888 222',
     subject: 'Hóa học 12',
     classes: ['12A1', '12A2'],
     studentCount: 73,
     status: 'active',
     joinedAt: '2026-09-01T08:30:00Z',
     rating: 4.92,
+    qualifications: 'Thạc sĩ Hóa học Hữu cơ',
+    experienceYears: 7,
+    bio: 'Giảng dạy hóa hữu cơ Este - Lipit, sơ đồ chuyển hóa nâng cao THPT.',
+    accountStatus: 'ACTIVE',
   },
 ]
 
@@ -819,6 +844,87 @@ export const educationService = {
   async getTeacherById(id: string): Promise<AdminTeacherItem | undefined> {
     const teachers = await this.getTeachers()
     return teachers.find((t) => t.id === id)
+  },
+
+  async saveTeacher(data: {
+    name: string
+    email: string
+    phone?: string
+    subject: string
+    classes?: string[]
+    status?: 'active' | 'pending' | 'inactive'
+    qualifications?: string
+    experienceYears?: number
+    bio?: string
+  }): Promise<AdminTeacherItem> {
+    const teachers = readStorage<AdminTeacherItem[]>(STORAGE_KEYS.TEACHERS, INITIAL_TEACHERS)
+    const newTeacher: AdminTeacherItem = {
+      id: `tch-${Date.now().toString(36)}`,
+      name: data.name,
+      email: data.email,
+      phone: data.phone || '0901 234 567',
+      subject: data.subject,
+      classes: data.classes || ['12A1'],
+      studentCount: 35,
+      status: data.status || 'active',
+      joinedAt: new Date().toISOString(),
+      rating: 5.0,
+      qualifications: data.qualifications || 'Cử nhân Sư phạm',
+      experienceYears: data.experienceYears || 3,
+      bio: data.bio || 'Giáo viên bộ môn tâm huyết với học sinh.',
+      accountStatus: 'ACTIVE',
+    }
+    const updated = [newTeacher, ...teachers]
+    writeStorage(STORAGE_KEYS.TEACHERS, updated)
+    return newTeacher
+  },
+
+  async updateTeacher(id: string, updates: Partial<AdminTeacherItem>): Promise<AdminTeacherItem> {
+    const teachers = readStorage<AdminTeacherItem[]>(STORAGE_KEYS.TEACHERS, INITIAL_TEACHERS)
+    const idx = teachers.findIndex((t) => t.id === id)
+    if (idx === -1) throw new Error(`Teacher with id ${id} not found`)
+    const updatedTeacher = { ...teachers[idx], ...updates }
+    teachers[idx] = updatedTeacher
+    writeStorage(STORAGE_KEYS.TEACHERS, teachers)
+    return updatedTeacher
+  },
+
+  async setTeacherStatus(id: string, status: 'active' | 'pending' | 'inactive'): Promise<AdminTeacherItem> {
+    return this.updateTeacher(id, { status })
+  },
+
+  async toggleTeacherLock(id: string): Promise<AdminTeacherItem> {
+    const teacher = await this.getTeacherById(id)
+    if (!teacher) throw new Error(`Teacher with id ${id} not found`)
+    const nextStatus = teacher.accountStatus === 'LOCKED' ? 'ACTIVE' : 'LOCKED'
+    return this.updateTeacher(id, { accountStatus: nextStatus })
+  },
+
+  async deleteTeacher(id: string): Promise<boolean> {
+    const teachers = readStorage<AdminTeacherItem[]>(STORAGE_KEYS.TEACHERS, INITIAL_TEACHERS)
+    const filtered = teachers.filter((t) => t.id !== id)
+    writeStorage(STORAGE_KEYS.TEACHERS, filtered)
+    return true
+  },
+
+  async getTeacherKPIs(): Promise<{
+    totalTeachers: number
+    activeTeaching: number
+    pendingOrLeave: number
+    newTeachers: number
+  }> {
+    const teachers = readStorage<AdminTeacherItem[]>(STORAGE_KEYS.TEACHERS, INITIAL_TEACHERS)
+    const totalTeachers = teachers.length
+    const activeTeaching = teachers.filter((t) => t.status === 'active').length
+    const pendingOrLeave = teachers.filter((t) => t.status !== 'active').length
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000
+    const newTeachers = teachers.filter((t) => new Date(t.joinedAt).getTime() > thirtyDaysAgo).length
+    return {
+      totalTeachers,
+      activeTeaching,
+      pendingOrLeave,
+      newTeachers: Math.max(newTeachers, 1),
+    }
   },
 
   // ── LEARNING REPORTS ───────────────────────────────────────

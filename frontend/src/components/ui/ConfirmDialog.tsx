@@ -44,7 +44,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   if (!isOpen) return null
 
   return (
-    <div className="confirm-dialog-backdrop" onClick={onCancel} aria-hidden="true">
+    <div className="confirm-dialog-backdrop" onClick={onCancel} role="presentation">
       <div
         className="confirm-dialog-modal"
         ref={dialogRef}

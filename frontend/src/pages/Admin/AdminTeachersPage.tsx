@@ -1,87 +1,317 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import {
   GraduationCap,
-  Search,
+  Plus,
+  RefreshCw,
   ExternalLink,
-  Star,
-  Users,
-  BookOpen,
-  Calendar,
-  Mail,
-  X,
-  ArrowRight,
-  Eye,
+  CheckCircle2,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { educationService } from '@/services/education.service'
 import type { AdminTeacherItem } from '@/types/education'
-import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { StaffPagination } from '@/components/staff/StaffPagination'
+import {
+  TeacherSummaryStrip,
+  TeacherToolbar,
+  TeacherTable,
+  TeacherCardList,
+  TeacherDetailDrawer,
+  CreateTeacherModal,
+  ChangeTeachingStatusModal,
+  type TeacherFilterValues,
+  type TeacherSort,
+  type TeacherSortField,
+  type TeacherSummaryKPIs,
+} from './components/teachers'
+import './components/teachers/teacher-management.css'
 import './AdminPages.css'
 import '@/components/admin/AdminComponents.css'
 
 export const AdminTeachersPage: React.FC = () => {
   const [teachers, setTeachers] = useState<AdminTeacherItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [subjectFilter, setSubjectFilter] = useState('all')
-  const [statusFilter, setStatusFilter] = useState('all')
+  const [feedbackToast, setFeedbackToast] = useState<string | null>(null)
 
-  // Profile Modal State
+  // 1. Filter state
+  const [filters, setFilters] = useState<TeacherFilterValues>({
+    search: '',
+    subject: 'all',
+    status: 'all',
+    accountStatus: 'all',
+  })
+
+  // 2. Pagination state (default: 10 per page)
+  const [currentPage, setCurrentPage] = useState(1)
+  const pageSize = 10
+
+  // 3. Sorting state (default: name asc)
+  const [sort, setSort] = useState<TeacherSort>({
+    field: 'name',
+    direction: 'asc',
+  })
+
+  // 4. Multi-select state
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+
+  // 5. Drawer & Modals state
   const [selectedTeacher, setSelectedTeacher] = useState<AdminTeacherItem | null>(null)
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [statusTargetTeacher, setStatusTargetTeacher] = useState<AdminTeacherItem | null>(null)
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false)
+  const [lockTargetTeacher, setLockTargetTeacher] = useState<AdminTeacherItem | null>(null)
+  const [isConfirmLockOpen, setIsConfirmLockOpen] = useState(false)
 
-  const loadData = useCallback(() => {
+  // 6. KPIs state
+  const [kpis, setKpis] = useState<TeacherSummaryKPIs>({
+    totalTeachers: 0,
+    activeTeaching: 0,
+    pendingOrLeave: 0,
+    newTeachers: 0,
+  })
+
+  const showToast = (msg: string) => {
+    setFeedbackToast(msg)
+    setTimeout(() => setFeedbackToast(null), 3500)
+  }
+
+  const loadData = useCallback(async () => {
     setLoading(true)
-    educationService
-      .getTeachers({
-        subject: subjectFilter,
-        status: statusFilter,
-        search,
-      })
-      .then((data) => {
-        setTeachers(data)
-        setLoading(false)
-      })
-  }, [subjectFilter, statusFilter, search])
+    try {
+      const [allTeachers, summaryKPIs] = await Promise.all([
+        educationService.getTeachers(),
+        educationService.getTeacherKPIs(),
+      ])
+      setTeachers(allTeachers)
+      setKpis(summaryKPIs)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
-    let active = true
-    educationService
-      .getTeachers({
-        subject: subjectFilter,
-        status: statusFilter,
-        search,
-      })
-      .then((data) => {
-        if (active) {
-          setTeachers(data)
+    let mounted = true
+    const init = async () => {
+      try {
+        const [allTeachers, summaryKPIs] = await Promise.all([
+          educationService.getTeachers(),
+          educationService.getTeacherKPIs(),
+        ])
+        if (mounted) {
+          setTeachers(allTeachers)
+          setKpis(summaryKPIs)
           setLoading(false)
         }
-      })
-    return () => {
-      active = false
+      } catch {
+        if (mounted) setLoading(false)
+      }
     }
-  }, [subjectFilter, statusFilter, search])
+    init()
+    return () => {
+      mounted = false
+    }
+  }, [])
 
-  // Summary Metrics
-  const totalTeachers = teachers.length
-  const activeTeachers = teachers.filter((t) => t.status === 'active').length
-  const totalStudents = teachers.reduce((acc, t) => acc + (t.studentCount || 0), 0)
-  const avgRating = (
-    teachers.reduce((acc, t) => acc + (t.rating || 0), 0) / (totalTeachers || 1)
-  ).toFixed(2)
+  // Filtered & Sorted teachers
+  const filteredTeachers = useMemo(() => {
+    let result = [...teachers]
+
+    // Search filter
+    if (filters.search.trim()) {
+      const q = filters.search.trim().toLowerCase()
+      result = result.filter(
+        (t) =>
+          t.name.toLowerCase().includes(q) ||
+          t.email.toLowerCase().includes(q) ||
+          (t.classes && t.classes.some((c) => c.toLowerCase().includes(q)))
+      )
+    }
+
+    // Subject filter
+    if (filters.subject !== 'all') {
+      result = result.filter((t) =>
+        t.subject.toLowerCase().includes(filters.subject.toLowerCase())
+      )
+    }
+
+    // Status filter
+    if (filters.status !== 'all') {
+      result = result.filter((t) => t.status === filters.status)
+    }
+
+    // Account status filter
+    if (filters.accountStatus !== 'all') {
+      result = result.filter((t) => (t.accountStatus || 'ACTIVE') === filters.accountStatus)
+    }
+
+    // Sort
+    result.sort((a, b) => {
+      let valA: string | number = a[sort.field] ?? ''
+      let valB: string | number = b[sort.field] ?? ''
+
+      if (typeof valA === 'string') valA = valA.toLowerCase()
+      if (typeof valB === 'string') valB = valB.toLowerCase()
+
+      if (valA < valB) return sort.direction === 'asc' ? -1 : 1
+      if (valA > valB) return sort.direction === 'asc' ? 1 : -1
+      return 0
+    })
+
+    return result
+  }, [teachers, filters, sort])
+
+  // Pagination slice
+  const totalItems = filteredTeachers.length
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
+  const paginatedTeachers = useMemo(() => {
+    const start = (currentPage - 1) * pageSize
+    return filteredTeachers.slice(start, start + pageSize)
+  }, [filteredTeachers, currentPage, pageSize])
+
+  // Reset page when filters change
+  const handleFilterChange = (newFilters: TeacherFilterValues) => {
+    setFilters(newFilters)
+    setCurrentPage(1)
+  }
+
+  const handleResetFilters = () => {
+    setFilters({
+      search: '',
+      subject: 'all',
+      status: 'all',
+      accountStatus: 'all',
+    })
+    setCurrentPage(1)
+  }
+
+  // Sorting
+  const handleSortChange = (field: TeacherSortField) => {
+    setSort((prev) => {
+      if (prev.field === field) {
+        return { field, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
+      }
+      return { field, direction: 'asc' }
+    })
+  }
+
+  // Multi-select
+  const handleToggleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(paginatedTeachers.map((t) => t.id))
+    } else {
+      setSelectedIds([])
+    }
+  }
+
+  const handleToggleSelectTeacher = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedIds((prev) => [...prev, id])
+    } else {
+      setSelectedIds((prev) => prev.filter((item) => item !== id))
+    }
+  }
+
+  // Drawer interactions
+  const handleSelectTeacher = (teacher: AdminTeacherItem) => {
+    setSelectedTeacher(teacher)
+    setIsDrawerOpen(true)
+  }
+
+  const handleEditTeacher = (teacher: AdminTeacherItem) => {
+    setSelectedTeacher(teacher)
+    setIsDrawerOpen(true)
+  }
+
+  const handleCloseDrawer = () => {
+    setIsDrawerOpen(false)
+  }
+
+  const handleSaveEdit = async (id: string, updates: Partial<AdminTeacherItem>) => {
+    const updated = await educationService.updateTeacher(id, updates)
+    setTeachers((prev) => prev.map((t) => (t.id === id ? updated : t)))
+    setSelectedTeacher(updated)
+    showToast(`Đã cập nhật hồ sơ giáo viên "${updated.name}" thành công`)
+    loadData()
+  }
+
+  // Create Modal
+  const handleCreateTeacher = async (data: {
+    name: string
+    email: string
+    phone: string
+    subject: string
+    classes: string[]
+    qualifications: string
+    experienceYears: number
+    status: 'active' | 'pending' | 'inactive'
+    bio: string
+  }) => {
+    const created = await educationService.saveTeacher(data)
+    setTeachers((prev) => [created, ...prev])
+    showToast(`Đã thêm thành công giáo viên mới "${created.name}"`)
+    loadData()
+  }
+
+  // Change Teaching Status
+  const handleOpenTeachingStatusModal = (teacher: AdminTeacherItem) => {
+    setStatusTargetTeacher(teacher)
+    setIsStatusModalOpen(true)
+  }
+
+  const handleConfirmTeachingStatus = async (
+    teacherId: string,
+    newStatus: 'active' | 'pending' | 'inactive'
+  ) => {
+    const updated = await educationService.setTeacherStatus(teacherId, newStatus)
+    setTeachers((prev) => prev.map((t) => (t.id === teacherId ? updated : t)))
+    if (selectedTeacher?.id === teacherId) {
+      setSelectedTeacher(updated)
+    }
+    showToast(`Đã cập nhật trạng thái giảng dạy cho giáo viên "${updated.name}"`)
+    loadData()
+  }
+
+  // Lock / Unlock Account
+  const handleOpenLockConfirm = (teacher: AdminTeacherItem) => {
+    setLockTargetTeacher(teacher)
+    setIsConfirmLockOpen(true)
+  }
+
+  const handleConfirmLockToggle = async () => {
+    if (!lockTargetTeacher) return
+    const updated = await educationService.toggleTeacherLock(lockTargetTeacher.id)
+    setTeachers((prev) => prev.map((t) => (t.id === lockTargetTeacher.id ? updated : t)))
+    if (selectedTeacher?.id === lockTargetTeacher.id) {
+      setSelectedTeacher(updated)
+    }
+    const isNowLocked = updated.accountStatus === 'LOCKED'
+    showToast(
+      isNowLocked
+        ? `Đã khóa tài khoản giáo viên "${updated.name}"`
+        : `Đã mở khóa tài khoản cho giáo viên "${updated.name}"`
+    )
+    setIsConfirmLockOpen(false)
+    setLockTargetTeacher(null)
+    loadData()
+  }
 
   return (
-    <div className="staff-page">
-      {/* Page Header */}
+    <div className="teacher-management-container">
+      {/* Toast Banner */}
+      {feedbackToast && (
+        <div className="admin-toast-banner" role="status">
+          <CheckCircle2 size={16} />
+          <span>{feedbackToast}</span>
+        </div>
+      )}
+
+      {/* 1. Page Header */}
       <div className="staff-page-header">
         <div className="admin-header-row">
           <div>
-            <div className="admin-prototype-badge">
-              <span className="prototype-dot" />
-              <span>Dữ liệu mô phỏng · Lưu cục bộ</span>
-            </div>
             <h1 className="staff-page-title">Quản lý giáo viên</h1>
             <p className="staff-page-desc">
               Quản trị đội ngũ giáo viên, bộ môn chuyên môn, phân công lớp giảng dạy và kết nối nhanh sang Teacher Workspace.
@@ -90,343 +320,152 @@ export const AdminTeachersPage: React.FC = () => {
           <div className="admin-header-actions">
             <button
               type="button"
-              className="admin-btn-secondary"
+              className="btn btn-secondary btn-sm"
               onClick={loadData}
               aria-label="Làm mới danh sách giáo viên"
+              disabled={loading}
             >
-              Làm mới
+              <RefreshCw size={14} className={loading ? 'spin' : ''} />
+              <span>Làm mới</span>
             </button>
             <Link
               to="/teacher"
-              className="admin-btn-primary"
+              className="btn btn-secondary btn-sm"
               title="Truy cập không gian làm việc của giáo viên"
               aria-label="Đến Teacher Workspace"
             >
               <span>Teacher Workspace</span>
-              <ExternalLink size={15} />
+              <ExternalLink size={14} />
             </Link>
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() => setIsCreateModalOpen(true)}
+              aria-label="Thêm giáo viên mới"
+            >
+              <Plus size={15} />
+              <span>Thêm giáo viên</span>
+            </button>
           </div>
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="admin-education-summary-grid">
-        <div className="admin-kpi-card">
-          <div className="admin-kpi-header">
-            <span className="admin-kpi-label">Tổng số giáo viên</span>
-            <GraduationCap size={18} className="admin-kpi-icon" />
-          </div>
-          <div className="admin-kpi-value">{totalTeachers}</div>
-          <div className="admin-kpi-comparison">Đội ngũ giảng dạy hệ thống</div>
-        </div>
+      {/* 2. Compact Teacher Summary Strip */}
+      <TeacherSummaryStrip kpis={kpis} />
 
-        <div className="admin-kpi-card">
-          <div className="admin-kpi-header">
-            <span className="admin-kpi-label">Đang giảng dạy</span>
-            <Users size={18} className="admin-kpi-icon" />
-          </div>
-          <div className="admin-kpi-value">{activeTeachers}</div>
-          <div className="admin-kpi-comparison">Trạng thái tài khoản Active</div>
-        </div>
+      {/* 3. Search and Multi-filter Toolbar */}
+      <TeacherToolbar
+        filters={filters}
+        onFilterChange={handleFilterChange}
+        onResetFilters={handleResetFilters}
+      />
 
-        <div className="admin-kpi-card">
-          <div className="admin-kpi-header">
-            <span className="admin-kpi-label">Học sinh phụ trách</span>
-            <BookOpen size={18} className="admin-kpi-icon" />
-          </div>
-          <div className="admin-kpi-value">{totalStudents}</div>
-          <div className="admin-kpi-comparison">Tổng quy mô học sinh các lớp</div>
-        </div>
-
-        <div className="admin-kpi-card">
-          <div className="admin-kpi-header">
-            <span className="admin-kpi-label">Đánh giá trung bình</span>
-            <Star size={18} className="admin-kpi-icon" style={{ color: '#f59e0b' }} />
-          </div>
-          <div className="admin-kpi-value">{avgRating} / 5.0</div>
-          <div className="admin-kpi-comparison">Phản hồi chất lượng học viên</div>
-        </div>
-      </div>
-
-      {/* Filter Toolbar */}
-      <div className="admin-toolbar" style={{ marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
-        <div className="admin-search-wrap">
-          <Search size={16} className="admin-search-icon" />
-          <input
-            type="search"
-            placeholder="Tìm theo tên giáo viên hoặc email..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="admin-search-input"
-            aria-label="Tìm kiếm giáo viên"
-          />
-        </div>
-
-        <div className="admin-filter-group" style={{ gap: '8px' }}>
-          <select
-            value={subjectFilter}
-            onChange={(e) => setSubjectFilter(e.target.value)}
-            className="admin-select"
-            aria-label="Lọc theo bộ môn"
-          >
-            <option value="all">Tất cả bộ môn</option>
-            <option value="Toán học">Toán học</option>
-            <option value="Vật lý">Vật lý</option>
-            <option value="Hóa học">Hóa học</option>
-          </select>
-
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="admin-select"
-            aria-label="Lọc trạng thái hoạt động"
-          >
-            <option value="all">Tất cả trạng thái</option>
-            <option value="active">Hoạt động (Active)</option>
-            <option value="pending">Chờ phê duyệt</option>
-            <option value="inactive">Tạm dừng</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Teachers Table */}
+      {/* 4. Main Teacher Table / Mobile Cards / Empty State */}
       {loading ? (
-        <div className="admin-table-container">
-          {[1, 2, 3].map((i) => (
-            <div key={i} style={{ padding: '16px' }}>
-              <Skeleton width="100%" height="40px" />
+        <div className="teacher-table-wrapper" style={{ padding: '16px' }}>
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} style={{ marginBottom: '10px' }}>
+              <Skeleton width="100%" height="38px" />
             </div>
           ))}
         </div>
-      ) : teachers.length === 0 ? (
+      ) : paginatedTeachers.length === 0 ? (
         <EmptyState
           title="Không tìm thấy giáo viên nào"
-          description="Thử thay đổi bộ lọc tìm kiếm hoặc kiểm tra danh sách tài khoản."
+          description="Không có giáo viên phù hợp với bộ lọc hoặc từ khóa tìm kiếm hiện tại."
           icon={GraduationCap}
+          actionLabel="Đặt lại bộ lọc"
+          onAction={handleResetFilters}
         />
       ) : (
-        <div className="admin-table-container">
-          <table className="admin-table" aria-label="Bảng danh sách giáo viên">
-            <thead>
-              <tr>
-                <th>Họ và tên</th>
-                <th>Bộ môn phụ trách</th>
-                <th>Lớp giảng dạy</th>
-                <th style={{ textAlign: 'center' }}>Số học sinh</th>
-                <th style={{ textAlign: 'center' }}>Đánh giá</th>
-                <th>Trạng thái</th>
-                <th style={{ textAlign: 'right' }}>Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              {teachers.map((tch) => (
-                <tr key={tch.id}>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <div
-                        style={{
-                          width: '34px',
-                          height: '34px',
-                          borderRadius: '50%',
-                          background: 'var(--navy-primary, #102a43)',
-                          color: '#ffffff',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontWeight: 700,
-                          fontSize: '0.85rem',
-                          flexShrink: 0,
-                        }}
-                      >
-                        {tch.name.charAt(0)}
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 600, color: 'var(--text-main, #102a43)' }}>
-                          {tch.name}
-                        </div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #627d98)' }}>
-                          {tch.email}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <span className="admin-badge-role">{tch.subject}</span>
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                      {tch.classes.map((cls) => (
-                        <span key={cls} className="admin-teacher-badge">
-                          {cls}
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                  <td style={{ textAlign: 'center', fontWeight: 600 }}>{tch.studentCount} em</td>
-                  <td style={{ textAlign: 'center' }}>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
-                      <Star size={13} fill="#f59e0b" color="#f59e0b" />
-                      <span>{tch.rating}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <StatusBadge status={tch.status} />
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'inline-flex', gap: '6px' }}>
-                      <button
-                        type="button"
-                        className="admin-btn-outline"
-                        style={{ padding: '4px 8px', fontSize: '0.75rem', gap: '4px' }}
-                        onClick={() => setSelectedTeacher(tch)}
-                        title="Xem hồ sơ giáo viên"
-                        aria-label={`Xem hồ sơ ${tch.name}`}
-                      >
-                        <Eye size={13} />
-                        <span>Hồ sơ</span>
-                      </button>
-                      <Link
-                        to="/teacher"
-                        className="admin-btn-outline"
-                        style={{ padding: '4px 8px', fontSize: '0.75rem', gap: '4px' }}
-                        title="Mở Teacher Workspace"
-                        aria-label={`Teacher Workspace ${tch.name}`}
-                      >
-                        <ExternalLink size={13} />
-                        <span>Workspace</span>
-                      </Link>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          {/* Desktop Table View (>= 768px) */}
+          <TeacherTable
+            teachers={paginatedTeachers}
+            selectedIds={selectedIds}
+            onToggleSelectAll={handleToggleSelectAll}
+            onToggleSelectTeacher={handleToggleSelectTeacher}
+            selectedTeacherId={isDrawerOpen && selectedTeacher ? selectedTeacher.id : null}
+            onSelectTeacher={handleSelectTeacher}
+            onEditTeacher={handleEditTeacher}
+            onChangeTeachingStatus={handleOpenTeachingStatusModal}
+            onToggleLockAccount={handleOpenLockConfirm}
+            sort={sort}
+            onSortChange={handleSortChange}
+          />
+
+          {/* Mobile Card List View (< 768px) */}
+          <TeacherCardList
+            teachers={paginatedTeachers}
+            onSelectTeacher={handleSelectTeacher}
+            onEditTeacher={handleEditTeacher}
+            onChangeTeachingStatus={handleOpenTeachingStatusModal}
+            onToggleLockAccount={handleOpenLockConfirm}
+          />
+
+          {/* 5. Pagination */}
+          <StaffPagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={pageSize}
+            onPageChange={(p) => setCurrentPage(p)}
+          />
+        </>
       )}
 
-      {/* TEACHER PROFILE MODAL */}
-      {selectedTeacher && (
-        <div className="admin-dialog-backdrop" onClick={() => setSelectedTeacher(null)}>
-          <div
-            className="admin-dialog-card"
-            style={{ maxWidth: '520px', width: '92%' }}
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="teacher-modal-title"
-          >
-            <div className="admin-dialog-header">
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span className="admin-form-icon-wrap">
-                  <GraduationCap size={16} />
-                </span>
-                <h2 id="teacher-modal-title" className="admin-dialog-title">
-                  Hồ sơ giáo viên
-                </h2>
-              </div>
-              <button
-                type="button"
-                className="admin-dialog-close"
-                onClick={() => setSelectedTeacher(null)}
-                aria-label="Đóng"
-              >
-                <X size={16} />
-              </button>
-            </div>
+      {/* 6. Teacher Detail Drawer (520px sliding) */}
+      <TeacherDetailDrawer
+        isOpen={isDrawerOpen}
+        teacher={selectedTeacher}
+        onClose={handleCloseDrawer}
+        onSaveEdit={handleSaveEdit}
+        onChangeTeachingStatus={handleOpenTeachingStatusModal}
+        onToggleLockAccount={handleOpenLockConfirm}
+      />
 
-            <div className="admin-dialog-body" style={{ padding: '16px 20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '18px' }}>
-                <div
-                  style={{
-                    width: '52px',
-                    height: '52px',
-                    borderRadius: '50%',
-                    background: 'var(--navy-primary, #102a43)',
-                    color: '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 700,
-                    fontSize: '1.2rem',
-                  }}
-                >
-                  {selectedTeacher.name.charAt(0)}
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-main, #102a43)' }}>
-                    {selectedTeacher.name}
-                  </h3>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
-                    <span className="admin-badge-role">{selectedTeacher.subject}</span>
-                    <StatusBadge status={selectedTeacher.status} />
-                  </div>
-                </div>
-              </div>
+      {/* 7. Create Teacher Modal */}
+      <CreateTeacherModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSubmit={handleCreateTeacher}
+      />
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.85rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Mail size={15} style={{ color: 'var(--text-muted, #627d98)' }} />
-                  <span style={{ color: 'var(--text-muted, #627d98)' }}>Email:</span>
-                  <strong style={{ color: 'var(--text-main, #102a43)' }}>{selectedTeacher.email}</strong>
-                </div>
+      {/* 8. Change Teaching Status Modal */}
+      <ChangeTeachingStatusModal
+        isOpen={isStatusModalOpen}
+        teacher={statusTargetTeacher}
+        onClose={() => {
+          setIsStatusModalOpen(false)
+          setStatusTargetTeacher(null)
+        }}
+        onConfirm={handleConfirmTeachingStatus}
+      />
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Calendar size={15} style={{ color: 'var(--text-muted, #627d98)' }} />
-                  <span style={{ color: 'var(--text-muted, #627d98)' }}>Ngày tham gia:</span>
-                  <strong>{new Date(selectedTeacher.joinedAt).toLocaleDateString('vi-VN')}</strong>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Star size={15} style={{ color: '#f59e0b' }} />
-                  <span style={{ color: 'var(--text-muted, #627d98)' }}>Đánh giá chất lượng:</span>
-                  <strong>{selectedTeacher.rating} / 5.0 (Rất tốt)</strong>
-                </div>
-
-                <div style={{ marginTop: '8px' }}>
-                  <span style={{ color: 'var(--text-muted, #627d98)', display: 'block', marginBottom: '6px' }}>
-                    Các lớp học phụ trách:
-                  </span>
-                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                    {selectedTeacher.classes.map((c) => (
-                      <span
-                        key={c}
-                        style={{
-                          padding: '4px 10px',
-                          borderRadius: '6px',
-                          background: 'rgba(16, 42, 67, 0.08)',
-                          color: 'var(--navy-primary, #102a43)',
-                          fontWeight: 600,
-                          fontSize: '0.82rem',
-                        }}
-                      >
-                        {c}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="admin-dialog-footer">
-              <button
-                type="button"
-                className="admin-btn-secondary"
-                onClick={() => setSelectedTeacher(null)}
-              >
-                Đóng
-              </button>
-              <Link
-                to="/teacher"
-                className="admin-btn-primary"
-                onClick={() => setSelectedTeacher(null)}
-              >
-                <span>Chuyển đến Teacher Workspace</span>
-                <ArrowRight size={14} />
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* 9. Confirm Lock / Unlock Account Dialog */}
+      <ConfirmDialog
+        isOpen={isConfirmLockOpen}
+        title={
+          lockTargetTeacher?.accountStatus === 'LOCKED'
+            ? 'Mở khóa tài khoản giáo viên'
+            : 'Khóa tài khoản giáo viên'
+        }
+        description={
+          lockTargetTeacher?.accountStatus === 'LOCKED'
+            ? `Bạn có chắc chắn muốn mở khóa tài khoản cho giáo viên "${lockTargetTeacher?.name}"? Giáo viên sẽ được phép đăng nhập lại vào hệ thống.`
+            : `Giáo viên "${lockTargetTeacher?.name}" sẽ tạm thời không thể đăng nhập vào hệ thống. Trạng thái phân công giảng dạy hiện tại sẽ được giữ nguyên cho đến khi có thay đổi.`
+        }
+        confirmText={
+          lockTargetTeacher?.accountStatus === 'LOCKED' ? 'Mở khóa' : 'Khóa tài khoản'
+        }
+        cancelText="Hủy bỏ"
+        isDestructive={lockTargetTeacher?.accountStatus !== 'LOCKED'}
+        onConfirm={handleConfirmLockToggle}
+        onCancel={() => {
+          setIsConfirmLockOpen(false)
+          setLockTargetTeacher(null)
+        }}
+      />
     </div>
   )
 }

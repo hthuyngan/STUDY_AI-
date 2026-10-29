@@ -77,12 +77,17 @@ export interface AdminTeacherItem {
   id: string
   name: string
   email: string
+  phone?: string
   subject: string
   classes: string[]
   studentCount: number
   status: 'active' | 'pending' | 'inactive'
   joinedAt: string
   rating: number
+  qualifications?: string
+  experienceYears?: number
+  bio?: string
+  accountStatus?: 'ACTIVE' | 'LOCKED' | 'PENDING'
 }
 
 export interface LearningReportsData {
