@@ -9,21 +9,42 @@ import {
 } from '../data/aiTutor.mock'
 
 /**
- * AI Tutor Service
- *
- * Designed to easily switch from in-memory mock streaming to a real backend API:
+ * Backend API Base URL configuration.
+ * When VITE_API_BASE_URL is provided, requests route to real backend:
  * POST /api/chat
  * GET  /api/conversations
  * GET  /api/conversations/:id
  * POST /api/conversations
+ *
+ * NOTE: Never put secret API keys (OpenAI / Gemini) in frontend client code.
+ * All third-party AI keys are kept strictly on the backend.
  */
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
+
 class AITutorService {
   private conversations: ChatConversation[] = [...MOCK_CONVERSATIONS]
+
+  /**
+   * Check if remote AI backend is configured
+   */
+  isRemoteBackendConfigured(): boolean {
+    return Boolean(API_BASE_URL)
+  }
 
   /**
    * Fetch all conversations for current user
    */
   async getConversations(): Promise<ChatConversation[]> {
+    if (this.isRemoteBackendConfigured()) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/conversations`)
+        if (res.ok) {
+          return await res.json()
+        }
+      } catch (err) {
+        console.warn('Backend unavailable, falling back to local conversations:', err)
+      }
+    }
     // Simulate brief network delay
     await new Promise((resolve) => setTimeout(resolve, 80))
     return [...this.conversations]
@@ -33,6 +54,16 @@ class AITutorService {
    * Fetch single conversation by ID
    */
   async getConversationById(id: string): Promise<ChatConversation | null> {
+    if (this.isRemoteBackendConfigured()) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/conversations/${id}`)
+        if (res.ok) {
+          return await res.json()
+        }
+      } catch (err) {
+        console.warn(`Backend unavailable for conversation ${id}, falling back:`, err)
+      }
+    }
     await new Promise((resolve) => setTimeout(resolve, 60))
     const found = this.conversations.find((c) => c.id === id)
     return found ? { ...found } : null
@@ -91,6 +122,40 @@ class AITutorService {
     if (payload.message.trim() === 'error_test') {
       await new Promise((resolve) => setTimeout(resolve, 400))
       throw new Error('Lỗi kết nối tới AI Tutor. Vui lòng thử lại.')
+    }
+
+    // When real AI backend is available, attempt real SSE/streaming
+    if (this.isRemoteBackendConfigured()) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal,
+        })
+        if (response.ok && response.body) {
+          const reader = response.body.getReader()
+          const decoder = new TextDecoder()
+          let streamText = ''
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+            const chunk = decoder.decode(value, { stream: true })
+            streamText += chunk
+            onChunk(streamText)
+          }
+          return {
+            id: `msg-${Date.now()}`,
+            role: 'assistant',
+            content: streamText,
+            createdAt: new Date().toISOString(),
+            status: 'done',
+          }
+        }
+      } catch (err) {
+        if (signal?.aborted) throw err
+        console.warn('Real AI backend unavailable, falling back to simulated streaming:', err)
+      }
     }
 
     // Determine mock response based on keyword matching

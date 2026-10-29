@@ -62,4 +62,37 @@ describe('AITutorPage Component', () => {
       { timeout: 3000 }
     )
   })
+
+  it('prefills input when prompt query parameter is passed', async () => {
+    render(
+      <MemoryRouter initialEntries={['/ai-tutor?prompt=giai-thich-toan-12']}>
+        <AITutorPage />
+      </MemoryRouter>
+    )
+
+    const textarea = screen.getByPlaceholderText('Đặt câu hỏi về bài học của bạn...') as HTMLTextAreaElement
+    expect(textarea.value).toContain('Giải thích cho mình vì sao đạo hàm')
+  })
+
+  it('clicking a prompt card in empty state sends the question', async () => {
+    render(
+      <MemoryRouter>
+        <AITutorPage />
+      </MemoryRouter>
+    )
+
+    const newChatBtn = screen.getByRole('button', { name: /đoạn chat mới/i })
+    fireEvent.click(newChatBtn)
+
+    await waitFor(() => {
+      expect(screen.getByText('Đạo hàm & Cực trị hàm số')).toBeInTheDocument()
+    })
+
+    const promptCard = screen.getByText('Đạo hàm & Cực trị hàm số').closest('button')!
+    fireEvent.click(promptCard)
+
+    await waitFor(() => {
+      expect(screen.getAllByText(/Giải thích cho mình vì sao đạo hàm/i).length).toBeGreaterThanOrEqual(1)
+    })
+  })
 })

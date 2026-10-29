@@ -1,4 +1,5 @@
-import { History, Plus } from 'lucide-react'
+import { ArrowLeft, History, Plus } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { SUBJECT_OPTIONS } from '../../data/aiTutor.mock'
@@ -24,6 +25,15 @@ export function AITutorHeader({
   return (
     <header className="ai-tutor-header-bar">
       <div className="ai-header-left">
+        <Link
+          to="/dashboard"
+          className="ai-header-back-btn"
+          aria-label="Quay lại Trang chủ"
+          title="Trang chủ"
+        >
+          <ArrowLeft size={18} aria-hidden />
+        </Link>
+
         <button
           type="button"
           onClick={onToggleHistory}

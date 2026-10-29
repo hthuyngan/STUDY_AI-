@@ -199,7 +199,8 @@
   min-width: 0;
 }
 
-.ai-history-toggle-btn {
+.ai-history-toggle-btn,
+.ai-header-back-btn {
   display: none;
   align-items: center;
   justify-content: center;
@@ -211,9 +212,11 @@
   width: 34px;
   height: 34px;
   transition: all 150ms ease;
+  text-decoration: none;
 }
 
-.ai-history-toggle-btn:hover {
+.ai-history-toggle-btn:hover,
+.ai-header-back-btn:hover {
   background-color: var(--surface-sunken);
   color: var(--text-primary);
 }
@@ -967,7 +970,8 @@
     display: block;
   }
 
-  .ai-history-toggle-btn {
+  .ai-history-toggle-btn,
+  .ai-header-back-btn {
     display: inline-flex;
   }
 

@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { MobileBottomNav } from './MobileBottomNav'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
@@ -8,6 +9,8 @@ export interface AppShellProps {
 }
 
 export function AppShell({ children }: AppShellProps) {
+  const location = useLocation()
+  const isAITutor = location.pathname.startsWith('/ai-tutor')
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     return localStorage.getItem('study_ai_sidebar_collapsed') === 'true'
   })
@@ -47,11 +50,11 @@ export function AppShell({ children }: AppShellProps) {
       <div className={`app-main ${collapsed ? 'sidebar-collapsed' : ''}`}>
         <Topbar onOpenMobileMenu={() => setMobileOpen(true)} />
 
-        <main className="app-content-container">
-          <div className="app-content-inner">{children}</div>
+        <main className={`app-content-container ${isAITutor ? 'app-content-ai-tutor' : ''}`.trim()}>
+          <div className={`app-content-inner ${isAITutor ? 'app-content-inner-full' : ''}`.trim()}>{children}</div>
         </main>
 
-        <MobileBottomNav />
+        {!isAITutor && <MobileBottomNav />}
       </div>
     </div>
   )
