@@ -72,10 +72,7 @@ export const AdminReportsPage: React.FC = () => {
       <div className="staff-page-header">
         <div className="admin-header-row">
           <div>
-            <div className="admin-prototype-badge">
-              <span className="prototype-dot" />
-              <span>Dữ liệu mô phỏng · Học tập THPT</span>
-            </div>
+            
             <h1 className="staff-page-title">Báo cáo học tập</h1>
             <p className="staff-page-desc">
               Thống kê chuyên sâu về mức độ tương tác, tiến độ hoàn thành bài học và phổ điểm bài thu hoạch toàn hệ thống.

@@ -10,8 +10,11 @@ import { operationsService } from '@/services/operations.service'
 import type { AuditLogEntry } from '@/types/operations'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { AdminSummaryStrip } from './components/common/AdminSummaryStrip'
+import { AuditLogCardList } from './components/audit/AuditLogCardList'
 import './AdminPages.css'
 import '@/components/admin/AdminComponents.css'
+import './AdminPolish.css'
 
 export const AdminAuditLogsPage: React.FC = () => {
   const [logs, setLogs] = useState<AuditLogEntry[]>([])
@@ -56,6 +59,20 @@ export const AdminAuditLogsPage: React.FC = () => {
       window.removeEventListener('study_ai_operations_change', handleOperationsChange)
     }
   }, [])
+
+  
+  const auditKPIs = useMemo(() => {
+    const total = logs.length
+    const success = logs.filter((l) => l.result === 'success').length
+    const warning = logs.filter((l) => l.result === 'warning').length
+    const failure = logs.filter((l) => l.result === 'failure').length
+    return [
+      { id: 'total', label: 'Tổng số nhật ký', value: total, color: 'var(--navy-primary, #102a43)' },
+      { id: 'success', label: 'Thành công', value: success, color: '#16a34a' },
+      { id: 'warning', label: 'Cảnh báo', value: warning, color: '#d97706' },
+      { id: 'failure', label: 'Thất bại', value: failure, color: '#dc2626' },
+    ]
+  }, [logs])
 
   // Filtered List
   const filteredLogs = useMemo(() => {
@@ -125,10 +142,7 @@ export const AdminAuditLogsPage: React.FC = () => {
 
       {/* Page Header */}
       <div className="staff-page-header">
-        <div className="admin-prototype-badge">
-          <span className="prototype-dot"></span>
-          <span>ADMIN WORKSPACE • VẬN HÀNH & HỖ TRỢ</span>
-        </div>
+        
         <div className="admin-header-row">
           <div>
             <h1 className="staff-page-title">Nhật ký quản trị (Audit Logs)</h1>
@@ -148,6 +162,9 @@ export const AdminAuditLogsPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* 4 KPIs Summary Strip */}
+      <AdminSummaryStrip items={auditKPIs} ariaLabel="Thống kê nhanh nhật ký quản trị" />
 
       {/* Demo Sandbox Banner */}
       <div
@@ -210,7 +227,7 @@ export const AdminAuditLogsPage: React.FC = () => {
       </div>
 
       {/* Table */}
-      <div className="staff-table-wrapper">
+      <div className="staff-table-wrapper has-mobile-cards">
         {loading ? (
           <div style={{ padding: '24px' }}>
             <Skeleton height={48} />
@@ -221,7 +238,8 @@ export const AdminAuditLogsPage: React.FC = () => {
             description="Các thao tác thêm, sửa, xóa, duyệt và cấu hình sẽ được tự động ghi lại tại đây."
           />
         ) : (
-          <table className="staff-table">
+          <>
+            <table className="staff-table">
             <thead>
               <tr>
                 <th>Thời gian</th>
@@ -285,6 +303,10 @@ export const AdminAuditLogsPage: React.FC = () => {
               ))}
             </tbody>
           </table>
+
+            {/* Mobile Card List (<= 768px) */}
+            <AuditLogCardList logs={filteredLogs} />
+          </>
         )}
       </div>
     </div>

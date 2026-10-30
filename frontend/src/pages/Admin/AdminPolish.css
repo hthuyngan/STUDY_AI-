@@ -379,3 +379,428 @@
     border-bottom: 0;
   }
 }
+
+/* ============================================================
+   UNIFIED ADMIN MANAGEMENT CONSOLE STYLES (ZhongWenHub Pattern)
+   ============================================================ */
+
+/* ── Unified Admin Summary Strip ── */
+.admin-summary-strip {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: var(--radius-md, 8px);
+  padding: 8px 16px;
+  margin-bottom: 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.admin-summary-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.admin-strip-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.admin-strip-item + .admin-strip-item {
+  border-left: 1px solid var(--border-subtle, #e2e8f0);
+  padding-left: 16px;
+}
+
+.admin-strip-content {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.admin-strip-val {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-main, #102a43);
+}
+
+.admin-strip-lbl {
+  font-size: 0.74rem;
+  font-weight: 500;
+  color: var(--text-muted, #627d98);
+}
+
+/* ── Unified Admin Mobile Card List ── */
+.admin-mobile-card-list {
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .has-mobile-cards table.staff-table,
+  .has-mobile-cards .staff-table {
+    display: none !important;
+  }
+  .admin-mobile-card-list {
+    display: flex !important;
+  }
+}
+
+.admin-mobile-card {
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: var(--radius-md, 8px);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: border-color 0.15s ease;
+}
+
+.admin-mobile-card:hover {
+  border-color: var(--navy-primary, #102a43);
+}
+
+.admin-mobile-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.admin-mobile-id-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.admin-mobile-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-mobile-name-link {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--text-main, #102a43);
+  text-decoration: none;
+}
+
+.admin-mobile-name-link:hover {
+  color: var(--primary, #0284c7);
+}
+
+.admin-mobile-email {
+  font-size: 0.75rem;
+  color: var(--text-muted, #627d98);
+}
+
+.admin-mobile-status-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.admin-mobile-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-class-pill {
+  font-size: 0.72rem;
+  font-weight: 500;
+  background: rgba(16, 42, 67, 0.05);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: 4px;
+  padding: 1px 6px;
+  color: var(--text-main, #102a43);
+}
+
+.admin-mobile-stats-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: var(--bg-surface, #f8fafc);
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  font-size: 0.76rem;
+}
+
+.admin-mobile-snippet {
+  font-size: 0.78rem;
+  color: var(--text-muted, #627d98);
+  line-height: 1.4;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.admin-mobile-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.admin-mobile-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.76rem;
+  padding: 4px 10px;
+  height: 28px;
+}
+
+/* Severity badges */
+.admin-severity-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.severity-danger {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+}
+
+.severity-warning {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.severity-info {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+/* Status badges */
+.admin-status-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.status-published {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.status-draft {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.status-archived {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+/* Audience chip */
+.admin-audience-chip {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-main, #102a43);
+  background: rgba(16, 42, 67, 0.05);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: 4px;
+  padding: 2px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Audit log pills */
+.admin-audit-pill {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.result-success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.result-warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.result-failure {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.admin-ws-badge {
+  font-size: 0.68rem;
+  font-family: var(--font-mono, monospace);
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.ws-admin {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.ws-teacher {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.ws-content {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.ws-support {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.admin-target-pill {
+  font-size: 0.72rem;
+  color: var(--text-muted, #627d98);
+}
+
+/* Dark mode adjustments */
+[data-theme='dark'] .admin-summary-strip,
+[data-theme='dark'] .admin-mobile-card {
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+[data-theme='dark'] .admin-strip-val,
+[data-theme='dark'] .admin-mobile-name-link {
+  color: #f8fafc;
+}
+
+[data-theme='dark'] .admin-mobile-stats-row {
+  background-color: #0f172a;
+  border-color: #334155;
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .admin-strip-item + .admin-strip-item {
+  border-left-color: #334155;
+}
+
+/* ── Monitor Pages KPI Strip ── */
+.admin-stats-grid {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: var(--radius-md, 8px);
+  padding: 8px 16px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.admin-stat-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+
+.admin-stat-card + .admin-stat-card {
+  border-left: 1px solid var(--border-subtle, #e2e8f0);
+  padding-left: 16px;
+}
+
+.admin-stat-card .stat-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.admin-stat-card .stat-icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+.admin-stat-card .stat-label {
+  font-size: 0.74rem;
+  font-weight: 500;
+  color: var(--text-muted, #627d98);
+}
+
+.admin-stat-card .stat-value {
+  font-family: var(--font-mono, monospace);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-main, #102a43);
+  line-height: 1.2;
+}
+
+[data-theme='dark'] .admin-stats-grid {
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+[data-theme='dark'] .admin-stat-card + .admin-stat-card {
+  border-left-color: #334155;
+}
+
+[data-theme='dark'] .admin-stat-card .stat-value {
+  color: #f8fafc;
+}
+
+/* ── Admin Table Wrapper ── */
+.admin-table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: var(--radius-md, 8px);
+  background: var(--bg-card, #ffffff);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+[data-theme='dark'] .admin-table-wrapper {
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+
+

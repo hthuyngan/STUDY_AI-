@@ -18,8 +18,12 @@ import type {
 import type { AdminClassItem } from '@/types/classroom'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { AdminSummaryStrip } from './components/common/AdminSummaryStrip'
+import { AnnouncementCardList } from './components/announcements/AnnouncementCardList'
 import './AdminPages.css'
 import '@/components/admin/AdminComponents.css'
+import './AdminPolish.css'
 
 export const AdminAnnouncementsPage: React.FC = () => {
   const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([])
@@ -34,6 +38,8 @@ export const AdminAnnouncementsPage: React.FC = () => {
   // Modal
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<AnnouncementItem | null>(null)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [deletingItem, setDeletingItem] = useState<AnnouncementItem | null>(null)
   const [formData, setFormData] = useState({
     title: '',
     content: '',
@@ -48,6 +54,20 @@ export const AdminAnnouncementsPage: React.FC = () => {
     setToastMessage(msg)
     setTimeout(() => setToastMessage(null), 3500)
   }
+
+  
+  const announcementKPIs = useMemo(() => {
+    const total = announcements.length
+    const published = announcements.filter((a) => a.status === 'published').length
+    const draft = announcements.filter((a) => a.status === 'draft').length
+    const urgent = announcements.filter((a) => a.severity === 'danger' || a.severity === 'warning').length
+    return [
+      { id: 'total', label: 'Tổng số thông báo', value: total, color: 'var(--navy-primary, #102a43)' },
+      { id: 'published', label: 'Đang hiển thị', value: published, color: '#16a34a' },
+      { id: 'draft', label: 'Bản lưu nháp', value: draft, color: '#64748b' },
+      { id: 'urgent', label: 'Cần lưu ý / Khẩn cấp', value: urgent, color: '#d97706' },
+    ]
+  }, [announcements])
 
   const loadData = () => {
     setLoading(true)
@@ -168,15 +188,21 @@ export const AdminAnnouncementsPage: React.FC = () => {
     }
   }
 
-  const handleDelete = async (item: AnnouncementItem) => {
-    if (window.confirm(`Xác nhận xóa thông báo "${item.title}"?`)) {
-      try {
-        await operationsService.deleteAnnouncement(item.id)
-        showToast(`Đã xóa thông báo: ${item.title}`)
-        loadData()
-      } catch (err: unknown) {
-        if (err instanceof Error) alert(err.message)
-      }
+  const handleDelete = (item: AnnouncementItem) => {
+    setDeletingItem(item)
+    setDeleteConfirmOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingItem) return
+    try {
+      await operationsService.deleteAnnouncement(deletingItem.id)
+      showToast(`Đã xóa thông báo: ${deletingItem.title}`)
+      setDeleteConfirmOpen(false)
+      setDeletingItem(null)
+      loadData()
+    } catch (err: unknown) {
+      if (err instanceof Error) alert(err.message)
     }
   }
 
@@ -192,10 +218,7 @@ export const AdminAnnouncementsPage: React.FC = () => {
 
       {/* Page Header */}
       <div className="staff-page-header">
-        <div className="admin-prototype-badge">
-          <span className="prototype-dot"></span>
-          <span>ADMIN WORKSPACE • VẬN HÀNH & HỖ TRỢ</span>
-        </div>
+        
         <div className="admin-header-row">
           <div>
             <h1 className="staff-page-title">Thông báo hệ thống</h1>
@@ -215,6 +238,9 @@ export const AdminAnnouncementsPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* 4 KPIs Summary Strip */}
+      <AdminSummaryStrip items={announcementKPIs} ariaLabel="Thống kê nhanh thông báo hệ thống" />
 
       {/* Filter Bar */}
       <div className="admin-filter-bar">
@@ -271,7 +297,7 @@ export const AdminAnnouncementsPage: React.FC = () => {
       </div>
 
       {/* Table */}
-      <div className="staff-table-wrapper">
+      <div className="staff-table-wrapper has-mobile-cards">
         {loading ? (
           <div style={{ padding: '24px' }}>
             <Skeleton height={48} />
@@ -284,7 +310,8 @@ export const AdminAnnouncementsPage: React.FC = () => {
             onAction={handleOpenCreate}
           />
         ) : (
-          <table className="staff-table">
+          <>
+            <table className="staff-table">
             <thead>
               <tr>
                 <th>Tiêu đề thông báo</th>
@@ -379,6 +406,14 @@ export const AdminAnnouncementsPage: React.FC = () => {
               ))}
             </tbody>
           </table>
+
+            {/* Mobile Card List (<= 768px) */}
+            <AnnouncementCardList
+              announcements={filteredAnnouncements}
+              onEdit={handleOpenEdit}
+              onDelete={handleDelete}
+            />
+          </>
         )}
       </div>
 
@@ -511,6 +546,20 @@ export const AdminAnnouncementsPage: React.FC = () => {
           </div>
         </div>
       )}
+    {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deleteConfirmOpen}
+        title="Xóa thông báo hệ thống"
+        description={`Bạn có chắc chắn muốn xóa thông báo "${deletingItem?.title}"? Thao tác này không thể hoàn tác.`}
+        confirmText="Xóa thông báo"
+        cancelText="Hủy bỏ"
+        isDestructive
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => {
+          setDeleteConfirmOpen(false)
+          setDeletingItem(null)
+        }}
+      />
     </div>
   )
 }

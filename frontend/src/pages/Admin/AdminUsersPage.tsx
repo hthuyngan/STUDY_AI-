@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { ArrowRight, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAdminUsers } from '@/hooks/useAdmin'
@@ -10,13 +10,17 @@ import { PageErrorState } from '@/components/ui/PageErrorState'
 import { AdminUserTableToolbar } from '@/components/admin/AdminUserTableToolbar'
 import { AdminBulkActions } from '@/components/admin/AdminBulkActions'
 import { AdminUserFormDialog } from '@/components/admin/AdminUserFormDialog'
+import { AdminSummaryStrip } from './components/common/AdminSummaryStrip'
+import { UserCardList } from './components/users/UserCardList'
 import type { AccountStatus, CreateDemoUserInput } from '@/types/admin'
 import type { UserRole } from '@/auth/auth.types'
 import './AdminPages.css'
 import '@/components/admin/AdminComponents.css'
+import './AdminPolish.css'
 
 export const AdminUsersPage: React.FC = () => {
   const {
+    users,
     paginatedUsers,
     totalCount,
     totalPages,
@@ -75,6 +79,19 @@ export const AdminUsersPage: React.FC = () => {
     showToast(`Đã xóa ${res.deletedCount} tài khoản demo khỏi hệ thống.`)
   }
 
+  const userKPIs = useMemo(() => {
+    const total = users.length
+    const learners = users.filter((u) => u.role === 'learner').length
+    const staff = total - learners
+    const active = users.filter((u) => u.status === 'active').length
+    return [
+      { id: 'total', label: 'Tổng số người dùng', value: total, color: 'var(--navy-primary, #102a43)' },
+      { id: 'learners', label: 'Học viên', value: learners, color: '#0284c7' },
+      { id: 'staff', label: 'Giáo viên & Cán bộ', value: staff, color: '#8b5cf6' },
+      { id: 'active', label: 'Đang hoạt động', value: active, color: '#16a34a' },
+    ]
+  }, [users])
+
   if (error) {
     return (
       <PageErrorState
@@ -103,6 +120,9 @@ export const AdminUsersPage: React.FC = () => {
         </p>
       </div>
 
+      {/* 4 KPIs Summary Strip */}
+      <AdminSummaryStrip items={userKPIs} ariaLabel="Thống kê nhanh tài khoản người dùng" />
+
       {/* Toolbar: Search, Filters, Page Size, Add User, Export CSV */}
       <AdminUserTableToolbar
         search={search}
@@ -128,7 +148,7 @@ export const AdminUsersPage: React.FC = () => {
       />
 
       {/* Table Surface */}
-      <div className="staff-table-wrapper">
+      <div className="staff-table-wrapper has-mobile-cards">
         {loading ? (
           <div style={{ padding: '24px' }}>
             <Skeleton height={44} style={{ marginBottom: 8 }} />
@@ -227,6 +247,13 @@ export const AdminUsersPage: React.FC = () => {
                 })}
               </tbody>
             </table>
+
+            {/* Mobile Card List (displayed at <= 768px) */}
+            <UserCardList
+              users={paginatedUsers}
+              selectedIds={selectedIds}
+              onToggleSelect={toggleSelect}
+            />
 
             {/* Pagination Controls */}
             <div className="admin-pagination-bar">
