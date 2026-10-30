@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowRight, BookOpen, Search } from 'lucide-react'
+import { ArrowRight, BookOpen, Bot, Search, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -13,10 +13,15 @@ import './SubjectsPage.css'
 export function SubjectsPage() {
   const { subjects, isLoading, error, reload } = useSubjects()
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedGrade, setSelectedGrade] = useState('all')
 
-  const filteredSubjects = subjects.filter((s) =>
-    s.name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredSubjects = subjects.filter((s) => {
+    const matchesSearch =
+      s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (s.description && s.description.toLowerCase().includes(searchQuery.toLowerCase()))
+    const matchesGrade = selectedGrade === 'all' || s.grade === selectedGrade
+    return matchesSearch && matchesGrade
+  })
 
   if (isLoading) {
     return (
@@ -55,7 +60,7 @@ export function SubjectsPage() {
       <div className="page-header-row">
         <div>
           <h1 className="page-title">Môn học</h1>
-          <p className="page-subtitle">Học theo giáo trình và theo dõi tiến độ của từng môn.</p>
+          <p className="page-subtitle">Học theo giáo trình chuẩn và theo dõi tiến độ của từng môn.</p>
         </div>
 
         {/* Search */}
@@ -70,6 +75,48 @@ export function SubjectsPage() {
             aria-label="Tìm môn học..."
           />
         </div>
+      </div>
+
+      {/* Grade filter tabs & AI Tutor Banner */}
+      <div className="subject-toolbar-row">
+        <div className="subject-grade-tabs" role="tablist" aria-label="Lọc theo khối lớp">
+          {[
+            { id: 'all', label: 'Tất cả khối' },
+            { id: 'Lớp 12', label: 'Lớp 12' },
+            { id: 'Lớp 11', label: 'Lớp 11' },
+            { id: 'Lớp 10', label: 'Lớp 10' },
+          ].map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              aria-selected={selectedGrade === item.id}
+              onClick={() => setSelectedGrade(item.id)}
+              className={`subject-grade-pill ${selectedGrade === item.id ? 'active' : ''}`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Learning Assistant Callout */}
+      <div className="subject-ai-banner">
+        <div className="subject-ai-banner-text">
+          <div className="subject-ai-tag">
+            <Bot size={14} aria-hidden />
+            <span>AI TUTOR HỌC TẬP</span>
+          </div>
+          <h2 className="subject-ai-title">Gặp câu hỏi khó hoặc chưa hiểu bài?</h2>
+          <p className="subject-ai-subtitle">
+            Hỏi gia sư AI để nhận hướng dẫn giải từng bước, giải thích trực quan và tóm tắt công thức trọng tâm.
+          </p>
+        </div>
+        <Link to="/ai-tutor" style={{ textDecoration: 'none', flexShrink: 0 }}>
+          <Button variant="primary" icon={Sparkles}>
+            Hỏi AI ngay
+          </Button>
+        </Link>
       </div>
 
       {filteredSubjects.length === 0 ? (
@@ -120,11 +167,18 @@ export function SubjectsPage() {
               </div>
 
               <div className="subject-card-footer">
-                <Link to={`/subjects/${sub.id}`} className="w-full">
-                  <Button variant="outline" icon={ArrowRight} fullWidth>
-                    Mở giáo trình
-                  </Button>
-                </Link>
+                <div className="subject-card-actions-grid">
+                  <Link to={`/subjects/${sub.id}`} style={{ textDecoration: 'none' }}>
+                    <Button variant="primary" icon={ArrowRight} fullWidth>
+                      Mở giáo trình
+                    </Button>
+                  </Link>
+                  <Link to={`/ai-tutor?topic=${encodeURIComponent(sub.name)}`} style={{ textDecoration: 'none' }}>
+                    <Button variant="outline" icon={Bot} fullWidth>
+                      Hỏi AI
+                    </Button>
+                  </Link>
+                </div>
               </div>
             </Card>
           ))}

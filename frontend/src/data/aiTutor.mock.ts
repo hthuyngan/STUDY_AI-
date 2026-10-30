@@ -211,6 +211,52 @@ C. 3/5
 D. 1/3
 *Đáp án đúng: B (3 / (5+3) = 3/8)*`,
 
+  pythagore: `Về **Định lý Pythagore (Pythagoras)**:
+
+1. Phát biểu định lý:
+Trong một tam giác vuông, bình phương độ dài cạnh huyền bằng tổng bình phương độ dài hai cạnh góc vuông:
+**a² + b² = c²** (trong đó c là cạnh huyền đối diện góc vuông).
+
+2. Ví dụ trực quan:
+Xét tam giác vuông có hai cạnh góc vuông lần lượt là a = 3 cm và b = 4 cm.
+- Bình phương các cạnh: 3² + 4² = 9 + 16 = 25
+- Cạnh huyền: c = √25 = 5 cm.
+Bộ ba số (3, 4, 5) được gọi là bộ ba số Pythagore kinh điển.
+
+3. Ứng dụng thực tế:
+- Tính khoảng cách gián tiếp trong trắc địa và bản đồ học.
+- Xác định góc vuông 90° trong xây dựng công trình.`,
+
+  quang_hop: `Về **Quá trình quang hợp ở thực vật**:
+
+1. Phương trình tổng quát:
+6 CO₂ + 6 H₂O + Năng lượng ánh sáng → C₆H₁₂O₆ (Glucose) + 6 O₂
+
+2. Hai pha chính của quang hợp:
+- **Pha sáng (tại Tilacôit):**
+  + Diệp lục hấp thụ năng lượng photon ánh sáng.
+  + Quang phân ly nước: giải phóng khí O₂ vào khí quyển và tạo lực khử NADPH, năng lượng ATP.
+- **Pha tối / Chu trình Calvin (tại Chất nền Stroma):**
+  + Sử dụng ATP và NADPH từ pha sáng để cố định CO₂ thành hợp chất hữu cơ (đường Glucose).
+
+3. Ý nghĩa sinh học:
+Cung cấp nguồn chất hữu cơ nuôi sống hầu hết sinh vật trên Trái Đất và điều hòa hàm lượng oxy trong khí quyển.`,
+
+  on_tap: `Dưới đây là **kế hoạch ôn tập hiệu quả theo phương pháp khoa học**:
+
+1. Chiến lược phân bổ thời gian (Pomodoro 50/10):
+- Mỗi buổi ôn tập kéo dài 50 phút tập trung cao độ, nghỉ 10 phút.
+- Mỗi ngày ôn tối đa 2-3 môn để tránh quá tải não bộ.
+
+2. Phương pháp lặp lại ngắt quãng (Spaced Repetition):
+- Ngày 1: Học lý thuyết và làm 5 câu ví dụ cơ bản.
+- Ngày 2: Ôn lại công thức và giải bài tập nâng cao.
+- Ngày 4: Tự kiểm tra bằng đề mini-test 15 phút không mở sách.
+- Ngày 7: Tổng ôn dạng bài sai và rút kinh nghiệm.
+
+3. Sử dụng sơ đồ tư duy (Mindmap):
+Hệ thống hóa kiến thức từng chương thành một trang giấy duy nhất để nắm trọn bức tranh toàn cảnh.`,
+
   code_sample: `Dưới đây là ví dụ mã nguồn minh họa thuật toán:
 
 \`\`\`python

@@ -104,6 +104,27 @@ describe('ChatComposer Component', () => {
     expect(handleSend).not.toHaveBeenCalled()
   })
 
+  it('does not submit on Enter when IME is composing (Vietnamese accents)', () => {
+    const handleSend = vi.fn()
+    render(
+      <ChatComposer
+        onSendMessage={handleSend}
+        isStreaming={false}
+        onStopStreaming={vi.fn()}
+        activeSubject="all"
+        onSelectSubject={vi.fn()}
+      />
+    )
+
+    const textarea = screen.getByPlaceholderText('Đặt câu hỏi về bài học của bạn...')
+    fireEvent.change(textarea, { target: { value: 'Đang gõ' } })
+    const event = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })
+    Object.defineProperty(event, 'isComposing', { value: true })
+    fireEvent(textarea, event)
+
+    expect(handleSend).not.toHaveBeenCalled()
+  })
+
   it('shows stop button during streaming and handles stop streaming click', async () => {
     const handleStop = vi.fn()
     const user = userEvent.setup()

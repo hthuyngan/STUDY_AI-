@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { BookOpen, Play, Search, SlidersHorizontal } from 'lucide-react'
+import { BookOpen, Bot, Play, Search, SlidersHorizontal } from 'lucide-react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { CurriculumChapterNav, type ChapterWithStats } from '@/components/subjects/CurriculumChapterNav'
 import { CurriculumLessonsPanel } from '@/components/subjects/CurriculumLessonsPanel'
@@ -236,8 +236,8 @@ export function SubjectDetailPage() {
             </span>
           </div>
 
-          {primaryContinueLesson && (
-            <div className="subject-cta-wrap">
+          <div className="subject-cta-wrap" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {primaryContinueLesson && (
               <Button
                 variant="primary"
                 icon={Play}
@@ -248,8 +248,18 @@ export function SubjectDetailPage() {
               >
                 Tiếp tục bài đang học
               </Button>
-            </div>
-          )}
+            )}
+            <Button
+              variant="outline"
+              icon={Bot}
+              fullWidth
+              onClick={() =>
+                navigate(`/ai-tutor?topic=${encodeURIComponent(subject.name)}`)
+              }
+            >
+              Hỏi AI về môn này
+            </Button>
+          </div>
         </div>
       </header>
 

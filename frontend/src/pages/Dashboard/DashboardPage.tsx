@@ -83,24 +83,7 @@ export function DashboardPage() {
         }}
       />
 
-      {/* Stats Strip — 1 unified container with dividers */}
-      <StatsStrip stats={data.stats} />
-
-      {/* Row 1: Study Activity (8 cols) + Daily Goals (4 cols) */}
-      <div className="dashboard-row-grid">
-        <div className="col-span-8">
-          <StudyActivityCard
-            points={data.activity.points}
-            weeklyHours={data.activity.weeklyHours}
-            increasePercent={data.activity.increasePercent}
-          />
-        </div>
-        <div className="col-span-4">
-          <DailyGoalsCard data={data.dailyGoals} />
-        </div>
-      </div>
-
-      {/* Row 2: Continue Learning (8 cols) + AI Tutor (4 cols) */}
+      {/* Row 1: Continue Learning (8 cols) + AI Tutor (4 cols) — Learning-First */}
       <div className="dashboard-row-grid">
         <div className="col-span-8">
           <ContinueLearningCard
@@ -114,6 +97,23 @@ export function DashboardPage() {
         </div>
         <div className="col-span-4">
           <AITutorCard />
+        </div>
+      </div>
+
+      {/* Row 2: Stats Strip — Compact learning metrics */}
+      <StatsStrip stats={data.stats} />
+
+      {/* Row 3: Study Activity (8 cols) + Daily Goals (4 cols) */}
+      <div className="dashboard-row-grid">
+        <div className="col-span-8">
+          <StudyActivityCard
+            points={data.activity.points}
+            weeklyHours={data.activity.weeklyHours}
+            increasePercent={data.activity.increasePercent}
+          />
+        </div>
+        <div className="col-span-4">
+          <DailyGoalsCard data={data.dailyGoals} />
         </div>
       </div>
 
