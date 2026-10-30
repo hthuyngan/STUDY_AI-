@@ -1328,11 +1328,11 @@
     "width": 1440,
     "height": 900,
     "uiState": "default",
-    "timestamp": "2026-10-30T07:26:06.922Z",
-    "sourceCommit": "7efb868",
+    "timestamp": "2026-10-30T07:57:30.831Z",
+    "sourceCommit": "Phase3_Support",
     "sourceUrl": "https://hthuyngan.github.io/STUDY_AI-/support",
-    "loadStatus": "404_OK",
-    "notes": "Màn hình tải thành công đầy đủ dữ liệu"
+    "loadStatus": "200_OK",
+    "notes": "Màn hình Support tải thành công không tràn ngang (0px overflow)"
   },
   {
     "filename": "support_dashboard_mobile_390.png",
@@ -1343,11 +1343,11 @@
     "width": 390,
     "height": 844,
     "uiState": "default",
-    "timestamp": "2026-10-30T07:26:08.727Z",
-    "sourceCommit": "7efb868",
+    "timestamp": "2026-10-30T07:57:34.965Z",
+    "sourceCommit": "Phase3_Support",
     "sourceUrl": "https://hthuyngan.github.io/STUDY_AI-/support",
-    "loadStatus": "404_OK",
-    "notes": "Màn hình tải thành công đầy đủ dữ liệu"
+    "loadStatus": "200_OK",
+    "notes": "Màn hình Support tải thành công không tràn ngang (0px overflow)"
   },
   {
     "filename": "support_tickets_desktop_1440.png",
@@ -1358,11 +1358,11 @@
     "width": 1440,
     "height": 900,
     "uiState": "default",
-    "timestamp": "2026-10-30T07:26:10.836Z",
-    "sourceCommit": "7efb868",
+    "timestamp": "2026-10-30T07:57:36.428Z",
+    "sourceCommit": "Phase3_Support",
     "sourceUrl": "https://hthuyngan.github.io/STUDY_AI-/support/tickets",
-    "loadStatus": "404_OK",
-    "notes": "Màn hình tải thành công đầy đủ dữ liệu"
+    "loadStatus": "200_OK",
+    "notes": "Màn hình Support tải thành công không tràn ngang (0px overflow)"
   },
   {
     "filename": "support_tickets_mobile_390.png",
@@ -1373,11 +1373,11 @@
     "width": 390,
     "height": 844,
     "uiState": "default",
-    "timestamp": "2026-10-30T07:26:12.634Z",
-    "sourceCommit": "7efb868",
+    "timestamp": "2026-10-30T07:57:40.671Z",
+    "sourceCommit": "Phase3_Support",
     "sourceUrl": "https://hthuyngan.github.io/STUDY_AI-/support/tickets",
-    "loadStatus": "404_OK",
-    "notes": "Màn hình tải thành công đầy đủ dữ liệu"
+    "loadStatus": "200_OK",
+    "notes": "Màn hình Support tải thành công không tràn ngang (0px overflow)"
   },
   {
     "filename": "support_tickets_laptop_1366.png",
@@ -1388,11 +1388,11 @@
     "width": 1366,
     "height": 768,
     "uiState": "default",
-    "timestamp": "2026-10-30T07:26:14.453Z",
-    "sourceCommit": "7efb868",
+    "timestamp": "2026-10-30T07:57:37.957Z",
+    "sourceCommit": "Phase3_Support",
     "sourceUrl": "https://hthuyngan.github.io/STUDY_AI-/support/tickets",
-    "loadStatus": "404_OK",
-    "notes": "Màn hình tải thành công đầy đủ dữ liệu"
+    "loadStatus": "200_OK",
+    "notes": "Màn hình Support tải thành công không tràn ngang (0px overflow)"
   },
   {
     "filename": "support_tickets_tablet_768.png",
@@ -1403,11 +1403,11 @@
     "width": 768,
     "height": 1024,
     "uiState": "default",
-    "timestamp": "2026-10-30T07:26:16.287Z",
-    "sourceCommit": "7efb868",
+    "timestamp": "2026-10-30T07:57:39.324Z",
+    "sourceCommit": "Phase3_Support",
     "sourceUrl": "https://hthuyngan.github.io/STUDY_AI-/support/tickets",
-    "loadStatus": "404_OK",
-    "notes": "Màn hình tải thành công đầy đủ dữ liệu"
+    "loadStatus": "200_OK",
+    "notes": "Màn hình Support tải thành công không tràn ngang (0px overflow)"
   },
   {
     "filename": "support_ticket_detail_desktop_1440.png",
@@ -1418,11 +1418,11 @@
     "width": 1440,
     "height": 900,
     "uiState": "default",
-    "timestamp": "2026-10-30T07:26:18.597Z",
-    "sourceCommit": "7efb868",
+    "timestamp": "2026-10-30T07:57:42.117Z",
+    "sourceCommit": "Phase3_Support",
     "sourceUrl": "https://hthuyngan.github.io/STUDY_AI-/support/tickets/TK-4821",
-    "loadStatus": "404_OK",
-    "notes": "Màn hình tải thành công đầy đủ dữ liệu"
+    "loadStatus": "200_OK",
+    "notes": "Màn hình Support tải thành công không tràn ngang (0px overflow)"
   },
   {
     "filename": "support_ticket_detail_mobile_390.png",
@@ -1433,11 +1433,11 @@
     "width": 390,
     "height": 844,
     "uiState": "default",
-    "timestamp": "2026-10-30T07:26:20.498Z",
-    "sourceCommit": "7efb868",
+    "timestamp": "2026-10-30T07:57:46.232Z",
+    "sourceCommit": "Phase3_Support",
     "sourceUrl": "https://hthuyngan.github.io/STUDY_AI-/support/tickets/TK-4821",
-    "loadStatus": "404_OK",
-    "notes": "Màn hình tải thành công đầy đủ dữ liệu"
+    "loadStatus": "200_OK",
+    "notes": "Màn hình Support tải thành công không tràn ngang (0px overflow)"
   },
   {
     "filename": "support_users_desktop_1440.png",
@@ -1448,11 +1448,11 @@
     "width": 1440,
     "height": 900,
     "uiState": "default",
-    "timestamp": "2026-10-30T07:26:22.640Z",
-    "sourceCommit": "7efb868",
+    "timestamp": "2026-10-30T07:57:47.746Z",
+    "sourceCommit": "Phase3_Support",
     "sourceUrl": "https://hthuyngan.github.io/STUDY_AI-/support/users",
-    "loadStatus": "404_OK",
-    "notes": "Màn hình tải thành công đầy đủ dữ liệu"
+    "loadStatus": "200_OK",
+    "notes": "Màn hình Support tải thành công không tràn ngang (0px overflow)"
   },
   {
     "filename": "support_users_mobile_390.png",
@@ -1463,11 +1463,11 @@
     "width": 390,
     "height": 844,
     "uiState": "default",
-    "timestamp": "2026-10-30T07:26:24.489Z",
-    "sourceCommit": "7efb868",
+    "timestamp": "2026-10-30T07:57:51.900Z",
+    "sourceCommit": "Phase3_Support",
     "sourceUrl": "https://hthuyngan.github.io/STUDY_AI-/support/users",
-    "loadStatus": "404_OK",
-    "notes": "Màn hình tải thành công đầy đủ dữ liệu"
+    "loadStatus": "200_OK",
+    "notes": "Màn hình Support tải thành công không tràn ngang (0px overflow)"
   },
   {
     "filename": "support_users_laptop_1366.png",
@@ -1478,11 +1478,11 @@
     "width": 1366,
     "height": 768,
     "uiState": "default",
-    "timestamp": "2026-10-30T07:26:26.372Z",
-    "sourceCommit": "7efb868",
+    "timestamp": "2026-10-30T07:57:49.181Z",
+    "sourceCommit": "Phase3_Support",
     "sourceUrl": "https://hthuyngan.github.io/STUDY_AI-/support/users",
-    "loadStatus": "404_OK",
-    "notes": "Màn hình tải thành công đầy đủ dữ liệu"
+    "loadStatus": "200_OK",
+    "notes": "Màn hình Support tải thành công không tràn ngang (0px overflow)"
   },
   {
     "filename": "support_users_tablet_768.png",
@@ -1493,11 +1493,11 @@
     "width": 768,
     "height": 1024,
     "uiState": "default",
-    "timestamp": "2026-10-30T07:26:28.182Z",
-    "sourceCommit": "7efb868",
+    "timestamp": "2026-10-30T07:57:50.551Z",
+    "sourceCommit": "Phase3_Support",
     "sourceUrl": "https://hthuyngan.github.io/STUDY_AI-/support/users",
-    "loadStatus": "404_OK",
-    "notes": "Màn hình tải thành công đầy đủ dữ liệu"
+    "loadStatus": "200_OK",
+    "notes": "Màn hình Support tải thành công không tràn ngang (0px overflow)"
   },
   {
     "filename": "support_user_detail_desktop_1440.png",
@@ -1508,11 +1508,11 @@
     "width": 1440,
     "height": 900,
     "uiState": "default",
-    "timestamp": "2026-10-30T07:26:30.818Z",
-    "sourceCommit": "7efb868",
+    "timestamp": "2026-10-30T07:57:53.256Z",
+    "sourceCommit": "Phase3_Support",
     "sourceUrl": "https://hthuyngan.github.io/STUDY_AI-/support/users/usr-101",
-    "loadStatus": "404_OK",
-    "notes": "Màn hình tải thành công đầy đủ dữ liệu"
+    "loadStatus": "200_OK",
+    "notes": "Màn hình Support tải thành công không tràn ngang (0px overflow)"
   },
   {
     "filename": "support_user_detail_mobile_390.png",
@@ -1523,11 +1523,11 @@
     "width": 390,
     "height": 844,
     "uiState": "default",
-    "timestamp": "2026-10-30T07:26:32.685Z",
-    "sourceCommit": "7efb868",
+    "timestamp": "2026-10-30T07:57:57.150Z",
+    "sourceCommit": "Phase3_Support",
     "sourceUrl": "https://hthuyngan.github.io/STUDY_AI-/support/users/usr-101",
-    "loadStatus": "404_OK",
-    "notes": "Màn hình tải thành công đầy đủ dữ liệu"
+    "loadStatus": "200_OK",
+    "notes": "Màn hình Support tải thành công không tràn ngang (0px overflow)"
   },
   {
     "filename": "zhongwenhub_teachers_desktop_1440.png",
@@ -1628,11 +1628,11 @@
     "width": 1440,
     "height": 900,
     "uiState": "filter_active",
-    "timestamp": "2026-10-30T07:26:49.598Z",
-    "sourceCommit": "7efb868",
+    "timestamp": "2026-10-30T07:57:58.571Z",
+    "sourceCommit": "Phase3_Support",
     "sourceUrl": "https://hthuyngan.github.io/STUDY_AI-/support/tickets",
     "loadStatus": "200_OK",
-    "notes": "Lọc danh sách ticket hỗ trợ theo từ khóa"
+    "notes": "Lọc danh sách ticket theo từ khóa tìm kiếm Google"
   },
   {
     "filename": "ADMIN_DESKTOP.png",
@@ -1783,5 +1783,110 @@
     "sourceUrl": "https://hthuyngan.github.io/STUDY_AI-/",
     "loadStatus": "200_OK",
     "notes": "ZhongWenHub Architecture Comparison"
+  },
+  {
+    "filename": "support_dashboard_laptop_1366.png",
+    "relativePath": "docs/visual-qa/screenshots/support/support_dashboard_laptop_1366.png",
+    "workspace": "support",
+    "route": "/support",
+    "viewport": "laptop_1366",
+    "width": 1366,
+    "height": 768,
+    "uiState": "default",
+    "timestamp": "2026-10-30T07:57:32.305Z",
+    "sourceCommit": "Phase3_Support",
+    "sourceUrl": "https://hthuyngan.github.io/STUDY_AI-/support",
+    "loadStatus": "200_OK",
+    "notes": "Màn hình Support tải thành công không tràn ngang (0px overflow)"
+  },
+  {
+    "filename": "support_dashboard_tablet_768.png",
+    "relativePath": "docs/visual-qa/screenshots/support/support_dashboard_tablet_768.png",
+    "workspace": "support",
+    "route": "/support",
+    "viewport": "tablet_768",
+    "width": 768,
+    "height": 1024,
+    "uiState": "default",
+    "timestamp": "2026-10-30T07:57:33.649Z",
+    "sourceCommit": "Phase3_Support",
+    "sourceUrl": "https://hthuyngan.github.io/STUDY_AI-/support",
+    "loadStatus": "200_OK",
+    "notes": "Màn hình Support tải thành công không tràn ngang (0px overflow)"
+  },
+  {
+    "filename": "support_ticket_detail_laptop_1366.png",
+    "relativePath": "docs/visual-qa/screenshots/support/support_ticket_detail_laptop_1366.png",
+    "workspace": "support",
+    "route": "/support/tickets/TK-4821",
+    "viewport": "laptop_1366",
+    "width": 1366,
+    "height": 768,
+    "uiState": "default",
+    "timestamp": "2026-10-30T07:57:43.508Z",
+    "sourceCommit": "Phase3_Support",
+    "sourceUrl": "https://hthuyngan.github.io/STUDY_AI-/support/tickets/TK-4821",
+    "loadStatus": "200_OK",
+    "notes": "Màn hình Support tải thành công không tràn ngang (0px overflow)"
+  },
+  {
+    "filename": "support_ticket_detail_tablet_768.png",
+    "relativePath": "docs/visual-qa/screenshots/support/support_ticket_detail_tablet_768.png",
+    "workspace": "support",
+    "route": "/support/tickets/TK-4821",
+    "viewport": "tablet_768",
+    "width": 768,
+    "height": 1024,
+    "uiState": "default",
+    "timestamp": "2026-10-30T07:57:44.889Z",
+    "sourceCommit": "Phase3_Support",
+    "sourceUrl": "https://hthuyngan.github.io/STUDY_AI-/support/tickets/TK-4821",
+    "loadStatus": "200_OK",
+    "notes": "Màn hình Support tải thành công không tràn ngang (0px overflow)"
+  },
+  {
+    "filename": "support_user_detail_laptop_1366.png",
+    "relativePath": "docs/visual-qa/screenshots/support/support_user_detail_laptop_1366.png",
+    "workspace": "support",
+    "route": "/support/users/usr-101",
+    "viewport": "laptop_1366",
+    "width": 1366,
+    "height": 768,
+    "uiState": "default",
+    "timestamp": "2026-10-30T07:57:54.572Z",
+    "sourceCommit": "Phase3_Support",
+    "sourceUrl": "https://hthuyngan.github.io/STUDY_AI-/support/users/usr-101",
+    "loadStatus": "200_OK",
+    "notes": "Màn hình Support tải thành công không tràn ngang (0px overflow)"
+  },
+  {
+    "filename": "support_user_detail_tablet_768.png",
+    "relativePath": "docs/visual-qa/screenshots/support/support_user_detail_tablet_768.png",
+    "workspace": "support",
+    "route": "/support/users/usr-101",
+    "viewport": "tablet_768",
+    "width": 768,
+    "height": 1024,
+    "uiState": "default",
+    "timestamp": "2026-10-30T07:57:55.853Z",
+    "sourceCommit": "Phase3_Support",
+    "sourceUrl": "https://hthuyngan.github.io/STUDY_AI-/support/users/usr-101",
+    "loadStatus": "200_OK",
+    "notes": "Màn hình Support tải thành công không tràn ngang (0px overflow)"
+  },
+  {
+    "filename": "support_ticket_internal_note_active.png",
+    "relativePath": "docs/visual-qa/interactions/support_ticket_internal_note_active.png",
+    "workspace": "support",
+    "route": "/support/tickets/TK-4821",
+    "viewport": "desktop_1440",
+    "width": 1440,
+    "height": 900,
+    "uiState": "internal_note_tab_active",
+    "timestamp": "2026-10-30T07:58:00.347Z",
+    "sourceCommit": "Phase3_Support",
+    "sourceUrl": "https://hthuyngan.github.io/STUDY_AI-/support/tickets/TK-4821",
+    "loadStatus": "200_OK",
+    "notes": "Chuyển sang chế độ soạn thảo ghi chú nội bộ (màu vàng cảnh báo)"
   }
 ]

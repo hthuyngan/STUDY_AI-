@@ -111,3 +111,10 @@
   color: var(--color-text);
   word-break: break-all;
 }
+
+@media (max-width: 768px) {
+  .support-detail-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px;
+  }
+}

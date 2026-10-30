@@ -1,15 +1,9 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import {
-  LifeBuoy,
   Search,
   CheckCircle2,
-  Clock,
-  AlertTriangle,
-  Eye,
   UserCheck,
-  MessageSquare,
 } from 'lucide-react'
-import { Link } from 'react-router-dom'
 import { supportService } from '@/services/support.service'
 import type {
   SupportTicketItem,
@@ -19,6 +13,9 @@ import type {
 } from '@/types/support'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { SummaryStrip } from '@/components/ui/SummaryStrip'
+import { SupportTicketTable } from './components/tickets/SupportTicketTable'
+import { SupportTicketCardList } from './components/tickets/SupportTicketCardList'
 import '../Admin/AdminPages.css'
 import '@/components/admin/AdminComponents.css'
 import './SupportPages.css'
@@ -92,6 +89,33 @@ export const SupportTicketsPage: React.FC = () => {
   const inProgressCount = tickets.filter((t) => t.status === 'in-progress' || t.status === 'waiting').length
   const resolvedCount = tickets.filter((t) => t.status === 'resolved').length
 
+  const ticketKPIs = [
+    {
+      id: 'total',
+      label: 'Tổng yêu cầu',
+      value: totalCount,
+      color: 'var(--navy-primary, #102a43)',
+    },
+    {
+      id: 'open',
+      label: 'Chưa xử lý (Mới)',
+      value: openCount,
+      color: '#dc2626',
+    },
+    {
+      id: 'in-progress',
+      label: 'Đang giải quyết',
+      value: inProgressCount,
+      color: '#d97706',
+    },
+    {
+      id: 'resolved',
+      label: 'Đã giải quyết',
+      value: resolvedCount,
+      color: '#047857',
+    },
+  ]
+
   // Filtered List
   const filteredTickets = useMemo(() => {
     return tickets.filter((t) => {
@@ -129,7 +153,7 @@ export const SupportTicketsPage: React.FC = () => {
 
   return (
     <div className="admin-page-container">
-      {/* Toast */}
+      {/* Toast Notification */}
       {toastMessage && (
         <div className="admin-toast-notification">
           <CheckCircle2 size={18} color="#047857" />
@@ -139,10 +163,6 @@ export const SupportTicketsPage: React.FC = () => {
 
       {/* Page Header */}
       <div className="staff-page-header">
-        <div className="admin-prototype-badge">
-          <span className="prototype-dot"></span>
-          <span>SUPPORT WORKSPACE • VẬN HÀNH & HỖ TRỢ</span>
-        </div>
         <div className="admin-header-row">
           <div>
             <h1 className="staff-page-title">Yêu cầu hỗ trợ (Support Tickets)</h1>
@@ -153,60 +173,8 @@ export const SupportTicketsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 4 KPIs */}
-      <div className="admin-kpi-grid">
-        <div className="admin-kpi-card">
-          <div className="kpi-top-row">
-            <span className="kpi-label">Tổng yêu cầu</span>
-            <div className="kpi-icon-wrap" style={{ background: 'rgba(16, 42, 67, 0.08)', color: '#102a43' }}>
-              <LifeBuoy size={20} />
-            </div>
-          </div>
-          <div className="kpi-value-row">
-            <span className="kpi-num">{totalCount}</span>
-            <span className="kpi-comparison">Đã ghi nhận</span>
-          </div>
-        </div>
-
-        <div className="admin-kpi-card">
-          <div className="kpi-top-row">
-            <span className="kpi-label">Chưa xử lý (Mới)</span>
-            <div className="kpi-icon-wrap" style={{ background: 'rgba(220, 38, 38, 0.08)', color: '#dc2626' }}>
-              <AlertTriangle size={20} />
-            </div>
-          </div>
-          <div className="kpi-value-row">
-            <span className="kpi-num" style={{ color: '#dc2626' }}>{openCount}</span>
-            <span className="kpi-comparison">Cần tiếp nhận</span>
-          </div>
-        </div>
-
-        <div className="admin-kpi-card">
-          <div className="kpi-top-row">
-            <span className="kpi-label">Đang giải quyết</span>
-            <div className="kpi-icon-wrap" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#d97706' }}>
-              <Clock size={20} />
-            </div>
-          </div>
-          <div className="kpi-value-row">
-            <span className="kpi-num" style={{ color: '#d97706' }}>{inProgressCount}</span>
-            <span className="kpi-comparison">Đã phân công</span>
-          </div>
-        </div>
-
-        <div className="admin-kpi-card">
-          <div className="kpi-top-row">
-            <span className="kpi-label">Đã giải quyết</span>
-            <div className="kpi-icon-wrap" style={{ background: 'rgba(4, 120, 87, 0.08)', color: '#047857' }}>
-              <CheckCircle2 size={20} />
-            </div>
-          </div>
-          <div className="kpi-value-row">
-            <span className="kpi-num" style={{ color: '#047857' }}>{resolvedCount}</span>
-            <span className="kpi-comparison">Xong việc</span>
-          </div>
-        </div>
-      </div>
+      {/* 4 KPIs Summary Strip */}
+      <SummaryStrip items={ticketKPIs} ariaLabel="Thống kê nhanh yêu cầu hỗ trợ" />
 
       {/* Filter Bar */}
       <div className="admin-filter-bar">
@@ -277,8 +245,8 @@ export const SupportTicketsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Table */}
-      <div className="staff-table-wrapper">
+      {/* Table & Mobile Cards */}
+      <div className="staff-table-wrapper has-mobile-cards">
         {loading ? (
           <div style={{ padding: '24px' }}>
             <Skeleton height={48} />
@@ -289,167 +257,52 @@ export const SupportTicketsPage: React.FC = () => {
             description="Tất cả các sự cố của người dùng đã được giải quyết hoặc chưa có khiếu nại mới."
           />
         ) : (
-          <table className="staff-table">
-            <thead>
-              <tr>
-                <th>Mã Ticket</th>
-                <th>Tiêu đề yêu cầu</th>
-                <th>Người gửi</th>
-                <th>Loại vấn đề</th>
-                <th>Mức độ</th>
-                <th>Nhân viên phụ trách</th>
-                <th>Trạng thái</th>
-                <th>Cập nhật cuối</th>
-                <th style={{ textAlign: 'right' }}>Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredTickets.map((t) => (
-                <tr key={t.id}>
-                  <td>
-                    <code>{t.id}</code>
-                  </td>
-                  <td>
-                    <Link
-                      to={`/support/tickets/${t.id}`}
-                      className="font-medium text-navy-primary hover:underline"
-                      style={{ fontWeight: 600, color: '#102a43' }}
-                    >
-                      {t.title}
-                    </Link>
-                    <div style={{ fontSize: '0.78rem', color: '#627d98', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <MessageSquare size={12} />
-                      <span>{t.messageCount} phản hồi</span>
-                    </div>
-                  </td>
-                  <td>
-                    <div>
-                      <span style={{ fontWeight: 500 }}>{t.userName}</span>
-                      <div style={{ fontSize: '0.78rem', color: '#627d98' }}>{t.userEmail}</div>
-                    </div>
-                  </td>
-                  <td>
-                    <span className="status-badge status-default" style={{ textTransform: 'capitalize' }}>
-                      {t.category}
-                    </span>
-                  </td>
-                  <td>
-                    <span
-                      className={`status-badge ${
-                        t.priority === 'urgent'
-                          ? 'status-danger'
-                          : t.priority === 'high'
-                          ? 'status-danger'
-                          : t.priority === 'medium'
-                          ? 'status-warning'
-                          : 'status-default'
-                      }`}
-                    >
-                      {t.priority === 'urgent'
-                        ? 'Khẩn cấp'
-                        : t.priority === 'high'
-                        ? 'Cao'
-                        : t.priority === 'medium'
-                        ? 'Trung bình'
-                        : 'Thấp'}
-                    </span>
-                  </td>
-                  <td>
-                    <span style={{ fontWeight: 500, color: t.assignedTo ? '#102a43' : '#94a3b8' }}>
-                      {t.assignedTo || 'Chưa phân công'}
-                    </span>
-                  </td>
-                  <td>
-                    <span
-                      className={`status-badge ${
-                        t.status === 'resolved'
-                          ? 'status-success'
-                          : t.status === 'in-progress'
-                          ? 'status-info'
-                          : t.status === 'waiting'
-                          ? 'status-warning'
-                          : 'status-danger'
-                      }`}
-                    >
-                      {t.status === 'resolved'
-                        ? 'Đã giải quyết'
-                        : t.status === 'in-progress'
-                        ? 'Đang xử lý'
-                        : t.status === 'waiting'
-                        ? 'Chờ phản hồi'
-                        : 'Chưa xử lý'}
-                    </span>
-                  </td>
-                  <td>
-                    <span style={{ fontSize: '0.8rem', color: '#627d98' }}>
-                      {new Date(t.updatedAt).toLocaleDateString('vi-VN')}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <div className="table-actions" style={{ justifyContent: 'flex-end', gap: 6 }}>
-                      <Link
-                        to={`/support/tickets/${t.id}`}
-                        className="table-action-btn"
-                        title="Xem chi tiết ticket"
-                      >
-                        <Eye size={16} />
-                      </Link>
-                      <button
-                        type="button"
-                        className="table-action-btn"
-                        onClick={() => handleOpenAssignModal(t)}
-                        title="Phân công nhân viên phụ trách"
-                      >
-                        <UserCheck size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <>
+            <SupportTicketTable tickets={filteredTickets} onAssign={handleOpenAssignModal} />
+            <SupportTicketCardList tickets={filteredTickets} onAssign={handleOpenAssignModal} />
+          </>
         )}
       </div>
 
-      {/* Modal Phân công */}
+      {/* Modal Phân công nhân viên */}
       {isAssignOpen && selectedTicket && (
         <div className="admin-modal-overlay" role="dialog" aria-modal="true">
           <div className="admin-modal-card" style={{ maxWidth: 440 }}>
             <div className="admin-modal-header">
-              <h3 className="modal-title">Phân công nhân viên xử lý</h3>
+              <h3 className="modal-title">Phân công xử lý Ticket</h3>
               <button
                 type="button"
                 className="modal-close-btn"
                 onClick={() => setIsAssignOpen(false)}
+                aria-label="Đóng"
               >
-                ✕
+                &times;
               </button>
             </div>
-
             <form onSubmit={handleSaveAssign}>
-              <div className="admin-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div style={{ background: '#f8fafc', padding: 12, borderRadius: 6 }}>
-                  <div style={{ fontWeight: 600, color: '#102a43' }}>[{selectedTicket.id}] {selectedTicket.title}</div>
-                  <div style={{ fontSize: '0.8rem', color: '#627d98' }}>Người gửi: {selectedTicket.userName} ({selectedTicket.userEmail})</div>
-                </div>
+              <div className="admin-modal-body">
+                <p style={{ fontSize: '0.86rem', color: '#627d98', marginBottom: 14 }}>
+                  Chỉ định nhân viên chịu trách nhiệm giải quyết yêu cầu:{' '}
+                  <strong style={{ color: '#102a43' }}>{selectedTicket.id}</strong> - {selectedTicket.title}
+                </p>
 
-                <div>
-                  <label className="form-label" htmlFor="staff-select">Chọn nhân viên phụ trách <span className="text-danger">*</span></label>
+                <div className="form-group" style={{ marginBottom: 14 }}>
+                  <label className="form-label" style={{ display: 'block', marginBottom: 6, fontWeight: 600 }}>
+                    Nhân viên hỗ trợ:
+                  </label>
                   <select
-                    id="staff-select"
-                    className="form-input"
+                    className="admin-filter-select"
+                    style={{ width: '100%' }}
                     value={assigneeName}
                     onChange={(e) => setAssigneeName(e.target.value)}
-                    required
                   >
-                    <option value="Lê Hữu Phúc">Lê Hữu Phúc (Chuyên viên Kỹ thuật)</option>
-                    <option value="Trần Thị Thanh">Trần Thị Thanh (Chăm sóc Khách hàng)</option>
-                    <option value="Nguyễn Văn An">Nguyễn Văn An (Quản trị Hệ thống)</option>
-                    <option value="Demo Support">Demo Support (Hỗ trợ viên)</option>
+                    <option value="Lê Hữu Phúc">Lê Hữu Phúc (Hỗ trợ kỹ thuật)</option>
+                    <option value="Lê Hữu Phước">Lê Hữu Phước (Kỹ sư hệ thống)</option>
+                    <option value="Vũ Hoàng Yến">Vũ Hoàng Yến (Chăm sóc học viên)</option>
+                    <option value="Nguyễn Tuấn Kiệt">Nguyễn Tuấn Kiệt (Điều phối dịch vụ)</option>
                   </select>
                 </div>
               </div>
-
               <div className="admin-modal-footer">
                 <button
                   type="button"
@@ -458,11 +311,9 @@ export const SupportTicketsPage: React.FC = () => {
                 >
                   Hủy
                 </button>
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                >
-                  Xác nhận phân công
+                <button type="submit" className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <UserCheck size={14} />
+                  <span>Lưu phân công</span>
                 </button>
               </div>
             </form>

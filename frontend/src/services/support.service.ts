@@ -242,6 +242,56 @@ export const supportService = {
     return updated
   },
 
+  async getAllUsers(): Promise<SupportUserProfile[]> {
+    const tickets = loadTickets()
+    const userMap = new Map<string, SupportUserProfile>()
+    for (const p of Object.values(mockProfiles)) {
+      userMap.set(p.id, { ...p })
+    }
+    for (const t of tickets) {
+      if (!userMap.has(t.userId)) {
+        userMap.set(t.userId, {
+          id: t.userId,
+          email: t.userEmail,
+          displayName: t.userName,
+          role: 'learner',
+          status: 'active',
+          createdAt: '2026-09-01T08:00:00Z',
+          lastLoginAt: '2026-10-27T10:30:00Z',
+          syncState: 'synced',
+          storageNamespace: `study_ai.${t.userId}.v2`,
+          completedLessonsCount: 16,
+          totalAttemptsCount: 20,
+          recentTicketHistory: [
+            {
+              id: t.id,
+              title: t.title,
+              status: t.status,
+              date: '2026-10-27',
+            },
+          ],
+        })
+      } else {
+        const existing = userMap.get(t.userId)!
+        if (!existing.recentTicketHistory.some((h) => h.id === t.id)) {
+          existing.recentTicketHistory.push({
+            id: t.id,
+            title: t.title,
+            status: t.status,
+            date: '2026-10-27',
+          })
+        }
+      }
+    }
+    return Array.from(userMap.values())
+  },
+
+  async getUserById(id: string): Promise<SupportUserProfile | null> {
+    if (!id.trim()) return null
+    if (mockProfiles[id]) return { ...mockProfiles[id] }
+    return this.lookupUser(id)
+  },
+
   async lookupUser(query: string): Promise<SupportUserProfile | null> {
     if (!query.trim()) return null
     const q = query.trim().toLowerCase()
