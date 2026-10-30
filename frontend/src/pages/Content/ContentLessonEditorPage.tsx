@@ -298,7 +298,7 @@ function LessonEditorForm({ lessonData, isSaving, onSave }: LessonEditorFormProp
             ? `Đã lưu lúc: ${new Date(lessonData.lastSavedAt).toLocaleTimeString('vi-VN')}`
             : 'Chưa lưu thay đổi'}
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div className="editor-sticky-bar-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <button
             type="button"
             className="staff-btn staff-btn-secondary"

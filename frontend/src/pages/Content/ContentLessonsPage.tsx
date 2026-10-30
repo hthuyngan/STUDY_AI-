@@ -20,6 +20,9 @@ import type { CurriculumLessonItem, CurriculumSubjectItem, CurriculumChapterItem
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { SummaryStrip } from '@/components/ui/SummaryStrip'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { LessonCardList } from './components/lessons/LessonCardList'
 import './ContentPages.css'
 import '../Admin/AdminPages.css'
 import '@/components/admin/AdminComponents.css'
@@ -50,6 +53,8 @@ export const ContentLessonsPage: React.FC = () => {
 
   // Action Menu Dropdown State
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [deletingLesson, setDeletingLesson] = useState<{ id: string; title: string } | null>(null)
 
   // Listen for Escape key and outside clicks to dismiss modal and dropdown
   useEffect(() => {
@@ -181,13 +186,26 @@ export const ContentLessonsPage: React.FC = () => {
     loadData()
   }
 
-  const handleDelete = async (id: string, title: string) => {
-    if (window.confirm(`Bạn có chắc muốn xóa bài học "${title}" (Dữ liệu mô phỏng)?`)) {
-      await educationService.deleteLesson(id)
-      showToast(`Đã xóa bài học: ${title}`)
-      loadData()
-    }
+  const handleDelete = (id: string, title: string) => {
+    setDeletingLesson({ id, title })
+    setDeleteConfirmOpen(true)
   }
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingLesson) return
+    await educationService.deleteLesson(deletingLesson.id)
+    showToast(`Đã xóa bài học: ${deletingLesson.title}`)
+    setDeleteConfirmOpen(false)
+    setDeletingLesson(null)
+    loadData()
+  }
+
+  const lessonKPIs = [
+    { id: 'total', label: 'Tổng bài học', value: lessons.length, color: 'var(--navy-primary, #102a43)' },
+    { id: 'published', label: 'Đã xuất bản', value: lessons.filter((l) => l.status === 'published').length, color: '#16a34a' },
+    { id: 'review', label: 'Chờ duyệt', value: lessons.filter((l) => l.status === 'in-review').length, color: '#d97706' },
+    { id: 'draft', label: 'Bản nháp', value: lessons.filter((l) => l.status === 'draft').length, color: '#64748b' },
+  ]
 
   return (
     <div className="admin-page-container">
@@ -225,6 +243,9 @@ export const ContentLessonsPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* 4 KPIs Summary Strip */}
+      <SummaryStrip items={lessonKPIs} ariaLabel="Thống kê nhanh bài học" />
 
       {/* Filter Toolbar */}
       <div className="admin-toolbar" style={{ marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
@@ -331,7 +352,7 @@ export const ContentLessonsPage: React.FC = () => {
           onAction={() => setIsCreateOpen(true)}
         />
       ) : (
-        <div className="staff-table-wrapper">
+        <div className="staff-table-wrapper has-mobile-cards">
           <table className="staff-table" aria-label="Bảng danh sách bài học">
             <thead>
               <tr>
@@ -479,6 +500,13 @@ export const ContentLessonsPage: React.FC = () => {
               ))}
             </tbody>
           </table>
+
+          {/* Mobile Card List (<768px) */}
+          <LessonCardList
+            lessons={paginatedLessons}
+            onStatusChange={handleStatusChange}
+            onDelete={handleDelete}
+          />
 
           {/* Pagination Bar */}
           <div className="admin-pagination-bar">
@@ -675,6 +703,21 @@ export const ContentLessonsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deleteConfirmOpen}
+        title="Xác nhận xóa bài học"
+        message={`Bạn có chắc muốn xóa bài học "${deletingLesson?.title}"? Dữ liệu bài học và nội dung soạn thảo sẽ bị gỡ bỏ.`}
+        confirmText="Xác nhận xóa"
+        cancelText="Hủy bỏ"
+        variant="danger"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => {
+          setDeleteConfirmOpen(false)
+          setDeletingLesson(null)
+        }}
+      />
     </div>
   )
 }

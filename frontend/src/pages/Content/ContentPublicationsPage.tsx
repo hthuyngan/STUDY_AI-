@@ -12,6 +12,9 @@ import type {
 } from '@/types/operations'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { SummaryStrip } from '@/components/ui/SummaryStrip'
+import { PublicationCardList } from './components/publications/PublicationCardList'
+import './ContentPages.css'
 import '../Admin/AdminPages.css'
 import '@/components/admin/AdminComponents.css'
 
@@ -99,6 +102,17 @@ export const ContentPublicationsPage: React.FC = () => {
     }
   }
 
+  const activeCount = useMemo(() => publications.filter((p) => p.status === 'active').length, [publications])
+  const lessonCount = useMemo(() => publications.filter((p) => p.contentType === 'lesson').length, [publications])
+  const assessmentCount = useMemo(() => publications.filter((p) => p.contentType === 'assessment').length, [publications])
+
+  const publicationKPIs = [
+    { id: 'total', label: 'Tổng bản ghi', value: publications.length, color: 'var(--navy-primary, #102a43)' },
+    { id: 'active', label: 'Đang kích hoạt', value: activeCount, color: '#047857' },
+    { id: 'lessons', label: 'Bài học phát hành', value: lessonCount, color: '#0284c7' },
+    { id: 'assessments', label: 'Bài thu hoạch', value: assessmentCount, color: '#d97706' },
+  ]
+
   return (
     <div className="admin-page-container">
       {/* Toast */}
@@ -120,6 +134,9 @@ export const ContentPublicationsPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* 4 KPIs Summary Strip */}
+      <SummaryStrip items={publicationKPIs} ariaLabel="Thống kê xuất bản nội dung" />
 
       {/* Filter Bar */}
       <div className="admin-filter-bar">
@@ -159,8 +176,8 @@ export const ContentPublicationsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Table */}
-      <div className="staff-table-wrapper">
+      {/* Table & Mobile Cards */}
+      <div className="staff-table-wrapper has-mobile-cards">
         {loading ? (
           <div style={{ padding: '24px' }}>
             <Skeleton height={48} />
@@ -171,72 +188,78 @@ export const ContentPublicationsPage: React.FC = () => {
             description="Các nội dung sau khi được phê duyệt và xuất bản sẽ được lưu vết tại đây."
           />
         ) : (
-          <table className="staff-table">
-            <thead>
-              <tr>
-                <th>Tiêu đề nội dung</th>
-                <th>Loại</th>
-                <th>Môn học</th>
-                <th>Phiên bản</th>
-                <th>Người xuất bản</th>
-                <th>Ngày xuất bản</th>
-                <th>Ghi chú phiên bản (Changelog)</th>
-                <th>Trạng thái</th>
-                <th style={{ textAlign: 'right' }}>Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredPublications.map((pub) => (
-                <tr key={pub.id}>
-                  <td>
-                    <strong style={{ color: '#102a43' }}>{pub.title}</strong>
-                  </td>
-                  <td>
-                    <span className="status-badge status-default">
-                      {pub.contentType === 'lesson' ? 'Bài học' : 'Bài thu hoạch'}
-                    </span>
-                  </td>
-                  <td>
-                    <span style={{ fontWeight: 500, color: '#334e68' }}>{pub.subjectName}</span>
-                  </td>
-                  <td>
-                    <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>
-                      {pub.version}
-                    </code>
-                  </td>
-                  <td>
-                    <span>{pub.publishedBy}</span>
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', color: '#627d98' }}>
-                      <Calendar size={13} />
-                      <span>{new Date(pub.publishedAt).toLocaleDateString('vi-VN')}</span>
-                    </div>
-                  </td>
-                  <td style={{ maxWidth: 260 }}>
-                    <span style={{ fontSize: '0.85rem', color: '#334e68' }}>
-                      {pub.changelog || 'Phát hành chính thức'}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`status-badge ${pub.status === 'active' ? 'status-success' : 'status-default'}`}>
-                      {pub.status === 'active' ? 'Đang kích hoạt' : 'Lưu trữ'}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <button
-                      type="button"
-                      className="table-action-btn"
-                      onClick={() => handleRollback(pub)}
-                      title="Khôi phục phiên bản trước"
-                    >
-                      <RotateCcw size={16} />
-                    </button>
-                  </td>
+          <>
+            <table className="staff-table">
+              <thead>
+                <tr>
+                  <th>Tiêu đề nội dung</th>
+                  <th>Loại</th>
+                  <th>Môn học</th>
+                  <th>Phiên bản</th>
+                  <th>Người xuất bản</th>
+                  <th>Ngày xuất bản</th>
+                  <th>Ghi chú phiên bản (Changelog)</th>
+                  <th>Trạng thái</th>
+                  <th style={{ textAlign: 'right' }}>Thao tác</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredPublications.map((pub) => (
+                  <tr key={pub.id}>
+                    <td>
+                      <strong style={{ color: '#102a43' }}>{pub.title}</strong>
+                    </td>
+                    <td>
+                      <span className="status-badge status-default">
+                        {pub.contentType === 'lesson' ? 'Bài học' : 'Bài thu hoạch'}
+                      </span>
+                    </td>
+                    <td>
+                      <span style={{ fontWeight: 500, color: '#334e68' }}>{pub.subjectName}</span>
+                    </td>
+                    <td>
+                      <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>
+                        {pub.version}
+                      </code>
+                    </td>
+                    <td>
+                      <span>{pub.publishedBy}</span>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', color: '#627d98' }}>
+                        <Calendar size={13} />
+                        <span>{new Date(pub.publishedAt).toLocaleDateString('vi-VN')}</span>
+                      </div>
+                    </td>
+                    <td style={{ maxWidth: 260 }}>
+                      <span style={{ fontSize: '0.85rem', color: '#334e68' }}>
+                        {pub.changelog || 'Phát hành chính thức'}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`status-badge ${pub.status === 'active' ? 'status-success' : 'status-default'}`}>
+                        {pub.status === 'active' ? 'Đang kích hoạt' : 'Lưu trữ'}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button
+                        type="button"
+                        className="table-action-btn"
+                        onClick={() => handleRollback(pub)}
+                        title="Khôi phục phiên bản trước"
+                      >
+                        <RotateCcw size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <PublicationCardList
+              publications={filteredPublications}
+              onRollback={handleRollback}
+            />
+          </>
         )}
       </div>
     </div>

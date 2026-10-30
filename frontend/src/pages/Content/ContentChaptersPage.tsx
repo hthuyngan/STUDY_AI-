@@ -15,6 +15,9 @@ import type { CurriculumChapterItem, CurriculumSubjectItem, ContentStatus } from
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { SummaryStrip } from '@/components/ui/SummaryStrip'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { ChapterCardList } from './components/chapters/ChapterCardList'
 import './ContentPages.css'
 import '../Admin/AdminPages.css'
 import '@/components/admin/AdminComponents.css'
@@ -37,6 +40,8 @@ export const ContentChaptersPage: React.FC = () => {
   const [formOrder, setFormOrder] = useState(1)
   const [formStatus, setFormStatus] = useState<ContentStatus>('published')
   const [formError, setFormError] = useState<string | null>(null)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [deletingChapter, setDeletingChapter] = useState<{ id: string; title: string } | null>(null)
 
   // Listen for Escape key to close dialog
   useEffect(() => {
@@ -158,12 +163,18 @@ export const ContentChaptersPage: React.FC = () => {
     loadData()
   }
 
-  const handleDelete = async (id: string, title: string) => {
-    if (window.confirm(`Bạn có chắc muốn xóa chương "${title}" (Dữ liệu mô phỏng)?`)) {
-      await educationService.deleteChapter(id)
-      showToast(`Đã xóa chương: ${title}`)
-      loadData()
-    }
+  const handleDelete = (id: string, title: string) => {
+    setDeletingChapter({ id, title })
+    setDeleteConfirmOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingChapter) return
+    await educationService.deleteChapter(deletingChapter.id)
+    showToast(`Đã xóa chương: ${deletingChapter.title}`)
+    setDeleteConfirmOpen(false)
+    setDeletingChapter(null)
+    loadData()
   }
 
   const handleMoveOrder = async (index: number, direction: 'up' | 'down') => {
@@ -184,6 +195,17 @@ export const ContentChaptersPage: React.FC = () => {
     showToast('Đã cập nhật thứ tự chương giảng dạy')
     loadData()
   }
+
+  const currentSubjectName = selectedSubjectId !== 'all'
+    ? subjects.find((s) => s.id === selectedSubjectId)?.name || 'Môn học'
+    : 'Tất cả môn'
+
+  const chapterKPIs = [
+    { id: 'total', label: 'Tổng số chương', value: chapters.length, color: 'var(--navy-primary, #102a43)' },
+    { id: 'subject', label: 'Môn học áp dụng', value: currentSubjectName, color: '#0284c7' },
+    { id: 'lessons', label: 'Tổng bài học', value: chapters.reduce((sum, c) => sum + (c.lessonsCount || 0), 0), color: '#16a34a' },
+    { id: 'published', label: 'Đã xuất bản', value: chapters.filter((c) => c.status === 'published').length, color: '#8b5cf6' },
+  ]
 
   return (
     <div className="admin-page-container">
@@ -218,6 +240,9 @@ export const ContentChaptersPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* 4 KPIs Summary Strip */}
+      <SummaryStrip items={chapterKPIs} ariaLabel="Thống kê nhanh chương học" />
 
       {/* Subject Filter Toolbar (Section 5.2 compliant) */}
       <div className="admin-filter-bar">
@@ -269,7 +294,7 @@ export const ContentChaptersPage: React.FC = () => {
           onAction={openCreateDialog}
         />
       ) : (
-        <div className="staff-table-wrapper">
+        <div className="staff-table-wrapper has-mobile-cards">
           <table className="staff-table chapter-table" aria-label="Bảng danh sách chương học">
             <thead>
               <tr>
@@ -372,6 +397,15 @@ export const ContentChaptersPage: React.FC = () => {
               })}
             </tbody>
           </table>
+
+          {/* Mobile Card List (<768px) */}
+          <ChapterCardList
+            chapters={chapters}
+            onMoveUp={(idx) => handleMoveOrder(idx, 'up')}
+            onMoveDown={(idx) => handleMoveOrder(idx, 'down')}
+            onEdit={openEditDialog}
+            onDelete={handleDelete}
+          />
         </div>
       )}
 
@@ -503,6 +537,21 @@ export const ContentChaptersPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deleteConfirmOpen}
+        title="Xác nhận xóa chương học"
+        message={`Bạn có chắc muốn xóa chương "${deletingChapter?.title}"? Các bài học thuộc chương này cũng sẽ bị ảnh hưởng.`}
+        confirmText="Xác nhận xóa"
+        cancelText="Hủy bỏ"
+        variant="danger"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => {
+          setDeleteConfirmOpen(false)
+          setDeletingChapter(null)
+        }}
+      />
     </div>
   )
 }

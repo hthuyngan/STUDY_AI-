@@ -1,0 +1,111 @@
+/* ==========================================================================
+   STUDY_AI — SHARED SUMMARY STRIP (EVONDEVKIT & ZHONGWENHUB MANAGEMENT ARCH)
+   ========================================================================== */
+
+.teacher-summary-strip,
+.admin-summary-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: var(--radius-md, 8px);
+  padding: 10px 16px;
+  gap: 12px;
+  margin-bottom: 14px;
+  box-shadow: 0 1px 2px rgba(16, 42, 67, 0.03);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.teacher-strip-item,
+.admin-strip-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.teacher-strip-item:not(:last-child),
+.admin-strip-item:not(:last-child) {
+  border-right: 1px solid var(--border-subtle, #e2e8f0);
+}
+
+.teacher-strip-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.teacher-strip-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.teacher-strip-val {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary, #102a43);
+  line-height: 1.2;
+}
+
+.teacher-strip-lbl {
+  font-size: 0.76rem;
+  color: var(--text-muted, #627d98);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Tablet & Mobile Breakpoints */
+@media (max-width: 900px) {
+  .teacher-summary-strip,
+  .admin-summary-strip {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .teacher-strip-item:nth-child(2) {
+    border-right: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .teacher-summary-strip,
+  .admin-summary-strip {
+    grid-template-columns: 1fr 1fr;
+    padding: 8px 12px;
+    gap: 8px;
+  }
+
+  .teacher-strip-val {
+    font-size: 1rem;
+  }
+
+  .teacher-strip-lbl {
+    font-size: 0.72rem;
+  }
+}
+
+/* Dark theme overrides */
+[data-theme='dark'] .teacher-summary-strip,
+[data-theme='dark'] .admin-summary-strip {
+  background: #1e293b;
+  border-color: #334155;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme='dark'] .teacher-strip-item:not(:last-child),
+[data-theme='dark'] .admin-strip-item:not(:last-child) {
+  border-right-color: #334155;
+}
+
+[data-theme='dark'] .teacher-strip-val {
+  color: #f8fafc;
+}
+
+[data-theme='dark'] .teacher-strip-lbl {
+  color: #94a3b8;
+}
+

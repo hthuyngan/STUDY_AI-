@@ -6,12 +6,14 @@ import './ConfirmDialog.css'
 export interface ConfirmDialogProps {
   isOpen: boolean
   title: string
-  description: string
+  description?: string
+  message?: string
   confirmText?: string
   cancelText?: string
   isDestructive?: boolean
+  variant?: 'danger' | 'warning' | 'primary' | string
   isLoading?: boolean
-  onConfirm: () => void
+  onConfirm: () => void | Promise<void>
   onCancel: () => void
 }
 
@@ -19,14 +21,18 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   isOpen,
   title,
   description,
+  message,
   confirmText = 'Xác nhận',
   cancelText = 'Hủy bỏ',
   isDestructive = false,
+  variant,
   isLoading = false,
   onConfirm,
   onCancel,
 }) => {
   const dialogRef = useRef<HTMLDivElement>(null)
+  const effectiveDescription = description || message || ''
+  const effectiveDestructive = isDestructive || variant === 'danger'
 
   // ESC key listener
   useEffect(() => {
@@ -56,7 +62,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       >
         <div className="confirm-dialog-header">
           <div className="confirm-dialog-title-wrap">
-            {isDestructive && (
+            {effectiveDestructive && (
               <span className="confirm-dialog-warning-icon" aria-hidden="true">
                 <AlertTriangle size={18} />
               </span>
@@ -78,7 +84,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
         <div className="confirm-dialog-body">
           <p id="confirm-dialog-desc" className="confirm-dialog-desc">
-            {description}
+            {effectiveDescription}
           </p>
         </div>
 
@@ -95,7 +101,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             onClick={onConfirm}
             isLoading={isLoading}
             style={
-              isDestructive
+              effectiveDestructive
                 ? { backgroundColor: '#dc2626', borderColor: '#dc2626' }
                 : undefined
             }

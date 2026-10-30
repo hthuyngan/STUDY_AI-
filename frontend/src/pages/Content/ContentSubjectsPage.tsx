@@ -16,6 +16,10 @@ import type { CurriculumSubjectItem, ContentStatus } from '@/types/education'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { SummaryStrip } from '@/components/ui/SummaryStrip'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { SubjectCardList } from './components/subjects/SubjectCardList'
+import './ContentPages.css'
 import '../Admin/AdminPages.css'
 import '@/components/admin/AdminComponents.css'
 
@@ -36,6 +40,8 @@ export const ContentSubjectsPage: React.FC = () => {
   const [formDescription, setFormDescription] = useState('')
   const [formStatus, setFormStatus] = useState<ContentStatus>('published')
   const [formError, setFormError] = useState<string | null>(null)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [deletingSubject, setDeletingSubject] = useState<{ id: string; name: string } | null>(null)
 
   // Listen for Escape key to close dialog
   useEffect(() => {
@@ -156,13 +162,26 @@ export const ContentSubjectsPage: React.FC = () => {
     loadData()
   }
 
-  const handleDelete = async (id: string, name: string) => {
-    if (window.confirm(`Bạn có chắc chắn muốn xóa môn học "${name}" không?`)) {
-      await educationService.deleteSubject(id)
-      showToast(`Đã xóa môn học: ${name}`)
-      loadData()
-    }
+  const handleDelete = (id: string, name: string) => {
+    setDeletingSubject({ id, name })
+    setDeleteConfirmOpen(true)
   }
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingSubject) return
+    await educationService.deleteSubject(deletingSubject.id)
+    showToast(`Đã xóa môn học: ${deletingSubject.name}`)
+    setDeleteConfirmOpen(false)
+    setDeletingSubject(null)
+    loadData()
+  }
+
+  const subjectKPIs = [
+    { id: 'total', label: 'Tổng số môn học', value: subjects.length, color: 'var(--navy-primary, #102a43)' },
+    { id: 'grades', label: 'Khối lớp THPT', value: '3 khối (10-12)', color: '#0284c7' },
+    { id: 'lessons', label: 'Tổng bài học', value: subjects.reduce((sum, s) => sum + (s.lessonCount || 0), 0), color: '#16a34a' },
+    { id: 'published', label: 'Đã xuất bản', value: subjects.filter((s) => s.status === 'published').length, color: '#8b5cf6' },
+  ]
 
   return (
     <div className="admin-page-container">
@@ -196,6 +215,9 @@ export const ContentSubjectsPage: React.FC = () => {
         </div>
       </div>
 
+      {/* 4 KPIs Summary Strip */}
+      <SummaryStrip items={subjectKPIs} ariaLabel="Thống kê nhanh môn học" />
+
       {/* Filter and Search Bar */}
       <div className="admin-filter-bar">
         <div className="admin-search-input-wrap">
@@ -222,7 +244,7 @@ export const ContentSubjectsPage: React.FC = () => {
       </div>
 
       {/* Subjects Table */}
-      <div className="staff-table-wrapper">
+      <div className="staff-table-wrapper has-mobile-cards">
         {loading ? (
           <div style={{ padding: '24px' }}>
             <Skeleton height={48} />
@@ -233,87 +255,96 @@ export const ContentSubjectsPage: React.FC = () => {
             description="Hãy thử thay đổi điều kiện tìm kiếm hoặc thêm môn học mới."
           />
         ) : (
-          <table className="staff-table">
-            <thead>
-              <tr>
-                <th>Môn học</th>
-                <th>Mã môn</th>
-                <th>Khối lớp</th>
-                <th>Số chương</th>
-                <th>Số bài học</th>
-                <th>Trạng thái</th>
-                <th>Cập nhật cuối</th>
-                <th style={{ textAlign: 'right' }}>Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredSubjects.map((s) => (
-                <tr key={s.id}>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ fontSize: '1.4rem' }}>{s.icon || '📖'}</span>
-                      <div>
-                        <strong style={{ color: '#102a43' }}>{s.name}</strong>
-                        {s.description && (
-                          <div style={{ fontSize: '0.8rem', color: '#627d98', maxWidth: 260, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                            {s.description}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <code>{s.code}</code>
-                  </td>
-                  <td>{s.grade}</td>
-                  <td>
-                    <Link
-                      to={`/content/chapters?subject=${s.id}`}
-                      style={{ color: '#0284c7', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}
-                      title="Xem danh sách chương học"
-                    >
-                      <Layers size={14} />
-                      <span>{s.chapterCount || 0} chương</span>
-                    </Link>
-                  </td>
-                  <td>{s.lessonCount || 0} bài học</td>
-                  <td>
-                    <StatusBadge status={s.status} />
-                  </td>
-                  <td style={{ fontSize: '0.85rem', color: '#627d98' }}>
-                    {new Date(s.updatedAt).toLocaleDateString('vi-VN')}
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <div className="table-actions" style={{ justifyContent: 'flex-end', gap: 6 }}>
-                      <Link
-                        to={`/content/subjects/${s.id}`}
-                        className="table-action-btn"
-                        title="Xem chi tiết giáo trình"
-                      >
-                        <ArrowRight size={16} />
-                      </Link>
-                      <button
-                        type="button"
-                        className="table-action-btn"
-                        onClick={() => openEditDialog(s)}
-                        title="Chỉnh sửa môn học"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button
-                        type="button"
-                        className="table-action-btn text-danger"
-                        onClick={() => handleDelete(s.id, s.name)}
-                        title="Xóa môn học"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
+          <>
+            <table className="staff-table">
+              <thead>
+                <tr>
+                  <th>Môn học</th>
+                  <th>Mã môn</th>
+                  <th>Khối lớp</th>
+                  <th>Số chương</th>
+                  <th>Số bài học</th>
+                  <th>Trạng thái</th>
+                  <th>Cập nhật cuối</th>
+                  <th style={{ textAlign: 'right' }}>Thao tác</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredSubjects.map((s) => (
+                  <tr key={s.id}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontSize: '1.4rem' }}>{s.icon || '📖'}</span>
+                        <div>
+                          <strong style={{ color: '#102a43' }}>{s.name}</strong>
+                          {s.description && (
+                            <div style={{ fontSize: '0.8rem', color: '#627d98', maxWidth: 260, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                              {s.description}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <code>{s.code}</code>
+                    </td>
+                    <td>{s.grade}</td>
+                    <td>
+                      <Link
+                        to={`/content/chapters?subject=${s.id}`}
+                        style={{ color: '#0284c7', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}
+                        title="Xem danh sách chương học"
+                      >
+                        <Layers size={14} />
+                        <span>{s.chapterCount || 0} chương</span>
+                      </Link>
+                    </td>
+                    <td>{s.lessonCount || 0} bài học</td>
+                    <td>
+                      <StatusBadge status={s.status} />
+                    </td>
+                    <td style={{ fontSize: '0.85rem', color: '#627d98' }}>
+                      {new Date(s.updatedAt).toLocaleDateString('vi-VN')}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div className="table-actions" style={{ justifyContent: 'flex-end', gap: 6 }}>
+                        <Link
+                          to={`/content/subjects/${s.id}`}
+                          className="table-action-btn"
+                          title="Xem chi tiết giáo trình"
+                        >
+                          <ArrowRight size={16} />
+                        </Link>
+                        <button
+                          type="button"
+                          className="table-action-btn"
+                          onClick={() => openEditDialog(s)}
+                          title="Chỉnh sửa môn học"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          className="table-action-btn text-danger"
+                          onClick={() => handleDelete(s.id, s.name)}
+                          title="Xóa môn học"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Mobile Card List (<768px) */}
+            <SubjectCardList
+              subjects={filteredSubjects}
+              onEdit={openEditDialog}
+              onDelete={handleDelete}
+            />
+          </>
         )}
       </div>
 
@@ -458,6 +489,21 @@ export const ContentSubjectsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deleteConfirmOpen}
+        title="Xác nhận xóa môn học"
+        message={`Bạn có chắc chắn muốn xóa môn học "${deletingSubject?.name}"? Các chương và bài học thuộc môn này cũng sẽ bị ẩn.`}
+        confirmText="Xác nhận xóa"
+        cancelText="Hủy bỏ"
+        variant="danger"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => {
+          setDeleteConfirmOpen(false)
+          setDeletingSubject(null)
+        }}
+      />
     </div>
   )
 }

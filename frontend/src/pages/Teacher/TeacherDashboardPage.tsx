@@ -1,12 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
-  AlertTriangle,
   ArrowRight,
   CheckSquare,
-  GraduationCap,
-  Users,
   Plus,
-  BookOpen,
   Calendar,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -17,7 +13,7 @@ import type {
   AdminLearningAlert,
   AdminSubmissionItem,
 } from '@/types/classroom'
-import { StaffMetricCard } from '@/components/ui/StaffMetricCard'
+import { SummaryStrip } from '@/components/ui/SummaryStrip'
 import { Skeleton } from '@/components/ui/Skeleton'
 import './TeacherPages.css'
 import '../Admin/AdminPages.css'
@@ -60,6 +56,13 @@ export const TeacherDashboardPage: React.FC = () => {
   const activeAlerts = alerts.filter((a) => a.status !== 'resolved')
   const activeAssignments = assignments.filter((a) => a.status === 'active')
 
+  const dashboardKPIs = useMemo(() => [
+    { id: 'classes', label: 'Lớp học phụ trách', value: classes.length, color: 'var(--navy-primary, #102a43)' },
+    { id: 'students', label: 'Tổng số học sinh', value: totalStudents, color: '#0284c7' },
+    { id: 'assignments', label: 'Bài tập đang mở', value: activeAssignments.length, color: '#16a34a' },
+    { id: 'alerts', label: 'Cần can thiệp hỗ trợ', value: activeAlerts.length, color: '#dc2626' },
+  ], [classes.length, totalStudents, activeAssignments.length, activeAlerts.length])
+
   return (
     <div className="teacher-dashboard-page">
       {/* Header */}
@@ -80,48 +83,17 @@ export const TeacherDashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 4 Compact Metrics */}
-      <div className="staff-metric-grid">
-        {loading ? (
-          <>
-            <Skeleton height={96} />
-            <Skeleton height={96} />
-            <Skeleton height={96} />
-            <Skeleton height={96} />
-          </>
-        ) : (
-          <>
-            <StaffMetricCard
-              label="Lớp học phụ trách"
-              value={classes.length}
-              context={`${classes.length} lớp đang giảng dạy`}
-              icon={GraduationCap}
-            />
-            <StaffMetricCard
-              label="Tổng số học sinh"
-              value={totalStudents}
-              context="Học sinh đang theo dõi"
-              icon={Users}
-            />
-            <StaffMetricCard
-              label="Bài tập đang mở"
-              value={activeAssignments.length}
-              context="Đang trong thời hạn nộp"
-              icon={BookOpen}
-            />
-            <StaffMetricCard
-              label="Cần can thiệp hỗ trợ"
-              value={activeAlerts.length}
-              context="Cảnh báo tiến độ / điểm thấp"
-              icon={AlertTriangle}
-              trend={{ value: `${activeAlerts.length} học sinh`, isPositive: false }}
-            />
-          </>
-        )}
-      </div>
+      {/* 4 Compact Summary Strip */}
+      {loading ? (
+        <div style={{ marginBottom: 14 }}>
+          <Skeleton height={46} />
+        </div>
+      ) : (
+        <SummaryStrip items={dashboardKPIs} ariaLabel="Thống kê tổng quan giáo viên" />
+      )}
 
       {/* Main Operational Row 1: Classes Overview & Students Needing Attention */}
-      <div className="teacher-split-grid" style={{ marginTop: 24 }}>
+      <div className="teacher-split-grid" style={{ marginTop: 14 }}>
         {/* Classes Overview */}
         <div className="staff-card">
           <div className="staff-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -221,7 +193,7 @@ export const TeacherDashboardPage: React.FC = () => {
       </div>
 
       {/* Main Operational Row 2: Assignments Due & Recent Submissions */}
-      <div className="teacher-split-grid" style={{ marginTop: 24 }}>
+      <div className="teacher-split-grid" style={{ marginTop: 14 }}>
         {/* Assignments Due */}
         <div className="staff-card">
           <div className="staff-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

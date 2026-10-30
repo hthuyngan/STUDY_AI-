@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import {
-  Users,
   Search,
   Plus,
   Download,
@@ -9,7 +8,6 @@ import {
   Edit2,
   Trash2,
   CheckCircle2,
-  BookOpen,
   Filter,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -17,6 +15,8 @@ import { classroomService } from '@/services/classroom.service'
 import type { AdminClassItem, ClassStatus } from '@/types/classroom'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { SummaryStrip } from '@/components/ui/SummaryStrip'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import './TeacherPages.css'
 import '../Admin/AdminPages.css'
 import '@/components/admin/AdminComponents.css'
@@ -32,6 +32,8 @@ export const TeacherClassesPage: React.FC = () => {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingClass, setEditingClass] = useState<AdminClassItem | null>(null)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [deletingClass, setDeletingClass] = useState<AdminClassItem | null>(null)
   const [formData, setFormData] = useState({
     code: '',
     name: '',
@@ -194,15 +196,21 @@ export const TeacherClassesPage: React.FC = () => {
     }
   }
 
-  const handleDeleteClass = async (cls: AdminClassItem) => {
-    if (window.confirm(`Xác nhận xóa lớp học "${cls.name}" (${cls.code}) khỏi hệ thống?`)) {
-      try {
-        await classroomService.deleteClass(cls.id)
-        showToast(`Đã xóa lớp học "${cls.name}"`)
-        loadClasses()
-      } catch (err: unknown) {
-        if (err instanceof Error) alert(err.message)
-      }
+  const handleDeleteClass = (cls: AdminClassItem) => {
+    setDeletingClass(cls)
+    setDeleteConfirmOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingClass) return
+    try {
+      await classroomService.deleteClass(deletingClass.id)
+      showToast(`Đã xóa lớp học "${deletingClass.name}"`)
+      setDeleteConfirmOpen(false)
+      setDeletingClass(null)
+      loadClasses()
+    } catch (err: unknown) {
+      if (err instanceof Error) alert(err.message)
     }
   }
 
@@ -248,6 +256,13 @@ export const TeacherClassesPage: React.FC = () => {
     URL.revokeObjectURL(url)
     showToast('Đã xuất file CSV danh sách lớp học thành công')
   }
+
+  const classKPIs = useMemo(() => [
+    { id: 'totalClasses', label: 'Tổng số lớp học', value: totalClasses, color: 'var(--navy-primary, #102a43)' },
+    { id: 'totalStudents', label: 'Tổng học viên', value: totalStudents, color: '#0284c7' },
+    { id: 'avgClassSize', label: 'Sĩ số trung bình', value: avgClassSize, color: '#16a34a' },
+    { id: 'attentionClasses', label: 'Lớp cần chú ý', value: attentionClasses, color: '#dc2626' },
+  ], [totalClasses, totalStudents, avgClassSize, attentionClasses])
 
   return (
     <div className="admin-page-container">
@@ -319,60 +334,8 @@ export const TeacherClassesPage: React.FC = () => {
         )}
       </div>
 
-      {/* 4 KPIs */}
-      <div className="admin-kpi-grid">
-        <div className="admin-kpi-card">
-          <div className="kpi-top-row">
-            <span className="kpi-label">Tổng số lớp học</span>
-            <div className="kpi-icon-wrap" style={{ background: 'rgba(16, 42, 67, 0.08)', color: '#102a43' }}>
-              <BookOpen size={20} />
-            </div>
-          </div>
-          <div className="kpi-value-row">
-            <span className="kpi-num">{totalClasses}</span>
-            <span className="kpi-comparison">Đang hoạt động</span>
-          </div>
-        </div>
-
-        <div className="admin-kpi-card">
-          <div className="kpi-top-row">
-            <span className="kpi-label">Tổng học viên</span>
-            <div className="kpi-icon-wrap" style={{ background: 'rgba(2, 132, 199, 0.08)', color: '#0284c7' }}>
-              <Users size={20} />
-            </div>
-          </div>
-          <div className="kpi-value-row">
-            <span className="kpi-num">{totalStudents}</span>
-            <span className="kpi-comparison">Học viên chính thức</span>
-          </div>
-        </div>
-
-        <div className="admin-kpi-card">
-          <div className="kpi-top-row">
-            <span className="kpi-label">Sĩ số trung bình</span>
-            <div className="kpi-icon-wrap" style={{ background: 'rgba(4, 120, 87, 0.08)', color: '#047857' }}>
-              <Users size={20} />
-            </div>
-          </div>
-          <div className="kpi-value-row">
-            <span className="kpi-num">{avgClassSize}</span>
-            <span className="kpi-comparison">Học sinh / lớp</span>
-          </div>
-        </div>
-
-        <div className="admin-kpi-card">
-          <div className="kpi-top-row">
-            <span className="kpi-label">Lớp cần chú ý</span>
-            <div className="kpi-icon-wrap" style={{ background: 'rgba(220, 38, 38, 0.08)', color: '#dc2626' }}>
-              <AlertCircle size={20} />
-            </div>
-          </div>
-          <div className="kpi-value-row">
-            <span className="kpi-num" style={{ color: '#dc2626' }}>{attentionClasses}</span>
-            <span className="kpi-comparison">Điểm hoặc tiến độ thấp</span>
-          </div>
-        </div>
-      </div>
+      {/* 4 KPIs Summary Strip */}
+      <SummaryStrip items={classKPIs} ariaLabel="Thống kê nhanh danh sách lớp học" />
 
       {/* Filter Bar */}
       <div className="admin-filter-bar">
@@ -770,6 +733,21 @@ export const TeacherClassesPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmDialog
+        isOpen={deleteConfirmOpen}
+        title="Xác nhận xóa lớp học"
+        message={`Bạn có chắc chắn muốn xóa lớp học "${deletingClass?.name}" (${deletingClass?.code})? Hành động này sẽ cập nhật trạng thái lớp học trong hệ thống.`}
+        confirmText="Xác nhận xóa"
+        cancelText="Hủy bỏ"
+        variant="danger"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => {
+          setDeleteConfirmOpen(false)
+          setDeletingClass(null)
+        }}
+      />
     </div>
   )
 }

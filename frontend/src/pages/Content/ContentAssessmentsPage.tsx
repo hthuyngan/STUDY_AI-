@@ -25,6 +25,9 @@ import type {
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { SummaryStrip } from '@/components/ui/SummaryStrip'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { AssessmentCardList } from './components/assessments/AssessmentCardList'
 import './ContentPages.css'
 import '../Admin/AdminPages.css'
 import '@/components/admin/AdminComponents.css'
@@ -67,6 +70,8 @@ export const ContentAssessmentsPage: React.FC = () => {
 
   // Action Menu Dropdown State
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [deletingAssessment, setDeletingAssessment] = useState<{ id: string; title: string } | null>(null)
 
   // Listen for Escape key and outside clicks to dismiss modals and dropdowns
   useEffect(() => {
@@ -217,12 +222,18 @@ export const ContentAssessmentsPage: React.FC = () => {
     loadData()
   }
 
-  const handleDelete = async (id: string, title: string) => {
-    if (window.confirm(`Bạn có chắc muốn xóa bài thu hoạch "${title}" (Dữ liệu demo)?`)) {
-      await educationService.deleteAssessment(id)
-      showToast(`Đã xóa bài thu hoạch: ${title}`)
-      loadData()
-    }
+  const handleDelete = (id: string, title: string) => {
+    setDeletingAssessment({ id, title })
+    setDeleteConfirmOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingAssessment) return
+    await educationService.deleteAssessment(deletingAssessment.id)
+    showToast(`Đã xóa bài thu hoạch: ${deletingAssessment.title}`)
+    setDeleteConfirmOpen(false)
+    setDeletingAssessment(null)
+    loadData()
   }
 
   // Handle Add Question
@@ -267,6 +278,20 @@ export const ContentAssessmentsPage: React.FC = () => {
     loadData()
   }
 
+  const totalQuestions = assessments.reduce(
+    (sum, a) => sum + (a.questions?.length || a.questionCount || 0),
+    0
+  )
+  const publishedAssessments = assessments.filter((a) => a.status === 'published').length
+  const inReviewAssessments = assessments.filter((a) => a.status === 'in-review').length
+
+  const assessmentKPIs = [
+    { id: 'total', label: 'Tổng bài thu hoạch', value: assessments.length, color: 'var(--navy-primary, #102a43)' },
+    { id: 'questions', label: 'Tổng số câu hỏi', value: `${totalQuestions} câu`, color: '#0284c7' },
+    { id: 'published', label: 'Đã xuất bản', value: publishedAssessments, color: '#16a34a' },
+    { id: 'review', label: 'Chờ duyệt', value: inReviewAssessments, color: '#d97706' },
+  ]
+
   return (
     <div className="admin-page-container">
       {/* Toast Notification */}
@@ -299,6 +324,9 @@ export const ContentAssessmentsPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* 4 KPIs Summary Strip */}
+      <SummaryStrip items={assessmentKPIs} ariaLabel="Thống kê nhanh bài thu hoạch" />
 
       {/* Filter Toolbar */}
       <div className="admin-toolbar" style={{ marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
@@ -361,7 +389,7 @@ export const ContentAssessmentsPage: React.FC = () => {
           onAction={openCreateDialog}
         />
       ) : (
-        <div className="staff-table-wrapper">
+        <div className="staff-table-wrapper has-mobile-cards">
           <table className="staff-table" aria-label="Bảng danh sách bài thu hoạch">
             <thead>
               <tr>
@@ -514,6 +542,15 @@ export const ContentAssessmentsPage: React.FC = () => {
               ))}
             </tbody>
           </table>
+
+          {/* Mobile Card List (<768px) */}
+          <AssessmentCardList
+            assessments={assessments}
+            onPreview={(asm) => setPreviewItem(asm)}
+            onAddQuestion={(id) => openAddQuestion(id)}
+            onEdit={(asm) => openEditDialog(asm)}
+            onDelete={handleDelete}
+          />
         </div>
       )}
 
@@ -965,6 +1002,21 @@ export const ContentAssessmentsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deleteConfirmOpen}
+        title="Xác nhận xóa bài thu hoạch"
+        message={`Bạn có chắc muốn xóa bài thu hoạch "${deletingAssessment?.title}"? Bộ câu hỏi trắc nghiệm liên quan cũng sẽ bị gỡ bỏ.`}
+        confirmText="Xác nhận xóa"
+        cancelText="Hủy bỏ"
+        variant="danger"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => {
+          setDeleteConfirmOpen(false)
+          setDeletingAssessment(null)
+        }}
+      />
     </div>
   )
 }

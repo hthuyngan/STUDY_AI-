@@ -1,13 +1,10 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import {
-  AlertTriangle,
   Search,
   CheckCircle2,
   Clock,
   Eye,
   Edit2,
-  ShieldAlert,
-  HelpCircle,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { classroomService } from '@/services/classroom.service'
@@ -18,6 +15,8 @@ import type {
 } from '@/types/classroom'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { SummaryStrip } from '@/components/ui/SummaryStrip'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import './TeacherPages.css'
 import '../Admin/AdminPages.css'
 import '@/components/admin/AdminComponents.css'
@@ -37,6 +36,7 @@ export const TeacherAlertsPage: React.FC = () => {
   const [newStatus, setNewStatus] = useState<AlertStatus>('resolved')
   const [resolutionNote, setResolutionNote] = useState('')
   const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const [resolveConfirmOpen, setResolveConfirmOpen] = useState(false)
 
   const showToast = (msg: string) => {
     setToastMessage(msg)
@@ -116,17 +116,27 @@ export const TeacherAlertsPage: React.FC = () => {
     }
   }
 
-  const handleResolveAll = async () => {
-    if (window.confirm('Bạn có chắc muốn đánh dấu tất cả các cảnh báo là Đã giải quyết?')) {
-      try {
-        await classroomService.resolveAllAlerts()
-        showToast('Đã đánh dấu tất cả cảnh báo là Đã giải quyết')
-        loadAlerts()
-      } catch (err: unknown) {
-        if (err instanceof Error) alert(err.message)
-      }
+  const handleResolveAll = () => {
+    setResolveConfirmOpen(true)
+  }
+
+  const handleResolveAllConfirm = async () => {
+    try {
+      await classroomService.resolveAllAlerts()
+      showToast('Đã đánh dấu tất cả cảnh báo là Đã giải quyết')
+      setResolveConfirmOpen(false)
+      loadAlerts()
+    } catch (err: unknown) {
+      if (err instanceof Error) alert(err.message)
     }
   }
+
+  const alertKPIs = useMemo(() => [
+    { id: 'total', label: 'Tổng cảnh báo', value: totalAlerts, color: 'var(--navy-primary, #102a43)' },
+    { id: 'high', label: 'Nghiêm trọng (Cao)', value: highCount, color: '#dc2626' },
+    { id: 'medium', label: 'Cần chú ý (Vừa)', value: mediumCount, color: '#d97706' },
+    { id: 'resolved', label: 'Đã giải quyết', value: resolvedCount, color: '#16a34a' },
+  ], [totalAlerts, highCount, mediumCount, resolvedCount])
 
   return (
     <div className="admin-page-container">
@@ -161,60 +171,8 @@ export const TeacherAlertsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 4 KPIs */}
-      <div className="admin-kpi-grid">
-        <div className="admin-kpi-card">
-          <div className="kpi-top-row">
-            <span className="kpi-label">Tổng cảnh báo</span>
-            <div className="kpi-icon-wrap" style={{ background: 'rgba(16, 42, 67, 0.08)', color: '#102a43' }}>
-              <AlertTriangle size={20} />
-            </div>
-          </div>
-          <div className="kpi-value-row">
-            <span className="kpi-num">{totalAlerts}</span>
-            <span className="kpi-comparison">Toàn bộ các lớp</span>
-          </div>
-        </div>
-
-        <div className="admin-kpi-card">
-          <div className="kpi-top-row">
-            <span className="kpi-label">Nghiêm trọng (Cao)</span>
-            <div className="kpi-icon-wrap" style={{ background: 'rgba(220, 38, 38, 0.08)', color: '#dc2626' }}>
-              <ShieldAlert size={20} />
-            </div>
-          </div>
-          <div className="kpi-value-row">
-            <span className="kpi-num" style={{ color: '#dc2626' }}>{highCount}</span>
-            <span className="kpi-comparison" style={{ color: '#b91c1c' }}>Cần can thiệp gấp</span>
-          </div>
-        </div>
-
-        <div className="admin-kpi-card">
-          <div className="kpi-top-row">
-            <span className="kpi-label">Cần chú ý (Vừa)</span>
-            <div className="kpi-icon-wrap" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#d97706' }}>
-              <HelpCircle size={20} />
-            </div>
-          </div>
-          <div className="kpi-value-row">
-            <span className="kpi-num" style={{ color: '#d97706' }}>{mediumCount}</span>
-            <span className="kpi-comparison">Theo dõi sát sao</span>
-          </div>
-        </div>
-
-        <div className="admin-kpi-card">
-          <div className="kpi-top-row">
-            <span className="kpi-label">Đã giải quyết</span>
-            <div className="kpi-icon-wrap" style={{ background: 'rgba(4, 120, 87, 0.08)', color: '#047857' }}>
-              <CheckCircle2 size={20} />
-            </div>
-          </div>
-          <div className="kpi-value-row">
-            <span className="kpi-num" style={{ color: '#047857' }}>{resolvedCount}</span>
-            <span className="kpi-comparison">Đã xử lý xong</span>
-          </div>
-        </div>
-      </div>
+      {/* 4 KPIs Summary Strip */}
+      <SummaryStrip items={alertKPIs} ariaLabel="Thống kê cảnh báo học tập" />
 
       {/* Filters */}
       <div className="admin-filter-bar">
@@ -535,6 +493,18 @@ export const TeacherAlertsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Resolve All Confirmation Modal */}
+      <ConfirmDialog
+        isOpen={resolveConfirmOpen}
+        title="Xác nhận xử lý cảnh báo"
+        message="Bạn có chắc chắn muốn đánh dấu tất cả các cảnh báo hiện tại là Đã giải quyết? Hành động này sẽ chuyển trạng thái của toàn bộ hàng đợi cảnh báo."
+        confirmText="Đồng ý xử lý tất cả"
+        cancelText="Hủy bỏ"
+        variant="primary"
+        onConfirm={handleResolveAllConfirm}
+        onCancel={() => setResolveConfirmOpen(false)}
+      />
     </div>
   )
 }

@@ -2,13 +2,10 @@ import React, { useEffect, useState, useMemo } from 'react'
 import {
   Search,
   CheckCircle2,
-  AlertTriangle,
-  Clock,
   Eye,
   Check,
   X,
   RotateCcw,
-  BookOpen,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { operationsService } from '@/services/operations.service'
@@ -19,6 +16,9 @@ import type {
 } from '@/types/operations'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { SummaryStrip } from '@/components/ui/SummaryStrip'
+import { ReviewCardList } from './components/review/ReviewCardList'
+import './ContentPages.css'
 import '../Admin/AdminPages.css'
 import '@/components/admin/AdminComponents.css'
 
@@ -146,6 +146,13 @@ export const ContentReviewPage: React.FC = () => {
     }
   }
 
+  const reviewKPIs = [
+    { id: 'pending', label: 'Chờ duyệt', value: pendingCount, color: '#d97706' },
+    { id: 'approved', label: 'Đã duyệt', value: approvedCount, color: '#047857' },
+    { id: 'rejected', label: 'Cần sửa / Từ chối', value: rejectedCount, color: '#dc2626' },
+    { id: 'published', label: 'Đã xuất bản', value: publishedCount, color: 'var(--navy-primary, #102a43)' },
+  ]
+
   return (
     <div className="admin-page-container">
       {/* Toast */}
@@ -168,60 +175,8 @@ export const ContentReviewPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 4 KPIs Compact */}
-      <div className="admin-kpi-grid">
-        <div className="admin-kpi-card">
-          <div className="kpi-top-row">
-            <span className="kpi-label">Chờ duyệt</span>
-            <div className="kpi-icon-wrap" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#d97706' }}>
-              <Clock size={20} />
-            </div>
-          </div>
-          <div className="kpi-value-row">
-            <span className="kpi-num" style={{ color: '#d97706' }}>{pendingCount}</span>
-            <span className="kpi-comparison">Cần kiểm định</span>
-          </div>
-        </div>
-
-        <div className="admin-kpi-card">
-          <div className="kpi-top-row">
-            <span className="kpi-label">Đã duyệt</span>
-            <div className="kpi-icon-wrap" style={{ background: 'rgba(4, 120, 87, 0.08)', color: '#047857' }}>
-              <CheckCircle2 size={20} />
-            </div>
-          </div>
-          <div className="kpi-value-row">
-            <span className="kpi-num" style={{ color: '#047857' }}>{approvedCount}</span>
-            <span className="kpi-comparison">Sẵn sàng xuất bản</span>
-          </div>
-        </div>
-
-        <div className="admin-kpi-card">
-          <div className="kpi-top-row">
-            <span className="kpi-label">Cần sửa / Từ chối</span>
-            <div className="kpi-icon-wrap" style={{ background: 'rgba(220, 38, 38, 0.08)', color: '#dc2626' }}>
-              <AlertTriangle size={20} />
-            </div>
-          </div>
-          <div className="kpi-value-row">
-            <span className="kpi-num" style={{ color: '#dc2626' }}>{rejectedCount}</span>
-            <span className="kpi-comparison">Chờ tác giả cập nhật</span>
-          </div>
-        </div>
-
-        <div className="admin-kpi-card">
-          <div className="kpi-top-row">
-            <span className="kpi-label">Đã xuất bản</span>
-            <div className="kpi-icon-wrap" style={{ background: 'rgba(2, 132, 199, 0.08)', color: '#0284c7' }}>
-              <BookOpen size={20} />
-            </div>
-          </div>
-          <div className="kpi-value-row">
-            <span className="kpi-num">{publishedCount}</span>
-            <span className="kpi-comparison">Đang phục vụ học tập</span>
-          </div>
-        </div>
-      </div>
+      {/* 4 KPIs Summary Strip */}
+      <SummaryStrip items={reviewKPIs} ariaLabel="Thống kê nhanh hàng đợi phê duyệt" />
 
       {/* Filter Bar */}
       <div className="admin-filter-bar">
@@ -276,8 +231,8 @@ export const ContentReviewPage: React.FC = () => {
         )}
       </div>
 
-      {/* Table */}
-      <div className="staff-table-wrapper">
+      {/* Table & Mobile Cards */}
+      <div className="staff-table-wrapper has-mobile-cards">
         {loading ? (
           <div style={{ padding: '24px' }}>
             <Skeleton height={48} />
@@ -288,7 +243,8 @@ export const ContentReviewPage: React.FC = () => {
             description="Tất cả bài học và bài thu hoạch đều đã được xử lý hoặc chưa có nội dung gửi duyệt mới."
           />
         ) : (
-          <table className="staff-table">
+          <>
+            <table className="staff-table">
             <thead>
               <tr>
                 <th>Tiêu đề nội dung</th>
@@ -404,7 +360,13 @@ export const ContentReviewPage: React.FC = () => {
               ))}
             </tbody>
           </table>
-        )}
+          <ReviewCardList
+            approvals={filteredApprovals}
+            onApprove={handleQuickApprove}
+            onOpenModal={handleOpenActionModal}
+          />
+        </>
+      )}
       </div>
 
       {/* Modal Từ chối / Yêu cầu chỉnh sửa */}

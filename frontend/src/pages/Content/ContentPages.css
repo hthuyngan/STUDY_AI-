@@ -382,6 +382,30 @@
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
   z-index: 10;
   border-radius: 0 0 10px 10px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .editor-sticky-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .editor-sticky-bar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .editor-sticky-bar-actions .staff-btn {
+    flex: 1;
+    min-width: 90px;
+    font-size: 11.5px;
+    padding: 0 8px;
+  }
 }
 
 .editor-form-section {

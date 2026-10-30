@@ -8,8 +8,6 @@ import {
   Trash2,
   Calendar,
   CheckCircle2,
-  Clock,
-  BookOpen,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { classroomService } from '@/services/classroom.service'
@@ -20,6 +18,8 @@ import type {
 } from '@/types/classroom'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { SummaryStrip } from '@/components/ui/SummaryStrip'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import './TeacherPages.css'
 import '../Admin/AdminPages.css'
 import '@/components/admin/AdminComponents.css'
@@ -37,6 +37,8 @@ export const TeacherAssignmentsPage: React.FC = () => {
   // Modal
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingAssignment, setEditingAssignment] = useState<AdminAssignmentItem | null>(null)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [deletingAssignment, setDeletingAssignment] = useState<AdminAssignmentItem | null>(null)
   const [formData, setFormData] = useState({
     title: '',
     classId: '',
@@ -171,17 +173,30 @@ export const TeacherAssignmentsPage: React.FC = () => {
     }
   }
 
-  const handleDelete = async (asg: AdminAssignmentItem) => {
-    if (window.confirm(`Bạn có chắc chắn muốn xóa bài tập "${asg.title}"?`)) {
-      try {
-        await classroomService.deleteAssignment(asg.id)
-        showToast(`Đã xóa bài tập: ${asg.title}`)
-        loadData()
-      } catch (err: unknown) {
-        if (err instanceof Error) alert(err.message)
-      }
+  const handleDelete = (asg: AdminAssignmentItem) => {
+    setDeletingAssignment(asg)
+    setDeleteConfirmOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingAssignment) return
+    try {
+      await classroomService.deleteAssignment(deletingAssignment.id)
+      showToast(`Đã xóa bài tập: ${deletingAssignment.title}`)
+      setDeleteConfirmOpen(false)
+      setDeletingAssignment(null)
+      loadData()
+    } catch (err: unknown) {
+      if (err instanceof Error) alert(err.message)
     }
   }
+
+  const assignmentKPIs = useMemo(() => [
+    { id: 'total', label: 'Tổng số bài tập', value: totalAssignments, color: 'var(--navy-primary, #102a43)' },
+    { id: 'active', label: 'Đang mở nộp', value: activeCount, color: '#16a34a' },
+    { id: 'closed', label: 'Đã đóng', value: closedCount, color: '#64748b' },
+    { id: 'rate', label: 'Tỷ lệ nộp trung bình', value: `${avgSubmissionRate}%`, color: '#0284c7' },
+  ], [totalAssignments, activeCount, closedCount, avgSubmissionRate])
 
   return (
     <div className="admin-page-container">
@@ -224,60 +239,8 @@ export const TeacherAssignmentsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 4 KPIs */}
-      <div className="admin-kpi-grid">
-        <div className="admin-kpi-card">
-          <div className="kpi-top-row">
-            <span className="kpi-label">Tổng số bài tập</span>
-            <div className="kpi-icon-wrap" style={{ background: 'rgba(16, 42, 67, 0.08)', color: '#102a43' }}>
-              <FileText size={20} />
-            </div>
-          </div>
-          <div className="kpi-value-row">
-            <span className="kpi-num">{totalAssignments}</span>
-            <span className="kpi-comparison">Đã giao</span>
-          </div>
-        </div>
-
-        <div className="admin-kpi-card">
-          <div className="kpi-top-row">
-            <span className="kpi-label">Đang mở nộp</span>
-            <div className="kpi-icon-wrap" style={{ background: 'rgba(4, 120, 87, 0.08)', color: '#047857' }}>
-              <Clock size={20} />
-            </div>
-          </div>
-          <div className="kpi-value-row">
-            <span className="kpi-num">{activeCount}</span>
-            <span className="kpi-comparison">Trong hạn hoàn thành</span>
-          </div>
-        </div>
-
-        <div className="admin-kpi-card">
-          <div className="kpi-top-row">
-            <span className="kpi-label">Đã kết thúc</span>
-            <div className="kpi-icon-wrap" style={{ background: 'rgba(100, 116, 139, 0.08)', color: '#64748b' }}>
-              <BookOpen size={20} />
-            </div>
-          </div>
-          <div className="kpi-value-row">
-            <span className="kpi-num">{closedCount}</span>
-            <span className="kpi-comparison">Đã khóa bài</span>
-          </div>
-        </div>
-
-        <div className="admin-kpi-card">
-          <div className="kpi-top-row">
-            <span className="kpi-label">Tỷ lệ nộp trung bình</span>
-            <div className="kpi-icon-wrap" style={{ background: 'rgba(2, 132, 199, 0.08)', color: '#0284c7' }}>
-              <CheckCircle2 size={20} />
-            </div>
-          </div>
-          <div className="kpi-value-row">
-            <span className="kpi-num">{avgSubmissionRate}%</span>
-            <span className="kpi-comparison">{totalSubmissions}/{totalExpected} bài nộp</span>
-          </div>
-        </div>
-      </div>
+      {/* 4 KPIs Summary Strip */}
+      <SummaryStrip items={assignmentKPIs} ariaLabel="Thống kê nhanh bài tập" />
 
       {/* Filters */}
       <div className="admin-filter-bar">
@@ -641,6 +604,21 @@ export const TeacherAssignmentsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmDialog
+        isOpen={deleteConfirmOpen}
+        title="Xác nhận xóa bài tập"
+        message={`Bạn có chắc chắn muốn xóa bài tập "${deletingAssignment?.title}"? Dữ liệu bài nộp liên quan cũng sẽ bị ảnh hưởng.`}
+        confirmText="Xác nhận xóa"
+        cancelText="Hủy bỏ"
+        variant="danger"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => {
+          setDeleteConfirmOpen(false)
+          setDeletingAssignment(null)
+        }}
+      />
     </div>
   )
 }

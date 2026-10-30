@@ -1,11 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import {
-  Award,
   Search,
   Download,
   CheckCircle2,
-  TrendingUp,
-  Percent,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { classroomService } from '@/services/classroom.service'
@@ -16,6 +13,7 @@ import type {
 } from '@/types/classroom'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { SummaryStrip } from '@/components/ui/SummaryStrip'
 import './TeacherPages.css'
 import '../Admin/AdminPages.css'
 import '@/components/admin/AdminComponents.css'
@@ -144,6 +142,13 @@ export const TeacherGradesPage: React.FC = () => {
     showToast('Đã xuất bảng điểm học tập (CSV) thành công')
   }
 
+  const gradeKPIs = useMemo(() => [
+    { id: 'avg', label: 'Điểm TB toàn khóa', value: avgScore, color: 'var(--navy-primary, #102a43)' },
+    { id: 'pass', label: 'Tỷ lệ đạt chuẩn (>= 5.0)', value: `${passRate}%`, color: '#16a34a' },
+    { id: 'excellent', label: 'Tỷ lệ xuất sắc (>= 8.0)', value: `${excellentRate}%`, color: '#0284c7' },
+    { id: 'total', label: 'Tổng lượt đánh giá', value: totalRecords, color: '#d97706' },
+  ], [avgScore, passRate, excellentRate, totalRecords])
+
   return (
     <div className="admin-page-container">
       {/* Toast */}
@@ -177,63 +182,11 @@ export const TeacherGradesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 4 KPIs */}
-      <div className="admin-kpi-grid">
-        <div className="admin-kpi-card">
-          <div className="kpi-top-row">
-            <span className="kpi-label">Điểm TB toàn khóa</span>
-            <div className="kpi-icon-wrap" style={{ background: 'rgba(16, 42, 67, 0.08)', color: '#102a43' }}>
-              <Award size={20} />
-            </div>
-          </div>
-          <div className="kpi-value-row">
-            <span className="kpi-num">{avgScore}</span>
-            <span className="kpi-comparison">Thang điểm 10</span>
-          </div>
-        </div>
-
-        <div className="admin-kpi-card">
-          <div className="kpi-top-row">
-            <span className="kpi-label">Tỷ lệ đạt chuẩn (&gt;= 5.0)</span>
-            <div className="kpi-icon-wrap" style={{ background: 'rgba(4, 120, 87, 0.08)', color: '#047857' }}>
-              <Percent size={20} />
-            </div>
-          </div>
-          <div className="kpi-value-row">
-            <span className="kpi-num">{passRate}%</span>
-            <span className="kpi-comparison">{passedCount} / {totalRecords} bài làm</span>
-          </div>
-        </div>
-
-        <div className="admin-kpi-card">
-          <div className="kpi-top-row">
-            <span className="kpi-label">Tỷ lệ xuất sắc (&gt;= 8.0)</span>
-            <div className="kpi-icon-wrap" style={{ background: 'rgba(2, 132, 199, 0.08)', color: '#0284c7' }}>
-              <TrendingUp size={20} />
-            </div>
-          </div>
-          <div className="kpi-value-row">
-            <span className="kpi-num">{excellentRate}%</span>
-            <span className="kpi-comparison">{excellentCount} lượt đạt giỏi</span>
-          </div>
-        </div>
-
-        <div className="admin-kpi-card">
-          <div className="kpi-top-row">
-            <span className="kpi-label">Tổng lượt đánh giá</span>
-            <div className="kpi-icon-wrap" style={{ background: 'rgba(244, 185, 66, 0.15)', color: '#b45309' }}>
-              <Award size={20} />
-            </div>
-          </div>
-          <div className="kpi-value-row">
-            <span className="kpi-num">{totalRecords}</span>
-            <span className="kpi-comparison">Bài nộp & Thu hoạch</span>
-          </div>
-        </div>
-      </div>
+      {/* 4 KPIs Summary Strip */}
+      <SummaryStrip items={gradeKPIs} ariaLabel="Thống kê nhanh sổ điểm" />
 
       {/* Phổ điểm phân bố */}
-      <div className="admin-card" style={{ padding: 20, marginBottom: 24 }}>
+      <div className="admin-card" style={{ padding: 16, marginBottom: 16 }}>
         <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#102a43', margin: '0 0 16px 0' }}>
           Phổ điểm phân bố các lớp
         </h3>

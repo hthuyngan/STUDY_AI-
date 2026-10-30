@@ -1,19 +1,17 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import {
-  Users,
   Search,
   Download,
   Eye,
   MoveRight,
-  Award,
   CheckCircle2,
-  AlertTriangle,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { classroomService } from '@/services/classroom.service'
 import type { AdminClassItem, AdminStudentItem, StudentStatus } from '@/types/classroom'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { SummaryStrip } from '@/components/ui/SummaryStrip'
 import './TeacherPages.css'
 import '../Admin/AdminPages.css'
 import '@/components/admin/AdminComponents.css'
@@ -181,6 +179,13 @@ export const TeacherStudentsPage: React.FC = () => {
     showToast('Đã xuất danh sách học viên (CSV) thành công')
   }
 
+  const studentKPIs = useMemo(() => [
+    { id: 'total', label: 'Tổng học viên', value: totalStudents, color: 'var(--navy-primary, #102a43)' },
+    { id: 'onTrack', label: 'Đang học tốt', value: onTrackCount, color: '#16a34a' },
+    { id: 'needsAttention', label: 'Cần hỗ trợ', value: needsAttentionCount, color: '#dc2626' },
+    { id: 'avgScore', label: 'Điểm trung bình', value: systemAvgScore, color: '#0284c7' },
+  ], [totalStudents, onTrackCount, needsAttentionCount, systemAvgScore])
+
   return (
     <div className="admin-page-container">
       {/* Toast */}
@@ -215,60 +220,8 @@ export const TeacherStudentsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 4 KPIs */}
-      <div className="admin-kpi-grid">
-        <div className="admin-kpi-card">
-          <div className="kpi-top-row">
-            <span className="kpi-label">Tổng học viên</span>
-            <div className="kpi-icon-wrap" style={{ background: 'rgba(16, 42, 67, 0.08)', color: '#102a43' }}>
-              <Users size={20} />
-            </div>
-          </div>
-          <div className="kpi-value-row">
-            <span className="kpi-num">{totalStudents}</span>
-            <span className="kpi-comparison">Đã ghi danh</span>
-          </div>
-        </div>
-
-        <div className="admin-kpi-card">
-          <div className="kpi-top-row">
-            <span className="kpi-label">Đang học tốt</span>
-            <div className="kpi-icon-wrap" style={{ background: 'rgba(4, 120, 87, 0.08)', color: '#047857' }}>
-              <Award size={20} />
-            </div>
-          </div>
-          <div className="kpi-value-row">
-            <span className="kpi-num">{onTrackCount}</span>
-            <span className="kpi-comparison">Tiến độ & Điểm đạt chuẩn</span>
-          </div>
-        </div>
-
-        <div className="admin-kpi-card">
-          <div className="kpi-top-row">
-            <span className="kpi-label">Cần hỗ trợ</span>
-            <div className="kpi-icon-wrap" style={{ background: 'rgba(220, 38, 38, 0.08)', color: '#dc2626' }}>
-              <AlertTriangle size={20} />
-            </div>
-          </div>
-          <div className="kpi-value-row">
-            <span className="kpi-num" style={{ color: '#dc2626' }}>{needsAttentionCount}</span>
-            <span className="kpi-comparison">Tiến độ &lt; 50% hoặc ĐTB &lt; 6.5</span>
-          </div>
-        </div>
-
-        <div className="admin-kpi-card">
-          <div className="kpi-top-row">
-            <span className="kpi-label">Điểm trung bình</span>
-            <div className="kpi-icon-wrap" style={{ background: 'rgba(2, 132, 199, 0.08)', color: '#0284c7' }}>
-              <Award size={20} />
-            </div>
-          </div>
-          <div className="kpi-value-row">
-            <span className="kpi-num">{systemAvgScore}</span>
-            <span className="kpi-comparison">Thang điểm 10</span>
-          </div>
-        </div>
-      </div>
+      {/* 4 KPIs Summary Strip */}
+      <SummaryStrip items={studentKPIs} ariaLabel="Thống kê nhanh học viên" />
 
       {/* Filter Bar */}
       <div className="admin-filter-bar">

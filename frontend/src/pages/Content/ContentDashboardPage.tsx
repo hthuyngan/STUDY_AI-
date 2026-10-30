@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom'
 import { useContentDashboard } from '@/hooks/useContent'
-import { StaffMetricCard } from '@/components/ui/StaffMetricCard'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { PageErrorState } from '@/components/ui/PageErrorState'
+import { SummaryStrip } from '@/components/ui/SummaryStrip'
 import './ContentPages.css'
 
 export function ContentDashboardPage() {
@@ -14,11 +14,8 @@ export function ContentDashboardPage() {
     return (
       <div className="staff-page">
         <Skeleton height={36} width={260} />
-        <div className="staff-metrics-grid" style={{ marginTop: '20px' }}>
-          <Skeleton height={96} />
-          <Skeleton height={96} />
-          <Skeleton height={96} />
-          <Skeleton height={96} />
+        <div style={{ marginTop: '14px' }}>
+          <Skeleton height={46} />
         </div>
       </div>
     )
@@ -31,6 +28,13 @@ export function ContentDashboardPage() {
       </div>
     )
   }
+
+  const contentKPIs = [
+    { id: 'draft', label: 'Bài học bản nháp', value: data.draftCount, color: '#64748b' },
+    { id: 'review', label: 'Chờ duyệt chất lượng', value: data.needsReviewCount, color: '#d97706' },
+    { id: 'published', label: 'Xuất bản tuần này', value: data.publishedThisWeek, color: '#16a34a' },
+    { id: 'coverage', label: 'Độ phủ bài thu hoạch', value: `${data.assessmentCoveragePercent}%`, color: '#0284c7' },
+  ]
 
   return (
     <div className="staff-page">
@@ -50,30 +54,9 @@ export function ContentDashboardPage() {
         </div>
       </div>
 
-      <div className="staff-metrics-grid">
-        <StaffMetricCard
-          label="Bài học bản nháp"
-          value={data.draftCount}
-          hint="Đang trong tiến trình soạn thảo"
-        />
-        <StaffMetricCard
-          label="Chờ duyệt chất lượng"
-          value={data.needsReviewCount}
-          hint="Cần biên tập viên phê duyệt"
-        />
-        <StaffMetricCard
-          label="Xuất bản tuần này"
-          value={data.publishedThisWeek}
-          hint="Đã phát hành cho học sinh"
-        />
-        <StaffMetricCard
-          label="Độ phủ bài thu hoạch"
-          value={`${data.assessmentCoveragePercent}%`}
-          hint="Tỷ lệ bài học có bài tập kèm"
-        />
-      </div>
+      <SummaryStrip items={contentKPIs} ariaLabel="Thống kê tổng quan biên tập nội dung" />
 
-      <div className="staff-dashboard-grid" style={{ marginTop: '24px' }}>
+      <div className="staff-dashboard-grid" style={{ marginTop: '16px' }}>
         <div className="staff-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h2 className="staff-card-title" style={{ margin: 0 }}>
