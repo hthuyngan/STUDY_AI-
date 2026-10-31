@@ -70,6 +70,27 @@ Dưới đây là các tấm ảnh tổng hợp độ phân giải cao, hiển t
 
 ---
 
+### 2.7. Nghiệm thu Modal "Thêm giáo viên mới" (Create Teacher Modal QA)
+
+So sánh trước và sau khi tái cấu trúc bố cục CSS Grid, chuẩn hóa label, input, select và textarea:
+
+#### Trước khi sửa (Modal vỡ bố cục, label dính input, lệch cột)
+![Before Fix](interactions/admin_add_teacher_before.png)
+
+#### Sau khi sửa — Desktop Viewport (1440 × 900 px)
+![After Desktop](interactions/admin_add_teacher_after_desktop.png)
+
+#### Sau khi sửa — Tablet Viewport (768 × 1024 px)
+![After Tablet](interactions/admin_add_teacher_after_tablet.png)
+
+#### Sau khi sửa — Mobile Viewport (390 × 844 px)
+![After Mobile](interactions/admin_add_teacher_after_mobile.png)
+
+#### Trạng thái Báo lỗi Form Validation
+![Validation Error](interactions/admin_add_teacher_validation.png)
+
+---
+
 ## 3. CẤU TRÚC THƯ MỤC VÀ LIÊN KẾT ẢNH GỐC
 
 ```text

@@ -1063,16 +1063,58 @@
 }
 
 /* ── Form Controls inside Dialog ───────────────────────────────────────── */
-.admin-form-group {
+.admin-form-group,
+.form-group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  min-width: 0;
+  gap: 6px;
 }
 
-.admin-form-label {
+.admin-form-label,
+.form-label {
+  display: block;
   font-size: 12px;
   font-weight: 600;
   color: var(--staff-text-main, #102a43);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 0.875rem;
+  color: var(--staff-text-main, #102a43);
+  background-color: var(--staff-surface, #ffffff);
+  border: 1px solid var(--staff-border, #e2e8f0);
+  border-radius: var(--staff-radius-sm, 6px);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  outline: none;
+}
+
+.form-input,
+.form-select {
+  height: 38px;
+  padding: 0 12px;
+}
+
+.form-textarea {
+  min-height: 80px;
+  padding: 8px 12px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  border-color: var(--staff-navy-primary, #102a43);
+  box-shadow: 0 0 0 3px rgba(16, 42, 67, 0.1);
 }
 
 .admin-form-row {

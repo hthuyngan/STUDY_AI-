@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { X, UserPlus } from 'lucide-react'
+import React, { useState, useEffect, useCallback } from 'react'
+import { X, UserPlus, AlertCircle } from 'lucide-react'
 
 export interface CreateTeacherModalProps {
   isOpen: boolean
@@ -34,27 +34,28 @@ export const CreateTeacherModal: React.FC<CreateTeacherModalProps> = ({
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // ESC key to close modal
-  useEffect(() => {
-    if (!isOpen) return
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !isSubmitting) {
-        onClose()
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, isSubmitting, onClose])
-
-  if (!isOpen) return null
-
-  const handleModalClose = () => {
+  const handleModalClose = useCallback(() => {
+    if (isSubmitting) return
     setName('')
     setEmail('')
     setPhone('')
     setError(null)
     onClose()
-  }
+  }, [isSubmitting, onClose])
+
+  // ESC key to close modal
+  useEffect(() => {
+    if (!isOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isSubmitting) {
+        handleModalClose()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, isSubmitting, handleModalClose])
+
+  if (!isOpen) return null
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -83,7 +84,7 @@ export const CreateTeacherModal: React.FC<CreateTeacherModalProps> = ({
         subject,
         classes: classes.length > 0 ? classes : ['12A1'],
         qualifications: qualifications.trim(),
-        experienceYears: Number(experienceYears) || 0,
+        experienceYears: Math.max(0, Number(experienceYears) || 0),
         status,
         bio: bio.trim(),
       })
@@ -96,7 +97,7 @@ export const CreateTeacherModal: React.FC<CreateTeacherModalProps> = ({
   }
 
   return (
-    <div className="admin-dialog-backdrop" onClick={onClose} role="presentation">
+    <div className="admin-dialog-backdrop" onClick={handleModalClose} role="presentation">
       <div
         className="admin-dialog-card teacher-modal-card"
         onClick={(e) => e.stopPropagation()}
@@ -104,6 +105,7 @@ export const CreateTeacherModal: React.FC<CreateTeacherModalProps> = ({
         aria-modal="true"
         aria-labelledby="create-teacher-title"
       >
+        {/* Modal Header */}
         <div className="admin-dialog-header">
           <div className="admin-dialog-title-wrap">
             <span className="admin-form-icon-wrap" aria-hidden="true">
@@ -116,7 +118,7 @@ export const CreateTeacherModal: React.FC<CreateTeacherModalProps> = ({
           <button
             type="button"
             className="admin-dialog-close"
-            onClick={onClose}
+            onClick={handleModalClose}
             aria-label="Đóng hộp thoại"
             disabled={isSubmitting}
           >
@@ -124,68 +126,85 @@ export const CreateTeacherModal: React.FC<CreateTeacherModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="admin-dialog-body">
+        {/* Modal Form Body */}
+        <form onSubmit={handleSubmit} noValidate>
+          <div className="admin-dialog-body teacher-modal-body">
             {error && (
               <div className="teacher-form-error" role="alert">
-                {error}
+                <AlertCircle size={16} aria-hidden="true" style={{ flexShrink: 0 }} />
+                <span>{error}</span>
               </div>
             )}
 
-            <div className="form-group">
-              <label className="form-label" htmlFor="create-tch-name">
-                Họ và tên giáo viên <span className="text-danger">*</span>
-              </label>
-              <input
-                id="create-tch-name"
-                type="text"
-                className="form-input"
-                placeholder="Ví dụ: ThS. Nguyễn Hoàng Nam"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </div>
+            <div className="teacher-form-grid">
+              {/* Họ và tên giáo viên — full width */}
+              <div className="teacher-form-field teacher-form-field--full">
+                <label className="teacher-form-label" htmlFor="create-tch-name">
+                  Họ và tên giáo viên
+                  <span className="teacher-required-star" aria-hidden="true">*</span>
+                </label>
+                <input
+                  id="create-tch-name"
+                  name="name"
+                  type="text"
+                  className="teacher-form-input"
+                  placeholder="Ví dụ: ThS. Nguyễn Hoàng Nam"
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value)
+                    if (error) setError(null)
+                  }}
+                  required
+                  autoFocus
+                />
+              </div>
 
-            <div className="form-row-2">
-              <div className="form-group">
-                <label className="form-label" htmlFor="create-tch-email">
-                  Địa chỉ Email <span className="text-danger">*</span>
+              {/* Địa chỉ Email — Cột 1 */}
+              <div className="teacher-form-field">
+                <label className="teacher-form-label" htmlFor="create-tch-email">
+                  Địa chỉ Email
+                  <span className="teacher-required-star" aria-hidden="true">*</span>
                 </label>
                 <input
                   id="create-tch-email"
+                  name="email"
                   type="email"
-                  className="form-input"
+                  className="teacher-form-input"
                   placeholder="giaovien@studyai.edu.vn"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value)
+                    if (error) setError(null)
+                  }}
                   required
                 />
               </div>
 
-              <div className="form-group">
-                <label className="form-label" htmlFor="create-tch-phone">
+              {/* Số điện thoại — Cột 2 */}
+              <div className="teacher-form-field">
+                <label className="teacher-form-label" htmlFor="create-tch-phone">
                   Số điện thoại
                 </label>
                 <input
                   id="create-tch-phone"
-                  type="text"
-                  className="form-input"
+                  name="phone"
+                  type="tel"
+                  className="teacher-form-input"
                   placeholder="0912 345 678"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                 />
               </div>
-            </div>
 
-            <div className="form-row-2">
-              <div className="form-group">
-                <label className="form-label" htmlFor="create-tch-subject">
+              {/* Bộ môn phụ trách — Cột 1 */}
+              <div className="teacher-form-field">
+                <label className="teacher-form-label" htmlFor="create-tch-subject">
                   Bộ môn phụ trách
                 </label>
                 <select
                   id="create-tch-subject"
-                  className="form-select"
+                  name="subject"
+                  className="teacher-form-select"
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                 >
@@ -197,13 +216,15 @@ export const CreateTeacherModal: React.FC<CreateTeacherModalProps> = ({
                 </select>
               </div>
 
-              <div className="form-group">
-                <label className="form-label" htmlFor="create-tch-status">
+              {/* Trạng thái giảng dạy — Cột 2 */}
+              <div className="teacher-form-field">
+                <label className="teacher-form-label" htmlFor="create-tch-status">
                   Trạng thái giảng dạy
                 </label>
                 <select
                   id="create-tch-status"
-                  className="form-select"
+                  name="status"
+                  className="teacher-form-select"
                   value={status}
                   onChange={(e) => setStatus(e.target.value as 'active' | 'pending' | 'inactive')}
                 >
@@ -212,73 +233,84 @@ export const CreateTeacherModal: React.FC<CreateTeacherModalProps> = ({
                   <option value="inactive">Tạm ngừng</option>
                 </select>
               </div>
-            </div>
 
-            <div className="form-row-2">
-              <div className="form-group">
-                <label className="form-label" htmlFor="create-tch-classes">
-                  Lớp phụ trách (ngăn cách bởi dấu phẩy)
+              {/* Lớp phụ trách — Cột 1 (với helper text bên dưới) */}
+              <div className="teacher-form-field">
+                <label className="teacher-form-label" htmlFor="create-tch-classes">
+                  Lớp phụ trách
                 </label>
                 <input
                   id="create-tch-classes"
+                  name="classes"
                   type="text"
-                  className="form-input"
+                  className="teacher-form-input"
                   placeholder="12A1, 12A2"
                   value={classesInput}
                   onChange={(e) => setClassesInput(e.target.value)}
+                  aria-describedby="create-tch-classes-helper"
                 />
+                <span id="create-tch-classes-helper" className="teacher-form-helper">
+                  Nhập nhiều lớp, ngăn cách bằng dấu phẩy. Ví dụ: 12A1, 12A2.
+                </span>
               </div>
 
-              <div className="form-group">
-                <label className="form-label" htmlFor="create-tch-exp">
+              {/* Kinh nghiệm (năm) — Cột 2 */}
+              <div className="teacher-form-field">
+                <label className="teacher-form-label" htmlFor="create-tch-exp">
                   Kinh nghiệm (năm)
                 </label>
                 <input
                   id="create-tch-exp"
+                  name="experienceYears"
                   type="number"
                   min="0"
                   max="45"
-                  className="form-input"
+                  className="teacher-form-input"
                   value={experienceYears}
-                  onChange={(e) => setExperienceYears(Number(e.target.value))}
+                  onChange={(e) => setExperienceYears(Math.max(0, Number(e.target.value) || 0))}
+                />
+              </div>
+
+              {/* Bằng cấp / Học vị — full width */}
+              <div className="teacher-form-field teacher-form-field--full">
+                <label className="teacher-form-label" htmlFor="create-tch-qual">
+                  Bằng cấp / Học vị
+                </label>
+                <input
+                  id="create-tch-qual"
+                  name="qualifications"
+                  type="text"
+                  className="teacher-form-input"
+                  placeholder="Ví dụ: ThS. Phương pháp Giảng dạy Toán"
+                  value={qualifications}
+                  onChange={(e) => setQualifications(e.target.value)}
+                />
+              </div>
+
+              {/* Giới thiệu ngắn / Tiểu sử — full width */}
+              <div className="teacher-form-field teacher-form-field--full">
+                <label className="teacher-form-label" htmlFor="create-tch-bio">
+                  Giới thiệu ngắn / Tiểu sử
+                </label>
+                <textarea
+                  id="create-tch-bio"
+                  name="bio"
+                  rows={3}
+                  className="teacher-form-textarea"
+                  placeholder="Mô tả kinh nghiệm, phương pháp giảng dạy..."
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
                 />
               </div>
             </div>
-
-            <div className="form-group">
-              <label className="form-label" htmlFor="create-tch-qual">
-                Bằng cấp / Học vị
-              </label>
-              <input
-                id="create-tch-qual"
-                type="text"
-                className="form-input"
-                placeholder="Ví dụ: Thạc sĩ Phương pháp Giảng dạy Toán"
-                value={qualifications}
-                onChange={(e) => setQualifications(e.target.value)}
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label" htmlFor="create-tch-bio">
-                Giới thiệu ngắn / Tiểu sử
-              </label>
-              <textarea
-                id="create-tch-bio"
-                rows={2}
-                className="form-textarea"
-                placeholder="Mô tả kinh nghiệm, phương pháp giảng dạy..."
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-              />
-            </div>
           </div>
 
+          {/* Modal Footer */}
           <div className="admin-dialog-footer">
             <button
               type="button"
               className="btn btn-secondary"
-              onClick={onClose}
+              onClick={handleModalClose}
               disabled={isSubmitting}
             >
               Hủy bỏ
