@@ -235,7 +235,7 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
       },
       {
         id: 'curriculum',
-        title: 'GIÁO TRÌNH',
+        title: 'QUẢN LÝ HỌC TẬP',
         items: [
           {
             id: 'content-subjects',
@@ -255,12 +255,6 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
             path: '/content/lessons',
             icon: FileText,
           },
-        ],
-      },
-      {
-        id: 'assessments-group',
-        title: 'ĐÁNH GIÁ',
-        items: [
           {
             id: 'content-assessments',
             label: 'Bài thu hoạch',
@@ -271,7 +265,7 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
       },
       {
         id: 'editorial',
-        title: 'KIỂM DUYỆT',
+        title: 'BIÊN TẬP & XUẤT BẢN',
         items: [
           {
             id: 'content-review',

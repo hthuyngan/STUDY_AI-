@@ -1,5 +1,6 @@
 import { mockLessonsDetail } from '@/data/lessons.mock'
 import { mockSubjectDetails } from '@/data/subjects.mock'
+import { educationService } from '@/services/education.service'
 import { LESSON_PROGRESS_STORAGE_KEY } from '@/services/lessonProgress.service'
 import type { LessonProgressState } from '@/types/assessment'
 import type { CourseOutlineChapter, LessonDetail } from '@/types/lesson'
@@ -27,8 +28,44 @@ export async function getLesson(courseOrSubjectId: string, lessonId: string): Pr
   const progressMap = getSavedLessonProgressMap()
   const savedProgress = progressMap[lessonId]
 
+  // Verify Content Workspace publication status
+  const eduLesson = await educationService.getLessonById(lessonId)
+  if (eduLesson && eduLesson.status !== 'published') {
+    return null
+  }
+
   const lesson = mockLessonsDetail[lessonId]
   if (!lesson) {
+    if (eduLesson) {
+      return {
+        id: eduLesson.id,
+        courseId: courseOrSubjectId,
+        courseTitle: `Giáo trình ${eduLesson.subjectName}`,
+        subjectId: eduLesson.subjectId,
+        subjectName: eduLesson.subjectName,
+        chapterId: eduLesson.chapterId,
+        chapterTitle: eduLesson.chapterName,
+        lessonNumber: eduLesson.order || 1,
+        title: eduLesson.title,
+        durationMinutes: 45,
+        xp: 50,
+        isCompleted: savedProgress ? savedProgress.overallProgress === 100 : false,
+        content: {
+          introduction: `Bài học ${eduLesson.title} thuộc giáo trình ${eduLesson.subjectName}.`,
+          definitions: [
+            {
+              term: 'Kiến thức cốt lõi',
+              content: 'Nội dung bài học chuẩn hóa đã xuất bản và lưu trữ trong hệ thống.',
+            },
+          ],
+          formulas: [],
+          examples: [],
+          importantNotes: ['Ôn tập lại các ví dụ và làm bài tập thu hoạch sau khi học.'],
+          summaryPoints: ['Ghi nhớ kiến thức trọng tâm đã học.'],
+        },
+      }
+    }
+
     const subjectKey = resolveSubjectKey(courseOrSubjectId)
     const subject = mockSubjectDetails[subjectKey]
 
@@ -75,29 +112,37 @@ export async function getCourseOutline(courseOrSubjectId: string): Promise<Cours
 
   const progressMap = getSavedLessonProgressMap()
 
+  // Retrieve education lessons to respect publishing status
+  const eduLessons = await educationService.getLessons({ subjectId: subjectKey })
+  const unpublishedLessonIds = new Set(
+    eduLessons.filter((l) => l.status !== 'published').map((l) => l.id)
+  )
+
   return subject.chapters.map((chap) => ({
     id: chap.id,
     title: chap.title,
-    lessons: chap.lessons.map((l, idx) => {
-      const saved = progressMap[l.id]
-      const status: 'completed' | 'in-progress' | 'available' | 'locked' = saved
-        ? saved.overallProgress === 100
-          ? 'completed'
-          : saved.overallProgress > 0
-            ? 'in-progress'
-            : l.status === 'locked'
-              ? 'locked'
-              : 'available'
-        : l.status
+    lessons: chap.lessons
+      .filter((l) => !unpublishedLessonIds.has(l.id))
+      .map((l, idx) => {
+        const saved = progressMap[l.id]
+        const status: 'completed' | 'in-progress' | 'available' | 'locked' = saved
+          ? saved.overallProgress === 100
+            ? 'completed'
+            : saved.overallProgress > 0
+              ? 'in-progress'
+              : l.status === 'locked'
+                ? 'locked'
+                : 'available'
+          : l.status
 
-      return {
-        id: l.id,
-        lessonNumber: idx + 1,
-        title: l.title,
-        status,
-        durationMinutes: l.durationMinutes,
-      }
-    }),
+        return {
+          id: l.id,
+          lessonNumber: idx + 1,
+          title: l.title,
+          status,
+          durationMinutes: l.durationMinutes,
+        }
+      }),
   }))
 }
 
