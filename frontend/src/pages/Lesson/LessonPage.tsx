@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { Bookmark, BookmarkCheck, List, Sparkles } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Bookmark, BookmarkCheck, FileText, List, Sparkles } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import { AssessmentModal } from '@/components/assessment/AssessmentModal'
 import { LessonAssessmentCard } from '@/components/assessment/LessonAssessmentCard'
@@ -13,7 +13,9 @@ import {
   LessonSummaryBlock,
 } from '@/components/lesson/LessonBlocks'
 import { LessonBottomBar } from '@/components/lesson/LessonBottomBar'
+import { LessonNotesPanel } from '@/components/lesson/LessonNotesPanel'
 import { LessonProgressBar } from '@/components/lesson/LessonProgressBar'
+import { LessonSectionBookmarkBtn } from '@/components/lesson/LessonSectionBookmarkBtn'
 import { LessonSectionProgress } from '@/components/lesson/LessonSectionProgress'
 import { LessonSidebar } from '@/components/lesson/LessonSidebar'
 import { Breadcrumb } from '@/components/ui/Breadcrumb'
@@ -24,6 +26,9 @@ import { getMockAssessmentByLessonId } from '@/data/assessments.mock'
 import { useLesson } from '@/hooks/useLesson'
 import { useLessonAssessment } from '@/hooks/useLessonAssessment'
 import { useLessonProgress } from '@/hooks/useLessonProgress'
+import { useStudyNotes } from '@/hooks/useStudyNotes'
+import { learningProgressRepository } from '@/repositories/learningProgress.repository'
+import { lessonProgressService } from '@/services/lessonProgress.service'
 import './LessonPage.css'
 
 export function LessonPage() {
@@ -33,6 +38,7 @@ export function LessonPage() {
     lessonId: string
   }>()
   const [mobileOutlineOpen, setMobileOutlineOpen] = useState(false)
+  const [notesPanelOpen, setNotesPanelOpen] = useState(false)
 
   const resolvedSubjectId =
     paramSubjectId ||
@@ -62,6 +68,88 @@ export function LessonPage() {
   if ((lesson?.content?.examples?.length ?? 0) > 0) actualSectionIds.push('examples')
   if ((lesson?.content?.importantNotes?.length ?? 0) > 0) actualSectionIds.push('important-notes')
   if ((lesson?.content?.summaryPoints?.length ?? 0) > 0) actualSectionIds.push('summary')
+
+  const sectionsList = useMemo(() => {
+    const list: Array<{ id: string; title: string }> = []
+    if (lesson?.content?.introduction) {
+      list.push({ id: 'introduction', title: 'Mở đầu bài học' })
+    }
+    if ((lesson?.content?.definitions?.length ?? 0) > 0) {
+      list.push({ id: 'definitions', title: 'Khái niệm & Định nghĩa cơ bản' })
+    }
+    if ((lesson?.content?.formulas?.length ?? 0) > 0) {
+      list.push({ id: 'formulas', title: 'Công thức trọng tâm' })
+    }
+    if ((lesson?.content?.examples?.length ?? 0) > 0) {
+      list.push({ id: 'examples', title: 'Ví dụ mẫu & Phương pháp giải' })
+    }
+    if ((lesson?.content?.importantNotes?.length ?? 0) > 0) {
+      list.push({ id: 'important-notes', title: 'Bẫy đề thi & Lưu ý cần nhớ' })
+    }
+    if ((lesson?.content?.summaryPoints?.length ?? 0) > 0) {
+      list.push({ id: 'summary', title: 'Tổng kết kiến thức bài học' })
+    }
+    return list
+  }, [lesson])
+
+  const { notes } = useStudyNotes(lesson?.id)
+
+  const scrollToSection = useCallback((sectionId: string) => {
+    const el = document.querySelector(`[data-section-id="${sectionId}"]`)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      el.classList.add('section-highlight-active')
+      setTimeout(() => {
+        el.classList.remove('section-highlight-active')
+      }, 2600)
+      window.history.replaceState(null, '', `#${sectionId}`)
+    }
+  }, [])
+
+  // Auto restore section anchor on initial load if provided via hash or stored lastActiveSectionId
+  useEffect(() => {
+    if (!lesson) return
+    const hash = window.location.hash.replace('#', '')
+    const targetId = hash || learningProgressRepository.getByLessonId(lesson.id)?.lastActiveSectionId
+    if (targetId) {
+      const timer = setTimeout(() => {
+        scrollToSection(targetId)
+      }, 300)
+      return () => clearTimeout(timer)
+    }
+  }, [lesson, scrollToSection])
+
+  // Track active section as it enters viewport without altering content progress
+  useEffect(() => {
+    if (!lesson) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.3) {
+            const sectionId = entry.target.getAttribute('data-section-id')
+            if (sectionId) {
+              const secObj = sectionsList.find((s) => s.id === sectionId)
+              const title = secObj?.title || sectionId
+              lessonProgressService.setLastActiveSection(
+                lesson.id,
+                resolvedSubjectId,
+                sectionId,
+                title
+              )
+            }
+          }
+        })
+      },
+      { threshold: [0.3] }
+    )
+
+    const sectionEls = document.querySelectorAll('[data-section-id]')
+    sectionEls.forEach((el) => observer.observe(el))
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [lesson, resolvedSubjectId, sectionsList])
 
   // Track progress with 60% intersection & 2s dwell time
   const {
@@ -208,6 +296,16 @@ export function LessonPage() {
 
             <div className="lesson-header-right-actions">
               <Button
+                variant="outline"
+                size="sm"
+                icon={FileText}
+                onClick={() => setNotesPanelOpen((prev) => !prev)}
+                aria-label="Mở ghi chú và đoạn lưu"
+              >
+                Ghi chú {notes.length > 0 ? `(${notes.length})` : ''}
+              </Button>
+
+              <Button
                 variant="ghost"
                 size="sm"
                 icon={isBookmarked ? BookmarkCheck : Bookmark}
@@ -236,10 +334,20 @@ export function LessonPage() {
             >
               <div className="lesson-heading-row">
                 <span className="lesson-intro-tag">Mở đầu bài học</span>
-                <LessonSectionProgress
-                  progressPercent={getSectionProgress('introduction')}
-                  isCompleted={isSectionCompleted('introduction')}
-                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <LessonSectionBookmarkBtn
+                    lessonId={lesson.id}
+                    subjectId={resolvedSubjectId}
+                    lessonTitle={lesson.title}
+                    subjectName={lesson.subjectName || 'Môn học'}
+                    sectionId="introduction"
+                    sectionTitle="Mở đầu bài học"
+                  />
+                  <LessonSectionProgress
+                    progressPercent={getSectionProgress('introduction')}
+                    isCompleted={isSectionCompleted('introduction')}
+                  />
+                </div>
               </div>
               <LessonParagraph>{lesson.content.introduction}</LessonParagraph>
             </div>
@@ -254,10 +362,20 @@ export function LessonPage() {
             >
               <LessonHeading
                 extra={
-                  <LessonSectionProgress
-                    progressPercent={getSectionProgress('definitions')}
-                    isCompleted={isSectionCompleted('definitions')}
-                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <LessonSectionBookmarkBtn
+                      lessonId={lesson.id}
+                      subjectId={resolvedSubjectId}
+                      lessonTitle={lesson.title}
+                      subjectName={lesson.subjectName || 'Môn học'}
+                      sectionId="definitions"
+                      sectionTitle="Khái niệm và Định nghĩa cơ bản"
+                    />
+                    <LessonSectionProgress
+                      progressPercent={getSectionProgress('definitions')}
+                      isCompleted={isSectionCompleted('definitions')}
+                    />
+                  </div>
                 }
               >
                 1. Khái niệm và Định nghĩa cơ bản
@@ -277,10 +395,20 @@ export function LessonPage() {
             >
               <LessonHeading
                 extra={
-                  <LessonSectionProgress
-                    progressPercent={getSectionProgress('formulas')}
-                    isCompleted={isSectionCompleted('formulas')}
-                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <LessonSectionBookmarkBtn
+                      lessonId={lesson.id}
+                      subjectId={resolvedSubjectId}
+                      lessonTitle={lesson.title}
+                      subjectName={lesson.subjectName || 'Môn học'}
+                      sectionId="formulas"
+                      sectionTitle="Công thức trọng tâm"
+                    />
+                    <LessonSectionProgress
+                      progressPercent={getSectionProgress('formulas')}
+                      isCompleted={isSectionCompleted('formulas')}
+                    />
+                  </div>
                 }
               >
                 2. Công thức trọng tâm
@@ -300,10 +428,20 @@ export function LessonPage() {
             >
               <LessonHeading
                 extra={
-                  <LessonSectionProgress
-                    progressPercent={getSectionProgress('examples')}
-                    isCompleted={isSectionCompleted('examples')}
-                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <LessonSectionBookmarkBtn
+                      lessonId={lesson.id}
+                      subjectId={resolvedSubjectId}
+                      lessonTitle={lesson.title}
+                      subjectName={lesson.subjectName || 'Môn học'}
+                      sectionId="examples"
+                      sectionTitle="Ví dụ mẫu & Phương pháp giải"
+                    />
+                    <LessonSectionProgress
+                      progressPercent={getSectionProgress('examples')}
+                      isCompleted={isSectionCompleted('examples')}
+                    />
+                  </div>
                 }
               >
                 3. Ví dụ mẫu & Phương pháp giải
@@ -323,10 +461,20 @@ export function LessonPage() {
             >
               <LessonHeading
                 extra={
-                  <LessonSectionProgress
-                    progressPercent={getSectionProgress('important-notes')}
-                    isCompleted={isSectionCompleted('important-notes')}
-                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <LessonSectionBookmarkBtn
+                      lessonId={lesson.id}
+                      subjectId={resolvedSubjectId}
+                      lessonTitle={lesson.title}
+                      subjectName={lesson.subjectName || 'Môn học'}
+                      sectionId="important-notes"
+                      sectionTitle="Bẫy đề thi & Lưu ý cần nhớ"
+                    />
+                    <LessonSectionProgress
+                      progressPercent={getSectionProgress('important-notes')}
+                      isCompleted={isSectionCompleted('important-notes')}
+                    />
+                  </div>
                 }
               >
                 4. Bẫy đề thi & Lưu ý cần nhớ
@@ -344,10 +492,20 @@ export function LessonPage() {
             >
               <LessonHeading
                 extra={
-                  <LessonSectionProgress
-                    progressPercent={getSectionProgress('summary')}
-                    isCompleted={isSectionCompleted('summary')}
-                  />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <LessonSectionBookmarkBtn
+                      lessonId={lesson.id}
+                      subjectId={resolvedSubjectId}
+                      lessonTitle={lesson.title}
+                      subjectName={lesson.subjectName || 'Môn học'}
+                      sectionId="summary"
+                      sectionTitle="Tổng kết kiến thức bài học"
+                    />
+                    <LessonSectionProgress
+                      progressPercent={getSectionProgress('summary')}
+                      isCompleted={isSectionCompleted('summary')}
+                    />
+                  </div>
                 }
               >
                 5. Tổng kết kiến thức bài học
@@ -379,8 +537,22 @@ export function LessonPage() {
           isCompleted={overallProgress === 100}
           isAssessmentCompleted={isAssessmentCompleted}
           onOpenAssessment={isAssessmentCompleted ? handleViewLatestResult : handleStartAttempt}
+          onOpenNotes={() => setNotesPanelOpen(true)}
+          notesCount={notes.length}
         />
       </main>
+
+      {/* Lesson Notes & Bookmarks Right Panel */}
+      <LessonNotesPanel
+        isOpen={notesPanelOpen}
+        onClose={() => setNotesPanelOpen(false)}
+        lessonId={lesson.id}
+        subjectId={resolvedSubjectId}
+        lessonTitle={lesson.title}
+        subjectName={lesson.subjectName || 'Môn học'}
+        sections={sectionsList}
+        onScrollToSection={scrollToSection}
+      />
 
       {/* Full-screen Assessment Modal */}
       {assessment && (

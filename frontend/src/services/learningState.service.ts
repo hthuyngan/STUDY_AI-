@@ -223,6 +223,8 @@ export function buildLearningStateSnapshot(): LearningStateSnapshot {
           bestScore,
           attemptCount: lessonAttempts.length,
           totalLearningTimeMs,
+          lastActiveSectionId: lessonProgress?.lastActiveSectionId,
+          lastActiveSectionTitle: lessonProgress?.lastActiveSectionTitle,
         }
 
         lessons[curLesson.id] = lessonState
@@ -310,6 +312,8 @@ export function buildLearningStateSnapshot(): LearningStateSnapshot {
       durationMinutes: 45,
       lastActive: formatTimeAgo(l.lastActivityAt),
       isPrimary: index === 0,
+      lastActiveSectionId: l.lastActiveSectionId,
+      lastActiveSectionTitle: l.lastActiveSectionTitle,
     }
   })
 

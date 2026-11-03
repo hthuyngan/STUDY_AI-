@@ -1,5 +1,6 @@
 import { ArrowRight, Calendar, CheckCircle2, Clock, Play, Sparkles } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
+import { SubjectLearningPathSection } from '@/components/subjects/SubjectLearningPathSection'
 import { Breadcrumb } from '@/components/ui/Breadcrumb'
 import { Button } from '@/components/ui/Button'
 import { PageErrorState } from '@/components/ui/PageErrorState'
@@ -61,7 +62,7 @@ export function LearningPathPage() {
         </div>
       </header>
 
-      {/* AI Tutor Suggestion Section (Section 24) */}
+      {/* AI Tutor Suggestion Section */}
       <section className="path-ai-suggestion-box" aria-label="Gợi ý từ AI Tutor">
         <div className="ai-suggestion-icon" aria-hidden>
           <Sparkles size={18} />
@@ -155,6 +156,9 @@ export function LearningPathPage() {
           })}
         </div>
       </section>
+
+      {/* Subject-specific sequential learning path & next recommended lesson */}
+      <SubjectLearningPathSection />
     </div>
   )
 }

@@ -91,6 +91,33 @@ So sánh trước và sau khi tái cấu trúc bố cục CSS Grid, chuẩn hóa
 
 ---
 
+### 2.8. Nghiệm thu Phase 5: Personalized Learning Path & Study Notes
+
+Bằng chứng kiểm chứng thực tế cho 5 năng lực học tập cốt lõi của Phase 5:
+
+#### Dashboard với Thẻ Tiếp tục học & Vị trí Section đang dở
+![Dashboard Phase 5](screenshots/learner_dashboard_phase5_desktop.png)
+
+#### Lộ trình học tập tuần tự theo môn & Khuyến nghị bài nên học tiếp
+![Learning Path Phase 5](screenshots/learner_learning_path_phase5_desktop.png)
+
+#### Bảng Ghi chú và Đoạn lưu bài học (Lesson Notes Panel) trên Desktop
+![Lesson Notes Panel](interactions/learner_lesson_notes_panel_desktop.png)
+
+#### Khôi phục vị trí Section Anchor và Hiệu ứng Flash Highlight
+![Section Anchoring](interactions/learner_lesson_section_anchoring_desktop.png)
+
+#### Sổ tay ghi chú trung tâm (My Study Notebook - /my-notes)
+![My Notes Desktop](screenshots/learner_my_notes_page_desktop.png)
+
+#### Tab Đoạn kiến thức đã lưu trong Sổ tay
+![My Notes Bookmarks](interactions/learner_my_notes_bookmarks_desktop.png)
+
+#### Giao diện Sổ tay trên Mobile Viewport (390 × 844 px)
+![My Notes Mobile](screenshots/learner_my_notes_mobile_390.png)
+
+---
+
 ## 3. CẤU TRÚC THƯ MỤC VÀ LIÊN KẾT ẢNH GỐC
 
 ```text

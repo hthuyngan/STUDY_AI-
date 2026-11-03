@@ -9,6 +9,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { PageErrorState } from '@/components/ui/PageErrorState'
 import { Progress } from '@/components/ui/Progress'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { learningProgressRepository } from '@/repositories/learningProgress.repository'
 import { useSubjectDetail } from '@/hooks/useSubjects'
 import type { LessonFilter } from '@/types/subject'
 import './SubjectDetailPage.css'
@@ -242,9 +243,11 @@ export function SubjectDetailPage() {
                 variant="primary"
                 icon={Play}
                 fullWidth
-                onClick={() =>
-                  navigate(`/subjects/${subject.id}/lessons/${primaryContinueLesson.id}`)
-                }
+                onClick={() => {
+                  const secId = learningProgressRepository.getByLessonId(primaryContinueLesson.id)?.lastActiveSectionId
+                  const hash = secId ? `#${secId}` : ''
+                  navigate(`/subjects/${subject.id}/lessons/${primaryContinueLesson.id}${hash}`)
+                }}
               >
                 Tiếp tục bài đang học
               </Button>

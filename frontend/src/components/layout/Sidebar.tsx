@@ -1,6 +1,7 @@
 import {
   Atom,
   Award,
+  BookMarked,
   Bot,
   ChevronLeft,
   ChevronRight,
@@ -104,6 +105,13 @@ export function Sidebar({
               to="/subjects"
               label="Môn học"
               icon={Layers}
+              collapsed={collapsed}
+              onClick={onCloseMobile}
+            />
+            <SidebarItem
+              to="/my-notes"
+              label="Sổ tay ghi chú"
+              icon={BookMarked}
               collapsed={collapsed}
               onClick={onCloseMobile}
             />

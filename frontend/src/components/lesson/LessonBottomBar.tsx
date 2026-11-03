@@ -1,4 +1,4 @@
-import { Award, Bot, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Award, Bot, ChevronLeft, ChevronRight, FileText } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import './LessonBottomBar.css'
@@ -13,6 +13,8 @@ export interface LessonBottomBarProps {
   isCompleted?: boolean
   isAssessmentCompleted?: boolean
   onOpenAssessment?: () => void
+  onOpenNotes?: () => void
+  notesCount?: number
 }
 
 export function LessonBottomBar({
@@ -24,6 +26,8 @@ export function LessonBottomBar({
   nextLessonId,
   isAssessmentCompleted,
   onOpenAssessment,
+  onOpenNotes,
+  notesCount = 0,
 }: LessonBottomBarProps) {
   const navigate = useNavigate()
 
@@ -58,15 +62,25 @@ export function LessonBottomBar({
         )}
       </div>
 
-      {/* CENTER: Hỏi AI về bài này */}
+      {/* CENTER: Ghi chú & Hỏi AI về bài này */}
       <div className="bottom-bar-center">
+        {onOpenNotes && (
+          <Button
+            variant="outline"
+            icon={FileText}
+            onClick={onOpenNotes}
+            className="notes-bottom-btn"
+          >
+            Ghi chú {notesCount > 0 ? `(${notesCount})` : ''}
+          </Button>
+        )}
         <Button
           variant="outline"
           icon={Bot}
           onClick={handleAskAI}
           className="ask-ai-btn"
         >
-          Hỏi AI về bài này
+          Hỏi AI
         </Button>
       </div>
 

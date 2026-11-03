@@ -45,6 +45,8 @@ export interface ContinueLessonItem {
   durationMinutes: number
   lastActive: string
   isPrimary?: boolean
+  lastActiveSectionId?: string
+  lastActiveSectionTitle?: string
 }
 
 export interface SubjectProgressItemData {

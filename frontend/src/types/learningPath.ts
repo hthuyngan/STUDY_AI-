@@ -30,3 +30,42 @@ export interface LearningPathData {
   stages: LearningPathStage[]
   aiSuggestion: AISuggestion
 }
+
+export type LessonPathStatus = 'not-started' | 'in-progress' | 'completed' | 'recommended'
+
+export interface LearningPathLessonItem {
+  id: string
+  subjectId: string
+  chapterId: string
+  chapterTitle: string
+  title: string
+  order: number
+  durationMinutes: number
+  xp: number
+  status: LessonPathStatus
+  progress: number
+  isRecommendedNext?: boolean
+  lastActiveSectionId?: string
+}
+
+export interface LearningPathChapterItem {
+  id: string
+  title: string
+  order: number
+  totalLessons: number
+  completedLessons: number
+  progressPercent: number
+  lessons: LearningPathLessonItem[]
+}
+
+export interface SubjectLearningPath {
+  subjectId: string
+  subjectName: string
+  grade: string
+  totalLessons: number
+  completedLessons: number
+  overallProgress: number
+  recommendedLesson: LearningPathLessonItem | null
+  chapters: LearningPathChapterItem[]
+  allCompleted: boolean
+}

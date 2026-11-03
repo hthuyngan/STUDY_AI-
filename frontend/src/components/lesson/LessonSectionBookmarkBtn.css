@@ -1,0 +1,42 @@
+.lesson-section-bookmark-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: 1px solid var(--border-default, #cbd5e1);
+  padding: 4px 8px;
+  border-radius: var(--radius-md, 6px);
+  font-size: var(--text-xs, 12px);
+  font-weight: var(--font-medium, 500);
+  color: var(--text-secondary, #627d98);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.lesson-section-bookmark-btn:hover {
+  background: var(--surface-muted, #f1f5f9);
+  color: var(--text-primary, #102a43);
+  border-color: var(--border-strong, #94a3b8);
+}
+
+.lesson-section-bookmark-btn.is-bookmarked {
+  background: var(--primary-50, #ebf8ff);
+  color: var(--primary-600, #173f5f);
+  border-color: var(--primary-300, #90cdf4);
+  font-weight: var(--font-semibold, 600);
+}
+
+.lesson-section-bookmark-btn.is-bookmarked:hover {
+  background: #e2f1fd;
+}
+
+.lesson-section-bookmark-btn .bookmark-label {
+  display: inline-block;
+}
+
+@media (max-width: 640px) {
+  .lesson-section-bookmark-btn .bookmark-label {
+    display: none;
+  }
+}
+

@@ -8,6 +8,7 @@ import QuizPage from '@/pages/Quiz/QuizPage'
 import QuizResultPage from '@/pages/Quiz/QuizResultPage'
 import AITutorPage from '@/pages/AITutor/AITutorPage'
 import LearningPathPage from '@/pages/LearningPath/LearningPathPage'
+import MyNotesPage from '@/pages/MyNotes/MyNotesPage'
 import ExercisesPage from '@/pages/Exercises/ExercisesPage'
 import LibraryPage from '@/pages/Library/LibraryPage'
 import AchievementsPage from '@/pages/Achievements/AchievementsPage'
@@ -136,6 +137,16 @@ export function LearnerRoutes() {
         element={
           <AppShell>
             <LearningPathPage />
+          </AppShell>
+        }
+      />
+
+      {/* My Study Notes & Bookmarks */}
+      <Route
+        path="/my-notes"
+        element={
+          <AppShell>
+            <MyNotesPage />
           </AppShell>
         }
       />

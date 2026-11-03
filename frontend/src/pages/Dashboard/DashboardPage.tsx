@@ -88,10 +88,11 @@ export function DashboardPage() {
         <div className="col-span-8">
           <ContinueLearningCard
             lessons={data.continueLessons}
-            onContinueLesson={(lessonId) => {
+            onContinueLesson={(lessonId, sectionId) => {
               const lesson = data.continueLessons.find((l) => l.id === lessonId)
               const subjectId = lesson?.subjectId || 'math'
-              navigate(`/subjects/${subjectId}/lessons/${lessonId}`)
+              const hash = sectionId ? `#${sectionId}` : ''
+              navigate(`/subjects/${subjectId}/lessons/${lessonId}${hash}`)
             }}
           />
         </div>

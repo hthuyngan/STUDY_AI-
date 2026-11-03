@@ -77,10 +77,43 @@ export function markSectionCompleted(
     assessmentScore: existing?.assessmentScore,
     overallProgress,
     updatedAt: new Date().toISOString(),
+    lastActiveSectionId: sectionId,
   }
 
   saveLessonProgress(updated)
   return updated
+}
+
+export function setLastActiveSection(
+  lessonId: string,
+  subjectId: string,
+  sectionId: string,
+  sectionTitle?: string
+): void {
+  const existing = getLessonProgress(lessonId)
+  if (!existing) {
+    const initial: LessonProgressState = {
+      lessonId,
+      subjectId,
+      completedSectionIds: [],
+      contentProgress: 0,
+      assessmentStatus: 'not-attempted',
+      overallProgress: 0,
+      updatedAt: new Date().toISOString(),
+      lastActiveSectionId: sectionId,
+      lastActiveSectionTitle: sectionTitle,
+    }
+    saveLessonProgress(initial)
+    return
+  }
+
+  const updated: LessonProgressState = {
+    ...existing,
+    lastActiveSectionId: sectionId,
+    lastActiveSectionTitle: sectionTitle || existing.lastActiveSectionTitle,
+    updatedAt: new Date().toISOString(),
+  }
+  saveLessonProgress(updated)
 }
 
 export function markAssessmentCompleted(
@@ -144,3 +177,13 @@ function syncProgressToSubject(progress: LessonProgressState): void {
     }
   }
 }
+
+export const lessonProgressService = {
+  getLessonProgress,
+  saveLessonProgress,
+  computeProgressValues,
+  markSectionCompleted,
+  setLastActiveSection,
+  markAssessmentCompleted,
+}
+

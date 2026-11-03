@@ -1,4 +1,4 @@
-import { ArrowRight, Play } from 'lucide-react'
+import { ArrowRight, BookMarked, Play } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -7,7 +7,7 @@ import type { ContinueLessonItem } from '@/types/dashboard'
 
 export interface ContinueLearningCardProps {
   lessons: ContinueLessonItem[]
-  onContinueLesson?: (lessonId: string) => void
+  onContinueLesson?: (lessonId: string, sectionId?: string) => void
 }
 
 export function ContinueLearningCard({
@@ -15,10 +15,16 @@ export function ContinueLearningCard({
   onContinueLesson,
 }: ContinueLearningCardProps) {
   const viewAllAction = (
-    <Link to="/subjects" className="card-link-action">
-      <span>Xem tất cả</span>
-      <ArrowRight size={14} aria-hidden />
-    </Link>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <Link to="/my-notes" className="card-link-action" title="Mở sổ tay ghi chú">
+        <BookMarked size={14} aria-hidden />
+        <span>Sổ tay</span>
+      </Link>
+      <Link to="/subjects" className="card-link-action">
+        <span>Xem tất cả</span>
+        <ArrowRight size={14} aria-hidden />
+      </Link>
+    </div>
   )
 
   return (
@@ -66,6 +72,12 @@ export function ContinueLearningCard({
                   </div>
                   <h3 className="lesson-title">{lesson.lessonTitle}</h3>
 
+                  {lesson.lastActiveSectionTitle && (
+                    <div style={{ fontSize: '11px', color: 'var(--primary-600, #173f5f)', fontWeight: 500, margin: '2px 0 4px' }}>
+                      📍 Đang dừng tại: {lesson.lastActiveSectionTitle}
+                    </div>
+                  )}
+
                   {/* Progress bar */}
                   <div className="lesson-progress-row">
                     <Progress value={lesson.progress} height={6} />
@@ -78,7 +90,7 @@ export function ContinueLearningCard({
                   <Button
                     variant={lesson.isPrimary ? 'primary' : 'outline'}
                     icon={Play}
-                    onClick={() => onContinueLesson?.(lesson.id)}
+                    onClick={() => onContinueLesson?.(lesson.id, lesson.lastActiveSectionId)}
                     className="lesson-continue-btn"
                   >
                     Tiếp tục

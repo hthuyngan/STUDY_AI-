@@ -108,6 +108,8 @@ export interface LessonProgressState {
   assessmentScore?: number
   overallProgress: number // 0 -> 100
   updatedAt: string // ISO 8601
+  lastActiveSectionId?: string
+  lastActiveSectionTitle?: string
 }
 
 /**

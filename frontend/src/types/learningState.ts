@@ -18,6 +18,8 @@ export interface LessonLearningState {
   bestScore?: number // e.g. 100 (%)
   attemptCount: number
   totalLearningTimeMs: number
+  lastActiveSectionId?: string
+  lastActiveSectionTitle?: string
 }
 
 /**
