@@ -146,6 +146,15 @@ Bằng chứng kiểm chứng thực tế cho hệ thống Ôn tập ngắt quã
 #### Điều hướng từ Sổ tay kiến thức yếu quay lại đúng Section trong bài giảng
 ![Gap to Lesson Anchor](interactions/learner_gap_to_lesson_anchor_desktop.png)
 
+#### Bằng chứng kiểm chứng trực tiếp trên Live Production (Commit 35cbdb5):
+- **Kết quả bài thu hoạch kích hoạt Knowledge Gaps**: ![Prod Assessment](interactions/prod_phase6_assessment_gap_created.png)
+- **Sổ tay kiến thức cần củng cố thực tế trên Production (Desktop 1440px)**: ![Prod Knowledge Gaps](screenshots/prod_phase6_knowledge_gaps_desktop.png)
+- **Sổ tay kiến thức trên Production (Mobile 390px)**: ![Prod Knowledge Gaps Mobile](screenshots/prod_phase6_knowledge_gaps_mobile.png)
+- **Trung tâm Ôn tập Spaced Repetition trên Production**: ![Prod Smart Review](screenshots/prod_phase6_smart_review_desktop.png)
+- **Thẻ ôn tập thực tế trên Production**: ![Prod Review Session](interactions/prod_phase6_smart_review_session.png)
+- **Màn hình chúc mừng hoàn thành phiên ôn tập trên Production**: ![Prod Completed](interactions/prod_phase6_smart_review_completed.png)
+- **Dashboard Widget "Cần ôn hôm nay" trên Production**: ![Prod Dashboard](screenshots/prod_phase6_dashboard_desktop.png)
+
 ---
 
 ## 3. CẤU TRÚC THƯ MỤC VÀ LIÊN KẾT ẢNH GỐC

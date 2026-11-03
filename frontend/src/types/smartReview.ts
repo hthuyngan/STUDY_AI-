@@ -71,3 +71,4 @@ export interface SmartReviewSummary {
   upcomingCount: number
   totalItems: number
 }
+

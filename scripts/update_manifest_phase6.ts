@@ -4,135 +4,135 @@ import path from 'path'
 const manifestPath = path.join('docs', 'visual-qa', 'manifest.json')
 const data = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'))
 
-const phase6Entries = [
+const prodEntries = [
   {
-    filename: 'learner_knowledge_gaps_desktop.png',
-    relativePath: 'docs/visual-qa/screenshots/learner_knowledge_gaps_desktop.png',
+    filename: 'prod_phase6_knowledge_gaps_desktop.png',
+    relativePath: 'docs/visual-qa/screenshots/prod_phase6_knowledge_gaps_desktop.png',
     workspace: 'learner',
     route: '/knowledge-gaps',
     viewport: 'desktop_1440',
     width: 1440,
     height: 900,
-    uiState: 'phase6_knowledge_gaps_default',
+    uiState: 'prod_phase6_knowledge_gaps_live',
     timestamp: new Date().toISOString(),
-    sourceCommit: 'HEAD',
+    sourceCommit: '35cbdb5',
     sourceUrl: 'https://hthuyngan.github.io/STUDY_AI-/knowledge-gaps',
     loadStatus: '200_OK',
-    notes: 'Phase 6: Sổ tay kiến thức cần củng cố với 4 KPI, bộ lọc môn học, tabs trạng thái và danh sách cards'
+    notes: 'Production Live: Sổ tay kiến thức cần củng cố sau khi làm bài thu hoạch'
   },
   {
-    filename: 'learner_knowledge_gaps_mobile_390.png',
-    relativePath: 'docs/visual-qa/screenshots/learner_knowledge_gaps_mobile_390.png',
+    filename: 'prod_phase6_knowledge_gaps_mobile.png',
+    relativePath: 'docs/visual-qa/screenshots/prod_phase6_knowledge_gaps_mobile.png',
     workspace: 'learner',
     route: '/knowledge-gaps',
     viewport: 'mobile_390',
     width: 390,
     height: 844,
-    uiState: 'phase6_knowledge_gaps_mobile',
+    uiState: 'prod_phase6_knowledge_gaps_mobile_live',
     timestamp: new Date().toISOString(),
-    sourceCommit: 'HEAD',
+    sourceCommit: '35cbdb5',
     sourceUrl: 'https://hthuyngan.github.io/STUDY_AI-/knowledge-gaps',
     loadStatus: '200_OK',
-    notes: 'Phase 6: Sổ tay kiến thức cần củng cố trên Mobile 390px, bố cục dọc tối ưu cảm ứng'
+    notes: 'Production Live: Sổ tay kiến thức cần củng cố trên Mobile 390px'
   },
   {
-    filename: 'learner_smart_review_home_desktop.png',
-    relativePath: 'docs/visual-qa/screenshots/learner_smart_review_home_desktop.png',
+    filename: 'prod_phase6_smart_review_desktop.png',
+    relativePath: 'docs/visual-qa/screenshots/prod_phase6_smart_review_desktop.png',
     workspace: 'learner',
     route: '/review',
     viewport: 'desktop_1440',
     width: 1440,
     height: 900,
-    uiState: 'phase6_smart_review_home',
+    uiState: 'prod_phase6_smart_review_live',
     timestamp: new Date().toISOString(),
-    sourceCommit: 'HEAD',
+    sourceCommit: '35cbdb5',
     sourceUrl: 'https://hthuyngan.github.io/STUDY_AI-/review',
     loadStatus: '200_OK',
-    notes: 'Phase 6: Trung tâm ôn tập ngắt quãng Spaced Repetition với các mục đến hạn hôm nay'
+    notes: 'Production Live: Trung tâm ôn tập ngắt quãng Spaced Repetition'
   },
   {
-    filename: 'learner_smart_review_session_desktop.png',
-    relativePath: 'docs/visual-qa/interactions/learner_smart_review_session_desktop.png',
+    filename: 'prod_phase6_smart_review_mobile.png',
+    relativePath: 'docs/visual-qa/screenshots/prod_phase6_smart_review_mobile.png',
     workspace: 'learner',
     route: '/review',
-    viewport: 'desktop_1440',
-    width: 1440,
-    height: 900,
-    uiState: 'phase6_smart_review_active_card',
+    viewport: 'mobile_390',
+    width: 390,
+    height: 844,
+    uiState: 'prod_phase6_smart_review_mobile_live',
     timestamp: new Date().toISOString(),
-    sourceCommit: 'HEAD',
+    sourceCommit: '35cbdb5',
     sourceUrl: 'https://hthuyngan.github.io/STUDY_AI-/review',
     loadStatus: '200_OK',
-    notes: 'Phase 6: Thẻ ôn tập chủ động hiển thị câu hỏi và nút Xem giải thích & Đáp án'
+    notes: 'Production Live: Trung tâm ôn tập trên Mobile 390px'
   },
   {
-    filename: 'learner_smart_review_revealed_desktop.png',
-    relativePath: 'docs/visual-qa/interactions/learner_smart_review_revealed_desktop.png',
-    workspace: 'learner',
-    route: '/review',
-    viewport: 'desktop_1440',
-    width: 1440,
-    height: 900,
-    uiState: 'phase6_smart_review_revealed_card',
-    timestamp: new Date().toISOString(),
-    sourceCommit: 'HEAD',
-    sourceUrl: 'https://hthuyngan.github.io/STUDY_AI-/review',
-    loadStatus: '200_OK',
-    notes: 'Phase 6: Thẻ sau khi lật hiển thị lời giải và 3 nút tự đánh giá Spaced Repetition'
-  },
-  {
-    filename: 'learner_smart_review_completed_desktop.png',
-    relativePath: 'docs/visual-qa/interactions/learner_smart_review_completed_desktop.png',
-    workspace: 'learner',
-    route: '/review',
-    viewport: 'desktop_1440',
-    width: 1440,
-    height: 900,
-    uiState: 'phase6_smart_review_completed',
-    timestamp: new Date().toISOString(),
-    sourceCommit: 'HEAD',
-    sourceUrl: 'https://hthuyngan.github.io/STUDY_AI-/review',
-    loadStatus: '200_OK',
-    notes: 'Phase 6: Màn hình hoàn thành phiên ôn tập với thống kê XP, số mục đã củng cố và điều hướng'
-  },
-  {
-    filename: 'learner_dashboard_review_widget_desktop.png',
-    relativePath: 'docs/visual-qa/screenshots/learner_dashboard_review_widget_desktop.png',
+    filename: 'prod_phase6_dashboard_desktop.png',
+    relativePath: 'docs/visual-qa/screenshots/prod_phase6_dashboard_desktop.png',
     workspace: 'learner',
     route: '/dashboard',
     viewport: 'desktop_1440',
     width: 1440,
     height: 900,
-    uiState: 'phase6_dashboard_smart_review_widget',
+    uiState: 'prod_phase6_dashboard_live',
     timestamp: new Date().toISOString(),
-    sourceCommit: 'HEAD',
+    sourceCommit: '35cbdb5',
     sourceUrl: 'https://hthuyngan.github.io/STUDY_AI-/dashboard',
     loadStatus: '200_OK',
-    notes: 'Phase 6: Widget Cần ôn hôm nay tích hợp ngay trên Dashboard học viên với CTA ôn tập nhanh'
+    notes: 'Production Live: Dashboard với widget Cần ôn hôm nay'
   },
   {
-    filename: 'learner_gap_to_lesson_anchor_desktop.png',
-    relativePath: 'docs/visual-qa/interactions/learner_gap_to_lesson_anchor_desktop.png',
+    filename: 'prod_phase6_assessment_gap_created.png',
+    relativePath: 'docs/visual-qa/interactions/prod_phase6_assessment_gap_created.png',
     workspace: 'learner',
-    route: '/subjects/toan-hoc/lessons/les-math-12-01#section-2',
+    route: '/subjects/math/lessons/lesson-math-08',
     viewport: 'desktop_1440',
     width: 1440,
     height: 900,
-    uiState: 'phase6_gap_lesson_anchor',
+    uiState: 'prod_phase6_assessment_live',
     timestamp: new Date().toISOString(),
-    sourceCommit: 'HEAD',
-    sourceUrl: 'https://hthuyngan.github.io/STUDY_AI-/subjects/toan-hoc/lessons/les-math-12-01#section-2',
+    sourceCommit: '35cbdb5',
+    sourceUrl: 'https://hthuyngan.github.io/STUDY_AI-/subjects/math/lessons/lesson-math-08',
     loadStatus: '200_OK',
-    notes: 'Phase 6: Điều hướng từ Sổ tay kiến thức yếu quay lại đúng section tương ứng trong bài học'
+    notes: 'Production Live: Kết quả bài thu hoạch tự động kích hoạt tạo Knowledge Gaps'
+  },
+  {
+    filename: 'prod_phase6_smart_review_session.png',
+    relativePath: 'docs/visual-qa/interactions/prod_phase6_smart_review_session.png',
+    workspace: 'learner',
+    route: '/review',
+    viewport: 'desktop_1440',
+    width: 1440,
+    height: 900,
+    uiState: 'prod_phase6_session_live',
+    timestamp: new Date().toISOString(),
+    sourceCommit: '35cbdb5',
+    sourceUrl: 'https://hthuyngan.github.io/STUDY_AI-/review',
+    loadStatus: '200_OK',
+    notes: 'Production Live: Thẻ flashcard trong phiên ôn tập đang diễn ra'
+  },
+  {
+    filename: 'prod_phase6_smart_review_completed.png',
+    relativePath: 'docs/visual-qa/interactions/prod_phase6_smart_review_completed.png',
+    workspace: 'learner',
+    route: '/review',
+    viewport: 'desktop_1440',
+    width: 1440,
+    height: 900,
+    uiState: 'prod_phase6_completed_live',
+    timestamp: new Date().toISOString(),
+    sourceCommit: '35cbdb5',
+    sourceUrl: 'https://hthuyngan.github.io/STUDY_AI-/review',
+    loadStatus: '200_OK',
+    notes: 'Production Live: Hoàn thành phiên ôn tập và dời lịch Spaced Repetition'
   }
 ]
 
 const existingFilenames = new Set(data.map((d: any) => d.filename))
-for (const entry of phase6Entries) {
+for (const entry of prodEntries) {
   if (!existingFilenames.has(entry.filename)) {
     data.push(entry)
   }
 }
 
 fs.writeFileSync(manifestPath, JSON.stringify(data, null, 2), 'utf-8')
-console.log('Updated manifest with Phase 6 entries. Total count:', data.length)
+console.log('Updated manifest with Production entries. Total count:', data.length)

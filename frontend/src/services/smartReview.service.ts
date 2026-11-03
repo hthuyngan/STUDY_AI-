@@ -317,3 +317,4 @@ export const smartReviewService = {
     localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY)
   },
 }
+

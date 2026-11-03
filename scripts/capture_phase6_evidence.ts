@@ -271,3 +271,4 @@ run().catch((err) => {
   console.error('Phase 6 visual QA failed:', err)
   process.exit(1)
 })
+
