@@ -9,6 +9,8 @@ import QuizResultPage from '@/pages/Quiz/QuizResultPage'
 import AITutorPage from '@/pages/AITutor/AITutorPage'
 import LearningPathPage from '@/pages/LearningPath/LearningPathPage'
 import MyNotesPage from '@/pages/MyNotes/MyNotesPage'
+import KnowledgeGapsPage from '@/pages/KnowledgeGaps/KnowledgeGapsPage'
+import SmartReviewPage from '@/pages/SmartReview/SmartReviewPage'
 import ExercisesPage from '@/pages/Exercises/ExercisesPage'
 import LibraryPage from '@/pages/Library/LibraryPage'
 import AchievementsPage from '@/pages/Achievements/AchievementsPage'
@@ -147,6 +149,26 @@ export function LearnerRoutes() {
         element={
           <AppShell>
             <MyNotesPage />
+          </AppShell>
+        }
+      />
+
+      {/* Phase 6: Knowledge Gaps (Sổ tay kiến thức yếu) */}
+      <Route
+        path="/knowledge-gaps"
+        element={
+          <AppShell>
+            <KnowledgeGapsPage />
+          </AppShell>
+        }
+      />
+
+      {/* Phase 6: Smart Review (Ôn tập thông minh ngắt quãng) */}
+      <Route
+        path="/review"
+        element={
+          <AppShell>
+            <SmartReviewPage />
           </AppShell>
         }
       />

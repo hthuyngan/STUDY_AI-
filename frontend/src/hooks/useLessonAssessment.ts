@@ -10,6 +10,7 @@ import {
   updateAttempt,
 } from '@/services/assessment.service'
 import { createLearningEvent } from '@/services/learningTracking.service'
+import { knowledgeGapsService } from '@/services/knowledgeGaps.service'
 import type {
   AssessmentQuestion,
   LearningAttempt,
@@ -226,12 +227,15 @@ export function useLessonAssessment({
     )
     setActiveAttempt(submitted)
     setLatestCompletedAttempt(submitted)
+    // Record any wrong answers into Knowledge Gaps & schedule Smart Review
+    knowledgeGapsService.recordGapsFromAssessmentAttempt(submitted, questions, assessment.title)
     setShowSubmitConfirm(false)
     setShowResultView(true)
     onAssessmentCompleted?.(scorePercentage)
   }, [
     activeAttempt,
     assessment.passingScorePercent,
+    assessment.title,
     onAssessmentCompleted,
     questions,
     totalActualSections,

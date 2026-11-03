@@ -118,6 +118,36 @@ Bằng chứng kiểm chứng thực tế cho 5 năng lực học tập cốt l�
 
 ---
 
+### 2.9. Nghiệm thu Phase 6: Smart Review & Knowledge Gaps
+
+Bằng chứng kiểm chứng thực tế cho hệ thống Ôn tập ngắt quãng Spaced Repetition và Sổ tay kiến thức cần củng cố của Phase 6:
+
+#### Sổ tay kiến thức cần củng cố (/knowledge-gaps) trên Desktop (1440 × 900 px)
+![Knowledge Gaps Desktop](screenshots/learner_knowledge_gaps_desktop.png)
+
+#### Sổ tay kiến thức cần củng cố trên Mobile (390 × 844 px)
+![Knowledge Gaps Mobile](screenshots/learner_knowledge_gaps_mobile_390.png)
+
+#### Trung tâm Ôn tập thông minh ngắt quãng (/review) trên Desktop
+![Smart Review Home](screenshots/learner_smart_review_home_desktop.png)
+
+#### Thẻ Flashcard ôn tập chủ động (Active Session Card)
+![Smart Review Session](interactions/learner_smart_review_session_desktop.png)
+
+#### Thẻ sau khi lật hiển thị lời giải và 3 nút tự đánh giá Spaced Repetition
+![Smart Review Revealed](interactions/learner_smart_review_revealed_desktop.png)
+
+#### Màn hình chúc mừng hoàn thành phiên ôn tập với thống kê XP và chu kỳ
+![Smart Review Completed](interactions/learner_smart_review_completed_desktop.png)
+
+#### Widget "Cần ôn hôm nay" tích hợp trên Dashboard học viên (/dashboard)
+![Dashboard Review Widget](screenshots/learner_dashboard_review_widget_desktop.png)
+
+#### Điều hướng từ Sổ tay kiến thức yếu quay lại đúng Section trong bài giảng
+![Gap to Lesson Anchor](interactions/learner_gap_to_lesson_anchor_desktop.png)
+
+---
+
 ## 3. CẤU TRÚC THƯ MỤC VÀ LIÊN KẾT ẢNH GỐC
 
 ```text

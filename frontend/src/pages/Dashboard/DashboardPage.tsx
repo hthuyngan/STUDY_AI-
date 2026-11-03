@@ -13,6 +13,7 @@ import { RecentActivityCard } from '@/components/dashboard/RecentActivityCard'
 import { StatsStrip } from '@/components/dashboard/StatsStrip'
 import { StudyActivityCard } from '@/components/dashboard/StudyActivityCard'
 import { SubjectProgressCard } from '@/components/dashboard/SubjectProgressCard'
+import { SmartReviewWidget } from '@/components/dashboard/SmartReviewWidget'
 import { useAuth } from '@/auth/useAuth'
 import { useDashboard } from '@/hooks/useDashboard'
 import './DashboardPage.css'
@@ -96,7 +97,8 @@ export function DashboardPage() {
             }}
           />
         </div>
-        <div className="col-span-4">
+        <div className="col-span-4" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4, 16px)' }}>
+          <SmartReviewWidget />
           <AITutorCard />
         </div>
       </div>

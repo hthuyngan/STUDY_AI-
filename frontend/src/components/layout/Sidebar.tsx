@@ -1,4 +1,5 @@
 import {
+  AlertCircle,
   Atom,
   Award,
   BookMarked,
@@ -15,6 +16,7 @@ import {
   Library,
   Milestone,
   Palette,
+  RotateCw,
   Settings,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -112,6 +114,20 @@ export function Sidebar({
               to="/my-notes"
               label="Sổ tay ghi chú"
               icon={BookMarked}
+              collapsed={collapsed}
+              onClick={onCloseMobile}
+            />
+            <SidebarItem
+              to="/knowledge-gaps"
+              label="Kiến thức yếu"
+              icon={AlertCircle}
+              collapsed={collapsed}
+              onClick={onCloseMobile}
+            />
+            <SidebarItem
+              to="/review"
+              label="Ôn tập"
+              icon={RotateCw}
               collapsed={collapsed}
               onClick={onCloseMobile}
             />
