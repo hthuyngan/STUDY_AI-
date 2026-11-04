@@ -11,6 +11,7 @@ import LearningPathPage from '@/pages/LearningPath/LearningPathPage'
 import MyNotesPage from '@/pages/MyNotes/MyNotesPage'
 import KnowledgeGapsPage from '@/pages/KnowledgeGaps/KnowledgeGapsPage'
 import SmartReviewPage from '@/pages/SmartReview/SmartReviewPage'
+import LearningAnalyticsPage from '@/pages/LearningAnalytics/LearningAnalyticsPage'
 import ExercisesPage from '@/pages/Exercises/ExercisesPage'
 import LibraryPage from '@/pages/Library/LibraryPage'
 import AchievementsPage from '@/pages/Achievements/AchievementsPage'
@@ -162,6 +163,17 @@ export function LearnerRoutes() {
           </AppShell>
         }
       />
+
+      {/* Phase 7: Learning Analytics & Student Competency Profile */}
+      <Route
+        path="/learning-analytics"
+        element={
+          <AppShell>
+            <LearningAnalyticsPage />
+          </AppShell>
+        }
+      />
+      <Route path="/analytics" element={<Navigate to="/learning-analytics" replace />} />
 
       {/* Phase 6: Smart Review (Ôn tập thông minh ngắt quãng) */}
       <Route

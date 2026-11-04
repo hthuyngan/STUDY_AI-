@@ -1,14 +1,16 @@
-import { BookOpen } from 'lucide-react'
+import { BarChart3, BookOpen } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 
 export interface DashboardHeaderProps {
   userName: string
   onStartLearning?: () => void
+  onViewAnalytics?: () => void
 }
 
 export function DashboardHeader({
   userName,
   onStartLearning,
+  onViewAnalytics,
 }: DashboardHeaderProps) {
   return (
     <div className="dashboard-header">
@@ -21,7 +23,17 @@ export function DashboardHeader({
         </p>
       </div>
 
-      <div className="dashboard-header-actions">
+      <div className="dashboard-header-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        {onViewAnalytics && (
+          <Button
+            variant="outline"
+            icon={BarChart3}
+            onClick={onViewAnalytics}
+            className="dashboard-analytics-cta"
+          >
+            Phân tích học tập
+          </Button>
+        )}
         {/* The single primary CTA of the dashboard according to evondev discipline */}
         <Button
           variant="primary"

@@ -157,6 +157,40 @@ Bằng chứng kiểm chứng thực tế cho hệ thống Ôn tập ngắt quã
 
 ---
 
+### 2.10. Nghiệm thu Phase 7: Learning Analytics & Student Competency Profile
+
+Bằng chứng kiểm chứng thực tế cho hệ thống Phân tích học tập & Hồ sơ năng lực học sinh của Phase 7:
+
+#### 1. Tổng quan Phân tích học tập (/learning-analytics) trên Desktop (1440 × 900 px)
+Hiển thị 5 chỉ số KPI đo lường thực tế, biểu đồ hoạt động học tập 7 ngày, danh sách bài thu hoạch gần nhất và khối gợi ý hành động sư phạm:
+![Learner Analytics Overview](screenshots/learner_analytics_overview_desktop.png)
+
+#### 2. Hồ sơ năng lực học sinh (Competency Profile) trên Desktop (1440 × 900 px)
+Phân loại năng lực theo 4 mức độ (`mastered`, `reinforcing`, `needs-review`, `insufficient-data`) kèm banner sư phạm minh bạch (hoàn thành bài học không tương đương với làm chủ kiến thức):
+![Learner Analytics Competency](screenshots/learner_analytics_competency_desktop.png)
+
+#### 3. Phân tích theo 4 bộ môn Toán, Lý, Hóa, Tiếng Anh trên Desktop (1440 × 900 px)
+Theo dõi tiến độ chuẩn hóa 80/100%, điểm trung bình thu hoạch, số lỗ hổng kiến thức còn tồn đọng và định hướng ôn tập:
+![Learner Analytics Subjects](screenshots/learner_analytics_subjects_desktop.png)
+
+#### 4. Dòng thời gian lịch sử học tập (Learning History Timeline) trên Desktop (1440 × 900 px)
+Tổng hợp các mốc sự kiện học tập thực chất (làm bài thu hoạch, phiên ôn tập Spaced Repetition, phát hiện lỗ hổng, hoàn thành nội dung):
+![Learner Analytics History](screenshots/learner_analytics_history_desktop.png)
+
+#### 5. Giao diện Phân tích học tập trên Mobile Viewport (390 × 844 px)
+Tối ưu phản hồi cho thiết bị di động với tab vuốt ngang, thẻ KPI 2 cột và biểu đồ co giãn mượt mà:
+![Learner Analytics Mobile](screenshots/learner_analytics_mobile_390.png)
+
+#### 6. Phân tích học sinh tích hợp trong Teacher Workspace (/teacher/students/:id)
+Tab "Phân tích học tập" hiển thị chỉ số chuyên sâu cho giáo viên với nhãn minh bạch `[Dữ liệu mẫu]` trước khi có API backend:
+![Teacher Student Analytics](screenshots/teacher_student_analytics_desktop.png)
+
+#### 7. Nút truy cập nhanh từ Header của Learner Dashboard (/dashboard)
+Entry point "Phân tích học tập" được đặt nổi bật, đồng bộ với phong cách Navy Notebook:
+![Learner Dashboard Analytics Entry](interactions/learner_dashboard_analytics_entry_desktop.png)
+
+---
+
 ## 3. CẤU TRÚC THƯ MỤC VÀ LIÊN KẾT ẢNH GỐC
 
 ```text

@@ -2,6 +2,7 @@ import {
   AlertCircle,
   Atom,
   Award,
+  BarChart3,
   BookMarked,
   Bot,
   ChevronLeft,
@@ -121,6 +122,13 @@ export function Sidebar({
               to="/knowledge-gaps"
               label="Kiến thức yếu"
               icon={AlertCircle}
+              collapsed={collapsed}
+              onClick={onCloseMobile}
+            />
+            <SidebarItem
+              to="/learning-analytics"
+              label="Phân tích học tập"
+              icon={BarChart3}
               collapsed={collapsed}
               onClick={onCloseMobile}
             />

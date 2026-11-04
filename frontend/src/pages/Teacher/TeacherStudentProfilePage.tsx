@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import { classroomService } from '@/services/classroom.service'
+import { learningAnalyticsService } from '@/services/learningAnalytics.service'
 import type {
   AdminClassItem,
   AdminGradeRecord,
@@ -21,7 +22,7 @@ import './TeacherPages.css'
 import '../Admin/AdminPages.css'
 import '@/components/admin/AdminComponents.css'
 
-type ProfileTab = 'overview' | 'subjects' | 'assignments' | 'grades'
+type ProfileTab = 'overview' | 'subjects' | 'assignments' | 'grades' | 'analytics'
 
 export const TeacherStudentProfilePage: React.FC = () => {
   const { id: paramId, studentId: routeId } = useParams<{ id?: string; studentId?: string }>()
@@ -38,6 +39,10 @@ export const TeacherStudentProfilePage: React.FC = () => {
   const [isMoveOpen, setIsMoveOpen] = useState(false)
   const [targetClassId, setTargetClassId] = useState('')
   const [toastMessage, setToastMessage] = useState<string | null>(null)
+
+  const teacherAnalytics = useMemo(() => {
+    return learningAnalyticsService.getTeacherStudentAnalytics(studentId || 'demo', student?.name)
+  }, [studentId, student?.name])
 
   const showToast = (msg: string) => {
     setToastMessage(msg)
@@ -321,6 +326,13 @@ export const TeacherStudentProfilePage: React.FC = () => {
           >
             Sổ điểm ({grades.length})
           </button>
+          <button
+            type="button"
+            className={`teacher-tab-btn ${activeTab === 'analytics' ? 'active' : ''}`}
+            onClick={() => setActiveTab('analytics')}
+          >
+            Phân tích năng lực học tập
+          </button>
         </div>
       </div>
 
@@ -533,6 +545,73 @@ export const TeacherStudentProfilePage: React.FC = () => {
               </tbody>
             </table>
           )}
+        </div>
+      )}
+
+      
+      {/* Tab 5: Analytics */}
+      {activeTab === 'analytics' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {/* Disclaimer banner */}
+          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, background: '#2563eb', color: '#fff', padding: '2px 8px', borderRadius: 4, textTransform: 'uppercase' }}>Dữ liệu mẫu</span>
+            <span style={{ fontSize: '0.86rem', color: '#1e3a8a' }}>{teacherAnalytics.disclaimer}</span>
+          </div>
+
+          {/* 4 KPIs */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+            <div className="admin-card" style={{ padding: 16, textAlign: 'center' }}>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#102a43' }}>{teacherAnalytics.summary.totalLessonsCompleted}</div>
+              <div style={{ fontSize: '0.82rem', color: '#627d98', marginTop: 4 }}>Bài hoàn thành</div>
+            </div>
+            <div className="admin-card" style={{ padding: 16, textAlign: 'center' }}>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#047857' }}>
+                {teacherAnalytics.summary.averageAssessmentScore !== null ? `${teacherAnalytics.summary.averageAssessmentScore}%` : 'N/A'}
+              </div>
+              <div style={{ fontSize: '0.82rem', color: '#627d98', marginTop: 4 }}>Điểm thu hoạch TB</div>
+            </div>
+            <div className="admin-card" style={{ padding: 16, textAlign: 'center' }}>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#d97706' }}>{teacherAnalytics.summary.activeKnowledgeGapsCount}</div>
+              <div style={{ fontSize: '0.82rem', color: '#627d98', marginTop: 4 }}>Điểm kiến thức cần củng cố</div>
+            </div>
+            <div className="admin-card" style={{ padding: 16, textAlign: 'center' }}>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#2563eb' }}>{teacherAnalytics.summary.estimatedStudyTimeMinutes} ph</div>
+              <div style={{ fontSize: '0.82rem', color: '#627d98', marginTop: 4 }}>Thời gian học thực tế</div>
+            </div>
+          </div>
+
+          {/* Subject Performance & Interventions Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
+            {/* Subject Breakdown */}
+            <div className="admin-card" style={{ padding: 20 }}>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#102a43', marginBottom: 14 }}>
+                Năng lực học thuật theo môn
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {teacherAnalytics.subjectAnalytics.map((s) => (
+                  <div key={s.subjectId} style={{ padding: '10px 12px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                      <strong style={{ color: '#102a43' }}>{s.subjectName}</strong>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#2563eb' }}>{s.completionPercent}% tiến độ</span>
+                    </div>
+                    <div style={{ fontSize: '0.82rem', color: '#486581' }}>{s.qualitativeAssessment}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Recommended Interventions */}
+            <div className="admin-card" style={{ padding: 20 }}>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#102a43', marginBottom: 14 }}>
+                Khuyến nghị sư phạm & Hướng hỗ trợ
+              </h3>
+              <ul style={{ margin: 0, paddingLeft: 18, color: '#334e68', fontSize: '0.88rem', lineHeight: 1.6 }}>
+                {teacherAnalytics.recommendedInterventions.map((rec, idx) => (
+                  <li key={idx} style={{ marginBottom: 8 }}>{rec}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
         </div>
       )}
 

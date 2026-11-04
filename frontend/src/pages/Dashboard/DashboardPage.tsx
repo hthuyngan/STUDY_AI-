@@ -82,6 +82,7 @@ export function DashboardPage() {
             navigate('/subjects')
           }
         }}
+        onViewAnalytics={() => navigate('/learning-analytics')}
       />
 
       {/* Row 1: Continue Learning (8 cols) + AI Tutor (4 cols) — Learning-First */}
