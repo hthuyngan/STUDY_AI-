@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import {
   ArrowUpRight,
+  Bot,
   BookmarkCheck,
   Check,
   Edit2,
@@ -18,6 +19,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useSectionBookmarks } from '@/hooks/useSectionBookmarks'
 import { useStudyNotes } from '@/hooks/useStudyNotes'
 import type { SectionBookmark, StudyNote } from '@/types/studyNotes'
+import { learningContextService } from '@/services/learningContext.service'
 import './MyNotesPage.css'
 
 const SUBJECT_FILTER_OPTIONS = [
@@ -81,6 +83,24 @@ export function MyNotesPage() {
   ) => {
     const hash = sectionId ? `#${sectionId}` : ''
     navigate(`/subjects/${subjectId}/lessons/${lessonId}${hash}`)
+  }
+
+  
+  const handleAskAINote = (note: StudyNote) => {
+    learningContextService.setContext({
+      source: 'study-note',
+      studyNoteId: note.id,
+      subjectId: note.subjectId,
+      subjectName: note.subjectName,
+      lessonId: note.lessonId,
+      lessonTitle: note.lessonTitle,
+      sectionId: note.sectionId,
+      sectionTitle: note.sectionTitle,
+      title: note.sectionTitle ? `Ghi chú: ${note.sectionTitle}` : `Ghi chú bài ${note.lessonTitle}`,
+      excerpt: note.content,
+      returnUrl: '/notes',
+    })
+    navigate('/ai-tutor')
   }
 
   const handleStartEdit = (note: StudyNote) => {
@@ -274,6 +294,14 @@ export function MyNotesPage() {
                         }
                       >
                         Mở bài học
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        icon={Bot}
+                        onClick={() => handleAskAINote(note)}
+                      >
+                        Hỏi AI
                       </Button>
                       <button
                         type="button"

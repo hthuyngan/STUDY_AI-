@@ -7,30 +7,28 @@ import { AITutorHeader } from '../../components/ai-tutor/AITutorHeader'
 import { AITutorEmptyState } from '../../components/ai-tutor/AITutorEmptyState'
 import { ChatMessageList } from '../../components/ai-tutor/ChatMessageList'
 import { ChatComposer } from '../../components/ai-tutor/ChatComposer'
+import { ContextualHeaderBadge } from '../../components/ai-tutor/ContextualHeaderBadge'
 import './AITutorPage.css'
 
 export function AITutorPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const topicParam = searchParams.get('topic')
   const lessonParam = searchParams.get('lesson')
-  const contextTopic = topicParam || (lessonParam ? `Bài học #${lessonParam}` : undefined)
-
-  const handleClearContext = () => {
-    const next = new URLSearchParams(searchParams)
-    next.delete('topic')
-    next.delete('lesson')
-    setSearchParams(next, { replace: true })
-  }
+  const legacyContextTopic = topicParam || (lessonParam ? `Bài học #${lessonParam}` : undefined)
 
   const {
     conversations,
     activeConversation,
     activeSubject,
+    activeContext,
+    activeMode,
     isStreaming,
     isTyping,
     error,
     prefilledInput,
     setPrefilledInput,
+    setAssistanceMode,
+    clearLearningContext,
     selectConversation,
     startNewConversation,
     deleteConversation,
@@ -40,6 +38,14 @@ export function AITutorPage() {
     stopStreaming,
   } = useAITutor()
 
+  const handleClearContext = () => {
+    clearLearningContext()
+    const next = new URLSearchParams(searchParams)
+    next.delete('topic')
+    next.delete('lesson')
+    setSearchParams(next, { replace: true })
+  }
+
   const { containerRef, isAtBottom, scrollToBottom } = useAutoScroll()
   const [isMobileHistoryOpen, setIsMobileHistoryOpen] = useState(false)
 
@@ -47,7 +53,6 @@ export function AITutorPage() {
     if (subject) {
       selectSubject(subject)
     }
-    // Set prompt into composer and trigger send
     sendMessage(prompt)
   }
 
@@ -82,6 +87,14 @@ export function AITutorPage() {
           isStreaming={isStreaming}
         />
 
+        {/* Phase 8 Contextual Learning Header Badge */}
+        {activeContext && (
+          <ContextualHeaderBadge
+            context={activeContext}
+            onClearContext={handleClearContext}
+          />
+        )}
+
         {hasMessages ? (
           <ChatMessageList
             messages={messages}
@@ -108,8 +121,10 @@ export function AITutorPage() {
           activeSubject={activeSubject}
           onSelectSubject={selectSubject}
           prefilledText={prefilledInput}
-          contextTopic={contextTopic}
+          contextTopic={activeContext ? undefined : legacyContextTopic}
           onClearContext={handleClearContext}
+          activeMode={activeMode}
+          onSelectMode={setAssistanceMode}
         />
       </main>
     </div>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowRight,
+  Bot,
   BookMarked,
   BookOpen,
   CheckCircle2,
@@ -19,6 +20,7 @@ import { Progress } from '@/components/ui/Progress'
 import { useSmartReview } from '@/hooks/useSmartReview'
 import { useStudyNotes } from '@/hooks/useStudyNotes'
 import type { ReviewRating } from '@/types/smartReview'
+import { learningContextService } from '@/services/learningContext.service'
 import './SmartReviewPage.css'
 
 export function SmartReviewPage() {
@@ -52,6 +54,8 @@ export function SmartReviewPage() {
     startSession()
   }
 
+
+
   const handleRate = (rating: ReviewRating) => {
     if (!activeSession) return
     const currentItem = activeSession.items[activeSession.currentIndex]
@@ -80,6 +84,21 @@ export function SmartReviewPage() {
     if (!activeSession || activeSession.status === 'completed') return null
     return activeSession.items[activeSession.currentIndex] || null
   }, [activeSession])
+
+  const handleAskAIHint = () => {
+    if (!currentSessionItem) return
+    learningContextService.setContext({
+      source: 'smart-review',
+      knowledgeGapId: currentSessionItem.gapId || currentSessionItem.reviewItemId,
+      subjectId: currentSessionItem.subjectId,
+      lessonId: currentSessionItem.lessonId,
+      sectionId: currentSessionItem.sectionId,
+      title: currentSessionItem.title,
+      excerpt: currentSessionItem.prompt,
+      returnUrl: '/review',
+    })
+    navigate('/ai-tutor')
+  }
 
   // Related note for current session item if any
   const relatedNote = useMemo(() => {
@@ -212,6 +231,15 @@ export function SmartReviewPage() {
                   className="reveal-btn"
                 >
                   Xem giải thích & Đáp án
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  icon={Bot}
+                  onClick={handleAskAIHint}
+                  className="reveal-btn hint-btn"
+                >
+                  Cho mình gợi ý
                 </Button>
               </div>
             ) : (

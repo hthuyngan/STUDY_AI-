@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import {
   AlertTriangle,
+  Bot,
   BookOpen,
   CheckCircle2,
   Clock,
@@ -17,6 +18,7 @@ import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useKnowledgeGaps } from '@/hooks/useKnowledgeGaps'
 import type { KnowledgeGap, KnowledgeGapStatus } from '@/types/knowledgeGaps'
+import { learningContextService } from '@/services/learningContext.service'
 import './KnowledgeGapsPage.css'
 
 const SUBJECT_FILTER_OPTIONS = [
@@ -55,6 +57,24 @@ export function KnowledgeGapsPage() {
       )
     })
   }, [gaps, selectedSubject, selectedStatus, searchQuery])
+
+  
+  const handleAskAI = (gap: KnowledgeGap) => {
+    learningContextService.setContext({
+      source: 'knowledge-gap',
+      knowledgeGapId: gap.id,
+      subjectId: gap.subjectId,
+      subjectName: gap.subjectName,
+      lessonId: gap.lessonId,
+      lessonTitle: gap.lessonTitle,
+      sectionId: gap.sectionId,
+      sectionTitle: gap.sectionTitle,
+      title: gap.title,
+      excerpt: gap.questionPrompt || gap.explanation,
+      returnUrl: '/knowledge-gaps',
+    })
+    navigate('/ai-tutor')
+  }
 
   const handleOpenLesson = (gap: KnowledgeGap) => {
     const hash = gap.sectionId ? `#${gap.sectionId}` : ''
@@ -295,6 +315,14 @@ export function KnowledgeGapsPage() {
                     onClick={() => handleOpenLesson(gap)}
                   >
                     Xem lại bài giảng
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    icon={Bot}
+                    onClick={() => handleAskAI(gap)}
+                  >
+                    Nhờ AI giải thích
                   </Button>
 
                   <button

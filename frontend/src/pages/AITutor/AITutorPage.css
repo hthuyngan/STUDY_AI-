@@ -458,6 +458,177 @@
   color: var(--text-primary);
 }
 
+
+/* ── KaTeX Mathematics & LaTeX Styles ───────────────────────── */
+.ai-math-block-container {
+  margin: var(--space-2) 0;
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-paper, #FFF9EA);
+  border: 1px solid rgba(244, 185, 66, 0.4);
+  border-left: 4px solid var(--color-accent, #F4B942);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  max-width: 100%;
+  text-align: center;
+  color: var(--color-primary, #102A43);
+  box-shadow: 0 1px 3px rgba(16, 42, 67, 0.04);
+}
+
+.ai-math-block-container .katex-display {
+  margin: 0 !important;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.ai-inline-math {
+  display: inline-block;
+  padding: 0 2px;
+  font-size: 0.98em;
+  color: var(--color-primary, #102A43);
+}
+
+/* ── Markdown Headings & Blockquotes ────────────────────────── */
+.ai-heading-1 {
+  margin: var(--space-3) 0 var(--space-1) 0;
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--color-primary, #102A43);
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 4px;
+}
+
+.ai-heading-2 {
+  margin: var(--space-3) 0 var(--space-1) 0;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-primary, #102A43);
+}
+
+.ai-heading-3 {
+  margin: var(--space-2) 0 var(--space-1) 0;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--color-primary, #102A43);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ai-blockquote {
+  margin: var(--space-2) 0;
+  padding: 8px 14px;
+  background-color: var(--surface-card);
+  border-left: 3px solid var(--color-primary, #102A43);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: var(--text-xs);
+  line-height: var(--leading-relaxed);
+  color: var(--text-secondary);
+}
+
+/* ── Markdown Table ─────────────────────────────────────────── */
+.ai-table-container {
+  margin: var(--space-2) 0;
+  overflow-x: auto;
+  max-width: 100%;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+}
+
+.ai-markdown-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-xs);
+  text-align: left;
+}
+
+.ai-markdown-table th {
+  background-color: var(--surface-sunken);
+  color: var(--color-primary, #102A43);
+  font-weight: 600;
+  padding: 8px 12px;
+  border-bottom: 2px solid var(--border-default);
+}
+
+.ai-markdown-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+}
+
+.ai-markdown-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* ── Mode Pill & Context Snapshot Bar ───────────────────────── */
+.ai-mode-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid transparent;
+}
+
+.ai-mode-pill.mode-hint {
+  background: #EFF6FF;
+  color: #1D4ED8;
+  border-color: #BFDBFE;
+}
+
+.ai-mode-pill.mode-step {
+  background: #F0FDF4;
+  color: #15803D;
+  border-color: #BBF7D0;
+}
+
+.ai-mode-pill.mode-practice {
+  background: #FEF3C7;
+  color: #B45309;
+  border-color: #FDE68A;
+}
+
+.ai-mode-pill.mode-summarize {
+  background: #F3E8FF;
+  color: #7E22CE;
+  border-color: #E9D5FF;
+}
+
+.ai-mode-pill.mode-explain {
+  background: var(--surface-sunken);
+  color: var(--text-secondary);
+  border-color: var(--border-subtle);
+}
+
+.assistant-context-snapshot-bar {
+  margin-left: 36px;
+  margin-bottom: var(--space-1);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  background: var(--surface-sunken);
+  border-left: 2px solid var(--color-accent, #F4B942);
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  max-width: fit-content;
+}
+
+.context-snapshot-source {
+  font-weight: 600;
+  color: var(--color-primary, #102A43);
+}
+
+.context-snapshot-title {
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 400px;
+}
+
 /* ── Streaming Cursor ───────────────────────────────────────── */
 .ai-streaming-cursor {
   display: inline-block;

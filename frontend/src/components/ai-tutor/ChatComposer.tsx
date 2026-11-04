@@ -8,6 +8,8 @@ import {
 } from 'react'
 import { ArrowUp, Plus, Square, X } from 'lucide-react'
 import { SUBJECT_OPTIONS } from '../../data/aiTutor.mock'
+import type { LearningAssistanceMode } from '../../types/aiTutor'
+import { AssistanceModeSelector } from './AssistanceModeSelector'
 
 interface ChatComposerProps {
   onSendMessage: (message: string) => void
@@ -19,6 +21,8 @@ interface ChatComposerProps {
   disabled?: boolean
   contextTopic?: string
   onClearContext?: () => void
+  activeMode?: LearningAssistanceMode
+  onSelectMode?: (mode: LearningAssistanceMode) => void
 }
 
 function adjustTextareaHeight(el: HTMLTextAreaElement) {
@@ -37,6 +41,8 @@ export function ChatComposer({
   disabled = false,
   contextTopic,
   onClearContext,
+  activeMode = 'explain',
+  onSelectMode,
 }: ChatComposerProps) {
   const [content, setContent] = useState(prefilledText)
   const [prevPrefilledText, setPrevPrefilledText] = useState(prefilledText)
@@ -91,6 +97,14 @@ export function ChatComposer({
   return (
     <form className="chat-composer-root" onSubmit={handleSubmit}>
       <div className="chat-composer-box">
+        {onSelectMode && (
+          <AssistanceModeSelector
+            activeMode={activeMode}
+            onSelectMode={onSelectMode}
+            disabled={isStreaming}
+          />
+        )}
+
         {contextTopic && (
           <div className="composer-context-chip" role="status" aria-label={`Đang hỏi về ${contextTopic}`}>
             <span className="context-chip-label">Đang hỏi về:</span>
@@ -108,6 +122,7 @@ export function ChatComposer({
             )}
           </div>
         )}
+
         <div className="chat-composer-input-row">
           <button
             type="button"

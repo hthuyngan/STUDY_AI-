@@ -1,6 +1,7 @@
 import { AlertCircle, Bot, CheckCircle2, RotateCcw, XCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
+import { learningContextService } from '@/services/learningContext.service'
 import type { AssessmentQuestion, LearningAttempt } from '@/types/assessment'
 import './AssessmentResultView.css'
 
@@ -34,8 +35,21 @@ export function AssessmentResultView({
     const userResp = attempt.responses[q.id]
     const chosenOpt = q.options.find((o) => userResp?.selectedOptionIds?.includes(o.id))
     const correctOpt = q.options.find((o) => o.id === q.correctOptionId)
-    const promptSummary = `Em làm sai câu hỏi: "${q.prompt}". Em đã chọn: "${chosenOpt?.label}. ${chosenOpt?.text}", nhưng đáp án đúng là "${correctOpt?.label}. ${correctOpt?.text}". Nhờ AI giải thích chi tiết giúp em phương pháp và bản chất câu hỏi này.`
-    navigate(`/ai-tutor?prompt=${encodeURIComponent(promptSummary)}`)
+
+    learningContextService.setContext({
+      source: 'assessment-question',
+      questionId: q.id,
+      questionPrompt: q.prompt,
+      selectedAnswer: chosenOpt ? `${chosenOpt.label}. ${chosenOpt.text}` : undefined,
+      correctAnswer: correctOpt ? `${correctOpt.label}. ${correctOpt.text}` : undefined,
+      explanation: q.explanation,
+      lessonId: attempt.lessonId,
+      title: q.topic || `Câu hỏi: ${q.prompt.slice(0, 32)}...`,
+      excerpt: q.prompt,
+      returnUrl: window.location.pathname,
+    })
+
+    navigate('/ai-tutor')
   }
 
   return (
@@ -100,38 +114,36 @@ export function AssessmentResultView({
                   </div>
                   <div className="review-header-right">
                     {isCorrect ? (
-                      <span className="answer-status-pill correct">
-                        <CheckCircle2 size={14} aria-hidden /> Đúng
+                      <span className="badge-correct">
+                        <CheckCircle2 size={14} aria-hidden /> Chính xác
                       </span>
                     ) : (
-                      <span className="answer-status-pill incorrect">
-                        <XCircle size={14} aria-hidden /> Sai
+                      <span className="badge-incorrect">
+                        <XCircle size={14} aria-hidden /> Chưa đúng
                       </span>
                     )}
                   </div>
                 </div>
 
-                <p className="review-prompt">{q.prompt}</p>
+                <p className="review-question-prompt">{q.prompt}</p>
 
-                {/* Options representation */}
+                {/* Options List */}
                 <div className="review-options-list">
                   {q.options.map((opt) => {
-                    const isSelectedByUser = opt.id === selectedOptId
-                    const isCorrectOption = opt.id === q.correctOptionId
+                    const isSelected = selectedOptId === opt.id
+                    const isTheCorrectOpt = opt.id === q.correctOptionId
+                    let optClass = 'review-option-item'
 
-                    let optClass = 'neutral'
-                    if (isCorrectOption) optClass = 'correct-choice'
-                    else if (isSelectedByUser && !isCorrectOption) optClass = 'wrong-choice'
+                    if (isTheCorrectOpt) optClass += ' is-correct-answer'
+                    if (isSelected && !isTheCorrectOpt) optClass += ' is-user-wrong-answer'
 
                     return (
-                      <div key={opt.id} className={`review-option-item ${optClass}`}>
-                        <span className="option-label-circle">{opt.label}</span>
+                      <div key={opt.id} className={optClass}>
+                        <span className="option-label">{opt.label}.</span>
                         <span className="option-text">{opt.text}</span>
-                        {isCorrectOption && (
-                          <span className="option-tag-correct">Đáp án đúng</span>
-                        )}
-                        {isSelectedByUser && !isCorrectOption && (
-                          <span className="option-tag-wrong">Bạn đã chọn</span>
+                        {isTheCorrectOpt && <span className="option-tag tag-correct">Đáp án đúng</span>}
+                        {isSelected && !isTheCorrectOpt && (
+                          <span className="option-tag tag-wrong">Bạn đã chọn</span>
                         )}
                       </div>
                     )
@@ -141,21 +153,22 @@ export function AssessmentResultView({
                 {/* Explanation */}
                 {q.explanation && (
                   <div className="review-explanation-box">
-                    <strong>Giải thích chi tiết:</strong>
-                    <p>{q.explanation}</p>
+                    <span className="explanation-title">Giải thích:</span>
+                    <p className="explanation-text">{q.explanation}</p>
                   </div>
                 )}
 
-                {/* Ask AI about wrong answer button */}
+                {/* AI Tutor Contextual Help Button */}
                 {!isCorrect && (
-                  <div className="review-action-row">
+                  <div className="review-ai-action-row">
                     <Button
                       variant="outline"
                       size="sm"
                       icon={Bot}
                       onClick={() => handleAskAIAboutQuestion(q)}
+                      className="ask-ai-review-btn"
                     >
-                      Hỏi AI về câu sai này
+                      Nhờ AI giải thích chi tiết câu này
                     </Button>
                   </div>
                 )}
@@ -165,13 +178,13 @@ export function AssessmentResultView({
         </div>
       </div>
 
-      {/* Result Actions */}
-      <div className="result-view-footer">
-        <Button variant="outline" onClick={onClose}>
-          Đóng & Quay lại bài học
+      {/* Modal Bottom Footer Actions */}
+      <div className="result-footer-actions">
+        <Button variant="outline" icon={RotateCcw} onClick={onRetry}>
+          Làm lại bài này
         </Button>
-        <Button variant="primary" icon={RotateCcw} onClick={onRetry}>
-          Làm lại bài tập
+        <Button variant="primary" onClick={onClose}>
+          Hoàn tất & Đóng
         </Button>
       </div>
     </div>

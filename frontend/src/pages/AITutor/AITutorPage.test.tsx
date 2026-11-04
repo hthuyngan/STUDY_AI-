@@ -1,9 +1,13 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { AITutorPage } from './AITutorPage'
 
 describe('AITutorPage Component', () => {
+  beforeEach(() => {
+    localStorage.clear()
+  })
+
   it('renders conversation header, composer and chat components', async () => {
     render(
       <MemoryRouter>
@@ -23,6 +27,7 @@ describe('AITutorPage Component', () => {
       </MemoryRouter>
     )
 
+    await screen.findByRole('heading', { level: 1 })
     const newChatBtn = screen.getByRole('button', { name: /đoạn chat mới/i })
     fireEvent.click(newChatBtn)
 
@@ -41,6 +46,7 @@ describe('AITutorPage Component', () => {
     )
 
     // Start a fresh chat
+    await screen.findByRole('heading', { level: 1 })
     const newChatBtn = screen.getByRole('button', { name: /đoạn chat mới/i })
     fireEvent.click(newChatBtn)
 

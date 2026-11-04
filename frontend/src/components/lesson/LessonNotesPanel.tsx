@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import {
   BookmarkCheck,
+  Sparkles,
   Check,
   ChevronRight,
   FileText,
@@ -14,6 +15,9 @@ import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useSectionBookmarks } from '@/hooks/useSectionBookmarks'
 import { useStudyNotes } from '@/hooks/useStudyNotes'
+import { useNavigate } from 'react-router-dom'
+import { learningContextService } from '@/services/learningContext.service'
+import type { StudyNote } from '@/types/studyNotes'
 import './LessonNotesPanel.css'
 
 export interface LessonNotesPanelProps {
@@ -52,10 +56,28 @@ export function LessonNotesPanel({
     removeNote,
   } = useStudyNotes(lessonId)
 
+  const navigate = useNavigate()
   const {
     bookmarks,
     removeBookmark,
   } = useSectionBookmarks(lessonId)
+
+  const handleAskAINote = (note: StudyNote) => {
+    learningContextService.setContext({
+      source: 'study-note',
+      studyNoteId: note.id,
+      subjectId: note.subjectId,
+      subjectName: note.subjectName,
+      lessonId: note.lessonId,
+      lessonTitle: note.lessonTitle,
+      sectionId: note.sectionId,
+      sectionTitle: note.sectionTitle,
+      title: note.sectionTitle ? `Ghi chú: ${note.sectionTitle}` : `Ghi chú bài học`,
+      excerpt: note.content,
+      returnUrl: window.location.pathname,
+    })
+    navigate('/ai-tutor')
+  }
 
   if (!isOpen) return null
 
@@ -286,6 +308,15 @@ export function LessonNotesPanel({
                             · {new Date(note.createdAt).toLocaleDateString('vi-VN')}
                           </span>
                           <div className="note-actions">
+                            <button
+                              type="button"
+                              className="note-action-btn"
+                              onClick={() => handleAskAINote(note)}
+                              aria-label="Hỏi AI về ghi chú này"
+                              title="Hỏi AI Tutor"
+                            >
+                              <Sparkles size={11} aria-hidden /> Hỏi AI
+                            </button>
                             <button
                               type="button"
                               className="note-action-btn"

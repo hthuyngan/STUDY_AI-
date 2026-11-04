@@ -16,6 +16,7 @@ import { LessonBottomBar } from '@/components/lesson/LessonBottomBar'
 import { LessonNotesPanel } from '@/components/lesson/LessonNotesPanel'
 import { LessonProgressBar } from '@/components/lesson/LessonProgressBar'
 import { LessonSectionBookmarkBtn } from '@/components/lesson/LessonSectionBookmarkBtn'
+import { LessonAskAIBtn } from '@/components/lesson/LessonAskAIBtn'
 import { LessonSectionProgress } from '@/components/lesson/LessonSectionProgress'
 import { LessonSidebar } from '@/components/lesson/LessonSidebar'
 import { Breadcrumb } from '@/components/ui/Breadcrumb'
@@ -335,6 +336,15 @@ export function LessonPage() {
               <div className="lesson-heading-row">
                 <span className="lesson-intro-tag">Mở đầu bài học</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <LessonAskAIBtn
+                    lessonId={lesson.id}
+                    subjectId={resolvedSubjectId}
+                    lessonTitle={lesson.title}
+                    subjectName={lesson.subjectName || 'Môn học'}
+                    sectionId="introduction"
+                    sectionTitle="Mở đầu bài học"
+                    excerpt={typeof lesson.content.introduction === 'string' ? lesson.content.introduction : undefined}
+                  />
                   <LessonSectionBookmarkBtn
                     lessonId={lesson.id}
                     subjectId={resolvedSubjectId}
@@ -363,6 +373,14 @@ export function LessonPage() {
               <LessonHeading
                 extra={
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <LessonAskAIBtn
+                      lessonId={lesson.id}
+                      subjectId={resolvedSubjectId}
+                      lessonTitle={lesson.title}
+                      subjectName={lesson.subjectName || 'Môn học'}
+                      sectionId="definitions"
+                      sectionTitle="Khái niệm và Định nghĩa cơ bản"
+                    />
                     <LessonSectionBookmarkBtn
                       lessonId={lesson.id}
                       subjectId={resolvedSubjectId}
@@ -396,6 +414,14 @@ export function LessonPage() {
               <LessonHeading
                 extra={
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <LessonAskAIBtn
+                      lessonId={lesson.id}
+                      subjectId={resolvedSubjectId}
+                      lessonTitle={lesson.title}
+                      subjectName={lesson.subjectName || 'Môn học'}
+                      sectionId="formulas"
+                      sectionTitle="Công thức trọng tâm"
+                    />
                     <LessonSectionBookmarkBtn
                       lessonId={lesson.id}
                       subjectId={resolvedSubjectId}
@@ -429,6 +455,14 @@ export function LessonPage() {
               <LessonHeading
                 extra={
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <LessonAskAIBtn
+                      lessonId={lesson.id}
+                      subjectId={resolvedSubjectId}
+                      lessonTitle={lesson.title}
+                      subjectName={lesson.subjectName || 'Môn học'}
+                      sectionId="examples"
+                      sectionTitle="Ví dụ mẫu & Phương pháp giải"
+                    />
                     <LessonSectionBookmarkBtn
                       lessonId={lesson.id}
                       subjectId={resolvedSubjectId}
@@ -462,6 +496,14 @@ export function LessonPage() {
               <LessonHeading
                 extra={
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <LessonAskAIBtn
+                      lessonId={lesson.id}
+                      subjectId={resolvedSubjectId}
+                      lessonTitle={lesson.title}
+                      subjectName={lesson.subjectName || 'Môn học'}
+                      sectionId="important-notes"
+                      sectionTitle="Bẫy đề thi & Lưu ý cần nhớ"
+                    />
                     <LessonSectionBookmarkBtn
                       lessonId={lesson.id}
                       subjectId={resolvedSubjectId}
@@ -493,6 +535,14 @@ export function LessonPage() {
               <LessonHeading
                 extra={
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <LessonAskAIBtn
+                      lessonId={lesson.id}
+                      subjectId={resolvedSubjectId}
+                      lessonTitle={lesson.title}
+                      subjectName={lesson.subjectName || 'Môn học'}
+                      sectionId="summary"
+                      sectionTitle="Tổng kết kiến thức bài học"
+                    />
                     <LessonSectionBookmarkBtn
                       lessonId={lesson.id}
                       subjectId={resolvedSubjectId}

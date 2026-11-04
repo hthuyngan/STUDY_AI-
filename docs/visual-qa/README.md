@@ -199,6 +199,56 @@ Entry point "Phân tích học tập" được đặt nổi bật, đồng bộ 
 
 ---
 
+### 2.11. Nghiệm thu Phase 8: Contextual AI Tutor & Learning Assistance
+
+Bằng chứng kiểm chứng thực tế cho hệ thống AI Tutor hỗ trợ học tập có ngữ cảnh của Phase 8:
+
+#### 1. Điều hướng có ngữ cảnh từ Bài giảng sang AI Tutor (Desktop 1440 × 900 px)
+Nút "Hỏi AI về mục này" tích hợp cạnh từng mục bài giảng, mở AI Tutor kèm ngữ cảnh nguồn chính xác và trích đoạn tối đa 250 ký tự:
+![Lesson to AI Tutor Desktop](interactions/learner_lesson_to_ai_tutor_desktop.png)
+
+#### 2. AI Tutor tiếp nhận ngữ cảnh với Contextual Header Badge (Desktop 1440 × 900 px)
+Badge nổi bật màu Navy/Vàng cát hiển thị nguồn, đường dẫn bài học, trích đoạn bài học và 2 nút "Quay lại vị trí học" cùng "Bỏ ngữ cảnh":
+![AI Tutor Lesson Context](screenshots/learner_ai_tutor_lesson_context_desktop.png)
+
+#### 3. AI Tutor phản hồi hiển thị KaTeX LaTeX & Bảng Markdown (Desktop 1440 × 900 px)
+Render công thức toán học chuẩn xác với KaTeX ($$...$$ và $...$), bảng markdown, code block và nhãn mô phỏng minh bạch `[Bản mô phỏng AI Tutor · Trải nghiệm học tập có ngữ cảnh]`:
+![AI Tutor KaTeX Response](screenshots/learner_ai_tutor_latex_response_desktop.png)
+
+#### 4. Chế độ Hỗ trợ Sư phạm: Gợi ý tư duy (Hint Mode)
+AI Tutor đóng vai trò người gợi mở, đặt câu hỏi định hướng thay vì giải bài hộ:
+![AI Tutor Hint Mode](screenshots/learner_ai_tutor_hint_mode_desktop.png)
+
+#### 5. Chế độ Hỗ trợ Sư phạm: Từng bước giải (Step-by-Step Mode)
+Phân rã vấn đề theo từng bước logic chặt chẽ kèm công thức toán KaTeX:
+![AI Tutor Step by Step Mode](screenshots/learner_ai_tutor_step_by_step_desktop.png)
+
+#### 6. Quản lý Lịch sử Hội thoại & Phân loại Phiên (Desktop 1440 × 900 px)
+Hỗ trợ lưu trữ scoped localStorage, hiển thị nhãn môn học, ngữ cảnh đã lưu và snapshot ngữ cảnh bất biến theo tin nhắn:
+![AI Tutor Conversation History](screenshots/learner_ai_tutor_conversation_history_desktop.png)
+
+#### 7. Chuyển đổi linh hoạt sang Hỏi chung / Chat tự do (Desktop 1440 × 900 px)
+Khi bỏ ngữ cảnh hoặc mở cuộc trò chuyện mới, AI Tutor chuyển sang chế độ trò chuyện chung với các gợi ý học tập hữu ích:
+![AI Tutor General Chat](screenshots/learner_ai_tutor_general_chat_desktop.png)
+
+#### 8. AI Tutor trên Mobile Viewport (390 × 844 px)
+Giao diện co giãn chuẩn xác, composer và badge hiển thị gọn gàng trên thiết bị di động:
+![AI Tutor Mobile](screenshots/learner_ai_tutor_mobile_390.png)
+
+#### 9. Kiểm thử Cuộn ngang Khối công thức KaTeX trên Mobile (390 × 844 px)
+Công thức toán dài cuộn ngang độc lập mượt mà (`overflow-x: auto`), không làm tràn màn hình hay vỡ layout viewport:
+![AI Tutor Long Equation Mobile](screenshots/learner_ai_tutor_long_equation_mobile_390.png)
+
+#### 10. Điều hướng có ngữ cảnh từ Sổ tay lỗ hổng kiến thức sang AI Tutor
+Nút "Nhờ AI giải thích" từ Knowledge Gap mở AI Tutor kèm ngữ cảnh lỗ hổng kiến thức và câu hỏi liên quan:
+![Gap to AI Tutor](interactions/learner_gap_to_ai_tutor_desktop.png)
+
+#### 11. Điều hướng có ngữ cảnh từ Ghi chú bài học sang AI Tutor
+Nút "Hỏi AI" từ Ghi chú cá nhân mở AI Tutor để thảo luận sâu hơn về nội dung đã ghi chú:
+![Note to AI Tutor](interactions/learner_note_to_ai_tutor_desktop.png)
+
+---
+
 ## 3. CẤU TRÚC THƯ MỤC VÀ LIÊN KẾT ẢNH GỐC
 
 ```text
