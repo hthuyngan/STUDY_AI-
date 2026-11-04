@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { BookOpen, Bot, Play, Search, SlidersHorizontal } from 'lucide-react'
+import { ArrowLeft, BookOpen, Bot, Clock, Compass, Play, Search, SlidersHorizontal, Sparkles } from 'lucide-react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { CurriculumChapterNav, type ChapterWithStats } from '@/components/subjects/CurriculumChapterNav'
 import { CurriculumLessonsPanel } from '@/components/subjects/CurriculumLessonsPanel'
@@ -185,6 +185,123 @@ export function SubjectDetailPage() {
       <div className="subject-detail-root">
         <Breadcrumb items={[{ label: 'Môn học', to: '/subjects' }, { label: 'Chi tiết' }]} />
         <PageErrorState description={error || 'Không tìm thấy môn học'} onRetry={reload} />
+      </div>
+    )
+  }
+
+  // Pedagogical Coming Soon View for unauthored subjects (GDPT 2018)
+  if (subject.availability === 'coming_soon' || subject.chapters.length === 0) {
+    return (
+      <div className="subject-detail-root">
+        {/* Breadcrumb */}
+        <Breadcrumb
+          items={[
+            { label: 'Môn học', to: '/subjects' },
+            { label: subject.name },
+          ]}
+        />
+
+        {/* Coming Soon Hero Header */}
+        <div className="subject-coming-soon-hero">
+          <div className="coming-soon-badge-row">
+            <span className="coming-soon-badge">
+              <Clock size={13} aria-hidden /> Đang phát triển nội dung
+            </span>
+            <span className="coming-soon-curriculum-badge">
+              Chuẩn GDPT 2018 · {subject.grade || 'Lớp 12'}
+            </span>
+          </div>
+
+          <div className="coming-soon-header-main">
+            <div
+              className="subject-large-icon"
+              style={{ backgroundColor: subject.bgColor, color: subject.color }}
+              aria-hidden
+            >
+              {subject.icon}
+            </div>
+
+            <div className="coming-soon-header-text">
+              <h1 className="subject-title">{subject.name}</h1>
+              <p className="subject-subtitle">
+                {subject.description || 'Chương trình đang được Hội đồng chuyên môn biên soạn theo định hướng phát triển năng lực của GDPT 2018.'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Pedagogical Roadmap & Planned Topics */}
+        <div className="subject-coming-soon-body">
+          <div className="coming-soon-card roadmap-card">
+            <div className="roadmap-header">
+              <div className="roadmap-header-icon">
+                <Compass size={20} aria-hidden />
+              </div>
+              <div>
+                <h2 className="roadmap-title">Định hướng chương trình GDPT 2018</h2>
+                <p className="roadmap-subtitle">
+                  Các chủ đề trọng tâm đang được xây dựng bài giảng tương tác, ví dụ minh họa và ngân hàng câu hỏi đánh giá năng lực:
+                </p>
+              </div>
+            </div>
+
+            <div className="roadmap-topics-grid">
+              {(subject.plannedTopics && subject.plannedTopics.length > 0
+                ? subject.plannedTopics
+                : [
+                    'Kiến thức lý thuyết trọng tâm và hệ thống công thức',
+                    'Phương pháp giải các dạng bài tập điển hình',
+                    'Bài tập vận dụng và vận dụng cao phân hóa năng lực',
+                    'Bộ câu hỏi trắc nghiệm thu hoạch chuẩn cấu trúc đề thi',
+                  ]
+              ).map((topic, idx) => (
+                <div key={idx} className="roadmap-topic-card">
+                  <div className="roadmap-topic-num">Chủ đề {idx + 1}</div>
+                  <h3 className="roadmap-topic-name">{topic}</h3>
+                  <span className="roadmap-topic-status">Đang biên soạn</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Transparent Honest CTA Card */}
+          <div className="coming-soon-card cta-card">
+            <div className="cta-icon-tag">
+              <Bot size={24} aria-hidden />
+            </div>
+            <h2 className="cta-card-title">Bạn muốn học môn này ngay hôm nay?</h2>
+            <p className="cta-card-desc">
+              AI Tutor của STUDY_AI có thể giải thích mọi khái niệm, giải bài tập và tóm tắt kiến thức của môn{' '}
+              <strong>{subject.name}</strong> 24/7.
+            </p>
+
+            <div className="coming-soon-actions">
+              <Button
+                variant="primary"
+                icon={Sparkles}
+                onClick={() => navigate(`/ai-tutor?topic=${encodeURIComponent(subject.name)}`)}
+              >
+                Hỏi AI Tutor về môn {subject.name}
+              </Button>
+
+              <Button
+                variant="outline"
+                icon={BookOpen}
+                onClick={() => navigate('/subjects/math')}
+              >
+                Khám phá môn Toán 12 (Đã phát hành)
+              </Button>
+
+              <Button
+                variant="ghost"
+                icon={ArrowLeft}
+                onClick={() => navigate('/subjects')}
+              >
+                Quay lại danh mục môn học
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
     )
   }

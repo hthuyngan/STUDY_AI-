@@ -1,5 +1,6 @@
 import { mockLessonsDetail } from '@/data/lessons.mock'
 import { mockSubjectDetails } from '@/data/subjects.mock'
+import { curriculumRepository } from '@/repositories/curriculum.repository'
 import { educationService } from '@/services/education.service'
 import { LESSON_PROGRESS_STORAGE_KEY } from '@/services/lessonProgress.service'
 import type { LessonProgressState } from '@/types/assessment'
@@ -32,6 +33,48 @@ export async function getLesson(courseOrSubjectId: string, lessonId: string): Pr
   const eduLesson = await educationService.getLessonById(lessonId)
   if (eduLesson && eduLesson.status !== 'published') {
     return null
+  }
+
+  // Check GDPT 2018 Curriculum Repository
+  const currLesson = await curriculumRepository.getLessonById(lessonId)
+  if (currLesson) {
+    const subject = await curriculumRepository.getSubjectById(currLesson.subjectId)
+    const chapter = await curriculumRepository.getChapterById(currLesson.chapterId)
+    const mockMatch = mockLessonsDetail[lessonId] || mockLessonsDetail[currLesson.id]
+    const isCompleted = savedProgress ? savedProgress.overallProgress === 100 : !!mockMatch?.isCompleted
+    const isBookmarked = mockMatch?.isBookmarked ?? false
+
+    return {
+      id: lessonId || currLesson.id,
+      courseId: courseOrSubjectId || currLesson.subjectId,
+      courseTitle: subject ? `Giáo trình ${subject.name} · Lớp ${currLesson.grade}` : 'Giáo trình SGK',
+      subjectId: currLesson.subjectId,
+      subjectName: subject?.name || 'Toán học',
+      chapterId: currLesson.chapterId,
+      chapterTitle: chapter?.title || 'Chương 1: Ứng dụng đạo hàm để khảo sát hàm số',
+      lessonNumber: currLesson.lessonNumber,
+      title: currLesson.title,
+      durationMinutes: currLesson.durationMinutes,
+      xp: currLesson.xp,
+      isCompleted,
+      isBookmarked,
+      quizId: currLesson.quizId,
+      assessmentId: currLesson.assessmentId,
+      previousLessonId: currLesson.previousLessonId,
+      nextLessonId: currLesson.nextLessonId,
+      learningObjectives: currLesson.learningObjectives,
+      skills: currLesson.skills,
+      curriculumVersion: currLesson.metadata.curriculumVersion,
+      textbookAlignment: currLesson.metadata.textbookAlignment,
+      content: currLesson.content || {
+        introduction: currLesson.description || '',
+        definitions: [],
+        formulas: [],
+        examples: [],
+        importantNotes: [],
+        summaryPoints: [],
+      },
+    }
   }
 
   const lesson = mockLessonsDetail[lessonId]

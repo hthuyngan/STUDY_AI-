@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Bookmark, BookmarkCheck, FileText, List, Sparkles } from 'lucide-react'
+import { Bookmark, BookmarkCheck, CheckCircle2, FileText, List, Sparkles, Target } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import { AssessmentModal } from '@/components/assessment/AssessmentModal'
 import { LessonAssessmentCard } from '@/components/assessment/LessonAssessmentCard'
@@ -326,6 +326,57 @@ export function LessonPage() {
 
         {/* Lesson Content Article */}
         <article className="lesson-article-body">
+          {/* Pedagogical Objectives & Competency Skills Card (GDPT 2018) */}
+          {((lesson.learningObjectives && lesson.learningObjectives.length > 0) ||
+            (lesson.skills && lesson.skills.length > 0)) && (
+            <div className="lesson-objectives-card">
+              <div className="lesson-objectives-header">
+                <div className="lesson-objectives-badge">
+                  <Target size={14} aria-hidden />
+                  <span>CHUẨN GDPT 2018</span>
+                </div>
+                {lesson.curriculumVersion && (
+                  <span className="lesson-curriculum-version-tag">
+                    {lesson.textbookAlignment === 'general_standard'
+                      ? 'Bộ GD&ĐT · Chuẩn phát triển năng lực'
+                      : lesson.textbookAlignment || 'Chương trình GDPT 2018'}
+                  </span>
+                )}
+              </div>
+
+              {lesson.learningObjectives && lesson.learningObjectives.length > 0 && (
+                <div className="lesson-objectives-block">
+                  <h2 className="lesson-objectives-title">Mục tiêu bài học cần đạt</h2>
+                  <ul className="lesson-objectives-list">
+                    {lesson.learningObjectives.map((obj, i) => (
+                      <li key={i} className="lesson-objective-item">
+                        <CheckCircle2 size={16} className="objective-check-icon" aria-hidden />
+                        <span>{obj}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {lesson.skills && lesson.skills.length > 0 && (
+                <div className="lesson-skills-block">
+                  <h3 className="lesson-skills-title">Kỹ năng năng lực cốt lõi</h3>
+                  <div className="lesson-skills-pills">
+                    {lesson.skills.map((sk) => (
+                      <span
+                        key={sk.skillCode}
+                        className={`lesson-skill-pill skill-level-${sk.level}`}
+                        title={`Kỹ năng: ${sk.skillName} (${sk.level})`}
+                      >
+                        <code className="skill-code">{sk.skillCode}</code>
+                        <span className="skill-name">{sk.skillName}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           {/* Introduction Section */}
           {lesson.content.introduction && (
             <div

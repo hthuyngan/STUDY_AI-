@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowRight, BookOpen, Bot, Search, Sparkles } from 'lucide-react'
+import { ArrowRight, BookOpen, Bot, CheckCircle2, Clock, Search, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -129,59 +129,102 @@ export function SubjectsPage() {
         />
       ) : (
         <div className="subjects-grid">
-          {filteredSubjects.map((sub) => (
-            <Card key={sub.id} className="subject-item-card">
-              <div className="subject-card-top">
-                <div
-                  className="subject-brand-icon"
-                  style={{ backgroundColor: sub.bgColor, color: sub.color }}
-                  aria-hidden
-                >
-                  {sub.icon}
-                </div>
-                <div className="subject-card-meta">
-                  <div className="subject-badge-grade">
-                    {sub.grade} · {sub.curriculumLabel || 'Giáo trình SGK'}
+          {filteredSubjects.map((sub) => {
+            const isAvailable = sub.availability === 'available' || (!sub.availability && (sub.totalLessons ?? 0) > 0)
+            return (
+              <Card key={sub.id} className={`subject-item-card ${isAvailable ? 'is-available' : 'is-coming-soon'}`}>
+                <div className="subject-card-top">
+                  <div
+                    className="subject-brand-icon"
+                    style={{ backgroundColor: sub.bgColor, color: sub.color }}
+                    aria-hidden
+                  >
+                    {sub.icon}
                   </div>
-                  <h2 className="subject-name">{sub.name}</h2>
+                  <div className="subject-card-meta">
+                    <div className="subject-badge-row">
+                      <span className="subject-badge-grade">
+                        {sub.grade} · {sub.curriculumLabel || 'GDPT 2018'}
+                      </span>
+                      {isAvailable ? (
+                        <span className="subject-status-badge available">
+                          <CheckCircle2 size={11} aria-hidden /> Đã phát hành
+                        </span>
+                      ) : (
+                        <span className="subject-status-badge coming-soon">
+                          <Clock size={11} aria-hidden /> Đang phát triển
+                        </span>
+                      )}
+                    </div>
+                    <h2 className="subject-name">{sub.name}</h2>
+                  </div>
                 </div>
-              </div>
 
-              <p className="subject-desc">{sub.description}</p>
+                <p className="subject-desc">{sub.description}</p>
 
-              {sub.currentChapter && (
-                <div className="subject-current-chap">
-                  <span className="current-chap-label">Đang học:</span>
-                  <span className="current-chap-text">{sub.currentChapter}</span>
+                {isAvailable ? (
+                  <>
+                    {sub.currentChapter && (
+                      <div className="subject-current-chap">
+                        <span className="current-chap-label">Đang học:</span>
+                        <span className="current-chap-text">{sub.currentChapter}</span>
+                      </div>
+                    )}
+
+                    <div className="subject-card-progress">
+                      <div className="progress-labels">
+                        <span className="lesson-count-label">
+                          {sub.completedLessons} / {sub.totalLessons} bài
+                        </span>
+                        <span className="percentage-label">{sub.progress}%</span>
+                      </div>
+                      <Progress value={sub.progress} height={6} />
+                    </div>
+                  </>
+                ) : (
+                  <div className="subject-planned-preview">
+                    <div className="planned-preview-header">
+                      <BookOpen size={12} aria-hidden />
+                      <span>Định hướng GDPT 2018:</span>
+                    </div>
+                    {sub.plannedTopics && sub.plannedTopics.length > 0 ? (
+                      <ul className="planned-topics-list">
+                        {sub.plannedTopics.slice(0, 3).map((topic, i) => (
+                          <li key={i} className="planned-topic-item">
+                            <span className="bullet">•</span>
+                            <span className="topic-text">{topic}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="planned-preview-fallback">
+                        Đang biên soạn bài giảng tương tác và ngân hàng câu hỏi chuẩn hóa.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <div className="subject-card-footer">
+                  <div className="subject-card-actions-grid">
+                    <Link to={`/subjects/${sub.id}`} style={{ textDecoration: 'none' }}>
+                      <Button
+                        variant={isAvailable ? 'primary' : 'secondary'}
+                        icon={ArrowRight}
+                        fullWidth
+                      >
+                        {isAvailable ? 'Mở giáo trình' : 'Xem định hướng'}
+                      </Button>
+                    </Link>
+                    <Link to={`/ai-tutor?topic=${encodeURIComponent(sub.name)}`} style={{ textDecoration: 'none' }}>
+                      <Button variant="outline" icon={Bot} fullWidth>
+                        Hỏi AI
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
-              )}
-
-              <div className="subject-card-progress">
-                <div className="progress-labels">
-                  <span className="lesson-count-label">
-                    {sub.completedLessons} / {sub.totalLessons} bài
-                  </span>
-                  <span className="percentage-label">{sub.progress}%</span>
-                </div>
-                <Progress value={sub.progress} height={6} />
-              </div>
-
-              <div className="subject-card-footer">
-                <div className="subject-card-actions-grid">
-                  <Link to={`/subjects/${sub.id}`} style={{ textDecoration: 'none' }}>
-                    <Button variant="primary" icon={ArrowRight} fullWidth>
-                      Mở giáo trình
-                    </Button>
-                  </Link>
-                  <Link to={`/ai-tutor?topic=${encodeURIComponent(sub.name)}`} style={{ textDecoration: 'none' }}>
-                    <Button variant="outline" icon={Bot} fullWidth>
-                      Hỏi AI
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </Card>
-          ))}
+              </Card>
+            )
+          })}
         </div>
       )}
     </div>

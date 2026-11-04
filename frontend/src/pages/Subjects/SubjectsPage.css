@@ -57,14 +57,20 @@
   color: var(--text-tertiary);
 }
 
-/* Grid */
+/* Grid — Responsive 3-col on desktop */
 .subjects-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-4);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
+  .subjects-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
   .subjects-grid {
     grid-template-columns: 1fr;
   }
@@ -77,6 +83,94 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  border-radius: var(--radius-xl);
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.subject-item-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(16, 42, 67, 0.08);
+}
+
+.subject-item-card.is-coming-soon {
+  opacity: 0.95;
+}
+
+.subject-badge-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.subject-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  line-height: 1.4;
+}
+
+.subject-status-badge.available {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.subject-status-badge.coming-soon {
+  background: var(--surface-sunken);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-default);
+}
+
+.subject-planned-preview {
+  background: var(--surface-sunken);
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+  margin-bottom: var(--space-4);
+  font-size: var(--text-xs);
+}
+
+.planned-preview-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.planned-topics-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.planned-topic-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.planned-topic-item .bullet {
+  color: var(--color-primary, #102A43);
+  font-weight: bold;
+}
+
+.planned-preview-fallback {
+  color: var(--text-tertiary);
+  margin: 0;
+  font-style: italic;
 }
 
 .subject-card-top {

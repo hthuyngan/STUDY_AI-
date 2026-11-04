@@ -1,3 +1,5 @@
+import type { LessonSkill } from './curriculum'
+
 export interface FormulaItem {
   id: string
   label: string
@@ -46,9 +48,14 @@ export interface LessonDetail {
   isCompleted: boolean
   isBookmarked?: boolean
   quizId?: string
+  assessmentId?: string
   content: LessonContent
   previousLessonId?: string
   nextLessonId?: string
+  learningObjectives?: string[]
+  skills?: LessonSkill[]
+  curriculumVersion?: string
+  textbookAlignment?: string
 }
 
 export interface LessonOutlineItem {

@@ -144,3 +144,163 @@
   flex-direction: column;
   gap: var(--space-4);
 }
+
+
+/* ==========================================================================
+   Lesson Objectives & GDPT 2018 Skills Card
+   ========================================================================== */
+
+.lesson-objectives-card {
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
+  border-left: 4px solid var(--color-primary, #102A43);
+  border-radius: var(--radius-lg, 12px);
+  padding: var(--space-5, 20px);
+  margin-bottom: var(--space-6, 24px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+}
+
+[data-theme='dark'] .lesson-objectives-card {
+  border-left-color: #F4B942;
+}
+
+.lesson-objectives-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2, 8px);
+  flex-wrap: wrap;
+}
+
+.lesson-objectives-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(16, 42, 67, 0.1);
+  color: var(--color-primary, #102A43);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 3px 10px;
+  border-radius: 9999px;
+}
+
+[data-theme='dark'] .lesson-objectives-badge {
+  background: rgba(244, 185, 66, 0.15);
+  color: #F4B942;
+}
+
+.lesson-curriculum-version-tag {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.lesson-objectives-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lesson-objectives-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.lesson-objectives-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lesson-objective-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+.objective-check-icon {
+  color: #059669;
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+.lesson-skills-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px dashed var(--border-default);
+  padding-top: var(--space-3, 12px);
+}
+
+.lesson-skills-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.lesson-skills-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lesson-skill-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-md, 8px);
+  background: var(--surface-card);
+  border: 1px solid var(--border-default);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.lesson-skill-pill .skill-code {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(16, 42, 67, 0.08);
+  color: var(--color-primary, #102A43);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+[data-theme='dark'] .lesson-skill-pill .skill-code {
+  background: rgba(244, 185, 66, 0.15);
+  color: #F4B942;
+}
+
+.lesson-skill-pill .skill-name {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.lesson-skill-pill.skill-level-core {
+  border-color: rgba(16, 42, 67, 0.25);
+}
+
+.lesson-skill-pill.skill-level-supporting {
+  border-color: var(--border-default);
+}
+
+.lesson-skill-pill.skill-level-advanced {
+  border-color: rgba(244, 185, 66, 0.5);
+  background: rgba(244, 185, 66, 0.06);
+}

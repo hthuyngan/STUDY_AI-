@@ -27,15 +27,16 @@ describe('AITutorPage Component', () => {
       </MemoryRouter>
     )
 
-    await screen.findByRole('heading', { level: 1 })
-    const newChatBtn = screen.getByRole('button', { name: /đoạn chat mới/i })
+    await waitFor(() => {
+      expect(screen.getAllByText('Đạo hàm cực trị & tiếp tuyến').length).toBeGreaterThan(0)
+    })
+    const newChatBtn = screen.getAllByRole('button', { name: /đoạn chat mới|cuộc trò chuyện mới/i })[0]
     fireEvent.click(newChatBtn)
 
     await waitFor(() => {
       expect(screen.getByText('Bạn muốn học gì hôm nay?')).toBeInTheDocument()
+      expect(screen.getByText(/bạn có thể hỏi bất kỳ bài học nào/i)).toBeInTheDocument()
     })
-
-    expect(screen.getByText(/bạn có thể hỏi bất kỳ bài học nào/i)).toBeInTheDocument()
   })
 
   it('can submit a question via composer and render user message', async () => {

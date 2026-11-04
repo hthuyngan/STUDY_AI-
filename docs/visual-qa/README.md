@@ -255,6 +255,34 @@ Nút "Hỏi AI" từ Ghi chú cá nhân mở AI Tutor để thảo luận sâu h
 - **AI Tutor trên thiết bị di động (Mobile 390px) trên Production**: ![Prod Mobile](screenshots/prod_phase8_ai_tutor_mobile_390.png)
 - **Hỏi AI từ Ghi chú cá nhân trên Production**: ![Prod Notes Ask AI](interactions/prod_phase8_notes_ask_ai_desktop.png)
 
+### 2.13. Nghiệm thu Khung Chương trình GDPT 2018 & Nội dung Môn Toán 12 (Phase 9 Visual QA)
+
+Bộ bằng chứng kiểm chứng thị giác cho Phase 9 — Curriculum & Learning Content Foundation:
+
+1. **Danh mục 9 môn học chuẩn GDPT 2018 (Desktop 1440 × 900 px)**:
+   ![Subjects Catalog Desktop](phase-09/subjects_catalog_desktop.png)
+
+2. **Danh mục 9 môn học trên thiết bị di động (Mobile 390 × 844 px)**:
+   ![Subjects Catalog Mobile](phase-09/subjects_catalog_mobile_390.png)
+
+3. **Chi tiết môn Toán 12 — Chương 1 Khảo sát hàm số với 3 bài học hoàn chỉnh (Desktop 1440 × 900 px)**:
+   ![Math Detail Desktop](phase-09/math_subject_detail_desktop.png)
+
+4. **Trạng thái môn học đang phát triển (Ngữ văn GDPT 2018) trung thực, minh bạch (Desktop 1440 × 900 px)**:
+   ![Coming Soon Desktop](phase-09/coming_soon_subject_desktop.png)
+
+5. **Trạng thái môn học đang phát triển trên thiết bị di động (Mobile 390 × 844 px)**:
+   ![Coming Soon Mobile](phase-09/coming_soon_subject_mobile_390.png)
+
+6. **Bài học 1 — Thẻ mục tiêu học tập & Kỹ năng cốt lõi mã hóa chuẩn GDPT 2018 (Desktop 1440 × 900 px)**:
+   ![Lesson 1 Objectives & Skills](phase-09/lesson_objectives_skills_desktop.png)
+
+7. **Bài học 2 — Giá trị lớn nhất & giá trị nhỏ nhất của hàm số (Desktop 1440 × 900 px)**:
+   ![Lesson 2 Max/Min Desktop](phase-09/lesson_math_12_02_desktop.png)
+
+8. **Bài học 3 — Khảo sát sự biến thiên và vẽ đồ thị hàm số (Desktop 1440 × 900 px)**:
+   ![Lesson 3 Curve Sketching Desktop](phase-09/lesson_math_12_03_desktop.png)
+
 ---
 
 ## 3. CẤU TRÚC THƯ MỤC VÀ LIÊN KẾT ẢNH GỐC
