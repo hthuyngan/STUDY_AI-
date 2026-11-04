@@ -247,6 +247,14 @@ Nút "Nhờ AI giải thích" từ Knowledge Gap mở AI Tutor kèm ngữ cảnh
 Nút "Hỏi AI" từ Ghi chú cá nhân mở AI Tutor để thảo luận sâu hơn về nội dung đã ghi chú:
 ![Note to AI Tutor](interactions/learner_note_to_ai_tutor_desktop.png)
 
+#### 12. Bằng chứng kiểm chứng trực tiếp trên Live Production (Commit 7472649):
+- **Nút Hỏi AI trong bài giảng trên Production (Desktop 1440px)**: ![Prod Lesson Ask AI](screenshots/prod_phase8_lesson_ask_ai_desktop.png)
+- **AI Tutor tiếp nhận ngữ cảnh bài giảng trên Production**: ![Prod Context](screenshots/prod_phase8_ai_tutor_context_desktop.png)
+- **Công thức KaTeX LaTeX & Bảng Markdown trên Production**: ![Prod KaTeX](screenshots/prod_phase8_ai_tutor_katex_desktop.png)
+- **Bộ chọn 5 chế độ hỗ trợ sư phạm trên Production**: ![Prod Modes](screenshots/prod_phase8_ai_tutor_modes_desktop.png)
+- **AI Tutor trên thiết bị di động (Mobile 390px) trên Production**: ![Prod Mobile](screenshots/prod_phase8_ai_tutor_mobile_390.png)
+- **Hỏi AI từ Ghi chú cá nhân trên Production**: ![Prod Notes Ask AI](interactions/prod_phase8_notes_ask_ai_desktop.png)
+
 ---
 
 ## 3. CẤU TRÚC THƯ MỤC VÀ LIÊN KẾT ẢNH GỐC
