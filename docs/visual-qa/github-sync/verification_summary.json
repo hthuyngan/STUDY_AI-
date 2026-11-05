@@ -1,0 +1,56 @@
+{
+  "timestamp": "2026-11-05T13:16:40.859Z",
+  "commit": "3facd97",
+  "results": [
+    {
+      "route": "/dashboard",
+      "url": "https://hthuyngan.github.io/STUDY_AI-/dashboard",
+      "title": "STUDY_AI- · Nền tảng học tập thông minh & Trợ lý AI",
+      "screenshot": "docs\\visual-qa\\github-sync\\prod_sync_dashboard_desktop.png",
+      "errors": []
+    },
+    {
+      "route": "/subjects",
+      "url": "https://hthuyngan.github.io/STUDY_AI-/subjects",
+      "title": "STUDY_AI- · Nền tảng học tập thông minh & Trợ lý AI",
+      "screenshot": "docs\\visual-qa\\github-sync\\prod_sync_subjects_catalog_desktop.png",
+      "errors": []
+    },
+    {
+      "route": "/subjects/math",
+      "url": "https://hthuyngan.github.io/STUDY_AI-/subjects/math",
+      "title": "STUDY_AI- · Nền tảng học tập thông minh & Trợ lý AI",
+      "screenshot": "docs\\visual-qa\\github-sync\\prod_sync_math_detail_desktop.png",
+      "errors": []
+    },
+    {
+      "route": "/subjects/literature",
+      "url": "https://hthuyngan.github.io/STUDY_AI-/subjects/literature",
+      "title": "STUDY_AI- · Nền tảng học tập thông minh & Trợ lý AI",
+      "screenshot": "docs\\visual-qa\\github-sync\\prod_sync_coming_soon_literature_desktop.png",
+      "errors": []
+    },
+    {
+      "route": "/subjects/math/lessons/lesson-math-12-01",
+      "url": "https://hthuyngan.github.io/STUDY_AI-/subjects/math/lessons/lesson-math-12-01",
+      "title": "STUDY_AI- · Nền tảng học tập thông minh & Trợ lý AI",
+      "screenshot": "docs\\visual-qa\\github-sync\\prod_sync_lesson_objectives_desktop.png",
+      "errors": []
+    },
+    {
+      "route": "/ai-tutor",
+      "url": "https://hthuyngan.github.io/STUDY_AI-/ai-tutor",
+      "title": "STUDY_AI- · Nền tảng học tập thông minh & Trợ lý AI",
+      "screenshot": "docs\\visual-qa\\github-sync\\prod_sync_ai_tutor_desktop.png",
+      "errors": []
+    },
+    {
+      "route": "/subjects [mobile_390]",
+      "url": "https://hthuyngan.github.io/STUDY_AI-/subjects",
+      "title": "STUDY_AI- · Nền tảng học tập thông minh & Trợ lý AI",
+      "screenshot": "docs\\visual-qa\\github-sync\\prod_sync_subjects_catalog_mobile_390.png",
+      "errors": []
+    }
+  ],
+  "allPass": true
+}
