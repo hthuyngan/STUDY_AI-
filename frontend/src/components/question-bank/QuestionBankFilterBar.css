@@ -1,0 +1,135 @@
+/* Filter Bar Styles */
+.qb-filter-bar-card {
+  background: #ffffff;
+  border: 1px solid #d9e2ec;
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 4px rgba(16, 42, 67, 0.04);
+}
+
+.qb-search-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.qb-search-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 280px;
+  background: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 8px 14px;
+  transition: border-color 0.15s ease;
+}
+
+.qb-search-input-wrap:focus-within {
+  border-color: #102a43;
+  background: #ffffff;
+}
+
+.qb-search-icon {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.qb-search-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  width: 100%;
+  font-size: 14px;
+  color: #102a43;
+}
+
+.qb-filter-meta-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.qb-count-indicator {
+  font-size: 13px;
+  color: #475569;
+}
+
+.qb-count-indicator strong {
+  color: #102a43;
+  font-size: 14px;
+}
+
+.qb-reset-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.qb-reset-filter-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.qb-filter-controls-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .qb-filter-controls-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .qb-filter-controls-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.qb-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.qb-filter-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.qb-filter-select {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #1e293b;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.qb-filter-select:focus {
+  border-color: #102a43;
+}

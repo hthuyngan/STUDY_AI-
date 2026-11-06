@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Compass,
+  Database,
   FileText,
   FlaskConical,
   GraduationCap,
@@ -151,6 +152,13 @@ export function Sidebar({
               to="/library"
               label="Thư viện"
               icon={Library}
+              collapsed={collapsed}
+              onClick={onCloseMobile}
+            />
+            <SidebarItem
+              to="/question-bank"
+              label="Ngân hàng câu hỏi"
+              icon={Database}
               collapsed={collapsed}
               onClick={onCloseMobile}
             />

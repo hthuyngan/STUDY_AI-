@@ -14,6 +14,7 @@ import SmartReviewPage from '@/pages/SmartReview/SmartReviewPage'
 import LearningAnalyticsPage from '@/pages/LearningAnalytics/LearningAnalyticsPage'
 import ExercisesPage from '@/pages/Exercises/ExercisesPage'
 import LibraryPage from '@/pages/Library/LibraryPage'
+import QuestionBankPage from '@/pages/QuestionBank/QuestionBankPage'
 import AchievementsPage from '@/pages/Achievements/AchievementsPage'
 import ProfilePage from '@/pages/Profile/ProfilePage'
 import SettingsPage from '@/pages/Settings/SettingsPage'
@@ -209,6 +210,16 @@ export function LearnerRoutes() {
         element={
           <AppShell>
             <LibraryPage />
+          </AppShell>
+        }
+      />
+
+      {/* Phase 11: Question Bank Foundation (Kho câu hỏi GDPT 2018) */}
+      <Route
+        path="/question-bank"
+        element={
+          <AppShell>
+            <QuestionBankPage />
           </AppShell>
         }
       />
