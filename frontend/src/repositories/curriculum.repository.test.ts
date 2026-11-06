@@ -38,18 +38,72 @@ describe('CurriculumRepository (GDPT 2018 Foundation)', () => {
     expect(resultKeyword.some((s) => s.id === 'math')).toBe(true)
   })
 
-  it('retrieves Math 12 Chapter 1 with 3 lessons', async () => {
+  it('retrieves Math 12 Chapter 1 with 3 lessons and full 6 GDPT 2018 chapters', async () => {
     const math = await curriculumRepository.getSubjectById('math')
     expect(math).not.toBeNull()
     expect(math?.metadata.curriculumVersion).toBe('GDPT_2018')
 
     const grade12 = math?.grades.find((g) => g.grade === '12')
     expect(grade12).toBeDefined()
-    expect(grade12?.chapters.length).toBeGreaterThanOrEqual(1)
+    expect(grade12?.chapters).toHaveLength(6)
+
+    // Verify 6 chapters according to "Ket noi tri thuc voi cuoc song"
+    const chapterTitles = grade12!.chapters.map((c) => c.title)
+    expect(chapterTitles[0]).toContain('Ứng dụng đạo hàm')
+    expect(chapterTitles[1]).toContain('Vectơ và hệ trục tọa độ trong không gian')
+    expect(chapterTitles[2]).toContain('Các số đặc trưng đo mức độ phân tán')
+    expect(chapterTitles[3]).toContain('Nguyên hàm. Tích phân')
+    expect(chapterTitles[4]).toContain('Phương pháp tọa độ trong không gian')
+    expect(chapterTitles[5]).toContain('Xác suất có điều kiện')
 
     const chapter1 = grade12?.chapters[0]
     expect(chapter1?.id).toBe('math-chap-1')
     expect(chapter1?.lessons).toHaveLength(3)
+  })
+
+  it('navigates Subject -> Chapter -> Lesson -> Skill hierarchy cleanly', async () => {
+    const chapters = await curriculumRepository.getChaptersBySubjectId('math', '12')
+    expect(chapters).toHaveLength(6)
+
+    const lesson = await curriculumRepository.getLessonById('lesson-math-12-01')
+    expect(lesson).not.toBeNull()
+
+    const skills = await curriculumRepository.getSkillsByLessonId('lesson-math-12-01')
+    expect(skills.length).toBeGreaterThanOrEqual(4)
+    const skillCodes = skills.map((s) => s.code)
+    expect(skillCodes).toContain('SKILL-MATH-12-DERIV-SIGN')
+    expect(skillCodes).toContain('SKILL-MATH-12-MONOTONICITY')
+    expect(skillCodes).toContain('SKILL-MATH-12-EXTREMUM')
+    expect(skillCodes).toContain('SKILL-MATH-12-VARIATION-TABLE')
+  })
+
+  it('supports the 5 standardized core skill clusters for derivative applications', async () => {
+    const derivSign = await curriculumRepository.getSkillByCode('SKILL-MATH-12-DERIV-SIGN')
+    expect(derivSign).not.toBeNull()
+    expect(derivSign?.name).toBe('Xét dấu đạo hàm')
+
+    const mono = await curriculumRepository.getSkillByCode('SKILL-MATH-12-MONOTONICITY')
+    expect(mono).not.toBeNull()
+
+    const extremum = await curriculumRepository.getSkillByCode('SKILL-MATH-12-EXTREMUM')
+    expect(extremum).not.toBeNull()
+    expect(extremum?.name).toBe('Xác định cực trị')
+
+    const varTable = await curriculumRepository.getSkillByCode('SKILL-MATH-12-VARIATION-TABLE')
+    expect(varTable).not.toBeNull()
+    expect(varTable?.name).toBe('Lập và đọc bảng biến thiên')
+
+    const graphSketch = await curriculumRepository.getSkillByCode('SKILL-MATH-12-GRAPH-SKETCHING')
+    expect(graphSketch).not.toBeNull()
+    expect(graphSketch?.name).toBe('Khảo sát và vẽ đồ thị hàm số')
+  })
+
+  it('finds geography with both spelling variations "Địa lý" and "Địa lí"', async () => {
+    const resultLy = await curriculumRepository.getSubjects({ searchQuery: 'Địa lý' })
+    expect(resultLy.some((s) => s.id === 'geography')).toBe(true)
+
+    const resultLi = await curriculumRepository.getSubjects({ searchQuery: 'Địa lí' })
+    expect(resultLi.some((s) => s.id === 'geography')).toBe(true)
   })
 
   it('retrieves Math 12 lessons with full pedagogy: objectives, skills, formulas, examples', async () => {
@@ -86,7 +140,7 @@ describe('CurriculumRepository (GDPT 2018 Foundation)', () => {
 
     const monoSkill = await curriculumRepository.getSkillByCode('SKILL-MATH-12-MONOTONICITY')
     expect(monoSkill).not.toBeNull()
-    expect(monoSkill?.name).toBe('Xét dấu đạo hàm xác định khoảng đơn điệu')
+    expect(monoSkill?.name).toBe('Xét tính đơn điệu')
   })
 
   it('returns null for non-existent subject, chapter, or lesson', async () => {

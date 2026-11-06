@@ -24,9 +24,11 @@ export interface ICurriculumRepository {
   getAllSubjects(): Promise<CurriculumSubject[]>
   getSubjects(filters?: CurriculumFilterOptions): Promise<CurriculumSubject[]>
   getSubjectById(id: string): Promise<CurriculumSubject | null>
+  getChaptersBySubjectId(subjectId: string, grade?: GradeLevel): Promise<CurriculumChapter[]>
   getChapterById(chapterId: string): Promise<CurriculumChapter | null>
   getLessonById(lessonId: string): Promise<CurriculumLesson | null>
   getSkills(subjectId?: string, grade?: GradeLevel): Promise<Skill[]>
+  getSkillsByLessonId(lessonId: string): Promise<Skill[]>
   getSkillByCode(code: string): Promise<Skill | null>
 }
 
@@ -66,9 +68,12 @@ export class MockCurriculumAdapter implements ICurriculumRepository {
 
     if (filters?.searchQuery && filters.searchQuery.trim() !== '') {
       const q = filters.searchQuery.toLowerCase().trim()
+      // Normalize 'địa lý' and 'địa lí' to match either
+      const qNorm = q.replace(/địa lý/g, 'địa lí')
       result = result.filter(
         (s) =>
           s.name.toLowerCase().includes(q) ||
+          s.name.toLowerCase().replace(/địa lý/g, 'địa lí').includes(qNorm) ||
           s.shortName.toLowerCase().includes(q) ||
           s.description.toLowerCase().includes(q) ||
           (s.plannedTopics && s.plannedTopics.some((t) => t.toLowerCase().includes(q))) ||
@@ -89,6 +94,16 @@ export class MockCurriculumAdapter implements ICurriculumRepository {
     const normalized = id.toLowerCase().trim()
     const found = this.subjects.find((s) => s.id.toLowerCase() === normalized)
     return found ? { ...found } : null
+  }
+
+  async getChaptersBySubjectId(subjectId: string, grade?: GradeLevel): Promise<CurriculumChapter[]> {
+    const subject = await this.getSubjectById(subjectId)
+    if (!subject) return []
+    if (grade) {
+      const gradeObj = subject.grades.find((g) => g.grade === grade)
+      return gradeObj ? [...gradeObj.chapters] : []
+    }
+    return subject.grades.flatMap((g) => g.chapters)
   }
 
   async getChapterById(chapterId: string): Promise<CurriculumChapter | null> {
@@ -123,6 +138,13 @@ export class MockCurriculumAdapter implements ICurriculumRepository {
       result = result.filter((sk) => sk.grade === grade)
     }
     return result
+  }
+
+  async getSkillsByLessonId(lessonId: string): Promise<Skill[]> {
+    const lesson = await this.getLessonById(lessonId)
+    if (!lesson || !lesson.skills || lesson.skills.length === 0) return []
+    const codes = new Set(lesson.skills.map((s) => s.skillCode.toUpperCase()))
+    return this.skills.filter((sk) => codes.has(sk.code.toUpperCase()))
   }
 
   async getSkillByCode(code: string): Promise<Skill | null> {
