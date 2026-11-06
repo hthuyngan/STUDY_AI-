@@ -29,6 +29,46 @@ export interface LessonContent {
   }[]
   formulas: FormulaItem[]
   examples: ExampleItem[]
+  variationTables?: Array<{
+    id?: string
+    title: string
+    functionMath?: string
+    columns: Array<{
+      x: string
+      yPrime: string
+      y: {
+        value: string
+        position?: 'top' | 'middle' | 'bottom'
+        arrow?: 'up' | 'down' | 'none'
+      }
+    }>
+    note?: string
+  }>
+  functionGraphs?: Array<{
+    id?: string
+    title: string
+    functionFormula: string
+    functionType: 'cubic' | 'rational' | 'custom'
+    domain?: [number, number]
+    range?: [number, number]
+    keyPoints?: Array<{
+      x: number
+      y: number
+      label: string
+      type: 'max' | 'min' | 'inflection' | 'intercept' | 'asymptote_center'
+    }>
+    asymptotes?: Array<{
+      type: 'vertical' | 'horizontal'
+      value: number
+      label: string
+    }>
+    note?: string
+  }>
+  commonMistakes?: Array<{
+    title: string
+    mistake: string
+    correctExplanation: string
+  }>
   importantNotes: string[]
   summaryPoints: string[]
 }

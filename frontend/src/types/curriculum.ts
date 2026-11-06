@@ -61,6 +61,49 @@ export interface LearningContentBlock {
   }[]
 }
 
+export interface CurriculumVariationTable {
+  id?: string
+  title: string
+  functionMath?: string
+  columns: Array<{
+    x: string
+    yPrime: string
+    y: {
+      value: string
+      position?: 'top' | 'middle' | 'bottom'
+      arrow?: 'up' | 'down' | 'none'
+    }
+  }>
+  note?: string
+}
+
+export interface CurriculumFunctionGraph {
+  id?: string
+  title: string
+  functionFormula: string
+  functionType: 'cubic' | 'rational' | 'custom'
+  domain?: [number, number]
+  range?: [number, number]
+  keyPoints?: Array<{
+    x: number
+    y: number
+    label: string
+    type: 'max' | 'min' | 'inflection' | 'intercept' | 'asymptote_center'
+  }>
+  asymptotes?: Array<{
+    type: 'vertical' | 'horizontal'
+    value: number
+    label: string
+  }>
+  note?: string
+}
+
+export interface CurriculumCommonMistake {
+  title: string
+  mistake: string
+  correctExplanation: string
+}
+
 export interface CurriculumLessonContent {
   introduction: string
   definitions: Array<{ term: string; content: string }>
@@ -72,6 +115,9 @@ export interface CurriculumLessonContent {
     solutionSteps: Array<{ step: number; explanation: string; math?: string }>
     conclusion: string
   }>
+  variationTables?: CurriculumVariationTable[]
+  functionGraphs?: CurriculumFunctionGraph[]
+  commonMistakes?: CurriculumCommonMistake[]
   importantNotes: string[]
   summaryPoints: string[]
 }

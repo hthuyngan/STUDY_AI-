@@ -348,6 +348,55 @@ export const MASTER_CURRICULUM_SUBJECTS: CurriculumSubject[] = [
                         'Hàm số đồng biến trên từng khoảng xác định (-∞; -1) và (-1; +∞). Vì y\' > 0 với mọi x thuộc D nên hàm số KHÔNG có cực trị.',
                     },
                   ],
+                  variationTables: [
+                    {
+                      id: 'bbt-math-12-01-cubic',
+                      title: 'Bảng biến thiên hàm số bậc ba y = -x³ + 3x - 1',
+                      functionMath: 'y = -x^3 + 3x - 1',
+                      columns: [
+                        { x: '-\\infty', yPrime: '', y: { value: '+\\infty', position: 'top' } },
+                        { x: '', yPrime: '-', y: { value: '', arrow: 'down' } },
+                        { x: '-1', yPrime: '0', y: { value: '-3 \\text{ (CT)}', position: 'bottom' } },
+                        { x: '', yPrime: '+', y: { value: '', arrow: 'up' } },
+                        { x: '1', yPrime: '0', y: { value: '1 \\text{ (CĐ)}', position: 'top' } },
+                        { x: '', yPrime: '-', y: { value: '', arrow: 'down' } },
+                        { x: '+\\infty', yPrime: '', y: { value: '-\\infty', position: 'bottom' } },
+                      ],
+                      note: 'Đạo hàm đổi dấu từ (-) sang (+) qua x = -1 nên x = -1 là điểm cực tiểu; đổi dấu từ (+) sang (-) qua x = 1 nên x = 1 là điểm cực đại.',
+                    },
+                    {
+                      id: 'bbt-math-12-01-rational',
+                      title: 'Bảng biến thiên hàm phân thức y = (2x - 1)/(x + 1)',
+                      functionMath: 'y = \\frac{2x - 1}{x + 1}',
+                      columns: [
+                        { x: '-\\infty', yPrime: '', y: { value: '2', position: 'bottom' } },
+                        { x: '', yPrime: '+', y: { value: '', arrow: 'up' } },
+                        { x: '', yPrime: '', y: { value: '+\\infty', position: 'top' } },
+                        { x: '-1', yPrime: '||', y: { value: '||' } },
+                        { x: '', yPrime: '', y: { value: '-\\infty', position: 'bottom' } },
+                        { x: '', yPrime: '+', y: { value: '', arrow: 'up' } },
+                        { x: '+\\infty', yPrime: '', y: { value: '2', position: 'top' } },
+                      ],
+                      note: 'Tại x = -1 hàm số gián đoạn (ký hiệu ||). Đạo hàm y\' > 0 trên từng khoảng xác định nên hàm đồng biến trên (-∞; -1) và (-1; +∞), không có cực trị.',
+                    },
+                  ],
+                  commonMistakes: [
+                    {
+                      title: 'Dùng ký hiệu hợp ∪ khi kết luận khoảng đơn điệu',
+                      mistake: 'Kết luận hàm số đồng biến trên (-∞; -1) ∪ (-1; +∞).',
+                      correctExplanation: 'Theo định nghĩa, tính đơn điệu chỉ xét trên từng khoảng rời nhau. Phải viết: "Hàm số đồng biến trên các khoảng (-∞; -1) và (-1; +∞)". Tuyệt đối không dùng ký hiệu hợp ∪.',
+                    },
+                    {
+                      title: 'Nhầm lẫn giữa các thuật ngữ cực trị',
+                      mistake: 'Nói "Hàm số đạt cực đại bằng 1 tại y = 1" hoặc nhầm xCT với yCT.',
+                      correctExplanation: 'Quy ước chuẩn SGK GDPT 2018: "Điểm cực trị của hàm số" là x; "Cực trị (hoặc giá trị cực trị)" là y = f(x); "Điểm cực trị của đồ thị" là tọa độ điểm M(x; y) trên mặt phẳng Oxy.',
+                    },
+                    {
+                      title: 'Vội kết luận cực trị khi đạo hàm bằng 0',
+                      mistake: 'Thấy f\'(x0) = 0 liền kết luận ngay x0 là điểm cực trị.',
+                      correctExplanation: 'Điều kiện cần và đủ để x0 là điểm cực trị là đạo hàm f\'(x) phải ĐỔI DẤU khi đi qua x0. Nếu f\'(x0) = 0 nhưng f\'(x) không đổi dấu (ví dụ y = x³ tại x = 0) thì x0 không phải cực trị.',
+                    },
+                  ],
                   importantNotes: [
                     'Khi kết luận các khoảng nghịch biến hoặc đồng biến của hàm số phân thức, luôn viết riêng rẽ từng khoảng hoặc dùng từ "và", TUYỆT ĐỐI không dùng ký hiệu hợp ∪.',
                     'Hàm số có thể đạt cực trị tại điểm x0 mà tại đó đạo hàm không xác định, miễn là hàm số liên tục tại x0 và đạo hàm đổi dấu khi đi qua x0.',
@@ -481,6 +530,40 @@ export const MASTER_CURRICULUM_SUBJECTS: CurriculumSubject[] = [
                         },
                       ],
                       conclusion: 'GTLN của hàm số trên đoạn [-1; 3] bằng 2; GTNN của hàm số bằng -2.',
+                    },
+                  ],
+                  variationTables: [
+                    {
+                      id: 'bbt-math-12-02-segment',
+                      title: 'Bảng biến thiên tìm GTLN, GTNN trên đoạn [-1; 3]',
+                      functionMath: 'f(x) = x^3 - 3x^2 + 2 \\text{ trên } [-1; 3]',
+                      columns: [
+                        { x: '-1', yPrime: '', y: { value: '-2', position: 'bottom' } },
+                        { x: '', yPrime: '+', y: { value: '', arrow: 'up' } },
+                        { x: '0', yPrime: '0', y: { value: '2 \\text{ (Max)}', position: 'top' } },
+                        { x: '', yPrime: '-', y: { value: '', arrow: 'down' } },
+                        { x: '2', yPrime: '0', y: { value: '-2 \\text{ (Min)}', position: 'bottom' } },
+                        { x: '', yPrime: '+', y: { value: '', arrow: 'up' } },
+                        { x: '3', yPrime: '', y: { value: '2 \\text{ (Max)}', position: 'top' } },
+                      ],
+                      note: 'Trên đoạn [-1; 3], hàm số đạt GTLN bằng 2 tại 2 điểm x = 0 và x = 3; đạt GTNN bằng -2 tại x = -1 và x = 2.',
+                    },
+                  ],
+                  commonMistakes: [
+                    {
+                      title: 'Tính giá trị tại các điểm dừng nằm ngoài đoạn [a; b]',
+                      mistake: 'Giải f\'(x) = 0 ra nghiệm x3 nằm ngoài [a; b] nhưng vẫn tính f(x3) và đưa vào tập so sánh.',
+                      correctExplanation: 'Quy trình chuẩn: Chỉ xét các nghiệm của đạo hàm f\'(x) = 0 nằm TRONG KHOẢNG MỞ (a; b). Mọi nghiệm ngoài đoạn hoặc ở đầu mút đều phải loại bỏ trước khi tính.',
+                    },
+                    {
+                      title: 'Đồng nhất Giá trị lớn nhất với Cực đại',
+                      mistake: 'Cho rằng điểm cực đại luôn là giá trị lớn nhất của hàm số trên toàn tập xác định.',
+                      correctExplanation: 'Cực đại chỉ mang tính địa phương trong một lân cận nhỏ quanh x0. Trên toàn miền D, giá trị hàm số tại các điểm khác hoặc tại biên hoàn toàn có thể lớn hơn giá trị cực đại.',
+                    },
+                    {
+                      title: 'Quên kiểm tra dấu bằng khi tìm Max/Min',
+                      mistake: 'Chứng minh được f(x) ≤ M nhưng không chỉ ra được điểm x0 nào để f(x0) = M.',
+                      correctExplanation: 'Theo định nghĩa, số M chỉ được công nhận là GTLN khi và chỉ khi tồn tại ít nhất một phần tử x0 thuộc miền D sao cho f(x0) = M. Nếu không có x0, M chỉ là một chặn trên.',
                     },
                   ],
                   importantNotes: [
@@ -638,6 +721,89 @@ export const MASTER_CURRICULUM_SUBJECTS: CurriculumSubject[] = [
                       ],
                       conclusion:
                         'Đồ thị (C) là đường cong uốn lượn hình chữ N, cắt Oy tại (0; 2), cắt Ox tại 3 điểm phân biệt, nhận điểm uốn I(1; 0) làm tâm đối xứng.',
+                    },
+                  ],
+                  variationTables: [
+                    {
+                      id: 'bbt-math-12-03-cubic',
+                      title: 'Bảng biến thiên hoàn chỉnh hàm số bậc ba y = x³ - 3x² + 2',
+                      functionMath: 'y = x^3 - 3x^2 + 2',
+                      columns: [
+                        { x: '-\\infty', yPrime: '', y: { value: '-\\infty', position: 'bottom' } },
+                        { x: '', yPrime: '+', y: { value: '', arrow: 'up' } },
+                        { x: '0', yPrime: '0', y: { value: '2 \\text{ (CĐ)}', position: 'top' } },
+                        { x: '', yPrime: '-', y: { value: '', arrow: 'down' } },
+                        { x: '2', yPrime: '0', y: { value: '-2 \\text{ (CT)}', position: 'bottom' } },
+                        { x: '', yPrime: '+', y: { value: '', arrow: 'up' } },
+                        { x: '+\\infty', yPrime: '', y: { value: '+\\infty', position: 'top' } },
+                      ],
+                      note: 'Hàm số đồng biến trên (-∞; 0) và (2; +∞), nghịch biến trên (0; 2). Cực đại tại (0; 2), cực tiểu tại (2; -2).',
+                    },
+                    {
+                      id: 'bbt-math-12-03-rational',
+                      title: 'Bảng biến thiên hàm phân thức y = (2x - 1)/(x + 1) với tiệm cận',
+                      functionMath: 'y = \\frac{2x - 1}{x + 1}',
+                      columns: [
+                        { x: '-\\infty', yPrime: '', y: { value: '2 \\text{ (TCN)}', position: 'bottom' } },
+                        { x: '', yPrime: '+', y: { value: '', arrow: 'up' } },
+                        { x: '', yPrime: '', y: { value: '+\\infty', position: 'top' } },
+                        { x: '-1', yPrime: '||', y: { value: '||' } },
+                        { x: '', yPrime: '', y: { value: '-\\infty', position: 'bottom' } },
+                        { x: '', yPrime: '+', y: { value: '', arrow: 'up' } },
+                        { x: '+\\infty', yPrime: '', y: { value: '2 \\text{ (TCN)}', position: 'top' } },
+                      ],
+                      note: 'Tiệm cận đứng x = -1, tiệm cận ngang y = 2. Giao điểm 2 tiệm cận I(-1; 2) là tâm đối xứng của đồ thị.',
+                    },
+                  ],
+                  functionGraphs: [
+                    {
+                      id: 'graph-math-12-03-cubic',
+                      title: 'Đồ thị hàm số bậc ba y = -x³ + 3x - 1',
+                      functionFormula: 'y = -x^3 + 3x - 1',
+                      functionType: 'cubic',
+                      domain: [-2.6, 2.6],
+                      range: [-4.5, 3.5],
+                      keyPoints: [
+                        { x: -1, y: -3, label: 'CT(-1; -3)', type: 'min' },
+                        { x: 1, y: 1, label: 'CĐ(1; 1)', type: 'max' },
+                        { x: 0, y: -1, label: 'I(0; -1)', type: 'inflection' },
+                      ],
+                      note: 'Đường cong nhận điểm uốn I(0; -1) làm tâm đối xứng, có tiếp tuyến nằm ngang tại các điểm cực trị.',
+                    },
+                    {
+                      id: 'graph-math-12-03-rational',
+                      title: 'Đồ thị hàm phân thức hữu tỉ y = (2x - 1)/(x + 1)',
+                      functionFormula: 'y = \\frac{2x - 1}{x + 1}',
+                      functionType: 'rational',
+                      domain: [-4.5, 3.5],
+                      range: [-4, 6],
+                      asymptotes: [
+                        { type: 'vertical', value: -1, label: 'x = -1' },
+                        { type: 'horizontal', value: 2, label: 'y = 2' },
+                      ],
+                      keyPoints: [
+                        { x: 0, y: -1, label: '(0; -1)', type: 'intercept' },
+                        { x: 0.5, y: 0, label: '(0.5; 0)', type: 'intercept' },
+                        { x: -1, y: 2, label: 'I(-1; 2)', type: 'asymptote_center' },
+                      ],
+                      note: 'Đồ thị là hai nhánh hypebol nhận giao điểm 2 tiệm cận I(-1; 2) làm tâm đối xứng, không bao giờ cắt đường tiệm cận đứng.',
+                    },
+                  ],
+                  commonMistakes: [
+                    {
+                      title: 'Xác định sai phương trình tiệm cận đứng và tiệm cận ngang',
+                      mistake: 'Viết tiệm cận đứng là y = -1 và tiệm cận ngang là x = 2 (nhầm trục).',
+                      correctExplanation: 'Quy tắc: Tiệm cận đứng luôn có dạng x = x0 (ứng với mẫu số bằng 0); Tiệm cận ngang luôn có dạng y = y0 (ứng với giới hạn lim khi x tiến về vô cực).',
+                    },
+                    {
+                      title: 'Vẽ đồ thị cắt qua đường tiệm cận đứng',
+                      mistake: 'Vẽ đường cong đâm xuyên qua đường x = -1.',
+                      correctExplanation: 'Tại điểm x0 của tiệm cận đứng, hàm số hoàn toàn không xác định (x0 ∉ D). Vì vậy đồ thị không bao giờ được phép cắt hay chạm vào đường tiệm cận đứng.',
+                    },
+                    {
+                      title: 'Quên kiểm tra nghiệm trùng giữa tử số và mẫu số',
+                      mistake: 'Cho hàm y = (x² - 1)/(x - 1) rồi kết luận có tiệm cận đứng x = 1.',
+                      correctExplanation: 'Nếu x0 là nghiệm của mẫu số nhưng cũng là nghiệm của tử số với bội lớn hơn hoặc bằng, phân thức bị triệt tiêu và đồ thị chỉ có một "điểm thủng", không có tiệm cận đứng.',
                     },
                   ],
                   importantNotes: [

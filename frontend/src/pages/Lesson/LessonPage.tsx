@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Bookmark, BookmarkCheck, CheckCircle2, FileText, List, Sparkles, Target } from 'lucide-react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { AssessmentModal } from '@/components/assessment/AssessmentModal'
 import { LessonAssessmentCard } from '@/components/assessment/LessonAssessmentCard'
 import {
+  CommonMistakesBlock,
   DefinitionBlock,
   ExampleBlock,
   FormulaBlock,
@@ -12,6 +13,8 @@ import {
   LessonParagraph,
   LessonSummaryBlock,
 } from '@/components/lesson/LessonBlocks'
+import { FunctionGraph } from '@/components/lesson/FunctionGraph'
+import { VariationTable } from '@/components/lesson/VariationTable'
 import { LessonBottomBar } from '@/components/lesson/LessonBottomBar'
 import { LessonNotesPanel } from '@/components/lesson/LessonNotesPanel'
 import { LessonProgressBar } from '@/components/lesson/LessonProgressBar'
@@ -29,10 +32,13 @@ import { useLessonAssessment } from '@/hooks/useLessonAssessment'
 import { useLessonProgress } from '@/hooks/useLessonProgress'
 import { useStudyNotes } from '@/hooks/useStudyNotes'
 import { learningProgressRepository } from '@/repositories/learningProgress.repository'
+import { learningContextService } from '@/services/learningContext.service'
 import { lessonProgressService } from '@/services/lessonProgress.service'
+import type { TutorLearningContext } from '@/types/aiTutor'
 import './LessonPage.css'
 
 export function LessonPage() {
+  const navigate = useNavigate()
   const { subjectId: paramSubjectId, courseId: paramCourseId, lessonId } = useParams<{
     subjectId?: string
     courseId?: string
@@ -66,8 +72,12 @@ export function LessonPage() {
   if (lesson?.content?.introduction) actualSectionIds.push('introduction')
   if ((lesson?.content?.definitions?.length ?? 0) > 0) actualSectionIds.push('definitions')
   if ((lesson?.content?.formulas?.length ?? 0) > 0) actualSectionIds.push('formulas')
+  if ((lesson?.content?.variationTables?.length ?? 0) > 0) actualSectionIds.push('variation-tables')
   if ((lesson?.content?.examples?.length ?? 0) > 0) actualSectionIds.push('examples')
-  if ((lesson?.content?.importantNotes?.length ?? 0) > 0) actualSectionIds.push('important-notes')
+  if ((lesson?.content?.functionGraphs?.length ?? 0) > 0) actualSectionIds.push('function-graphs')
+  if ((lesson?.content?.commonMistakes?.length ?? 0) > 0 || (lesson?.content?.importantNotes?.length ?? 0) > 0) {
+    actualSectionIds.push('important-notes')
+  }
   if ((lesson?.content?.summaryPoints?.length ?? 0) > 0) actualSectionIds.push('summary')
 
   const sectionsList = useMemo(() => {
@@ -81,10 +91,16 @@ export function LessonPage() {
     if ((lesson?.content?.formulas?.length ?? 0) > 0) {
       list.push({ id: 'formulas', title: 'Công thức trọng tâm' })
     }
+    if ((lesson?.content?.variationTables?.length ?? 0) > 0) {
+      list.push({ id: 'variation-tables', title: 'Bảng biến thiên sư phạm' })
+    }
     if ((lesson?.content?.examples?.length ?? 0) > 0) {
       list.push({ id: 'examples', title: 'Ví dụ mẫu & Phương pháp giải' })
     }
-    if ((lesson?.content?.importantNotes?.length ?? 0) > 0) {
+    if ((lesson?.content?.functionGraphs?.length ?? 0) > 0) {
+      list.push({ id: 'function-graphs', title: 'Đồ thị hình học toán học' })
+    }
+    if ((lesson?.content?.commonMistakes?.length ?? 0) > 0 || (lesson?.content?.importantNotes?.length ?? 0) > 0) {
       list.push({ id: 'important-notes', title: 'Bẫy đề thi & Lưu ý cần nhớ' })
     }
     if ((lesson?.content?.summaryPoints?.length ?? 0) > 0) {
@@ -92,6 +108,27 @@ export function LessonPage() {
     }
     return list
   }, [lesson])
+
+  const handleAskAIContext = useCallback(
+    (sectionId: string, sectionTitle: string, excerpt?: string) => {
+      if (!lesson) return
+      const context: TutorLearningContext = {
+        source: 'lesson-section',
+        lessonId: lesson.id,
+        subjectId: resolvedSubjectId,
+        lessonTitle: lesson.title,
+        subjectName: lesson.subjectName || 'Toán học',
+        sectionId,
+        sectionTitle,
+        title: sectionTitle,
+        excerpt: excerpt ? excerpt.slice(0, 200) : undefined,
+        returnUrl: window.location.pathname,
+      }
+      learningContextService.setContext(context)
+      navigate('/ai-tutor')
+    },
+    [lesson, resolvedSubjectId, navigate]
+  )
 
   const { notes } = useStudyNotes(lesson?.id)
 
@@ -450,7 +487,12 @@ export function LessonPage() {
                 1. Khái niệm và Định nghĩa cơ bản
               </LessonHeading>
               {lesson.content.definitions.map((def, idx) => (
-                <DefinitionBlock key={idx} term={def.term} content={def.content} />
+                <DefinitionBlock
+                  key={idx}
+                  term={def.term}
+                  content={def.content}
+                  onAskAI={(term, content) => handleAskAIContext('definitions', `Khái niệm: ${term}`, content)}
+                />
               ))}
             </div>
           )}
@@ -491,7 +533,56 @@ export function LessonPage() {
                 2. Công thức trọng tâm
               </LessonHeading>
               {lesson.content.formulas.map((form) => (
-                <FormulaBlock key={form.id} formula={form} />
+                <FormulaBlock
+                  key={form.id}
+                  formula={form}
+                  onAskAI={(label, formStr) => handleAskAIContext('formulas', `Công thức: ${label}`, formStr)}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Variation Tables */}
+          {lesson.content.variationTables && lesson.content.variationTables.length > 0 && (
+            <div
+              ref={(el) => registerSection('variation-tables', el)}
+              data-section-id="variation-tables"
+              className="lesson-section-block"
+            >
+              <LessonHeading
+                extra={
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <LessonAskAIBtn
+                      lessonId={lesson.id}
+                      subjectId={resolvedSubjectId}
+                      lessonTitle={lesson.title}
+                      subjectName={lesson.subjectName || 'Môn học'}
+                      sectionId="variation-tables"
+                      sectionTitle="Bảng biến thiên sư phạm"
+                    />
+                    <LessonSectionBookmarkBtn
+                      lessonId={lesson.id}
+                      subjectId={resolvedSubjectId}
+                      lessonTitle={lesson.title}
+                      subjectName={lesson.subjectName || 'Môn học'}
+                      sectionId="variation-tables"
+                      sectionTitle="Bảng biến thiên sư phạm"
+                    />
+                    <LessonSectionProgress
+                      progressPercent={getSectionProgress('variation-tables')}
+                      isCompleted={isSectionCompleted('variation-tables')}
+                    />
+                  </div>
+                }
+              >
+                3. Bảng biến thiên sư phạm
+              </LessonHeading>
+              {lesson.content.variationTables.map((vt, idx) => (
+                <VariationTable
+                  key={vt.id || `vt-${idx}`}
+                  {...vt}
+                  onAskAI={(title, summary) => handleAskAIContext('variation-tables', title, summary)}
+                />
               ))}
             </div>
           )}
@@ -529,16 +620,65 @@ export function LessonPage() {
                   </div>
                 }
               >
-                3. Ví dụ mẫu & Phương pháp giải
+                4. Ví dụ mẫu & Phương pháp giải
               </LessonHeading>
               {lesson.content.examples.map((ex) => (
-                <ExampleBlock key={ex.id} example={ex} />
+                <ExampleBlock
+                  key={ex.id}
+                  example={ex}
+                  onAskAI={(title, problem) => handleAskAIContext('examples', `Ví dụ: ${title}`, problem)}
+                />
               ))}
             </div>
           )}
 
-          {/* Important Notes */}
-          {lesson.content.importantNotes.length > 0 && (
+          {/* Function Graphs */}
+          {lesson.content.functionGraphs && lesson.content.functionGraphs.length > 0 && (
+            <div
+              ref={(el) => registerSection('function-graphs', el)}
+              data-section-id="function-graphs"
+              className="lesson-section-block"
+            >
+              <LessonHeading
+                extra={
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <LessonAskAIBtn
+                      lessonId={lesson.id}
+                      subjectId={resolvedSubjectId}
+                      lessonTitle={lesson.title}
+                      subjectName={lesson.subjectName || 'Môn học'}
+                      sectionId="function-graphs"
+                      sectionTitle="Đồ thị hình học toán học"
+                    />
+                    <LessonSectionBookmarkBtn
+                      lessonId={lesson.id}
+                      subjectId={resolvedSubjectId}
+                      lessonTitle={lesson.title}
+                      subjectName={lesson.subjectName || 'Môn học'}
+                      sectionId="function-graphs"
+                      sectionTitle="Đồ thị hình học toán học"
+                    />
+                    <LessonSectionProgress
+                      progressPercent={getSectionProgress('function-graphs')}
+                      isCompleted={isSectionCompleted('function-graphs')}
+                    />
+                  </div>
+                }
+              >
+                5. Đồ thị hình học toán học
+              </LessonHeading>
+              {lesson.content.functionGraphs.map((fg, idx) => (
+                <FunctionGraph
+                  key={fg.id || `fg-${idx}`}
+                  {...fg}
+                  onAskAI={(title, summary) => handleAskAIContext('function-graphs', title, summary)}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Important Notes & Common Mistakes */}
+          {(lesson.content.importantNotes.length > 0 || (lesson.content.commonMistakes && lesson.content.commonMistakes.length > 0)) && (
             <div
               ref={(el) => registerSection('important-notes', el)}
               data-section-id="important-notes"
@@ -570,9 +710,19 @@ export function LessonPage() {
                   </div>
                 }
               >
-                4. Bẫy đề thi & Lưu ý cần nhớ
+                6. Bẫy đề thi & Lưu ý cần nhớ
               </LessonHeading>
-              <ImportantNote notes={lesson.content.importantNotes} />
+
+              {lesson.content.commonMistakes && lesson.content.commonMistakes.length > 0 && (
+                <CommonMistakesBlock
+                  mistakes={lesson.content.commonMistakes}
+                  onAskAI={(title, detail) => handleAskAIContext('important-notes', title, detail)}
+                />
+              )}
+
+              {lesson.content.importantNotes.length > 0 && (
+                <ImportantNote notes={lesson.content.importantNotes} />
+              )}
             </div>
           )}
 
@@ -609,9 +759,12 @@ export function LessonPage() {
                   </div>
                 }
               >
-                5. Tổng kết kiến thức bài học
+                7. Tổng kết kiến thức bài học
               </LessonHeading>
-              <LessonSummaryBlock points={lesson.content.summaryPoints} />
+              <LessonSummaryBlock
+                points={lesson.content.summaryPoints}
+                onAskAI={() => handleAskAIContext('summary', 'Tổng kết bài học', lesson.content.summaryPoints.join('; '))}
+              />
             </div>
           )}
 
