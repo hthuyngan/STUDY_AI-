@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -29,9 +30,21 @@ builder.Services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<St
 builder.Services.AddSingleton<IPasswordHasher, Argon2PasswordHasher>();
 builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
 
-// 3. Authentication & JWT Bearer
-var jwtSecret = configuration["Jwt:SecretKey"] ?? "study_ai_insecure_jwt_secret_key_change_in_production_32bytes";
+// 3. JWT Secret Validation & Authentication
+var jwtSecret = configuration["Jwt:SecretKey"];
+if (string.IsNullOrWhiteSpace(jwtSecret) || jwtSecret.Length < 32)
+{
+    throw new InvalidOperationException("FATAL: Jwt:SecretKey must be configured with at least 32 characters.");
+}
+
+if (builder.Environment.IsProduction() && (jwtSecret.Contains("development", StringComparison.OrdinalIgnoreCase) || jwtSecret.Contains("change_in_production", StringComparison.OrdinalIgnoreCase)))
+{
+    throw new InvalidOperationException("FATAL: Insecure default Jwt:SecretKey cannot be used in a production environment!");
+}
+
 var key = Encoding.UTF8.GetBytes(jwtSecret);
+var issuer = configuration["Jwt:Issuer"] ?? JwtTokenService.DefaultIssuer;
+var audience = configuration["Jwt:Audience"] ?? JwtTokenService.DefaultAudience;
 
 builder.Services.AddAuthentication(options =>
 {
@@ -40,15 +53,45 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    options.RequireHttpsMetadata = false;
+    options.RequireHttpsMetadata = builder.Environment.IsProduction();
     options.SaveToken = true;
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(key),
-        ValidateIssuer = false,
-        ValidateAudience = false,
-        ClockSkew = TimeSpan.Zero
+        ValidateIssuer = true,
+        ValidIssuer = issuer,
+        ValidateAudience = true,
+        ValidAudience = audience,
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.FromSeconds(30)
+    };
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = async context =>
+        {
+            // Verify token type claim
+            var tokenType = context.Principal?.FindFirst("type")?.Value;
+            if (tokenType != "access")
+            {
+                context.Fail("Token type is invalid for API access.");
+                return;
+            }
+
+            // Verify account status directly from database
+            var userId = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                         ?? context.Principal?.FindFirst("sub")?.Value;
+
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var db = context.HttpContext.RequestServices.GetRequiredService<StudyAIDbContext>();
+                var user = await db.Users.FindAsync(userId);
+                if (user == null || user.Status is "suspended" or "disabled")
+                {
+                    context.Fail("Tài khoản đã bị vô hiệu hóa hoặc không tồn tại trên hệ thống.");
+                }
+            }
+        }
     };
 });
 
@@ -95,19 +138,76 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-// Auto seed on startup
+// CLI Bootstrap Admin Command Support: --bootstrap-admin
+if (args.Contains("--bootstrap-admin"))
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+    var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+    string? adminEmail = Environment.GetEnvironmentVariable("ADMIN_BOOTSTRAP_EMAIL");
+    string? adminPass = Environment.GetEnvironmentVariable("ADMIN_BOOTSTRAP_PASSWORD");
+
+    // Optional CLI argument parse
+    for (int i = 0; i < args.Length; i++)
+    {
+        if (args[i] == "--admin-email" && i + 1 < args.Length) adminEmail = args[i + 1];
+        if (args[i] == "--admin-password" && i + 1 < args.Length) adminPass = args[i + 1];
+    }
+
+    if (string.IsNullOrWhiteSpace(adminEmail) || string.IsNullOrWhiteSpace(adminPass))
+    {
+        Console.Error.WriteLine("ERROR: Admin email or password missing. Provide via --admin-email and --admin-password or ADMIN_BOOTSTRAP_EMAIL and ADMIN_BOOTSTRAP_PASSWORD environment variables.");
+        Environment.Exit(1);
+    }
+
+    var result = await DbInitializer.BootstrapAdminAsync(db, hasher, adminEmail, adminPass);
+    if (result.Created)
+    {
+        Console.WriteLine($"SUCCESS: {result.Message}");
+        Environment.Exit(0);
+    }
+    else
+    {
+        Console.WriteLine($"INFO: {result.Message}");
+        Environment.Exit(0);
+    }
+}
+
+// Database Migration & Reference Data Initialization
 using (var scope = app.Services.CreateScope())
 {
     try
     {
         var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
         var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
-        await DbInitializer.SeedAsync(db, hasher);
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+        if (builder.Configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup", true))
+        {
+            await db.Database.MigrateAsync();
+        }
+
+        // Seed curriculum reference data
+        await DbInitializer.SeedReferenceDataAsync(db);
+
+        // Optional environment-based admin bootstrap
+        string? envAdminEmail = Environment.GetEnvironmentVariable("ADMIN_BOOTSTRAP_EMAIL");
+        string? envAdminPassword = Environment.GetEnvironmentVariable("ADMIN_BOOTSTRAP_PASSWORD");
+        if (!string.IsNullOrWhiteSpace(envAdminEmail) && !string.IsNullOrWhiteSpace(envAdminPassword))
+        {
+            var bootResult = await DbInitializer.BootstrapAdminAsync(db, hasher, envAdminEmail, envAdminPassword);
+            if (bootResult.Created)
+            {
+                logger.LogInformation("Admin user bootstrapped successfully from environment.");
+            }
+        }
     }
     catch (Exception ex)
     {
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while initializing database.");
+        logger.LogError(ex, "An error occurred while initializing or migrating the database.");
     }
 }
 
@@ -115,6 +215,10 @@ using (var scope = app.Services.CreateScope())
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+}
+else
+{
+    app.UseHsts();
 }
 
 app.UseCors("DefaultCorsPolicy");

@@ -37,7 +37,7 @@ public class AuthController : ControllerBase
         var cookieOptions = new CookieOptions
         {
             HttpOnly = true,
-            Secure = false, // Set false for local dev / HTTP, or true if HTTPS
+            Secure = Request.IsHttps,
             SameSite = SameSiteMode.Lax,
             Path = "/",
             Expires = DateTimeOffset.UtcNow.AddDays(days)
@@ -50,7 +50,8 @@ public class AuthController : ControllerBase
         Response.Cookies.Delete(RefreshCookieName, new CookieOptions
         {
             Path = "/",
-            SameSite = SameSiteMode.Lax
+            SameSite = SameSiteMode.Lax,
+            Secure = Request.IsHttps
         });
     }
 
@@ -205,10 +206,34 @@ public class AuthController : ControllerBase
             .Include(s => s.User)
             .FirstOrDefaultAsync(s => s.TokenHash == tokenHash);
 
-        if (session == null || session.RevokedAt != null || session.ExpiresAt <= DateTimeOffset.UtcNow)
+        if (session == null)
         {
             ClearRefreshCookie();
-            return Unauthorized(new { detail = "Phiên làm việc không hợp lệ hoặc đã hết hạn." });
+            return Unauthorized(new { detail = "Phiên làm việc không tồn tại hoặc đã bị hủy." });
+        }
+
+        // RFC 6819: Refresh Token Reuse Detection
+        if (session.RevokedAt != null)
+        {
+            // A revoked token was presented! Revoke all sessions for this user as a safeguard.
+            var activeSessions = await _db.RefreshSessions
+                .Where(s => s.UserId == session.UserId && s.RevokedAt == null)
+                .ToListAsync();
+
+            foreach (var s in activeSessions)
+            {
+                s.RevokedAt = DateTimeOffset.UtcNow;
+            }
+            await _db.SaveChangesAsync();
+            ClearRefreshCookie();
+
+            return Unauthorized(new { detail = "Cảnh báo bảo mật: Phát hiện sử dụng lại refresh token đã thu hồi. Mọi phiên hoạt động đã bị hủy." });
+        }
+
+        if (session.ExpiresAt <= DateTimeOffset.UtcNow)
+        {
+            ClearRefreshCookie();
+            return Unauthorized(new { detail = "Phiên làm việc đã hết hạn." });
         }
 
         var user = session.User;

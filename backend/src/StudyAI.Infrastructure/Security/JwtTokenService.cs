@@ -12,11 +12,23 @@ namespace StudyAI.Infrastructure.Security;
 public class JwtTokenService : IJwtTokenService
 {
     private readonly string _secretKey;
+    private readonly string _issuer;
+    private readonly string _audience;
     private readonly int _accessTokenExpireMinutes;
+
+    public const string DefaultIssuer = "StudyAI.Api";
+    public const string DefaultAudience = "StudyAI.Client";
 
     public JwtTokenService(IConfiguration configuration)
     {
-        _secretKey = configuration["Jwt:SecretKey"] ?? "study_ai_insecure_jwt_secret_key_change_in_production_32bytes";
+        var secret = configuration["Jwt:SecretKey"];
+        if (string.IsNullOrWhiteSpace(secret) || secret.Length < 32)
+        {
+            throw new InvalidOperationException("Jwt:SecretKey configuration is missing or fewer than 32 characters.");
+        }
+        _secretKey = secret;
+        _issuer = configuration["Jwt:Issuer"] ?? DefaultIssuer;
+        _audience = configuration["Jwt:Audience"] ?? DefaultAudience;
         _accessTokenExpireMinutes = int.TryParse(configuration["Jwt:AccessTokenExpireMinutes"], out int exp) ? exp : 30;
     }
 
@@ -50,7 +62,10 @@ public class JwtTokenService : IJwtTokenService
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
+            Issuer = _issuer,
+            Audience = _audience,
             IssuedAt = now,
+            NotBefore = now,
             Expires = now.AddSeconds(expiresInSeconds),
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
         };

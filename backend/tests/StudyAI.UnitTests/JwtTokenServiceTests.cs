@@ -60,4 +60,21 @@ public class JwtTokenServiceTests
         Assert.Equal(hash1, hash2);
         Assert.Equal(64, hash1.Length); // 64 hex characters for SHA-256
     }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(null)]
+    [InlineData("too_short_key")]
+    [InlineData("1234567890123456789012345678901")] // 31 chars
+    public void JwtTokenService_WithMissingOrShortSecret_ThrowsInvalidOperationException(string? invalidSecret)
+    {
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Jwt:SecretKey"] = invalidSecret
+            })
+            .Build();
+
+        Assert.Throws<InvalidOperationException>(() => new JwtTokenService(config));
+    }
 }
