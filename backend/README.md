@@ -23,7 +23,7 @@ Hệ thống Backend chính thức cho nền tảng học tập thông minh **ST
   - Ghi nhật ký kiểm toán nhân sự (`StaffAuditLogs`).
 - **Bootstrap CLI an toàn**:
   - Không tồn tại tài khoản hoặc mật khẩu mặc định hardcoded trong mã nguồn.
-  - Hỗ trợ lệnh bootstrap Admin ban đầu: `dotnet run --project src/StudyAI.Api -- --bootstrap-admin`.
+  - Hỗ trợ lệnh bootstrap Admin ban đầu: `dotnet run --project src/StudyAI.Api -- --bootstrap-admin` (chỉ nhận mật khẩu qua biến môi trường hoặc nhập ẩn ký tự qua console, tuyệt đối không nhận qua tham số dòng lệnh).
 
 ---
 
@@ -65,6 +65,7 @@ dotnet ef database update --project src/StudyAI.Infrastructure --startup-project
 $env:ADMIN_BOOTSTRAP_EMAIL="admin@studyai.internal"
 $env:ADMIN_BOOTSTRAP_PASSWORD="YourStrongAdminPassword!2026"
 dotnet run --project src/StudyAI.Api -- --bootstrap-admin
+Remove-Item Env:\ADMIN_BOOTSTRAP_PASSWORD
 
 # 4. Khởi chạy Web API server
 dotnet run --project src/StudyAI.Api
@@ -83,4 +84,4 @@ dotnet run --project src/StudyAI.Api
 cd backend
 dotnet test StudyAI.sln
 ```
-Toàn bộ test suite bao gồm 21 bài kiểm thử (11 unit tests và 10 integration tests) chạy trực tiếp trên cơ sở dữ liệu SQL Server.
+Toàn bộ test suite bao gồm 22 bài kiểm thử (11 unit tests và 11 integration tests) chạy trực tiếp trên cơ sở dữ liệu SQL Server.

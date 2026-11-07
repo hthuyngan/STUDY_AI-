@@ -192,6 +192,23 @@ public class AuthIntegrationTests : IClassFixture<StudyAIApiFixture>
     }
 
     [Fact]
+    public async Task BootstrapAdmin_WhenAlreadyExists_IsIdempotent()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+        var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+
+        string email = $"idempotent_admin_{Guid.NewGuid():N}@studyai.internal";
+        var first = await DbInitializer.BootstrapAdminAsync(db, hasher, email, "SuperSecurePass@123");
+        Assert.True(first.Created);
+
+        // Calling it again with same email must not duplicate or error, but return idempotent status
+        var second = await DbInitializer.BootstrapAdminAsync(db, hasher, email, "SuperSecurePass@123");
+        Assert.False(second.Created);
+        Assert.Contains("already exists", second.Message);
+    }
+
+    [Fact]
     public async Task SuspendedUser_CannotAccessProtectedEndpoints()
     {
         using var scope = _factory.Services.CreateScope();

@@ -1,6 +1,6 @@
 # STUDY_AI — BẢO MẬT XÁC THỰC VÀ PHÂN QUYỀN TRÊN NỀN TẢNG ASP.NET CORE (.NET 10)
 
-**Tài liệu**: Kiến trúc bảo mật định danh, phiên làm việc và phân quyền (Phase 14B)  
+**Tài liệu**: Kiến trúc bảo mật định danh, phiên làm việc và phân quyền (Phase 14B Final Hardening)  
 **Tác giả**: Senior Security Architect & ASP.NET Core Engineer  
 **Hệ thống**: Backend STUDY_AI  
 
@@ -104,50 +104,88 @@ Theo khuyến nghị bảo mật OAuth 2.0 Threat Model (RFC 6819 mục 5.2.2.3)
 
 ### 4.1. Không Hardcode Credentials
 - Đã loại bỏ hoàn toàn các tài khoản mặc định và mật khẩu hardcoded (`Admin@123456`, `Learner@123456`) trong `DbInitializer.cs`.
-- Hàm `SeedReferenceDataAsync` chỉ nạp các danh mục môn học và bài học mẫu phục vụ chương trình GDPT 2018 (Toán 12).
+- Hàm `SeedReferenceDataAsync` chỉ nạp các danh mục môn học và bài học mẫu phục vụ chương trình GDPT 2018 (Toán 12), không tạo người dùng.
+- Đã xóa hoàn toàn logic tự động tạo Admin khi ứng dụng khởi động.
 
-### 4.2. CLI Bootstrap Quản Trị Viên An Toàn
-Khởi tạo tài khoản quản trị hệ thống ban đầu thông qua CLI hoặc biến môi trường:
-```bash
-# Cung cấp biến môi trường hoặc tham số lệnh
-export ADMIN_BOOTSTRAP_EMAIL="admin@studyai.internal"
-export ADMIN_BOOTSTRAP_PASSWORD="MyStrongSecretPassword!2026"
-
-# Thực thi lệnh bootstrap
-dotnet run --project src/StudyAI.Api -- --bootstrap-admin
-```
+### 4.2. CLI Bootstrap Quản Trị Viên An Toàn (`--bootstrap-admin`)
+- Lệnh `--bootstrap-admin` chỉ được chạy thủ công có chủ đích từ CLI.
+- **Quy tắc bảo mật mật khẩu CLI**:
+  - **Nghiêm cấm** nhận mật khẩu qua tham số dòng lệnh (`--admin-password`) vì tham số dòng lệnh sẽ lưu lại trong bảng tiến trình hệ điều hành (`ps`, `Get-Process`, Task Manager, `/proc`), gây lộ mật khẩu cho các tiến trình khác.
+  - Ứng dụng sẽ chặn đứng và thoát với exit code 1 ngay lập tức nếu phát hiện tham số `--admin-password`.
+  - Mật khẩu chỉ được nhận qua biến môi trường bảo mật `ADMIN_BOOTSTRAP_PASSWORD` hoặc nhập ẩn ký tự (masked input) qua console tương tác.
 - **Xác thực độ mạnh mật khẩu**:
   - Chiều dài tối thiểu 10 ký tự.
   - Chứa ít nhất một chữ in hoa, một chữ in thường, và một chữ số.
 - **Tính lũy đẳng (Idempotent)**:
-  - Nếu đã tồn tại admin, lệnh sẽ báo thông tin an toàn và không tạo trùng lặp hoặc ghi đè mật khẩu.
+  - Nếu đã tồn tại admin với email đó, lệnh báo thông tin an toàn (exit code 0) và không tạo trùng lặp hoặc thay đổi mật khẩu.
 - **Bảo mật nhật ký**:
   - Không bao giờ in hoặc log mật khẩu ra stdout, stderr hay file log.
 
 ---
 
-## 5. BẢO VỆ TÀI KHOẢN ADMIN DUY NHẤT (LAST ACTIVE ADMIN PROTECTION)
+## 5. DỪNG KHỞI ĐỘNG KHI CƠ SỞ DỮ LIỆU LỖI (FAIL-FAST DATABASE POLICY)
 
-Trong `AdminController`:
-- Khi có yêu cầu thay đổi phân quyền (`PATCH /api/v1/admin/users/{userId}/role`) hoặc khóa tài khoản (`PATCH /api/v1/admin/users/{userId}/status`), hệ thống kiểm tra số lượng admin hoạt động còn lại (`Status == "active"` và `Role == "admin"`).
-- Nếu chỉ còn đúng 1 admin duy nhất, thao tác giáng cấp hoặc vô hiệu hóa admin đó sẽ bị từ chối với mã lỗi 400 Bad Request:
-  > *"Không thể thay đổi vai trò của quản trị viên duy nhất trong hệ thống."*
+Trong `Program.cs`, khối khởi tạo và migration cơ sở dữ liệu tuân thủ nguyên tắc Fail-Fast:
+- Nếu quá trình `Database.MigrateAsync()` hoặc `SeedReferenceDataAsync()` gặp lỗi (không kết nối được SQL Server, lỗi migration, timeout):
+  - Ứng dụng ghi nhật ký nghiêm trọng: `logger.LogCritical(...)`.
+  - In thông báo lỗi ra `Console.Error`.
+  - Lập tức dừng tiến trình với mã lỗi `Environment.Exit(1)`.
+  - Đảm bảo ứng dụng không bao giờ chạy ở trạng thái nửa vời (unhealthy state) trong môi trường Production.
 
 ---
 
-## 6. MA TRẬN BẰNG CHỨNG KIỂM THỬ TỰ ĐỘNG
+## 6. BẢO MẬT CI/CD (EPHEMERAL SECRETS TRONG GITHUB ACTIONS)
+
+Trong file `.github/workflows/ci.yml`:
+- **Loại bỏ hoàn toàn mật khẩu tĩnh**: Không lưu bất kỳ mật khẩu SQL Server hardcoded nào trong tệp cấu hình YAML.
+- **Tạo mật khẩu tạm thời ngẫu nhiên**: Mỗi lần CI workflow chạy, một mật khẩu SA và JWT secret ngẫu nhiên bảo mật cao (cryptographically random) được sinh động bằng `openssl`.
+- **Cơ chế ẩn danh (Masking)**: Các giá trị này được đăng ký thông qua `echo "::add-mask::$SECRET"` đảm bảo GitHub Actions tự động ẩn hoàn toàn giá trị này khỏi toàn bộ nhật ký thực thi (log output).
+- **Kiểm tra sức khỏe SQL Server**: Sử dụng vòng lặp kiểm tra sức khỏe chính thức thông qua `sqlcmd` trước khi cho phép tiến trình kiểm thử bắt đầu.
+
+---
+
+## 7. BIỆN PHÁP XỬ LÝ CÁC TÀI KHOẢN MẪU CŨ TRÊN CƠ SỞ DỮ LIỆU
+
+Đối với các database đã được khởi tạo trong các giai đoạn phát triển trước, nếu còn tồn tại tài khoản `admin@studyai.internal` hoặc `learner@studyai.internal`:
+1. **Trên môi trường Production / Staging**:
+   - Bắt buộc chạy câu lệnh SQL để vô hiệu hóa tài khoản mẫu cũ:
+     ```sql
+     UPDATE users 
+     SET Status = 'disabled', UpdatedAt = SYSDATETIMEOFFSET() 
+     WHERE Email IN ('admin@studyai.internal', 'learner@studyai.internal');
+     ```
+   - Khởi tạo tài khoản quản trị viên thật bằng lệnh CLI an toàn:
+     ```powershell
+     $env:ADMIN_BOOTSTRAP_EMAIL = "real.admin@school.edu.vn"
+     $env:ADMIN_BOOTSTRAP_PASSWORD = "<Secret-Unique-Admin-Password>"
+     dotnet run --project src/StudyAI.Api -- --bootstrap-admin
+     Remove-Item Env:\ADMIN_BOOTSTRAP_PASSWORD
+     ```
+2. **Trên môi trường Kiểm thử Tự động (Integration Tests)**:
+   - Các tài khoản thử nghiệm được khởi tạo riêng biệt trong fixture `StudyAIApiFixture` phục vụ kiểm thử khép kín.
+
+---
+
+## 8. MA TRẬN BẰNG CHỨNG KIỂM THỬ TỰ ĐỘNG (22 TESTS PASSED)
 
 | Tên bài test | Phân loại | Mục đích kiểm tra | Kết quả |
 |---|---|---|---|
 | `GenerateAccessToken_ShouldReturnNonEmptyTokenAndCorrectExpiration` | Unit Test | Kiểm tra cấu trúc JWT và thời hạn | **PASS** |
 | `GenerateRefreshToken_ShouldReturnUniqueOpaqueTokens` | Unit Test | Kiểm tra tính ngẫu nhiên của 48 bytes token | **PASS** |
 | `HashRefreshToken_ShouldBeDeterministicSha256` | Unit Test | Kiểm tra SHA-256 hash chuẩn hóa | **PASS** |
-| `JwtTokenService_WithMissingOrShortSecret_ThrowsInvalidOperationException` | Unit Test | Kiểm tra Fail Fast khi secret yếu/thiếu | **PASS** |
+| `JwtTokenService_WithMissingOrShortSecret_ThrowsInvalidOperationException` | Unit Test | Kiểm tra Fail Fast khi secret yếu/thiếu (4 cases) | **PASS** |
 | `HashPassword_ShouldReturnValidArgon2String` | Unit Test | Kiểm tra mã hóa Argon2id | **PASS** |
 | `VerifyPassword_WithCorrectPassword_ShouldReturnTrue` | Unit Test | Kiểm tra đối soát mật khẩu đúng | **PASS** |
 | `VerifyPassword_WithWrongPassword_ShouldReturnFalse` | Unit Test | Chặn mật khẩu sai | **PASS** |
+| `VerifyPassword_WithEmptyOrNull_ShouldReturnFalse` | Unit Test | Chặn mật khẩu rỗng | **PASS** |
 | `Register_Login_GetMe_Lifecycle_Succeeds` | Integration Test | Vòng đời xác thực đầy đủ | **PASS** |
 | `AdminProtection_CannotDemoteLastActiveAdmin` | Integration Test | Bảo vệ admin hoạt động duy nhất | **PASS** |
 | `RefreshToken_ReuseDetection_RevokesAllSessions` | Integration Test | Phát hiện tái sử dụng token theo RFC 6819 | **PASS** |
 | `BootstrapAdmin_WithInvalidPassword_FailsValidation` | Integration Test | Kiểm tra chính sách mật khẩu Admin Bootstrap | **PASS** |
+| `BootstrapAdmin_WhenAlreadyExists_IsIdempotent` | Integration Test | Kiểm tra tính lũy đẳng không tạo trùng admin | **PASS** |
 | `SuspendedUser_CannotAccessProtectedEndpoints` | Integration Test | Chặn người dùng suspended đăng nhập và gọi API | **PASS** |
+| `PutAndGetLessonProgress_Succeeds` | Integration Test | Kiểm tra lưu và lấy tiến độ học tập trên SQL Server | **PASS** |
+| `PostAssessmentAttempt_Succeeds` | Integration Test | Kiểm tra nộp bài thi và lưu điểm trên SQL Server | **PASS** |
+| `GetHealth_ReturnsHealthyStatus` | Integration Test | Kiểm tra endpoint `/health` | **PASS** |
+| `GetHealthDb_ReturnsHealthyDatabase` | Integration Test | Kiểm tra kết nối SQL Server qua `/health/db` | **PASS** |
+| `ApiHealth_V1_ReturnsHealthy` | Integration Test | Kiểm tra endpoint `/api/v1/health` | **PASS** |

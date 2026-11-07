@@ -52,20 +52,6 @@ jobs:
       run:
         working-directory: backend
 
-    services:
-      sqlserver:
-        image: mcr.microsoft.com/mssql/server:2022-latest
-        env:
-          ACCEPT_EULA: 'Y'
-          MSSQL_SA_PASSWORD: 'YourStrongPassword!2026'
-        ports:
-          - 1433:1433
-        options: >-
-          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P YourStrongPassword!2026 -C -Q 'SELECT 1'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 10
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -74,6 +60,42 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
+
+      - name: Generate Ephemeral Secrets & Start SQL Server Container
+        run: |
+          # 1. Generate cryptographically strong ephemeral secrets for this run
+          SA_PASS="StudyAI_$(openssl rand -hex 8)_A1!"
+          JWT_KEY="ci_ephemeral_$(openssl rand -hex 16)_jwt_key"
+          
+          # 2. Mask secrets from all runner logs
+          echo "::add-mask::$SA_PASS"
+          echo "::add-mask::$JWT_KEY"
+          
+          # 3. Export to environment for subsequent steps
+          echo "MSSQL_SA_PASSWORD=$SA_PASS" >> $GITHUB_ENV
+          echo "CI_JWT_KEY=$JWT_KEY" >> $GITHUB_ENV
+          
+          # 4. Start SQL Server 2022 container with ephemeral password
+          docker run -d \
+            --name mssql-ci \
+            -e "ACCEPT_EULA=Y" \
+            -e "MSSQL_SA_PASSWORD=$SA_PASS" \
+            -p 1433:1433 \
+            mcr.microsoft.com/mssql/server:2022-latest
+
+      - name: Wait for SQL Server Health Check
+        run: |
+          echo "Verifying SQL Server container readiness..."
+          for i in {1..30}; do
+            if docker exec mssql-ci /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -Q "SELECT 1" > /dev/null 2>&1; then
+              echo "SQL Server is healthy and ready to accept connections."
+              exit 0
+            fi
+            echo "Waiting for SQL Server ($i/30)..."
+            sleep 2
+          done
+          echo "ERROR: Timed out waiting for SQL Server container."
+          exit 1
 
       - name: Restore dependencies
         run: dotnet restore StudyAI.sln
@@ -87,5 +109,11 @@ jobs:
       - name: Run .NET Integration Tests (Real SQL Server)
         run: dotnet test --no-build --configuration Release tests/StudyAI.IntegrationTests/StudyAI.IntegrationTests.csproj --verbosity normal
         env:
-          ConnectionStrings__DefaultConnection: "Server=127.0.0.1,1433;Database=StudyAIDb;User Id=sa;Password=YourStrongPassword!2026;TrustServerCertificate=True;MultipleActiveResultSets=true;"
-          Jwt__SecretKey: "github_actions_ci_secret_key_with_at_least_32_characters_ok!"
+          ConnectionStrings__DefaultConnection: "Server=127.0.0.1,1433;Database=StudyAIDb;User Id=sa;Password=${{ env.MSSQL_SA_PASSWORD }};TrustServerCertificate=True;MultipleActiveResultSets=true;"
+          Jwt__SecretKey: ${{ env.CI_JWT_KEY }}
+
+      - name: Teardown SQL Server Container
+        if: always()
+        run: |
+          docker stop mssql-ci || true
+          docker rm mssql-ci || true

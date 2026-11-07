@@ -141,24 +141,42 @@ var app = builder.Build();
 // CLI Bootstrap Admin Command Support: --bootstrap-admin
 if (args.Contains("--bootstrap-admin"))
 {
+    // Security check: never accept passwords via command-line arguments to avoid process table exposure
+    if (args.Any(a => a.StartsWith("--admin-password", StringComparison.OrdinalIgnoreCase)))
+    {
+        Console.Error.WriteLine("SECURITY ERROR: Passing passwords via command-line arguments is forbidden because it exposes credentials in process listings. Use the ADMIN_BOOTSTRAP_PASSWORD environment variable or enter it securely via the interactive console prompt.");
+        Environment.Exit(1);
+    }
+
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
     var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
-    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
     string? adminEmail = Environment.GetEnvironmentVariable("ADMIN_BOOTSTRAP_EMAIL");
-    string? adminPass = Environment.GetEnvironmentVariable("ADMIN_BOOTSTRAP_PASSWORD");
-
-    // Optional CLI argument parse
     for (int i = 0; i < args.Length; i++)
     {
-        if (args[i] == "--admin-email" && i + 1 < args.Length) adminEmail = args[i + 1];
-        if (args[i] == "--admin-password" && i + 1 < args.Length) adminPass = args[i + 1];
+        if (args[i].Equals("--admin-email", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length)
+        {
+            adminEmail = args[i + 1];
+        }
+    }
+
+    if (string.IsNullOrWhiteSpace(adminEmail) && !Console.IsInputRedirected)
+    {
+        Console.Write("Enter admin email: ");
+        adminEmail = Console.ReadLine();
+    }
+
+    string? adminPass = Environment.GetEnvironmentVariable("ADMIN_BOOTSTRAP_PASSWORD");
+    if (string.IsNullOrWhiteSpace(adminPass) && !Console.IsInputRedirected)
+    {
+        Console.Write("Enter admin password (min 10 chars, upper, lower, digit): ");
+        adminPass = ReadMaskedPassword();
     }
 
     if (string.IsNullOrWhiteSpace(adminEmail) || string.IsNullOrWhiteSpace(adminPass))
     {
-        Console.Error.WriteLine("ERROR: Admin email or password missing. Provide via --admin-email and --admin-password or ADMIN_BOOTSTRAP_EMAIL and ADMIN_BOOTSTRAP_PASSWORD environment variables.");
+        Console.Error.WriteLine("ERROR: Admin email or password missing. Set ADMIN_BOOTSTRAP_EMAIL and ADMIN_BOOTSTRAP_PASSWORD environment variables, or enter them when prompted.");
         Environment.Exit(1);
     }
 
@@ -171,19 +189,16 @@ if (args.Contains("--bootstrap-admin"))
     else
     {
         Console.WriteLine($"INFO: {result.Message}");
-        Environment.Exit(0);
+        Environment.Exit(result.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase) ? 0 : 1);
     }
 }
 
-// Database Migration & Reference Data Initialization
+// Database Migration & Reference Data Initialization (Fail-Fast on error)
 using (var scope = app.Services.CreateScope())
 {
     try
     {
         var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
-        var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-
         if (builder.Configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup", true))
         {
             await db.Database.MigrateAsync();
@@ -191,23 +206,13 @@ using (var scope = app.Services.CreateScope())
 
         // Seed curriculum reference data
         await DbInitializer.SeedReferenceDataAsync(db);
-
-        // Optional environment-based admin bootstrap
-        string? envAdminEmail = Environment.GetEnvironmentVariable("ADMIN_BOOTSTRAP_EMAIL");
-        string? envAdminPassword = Environment.GetEnvironmentVariable("ADMIN_BOOTSTRAP_PASSWORD");
-        if (!string.IsNullOrWhiteSpace(envAdminEmail) && !string.IsNullOrWhiteSpace(envAdminPassword))
-        {
-            var bootResult = await DbInitializer.BootstrapAdminAsync(db, hasher, envAdminEmail, envAdminPassword);
-            if (bootResult.Created)
-            {
-                logger.LogInformation("Admin user bootstrapped successfully from environment.");
-            }
-        }
     }
     catch (Exception ex)
     {
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while initializing or migrating the database.");
+        logger.LogCritical(ex, "FATAL: Database migration or reference seeding failed. Terminating host startup.");
+        Console.Error.WriteLine($"FATAL: Database initialization failed: {ex.Message}");
+        Environment.Exit(1);
     }
 }
 
@@ -229,5 +234,31 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// Masked password reader helper for interactive CLI
+static string ReadMaskedPassword()
+{
+    var sb = new StringBuilder();
+    while (true)
+    {
+        var key = Console.ReadKey(intercept: true);
+        if (key.Key == ConsoleKey.Enter)
+        {
+            Console.WriteLine();
+            break;
+        }
+        if (key.Key == ConsoleKey.Backspace && sb.Length > 0)
+        {
+            sb.Remove(sb.Length - 1, 1);
+            Console.Write("\b \b");
+        }
+        else if (!char.IsControl(key.KeyChar))
+        {
+            sb.Append(key.KeyChar);
+            Console.Write("*");
+        }
+    }
+    return sb.ToString();
+}
 
 public partial class Program { }
