@@ -1,5 +1,5 @@
 from typing import Optional
-from fastapi import APIRouter, Cookie, Depends, Header, Response, status
+from fastapi import APIRouter, Cookie, Depends, Header, Request, Response, status
 from sqlalchemy.orm import Session
 from app.api.deps import get_current_user
 from app.config import settings
@@ -87,12 +87,14 @@ def post_register(
 )
 def post_login(
     data: UserLoginRequest,
+    request: Request,
     response: Response,
     user_agent: Optional[str] = Header(None, alias="User-Agent"),
     db: Session = Depends(get_db),
 ):
+    client_ip = request.client.host if request.client else "127.0.0.1"
     user, access_token, raw_refresh, expires_in = login_user(
-        db, data, user_agent=user_agent
+        db, data, user_agent=user_agent, client_ip=client_ip
     )
     _set_refresh_cookie(response, raw_refresh)
     return AuthResponse(

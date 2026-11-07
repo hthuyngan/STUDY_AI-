@@ -4,7 +4,9 @@ import uuid
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.config import settings
+from app.core.rate_limiter import auth_rate_limiter
 from app.core.security import (
+    DUMMY_PASSWORD_HASH,
     create_access_token,
     generate_refresh_token,
     hash_password,
@@ -39,6 +41,7 @@ def register_user(
         display_name=data.displayName.strip(),
         grade=data.grade.strip() if data.grade else None,
         role="learner",
+        status="active",
         last_login_at=now,
         created_at=now,
         updated_at=now,
@@ -65,21 +68,45 @@ def register_user(
 
 
 def login_user(
-    db: Session, data: UserLoginRequest, user_agent: Optional[str] = None
+    db: Session,
+    data: UserLoginRequest,
+    user_agent: Optional[str] = None,
+    client_ip: str = "127.0.0.1",
 ) -> Tuple[User, str, str, int]:
     email_clean = data.email.strip().lower()
+
+    # 1. Enforce rate limiting against brute-force password guessing
+    auth_rate_limiter.check_rate_limit(client_ip, email_clean)
+
     user = (
         db.query(User).filter(User.email_normalized == email_clean).first()
     )
-    if (
-        not user
-        or not user.password_hash
-        or not verify_password(data.password, user.password_hash)
-    ):
+
+    # 2. Timing attack mitigation: verify dummy hash if user does not exist
+    if not user or not user.password_hash:
+        verify_password(data.password, DUMMY_PASSWORD_HASH)
+        auth_rate_limiter.record_failure(client_ip, email_clean)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email hoặc mật khẩu không chính xác.",
         )
+
+    if not verify_password(data.password, user.password_hash):
+        auth_rate_limiter.record_failure(client_ip, email_clean)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Email hoặc mật khẩu không chính xác.",
+        )
+
+    # 3. Check account status (suspended / disabled)
+    if user.status in ("suspended", "disabled"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tài khoản đã bị tạm khóa hoặc vô hiệu hóa.",
+        )
+
+    # Authentication succeeded: reset failure counter
+    auth_rate_limiter.record_success(client_ip, email_clean)
 
     now = datetime.now(timezone.utc)
     user.last_login_at = now
@@ -120,8 +147,21 @@ def refresh_token_session(
 
     now = datetime.now(timezone.utc)
 
-    # If session doesn't exist or has already been revoked (prevent replay / reuse)
-    if not session or session.revoked_at is not None:
+    # Invariant: Refresh Token Reuse Detection (RFC 6819 Section 5.2.2.3)
+    # If session exists but was already revoked, a replay / token theft has occurred!
+    if session and session.revoked_at is not None:
+        # Revoke ALL active sessions for this user immediately as security measure
+        db.query(RefreshSession).filter(
+            RefreshSession.user_id == session.user_id,
+            RefreshSession.revoked_at.is_(None),
+        ).update({"revoked_at": now})
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Phát hiện tái sử dụng phiên đăng nhập đã xoay vòng. Tất cả các phiên đã bị thu hồi.",
+        )
+
+    if not session:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Phiên đăng nhập không hợp lệ hoặc đã bị thu hồi.",
@@ -140,8 +180,17 @@ def refresh_token_session(
             detail="Phiên đăng nhập đã hết hạn.",
         )
 
+    # Check account status
+    user = session.user
+    if not user or user.status in ("suspended", "disabled"):
+        session.revoked_at = now
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tài khoản đã bị tạm khóa hoặc vô hiệu hóa.",
+        )
 
-    # 1. Revoke the used refresh session immediately
+    # 1. Revoke the used refresh session immediately (Token Rotation)
     session.revoked_at = now
     session.last_used_at = now
 
@@ -162,9 +211,9 @@ def refresh_token_session(
     access_token, expires_in = create_access_token(session.user_id)
 
     db.commit()
-    db.refresh(session.user)
+    db.refresh(user)
 
-    return session.user, access_token, new_raw_refresh, expires_in
+    return user, access_token, new_raw_refresh, expires_in
 
 
 def logout_session(db: Session, raw_refresh_token: Optional[str]) -> None:
@@ -180,3 +229,4 @@ def logout_session(db: Session, raw_refresh_token: Optional[str]) -> None:
     if session and session.revoked_at is None:
         session.revoked_at = datetime.now(timezone.utc)
         db.commit()
+

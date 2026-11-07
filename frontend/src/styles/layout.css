@@ -313,6 +313,19 @@
   background-color: var(--surface-sunken);
 }
 
+.sidebar-user-avatar-guest {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: var(--surface-sunken);
+  border: 1px dashed var(--border-default);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
 .sidebar-user-info {
   display: flex;
   flex-direction: column;

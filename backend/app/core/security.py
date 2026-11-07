@@ -16,6 +16,9 @@ _hasher = PasswordHasher(
     salt_len=16,
 )
 
+# Dummy hash computed once at process startup for timing attack mitigation on unknown accounts
+DUMMY_PASSWORD_HASH = _hasher.hash("study_ai_timing_mitigation_secret_dummy_string")
+
 
 def hash_password(plain_password: str) -> str:
     """Hashes a password using Argon2id."""

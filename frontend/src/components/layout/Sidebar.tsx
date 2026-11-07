@@ -19,8 +19,10 @@ import {
   RotateCw,
   Settings,
   Target,
+  LogIn,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '@/auth/useAuth'
 import { Avatar } from '@/components/ui/Avatar'
 import { SidebarItem } from './SidebarItem'
 
@@ -37,6 +39,7 @@ export function Sidebar({
   mobileOpen = false,
   onCloseMobile,
 }: SidebarProps) {
+  const { user, isAuthenticated } = useAuth()
 
   return (
     <>
@@ -235,19 +238,35 @@ export function Sidebar({
 
         {/* Footer: User profile */}
         <div className="sidebar-footer">
-          <Link to="/profile" className="sidebar-user-card" onClick={onCloseMobile}>
-            <Avatar
-              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"
-              alt="Hoàng Thúy Ngân"
-              size={collapsed ? 'sm' : 'md'}
-            />
-            {!collapsed && (
-              <div className="sidebar-user-info">
-                <span className="sidebar-user-name">Hoàng Thúy Ngân</span>
-                <span className="sidebar-user-grade">Lớp 12A1 · Tự nhiên</span>
+          {isAuthenticated && user ? (
+            <Link to="/profile" className="sidebar-user-card" onClick={onCloseMobile} title="Xem hồ sơ cá nhân">
+              <Avatar
+                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"
+                alt={user.displayName}
+                size={collapsed ? 'sm' : 'md'}
+              />
+              {!collapsed && (
+                <div className="sidebar-user-info">
+                  <span className="sidebar-user-name">{user.displayName}</span>
+                  <span className="sidebar-user-grade">
+                    {user.grade || (user.role === 'admin' ? 'Quản trị viên' : user.role === 'teacher' ? 'Giáo viên' : 'Học viên')}
+                  </span>
+                </div>
+              )}
+            </Link>
+          ) : (
+            <Link to="/login" className="sidebar-user-card" onClick={onCloseMobile} title="Đăng nhập để đồng bộ tiến độ">
+              <div className="sidebar-user-avatar-guest" aria-hidden="true">
+                <LogIn size={collapsed ? 18 : 20} />
               </div>
-            )}
-          </Link>
+              {!collapsed && (
+                <div className="sidebar-user-info">
+                  <span className="sidebar-user-name">Khách</span>
+                  <span className="sidebar-user-grade">Đăng nhập tài khoản</span>
+                </div>
+              )}
+            </Link>
+          )}
         </div>
       </aside>
     </>

@@ -200,11 +200,12 @@ def test_refresh_token_rotation_and_prevent_reuse(unauthenticated_client):
     unauthenticated_client.cookies.set("study_ai_refresh_token", old_refresh_cookie)
     reuse_res = unauthenticated_client.post("/api/v1/auth/refresh")
     assert reuse_res.status_code == 401
+    assert "tái sử dụng" in reuse_res.json()["detail"]
 
-    # Refresh with new token succeeds
+    # Because reuse was detected, ALL active sessions for this user were revoked for security!
     unauthenticated_client.cookies.set("study_ai_refresh_token", new_refresh_cookie)
     ref_res2 = unauthenticated_client.post("/api/v1/auth/refresh")
-    assert ref_res2.status_code == 200
+    assert ref_res2.status_code == 401
 
 
 def test_logout_revokes_session_and_clears_cookie(unauthenticated_client):
@@ -227,3 +228,90 @@ def test_logout_revokes_session_and_clears_cookie(unauthenticated_client):
     unauthenticated_client.cookies.set("study_ai_refresh_token", refresh_cookie)
     ref_res = unauthenticated_client.post("/api/v1/auth/refresh")
     assert ref_res.status_code == 401
+
+
+def test_register_validation_email_and_password(unauthenticated_client):
+    # Weak password (< 8 chars)
+    weak_res = unauthenticated_client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "valid@example.com",
+            "password": "short",
+            "displayName": "Short Pwd",
+        },
+    )
+    assert weak_res.status_code == 422
+
+    # Invalid email format
+    bad_email = unauthenticated_client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "invalid-email-without-at",
+            "password": "ValidPassword123!",
+            "displayName": "Bad Email",
+        },
+    )
+    assert bad_email.status_code == 422
+
+
+def test_login_rate_limiting_enforcement(unauthenticated_client):
+    # Attempt wrong password 5 times
+    for i in range(5):
+        res = unauthenticated_client.post(
+            "/api/v1/auth/login",
+            json={
+                "email": "target@example.com",
+                "password": f"wrong_{i}",
+            },
+        )
+        assert res.status_code == 401
+
+    # 6th attempt must be rejected with 429 Too Many Requests
+    blocked_res = unauthenticated_client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": "target@example.com",
+            "password": "wrong_6",
+        },
+    )
+    assert blocked_res.status_code == 429
+    assert "Quá nhiều lần thử đăng nhập" in blocked_res.json()["detail"]
+    assert "Retry-After" in blocked_res.headers
+
+
+def test_suspended_account_blocked_from_login_and_refresh(unauthenticated_client, db_session):
+    # Register user
+    reg_res = unauthenticated_client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "suspended@example.com",
+            "password": "PasswordSuspended123",
+            "displayName": "Suspended User",
+        },
+    )
+    assert reg_res.status_code == 201
+    refresh_token = reg_res.cookies["study_ai_refresh_token"]
+
+    # Suspend user in database
+    user = db_session.query(User).filter(User.email_normalized == "suspended@example.com").first()
+    assert user is not None
+    user.status = "suspended"
+    db_session.commit()
+
+    # 1. Login attempt blocked with 403
+    login_res = unauthenticated_client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": "suspended@example.com",
+            "password": "PasswordSuspended123",
+        },
+    )
+    assert login_res.status_code == 403
+    assert "tạm khóa" in login_res.json()["detail"]
+
+    # 2. Refresh session attempt blocked with 403
+    unauthenticated_client.cookies.set("study_ai_refresh_token", refresh_token)
+    ref_res = unauthenticated_client.post("/api/v1/auth/refresh")
+    assert ref_res.status_code == 403
+    assert "tạm khóa" in ref_res.json()["detail"]
+

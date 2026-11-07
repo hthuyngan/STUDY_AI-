@@ -3,6 +3,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 from fastapi.testclient import TestClient
+from app.core.rate_limiter import auth_rate_limiter
 from app.core.security import create_access_token
 from app.database import Base, get_db
 from app.main import app
@@ -18,6 +19,13 @@ test_engine = create_engine(
 TestingSessionLocal = sessionmaker(
     autocommit=False, autoflush=False, bind=test_engine, expire_on_commit=False
 )
+
+
+@pytest.fixture(scope="function", autouse=True)
+def reset_rate_limits():
+    auth_rate_limiter.reset_all()
+    yield
+    auth_rate_limiter.reset_all()
 
 
 @pytest.fixture(scope="function")

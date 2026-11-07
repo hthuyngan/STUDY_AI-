@@ -48,12 +48,17 @@ export function validatePracticeResultIntegrity(
     errors.push('Thiếu hoặc sai định dạng phiên luyện tập (sessionId).')
   }
 
-  if (!r.scoringVersion || typeof r.scoringVersion !== 'string') {
-    errors.push('Thiếu phiên bản chấm điểm (scoringVersion).')
+  if (!r.scoringVersion || typeof r.scoringVersion !== 'string' || r.scoringVersion.trim() === '') {
+    errors.push('Thiếu hoặc sai định dạng phiên bản chấm điểm (scoringVersion).')
   }
 
-  if (typeof r.earnedPoints !== 'number' || typeof r.maxPoints !== 'number') {
-    errors.push('Điểm số kiếm được hoặc điểm tối đa không phải là số hợp lệ.')
+  if (
+    typeof r.earnedPoints !== 'number' ||
+    typeof r.maxPoints !== 'number' ||
+    !Number.isFinite(r.earnedPoints) ||
+    !Number.isFinite(r.maxPoints)
+  ) {
+    errors.push('Điểm số kiếm được hoặc điểm tối đa không phải là số hữu hạn hợp lệ (không chấp nhận NaN hoặc Infinity).')
   } else {
     if (r.earnedPoints < 0) {
       errors.push(`Điểm kiếm được không thể âm (${r.earnedPoints}).`)
@@ -80,6 +85,9 @@ export function validatePracticeResultIntegrity(
     errors.push('Danh sách câu hỏi (questionResults) phải là một mảng có ít nhất 1 câu.')
   } else {
     let approvedCount = 0
+    const seenQuestionIds = new Set<string>()
+    let sumItemEarned = 0
+    let sumItemMax = 0
 
     for (let i = 0; i < r.questionResults.length; i++) {
       const q = r.questionResults[i]
@@ -87,9 +95,28 @@ export function validatePracticeResultIntegrity(
         errors.push(`Câu hỏi thứ ${i + 1} thiếu questionId hợp lệ.`)
         continue
       }
-      if (typeof q.earnedPoints !== 'number' || typeof q.maxPoints !== 'number' || q.earnedPoints < 0) {
-        errors.push(`Câu hỏi ${q.questionId} có cấu trúc điểm không hợp lệ.`)
+
+      // Check duplicate question ID in single session
+      if (seenQuestionIds.has(q.questionId)) {
+        errors.push(`Trùng lặp câu hỏi ${q.questionId} trong cùng một phiên làm bài.`)
       }
+      seenQuestionIds.add(q.questionId)
+
+      if (
+        typeof q.earnedPoints !== 'number' ||
+        typeof q.maxPoints !== 'number' ||
+        !Number.isFinite(q.earnedPoints) ||
+        !Number.isFinite(q.maxPoints) ||
+        q.earnedPoints < 0 ||
+        q.maxPoints <= 0 ||
+        q.earnedPoints > q.maxPoints + 0.001
+      ) {
+        errors.push(`Câu hỏi ${q.questionId} có cấu trúc điểm không hợp lệ (earned: ${q.earnedPoints}, max: ${q.maxPoints}).`)
+      } else {
+        sumItemEarned += q.earnedPoints
+        sumItemMax += q.maxPoints
+      }
+
       if (approvedQuestionMap) {
         const approvedItem = approvedQuestionMap.get(q.questionId)
         if (!approvedItem) {
@@ -104,6 +131,22 @@ export function validatePracticeResultIntegrity(
           approvedCount += 1
         }
       }
+    }
+
+    // Check sum consistency between session totals and item breakdown
+    if (
+      typeof r.earnedPoints === 'number' &&
+      Number.isFinite(r.earnedPoints) &&
+      Math.abs(sumItemEarned - r.earnedPoints) > 0.01
+    ) {
+      errors.push(`Tổng điểm các câu hỏi (${sumItemEarned}) không khớp với tổng điểm kết quả (${r.earnedPoints}).`)
+    }
+    if (
+      typeof r.maxPoints === 'number' &&
+      Number.isFinite(r.maxPoints) &&
+      Math.abs(sumItemMax - r.maxPoints) > 0.01
+    ) {
+      errors.push(`Tổng điểm tối đa các câu hỏi (${sumItemMax}) không khớp với điểm tối đa kết quả (${r.maxPoints}).`)
     }
 
     if (approvedQuestionMap && approvedCount === 0) {

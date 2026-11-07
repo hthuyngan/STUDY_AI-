@@ -517,6 +517,31 @@ describe('Phase 13 — Personalized Learning Engine Suite', () => {
     const val3 = validatePracticeResultIntegrity(validRes)
     expect(val3.isValid).toBe(true)
     expect(val3.errors.length).toBe(0)
+
+    // NaN / Infinity rejection
+    const invalidNanRes = {
+      ...validRes,
+      earnedPoints: NaN,
+    }
+    const valNan = validatePracticeResultIntegrity(invalidNanRes)
+    expect(valNan.isValid).toBe(false)
+    expect(valNan.errors.some((e) => e.includes('không phải là số hữu hạn'))).toBe(true)
+
+    // Duplicate question IDs in single session
+    const qDuplicate = createMockScoredQ('q1', ['skill-1'], true)
+    const invalidDupRes = createMockResult('res-dup', 'sess-dup', [q1, qDuplicate])
+    const valDup = validatePracticeResultIntegrity(invalidDupRes)
+    expect(valDup.isValid).toBe(false)
+    expect(valDup.errors.some((e) => e.includes('Trùng lặp câu hỏi'))).toBe(true)
+
+    // Sum inconsistency
+    const invalidSumRes = {
+      ...validRes,
+      earnedPoints: 0.5, // q1 earned is 1
+    }
+    const valSum = validatePracticeResultIntegrity(invalidSumRes)
+    expect(valSum.isValid).toBe(false)
+    expect(valSum.errors.some((e) => e.includes('không khớp'))).toBe(true)
   })
 
   /* =========================================================================

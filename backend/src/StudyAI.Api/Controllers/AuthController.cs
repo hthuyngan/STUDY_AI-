@@ -1,0 +1,292 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using StudyAI.Application.Common.Interfaces;
+using StudyAI.Application.DTOs;
+using StudyAI.Domain.Entities;
+using StudyAI.Infrastructure.Persistence;
+
+namespace StudyAI.Api.Controllers;
+
+[ApiController]
+[Route("api/v1/auth")]
+public class AuthController : ControllerBase
+{
+    private readonly StudyAIDbContext _db;
+    private readonly IPasswordHasher _passwordHasher;
+    private readonly IJwtTokenService _jwtTokenService;
+    private readonly IConfiguration _configuration;
+    public const string RefreshCookieName = "study_ai_refresh_token";
+
+    public AuthController(
+        StudyAIDbContext db,
+        IPasswordHasher passwordHasher,
+        IJwtTokenService jwtTokenService,
+        IConfiguration configuration)
+    {
+        _db = db;
+        _passwordHasher = passwordHasher;
+        _jwtTokenService = jwtTokenService;
+        _configuration = configuration;
+    }
+
+    private void SetRefreshCookie(string rawRefreshToken)
+    {
+        int days = int.TryParse(_configuration["Jwt:RefreshTokenExpireDays"], out int d) ? d : 7;
+        var cookieOptions = new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = false, // Set false for local dev / HTTP, or true if HTTPS
+            SameSite = SameSiteMode.Lax,
+            Path = "/",
+            Expires = DateTimeOffset.UtcNow.AddDays(days)
+        };
+        Response.Cookies.Append(RefreshCookieName, rawRefreshToken, cookieOptions);
+    }
+
+    private void ClearRefreshCookie()
+    {
+        Response.Cookies.Delete(RefreshCookieName, new CookieOptions
+        {
+            Path = "/",
+            SameSite = SameSiteMode.Lax
+        });
+    }
+
+    private static UserResponseDto FormatUser(User user)
+    {
+        return new UserResponseDto
+        {
+            Id = user.Id,
+            Email = user.Email,
+            DisplayName = user.DisplayName,
+            Grade = user.Grade,
+            Role = user.Role ?? "learner",
+            CreatedAt = user.CreatedAt
+        };
+    }
+
+    [HttpPost("register")]
+    public async Task<IActionResult> Register([FromBody] UserRegisterRequestDto req)
+    {
+        if (string.IsNullOrWhiteSpace(req.Email) || !req.Email.Contains('@'))
+        {
+            return BadRequest(new { detail = "Định dạng email không hợp lệ." });
+        }
+
+        if (string.IsNullOrWhiteSpace(req.Password) || req.Password.Trim().Length < 8)
+        {
+            return BadRequest(new { detail = "Mật khẩu phải chứa ít nhất 8 ký tự không rỗng." });
+        }
+
+        var normalizedEmail = req.Email.Trim().ToLowerInvariant();
+        var existing = await _db.Users.AnyAsync(u => u.EmailNormalized == normalizedEmail);
+        if (existing)
+        {
+            return BadRequest(new { detail = "Email đã được sử dụng." });
+        }
+
+        var userId = $"usr_{Guid.NewGuid():N}";
+        var user = new User
+        {
+            Id = userId,
+            Email = req.Email.Trim(),
+            EmailNormalized = normalizedEmail,
+            PasswordHash = _passwordHasher.HashPassword(req.Password),
+            DisplayName = req.DisplayName.Trim(),
+            Grade = req.Grade,
+            Role = "learner",
+            Status = "active",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        _db.Users.Add(user);
+
+        // Generate tokens
+        var (accessToken, expiresIn) = _jwtTokenService.GenerateAccessToken(user);
+        var rawRefreshToken = _jwtTokenService.GenerateRefreshToken();
+        var tokenHash = _jwtTokenService.HashRefreshToken(rawRefreshToken);
+
+        int refreshDays = int.TryParse(_configuration["Jwt:RefreshTokenExpireDays"], out int rd) ? rd : 7;
+        var session = new RefreshSession
+        {
+            Id = $"sess_{Guid.NewGuid():N}",
+            UserId = user.Id,
+            TokenHash = tokenHash,
+            CreatedAt = DateTimeOffset.UtcNow,
+            ExpiresAt = DateTimeOffset.UtcNow.AddDays(refreshDays),
+            UserAgent = Request.Headers.UserAgent.ToString()
+        };
+        _db.RefreshSessions.Add(session);
+
+        await _db.SaveChangesAsync();
+
+        SetRefreshCookie(rawRefreshToken);
+
+        return StatusCode(201, new AuthResponseDto
+        {
+            AccessToken = accessToken,
+            TokenType = "bearer",
+            ExpiresIn = expiresIn,
+            User = FormatUser(user)
+        });
+    }
+
+    [HttpPost("login")]
+    public async Task<IActionResult> Login([FromBody] UserLoginRequestDto req)
+    {
+        if (string.IsNullOrWhiteSpace(req.Email) || string.IsNullOrWhiteSpace(req.Password))
+        {
+            return Unauthorized(new { detail = "Email hoặc mật khẩu không chính xác." });
+        }
+
+        var normalizedEmail = req.Email.Trim().ToLowerInvariant();
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.EmailNormalized == normalizedEmail);
+
+        if (user == null || string.IsNullOrEmpty(user.PasswordHash))
+        {
+            return Unauthorized(new { detail = "Email hoặc mật khẩu không chính xác." });
+        }
+
+        if (!_passwordHasher.VerifyPassword(req.Password, user.PasswordHash))
+        {
+            return Unauthorized(new { detail = "Email hoặc mật khẩu không chính xác." });
+        }
+
+        if (user.Status is "suspended" or "disabled")
+        {
+            return StatusCode(403, new { detail = "Tài khoản của bạn đã bị khóa hoặc vô hiệu hóa. Vui lòng liên hệ hỗ trợ." });
+        }
+
+        user.LastLoginAt = DateTimeOffset.UtcNow;
+        user.UpdatedAt = DateTimeOffset.UtcNow;
+
+        var (accessToken, expiresIn) = _jwtTokenService.GenerateAccessToken(user);
+        var rawRefreshToken = _jwtTokenService.GenerateRefreshToken();
+        var tokenHash = _jwtTokenService.HashRefreshToken(rawRefreshToken);
+
+        int refreshDays = int.TryParse(_configuration["Jwt:RefreshTokenExpireDays"], out int rd) ? rd : 7;
+        var session = new RefreshSession
+        {
+            Id = $"sess_{Guid.NewGuid():N}",
+            UserId = user.Id,
+            TokenHash = tokenHash,
+            CreatedAt = DateTimeOffset.UtcNow,
+            ExpiresAt = DateTimeOffset.UtcNow.AddDays(refreshDays),
+            UserAgent = Request.Headers.UserAgent.ToString()
+        };
+        _db.RefreshSessions.Add(session);
+
+        await _db.SaveChangesAsync();
+
+        SetRefreshCookie(rawRefreshToken);
+
+        return Ok(new AuthResponseDto
+        {
+            AccessToken = accessToken,
+            TokenType = "bearer",
+            ExpiresIn = expiresIn,
+            User = FormatUser(user)
+        });
+    }
+
+    [HttpPost("refresh")]
+    public async Task<IActionResult> Refresh()
+    {
+        if (!Request.Cookies.TryGetValue(RefreshCookieName, out var rawToken) || string.IsNullOrWhiteSpace(rawToken))
+        {
+            return Unauthorized(new { detail = "Thiếu refresh token cookie hoặc phiên đã hết hạn." });
+        }
+
+        var tokenHash = _jwtTokenService.HashRefreshToken(rawToken);
+        var session = await _db.RefreshSessions
+            .Include(s => s.User)
+            .FirstOrDefaultAsync(s => s.TokenHash == tokenHash);
+
+        if (session == null || session.RevokedAt != null || session.ExpiresAt <= DateTimeOffset.UtcNow)
+        {
+            ClearRefreshCookie();
+            return Unauthorized(new { detail = "Phiên làm việc không hợp lệ hoặc đã hết hạn." });
+        }
+
+        var user = session.User;
+        if (user == null || user.Status is "suspended" or "disabled")
+        {
+            ClearRefreshCookie();
+            return Unauthorized(new { detail = "Tài khoản không hợp lệ hoặc đã bị khóa." });
+        }
+
+        // Revoke current session (Rotation)
+        session.RevokedAt = DateTimeOffset.UtcNow;
+        session.LastUsedAt = DateTimeOffset.UtcNow;
+
+        // Create new session
+        var newRawToken = _jwtTokenService.GenerateRefreshToken();
+        var newTokenHash = _jwtTokenService.HashRefreshToken(newRawToken);
+
+        int refreshDays = int.TryParse(_configuration["Jwt:RefreshTokenExpireDays"], out int rd) ? rd : 7;
+        var newSession = new RefreshSession
+        {
+            Id = $"sess_{Guid.NewGuid():N}",
+            UserId = user.Id,
+            TokenHash = newTokenHash,
+            CreatedAt = DateTimeOffset.UtcNow,
+            ExpiresAt = DateTimeOffset.UtcNow.AddDays(refreshDays),
+            UserAgent = Request.Headers.UserAgent.ToString()
+        };
+        _db.RefreshSessions.Add(newSession);
+
+        var (accessToken, expiresIn) = _jwtTokenService.GenerateAccessToken(user);
+
+        await _db.SaveChangesAsync();
+
+        SetRefreshCookie(newRawToken);
+
+        return Ok(new TokenRefreshResponseDto
+        {
+            AccessToken = accessToken,
+            TokenType = "bearer",
+            ExpiresIn = expiresIn,
+            User = FormatUser(user)
+        });
+    }
+
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout()
+    {
+        if (Request.Cookies.TryGetValue(RefreshCookieName, out var rawToken) && !string.IsNullOrWhiteSpace(rawToken))
+        {
+            var tokenHash = _jwtTokenService.HashRefreshToken(rawToken);
+            var session = await _db.RefreshSessions.FirstOrDefaultAsync(s => s.TokenHash == tokenHash);
+            if (session != null)
+            {
+                session.RevokedAt = DateTimeOffset.UtcNow;
+                await _db.SaveChangesAsync();
+            }
+        }
+
+        ClearRefreshCookie();
+        return Ok(new { message = "Logged out successfully" });
+    }
+
+    [Authorize]
+    [HttpGet("me")]
+    public async Task<IActionResult> Me()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        if (string.IsNullOrEmpty(userId))
+        {
+            return Unauthorized();
+        }
+
+        var user = await _db.Users.FindAsync(userId);
+        if (user == null)
+        {
+            return NotFound(new { detail = "Người dùng không tồn tại." });
+        }
+
+        return Ok(FormatUser(user));
+    }
+}

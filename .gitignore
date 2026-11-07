@@ -58,9 +58,15 @@ pnpm-debug.log*
 *.ntvs*
 *.njsproj
 *.sln
+!backend/StudyAI.sln
 *.sw?
 .DS_Store
 Thumbs.db
+
+# .NET build artifacts
+[Bb]in/
+[Oo]bj/
+appsettings.Development.json
 
 # Backend & Databases
 backend/data/*.db
