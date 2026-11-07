@@ -6,13 +6,36 @@ namespace StudyAI.Infrastructure.Persistence;
 
 public static class DbInitializer
 {
+    public const string SystemAuthorUserId = "usr_system";
+
     /// <summary>
     /// Seeds core curriculum reference data (Subjects, Chapters, Lessons).
     /// Does NOT seed any user accounts or credentials.
+    /// Creates an unauthenticated service identity for FK integrity.
     /// </summary>
     public static async Task SeedReferenceDataAsync(StudyAIDbContext context)
     {
-        // 1. Seed Content Subject (Toán 12)
+        // 1. Ensure an unauthenticated system identity exists for FK constraint on reference curriculum
+        var systemUser = await context.Users.FirstOrDefaultAsync(u => u.Id == SystemAuthorUserId);
+        if (systemUser == null)
+        {
+            systemUser = new User
+            {
+                Id = SystemAuthorUserId,
+                Email = "system@studyai.internal",
+                EmailNormalized = "system@studyai.internal",
+                DisplayName = "Hệ thống STUDY_AI",
+                Role = "admin",
+                Status = "system",
+                PasswordHash = null, // Null password prevents any authentication
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+            context.Users.Add(systemUser);
+            await context.SaveChangesAsync();
+        }
+
+        // 2. Seed Content Subject (Toán 12)
         var subjectCode = "MATH12";
         var existingSubject = await context.ContentSubjects.FirstOrDefaultAsync(s => s.Code == subjectCode);
         if (existingSubject == null)
@@ -49,7 +72,7 @@ public static class DbInitializer
                 Slug = "tinh-don-dieu-va-cuc-tri",
                 OrderIndex = 1,
                 Status = "published",
-                AuthorId = "system",
+                AuthorId = SystemAuthorUserId,
                 Introduction = "Tổng quan về điều kiện đủ để hàm số đồng biến, nghịch biến và các điểm cực trị trên tập xác định.",
                 DefinitionsJson = "[\"Định lý 1: Cho hàm số f có đạo hàm trên K. Nếu f'(x) > 0 thì hàm số đồng biến trên K.\"]",
                 FormulasJson = "[\"f'(x) \\\\ge 0 \\\\forall x \\\\in K\"]",
