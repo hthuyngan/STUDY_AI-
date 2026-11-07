@@ -1,7 +1,9 @@
 /**
  * Skill Performance Engine & Confidence Model
- * Computes observed score ratios, statistical confidence, and longitudinal trends.
+ * Computes observed score ratios, evidence sufficiency, and longitudinal trends.
  * Rejects premature conclusions on sparse data (single questions, repeated identical items).
+ * Note: Confidence levels represent "Evidence Sufficiency" (Mức độ đầy đủ của bằng chứng quan sát),
+ * not calibrated statistical population probabilities.
  */
 
 import type {
@@ -25,8 +27,8 @@ const DEFAULT_CONFIG: Required<PerformanceEngineConfig> = {
 }
 
 /**
- * Computes statistical confidence level based on question diversity and repeated attempts.
- * Invariant: Retaking the same question multiple times does NOT increase confidence!
+ * Computes observed evidence sufficiency (Mức độ đầy đủ của bằng chứng) based on question diversity and repeated attempts.
+ * Invariant: Retaking the same question multiple times does NOT increase evidence sufficiency!
  */
 export function evaluateConfidenceLevel(ev: SkillEvidence): ConfidenceLevel {
   const uniqueCount = ev.uniqueQuestionIds.length
@@ -36,26 +38,34 @@ export function evaluateConfidenceLevel(ev: SkillEvidence): ConfidenceLevel {
     return 'insufficient'
   }
 
-  // High confidence requires substantial evidence breadth and multiple sessions
+  // High evidence sufficiency requires substantial evidence breadth and multiple sessions
   if (uniqueCount >= 6 && ev.attemptCount >= 3) {
     return 'high'
   }
 
-  // Moderate confidence
+  // Moderate evidence sufficiency
   if (uniqueCount >= 4 && ev.attemptCount >= 2) {
     return 'moderate'
   }
 
-  // Low confidence for 2-3 questions
+  // Low evidence sufficiency for 2-3 questions
   return 'low'
 }
 
 /**
- * Calculates temporal performance trend by comparing chronological attempts.
- * Returns 'insufficient_data' if fewer than 2 distinct attempts or sessions exist.
+ * Calculates temporal performance trend by comparing chronological attempts across distinct questions.
+ * Invariant: Returns 'insufficient_data' if fewer than 2 distinct questions or fewer than 2 attempts exist.
+ * Repeated attempts on the same single question NEVER fabricate an improving trend.
  */
 export function calculatePerformanceTrend(ev: SkillEvidence): PerformanceTrend {
   if (ev.chronologicalAttempts.length < 2 || ev.attemptCount < 2) {
+    return 'insufficient_data'
+  }
+
+  // Verify question diversity: at least 2 distinct questions are strictly required
+  const distinctQuestions = new Set(ev.chronologicalAttempts.map((a) => a.questionId))
+  const uniqueCount = Math.max(ev.uniqueQuestionIds?.length || 0, distinctQuestions.size)
+  if (uniqueCount < 2) {
     return 'insufficient_data'
   }
 

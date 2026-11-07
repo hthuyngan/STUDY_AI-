@@ -77,14 +77,14 @@ export const PersonalizedAnalyticsView: React.FC<Props> = ({ data, onRefresh }) 
   const renderConfidenceBadge = (conf: ConfidenceLevel) => {
     switch (conf) {
       case 'high':
-        return <span className="p-badge confidence-high">Độ tin cậy: Cao</span>
+        return <span className="p-badge confidence-high" title="Mức độ đầy đủ của bằng chứng quan sát (Evidence Sufficiency): Đầy đủ">Mức bằng chứng: Đầy đủ</span>
       case 'moderate':
-        return <span className="p-badge confidence-moderate">Độ tin cậy: Trung bình</span>
+        return <span className="p-badge confidence-moderate" title="Mức độ đầy đủ của bằng chứng quan sát (Evidence Sufficiency): Trung bình">Mức bằng chứng: Trung bình</span>
       case 'low':
-        return <span className="p-badge confidence-low">Độ tin cậy: Thấp</span>
+        return <span className="p-badge confidence-low" title="Mức độ đầy đủ của bằng chứng quan sát (Evidence Sufficiency): Thấp">Mức bằng chứng: Thấp</span>
       case 'insufficient':
       default:
-        return <span className="p-badge confidence-insufficient">Cần thêm dữ liệu</span>
+        return <span className="p-badge confidence-insufficient" title="Mức độ đầy đủ của bằng chứng: Cần thêm dữ liệu quan sát">Chưa đủ dữ liệu quan sát</span>
     }
   }
 
@@ -296,7 +296,7 @@ export const PersonalizedAnalyticsView: React.FC<Props> = ({ data, onRefresh }) 
                 <th>Kỹ năng</th>
                 <th>Số câu phân biệt</th>
                 <th>Tỷ lệ điểm quan sát</th>
-                <th>Độ tin cậy</th>
+                <th title="Evidence Sufficiency: Mức độ đầy đủ của bằng chứng quan sát">Mức độ bằng chứng</th>
                 <th>Xu hướng</th>
                 <th>Trạng thái</th>
                 <th>Thao tác</th>

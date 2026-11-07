@@ -115,6 +115,7 @@ export interface PracticeResult {
   earnedPoints: number
   maxPoints: number
   percentage: number // earnedPoints / maxPoints * 100 (rounded to 1 decimal)
+  startedAt?: string
   submittedAt: string
   durationSeconds: number
   skillBreakdown: SkillScoreBreakdown[]

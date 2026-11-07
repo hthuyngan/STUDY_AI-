@@ -1,5 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { aggregateSkillEvidence } from './evidenceAggregationEngine'
+import {
+  aggregateSkillEvidence,
+  validatePracticeResultIntegrity,
+} from './evidenceAggregationEngine'
 import {
   analyzeSkillPerformances,
   calculatePerformanceTrend,
@@ -486,5 +489,165 @@ describe('Phase 13 — Personalized Learning Engine Suite', () => {
     expect(overview.hasData).toBe(false)
     expect(overview.summary.totalSessions).toBe(0)
     expect(overview.learningPath.steps.length).toBe(0)
+  })
+
+  /* =========================================================================
+   * 25. PHASE 14 INVARIANT: PRACTICE RESULT INTEGRITY VALIDATION
+   * ========================================================================= */
+  it('25. validatePracticeResultIntegrity kiểm tra toàn diện tính toàn vẹn của kết quả', () => {
+    // Missing required fields
+    const invalidRes1 = { sessionId: 'sess-1' }
+    const val1 = validatePracticeResultIntegrity(invalidRes1)
+    expect(val1.isValid).toBe(false)
+    expect(val1.errors.some((e) => e.includes('id'))).toBe(true)
+
+    // Negative points or earned > max
+    const q1 = createMockScoredQ('q1', ['skill-1'], true)
+    const invalidRes2 = {
+      ...createMockResult('res-1', 'sess-1', [q1]),
+      earnedPoints: 10,
+      maxPoints: 5,
+    }
+    const val2 = validatePracticeResultIntegrity(invalidRes2)
+    expect(val2.isValid).toBe(false)
+    expect(val2.errors.some((e) => e.includes('vượt quá điểm tối đa'))).toBe(true)
+
+    // Valid result
+    const validRes = createMockResult('res-valid', 'sess-valid', [q1])
+    const val3 = validatePracticeResultIntegrity(validRes)
+    expect(val3.isValid).toBe(true)
+    expect(val3.errors.length).toBe(0)
+  })
+
+  /* =========================================================================
+   * 26. PHASE 14 INVARIANT: UNVERIFIED QUESTION REJECTION
+   * ========================================================================= */
+  it('26. validatePracticeResultIntegrity từ chối câu hỏi unapproved hoặc missing', () => {
+    const qApproved = {
+      id: 'q-app-1',
+      reviewStatus: 'approved',
+    } as QuestionItem
+    const qReview = {
+      id: 'q-rev-1',
+      reviewStatus: 'needs_review',
+    } as QuestionItem
+
+    const approvedMap = new Map<string, QuestionItem>([
+      ['q-app-1', qApproved],
+      ['q-rev-1', qReview],
+    ])
+
+    const qScoredApproved = createMockScoredQ('q-app-1', ['skill-1'], true)
+    const qScoredReview = createMockScoredQ('q-rev-1', ['skill-1'], true)
+    const qScoredMissing = createMockScoredQ('q-missing', ['skill-1'], true)
+
+    // Contains unapproved question
+    const resWithReview = createMockResult('r-1', 's-1', [qScoredReview])
+    const valReview = validatePracticeResultIntegrity(resWithReview, approvedMap, {
+      strictAllQuestionsApproved: true,
+    })
+    expect(valReview.isValid).toBe(false)
+    expect(valReview.errors.some((e) => e.includes('chưa được phê duyệt'))).toBe(true)
+
+    // Contains question missing from bank
+    const resWithMissing = createMockResult('r-2', 's-2', [qScoredMissing])
+    const valMissing = validatePracticeResultIntegrity(resWithMissing, approvedMap, {
+      strictAllQuestionsApproved: true,
+    })
+    expect(valMissing.isValid).toBe(false)
+    expect(valMissing.errors.some((e) => e.includes('không tồn tại'))).toBe(true)
+
+    // Contains only approved questions
+    const resApproved = createMockResult('r-3', 's-3', [qScoredApproved])
+    const valApproved = validatePracticeResultIntegrity(resApproved, approvedMap, {
+      strictAllQuestionsApproved: true,
+    })
+    expect(valApproved.isValid).toBe(true)
+  })
+
+  /* =========================================================================
+   * 27. PHASE 14 INVARIANT: REPEATED QUESTION TREND PROTECTION
+   * ========================================================================= */
+  it('27. calculatePerformanceTrend không tạo tiến bộ giả khi chỉ lặp lại 1 câu hỏi', () => {
+    // A student answers question 'q1' 4 times in 2 different sessions (fails first, gets correct later)
+    const evSingleQuestion: SkillEvidence = {
+      skillId: 'skill-single',
+      attemptCount: 2,
+      questionCount: 4,
+      uniqueQuestionIds: ['q1'], // Only 1 distinct question!
+      fullyCorrectCount: 2,
+      earnedPoints: 2,
+      maxPoints: 4,
+      firstAttemptAt: '2026-11-07T10:00:00Z',
+      lastAttemptAt: '2026-11-07T10:30:00Z',
+      relatedQuestionIds: ['q1'],
+      relatedSessionIds: ['sess-1', 'sess-2'],
+      relatedLessonIds: [],
+      repeatedQuestionCount: 3,
+      chronologicalAttempts: [
+        {
+          sessionId: 'sess-1',
+          questionId: 'q1',
+          timestamp: '2026-11-07T10:00:00Z',
+          isFullyCorrect: false,
+          earnedPoints: 0,
+          maxPoints: 1,
+          skillWeight: 1,
+        },
+        {
+          sessionId: 'sess-1',
+          questionId: 'q1',
+          timestamp: '2026-11-07T10:05:00Z',
+          isFullyCorrect: false,
+          earnedPoints: 0,
+          maxPoints: 1,
+          skillWeight: 1,
+        },
+        {
+          sessionId: 'sess-2',
+          questionId: 'q1',
+          timestamp: '2026-11-07T10:20:00Z',
+          isFullyCorrect: true,
+          earnedPoints: 1,
+          maxPoints: 1,
+          skillWeight: 1,
+        },
+        {
+          sessionId: 'sess-2',
+          questionId: 'q1',
+          timestamp: '2026-11-07T10:25:00Z',
+          isFullyCorrect: true,
+          earnedPoints: 1,
+          maxPoints: 1,
+          skillWeight: 1,
+        },
+      ],
+    }
+
+    // Invariant: Must be 'insufficient_data' because memorizing a single question is not real skill progression
+    const trend = calculatePerformanceTrend(evSingleQuestion)
+    expect(trend).toBe('insufficient_data')
+
+    // If there are at least 2 distinct questions and 2 attempts, trend is evaluated
+    const evMultiQuestions: SkillEvidence = {
+      ...evSingleQuestion,
+      uniqueQuestionIds: ['q1', 'q2'],
+    }
+    const trendMulti = calculatePerformanceTrend(evMultiQuestions)
+    expect(trendMulti).toBe('improving')
+  })
+
+  /* =========================================================================
+   * 28. PHASE 14 INVARIANT: STRICT REQUIRE APPROVED QUESTIONS OPTION
+   * ========================================================================= */
+  it('28. aggregateSkillEvidence với requireApprovedQuestions từ chối khi thiếu approvedQuestionMap', () => {
+    const q1 = createMockScoredQ('q1', ['skill-1'], true)
+    const res = createMockResult('res-1', 'sess-1', [q1])
+
+    // With requireApprovedQuestions but no map provided
+    const evidenceEmpty = aggregateSkillEvidence([res], {
+      requireApprovedQuestions: true,
+    })
+    expect(Object.keys(evidenceEmpty).length).toBe(0)
   })
 })

@@ -66,7 +66,10 @@ export const personalizationService = {
       q.skillIds?.forEach((sId) => availableApprovedSkillIds.add(sId))
     })
 
-    const evidenceMap = aggregateSkillEvidence(results, { approvedQuestionMap })
+    const evidenceMap = aggregateSkillEvidence(results, {
+      approvedQuestionMap,
+      requireApprovedQuestions: true,
+    })
     const performances = analyzeSkillPerformances(evidenceMap, MATH_SKILL_NAME_MAP)
     const gaps = detectKnowledgeGaps(performances, evidenceMap)
     const recommendations = generateRecommendations(performances, gaps, evidenceMap, {
