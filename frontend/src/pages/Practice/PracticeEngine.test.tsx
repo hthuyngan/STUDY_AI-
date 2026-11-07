@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import {
+  calculateSkillBreakdown,
   roundPoints,
   scoreMultipleChoice,
   scoreShortAnswer,
@@ -16,6 +17,7 @@ import type {
 import type {
   MultipleChoiceAnswer,
   PracticeSession,
+  ScoredQuestionResult,
   TrueFalseGroupAnswer,
 } from '@/types/practice'
 
@@ -176,6 +178,20 @@ describe('Phase 12 — Practice & Assessment Engine Suite', () => {
       expect(scoreShortAnswer(sampleSa, null).earnedPoints).toBe(0)
     })
 
+    it('handles Short Answer tolerance strictly: exact match by default unless question metadata declares tolerance', () => {
+      // sampleSa does not declare tolerance: strict numeric equality applies
+      expect(scoreShortAnswer(sampleSa, { questionType: 'short_answer', rawInput: '3.0000001' }).earnedPoints).toBe(0)
+
+      // Question with explicit tolerance declared
+      const sampleSaWithTol: ShortAnswerQuestion = {
+        ...sampleSa,
+        id: 'qb-sa-tol',
+        tolerance: 0.05,
+      }
+      expect(scoreShortAnswer(sampleSaWithTol, { questionType: 'short_answer', rawInput: '3.03' }).earnedPoints).toBe(1)
+      expect(scoreShortAnswer(sampleSaWithTol, { questionType: 'short_answer', rawInput: '3.10' }).earnedPoints).toBe(0)
+    })
+
     it('avoids floating point arithmetic inaccuracy (e.g. 0.1 + 0.25 = 0.35)', () => {
       expect(roundPoints(0.1 + 0.25)).toBe(0.35)
       expect(roundPoints(0.1 + 0.2)).toBe(0.3)
@@ -297,6 +313,41 @@ describe('Phase 12 — Practice & Assessment Engine Suite', () => {
         result.skillBreakdown.reduce((sum, sk) => sum + sk.earnedPoints, 0)
       )
       expect(totalAllocatedEarned).toBeLessThanOrEqual(result.earnedPoints + 0.05) // within rounding bound
+    })
+
+    it('preserves exact skill score breakdown allocation for questions with 2, 3, and 4 skillIds without premature rounding loss', () => {
+      const mockResult3Skills: ScoredQuestionResult = {
+        questionId: 'q-multi-3',
+        questionType: 'multiple_choice',
+        difficulty: 'medium',
+        cognitiveLevel: 'application',
+        skillIds: ['skill-1', 'skill-2', 'skill-3'],
+        stem: 'Câu hỏi gắn 3 kỹ năng',
+        explanation: 'Giải thích',
+        studentAnswer: null,
+        correctAnswerDisplay: 'A',
+        isFullyCorrect: true,
+        isPartiallyCorrect: false,
+        isUnanswered: false,
+        earnedPoints: 1.0,
+        maxPoints: 1.0,
+      }
+
+      const breakdown3 = calculateSkillBreakdown([mockResult3Skills])
+      expect(breakdown3.length).toBe(3)
+      const sum3 = breakdown3.reduce((acc, s) => acc + s.earnedPoints, 0)
+      expect(sum3).toBeCloseTo(1.0, 5)
+
+      // Test 4 skills
+      const mockResult4Skills: ScoredQuestionResult = {
+        ...mockResult3Skills,
+        questionId: 'q-multi-4',
+        skillIds: ['skill-1', 'skill-2', 'skill-3', 'skill-4'],
+      }
+      const breakdown4 = calculateSkillBreakdown([mockResult4Skills])
+      expect(breakdown4.length).toBe(4)
+      const sum4 = breakdown4.reduce((acc, s) => acc + s.earnedPoints, 0)
+      expect(sum4).toBeCloseTo(1.0, 5)
     })
 
     it('records real practice history and never produces fake stats', async () => {

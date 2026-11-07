@@ -1,0 +1,13 @@
+{
+  "name": "study-ai-root",
+  "private": true,
+  "scripts": {
+    "lint": "cd frontend && bun run lint",
+    "test": "cd frontend && bun run test",
+    "build": "cd frontend && bun run build"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "playwright": "^1.65.0"
+  }
+}

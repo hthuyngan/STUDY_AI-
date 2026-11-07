@@ -171,6 +171,10 @@ export class PracticeService {
     await this.practiceRepo.saveSession(session)
     await this.practiceRepo.saveResult(result)
 
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('study_ai:personalization_changed'))
+    }
+
     return result
   }
 

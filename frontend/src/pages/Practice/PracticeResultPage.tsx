@@ -19,6 +19,7 @@ import { PageErrorState } from '@/components/ui/PageErrorState'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { learningContextService } from '@/services/learningContext.service'
 import { practiceService } from '@/services/practice.service'
+import { roundPoints } from '@/services/scoringEngine'
 import type { PracticeResult, ScoredQuestionResult } from '@/types/practice'
 import './PracticeResultPage.css'
 
@@ -233,7 +234,7 @@ export const PracticeResultPage: React.FC = () => {
                     <td>{sk.totalQuestions}</td>
                     <td>{sk.fullyCorrectQuestions}</td>
                     <td>
-                      <strong>{sk.earnedPoints}</strong> / {sk.maxPoints}
+                      <strong>{roundPoints(sk.earnedPoints)}</strong> / {roundPoints(sk.maxPoints)}
                     </td>
                     <td>
                       <div className="skill-progress-wrap">

@@ -148,7 +148,7 @@ export function scoreShortAnswer(
 
   const isFullyCorrect =
     !isUnanswered &&
-    isMathAnswerCorrect(rawInput, question.acceptedAnswers, question.tolerance ?? 1e-6)
+    isMathAnswerCorrect(rawInput, question.acceptedAnswers, question.tolerance)
 
   const earnedPoints = isFullyCorrect ? 1 : 0
 
@@ -240,8 +240,9 @@ export function calculateSkillBreakdown(
 
   const breakdown: SkillScoreBreakdown[] = Object.keys(skillMap).map((skillId) => {
     const data = skillMap[skillId]
-    const earned = roundPoints(data.earnedPoints)
-    const max = roundPoints(data.maxPoints)
+    // Preserve high precision during aggregation; presentation layer handles decimal display
+    const earned = data.earnedPoints
+    const max = data.maxPoints
     const percentage = max > 0 ? Math.round((earned / max) * 1000) / 10 : 0
 
     return {

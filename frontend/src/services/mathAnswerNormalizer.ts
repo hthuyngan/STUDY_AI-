@@ -77,7 +77,7 @@ export function parseMathValue(input: string): number | null {
 export function isMathAnswerCorrect(
   userInput: string,
   acceptedAnswers: string[],
-  tolerance = 1e-6
+  tolerance?: number
 ): boolean {
   if (!userInput || acceptedAnswers.length === 0) return false
 
@@ -95,8 +95,15 @@ export function isMathAnswerCorrect(
     // Check numerical equivalence if both parse into valid numbers
     const acceptedNum = parseMathValue(accepted)
     if (userNum !== null && acceptedNum !== null) {
-      if (Math.abs(userNum - acceptedNum) <= tolerance) {
-        return true
+      if (typeof tolerance === 'number' && Number.isFinite(tolerance)) {
+        if (Math.abs(userNum - acceptedNum) <= tolerance) {
+          return true
+        }
+      } else {
+        // Strict exact numeric equality when no tolerance is declared in question metadata
+        if (userNum === acceptedNum) {
+          return true
+        }
       }
     }
   }

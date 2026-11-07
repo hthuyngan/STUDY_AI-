@@ -7,6 +7,7 @@ import {
   Clock,
   ExternalLink,
   Filter,
+  Play,
   RotateCw,
   Search,
   Sparkles,
@@ -17,6 +18,7 @@ import { Breadcrumb } from '@/components/ui/Breadcrumb'
 import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useKnowledgeGaps } from '@/hooks/useKnowledgeGaps'
+import { usePersonalization } from '@/hooks/usePersonalization'
 import type { KnowledgeGap, KnowledgeGapStatus } from '@/types/knowledgeGaps'
 import { learningContextService } from '@/services/learningContext.service'
 import './KnowledgeGapsPage.css'
@@ -32,6 +34,8 @@ const SUBJECT_FILTER_OPTIONS = [
 export function KnowledgeGapsPage() {
   const navigate = useNavigate()
   const { gaps, summary, removeGap } = useKnowledgeGaps()
+  const { data: personalizationData } = usePersonalization()
+  const practiceGaps = personalizationData?.gaps || []
 
   const [selectedSubject, setSelectedSubject] = useState<string>('all')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
@@ -222,6 +226,108 @@ export function KnowledgeGapsPage() {
           </button>
         ))}
       </div>
+
+      {/* Phase 13 Practice-based Gaps Section */}
+      {practiceGaps.length > 0 && (
+        <section
+          className="practice-gaps-section"
+          data-testid="practice-gaps-section"
+          style={{
+            marginBottom: '24px',
+            background: '#ffffff',
+            border: '1px solid #d9e2ec',
+            borderRadius: '8px',
+            padding: '20px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+            <AlertTriangle size={20} color="#e53e3e" />
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: '#102a43' }}>
+              Lỗ hổng từ bài luyện tập thực tế ({practiceGaps.length} kỹ năng cần củng cố)
+            </h2>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {practiceGaps.map((pg) => (
+              <div
+                key={pg.id}
+                style={{
+                  border: '1px solid #e2e8f0',
+                  borderLeft: '4px solid #e53e3e',
+                  borderRadius: '6px',
+                  padding: '14px',
+                  background: '#fdfdfe',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '6px',
+                  }}
+                >
+                  <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#102a43' }}>
+                    {pg.skillName}
+                  </h3>
+                  <span
+                    style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      background: '#fff1f0',
+                      color: '#cf1322',
+                    }}
+                  >
+                    {pg.gapLevel === 'critical' ? 'Ưu tiên cao' : 'Cần củng cố'}
+                  </span>
+                </div>
+                <p style={{ margin: '0 0 10px', fontSize: '0.85rem', color: '#486581' }}>
+                  {pg.evidenceSummary}
+                </p>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {pg.relatedLessonIds.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/subjects/math/lessons/${pg.relatedLessonIds[0]}`)}
+                    >
+                      <BookOpen size={14} aria-hidden /> Ôn bài học
+                    </Button>
+                  )}
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => navigate(`/practice?skillId=${pg.skillId}&limit=5`)}
+                  >
+                    <Play size={14} aria-hidden /> Luyện tập 5 câu
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      learningContextService.setContext({
+                        source: 'knowledge-gap',
+                        knowledgeGapId: pg.id,
+                        subjectId: 'math',
+                        subjectName: 'Toán học 12',
+                        lessonId: pg.relatedLessonIds[0] || 'lesson-math-12-01',
+                        lessonTitle: pg.skillName,
+                        title: `Lỗ hổng kỹ năng: ${pg.skillName}`,
+                        excerpt: pg.evidenceSummary,
+                        returnUrl: '/knowledge-gaps',
+                      })
+                      navigate('/ai-tutor')
+                    }}
+                  >
+                    <Bot size={14} aria-hidden /> Hỏi AI Tutor
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* 4. Knowledge Gaps List / Grid */}
       <main className="gaps-content-area">

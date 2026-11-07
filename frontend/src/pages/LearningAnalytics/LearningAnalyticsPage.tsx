@@ -3,6 +3,7 @@ import {
   BarChart3,
   Award,
   BookOpen,
+  Compass,
   History,
   RotateCw,
   Sparkles,
@@ -10,13 +11,15 @@ import {
 import { Breadcrumb } from '@/components/ui/Breadcrumb'
 import { Button } from '@/components/ui/Button'
 import { useLearningAnalytics } from '@/hooks/useLearningAnalytics'
+import { usePersonalization } from '@/hooks/usePersonalization'
+import { PersonalizedAnalyticsView } from '@/components/personalization/PersonalizedAnalyticsView'
 import { OverviewTab } from './components/OverviewTab'
 import { CompetencyProfileTab } from './components/CompetencyProfileTab'
 import { SubjectAnalyticsTab } from './components/SubjectAnalyticsTab'
 import { LearningHistoryTab } from './components/LearningHistoryTab'
 import './LearningAnalyticsPage.css'
 
-type AnalyticsTab = 'overview' | 'competency' | 'subjects' | 'history'
+type AnalyticsTab = 'personalization' | 'overview' | 'competency' | 'subjects' | 'history'
 
 const LearningAnalyticsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<AnalyticsTab>('overview')
@@ -33,6 +36,7 @@ const LearningAnalyticsPage: React.FC = () => {
     filteredCompetencies,
     filteredHistory,
   } = useLearningAnalytics()
+  const { data: personalizationData, reload: reloadPersonalization } = usePersonalization()
 
   return (
     <div className="learning-analytics-root">
@@ -71,6 +75,17 @@ const LearningAnalyticsPage: React.FC = () => {
 
       {/* 3. Main Navigation Tabs */}
       <nav className="analytics-nav-tabs" role="tablist" aria-label="Các mục phân tích học tập">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'personalization'}
+          className={`nav-tab-btn ${activeTab === 'personalization' ? 'active' : ''}`}
+          onClick={() => setActiveTab('personalization')}
+        >
+          <Compass size={16} aria-hidden />
+          <span>Năng lực thực chứng & Cá nhân hóa</span>
+        </button>
+
         <button
           type="button"
           role="tab"
@@ -118,6 +133,13 @@ const LearningAnalyticsPage: React.FC = () => {
 
       {/* 4. Tab Content Area */}
       <main className="analytics-tab-body">
+        {activeTab === 'personalization' && personalizationData && (
+          <PersonalizedAnalyticsView
+            data={personalizationData}
+            onRefresh={reloadPersonalization}
+          />
+        )}
+
         {activeTab === 'overview' && (
           <OverviewTab
             summary={data.summary}
