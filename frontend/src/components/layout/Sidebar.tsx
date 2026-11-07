@@ -9,17 +9,16 @@ import {
   ChevronRight,
   Compass,
   Database,
-  FileText,
   FlaskConical,
   GraduationCap,
   Languages,
   Layers,
   LayoutGrid,
-  Library,
   Milestone,
   Palette,
   RotateCw,
   Settings,
+  Target,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Avatar } from '@/components/ui/Avatar'
@@ -141,17 +140,9 @@ export function Sidebar({
               onClick={onCloseMobile}
             />
             <SidebarItem
-              to="/exercises"
-              label="Bài tập"
-              icon={FileText}
-              count={3}
-              collapsed={collapsed}
-              onClick={onCloseMobile}
-            />
-            <SidebarItem
-              to="/library"
-              label="Thư viện"
-              icon={Library}
+              to="/practice"
+              label="Luyện tập & Thi"
+              icon={Target}
               collapsed={collapsed}
               onClick={onCloseMobile}
             />

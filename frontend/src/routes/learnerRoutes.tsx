@@ -12,7 +12,9 @@ import MyNotesPage from '@/pages/MyNotes/MyNotesPage'
 import KnowledgeGapsPage from '@/pages/KnowledgeGaps/KnowledgeGapsPage'
 import SmartReviewPage from '@/pages/SmartReview/SmartReviewPage'
 import LearningAnalyticsPage from '@/pages/LearningAnalytics/LearningAnalyticsPage'
-import ExercisesPage from '@/pages/Exercises/ExercisesPage'
+import PracticeHubPage from '@/pages/Practice/PracticeHubPage'
+import PracticeSessionPage from '@/pages/Practice/PracticeSessionPage'
+import PracticeResultPage from '@/pages/Practice/PracticeResultPage'
 import LibraryPage from '@/pages/Library/LibraryPage'
 import QuestionBankPage from '@/pages/QuestionBank/QuestionBankPage'
 import AchievementsPage from '@/pages/Achievements/AchievementsPage'
@@ -186,12 +188,38 @@ export function LearnerRoutes() {
         }
       />
 
+      {/* Phase 12: Real Practice & Assessment Engine */}
+      <Route
+        path="/practice"
+        element={
+          <AppShell>
+            <PracticeHubPage />
+          </AppShell>
+        }
+      />
+      <Route
+        path="/practice/session/:sessionId"
+        element={
+          <AppShell>
+            <PracticeSessionPage />
+          </AppShell>
+        }
+      />
+      <Route
+        path="/practice/result/:resultId"
+        element={
+          <AppShell>
+            <PracticeResultPage />
+          </AppShell>
+        }
+      />
+
       {/* Exercises */}
       <Route
         path="/exercises"
         element={
           <AppShell>
-            <ExercisesPage />
+            <PracticeHubPage />
           </AppShell>
         }
       />
@@ -199,7 +227,7 @@ export function LearnerRoutes() {
         path="/exercises/:exerciseId"
         element={
           <AppShell>
-            <ExercisesPage />
+            <PracticeHubPage />
           </AppShell>
         }
       />

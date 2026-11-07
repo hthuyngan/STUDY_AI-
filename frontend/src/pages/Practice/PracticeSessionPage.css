@@ -1,0 +1,112 @@
+/* Practice Session Page Styles — Navy Notebook */
+.practice-session-root {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 20px 64px;
+}
+
+.session-top-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.session-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.session-palette-card {
+  background: #ffffff;
+  border: 1px solid #d9e2ec;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 4px rgba(16, 42, 67, 0.04);
+}
+
+.palette-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: #334e68;
+}
+
+.palette-header strong {
+  color: #102a43;
+}
+
+.palette-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.palette-num-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+  color: #334e68;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.palette-num-btn:hover {
+  border-color: #627d98;
+}
+
+.palette-num-btn.answered {
+  background: #e6f6ff;
+  border-color: #0284c7;
+  color: #0369a1;
+}
+
+.palette-num-btn.current {
+  background: #102a43;
+  border-color: #102a43;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(16, 42, 67, 0.25);
+}
+
+.session-bottom-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px 20px;
+  background: #ffffff;
+  border: 1px solid #d9e2ec;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(16, 42, 67, 0.04);
+}
+
+.nav-step-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.submit-action-wrap {
+  display: flex;
+  align-items: center;
+}
