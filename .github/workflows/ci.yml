@@ -83,12 +83,14 @@ jobs:
             -p 1433:1433 \
             mcr.microsoft.com/mssql/server:2022-latest
 
-      - name: Wait for SQL Server Health Check
+      - name: Wait for SQL Server Health Check & Pre-create Database
         run: |
           echo "Verifying SQL Server container readiness..."
           for i in {1..30}; do
             if docker exec mssql-ci /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -Q "SELECT 1" > /dev/null 2>&1; then
               echo "SQL Server is healthy and ready to accept connections."
+              docker exec mssql-ci /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -C -Q "IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'StudyAIDb') CREATE DATABASE [StudyAIDb];"
+              echo "Database StudyAIDb verified/created successfully."
               exit 0
             fi
             echo "Waiting for SQL Server ($i/30)..."

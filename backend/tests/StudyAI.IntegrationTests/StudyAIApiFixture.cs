@@ -3,6 +3,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using StudyAI.Application.Common.Interfaces;
 using StudyAI.Infrastructure.Persistence;
+using Xunit;
+
+[assembly: CollectionBehavior(DisableTestParallelization = true)]
 
 namespace StudyAI.IntegrationTests;
 
