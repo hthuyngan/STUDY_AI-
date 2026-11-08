@@ -236,4 +236,47 @@ public static class DbInitializer
         await context.SaveChangesAsync();
         return (true, $"Learner user '{normalizedEmail}' bootstrapped.");
     }
+
+    /// <summary>
+    /// Bootstraps a staff / reviewer user account for dev/testing fixtures.
+    /// Idempotent: If user already exists, returns false.
+    /// </summary>
+    public static async Task<(bool Created, string Message)> BootstrapStaffAsync(
+        StudyAIDbContext context,
+        IPasswordHasher passwordHasher,
+        string email,
+        string password,
+        string role = "content",
+        string displayName = "Biên tập viên Nội dung")
+    {
+        if (string.IsNullOrWhiteSpace(email) || !email.Contains('@'))
+        {
+            return (false, "Invalid staff email address.");
+        }
+
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+        var existingUser = await context.Users.FirstOrDefaultAsync(u => u.EmailNormalized == normalizedEmail);
+        if (existingUser != null)
+        {
+            return (false, $"User '{normalizedEmail}' already exists.");
+        }
+
+        var staffUser = new User
+        {
+            Id = $"usr_{role}_{Guid.NewGuid():N}",
+            Email = email.Trim(),
+            EmailNormalized = normalizedEmail,
+            PasswordHash = passwordHasher.HashPassword(password),
+            DisplayName = displayName.Trim(),
+            Grade = "12",
+            Role = role,
+            Status = "active",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        context.Users.Add(staffUser);
+        await context.SaveChangesAsync();
+        return (true, $"Staff user '{normalizedEmail}' bootstrapped with role '{role}'.");
+    }
 }

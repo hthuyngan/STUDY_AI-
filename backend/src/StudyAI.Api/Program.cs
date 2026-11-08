@@ -28,6 +28,7 @@ builder.Services.AddDbContext<StudyAIDbContext>(options =>
 builder.Services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<StudyAIDbContext>());
 
 // 2. Security & Token Services
+builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<IPasswordHasher, Argon2PasswordHasher>();
 builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
 
@@ -223,7 +224,12 @@ using (var scope = app.Services.CreateScope())
         }
 
         // Seed curriculum reference data
-        await DbInitializer.SeedReferenceDataAsync(db);
+        await DbInitializer.SeedReferenceDataAsync(db);
+        if (app.Environment.IsDevelopment())
+        {
+            var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+            await DbInitializer.BootstrapStaffAsync(db, hasher, "content@studyai.internal", "Content@123456", "content", "Biên tập viên Nội dung");
+        }
     }
     catch (Exception ex)
     {

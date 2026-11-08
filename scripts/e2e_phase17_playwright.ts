@@ -165,6 +165,7 @@ async function run() {
     const page = await context.newPage()
 
     let adminToken = ''
+    let contentToken = ''
     let createdSubjectId = ''
     let createdChapterId = ''
     let createdLessonId = ''
@@ -205,6 +206,16 @@ async function run() {
       })
       const loginData = await loginRes.json()
       adminToken = loginData.accessToken
+
+      const contentLoginRes = await fetch(`${BACKEND_URL}/api/v1/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'content@studyai.internal', password: 'Content@123456' }),
+      })
+      if (contentLoginRes.ok) {
+        const cData = await contentLoginRes.json()
+        contentToken = cData.accessToken
+      }
 
       await page.goto(`${FRONTEND_URL}/content/subjects`)
       await page.waitForTimeout(1000)
@@ -340,7 +351,7 @@ async function run() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${adminToken}`,
+          Authorization: `Bearer ${contentToken || adminToken}`,
         },
         body: JSON.stringify({
           chapterId: createdChapterId,
@@ -437,7 +448,7 @@ async function run() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${adminToken}`,
+          Authorization: `Bearer ${contentToken || adminToken}`,
         },
         body: JSON.stringify({
           lessonId: createdLessonId,
@@ -491,7 +502,7 @@ async function run() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${adminToken}`,
+          Authorization: `Bearer ${contentToken || adminToken}`,
         },
       })
 

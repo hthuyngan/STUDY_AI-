@@ -7,6 +7,8 @@ using Microsoft.EntityFrameworkCore;
 using StudyAI.Application.DTOs;
 using StudyAI.Domain.Entities;
 using StudyAI.Infrastructure.Persistence;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 
 namespace StudyAI.Api.Controllers;
 
@@ -15,10 +17,14 @@ namespace StudyAI.Api.Controllers;
 public class CurriculumController : ControllerBase
 {
     private readonly StudyAIDbContext _db;
+    private readonly IMemoryCache _cache;
+    private readonly ILogger<CurriculumController> _logger;
 
-    public CurriculumController(StudyAIDbContext db)
+    public CurriculumController(StudyAIDbContext db, IMemoryCache cache, ILogger<CurriculumController> logger)
     {
         _db = db;
+        _cache = cache;
+        _logger = logger;
     }
 
     private string CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub") ?? string.Empty;
@@ -176,10 +182,12 @@ public class CurriculumController : ControllerBase
     public async Task<IActionResult> GetLessonQuestions(string lessonId)
     {
         var lesson = await _db.ContentLessons
+            .Include(l => l.Chapter)
+                .ThenInclude(c => c!.Subject)
             .AsNoTracking()
             .FirstOrDefaultAsync(l => l.Id == lessonId && l.Status == "published");
 
-        if (lesson == null)
+        if (lesson == null || lesson.Chapter == null || !lesson.Chapter.IsActive || lesson.Chapter.Subject == null || !lesson.Chapter.Subject.IsActive)
         {
             return NotFound(new { message = "Bài học không tồn tại hoặc chưa được xuất bản." });
         }
@@ -234,11 +242,29 @@ public class CurriculumController : ControllerBase
             return BadRequest(new { message = "Vui lòng chọn một đáp án." });
         }
 
+        var clientKey = !string.IsNullOrEmpty(CurrentUserId)
+            ? $"usr_{CurrentUserId}"
+            : $"ip_{HttpContext.Connection.RemoteIpAddress?.ToString() ?? "anon"}";
+        var rateLimitKey = $"check_rate_{clientKey}_{questionId}";
+
+        if (_cache.TryGetValue<int>(rateLimitKey, out var failedCount) && failedCount >= 3)
+        {
+            return StatusCode(429, new
+            {
+                message = "Bạn đã thử sai quá 3 lần đối với câu hỏi này. Vui lòng ôn lại lý thuyết bài học và thử lại sau 2 phút.",
+                retryAfterSeconds = 120
+            });
+        }
+
         var question = await _db.ContentQuestions
             .Include(q => q.Lesson)
+                .ThenInclude(l => l!.Chapter)
+                    .ThenInclude(c => c!.Subject)
             .FirstOrDefaultAsync(q => q.Id == questionId && q.LessonId == lessonId && q.Status == "published");
 
-        if (question == null || question.Lesson?.Status != "published")
+        if (question == null || question.Lesson == null || question.Lesson.Status != "published" ||
+            question.Lesson.Chapter == null || !question.Lesson.Chapter.IsActive ||
+            question.Lesson.Chapter.Subject == null || !question.Lesson.Chapter.Subject.IsActive)
         {
             return NotFound(new { message = "Câu hỏi hoặc bài học không tồn tại hoặc chưa xuất bản." });
         }
@@ -270,6 +296,16 @@ public class CurriculumController : ControllerBase
             }
         }
 
+        if (isCorrect)
+        {
+            _cache.Remove(rateLimitKey);
+        }
+        else
+        {
+            _cache.Set(rateLimitKey, failedCount + 1, TimeSpan.FromMinutes(2));
+            _logger.LogWarning("Failed question check attempt {Attempts}/3 for question {QuestionId} from {ClientKey}", failedCount + 1, questionId, clientKey);
+        }
+
         int scoreEarned = isCorrect ? (question.Difficulty switch
         {
             "hard" => 10,
@@ -277,6 +313,25 @@ public class CurriculumController : ControllerBase
             "easy" => 5,
             _ => 5
         }) : 0;
+
+        try
+        {
+            _db.StaffAuditLogs.Add(new StaffAuditLog
+            {
+                Id = $"log_{Guid.NewGuid():N}",
+                ActorUserId = !string.IsNullOrEmpty(CurrentUserId) ? CurrentUserId : $"anon:{clientKey}",
+                Action = "question_attempt_checked",
+                TargetType = "content_question",
+                TargetId = question.Id,
+                Payload = JsonSerializer.Serialize(new { lessonId, isCorrect, scoreEarned }),
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+            await _db.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to persist audit log for question check.");
+        }
 
         var response = new CheckAnswerResponseDto
         {

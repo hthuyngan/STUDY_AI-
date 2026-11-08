@@ -24,6 +24,12 @@ public class ContentController : ControllerBase
 
     private string CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub") ?? string.Empty;
 
+    private bool IsAuthorizedReviewer =>
+        User.IsInRole("admin") ||
+        User.IsInRole("reviewer") ||
+        User.HasClaim("permission", "content.approve") ||
+        User.HasClaim("reviewer", "true");
+
     #region Subject Endpoints
 
     [HttpGet("subjects")]
@@ -708,12 +714,23 @@ public class ContentController : ControllerBase
     [HttpPost("lessons/{lessonId}/approve")]
     public async Task<IActionResult> ApproveLesson(string lessonId)
     {
+        if (!IsAuthorizedReviewer)
+        {
+            return StatusCode(403, new { detail = "Chỉ Quản trị viên hoặc Người kiểm duyệt được ủy quyền mới có quyền phê duyệt bài học." });
+        }
+
         var les = await _db.ContentLessons.Include(l => l.Author).FirstOrDefaultAsync(l => l.Id == lessonId);
         if (les == null)
             return NotFound(new { detail = "Bài học không tồn tại." });
 
         if (les.Status != "in-review")
             return BadRequest(new { detail = $"Chỉ có bài học đang chờ duyệt ('in-review') mới có thể xuất bản. Trạng thái hiện tại: {les.Status}" });
+
+        // Independent moderation: Author cannot self-approve their own content
+        if (!string.IsNullOrEmpty(les.AuthorId) && les.AuthorId != DbInitializer.SystemAuthorUserId && les.AuthorId == CurrentUserId)
+        {
+            return StatusCode(403, new { detail = "Tác giả không được tự phê duyệt bài học của chính mình. Yêu cầu kiểm duyệt độc lập từ biên tập viên khác hoặc Quản trị viên." });
+        }
 
         les.Status = "published";
         les.ReviewedBy = CurrentUserId;
@@ -726,7 +743,7 @@ public class ContentController : ControllerBase
             Action = "lesson_approved",
             TargetType = "content_lesson",
             TargetId = les.Id,
-            Payload = JsonSerializer.Serialize(new { title = les.Title }),
+            Payload = JsonSerializer.Serialize(new { title = les.Title, authorId = les.AuthorId, reviewerId = CurrentUserId }),
             CreatedAt = DateTimeOffset.UtcNow
         });
 
@@ -737,12 +754,23 @@ public class ContentController : ControllerBase
     [HttpPost("lessons/{lessonId}/request-changes")]
     public async Task<IActionResult> RequestChanges(string lessonId, [FromBody] JsonObject? body = null)
     {
+        if (!IsAuthorizedReviewer)
+        {
+            return StatusCode(403, new { detail = "Chỉ Quản trị viên hoặc Người kiểm duyệt được ủy quyền mới có quyền yêu cầu chỉnh sửa bài học." });
+        }
+
         var les = await _db.ContentLessons.Include(l => l.Author).FirstOrDefaultAsync(l => l.Id == lessonId);
         if (les == null)
             return NotFound(new { detail = "Bài học không tồn tại." });
 
         if (les.Status != "in-review")
             return BadRequest(new { detail = $"Chỉ có bài học đang chờ duyệt ('in-review') mới có thể yêu cầu chỉnh sửa. Trạng thái hiện tại: {les.Status}" });
+
+        // Independent moderation: Author cannot self-request changes in review queue
+        if (!string.IsNullOrEmpty(les.AuthorId) && les.AuthorId != DbInitializer.SystemAuthorUserId && les.AuthorId == CurrentUserId)
+        {
+            return StatusCode(403, new { detail = "Tác giả không được tự yêu cầu chỉnh sửa bài học của chính mình trong quy trình kiểm duyệt độc lập." });
+        }
 
         les.Status = "draft";
         les.UpdatedAt = DateTimeOffset.UtcNow;
@@ -755,7 +783,7 @@ public class ContentController : ControllerBase
             Action = "lesson_changes_requested",
             TargetType = "content_lesson",
             TargetId = les.Id,
-            Payload = JsonSerializer.Serialize(new { title = les.Title, feedback }),
+            Payload = JsonSerializer.Serialize(new { title = les.Title, feedback, authorId = les.AuthorId, reviewerId = CurrentUserId }),
             CreatedAt = DateTimeOffset.UtcNow
         });
 
