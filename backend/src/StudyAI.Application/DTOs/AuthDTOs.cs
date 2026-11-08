@@ -23,6 +23,7 @@ public class UserResponseDto
     public string? DisplayName { get; set; }
     public string? Grade { get; set; }
     public string Role { get; set; } = "learner";
+    public string Status { get; set; } = "active";
     public DateTimeOffset CreatedAt { get; set; }
 }
 

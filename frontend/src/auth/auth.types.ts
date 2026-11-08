@@ -6,6 +6,7 @@ export interface AuthUser {
   displayName: string
   grade?: string
   role: UserRole
+  status?: string
   createdAt: string
 }
 

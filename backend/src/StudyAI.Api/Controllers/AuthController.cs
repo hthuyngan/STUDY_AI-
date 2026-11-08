@@ -1,4 +1,6 @@
+using System.Collections.Concurrent;
 using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +21,9 @@ public class AuthController : ControllerBase
     private readonly IConfiguration _configuration;
     public const string RefreshCookieName = "study_ai_refresh_token";
 
+    // In-memory brute force lockout tracker: email -> (Failures, LockoutUntil)
+    private static readonly ConcurrentDictionary<string, (int Failures, DateTimeOffset LockoutUntil)> _loginAttempts = new();
+
     public AuthController(
         StudyAIDbContext db,
         IPasswordHasher passwordHasher,
@@ -38,7 +43,7 @@ public class AuthController : ControllerBase
         {
             HttpOnly = true,
             Secure = Request.IsHttps,
-            SameSite = SameSiteMode.Lax,
+            SameSite = Request.IsHttps ? SameSiteMode.None : SameSiteMode.Lax,
             Path = "/",
             Expires = DateTimeOffset.UtcNow.AddDays(days)
         };
@@ -50,7 +55,7 @@ public class AuthController : ControllerBase
         Response.Cookies.Delete(RefreshCookieName, new CookieOptions
         {
             Path = "/",
-            SameSite = SameSiteMode.Lax,
+            SameSite = Request.IsHttps ? SameSiteMode.None : SameSiteMode.Lax,
             Secure = Request.IsHttps
         });
     }
@@ -64,6 +69,7 @@ public class AuthController : ControllerBase
             DisplayName = user.DisplayName,
             Grade = user.Grade,
             Role = user.Role ?? "learner",
+            Status = user.Status ?? "active",
             CreatedAt = user.CreatedAt
         };
     }
@@ -76,9 +82,14 @@ public class AuthController : ControllerBase
             return BadRequest(new { detail = "Định dạng email không hợp lệ." });
         }
 
-        if (string.IsNullOrWhiteSpace(req.Password) || req.Password.Trim().Length < 8)
+        if (string.IsNullOrWhiteSpace(req.DisplayName))
         {
-            return BadRequest(new { detail = "Mật khẩu phải chứa ít nhất 8 ký tự không rỗng." });
+            return BadRequest(new { detail = "Vui lòng nhập tên hiển thị." });
+        }
+
+        if (string.IsNullOrWhiteSpace(req.Password) || req.Password.Trim().Length < 8 || req.Password.Length > 128)
+        {
+            return BadRequest(new { detail = "Mật khẩu phải chứa ít nhất 8 ký tự và không vượt quá 128 ký tự." });
         }
 
         var normalizedEmail = req.Email.Trim().ToLowerInvariant();
@@ -97,7 +108,7 @@ public class AuthController : ControllerBase
             PasswordHash = _passwordHasher.HashPassword(req.Password),
             DisplayName = req.DisplayName.Trim(),
             Grade = req.Grade,
-            Role = "learner",
+            Role = "learner", // Strict learner role enforcement on self-registration
             Status = "active",
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
@@ -144,18 +155,36 @@ public class AuthController : ControllerBase
         }
 
         var normalizedEmail = req.Email.Trim().ToLowerInvariant();
+
+        // 1. Check brute force lockout
+        if (_loginAttempts.TryGetValue(normalizedEmail, out var attempt) && attempt.LockoutUntil > DateTimeOffset.UtcNow)
+        {
+            var waitSecs = (int)Math.Ceiling((attempt.LockoutUntil - DateTimeOffset.UtcNow).TotalSeconds);
+            return StatusCode(429, new { detail = $"Tài khoản tạm thời bị khóa do nhập sai nhiều lần. Vui lòng thử lại sau {waitSecs} giây." });
+        }
+
         var user = await _db.Users.FirstOrDefaultAsync(u => u.EmailNormalized == normalizedEmail);
 
-        if (user == null || string.IsNullOrEmpty(user.PasswordHash))
+        if (user == null || string.IsNullOrEmpty(user.PasswordHash) || !_passwordHasher.VerifyPassword(req.Password, user.PasswordHash))
         {
+            // Record failure
+            _loginAttempts.AddOrUpdate(
+                normalizedEmail,
+                _ => (1, DateTimeOffset.MinValue),
+                (_, cur) =>
+                {
+                    var newFailures = cur.Failures + 1;
+                    var lockout = newFailures >= 5 ? DateTimeOffset.UtcNow.AddMinutes(5) : DateTimeOffset.MinValue;
+                    return (newFailures, lockout);
+                });
+
             return Unauthorized(new { detail = "Email hoặc mật khẩu không chính xác." });
         }
 
-        if (!_passwordHasher.VerifyPassword(req.Password, user.PasswordHash))
-        {
-            return Unauthorized(new { detail = "Email hoặc mật khẩu không chính xác." });
-        }
+        // Clear failures on successful credential verification
+        _loginAttempts.TryRemove(normalizedEmail, out _);
 
+        // 2. Check account status
         if (user.Status is "suspended" or "disabled")
         {
             return StatusCode(403, new { detail = "Tài khoản của bạn đã bị khóa hoặc vô hiệu hóa. Vui lòng liên hệ hỗ trợ." });
@@ -179,6 +208,21 @@ public class AuthController : ControllerBase
             UserAgent = Request.Headers.UserAgent.ToString()
         };
         _db.RefreshSessions.Add(session);
+
+        // Audit logging for privileged accounts
+        if (user.Role != "learner")
+        {
+            _db.StaffAuditLogs.Add(new StaffAuditLog
+            {
+                Id = $"log_{Guid.NewGuid():N}",
+                ActorUserId = user.Id,
+                Action = "staff_login",
+                TargetType = "user",
+                TargetId = user.Id,
+                Payload = JsonSerializer.Serialize(new { email = user.Email, role = user.Role }),
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+        }
 
         await _db.SaveChangesAsync();
 
@@ -284,10 +328,27 @@ public class AuthController : ControllerBase
         if (Request.Cookies.TryGetValue(RefreshCookieName, out var rawToken) && !string.IsNullOrWhiteSpace(rawToken))
         {
             var tokenHash = _jwtTokenService.HashRefreshToken(rawToken);
-            var session = await _db.RefreshSessions.FirstOrDefaultAsync(s => s.TokenHash == tokenHash);
+            var session = await _db.RefreshSessions
+                .Include(s => s.User)
+                .FirstOrDefaultAsync(s => s.TokenHash == tokenHash);
+
             if (session != null)
             {
                 session.RevokedAt = DateTimeOffset.UtcNow;
+
+                if (session.User != null && session.User.Role != "learner")
+                {
+                    _db.StaffAuditLogs.Add(new StaffAuditLog
+                    {
+                        Id = $"log_{Guid.NewGuid():N}",
+                        ActorUserId = session.User.Id,
+                        Action = "staff_logout",
+                        TargetType = "user",
+                        TargetId = session.User.Id,
+                        CreatedAt = DateTimeOffset.UtcNow
+                    });
+                }
+
                 await _db.SaveChangesAsync();
             }
         }
