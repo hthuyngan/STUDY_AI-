@@ -69,6 +69,9 @@ Thumbs.db
 appsettings.Development.json
 
 # Backend & Databases
+*.mdf
+*.ldf
+*.bak
 backend/data/*.db
 backend/.venv/
 *.db
