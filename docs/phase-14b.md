@@ -4,7 +4,7 @@
 **Dự án**: STUDY_AI  
 **Giai đoạn**: Phase 14B Final Hardening  
 **Mục tiêu**: Hoàn thiện chuyển đổi Backend sang ASP.NET Core (.NET 10) + Microsoft SQL Server, khắc phục các vấn đề bảo mật nghiêm trọng, chuẩn hóa CI với .NET 10 SDK và Ephemeral Secrets, và dọn dẹp toàn diện mã nguồn Python cũ.  
-**Ngày hoàn thành**: 07/11/2026  
+**Ngày hoàn thành**: 08/11/2026  
 **Trạng thái**: HOÀN THÀNH TOÀN DIỆN (FULL ACCEPTANCE — 100% PASS)
 
 ---
@@ -67,15 +67,29 @@ Phase 14B Final Hardening đã giải quyết triệt để toàn bộ các yêu
 ```
 Passed! - Failed: 0, Passed: 11, Skipped: 0, Total: 11 - StudyAI.UnitTests.dll (net10.0)
 Passed! - Failed: 0, Passed: 11, Skipped: 0, Total: 11 - StudyAI.IntegrationTests.dll (net10.0)
-Total: 22 passed, 0 failed, 0 skipped.
+Total: 22 passed, 0 failed, 0 skipped (100% PASS).
 ```
 
 ### 4.2. Frontend Test Suite & Lint
 ```
 bun run lint -> 0 errors, 0 warnings (386 files checked)
-bun run test -> 45 test files passed, 356 tests passed, 0 failed
+bun run test -> 45 test files passed, 356 tests passed, 0 failed (100% PASS)
 bun run build -> Build production bundle thành công (dist/)
 ```
+
+### 4.3. Fullstack Playwright E2E Verification Suite (Real Auth & SQL Server)
+Kiểm thử tự động thực hiện qua `scripts/e2e_phase14b_playwright.ts` (kết nối ASP.NET Core Web API + Microsoft SQL Server `StudyAIDb` + Frontend Preview):
+
+| # | Kịch bản kiểm thử | Viewport | Kết quả | File ảnh minh chứng |
+|---|---|---|---|---|
+| 1 | Real Login (Database Authentication) | 1440x900 | **PASS** | `docs/visual-qa/phase-14b/01_login_real_desktop.png` |
+| 2 | Protected Route Navigation (`/dashboard`) | 1440x900 | **PASS** | `docs/visual-qa/phase-14b/02_protected_route_desktop.png` |
+| 3 | Session Reload (HttpOnly Cookie Rotation) | 1440x900 | **PASS** | `docs/visual-qa/phase-14b/03_session_reload_desktop.png` |
+| 4 | RBAC Block (Admin Forbidden 403 on Learner) | 1440x900 | **PASS** | `docs/visual-qa/phase-14b/04_admin_forbidden_desktop.png` |
+| 5 | Logout Flow & Token Revocation | 1440x900 | **PASS** | `docs/visual-qa/phase-14b/05_logout_guest_desktop.png` |
+| 6 | Backend Offline Graceful Handling | 1440x900 | **PASS** | `docs/visual-qa/phase-14b/06_backend_offline_desktop.png` |
+| 7 | Mobile Responsive Login Form | 390x844 | **PASS** | `docs/visual-qa/phase-14b/07_mobile_login.png` |
+| 8 | Mobile Responsive Curriculum View | 390x844 | **PASS** | `docs/visual-qa/phase-14b/08_mobile_curriculum.png` |
 
 ---
 
@@ -84,5 +98,19 @@ bun run build -> Build production bundle thành công (dist/)
 1. `docs/phase-14b.md`: Báo cáo nghiệm thu tổng thể Phase 14B Final Hardening.
 2. `docs/architecture/legacy-cleanup-audit.md`: Báo cáo kiểm toán và phân tích API parity.
 3. `docs/security/dotnet-auth-security.md`: Tài liệu chuyên sâu kiến trúc bảo mật định danh, JWT, RFC 6819 và hướng dẫn xử lý tài khoản mẫu cũ.
-4. `backend/README.md`: Hướng dẫn khởi chạy và vận hành backend .NET 10 + SQL Server.
-5. `.github/workflows/ci.yml`: Pipeline CI tự động kiểm thử Frontend và .NET Backend với ephemeral secrets.
+4. `docs/deployment/new-computer-setup.md`: Hướng dẫn thiết lập môi trường phát triển máy mới (.NET 10, SQL Server, Bun, Playwright).
+5. `backend/README.md`: Hướng dẫn khởi chạy và vận hành backend .NET 10 + SQL Server.
+6. `.github/workflows/ci.yml`: Pipeline CI tự động kiểm thử Frontend và .NET Backend với ephemeral secrets.
+7. `scripts/e2e_phase14b_playwright.ts`: Kịch bản kiểm thử E2E Playwright thực tế xác thực toàn diện.
+
+---
+
+## 6. ĐIỀU KIỆN TIÊN QUYẾT BẮT ĐẦU PHASE 15
+
+Phase 15 (Authentication UI & Real User Management) đã sẵn sàng triển khai:
+- [x] Backend ASP.NET Core & SQL Server hoạt động ổn định, 100% Core API Parity.
+- [x] Cơ chế bảo mật JWT, Cookie HttpOnly, CSRF và Argon2id được kiểm chứng.
+- [x] Không còn tài khoản hardcoded trong mã nguồn; CLI bootstrap admin an toàn sẵn sàng.
+- [x] EF Core Migrations chạy ổn định trên database thật; migration idempotency được đảm bảo.
+- [x] Toàn bộ 22 unit & integration tests cùng 356 frontend tests và 8 kịch bản Playwright E2E đều đạt 100%.
+- [x] CI/CD tự động trên GitHub Actions đã chuyển dịch hoàn toàn sang .NET 10 và đang hoạt động xanh (PASS).
