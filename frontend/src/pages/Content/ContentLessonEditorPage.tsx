@@ -5,6 +5,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { PageErrorState } from '@/components/ui/PageErrorState'
 import type { LessonEditorData } from '@/types/content'
+import { MathView } from '@/components/common/MathView'
 import './ContentPages.css'
 
 interface LessonEditorFormProps {
@@ -218,6 +219,12 @@ function LessonEditorForm({ lessonData, isSaving, onSave }: LessonEditorFormProp
               onChange={handleFieldChange(setFormulas)}
               placeholder="Công thức đạo hàm, tiệm cận, tọa độ tâm đối xứng..."
             />
+            {formulas && (
+              <div className="katex-preview-card" data-testid="katex-preview" style={{ marginTop: '12px', padding: '12px 16px', background: 'var(--color-bg-subtle, #f8fafc)', borderRadius: '8px', border: '1px solid var(--color-border, #cbd5e1)' }}>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '6px' }}>Xem trước KaTeX:</span>
+                <MathView math={formulas} displayMode />
+              </div>
+            )}
           </div>
         </div>
 

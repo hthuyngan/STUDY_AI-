@@ -86,6 +86,52 @@ public static class DbInitializer
 
             await context.SaveChangesAsync();
         }
+
+        // 3. Seed initial questions for Lesson 1 if none exist
+        var existingQuestions = await context.ContentQuestions.AnyAsync(q => q.LessonId == "les_math12_c1_b1");
+        if (!existingQuestions)
+        {
+            var q1 = new ContentQuestion
+            {
+                Id = "qst_math12_c1_b1_q1",
+                LessonId = "les_math12_c1_b1",
+                ChapterId = "chp_math12_c1",
+                SubjectId = "sub_math12",
+                Prompt = "Cho hàm số $y = f(x)$ có bảng biến thiên với đạo hàm $f'(x) < 0$ trên $(-1; 1)$ và $f'(x) > 0$ trên $(1; +\\infty)$. Mệnh đề nào dưới đây đúng?",
+                OptionsJson = "[\"Hàm số đồng biến trên khoảng $(-\\infty; 1)$\",\"Hàm số nghịch biến trên khoảng $(-1; 1)$\",\"Hàm số đồng biến trên khoảng $(-1; 3)$\",\"Hàm số nghịch biến trên khoảng $(1; +\\infty)$\"]",
+                CorrectAnswer = "Hàm số nghịch biến trên khoảng (-1; 1)",
+                Explanation = "Dựa vào dấu của đạo hàm, $f'(x) < 0$ với mọi $x \\in (-1; 1)$ nên hàm số nghịch biến trên khoảng $(-1; 1)$.",
+                Topic = "Tính đơn điệu",
+                Difficulty = "easy",
+                Type = "multiple-choice",
+                Status = "published",
+                OrderIndex = 1,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+
+            var q2 = new ContentQuestion
+            {
+                Id = "qst_math12_c1_b1_q2",
+                LessonId = "les_math12_c1_b1",
+                ChapterId = "chp_math12_c1",
+                SubjectId = "sub_math12",
+                Prompt = "Tìm tất cả các giá trị thực của tham số $m$ để hàm số $y = x^3 - 3mx^2 + 3(m^2 - 1)x$ đạt cực tiểu tại $x = 2$.",
+                OptionsJson = "[\"m = 1\",\"m = 3\",\"m = 1 \\\\text{ hoặc } m = 3\",\"Không tồn tại m\"]",
+                CorrectAnswer = "m = 1",
+                Explanation = "Đạo hàm: $y' = 3(x^2 - 2mx + m^2 - 1)$. $y'(2) = 0 \\Leftrightarrow m^2 - 4m + 3 = 0 \\Leftrightarrow m = 1$ hoặc $m = 3$. Đạo hàm cấp hai $y'' = 6x - 6m$. Với $m = 1$, $y''(2) = 12 - 6 = 6 > 0$ (thỏa mãn cực tiểu). Với $m = 3$, $y''(2) = -6 < 0$ (cực đại). Do đó chọn $m = 1$.",
+                Topic = "Cực trị hàm số",
+                Difficulty = "medium",
+                Type = "multiple-choice",
+                Status = "published",
+                OrderIndex = 2,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+
+            context.ContentQuestions.AddRange(q1, q2);
+            await context.SaveChangesAsync();
+        }
     }
 
     /// <summary>

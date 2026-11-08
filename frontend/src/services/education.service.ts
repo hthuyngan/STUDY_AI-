@@ -8,6 +8,8 @@ import type {
   LearningReportsData,
 } from '@/types/education'
 import type { ContentStatus } from '@/types/content'
+import { apiClient } from '@/lib/apiClient'
+import { getAccessToken } from '@/auth/authSession'
 
 const STORAGE_KEYS = {
   SUBJECTS: 'study_ai_education_subjects',
@@ -461,6 +463,20 @@ export const educationService = {
   async createSubject(
     input: Omit<CurriculumSubjectItem, 'id' | 'chapterCount' | 'lessonCount' | 'assessmentCount' | 'publishedPercent' | 'updatedAt'>
   ): Promise<CurriculumSubjectItem> {
+    if (getAccessToken()) {
+      try {
+        await apiClient.post('/api/v1/content/subjects', {
+          name: input.name,
+          code: input.code,
+          grade: input.grade ? input.grade.replace(/[^0-9]/g, '') || '12' : '12',
+          description: input.description,
+          isActive: input.status === 'published',
+        })
+      } catch {
+        // Fallback to local storage
+      }
+    }
+
     const subjects = await this.getSubjects()
     const id = `subj-${Date.now().toString(36)}`
     const newSubject: CurriculumSubjectItem = {
@@ -520,6 +536,19 @@ export const educationService = {
   async createChapter(
     input: Omit<CurriculumChapterItem, 'id' | 'lessonsCount' | 'updatedAt'>
   ): Promise<CurriculumChapterItem> {
+    if (getAccessToken()) {
+      try {
+        await apiClient.post('/api/v1/content/chapters', {
+          subjectId: input.subjectId,
+          title: input.title,
+          description: '',
+          orderIndex: input.order || 1,
+        })
+      } catch {
+        // Fallback to local storage
+      }
+    }
+
     const chapters = await this.getChapters()
     const id = `ch-${Date.now().toString(36)}`
     const newChapter: CurriculumChapterItem = {
@@ -634,6 +663,20 @@ export const educationService = {
   async createLesson(
     input: Omit<CurriculumLessonItem, 'id' | 'updatedAt'>
   ): Promise<CurriculumLessonItem> {
+    if (getAccessToken()) {
+      try {
+        await apiClient.post('/api/v1/content/lessons', {
+          chapterId: input.chapterId,
+          title: input.title,
+          slug: input.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40),
+          orderIndex: input.order || 1,
+          introduction: '',
+        })
+      } catch {
+        // Fallback to local storage
+      }
+    }
+
     const lessons = await this.getLessons()
     const id = `lesson-${Date.now().toString(36)}`
     const newLesson: CurriculumLessonItem = {
