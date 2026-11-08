@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using StudyAI.Application.Common.Interfaces;
-
 using StudyAI.Domain.Entities;
 
 
@@ -48,7 +47,11 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
     public DbSet<ContentQuestion> ContentQuestions => Set<ContentQuestion>();
 
-
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        base.OnConfiguring(optionsBuilder);
+        optionsBuilder.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
 
@@ -407,6 +410,8 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.Title).HasMaxLength(255).IsRequired();
 
             entity.Property(e => e.Slug).HasMaxLength(128).IsRequired();
+
+            entity.Property(e => e.OrderIndex).HasDefaultValue(0);
 
             entity.Property(e => e.Status).HasMaxLength(32).HasDefaultValue("draft");
 
