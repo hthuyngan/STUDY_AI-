@@ -10,6 +10,8 @@ public class User
     public string? Grade { get; set; }
     public string Role { get; set; } = "learner";
     public string Status { get; set; } = "active";
+    public bool IsDeleted { get; set; } = false;
+    public DateTimeOffset? DeletedAt { get; set; }
     public DateTimeOffset? LastLoginAt { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;

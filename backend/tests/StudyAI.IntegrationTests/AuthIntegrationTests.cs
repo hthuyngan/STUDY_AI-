@@ -286,7 +286,7 @@ public class AuthIntegrationTests : IClassFixture<StudyAIApiFixture>
     }
 
     [Fact]
-    public async Task Register_WithDuplicateEmail_ReturnsBadRequest400()
+    public async Task Register_WithDuplicateEmail_ReturnsConflict409()
     {
         string email = $"dup_{Guid.NewGuid():N}@studyai.internal";
         var regDto = new UserRegisterRequestDto
@@ -307,7 +307,7 @@ public class AuthIntegrationTests : IClassFixture<StudyAIApiFixture>
         var resp2 = await _client.PostAsync(
             "/api/v1/auth/register",
             new StringContent(JsonSerializer.Serialize(regDto), Encoding.UTF8, "application/json"));
-        Assert.Equal(HttpStatusCode.BadRequest, resp2.StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, resp2.StatusCode);
         var body2 = await resp2.Content.ReadAsStringAsync();
         Assert.Contains("Email đã được sử dụng", body2);
     }

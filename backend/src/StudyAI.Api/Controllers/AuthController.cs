@@ -70,6 +70,7 @@ public class AuthController : ControllerBase
             Grade = user.Grade,
             Role = user.Role ?? "learner",
             Status = user.Status ?? "active",
+            IsDeleted = user.IsDeleted,
             CreatedAt = user.CreatedAt
         };
     }
@@ -96,7 +97,7 @@ public class AuthController : ControllerBase
         var existing = await _db.Users.AnyAsync(u => u.EmailNormalized == normalizedEmail);
         if (existing)
         {
-            return BadRequest(new { detail = "Email đã được sử dụng." });
+            return Conflict(new { detail = "Email đã được sử dụng." });
         }
 
         var userId = $"usr_{Guid.NewGuid():N}";
@@ -184,7 +185,12 @@ public class AuthController : ControllerBase
         // Clear failures on successful credential verification
         _loginAttempts.TryRemove(normalizedEmail, out _);
 
-        // 2. Check account status
+        // 2. Check account status & soft delete
+        if (user.IsDeleted)
+        {
+            return StatusCode(403, new { detail = "Tài khoản của bạn đã bị xóa khỏi hệ thống. Vui lòng liên hệ quản trị viên." });
+        }
+
         if (user.Status is "suspended" or "disabled")
         {
             return StatusCode(403, new { detail = "Tài khoản của bạn đã bị khóa hoặc vô hiệu hóa. Vui lòng liên hệ hỗ trợ." });
@@ -281,7 +287,7 @@ public class AuthController : ControllerBase
         }
 
         var user = session.User;
-        if (user == null || user.Status is "suspended" or "disabled")
+        if (user == null || user.IsDeleted || user.Status is "suspended" or "disabled")
         {
             ClearRefreshCookie();
             return Unauthorized(new { detail = "Tài khoản không hợp lệ hoặc đã bị khóa." });
@@ -368,7 +374,7 @@ public class AuthController : ControllerBase
         }
 
         var user = await _db.Users.FindAsync(userId);
-        if (user == null)
+        if (user == null || user.IsDeleted)
         {
             return NotFound(new { detail = "Người dùng không tồn tại." });
         }

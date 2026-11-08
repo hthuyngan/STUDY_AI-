@@ -89,8 +89,8 @@ export const AdminDashboardPage: React.FC = () => {
       <div className="admin-header-row">
         <div className="staff-page-header admin-dashboard-heading">
           <div className="admin-prototype-badge">
-            <span className="prototype-dot" />
-            <span>FE Prototype Standalone</span>
+            <span className="prototype-dot" style={{ backgroundColor: metrics?.isPrototypeMode ? '#f59e0b' : '#10b981' }} />
+            <span>{metrics?.isPrototypeMode ? 'FE Prototype Standalone' : 'ASP.NET Core 10 + SQL Server'}</span>
           </div>
           <h1 className="staff-page-title">Tổng quan hệ thống</h1>
           <p className="staff-page-desc">

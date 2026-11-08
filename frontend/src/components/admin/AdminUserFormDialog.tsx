@@ -19,18 +19,20 @@ export const AdminUserFormDialog: React.FC<AdminUserFormDialogProps> = ({
   const dialogRef = useRef<HTMLDivElement>(null)
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [role, setRole] = useState<UserRole>('learner')
   const [status, setStatus] = useState<AccountStatus>('active')
-  const [className, setClassName] = useState('12A1')
+  const [className, setClassName] = useState('Khối 12')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const resetForm = useCallback(() => {
     setDisplayName('')
     setEmail('')
+    setPassword('')
     setRole('learner')
     setStatus('active')
-    setClassName('12A1')
+    setClassName('Khối 12')
     setErrorMsg(null)
     setIsSubmitting(false)
   }, [])
@@ -68,11 +70,17 @@ export const AdminUserFormDialog: React.FC<AdminUserFormDialogProps> = ({
       return
     }
 
+    if (password && password.trim().length < 8) {
+      setErrorMsg('Mật khẩu nếu nhập phải có ít nhất 8 ký tự.')
+      return
+    }
+
     setIsSubmitting(true)
     try {
       await onSubmit({
         displayName: displayName.trim(),
         email: email.trim(),
+        password: password.trim() || undefined,
         role,
         status,
         className: role === 'learner' ? className.trim() : undefined,
@@ -80,7 +88,7 @@ export const AdminUserFormDialog: React.FC<AdminUserFormDialogProps> = ({
       resetForm()
       onClose()
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : 'Lỗi khi tạo tài khoản demo.')
+      setErrorMsg(err instanceof Error ? err.message : 'Lỗi khi tạo tài khoản người dùng.')
       setIsSubmitting(false)
     }
   }
@@ -148,10 +156,24 @@ export const AdminUserFormDialog: React.FC<AdminUserFormDialogProps> = ({
                 id="user-email"
                 type="email"
                 className="admin-form-input"
-                placeholder="duc.hoang@example.com"
+                placeholder="duc.hoang@studyai.internal"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+              />
+            </div>
+
+            <div className="admin-form-group">
+              <label htmlFor="user-password" className="admin-form-label">
+                Mật khẩu ban đầu <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>(Tùy chọn)</span>
+              </label>
+              <input
+                id="user-password"
+                type="password"
+                className="admin-form-input"
+                placeholder="Để trống để tự động tạo mật khẩu an toàn ngẫu nhiên"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
             </div>
 
@@ -185,8 +207,8 @@ export const AdminUserFormDialog: React.FC<AdminUserFormDialogProps> = ({
                   onChange={(e) => setStatus(e.target.value as AccountStatus)}
                 >
                   <option value="active">Đang hoạt động (Active)</option>
-                  <option value="pending">Chờ phê duyệt (Pending)</option>
                   <option value="suspended">Tạm khóa (Suspended)</option>
+                  <option value="disabled">Vô hiệu hóa (Disabled)</option>
                 </select>
               </div>
             </div>
@@ -194,13 +216,13 @@ export const AdminUserFormDialog: React.FC<AdminUserFormDialogProps> = ({
             {role === 'learner' && (
               <div className="admin-form-group">
                 <label htmlFor="user-class-name" className="admin-form-label">
-                  Lớp học
+                  Khối / Lớp học
                 </label>
                 <input
                   id="user-class-name"
                   type="text"
                   className="admin-form-input"
-                  placeholder="Ví dụ: 12A1, 12A2, Chuyên Toán"
+                  placeholder="Ví dụ: Khối 12, 12A1, Chuyên Toán"
                   value={className}
                   onChange={(e) => setClassName(e.target.value)}
                 />
@@ -208,7 +230,7 @@ export const AdminUserFormDialog: React.FC<AdminUserFormDialogProps> = ({
             )}
 
             <div className="admin-form-note">
-              <span>Ghi chú: Tài khoản sẽ được lưu vào bộ nhớ trình duyệt (localStorage) để trải nghiệm demo không bị mất khi tải lại trang.</span>
+              <span>Ghi chú: Người dùng được tạo sẽ được lưu trực tiếp vào cơ sở dữ liệu Microsoft SQL Server với mật khẩu mã hóa Argon2id an toàn.</span>
             </div>
           </div>
 

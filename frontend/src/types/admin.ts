@@ -34,7 +34,10 @@ export interface AdminUserItem {
   status: AccountStatus
   createdAt: string
   lastLoginAt?: string
+  grade?: string
   className?: string
+  isDeleted?: boolean
+  deletedAt?: string
   totalCompletedLessons?: number
   averageScore?: number
   learningProgress?: {
@@ -45,6 +48,21 @@ export interface AdminUserItem {
   }
   assessments?: UserAssessmentSummary[]
   activities?: UserActivityHistoryItem[]
+}
+
+export interface PaginatedAdminUsers {
+  items: AdminUserItem[]
+  page: number
+  pageSize: number
+  total: number
+  totalPages: number
+}
+
+export interface ResetPasswordResult {
+  success: boolean
+  userId: string
+  temporaryPassword?: string
+  message: string
 }
 
 export interface AdminSystemMetrics {
@@ -104,4 +122,13 @@ export interface CreateDemoUserInput {
   role: UserRole
   status: AccountStatus
   className?: string
+  grade?: string
+  password?: string
+}
+
+export interface UpdateUserInput {
+  displayName?: string
+  grade?: string
+  role?: UserRole
+  status?: AccountStatus
 }

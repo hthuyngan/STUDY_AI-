@@ -42,6 +42,9 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.Grade).HasMaxLength(32);
             entity.Property(e => e.Role).HasMaxLength(32).HasDefaultValue("learner");
             entity.Property(e => e.Status).HasMaxLength(32).HasDefaultValue("active");
+            entity.Property(e => e.IsDeleted).HasDefaultValue(false);
+            entity.Property(e => e.DeletedAt);
+            entity.HasIndex(e => e.IsDeleted);
             entity.Property(e => e.CreatedAt).IsRequired();
             entity.Property(e => e.UpdatedAt).IsRequired();
 

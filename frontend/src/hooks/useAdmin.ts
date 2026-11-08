@@ -9,6 +9,7 @@ import type {
   AnalyticsTrendPoint,
   CreateDemoUserInput,
   TimeRangeFilter,
+  UpdateUserInput,
   UserDistributionItem,
 } from '@/types/admin'
 import type { RolePermission } from '@/auth/permissions'
@@ -94,6 +95,8 @@ export function useAdminDashboard(initialRange: TimeRangeFilter = '7d') {
 
 export function useAdminUsers(initialSearch = '', initialRole = 'all', initialStatus = 'all') {
   const [users, setUsers] = useState<AdminUserItem[]>([])
+  const [paginatedItems, setPaginatedItems] = useState<AdminUserItem[]>([])
+  const [backendTotal, setBackendTotal] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState(initialSearch)
@@ -111,22 +114,26 @@ export function useAdminUsers(initialSearch = '', initialRole = 'all', initialSt
     setLoading(true)
     setError(null)
     try {
-      const data = await adminService.getUsers(search, roleFilter, statusFilter)
-      setUsers(data)
+      const data = await adminService.getUsersPaginated(search, roleFilter, statusFilter, page, pageSize)
+      setUsers(data.items)
+      setPaginatedItems(data.items)
+      setBackendTotal(data.total)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Không thể tải danh sách người dùng')
     } finally {
       setLoading(false)
     }
-  }, [search, roleFilter, statusFilter])
+  }, [search, roleFilter, statusFilter, page, pageSize])
 
   useEffect(() => {
     let isMounted = true
     adminService
-      .getUsers(search, roleFilter, statusFilter)
+      .getUsersPaginated(search, roleFilter, statusFilter, page, pageSize)
       .then((data) => {
         if (!isMounted) return
-        setUsers(data)
+        setUsers(data.items)
+        setPaginatedItems(data.items)
+        setBackendTotal(data.total)
         setLoading(false)
       })
       .catch((err: unknown) => {
@@ -138,7 +145,7 @@ export function useAdminUsers(initialSearch = '', initialRole = 'all', initialSt
     return () => {
       isMounted = false
     }
-  }, [search, roleFilter, statusFilter])
+  }, [search, roleFilter, statusFilter, page, pageSize])
 
   // Handlers that update filter and reset page
   const handleSetSearch = useCallback((val: string) => {
@@ -166,12 +173,9 @@ export function useAdminUsers(initialSearch = '', initialRole = 'all', initialSt
   }, [])
 
   // Pagination calculations
-  const totalCount = users.length
+  const totalCount = backendTotal !== null ? backendTotal : users.length
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize))
-  const paginatedUsers = useMemo(() => {
-    const startIndex = (page - 1) * pageSize
-    return users.slice(startIndex, startIndex + pageSize)
-  }, [users, page, pageSize])
+  const paginatedUsers = paginatedItems.length > 0 ? paginatedItems : users.slice((page - 1) * pageSize, page * pageSize)
 
   // Selection handlers
   const toggleSelect = useCallback((userId: string) => {
@@ -205,6 +209,12 @@ export function useAdminUsers(initialSearch = '', initialRole = 'all', initialSt
     return newUser
   }
 
+  const editUser = async (userId: string, input: UpdateUserInput) => {
+    const updated = await adminService.updateUser(userId, input)
+    await fetchUsers()
+    return updated
+  }
+
   const changeUserRole = async (userId: string, newRole: string) => {
     const ok = await adminService.updateUserRole(userId, newRole)
     if (ok) {
@@ -217,6 +227,26 @@ export function useAdminUsers(initialSearch = '', initialRole = 'all', initialSt
     const ok = await adminService.toggleUserStatus(userId)
     if (ok) {
       void fetchUsers()
+    }
+    return ok
+  }
+
+  const deleteUser = async (userId: string) => {
+    const ok = await adminService.deleteUser(userId)
+    if (ok) {
+      await fetchUsers()
+    }
+    return ok
+  }
+
+  const resetPassword = async (userId: string, newPassword?: string) => {
+    return adminService.resetPassword(userId, newPassword)
+  }
+
+  const revokeSessions = async (userId: string) => {
+    const ok = await adminService.revokeUserSessions(userId)
+    if (ok) {
+      await fetchUsers()
     }
     return ok
   }
@@ -273,8 +303,12 @@ export function useAdminUsers(initialSearch = '', initialRole = 'all', initialSt
     statusFilter,
     setStatusFilter: handleSetStatusFilter,
     createUser,
+    editUser,
     changeUserRole,
     toggleStatus,
+    deleteUser,
+    resetPassword,
+    revokeSessions,
     bulkUpdateStatus,
     bulkUpdateRole,
     bulkDelete,

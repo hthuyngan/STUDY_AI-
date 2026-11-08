@@ -1,5 +1,16 @@
 import React, { useState, useMemo } from 'react'
-import { ArrowRight, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react'
+import {
+  ArrowRight,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Edit2,
+  KeyRound,
+  Lock,
+  RotateCcw,
+  Trash2,
+  Unlock,
+} from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAdminUsers } from '@/hooks/useAdmin'
 import { StatusBadge } from '@/components/ui/StatusBadge'
@@ -10,9 +21,12 @@ import { PageErrorState } from '@/components/ui/PageErrorState'
 import { AdminUserTableToolbar } from '@/components/admin/AdminUserTableToolbar'
 import { AdminBulkActions } from '@/components/admin/AdminBulkActions'
 import { AdminUserFormDialog } from '@/components/admin/AdminUserFormDialog'
+import { AdminUserEditDialog } from '@/components/admin/AdminUserEditDialog'
+import { AdminResetPasswordDialog } from '@/components/admin/AdminResetPasswordDialog'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { AdminSummaryStrip } from './components/common/AdminSummaryStrip'
 import { UserCardList } from './components/users/UserCardList'
-import type { AccountStatus, CreateDemoUserInput } from '@/types/admin'
+import type { AccountStatus, AdminUserItem, CreateDemoUserInput, UpdateUserInput } from '@/types/admin'
 import type { UserRole } from '@/auth/auth.types'
 import './AdminPages.css'
 import '@/components/admin/AdminComponents.css'
@@ -42,6 +56,11 @@ export const AdminUsersPage: React.FC = () => {
     statusFilter,
     setStatusFilter,
     createUser,
+    editUser,
+    toggleStatus,
+    revokeSessions,
+    resetPassword,
+    deleteUser,
     bulkUpdateStatus,
     bulkUpdateRole,
     bulkDelete,
@@ -49,19 +68,78 @@ export const AdminUsersPage: React.FC = () => {
     refresh,
   } = useAdminUsers()
 
+  // Dialog states
   const [isFormDialogOpen, setIsFormDialogOpen] = useState(false)
+  const [editingUser, setEditingUser] = useState<AdminUserItem | null>(null)
+  const [resetPassUser, setResetPassUser] = useState<AdminUserItem | null>(null)
+
+  // Confirmation modal states
+  const [statusTarget, setStatusTarget] = useState<AdminUserItem | null>(null)
+  const [revokeTarget, setRevokeTarget] = useState<AdminUserItem | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<AdminUserItem | null>(null)
+  const [actionLoading, setActionLoading] = useState(false)
+
+  // Feedback toast
   const [feedbackToast, setFeedbackToast] = useState<string | null>(null)
 
   const showToast = (msg: string) => {
     setFeedbackToast(msg)
     setTimeout(() => {
       setFeedbackToast(null)
-    }, 3500)
+    }, 4000)
   }
 
   const handleCreateUser = async (input: CreateDemoUserInput) => {
     const user = await createUser(input)
-    showToast(`Đã thêm thành công người dùng demo: ${user.displayName}`)
+    showToast(`Đã tạo thành công người dùng: ${user.displayName} (${user.email})`)
+  }
+
+  const handleEditUser = async (userId: string, input: UpdateUserInput) => {
+    const updated = await editUser(userId, input)
+    showToast(`Đã cập nhật thông tin người dùng: ${updated.displayName}`)
+  }
+
+  const handleConfirmToggleStatus = async () => {
+    if (!statusTarget) return
+    setActionLoading(true)
+    try {
+      await toggleStatus(statusTarget.id)
+      const nextStatus = statusTarget.status === 'active' ? 'Tạm khóa' : 'Đang hoạt động'
+      showToast(`Đã đổi trạng thái tài khoản ${statusTarget.displayName} sang: ${nextStatus}`)
+      setStatusTarget(null)
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Lỗi khi cập nhật trạng thái')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleConfirmRevokeSessions = async () => {
+    if (!revokeTarget) return
+    setActionLoading(true)
+    try {
+      await revokeSessions(revokeTarget.id)
+      showToast(`Đã thu hồi toàn bộ phiên đăng nhập của: ${revokeTarget.displayName}`)
+      setRevokeTarget(null)
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Lỗi khi thu hồi phiên')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return
+    setActionLoading(true)
+    try {
+      await deleteUser(deleteTarget.id)
+      showToast(`Đã xóa mềm tài khoản ${deleteTarget.displayName}. Lịch sử học tập được bảo lưu.`)
+      setDeleteTarget(null)
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Lỗi khi xóa tài khoản')
+    } finally {
+      setActionLoading(false)
+    }
   }
 
   const handleBulkStatus = async (status: AccountStatus) => {
@@ -76,13 +154,13 @@ export const AdminUsersPage: React.FC = () => {
 
   const handleBulkDelete = async () => {
     const res = await bulkDelete()
-    showToast(`Đã xóa ${res.deletedCount} tài khoản demo khỏi hệ thống.`)
+    showToast(`Đã xóa ${res.deletedCount} tài khoản khỏi hệ thống.`)
   }
 
   const userKPIs = useMemo(() => {
-    const total = users.length
+    const total = totalCount || users.length
     const learners = users.filter((u) => u.role === 'learner').length
-    const staff = total - learners
+    const staff = users.filter((u) => u.role !== 'learner').length
     const active = users.filter((u) => u.status === 'active').length
     return [
       { id: 'total', label: 'Tổng số người dùng', value: total, color: 'var(--navy-primary, #102a43)' },
@@ -90,7 +168,7 @@ export const AdminUsersPage: React.FC = () => {
       { id: 'staff', label: 'Giáo viên & Cán bộ', value: staff, color: '#8b5cf6' },
       { id: 'active', label: 'Đang hoạt động', value: active, color: '#16a34a' },
     ]
-  }, [users])
+  }, [totalCount, users])
 
   if (error) {
     return (
@@ -116,7 +194,7 @@ export const AdminUsersPage: React.FC = () => {
       <div className="staff-page-header">
         <h1 className="staff-page-title">Quản lý người dùng</h1>
         <p className="staff-page-desc">
-          Danh sách tài khoản học viên, giáo viên và nhân sự trong hệ thống STUDY_AI.
+          Danh sách tài khoản học viên, giáo viên và nhân sự trong hệ thống STUDY_AI kết nối trực tiếp cơ sở dữ liệu SQL Server.
         </p>
       </div>
 
@@ -182,14 +260,15 @@ export const AdminUsersPage: React.FC = () => {
                   <th scope="col">Người dùng</th>
                   <th scope="col">Vai trò</th>
                   <th scope="col">Trạng thái</th>
-                  <th scope="col">Lớp / Tổ bộ môn</th>
+                  <th scope="col">Khối / Lớp</th>
                   <th scope="col">Đăng nhập cuối</th>
-                  <th scope="col" style={{ textAlign: 'right' }}>Thao tác</th>
+                  <th scope="col" style={{ textAlign: 'right', minWidth: '220px' }}>Thao tác</th>
                 </tr>
               </thead>
               <tbody>
                 {paginatedUsers.map((user) => {
                   const isSelected = selectedIds.includes(user.id)
+                  const isActive = user.status === 'active'
                   return (
                     <tr key={user.id} className={isSelected ? 'row-selected' : undefined}>
                       <td style={{ textAlign: 'center' }}>
@@ -222,7 +301,7 @@ export const AdminUsersPage: React.FC = () => {
                       </td>
                       <td>
                         <span style={{ fontSize: '0.85rem', color: 'var(--text-main)' }}>
-                          {user.className || '—'}
+                          {user.grade || user.className || '—'}
                         </span>
                       </td>
                       <td>
@@ -233,14 +312,72 @@ export const AdminUsersPage: React.FC = () => {
                         </span>
                       </td>
                       <td style={{ textAlign: 'right' }}>
-                        <Link
-                          to={`/admin/users/${user.id}`}
-                          className="staff-action-link"
-                          aria-label={`Xem chi tiết tài khoản ${user.displayName}`}
-                        >
-                          <span>Chi tiết</span>
-                          <ArrowRight size={13} />
-                        </Link>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => setEditingUser(user)}
+                            title="Chỉnh sửa thông tin"
+                            aria-label={`Sửa tài khoản ${user.displayName}`}
+                            style={{ padding: '4px 6px', color: '#102a43' }}
+                          >
+                            <Edit2 size={14} />
+                          </button>
+
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => setStatusTarget(user)}
+                            title={isActive ? 'Tạm khóa tài khoản' : 'Mở khóa tài khoản'}
+                            aria-label={isActive ? `Tạm ngưng ${user.displayName}` : `Mở hoạt động ${user.displayName}`}
+                            style={{ padding: '4px 6px', color: isActive ? '#d97706' : '#16a34a' }}
+                          >
+                            {isActive ? <Lock size={14} /> : <Unlock size={14} />}
+                          </button>
+
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => setResetPassUser(user)}
+                            title="Đặt lại mật khẩu"
+                            aria-label={`Đặt lại mật khẩu ${user.displayName}`}
+                            style={{ padding: '4px 6px', color: '#6366f1' }}
+                          >
+                            <KeyRound size={14} />
+                          </button>
+
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => setRevokeTarget(user)}
+                            title="Thu hồi phiên đăng nhập"
+                            aria-label={`Thu hồi phiên ${user.displayName}`}
+                            style={{ padding: '4px 6px', color: '#8b5cf6' }}
+                          >
+                            <RotateCcw size={14} />
+                          </button>
+
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => setDeleteTarget(user)}
+                            title="Xóa mềm tài khoản"
+                            aria-label={`Xóa tài khoản ${user.displayName}`}
+                            style={{ padding: '4px 6px', color: '#dc2626' }}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+
+                          <Link
+                            to={`/admin/users/${user.id}`}
+                            className="staff-action-link"
+                            aria-label={`Xem chi tiết tài khoản ${user.displayName}`}
+                            style={{ marginLeft: '4px' }}
+                          >
+                            <span>Chi tiết</span>
+                            <ArrowRight size={13} />
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   )
@@ -260,7 +397,7 @@ export const AdminUsersPage: React.FC = () => {
               <div className="admin-pagination-info">
                 Hiển thị{' '}
                 <strong>
-                  {Math.min(totalCount, (page - 1) * pageSize + 1)} -{' '}
+                  {totalCount === 0 ? 0 : Math.min(totalCount, (page - 1) * pageSize + 1)} -{' '}
                   {Math.min(totalCount, page * pageSize)}
                 </strong>{' '}
                 trên tổng số <strong>{totalCount}</strong> người dùng
@@ -310,6 +447,67 @@ export const AdminUsersPage: React.FC = () => {
         isOpen={isFormDialogOpen}
         onClose={() => setIsFormDialogOpen(false)}
         onSubmit={handleCreateUser}
+      />
+
+      {/* Edit User Dialog */}
+      <AdminUserEditDialog
+        key={editingUser?.id}
+        user={editingUser}
+        isOpen={!!editingUser}
+        onClose={() => setEditingUser(null)}
+        onSubmit={handleEditUser}
+      />
+
+      {/* Reset Password Dialog */}
+      <AdminResetPasswordDialog
+        key={resetPassUser?.id}
+        user={resetPassUser}
+        isOpen={!!resetPassUser}
+        onClose={() => setResetPassUser(null)}
+        onReset={resetPassword}
+      />
+
+      {/* Toggle Status Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={!!statusTarget}
+        title={statusTarget?.status === 'active' ? 'Tạm khóa tài khoản người dùng?' : 'Mở khóa tài khoản người dùng?'}
+        description={
+          statusTarget?.status === 'active'
+            ? `Bạn có chắc chắn muốn tạm khóa tài khoản "${statusTarget?.displayName}" (${statusTarget?.email})? Mọi phiên đăng nhập hiện tại sẽ bị thu hồi và người dùng sẽ không thể truy cập hệ thống.`
+            : `Kích hoạt lại tài khoản "${statusTarget?.displayName}" (${statusTarget?.email})? Người dùng sẽ có thể đăng nhập bình thường.`
+        }
+        confirmText={statusTarget?.status === 'active' ? 'Tạm khóa tài khoản' : 'Mở khóa'}
+        cancelText="Hủy bỏ"
+        variant={statusTarget?.status === 'active' ? 'warning' : 'primary'}
+        isLoading={actionLoading}
+        onConfirm={handleConfirmToggleStatus}
+        onCancel={() => setStatusTarget(null)}
+      />
+
+      {/* Revoke Sessions Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={!!revokeTarget}
+        title="Thu hồi toàn bộ phiên đăng nhập?"
+        description={`Bạn có chắc chắn muốn thu hồi tất cả phiên đăng nhập và refresh token đang hoạt động của "${revokeTarget?.displayName}" (${revokeTarget?.email})? Người dùng sẽ phải đăng nhập lại trên mọi thiết bị.`}
+        confirmText="Thu hồi phiên"
+        cancelText="Hủy bỏ"
+        variant="warning"
+        isLoading={actionLoading}
+        onConfirm={handleConfirmRevokeSessions}
+        onCancel={() => setRevokeTarget(null)}
+      />
+
+      {/* Soft Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        title="Xác nhận xóa mềm tài khoản?"
+        description={`Bạn có chắc chắn muốn xóa tài khoản "${deleteTarget?.displayName}" (${deleteTarget?.email})? Tài khoản sẽ bị vô hiệu hóa và thu hồi toàn bộ phiên. Lịch sử bài tập, điểm đánh giá và nhật ký hoạt động sẽ được bảo lưu toàn vẹn trong hệ thống.`}
+        confirmText="Xóa tài khoản"
+        cancelText="Hủy bỏ"
+        isDestructive
+        isLoading={actionLoading}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteTarget(null)}
       />
     </div>
   )

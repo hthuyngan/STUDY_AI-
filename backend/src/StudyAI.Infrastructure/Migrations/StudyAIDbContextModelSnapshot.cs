@@ -576,6 +576,9 @@ namespace StudyAI.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<string>("DisplayName")
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
@@ -591,6 +594,11 @@ namespace StudyAI.Infrastructure.Migrations
                     b.Property<string>("Grade")
                         .HasMaxLength(32)
                         .HasColumnType("nvarchar(32)");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<DateTimeOffset?>("LastLoginAt")
                         .HasColumnType("datetimeoffset");
@@ -621,6 +629,8 @@ namespace StudyAI.Infrastructure.Migrations
                     b.HasIndex("EmailNormalized")
                         .IsUnique()
                         .HasFilter("[EmailNormalized] IS NOT NULL");
+
+                    b.HasIndex("IsDeleted");
 
                     b.ToTable("users", (string)null);
                 });
