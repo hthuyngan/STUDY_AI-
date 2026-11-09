@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using StudyAI.Application.Common.Interfaces;
+using StudyAI.Application.Services;
 using StudyAI.Infrastructure.Persistence;
 using StudyAI.Infrastructure.Security;
 
@@ -30,7 +31,9 @@ builder.Services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<St
 // 2. Security & Token Services
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<IPasswordHasher, Argon2PasswordHasher>();
-builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
+builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<ICurriculumImportParser, CurriculumImportParser>();
+builder.Services.AddScoped<ICurriculumImportValidator, CurriculumImportValidator>();
 
 // 3. JWT Secret Validation & Authentication
 var jwtSecret = configuration["Jwt:SecretKey"];
