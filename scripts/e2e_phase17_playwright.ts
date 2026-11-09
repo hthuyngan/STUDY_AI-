@@ -2,6 +2,7 @@ import { chromium } from 'playwright'
 import { spawn, ChildProcess } from 'child_process'
 import fs from 'fs'
 import path from 'path'
+import { resolveDotnet10Environment } from './utils/dotnetRuntime'
 
 const BACKEND_PORT = 5292
 const FRONTEND_PORT = 4175
@@ -75,22 +76,12 @@ async function run() {
 
   const reports: ScenarioReport[] = []
 
-  const dotnetRoot = fs.existsSync('C:\\Program Files\\dotnet\\shared\\Microsoft.NETCore.App\\10.0.14')
-    ? 'C:\\Program Files\\dotnet'
-    : (fs.existsSync('C:\\Program Files\\dotnet')
-      ? 'C:\\Program Files\\dotnet'
-      : (fs.existsSync('C:\\Users\\Admin\\AppData\\Local\\Microsoft\\dotnet')
-        ? 'C:\\Users\\Admin\\AppData\\Local\\Microsoft\\dotnet'
-        : (process.env.DOTNET_ROOT || 'C:\\Program Files\\dotnet')))
-
-  const dotnetBin = fs.existsSync(path.join(dotnetRoot, 'dotnet.exe'))
-    ? path.join(dotnetRoot, 'dotnet.exe')
-    : 'dotnet'
-
-  const customPath = `${dotnetRoot};${process.env.PATH || ''}`
+  // Robust cross-environment .NET 10 runtime resolution
+  const dotnetEnv = resolveDotnet10Environment()
+  const { dotnetRoot, dotnetBin, customPath } = dotnetEnv
 
   console.log(`Using .NET Root: ${dotnetRoot}`)
-  console.log(`Using .NET Binary: ${dotnetBin}`)
+  console.log(`Using .NET Binary: ${dotnetBin} (netcore: ${dotnetEnv.netcoreVersion}, aspnet: ${dotnetEnv.aspnetVersion})`)
 
   // 1. Start ASP.NET Core API on port 5292 with StudyAIDb_E2E connection
   console.log(`Starting ASP.NET Core API on ${BACKEND_URL}...`)
