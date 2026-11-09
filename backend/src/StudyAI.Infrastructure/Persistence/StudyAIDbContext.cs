@@ -541,5 +541,38 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
     }
 
+    public override int SaveChanges()
+    {
+        EnforceDatabaseSafetyIfTesting();
+        return base.SaveChanges();
+    }
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        EnforceDatabaseSafetyIfTesting();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        EnforceDatabaseSafetyIfTesting();
+        return base.SaveChangesAsync(cancellationToken);
+    }
+
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        EnforceDatabaseSafetyIfTesting();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    private void EnforceDatabaseSafetyIfTesting()
+    {
+        if (DatabaseSafetyGuard.IsTestExecutionContext)
+        {
+            var connStr = Database.GetDbConnection().ConnectionString;
+            DatabaseSafetyGuard.EnsureSafeTestDatabase(connStr, "StudyAIDbContext.SaveChanges");
+        }
+    }
+
 }
 

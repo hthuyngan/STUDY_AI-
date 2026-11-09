@@ -3,6 +3,7 @@ import { spawn, ChildProcess } from 'child_process'
 import fs from 'fs'
 import path from 'path'
 import { resolveDotnet10Environment } from './utils/dotnetRuntime'
+import { assertSafeTestDatabase } from './utils/databaseSafetyGuard'
 
 const BACKEND_PORT = 5292
 const FRONTEND_PORT = 4175
@@ -14,6 +15,9 @@ const QA_DIR = path.join('docs', 'visual-qa', 'phase-17')
 const E2E_CONNECTION_STRING =
   process.env.ConnectionStrings__DefaultConnection ||
   'Server=.\\SQLEXPRESS;Database=StudyAIDb_E2E;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True'
+
+// Fail-closed database safety guard: abort immediately if targeting StudyAIDb or an invalid/unauthorized DB
+assertSafeTestDatabase(E2E_CONNECTION_STRING, 'Phase 17 Playwright E2E')
 
 // Delete existing screenshots so only freshly captured screenshots are used as evidence
 if (fs.existsSync(QA_DIR)) {
