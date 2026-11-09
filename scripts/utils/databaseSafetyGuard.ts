@@ -2,31 +2,20 @@
  * Hardened Fail-Closed Database Safety Guard for E2E and Test Scripts.
  * Strictly prevents any execution against production / primary database 'StudyAIDb',
  * and enforces exact whitelist:
- *   1. 'StudyAIDb_E2E'
- *   2. 'StudyAIDb_Clean_{GUID}' (with cryptographically valid GUID format).
- * Credentials (passwords, tokens, user IDs) are strictly masked to prevent leaks in logs.
+ *   1. 'StudyAIDb_E2E' (case-insensitive)
+ *   2. 'StudyAIDb_Clean_{GUID}' where GUID strictly matches Guid:N (32 hex) or Guid:D (36 chars).
+ * Fixed constant error messages are used for malformed inputs without reflecting input strings or secrets.
  */
 
-const GUID_REGEX =
+// Exactly Guid:N (32 hex characters) or Guid:D (36 characters 8-4-4-4-12)
+const GUID_N_OR_D_REGEX =
   /^(?:[0-9a-fA-F]{32}|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/
-
-/**
- * Sanitizes a connection string by replacing passwords, secrets, or user IDs with masks.
- */
-export function sanitizeConnectionString(connectionString: string | undefined): string {
-  if (!connectionString || connectionString.trim() === '') {
-    return '<empty>'
-  }
-  return connectionString
-    .replace(/(?:password|pwd)\s*=\s*[^;]*/gi, 'Password=***')
-    .replace(/(?:user\s*id|uid)\s*=\s*[^;]*/gi, 'User Id=***')
-}
 
 /**
  * Checks whether a given database name strictly matches the authorized test whitelist:
  *   - Exactly "StudyAIDb_E2E" (case-insensitive)
- *   - Exactly "StudyAIDb_Clean_{GUID}" where GUID is a valid 32-hex or 36-char GUID.
- * Databases that merely contain "test" or "e2e" as substrings are strictly rejected.
+ *   - Exactly "StudyAIDb_Clean_{GUID}" where GUID strictly matches Guid:N (32 hex) or Guid:D (36 chars).
+ * Formats such as B ({...}), P ((...)), X, or arbitrary substrings are strictly rejected.
  */
 export function isAuthorizedTestDatabase(dbName: string | undefined): boolean {
   if (!dbName || !dbName.trim()) {
@@ -45,11 +34,11 @@ export function isAuthorizedTestDatabase(dbName: string | undefined): boolean {
     return true
   }
 
-  // 3. Exactly StudyAIDb_Clean_{GUID} with valid GUID format
+  // 3. Exactly StudyAIDb_Clean_{GUID} where GUID is strictly Guid:N (32 hex) or Guid:D (36 chars)
   const cleanPrefix = 'studyaidb_clean_'
   if (normalized.toLowerCase().startsWith(cleanPrefix)) {
     const guidPart = normalized.slice(cleanPrefix.length)
-    if (GUID_REGEX.test(guidPart)) {
+    if (GUID_N_OR_D_REGEX.test(guidPart)) {
       return true
     }
   }
@@ -59,7 +48,8 @@ export function isAuthorizedTestDatabase(dbName: string | undefined): boolean {
 
 /**
  * Validates that an E2E connection string targets an authorized test database.
- * Throws an Error immediately if any violation or credential leak is detected.
+ * Throws an Error immediately if any violation or security boundary issue is detected.
+ * Uses fixed error messages and never reflects raw connection strings, credentials, or secrets.
  */
 export function assertSafeTestDatabase(
   connectionString: string | undefined,
@@ -74,8 +64,8 @@ export function assertSafeTestDatabase(
   // Parse Initial Catalog or Database name from connection string
   const dbMatch = connectionString.match(/(?:Database|Initial\s+Catalog)\s*=\s*([^;]+)/i)
   if (!dbMatch || !dbMatch[1]) {
-    const safeConn = sanitizeConnectionString(connectionString)
-    const errorMsg = `CRITICAL DATABASE SAFETY GUARD TRIGGERED [${callerContext}]: Could not extract Database or Initial Catalog from connection string: [${safeConn}]. Execution is blocked.`
+    // Fixed generic error message: do not echo the input connection string which may contain secrets
+    const errorMsg = `CRITICAL DATABASE SAFETY GUARD TRIGGERED [${callerContext}]: Could not extract Database or Initial Catalog from connection string syntax. Execution is blocked for security reasons.`
     console.error(`\n[CRITICAL ERROR] ${errorMsg}\n`)
     throw new Error(errorMsg)
   }
@@ -93,9 +83,9 @@ export function assertSafeTestDatabase(
     throw new Error(errorMsg)
   }
 
-  // 2. Strict Exact Whitelist Check
+  // 2. Strict Exact Whitelist Check (StudyAIDb_E2E or StudyAIDb_Clean_{Guid:N|Guid:D})
   if (!isAuthorizedTestDatabase(dbName)) {
-    const errorMsg = `CRITICAL DATABASE SAFETY GUARD TRIGGERED [${callerContext}]: Database '${dbName}' is NOT an authorized test database. E2E executions must strictly target 'StudyAIDb_E2E' or 'StudyAIDb_Clean_{GUID}'. Generic databases containing 'test' or 'e2e' substrings are rejected.`
+    const errorMsg = `CRITICAL DATABASE SAFETY GUARD TRIGGERED [${callerContext}]: Database '${dbName}' is NOT an authorized test database. E2E executions must strictly target 'StudyAIDb_E2E' or 'StudyAIDb_Clean_{GUID}' (Guid:N or Guid:D). Generic databases containing 'test' or 'e2e' substrings, or non-N/D GUID formats are rejected.`
     console.error(`\n[CRITICAL ERROR] ${errorMsg}\n`)
     throw new Error(errorMsg)
   }

@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest'
 import {
   assertSafeTestDatabase,
   isAuthorizedTestDatabase,
-  sanitizeConnectionString,
 } from '../../../scripts/utils/databaseSafetyGuard'
 
 describe('Hardened Fail-Closed Database Safety Guard (TypeScript / E2E)', () => {
@@ -21,33 +20,33 @@ describe('Hardened Fail-Closed Database Safety Guard (TypeScript / E2E)', () => 
   it('throws when Database or Initial Catalog is missing from connection string', () => {
     expect(() =>
       assertSafeTestDatabase('Server=.\\SQLEXPRESS;Trusted_Connection=True;')
-    ).toThrowError(/Could not extract Database or Initial Catalog/i)
+    ).toThrowError(/Could not extract Database or Initial Catalog from connection string syntax/i)
   })
 
-  it('never leaks cleartext password when connection string is missing database', () => {
+  it('never leaks cleartext password, access token, or secrets in message or stack trace', () => {
     const rawSecret = 'MySuperSensitiveCleartextP@ssw0rd'
+    const rawAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.sometoken.sig'
+    const rawApiKey = 'dummy_test_api_key_sample_1234567890'
+
+    const malformed = `Server=localhost;User Id=sa;Password=${rawSecret};Token=${rawAccessToken};ApiKey=${rawApiKey};NoDbHere`
+
     try {
-      assertSafeTestDatabase(
-        `Server=localhost;User Id=sa;Password=${rawSecret};MultipleActiveResultSets=true;`
-      )
+      assertSafeTestDatabase(malformed)
       expect.fail('Should have thrown an error')
     } catch (err: unknown) {
-      const msg = (err as Error).message
-      expect(msg).not.toContain(rawSecret)
-      expect(msg).toContain('Password=***')
-    }
-  })
+      const errorObj = err as Error
+      const fullDump = `${errorObj.message}\n${errorObj.stack ?? ''}`
 
-  it('masks sensitive credentials in sanitizeConnectionString', () => {
-    const rawSecret = 'ConfidentialPassword123'
-    const rawUser = 'admin_user'
-    const result = sanitizeConnectionString(
-      `Server=db.example.internal;Database=StudyAIDb_E2E;User Id=${rawUser};Password=${rawSecret};`
-    )
-    expect(result).not.toContain(rawSecret)
-    expect(result).toContain('Password=***')
-    expect(result).toContain('User Id=***')
-    expect(result).toContain('StudyAIDb_E2E')
+      // Zero credentials or tokens anywhere in error dump
+      expect(fullDump).not.toContain(rawSecret)
+      expect(fullDump).not.toContain(rawAccessToken)
+      expect(fullDump).not.toContain(rawApiKey)
+
+      // Fixed constant message emitted
+      expect(errorObj.message).toContain(
+        'Could not extract Database or Initial Catalog from connection string syntax. Execution is blocked for security reasons.'
+      )
+    }
   })
 
   it('strictly blocks primary database StudyAIDb in all formats and casing', () => {
@@ -91,7 +90,24 @@ describe('Hardened Fail-Closed Database Safety Guard (TypeScript / E2E)', () => 
     }
   })
 
-  it('allows only exact authorized test databases', () => {
+  it('strictly rejects non-N/D GUID formats B, P, and X', () => {
+    const nonNDGuidDatabases = [
+      // Format B: braces around GUID
+      'Server=.\\SQLEXPRESS;Database=StudyAIDb_Clean_{a1b2c3d4-e5f6-0718-293a-4b5c6d7e8f90};Trusted_Connection=True;',
+      // Format P: parentheses around GUID
+      'Server=.\\SQLEXPRESS;Database=StudyAIDb_Clean_(a1b2c3d4-e5f6-0718-293a-4b5c6d7e8f90);Trusted_Connection=True;',
+      // Format X: hexadecimal array structure
+      'Server=.\\SQLEXPRESS;Database=StudyAIDb_Clean_{0x12345678,0x1234,0x1234,{0x12,0x34,0x56,0x78,0x90,0xab,0xcd,0xef}};Trusted_Connection=True;',
+    ]
+
+    for (const nonND of nonNDGuidDatabases) {
+      expect(() => assertSafeTestDatabase(nonND)).toThrowError(
+        /is NOT an authorized test database/i
+      )
+    }
+  })
+
+  it('allows only exact authorized test databases (StudyAIDb_E2E and Guid:N/Guid:D)', () => {
     expect(
       assertSafeTestDatabase(
         'Server=.\\SQLEXPRESS;Database=StudyAIDb_E2E;Trusted_Connection=True;'
@@ -110,12 +126,14 @@ describe('Hardened Fail-Closed Database Safety Guard (TypeScript / E2E)', () => 
       )
     ).toBe('StudyAIDb_E2E')
 
+    // Guid:N (32 hex characters)
     expect(
       assertSafeTestDatabase(
         'Server=.\\SQLEXPRESS;Database=StudyAIDb_Clean_a1b2c3d4e5f60718293a4b5c6d7e8f90;Trusted_Connection=True;'
       )
     ).toBe('StudyAIDb_Clean_a1b2c3d4e5f60718293a4b5c6d7e8f90')
 
+    // Guid:D (36 characters 8-4-4-4-12)
     expect(
       assertSafeTestDatabase(
         'Server=.\\SQLEXPRESS;Database=StudyAIDb_Clean_12345678-1234-1234-1234-1234567890ab;Trusted_Connection=True;'
@@ -123,14 +141,27 @@ describe('Hardened Fail-Closed Database Safety Guard (TypeScript / E2E)', () => 
     ).toBe('StudyAIDb_Clean_12345678-1234-1234-1234-1234567890ab')
   })
 
-  it('isAuthorizedTestDatabase returns expected boolean values', () => {
+  it('isAuthorizedTestDatabase correctly rejects B, P, X and validates N and D', () => {
     expect(isAuthorizedTestDatabase(undefined)).toBe(false)
     expect(isAuthorizedTestDatabase('')).toBe(false)
     expect(isAuthorizedTestDatabase('StudyAIDb')).toBe(false)
     expect(isAuthorizedTestDatabase('studyaidb')).toBe(false)
     expect(isAuthorizedTestDatabase('StudyAIDb_E2E')).toBe(true)
     expect(isAuthorizedTestDatabase('studyaidb_e2e')).toBe(true)
+
+    // Guid:N (32 hex)
     expect(isAuthorizedTestDatabase('StudyAIDb_Clean_d8a1f16decc8ea1a5c35119cb5b0a748')).toBe(true)
+    // Guid:D (36 chars)
+    expect(isAuthorizedTestDatabase('StudyAIDb_Clean_d8a1f16d-ecc8-ea1a-5c35-119cb5b0a748')).toBe(true)
+
+    // Format B ({...}) -> false
+    expect(isAuthorizedTestDatabase('StudyAIDb_Clean_{d8a1f16d-ecc8-ea1a-5c35-119cb5b0a748}')).toBe(false)
+    // Format P ((...)) -> false
+    expect(isAuthorizedTestDatabase('StudyAIDb_Clean_(d8a1f16d-ecc8-ea1a-5c35-119cb5b0a748)')).toBe(false)
+    // Format X -> false
+    expect(isAuthorizedTestDatabase('StudyAIDb_Clean_{0x12,0x34}')).toBe(false)
+
+    // Substrings
     expect(isAuthorizedTestDatabase('StudyAIDb_Clean_invalid')).toBe(false)
     expect(isAuthorizedTestDatabase('MyTestProdDb')).toBe(false)
     expect(isAuthorizedTestDatabase('StudyAIDb_test')).toBe(false)

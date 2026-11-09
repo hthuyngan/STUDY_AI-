@@ -8,14 +8,19 @@ namespace StudyAI.Infrastructure.Persistence;
 /// Hardened fail-closed database safety guard.
 /// Ensures tests, migrations, and automated fixtures NEVER connect to or modify
 /// the primary database "StudyAIDb", and strictly restricts test targets to an exact whitelist:
-///   1. "StudyAIDb_E2E"
-///   2. "StudyAIDb_Clean_{GUID}" (with a cryptographically valid 32-hex or 36-char GUID format).
-/// All credentials and sensitive connection parameters are masked to prevent leakages in logs and exceptions.
+///   1. "StudyAIDb_E2E" (case-insensitive)
+///   2. "StudyAIDb_Clean_{GUID}" where GUID strictly matches Guid:N (32 hex characters) or Guid:D (36 characters).
+/// All malformed connection strings produce constant error messages without reflecting input or attaching InnerExceptions,
+/// preventing any secret, credential, or token leakage.
 /// </summary>
 public static class DatabaseSafetyGuard
 {
     private static bool _forcedTestExecution = false;
     private const string CleanPrefix = "StudyAIDb_Clean_";
+
+    private static readonly Regex GuidNDRegex = new(
+        @"^(?:[0-9a-fA-F]{32}|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$",
+        RegexOptions.Compiled);
 
     /// <summary>
     /// Indicates whether the current runtime environment is considered a test execution context.
@@ -51,39 +56,10 @@ public static class DatabaseSafetyGuard
     }
 
     /// <summary>
-    /// Sanitizes a connection string to strip passwords, user IDs, or sensitive tokens
-    /// before inclusion in any exception message or log output.
-    /// </summary>
-    public static string SanitizeConnectionString(string? connectionString)
-    {
-        if (string.IsNullOrWhiteSpace(connectionString))
-        {
-            return "<empty>";
-        }
-
-        try
-        {
-            var builder = new SqlConnectionStringBuilder(connectionString);
-            var server = string.IsNullOrWhiteSpace(builder.DataSource) ? "<unspecified>" : builder.DataSource;
-            var db = string.IsNullOrWhiteSpace(builder.InitialCatalog) ? "<unspecified>" : builder.InitialCatalog;
-            var auth = builder.IntegratedSecurity ? "Integrated" : "CredentialsProvided(Masked)";
-            return $"Server={server};Database={db};Auth={auth}";
-        }
-        catch
-        {
-            // If the connection string is malformed and cannot be parsed by SqlConnectionStringBuilder,
-            // regex-scrub any passwords, secrets, or user ids to guarantee zero credentials leak.
-            var scrubbed = Regex.Replace(connectionString, @"(?i)(password|pwd)\s*=\s*[^;]*", "$1=***");
-            scrubbed = Regex.Replace(scrubbed, @"(?i)(user\s*id|uid)\s*=\s*[^;]*", "$1=***");
-            return scrubbed;
-        }
-    }
-
-    /// <summary>
     /// Checks whether a given database name strictly matches the authorized test whitelist:
     ///   - Exactly "StudyAIDb_E2E" (case-insensitive)
-    ///   - Exactly "StudyAIDb_Clean_{GUID}" where GUID is a valid GUID
-    /// Any database that merely contains "test" or "e2e" as a substring is strictly rejected.
+    ///   - Exactly "StudyAIDb_Clean_{GUID}" where GUID strictly matches Guid:N (32 hex) or Guid:D (36 chars)
+    /// Formats such as B ({...}), P ((...)), X, or arbitrary substrings are strictly rejected.
     /// </summary>
     public static bool IsAuthorizedTestDatabase(string? databaseName)
     {
@@ -106,11 +82,12 @@ public static class DatabaseSafetyGuard
             return true;
         }
 
-        // 3. Exactly StudyAIDb_Clean_{GUID} with valid GUID format
+        // 3. Exactly StudyAIDb_Clean_{GUID} with strictly Guid:N (32 hex) or Guid:D (36 chars)
         if (normalized.StartsWith(CleanPrefix, StringComparison.OrdinalIgnoreCase))
         {
             var guidPart = normalized[CleanPrefix.Length..];
-            if (Guid.TryParse(guidPart, out _))
+            if (GuidNDRegex.IsMatch(guidPart) &&
+                (Guid.TryParseExact(guidPart, "N", out _) || Guid.TryParseExact(guidPart, "D", out _)))
             {
                 return true;
             }
@@ -123,7 +100,7 @@ public static class DatabaseSafetyGuard
     /// Validates that a connection string points strictly to an authorized isolated test database
     /// and never to the production/primary database "StudyAIDb".
     /// Throws InvalidOperationException immediately if any violation or ambiguity is detected.
-    /// Never leaks raw connection strings, passwords, or credentials in exception messages.
+    /// Uses fixed error messages and never reflects raw connection strings, credentials, or inner exceptions.
     /// </summary>
     /// <param name="connectionString">The connection string resolved by the host or context.</param>
     /// <param name="callerContext">Context or caller description for diagnostic logs.</param>
@@ -143,12 +120,13 @@ public static class DatabaseSafetyGuard
         {
             builder = new SqlConnectionStringBuilder(connectionString);
         }
-        catch (Exception ex)
+        catch
         {
-            var safeDiagnostic = SanitizeConnectionString(connectionString);
+            // Security hardening: Fixed constant message without echoing input connection string,
+            // and without attaching raw InnerException which could contain cleartext credentials.
             throw new InvalidOperationException(
                 $"CRITICAL DATABASE SAFETY GUARD TRIGGERED [{callerContext}]: " +
-                $"Malformed or unparseable connection string [{safeDiagnostic}]. Execution is blocked.", ex);
+                "Malformed or unparseable connection string syntax. Execution is blocked for security reasons.");
         }
 
         var rawDbName = builder.InitialCatalog;
@@ -170,14 +148,14 @@ public static class DatabaseSafetyGuard
                 "Integration tests and test fixtures are strictly FORBIDDEN from connecting to or modifying 'StudyAIDb'.");
         }
 
-        // 2. Strict Exact Whitelist Check
+        // 2. Strict Exact Whitelist Check (StudyAIDb_E2E or StudyAIDb_Clean_{Guid:N|Guid:D})
         if (!IsAuthorizedTestDatabase(normalizedDb))
         {
             throw new InvalidOperationException(
                 $"CRITICAL DATABASE SAFETY GUARD TRIGGERED [{callerContext}]: " +
                 $"Database '{normalizedDb}' is NOT an authorized test database. " +
-                "Test executions must target strictly authorized test databases: 'StudyAIDb_E2E' or 'StudyAIDb_Clean_{GUID}'. " +
-                "Databases containing generic 'test' or 'e2e' substrings are rejected.");
+                "Test executions must target strictly authorized test databases: 'StudyAIDb_E2E' or 'StudyAIDb_Clean_{GUID}' (Guid:N or Guid:D). " +
+                "Databases containing generic 'test' or 'e2e' substrings, or non-N/D GUID formats are rejected.");
         }
 
         return normalizedDb;
