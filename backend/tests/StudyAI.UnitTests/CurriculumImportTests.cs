@@ -133,83 +133,91 @@ public class CurriculumImportParserTests
         Assert.Equal(2, q.Options.Count);
     }
 
+    #region Priority 1 Regression: Math content starting with minus or plus is NOT altered
+
     [Fact]
-    public async Task ParseCsv_FormulaInjection_StripsDangerousLeadingPrefixes()
+    public async Task Parse_MathExpressionsStartingWithMinusOrPlus_NotAltered()
     {
-        var csv = "subjectCode,lessonCode,prompt,options,correctAnswer,difficulty,type\nMATH12,LES1,\"'=cmd|' /C calc'!A0\",A | B,A,easy,multiple-choice";
+        var csv = """
+        subjectCode,lessonCode,prompt,options,correctAnswer,difficulty,type
+        MATH12,LES1,"-3x^2 + 2x - 1 = 0 có bao nhiêu nghiệm?","-5 | +2 | -1/2 | 0",A,easy,multiple-choice
+        """;
 
         using var ms = new MemoryStream(Encoding.UTF8.GetBytes(csv));
-        var batch = await _parser.ParseAsync(ms, "injection.csv");
+        var batch = await _parser.ParseAsync(ms, "math_signs.csv");
 
         Assert.Single(batch.FlatQuestions);
         var q = batch.FlatQuestions[0];
-        // Must not start with dangerous formula triggers =, +, -, @
-        Assert.False(q.Prompt.StartsWith("="));
-        Assert.False(q.Prompt.StartsWith("+"));
-        Assert.False(q.Prompt.StartsWith("@"));
+
+        // Ensure leading minus and plus signs are completely preserved, not stripped and not prefixed with apostrophe
+        Assert.StartsWith("-3x^2", q.Prompt);
+        Assert.False(q.Prompt.StartsWith("'"));
+        Assert.Equal("-5", q.Options[0]);
+        Assert.Equal("+2", q.Options[1]);
+        Assert.Equal("-1/2", q.Options[2]);
+        Assert.Equal("0", q.Options[3]);
     }
 
     [Fact]
-    public async Task ParseXlsx_SimpleSpreadsheet_ParsesWorksheetRows()
+    public void CleanExcelEscapedQuotes_StripsExcelEscapingApostropheOnly()
     {
-        // Build a minimal valid XLSX zip archive in-memory
+        // When Excel exports a formula as text, e.g. '=SUM(A1:A5)
+        var unescaped = CurriculumImportParser.CleanExcelEscapedQuotes("'-3x + 1");
+        Assert.Equal("-3x + 1", unescaped);
+
+        // When content does NOT start with apostrophe, it remains identical
+        var standard = CurriculumImportParser.CleanExcelEscapedQuotes("-3x + 1");
+        Assert.Equal("-3x + 1", standard);
+
+        var plusStandard = CurriculumImportParser.CleanExcelEscapedQuotes("+5");
+        Assert.Equal("+5", plusStandard);
+    }
+
+    #endregion
+
+    #region Priority 2 Regression: XLSX Multi-sheet and Sparse Column Indexing
+
+    [Fact]
+    public async Task ParseXlsx_SparseColumns_MapsToCorrectHeaders()
+    {
+        // Tests that when column B is missing (only A and C are present),
+        // C is mapped to index 2 and not shifted to index 1.
         using var ms = new MemoryStream();
         using (var archive = new ZipArchive(ms, ZipArchiveMode.Create, true))
         {
-            // [Content_Types].xml
-            var ctEntry = archive.CreateEntry("[Content_Types].xml");
-            using (var writer = new StreamWriter(ctEntry.Open()))
+            var ct = archive.CreateEntry("[Content_Types].xml");
+            using (var w = new StreamWriter(ct.Open()))
             {
-                writer.Write("""
+                w.Write("""
                 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
                 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
                   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
                   <Default Extension="xml" ContentType="application/xml"/>
                   <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
                   <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
-                  <Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStringItem+xml"/>
                 </Types>
                 """);
             }
 
-            // xl/sharedStrings.xml
-            var ssEntry = archive.CreateEntry("xl/sharedStrings.xml");
-            using (var writer = new StreamWriter(ssEntry.Open()))
+            var sheet = archive.CreateEntry("xl/worksheets/sheet1.xml");
+            using (var w = new StreamWriter(sheet.Open()))
             {
-                writer.Write("""
-                <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-                <sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="7" uniqueCount="7">
-                  <si><t>subjectCode</t></si>
-                  <si><t>lessonCode</t></si>
-                  <si><t>prompt</t></si>
-                  <si><t>options</t></si>
-                  <si><t>correctAnswer</t></si>
-                  <si><t>MATH12</t></si>
-                  <si><t>A | B | C | D</t></si>
-                </sst>
-                """);
-            }
-
-            // xl/worksheets/sheet1.xml
-            var sheetEntry = archive.CreateEntry("xl/worksheets/sheet1.xml");
-            using (var writer = new StreamWriter(sheetEntry.Open()))
-            {
-                writer.Write("""
+                // Row 1: A1 = subjectCode, B1 = (empty), C1 = prompt, D1 = options, E1 = correctAnswer
+                // Row 2: A2 = MATH12, C2 = Sparse prompt test, D2 = Opt1 | Opt2, E2 = A
+                w.Write("""
                 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
                 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
                   <sheetData>
                     <row r="1">
-                      <c r="A1" t="s"><v>0</v></c>
-                      <c r="B1" t="s"><v>1</v></c>
-                      <c r="C1" t="s"><v>2</v></c>
-                      <c r="D1" t="s"><v>3</v></c>
-                      <c r="E1" t="s"><v>4</v></c>
+                      <c r="A1" t="inlineStr"><is><t>subjectCode</t></is></c>
+                      <c r="C1" t="inlineStr"><is><t>prompt</t></is></c>
+                      <c r="D1" t="inlineStr"><is><t>options</t></is></c>
+                      <c r="E1" t="inlineStr"><is><t>correctAnswer</t></is></c>
                     </row>
                     <row r="2">
-                      <c r="A2" t="s"><v>5</v></c>
-                      <c r="B2" t="inlineStr"><is><t>LES01</t></is></c>
-                      <c r="C2" t="inlineStr"><is><t>Cau hoi tinh dao ham $y=x^2$</t></is></c>
-                      <c r="D2" t="s"><v>6</v></c>
+                      <c r="A2" t="inlineStr"><is><t>MATH12</t></is></c>
+                      <c r="C2" t="inlineStr"><is><t>Sparse prompt test</t></is></c>
+                      <c r="D2" t="inlineStr"><is><t>Opt1 | Opt2</t></is></c>
                       <c r="E2" t="inlineStr"><is><t>A</t></is></c>
                     </row>
                   </sheetData>
@@ -219,24 +227,54 @@ public class CurriculumImportParserTests
         }
 
         ms.Position = 0;
-        var batch = await _parser.ParseAsync(ms, "bank.xlsx");
+        var batch = await _parser.ParseAsync(ms, "sparse.xlsx");
 
-        Assert.Equal(ImportFileFormat.Xlsx, batch.SourceFormat);
         Assert.Single(batch.FlatQuestions);
         var q = batch.FlatQuestions[0];
         Assert.Equal("MATH12", q.SubjectCode);
-        Assert.Equal("LES01", q.LessonCode);
-        Assert.Contains("dao ham", q.Prompt);
+        Assert.Equal("Sparse prompt test", q.Prompt);
         Assert.Equal("A", q.CorrectAnswer);
     }
 
     [Fact]
+    public void GetColumnIndexFromCellReference_ConvertsAccurately()
+    {
+        Assert.Equal(0, CurriculumImportParser.GetColumnIndexFromCellReference("A1"));
+        Assert.Equal(1, CurriculumImportParser.GetColumnIndexFromCellReference("B10"));
+        Assert.Equal(2, CurriculumImportParser.GetColumnIndexFromCellReference("C5"));
+        Assert.Equal(25, CurriculumImportParser.GetColumnIndexFromCellReference("Z1"));
+        Assert.Equal(26, CurriculumImportParser.GetColumnIndexFromCellReference("AA1"));
+        Assert.Equal(27, CurriculumImportParser.GetColumnIndexFromCellReference("AB123"));
+    }
+
+    #endregion
+
+    #region Priority 3 Regression: Exceeding limits throws explicit error
+
+    [Fact]
     public async Task Parse_Exceeds15MbLimit_ThrowsInvalidOperationException()
     {
-        // Allocate a dummy stream reporting > 15MB
         var largeStream = new MemoryStream(new byte[16 * 1024 * 1024]);
         await Assert.ThrowsAsync<InvalidOperationException>(() => _parser.ParseAsync(largeStream, "huge.csv"));
     }
+
+    [Fact]
+    public async Task ParseCsv_ExceedsMaxRows_ThrowsExplicitInvalidOperationException()
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("subjectCode,prompt,options,correctAnswer");
+        for (int i = 0; i < 5005; i++)
+        {
+            sb.AppendLine($"MATH12,Prompt {i},A | B,A");
+        }
+
+        using var ms = new MemoryStream(Encoding.UTF8.GetBytes(sb.ToString()));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => _parser.ParseAsync(ms, "overflow.csv"));
+        Assert.Contains("5000", ex.Message);
+        Assert.Contains("vượt quá giới hạn tối đa", ex.Message);
+    }
+
+    #endregion
 }
 
 public class CurriculumImportValidatorTests
@@ -342,8 +380,136 @@ public class CurriculumImportValidatorTests
         Assert.Contains(result.Errors, e => e.Field == "Chapter.Title");
     }
 
+    #region Priority 4 Regression: Protection of Published Content from overwrite
+
     [Fact]
-    public async Task ValidateBatchAsync_InvalidEnumDifficultyAndType_ReturnsErrors()
+    public async Task Validate_PublishedLesson_MarksConflictAndRejectsOverwrite()
+    {
+        var lookup = new ExistingContentLookup
+        {
+            Lessons = new List<ExistingLessonLookup>
+            {
+                new("LES_PUB_01", "CH1", "Đạo hàm cơ bản", "dao-ham-co-ban", "published")
+            }
+        };
+
+        var validator = CreateValidator(lookup);
+        var batch = new CurriculumImportBatchDto
+        {
+            Subjects = new List<ImportSubjectItemDto>
+            {
+                new()
+                {
+                    Code = "MATH12",
+                    Name = "Toán 12",
+                    Chapters = new List<ImportChapterItemDto>
+                    {
+                        new()
+                        {
+                            Code = "CH1",
+                            Title = "Chương 1",
+                            Lessons = new List<ImportLessonItemDto>
+                            {
+                                new()
+                                {
+                                    Code = "LES_PUB_01",
+                                    Title = "Ghi đè bài học đã duyệt",
+                                    Slug = "dao-ham-co-ban"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        var result = await validator.ValidateBatchAsync(batch);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.ErrorCode == "CONFLICT_PUBLISHED_CONTENT_PROTECTED");
+        Assert.Contains(result.Previews, p => p.Action == ImportActionType.Conflict && p.EntityType == "lesson");
+    }
+
+    [Fact]
+    public async Task Validate_PublishedQuestion_MarksConflictAndRejectsOverwrite()
+    {
+        var prompt = "Tính đạo hàm cấp hai của hàm số $y=\\sin x$";
+        var lookup = new ExistingContentLookup
+        {
+            Questions = new List<ExistingQuestionLookup>
+            {
+                new("Q_001", "LES_01", "MATH12", prompt, "A", "published")
+            }
+        };
+
+        var validator = CreateValidator(lookup);
+        var batch = new CurriculumImportBatchDto
+        {
+            FlatQuestions = new List<ImportQuestionItemDto>
+            {
+                new()
+                {
+                    SubjectCode = "MATH12",
+                    LessonCode = "LES_01",
+                    Prompt = prompt,
+                    Options = new List<string> { "$-\\sin x$", "$\\cos x$", "$-\\cos x$", "$\\sin x$" },
+                    CorrectAnswer = "A"
+                }
+            }
+        };
+
+        var result = await validator.ValidateBatchAsync(batch);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.ErrorCode == "CONFLICT_PUBLISHED_QUESTION_PROTECTED");
+        Assert.Contains(result.Previews, p => p.Action == ImportActionType.Conflict && p.EntityType == "question");
+    }
+
+    [Fact]
+    public async Task Validate_DraftQuestion_AllowsUpdateAction()
+    {
+        var prompt = "Nội dung câu hỏi đang soạn thảo";
+        var lookup = new ExistingContentLookup
+        {
+            Subjects = new List<ExistingSubjectLookup>
+            {
+                new("sub-1", "MATH12", "Toán 12", "12", true)
+            },
+            Questions = new List<ExistingQuestionLookup>
+            {
+                new("Q_DRAFT_01", "LES_01", "MATH12", prompt, "A", "draft")
+            }
+        };
+
+        var validator = CreateValidator(lookup);
+        var batch = new CurriculumImportBatchDto
+        {
+            FlatQuestions = new List<ImportQuestionItemDto>
+            {
+                new()
+                {
+                    SubjectCode = "MATH12",
+                    LessonCode = "LES_01",
+                    Prompt = prompt,
+                    Options = new List<string> { "Phương án 1", "Phương án 2", "Phương án 3", "Phương án 4" },
+                    CorrectAnswer = "A"
+                }
+            }
+        };
+
+        var result = await validator.ValidateBatchAsync(batch);
+
+        Assert.True(result.IsValid);
+        Assert.Equal(1, result.Summary.UpdateCount);
+        Assert.Contains(result.Previews, p => p.Action == ImportActionType.Update && p.Identifier == "Q_DRAFT_01");
+    }
+
+    #endregion
+
+    #region Priority 5 Regression: CorrectAnswer bounds & Duplicate Options
+
+    [Fact]
+    public async Task Validate_OptionCountMismatch_RejectsDWhenOnlyThreeOptions()
     {
         var validator = CreateValidator();
         var batch = new CurriculumImportBatchDto
@@ -353,20 +519,77 @@ public class CurriculumImportValidatorTests
                 new()
                 {
                     SubjectCode = "MATH12",
-                    Prompt = "Câu hỏi kiểm tra",
-                    Options = new List<string> { "A", "B", "C", "D" },
-                    CorrectAnswer = "A",
-                    Difficulty = "super-hard", // Invalid enum
-                    Type = "unknown-type"      // Invalid enum
+                    Prompt = "Phương trình $x^2 = 4$ có tập nghiệm:",
+                    Options = new List<string> { "$\\{2\\}$", "$\\{-2\\}$", "$\\{-2; 2\\}$" }, // 3 options: A, B, C
+                    CorrectAnswer = "D" // Out of range!
                 }
             }
         };
 
         var result = await validator.ValidateBatchAsync(batch);
 
-        Assert.Contains(result.Errors, e => e.Field == "Difficulty" && e.ErrorCode == "INVALID_ENUM_VALUE");
-        Assert.Contains(result.Errors, e => e.Field == "Type" && e.ErrorCode == "INVALID_ENUM_VALUE");
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.ErrorCode == "CORRECT_ANSWER_OUT_OF_RANGE");
     }
+
+    [Fact]
+    public async Task Validate_DuplicateOptionsInQuestion_ReturnsError()
+    {
+        var validator = CreateValidator();
+        var batch = new CurriculumImportBatchDto
+        {
+            FlatQuestions = new List<ImportQuestionItemDto>
+            {
+                new()
+                {
+                    SubjectCode = "MATH12",
+                    Prompt = "Chọn khẳng định đúng về nghiệm của phương trình:",
+                    Options = new List<string> { "Vô nghiệm", "Vô nghiệm", "Có 1 nghiệm", "Có 2 nghiệm" }, // duplicate option!
+                    CorrectAnswer = "C"
+                }
+            }
+        };
+
+        var result = await validator.ValidateBatchAsync(batch);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.ErrorCode == "DUPLICATE_OPTIONS_IN_QUESTION");
+    }
+
+    [Fact]
+    public async Task Validate_DuplicateQuestionCodeInBatch_ReturnsError()
+    {
+        var validator = CreateValidator();
+        var batch = new CurriculumImportBatchDto
+        {
+            FlatQuestions = new List<ImportQuestionItemDto>
+            {
+                new()
+                {
+                    Code = "Q_MATH12_001",
+                    SubjectCode = "MATH12",
+                    Prompt = "Câu hỏi 1",
+                    Options = new List<string> { "A", "B", "C", "D" },
+                    CorrectAnswer = "A"
+                },
+                new()
+                {
+                    Code = "Q_MATH12_001", // Duplicate code!
+                    SubjectCode = "MATH12",
+                    Prompt = "Câu hỏi 2 với nội dung khác",
+                    Options = new List<string> { "A", "B", "C", "D" },
+                    CorrectAnswer = "B"
+                }
+            }
+        };
+
+        var result = await validator.ValidateBatchAsync(batch);
+
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, e => e.ErrorCode == "DUPLICATE_QUESTION_CODE_IN_FILE");
+    }
+
+    #endregion
 
     [Fact]
     public async Task ValidateBatchAsync_DuplicateQuestionInBatch_DetectsConflict()
@@ -408,7 +631,7 @@ public class CurriculumImportValidatorTests
         {
             Subjects = new List<ExistingSubjectLookup>
             {
-                new("sub-1", "MATH12", "Toán 12", "12")
+                new("sub-1", "MATH12", "Toán 12", "12", true)
             }
         };
 

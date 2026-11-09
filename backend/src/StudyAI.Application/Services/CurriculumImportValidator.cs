@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using StudyAI.Application.Common.Interfaces;
@@ -7,10 +5,10 @@ using StudyAI.Application.DTOs;
 
 namespace StudyAI.Application.Services;
 
-public record ExistingSubjectLookup(string Id, string Code, string Name, string Grade);
-public record ExistingChapterLookup(string Id, string SubjectId, string Title);
-public record ExistingLessonLookup(string Id, string ChapterId, string Title, string Slug);
-public record ExistingQuestionLookup(string Id, string? LessonId, string Prompt, string CorrectAnswer);
+public record ExistingSubjectLookup(string Id, string Code, string Name, string Grade, bool IsActive);
+public record ExistingChapterLookup(string Id, string SubjectId, string Title, bool IsActive);
+public record ExistingLessonLookup(string Id, string ChapterId, string Title, string Slug, string Status);
+public record ExistingQuestionLookup(string Id, string? LessonId, string? SubjectId, string Prompt, string CorrectAnswer, string Status);
 
 public class ExistingContentLookup
 {
@@ -34,11 +32,6 @@ public class CurriculumImportValidator : ICurriculumImportValidator
         "multiple-choice", "true-false", "short-answer"
     };
 
-    private static readonly HashSet<string> ValidGrades = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "10", "11", "12", "lop-10", "lop-11", "lop-12", "grade-10", "grade-11", "grade-12"
-    };
-
     private static readonly Regex XssPattern = new(
         @"<\s*script[^>]*>|javascript\s*:|<\s*iframe[^>]*>|<\s*object[^>]*>|<\s*embed[^>]*>|on\w+\s*=|data:\s*text\/html",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -57,22 +50,22 @@ public class CurriculumImportValidator : ICurriculumImportValidator
 
         var existingSubjects = await _context.ContentSubjects
             .AsNoTracking()
-            .Select(s => new ExistingSubjectLookup(s.Id, s.Code, s.Name, s.Grade))
+            .Select(s => new ExistingSubjectLookup(s.Id, s.Code, s.Name, s.Grade, s.IsActive))
             .ToListAsync(cancellationToken);
 
         var existingChapters = await _context.ContentChapters
             .AsNoTracking()
-            .Select(c => new ExistingChapterLookup(c.Id, c.SubjectId, c.Title))
+            .Select(c => new ExistingChapterLookup(c.Id, c.SubjectId, c.Title, c.IsActive))
             .ToListAsync(cancellationToken);
 
         var existingLessons = await _context.ContentLessons
             .AsNoTracking()
-            .Select(l => new ExistingLessonLookup(l.Id, l.ChapterId, l.Title, l.Slug))
+            .Select(l => new ExistingLessonLookup(l.Id, l.ChapterId, l.Title, l.Slug, l.Status))
             .ToListAsync(cancellationToken);
 
         var existingQuestions = await _context.ContentQuestions
             .AsNoTracking()
-            .Select(q => new ExistingQuestionLookup(q.Id, q.LessonId, q.Prompt, q.CorrectAnswer))
+            .Select(q => new ExistingQuestionLookup(q.Id, q.LessonId, q.SubjectId, q.Prompt, q.CorrectAnswer, q.Status))
             .ToListAsync(cancellationToken);
 
         return new ExistingContentLookup
@@ -90,19 +83,17 @@ public class CurriculumImportValidator : ICurriculumImportValidator
     {
         var result = new ImportValidationResult();
 
-        // 1. Preload existing entities for fast relational verification
+        // 1. Preload existing entities for fast relational verification and integrity checking
         var lookup = await LoadExistingContentLookupAsync(cancellationToken);
 
         // Sets of available codes (DB + batch)
         var dbSubjectCodes = new HashSet<string>(lookup.Subjects.Select(s => s.Code), StringComparer.OrdinalIgnoreCase);
-        var dbSubjectIds = new HashSet<string>(lookup.Subjects.Select(s => s.Id), StringComparer.OrdinalIgnoreCase);
         var batchSubjectCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         var dbChapterIds = new HashSet<string>(lookup.Chapters.Select(c => c.Id), StringComparer.OrdinalIgnoreCase);
         var batchChapterCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         var dbLessonIds = new HashSet<string>(lookup.Lessons.Select(l => l.Id), StringComparer.OrdinalIgnoreCase);
-        var dbLessonSlugs = new HashSet<string>(lookup.Lessons.Select(l => l.Slug), StringComparer.OrdinalIgnoreCase);
         var batchLessonCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         // Collect all batch declared codes
@@ -119,13 +110,16 @@ public class CurriculumImportValidator : ICurriculumImportValidator
             }
         }
 
-        var seenQuestionFingerprints = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var existingQuestionFingerprints = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        // Map existing questions by fingerprint for quick conflict / status check
+        var existingQuestionsByFp = new Dictionary<string, ExistingQuestionLookup>(StringComparer.OrdinalIgnoreCase);
         foreach (var eq in lookup.Questions)
         {
-            var fp = ComputeFingerprint(eq.LessonId ?? "", eq.Prompt);
-            existingQuestionFingerprints[fp] = eq.Id;
+            var fp = CurriculumImportParser.GenerateQuestionFingerprint(eq.LessonId ?? eq.SubjectId ?? "", eq.Prompt);
+            existingQuestionsByFp[fp] = eq;
         }
+
+        var seenQuestionFingerprints = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seenQuestionCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         // 2. Validate Subjects
         var seenBatchSubjects = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -143,7 +137,7 @@ public class CurriculumImportValidator : ICurriculumImportValidator
                 var seenBatchLessons = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (var les in ch.Lessons)
                 {
-                    ValidateLesson(les, ch.Code, sub.Code, seenBatchLessons, dbLessonIds, dbLessonSlugs, result.Errors, result.Warnings, result.Previews);
+                    ValidateLesson(les, ch.Code, sub.Code, seenBatchLessons, lookup, result.Errors, result.Warnings, result.Previews);
 
                     // Validate embedded Questions in Lesson
                     foreach (var q in les.Questions)
@@ -152,17 +146,17 @@ public class CurriculumImportValidator : ICurriculumImportValidator
                         q.ChapterCode = ch.Code;
                         q.LessonCode = les.Code;
                         ValidateQuestion(q, dbSubjectCodes, batchSubjectCodes, dbLessonIds, batchLessonCodes,
-                            seenQuestionFingerprints, existingQuestionFingerprints, result.Errors, result.Warnings, result.Previews);
+                            seenQuestionCodes, seenQuestionFingerprints, existingQuestionsByFp, result.Errors, result.Warnings, result.Previews);
                     }
                 }
             }
         }
 
-        // 3. Validate Flat Questions (e.g. from CSV / Question bank XLSX)
+        // 3. Validate Flat Questions (from CSV / Question bank XLSX)
         foreach (var q in batch.FlatQuestions)
         {
             ValidateQuestion(q, dbSubjectCodes, batchSubjectCodes, dbLessonIds, batchLessonCodes,
-                seenQuestionFingerprints, existingQuestionFingerprints, result.Errors, result.Warnings, result.Previews);
+                seenQuestionCodes, seenQuestionFingerprints, existingQuestionsByFp, result.Errors, result.Warnings, result.Previews);
         }
 
         // 4. Calculate summary counts
@@ -323,8 +317,7 @@ public class CurriculumImportValidator : ICurriculumImportValidator
         string parentChapterCode,
         string parentSubjectCode,
         HashSet<string> seenBatchLessons,
-        HashSet<string> dbLessonIds,
-        HashSet<string> dbLessonSlugs,
+        ExistingContentLookup lookup,
         List<ImportValidationErrorDto> errors,
         List<ImportValidationErrorDto> warnings,
         List<ImportItemPreviewDto> previewItems)
@@ -380,7 +373,7 @@ public class CurriculumImportValidator : ICurriculumImportValidator
             }
         }
 
-        // Validate XSS in definitions, notes
+        // Validate XSS in definitions
         foreach (var d in les.Definitions)
         {
             if (DetectMaliciousPayload(d.Content, out var xssErr))
@@ -396,17 +389,58 @@ public class CurriculumImportValidator : ICurriculumImportValidator
             }
         }
 
-        var exists = (!string.IsNullOrWhiteSpace(les.Code) && dbLessonIds.Contains(les.Code))
-                     || (!string.IsNullOrWhiteSpace(les.Slug) && dbLessonSlugs.Contains(les.Slug));
+        // CHECK PUBLISHED / APPROVED CONTENT PROTECTION
+        var existingLesson = lookup.Lessons.FirstOrDefault(l =>
+            (!string.IsNullOrWhiteSpace(les.Code) && string.Equals(l.Id, les.Code, StringComparison.OrdinalIgnoreCase)) ||
+            (!string.IsNullOrWhiteSpace(les.Slug) && string.Equals(l.Slug, les.Slug, StringComparison.OrdinalIgnoreCase)));
 
-        previewItems.Add(new ImportItemPreviewDto
+        if (existingLesson != null)
         {
-            EntityType = "lesson",
-            Identifier = les.Code,
-            Title = les.Title,
-            Action = exists ? ImportActionType.Update : ImportActionType.Insert,
-            Reason = exists ? "Bài học đã tồn tại, sẽ cập nhật nội dung." : "Bài học mới, sẽ thêm vào chương trình."
-        });
+            var isPublishedOrApproved = string.Equals(existingLesson.Status, "published", StringComparison.OrdinalIgnoreCase) ||
+                                        string.Equals(existingLesson.Status, "approved", StringComparison.OrdinalIgnoreCase);
+
+            if (isPublishedOrApproved)
+            {
+                errors.Add(new ImportValidationErrorDto
+                {
+                    Row = row,
+                    Field = "Lesson.Status",
+                    ErrorCode = "CONFLICT_PUBLISHED_CONTENT_PROTECTED",
+                    Message = $"Bài học '{existingLesson.Title}' (ID: {existingLesson.Id}) hiện đang ở trạng thái '{existingLesson.Status}'. Để bảo toàn tính toàn vẹn học thuật, hệ thống cấm tự động ghi đè bài học đã duyệt/xuất bản.",
+                    RejectedValue = les.Code
+                });
+
+                previewItems.Add(new ImportItemPreviewDto
+                {
+                    EntityType = "lesson",
+                    Identifier = les.Code,
+                    Title = les.Title,
+                    Action = ImportActionType.Conflict,
+                    Reason = $"Xung đột: Bài học đã ở trạng thái '{existingLesson.Status}', bị khóa chống ghi đè tự động."
+                });
+                return;
+            }
+
+            previewItems.Add(new ImportItemPreviewDto
+            {
+                EntityType = "lesson",
+                Identifier = les.Code,
+                Title = les.Title,
+                Action = ImportActionType.Update,
+                Reason = "Bài học đã tồn tại ở bản nháp/lưu trữ (draft/archived), sẽ cập nhật nội dung."
+            });
+        }
+        else
+        {
+            previewItems.Add(new ImportItemPreviewDto
+            {
+                EntityType = "lesson",
+                Identifier = les.Code,
+                Title = les.Title,
+                Action = ImportActionType.Insert,
+                Reason = "Bài học mới, sẽ thêm vào chương trình (trạng thái draft)."
+            });
+        }
     }
 
     private void ValidateQuestion(
@@ -415,15 +449,32 @@ public class CurriculumImportValidator : ICurriculumImportValidator
         HashSet<string> batchSubjectCodes,
         HashSet<string> dbLessonIds,
         HashSet<string> batchLessonCodes,
+        HashSet<string> seenQuestionCodes,
         HashSet<string> seenQuestionFingerprints,
-        Dictionary<string, string> existingQuestionFingerprints,
+        Dictionary<string, ExistingQuestionLookup> existingQuestionsByFp,
         List<ImportValidationErrorDto> errors,
         List<ImportValidationErrorDto> warnings,
         List<ImportItemPreviewDto> previewItems)
     {
         var row = q.RowNumber > 0 ? q.RowNumber : 1;
 
-        // 1. Relational check: Subject
+        // 1. Check duplicate Question Code in batch (if code provided)
+        if (!string.IsNullOrWhiteSpace(q.Code))
+        {
+            if (!seenQuestionCodes.Add(q.Code))
+            {
+                errors.Add(new ImportValidationErrorDto
+                {
+                    Row = row,
+                    Field = "Code",
+                    ErrorCode = "DUPLICATE_QUESTION_CODE_IN_FILE",
+                    Message = $"Mã câu hỏi '{q.Code}' bị trùng lặp trong tệp nhập.",
+                    RejectedValue = q.Code
+                });
+            }
+        }
+
+        // 2. Relational check: Subject
         if (!string.IsNullOrWhiteSpace(q.SubjectCode))
         {
             if (!dbSubjectCodes.Contains(q.SubjectCode) && !batchSubjectCodes.Contains(q.SubjectCode))
@@ -439,7 +490,7 @@ public class CurriculumImportValidator : ICurriculumImportValidator
             }
         }
 
-        // 2. Relational check: Lesson (Warning if missing, question can be attached later or lesson will be matched)
+        // 3. Relational check: Lesson (Warning if missing)
         if (!string.IsNullOrWhiteSpace(q.LessonCode))
         {
             if (!dbLessonIds.Contains(q.LessonCode) && !batchLessonCodes.Contains(q.LessonCode))
@@ -456,7 +507,7 @@ public class CurriculumImportValidator : ICurriculumImportValidator
             }
         }
 
-        // 3. Question Prompt
+        // 4. Question Prompt
         if (string.IsNullOrWhiteSpace(q.Prompt))
         {
             errors.Add(new ImportValidationErrorDto
@@ -494,7 +545,7 @@ public class CurriculumImportValidator : ICurriculumImportValidator
             }
         }
 
-        // 4. Question Type & Difficulty
+        // 5. Question Type & Difficulty
         var diff = q.Difficulty.Trim().ToLowerInvariant();
         if (!ValidDifficulties.Contains(diff))
         {
@@ -529,7 +580,7 @@ public class CurriculumImportValidator : ICurriculumImportValidator
             q.Type = qType;
         }
 
-        // 5. Options & CorrectAnswer
+        // 6. Options & CorrectAnswer Verification
         if (q.Type == "multiple-choice")
         {
             if (q.Options == null || q.Options.Count < 2)
@@ -545,9 +596,25 @@ public class CurriculumImportValidator : ICurriculumImportValidator
             }
             else
             {
+                // Check duplicate options within the same question
+                var seenOpts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 for (int i = 0; i < q.Options.Count; i++)
                 {
                     var opt = q.Options[i];
+                    var normOpt = opt.Trim();
+
+                    if (!seenOpts.Add(normOpt))
+                    {
+                        errors.Add(new ImportValidationErrorDto
+                        {
+                            Row = row,
+                            Field = $"Options[{i}]",
+                            ErrorCode = "DUPLICATE_OPTIONS_IN_QUESTION",
+                            Message = $"Câu hỏi chứa lựa chọn bị trùng lặp nội dung: '{normOpt}'.",
+                            RejectedValue = normOpt
+                        });
+                    }
+
                     if (DetectMaliciousPayload(opt, out var optXss))
                     {
                         errors.Add(new ImportValidationErrorDto
@@ -587,20 +654,40 @@ public class CurriculumImportValidator : ICurriculumImportValidator
             else
             {
                 var normAns = q.CorrectAnswer.Trim();
-                var validLetters = new[] { "A", "B", "C", "D", "E", "F" };
-                bool matchesLetter = validLetters.Any(l => string.Equals(l, normAns, StringComparison.OrdinalIgnoreCase));
-                bool matchesContent = q.Options != null && q.Options.Any(o => string.Equals(o.Trim(), normAns, StringComparison.OrdinalIgnoreCase));
+                int optCount = q.Options?.Count ?? 0;
 
-                if (!matchesLetter && !matchesContent)
+                // Case A: CorrectAnswer is a letter (A, B, C, D, E, F...)
+                if (normAns.Length == 1 && char.IsLetter(normAns[0]))
                 {
-                    errors.Add(new ImportValidationErrorDto
+                    int letterIdx = char.ToUpperInvariant(normAns[0]) - 'A';
+                    if (letterIdx < 0 || letterIdx >= optCount)
                     {
-                        Row = row,
-                        Field = "CorrectAnswer",
-                        ErrorCode = "CORRECT_ANSWER_MISMATCH",
-                        Message = $"Đáp án đúng '{q.CorrectAnswer}' không khớp với ký tự (A/B/C/D) hoặc nội dung của các lựa chọn.",
-                        RejectedValue = q.CorrectAnswer
-                    });
+                        char maxLetter = optCount > 0 ? (char)('A' + optCount - 1) : 'A';
+                        errors.Add(new ImportValidationErrorDto
+                        {
+                            Row = row,
+                            Field = "CorrectAnswer",
+                            ErrorCode = "CORRECT_ANSWER_OUT_OF_RANGE",
+                            Message = $"Đáp án đúng là '{normAns}' nhưng câu hỏi chỉ có {optCount} lựa chọn (từ A đến {maxLetter}).",
+                            RejectedValue = normAns
+                        });
+                    }
+                }
+                else
+                {
+                    // Case B: CorrectAnswer is text content matching an option
+                    bool matchesContent = q.Options != null && q.Options.Any(o => string.Equals(o.Trim(), normAns, StringComparison.OrdinalIgnoreCase));
+                    if (!matchesContent)
+                    {
+                        errors.Add(new ImportValidationErrorDto
+                        {
+                            Row = row,
+                            Field = "CorrectAnswer",
+                            ErrorCode = "CORRECT_ANSWER_MISMATCH",
+                            Message = $"Đáp án đúng '{q.CorrectAnswer}' không khớp với ký tự (A/B/C/D) hoặc nội dung của các lựa chọn.",
+                            RejectedValue = q.CorrectAnswer
+                        });
+                    }
                 }
             }
         }
@@ -620,7 +707,7 @@ public class CurriculumImportValidator : ICurriculumImportValidator
             }
         }
 
-        // 6. Explanation
+        // 7. Explanation
         if (!string.IsNullOrWhiteSpace(q.Explanation))
         {
             if (DetectMaliciousPayload(q.Explanation, out var expXss))
@@ -648,13 +735,14 @@ public class CurriculumImportValidator : ICurriculumImportValidator
             }
         }
 
-        // 7. Duplicate Fingerprinting & Action Determination
-        var fingerprint = ComputeFingerprint(q.LessonCode ?? q.SubjectCode, q.Prompt);
+        // 8. Fingerprint & Published Status Protection
+        var fingerprint = CurriculumImportParser.GenerateQuestionFingerprint(q.LessonCode ?? q.SubjectCode, q.Prompt);
         q.Fingerprint = fingerprint;
 
         var identifier = !string.IsNullOrWhiteSpace(q.Code) ? q.Code : $"FP:{fingerprint[..8]}";
         var shortTitle = q.Prompt.Length > 60 ? q.Prompt[..60] + "..." : q.Prompt;
 
+        // Check duplicate within same file
         if (!seenQuestionFingerprints.Add(fingerprint))
         {
             errors.Add(new ImportValidationErrorDto
@@ -677,15 +765,41 @@ public class CurriculumImportValidator : ICurriculumImportValidator
             return;
         }
 
-        if (existingQuestionFingerprints.TryGetValue(fingerprint, out var existingId))
+        // Check collision with existing database questions
+        if (existingQuestionsByFp.TryGetValue(fingerprint, out var existingQ))
         {
+            var isPublishedOrApproved = string.Equals(existingQ.Status, "published", StringComparison.OrdinalIgnoreCase) ||
+                                        string.Equals(existingQ.Status, "approved", StringComparison.OrdinalIgnoreCase);
+
+            if (isPublishedOrApproved)
+            {
+                errors.Add(new ImportValidationErrorDto
+                {
+                    Row = row,
+                    Field = "Question.Status",
+                    ErrorCode = "CONFLICT_PUBLISHED_QUESTION_PROTECTED",
+                    Message = $"Câu hỏi '{shortTitle}' đã tồn tại trong CSDL với trạng thái '{existingQ.Status}'. Hệ thống cấm tự động ghi đè câu hỏi trong ngân hàng khảo thí chính thức.",
+                    RejectedValue = existingQ.Id
+                });
+
+                previewItems.Add(new ImportItemPreviewDto
+                {
+                    EntityType = "question",
+                    Identifier = existingQ.Id,
+                    Title = shortTitle,
+                    Action = ImportActionType.Conflict,
+                    Reason = $"Xung đột: Câu hỏi đã xuất bản ('{existingQ.Status}'), bị khóa chống ghi đè."
+                });
+                return;
+            }
+
             previewItems.Add(new ImportItemPreviewDto
             {
                 EntityType = "question",
-                Identifier = existingId,
+                Identifier = existingQ.Id,
                 Title = shortTitle,
                 Action = ImportActionType.Update,
-                Reason = "Câu hỏi đã có trong CSDL, sẽ cập nhật phương án và lời giải."
+                Reason = "Câu hỏi tồn tại ở trạng thái nháp (draft), sẽ cập nhật nội dung."
             });
         }
         else
@@ -696,7 +810,7 @@ public class CurriculumImportValidator : ICurriculumImportValidator
                 Identifier = identifier,
                 Title = shortTitle,
                 Action = ImportActionType.Insert,
-                Reason = "Câu hỏi mới, sẽ thêm vào ngân hàng câu hỏi."
+                Reason = "Câu hỏi mới, sẽ thêm vào ngân hàng câu hỏi (trạng thái draft)."
             });
         }
     }
@@ -712,17 +826,9 @@ public class CurriculumImportValidator : ICurriculumImportValidator
         {
             if (text[i] == '$')
             {
-                // Count preceding backslashes
                 int bsCount = 0;
-                for (int j = i - 1; j >= 0 && text[j] == '\\'; j--)
-                {
-                    bsCount++;
-                }
-
-                if (bsCount % 2 == 0) // Not escaped
-                {
-                    dollarCount++;
-                }
+                for (int j = i - 1; j >= 0 && text[j] == '\\'; j--) bsCount++;
+                if (bsCount % 2 == 0) dollarCount++;
             }
         }
 
@@ -745,7 +851,7 @@ public class CurriculumImportValidator : ICurriculumImportValidator
                 {
                     int bs = 0;
                     for (int j = i - 1; j >= 0 && formula[j] == '\\'; j--) bs++;
-                    if (bs % 2 == 0) // unescaped
+                    if (bs % 2 == 0)
                     {
                         if (c == '{') braceDepth++;
                         else braceDepth--;
@@ -788,14 +894,5 @@ public class CurriculumImportValidator : ICurriculumImportValidator
         }
 
         return false;
-    }
-
-    private static string ComputeFingerprint(string scope, string prompt)
-    {
-        var cleanPrompt = Regex.Replace(prompt.Trim().ToLowerInvariant(), @"\s+", " ");
-        var raw = $"{scope.Trim().ToLowerInvariant()}::{cleanPrompt}";
-        using var sha256 = SHA256.Create();
-        var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(raw));
-        return Convert.ToHexString(bytes).ToLowerInvariant();
     }
 }

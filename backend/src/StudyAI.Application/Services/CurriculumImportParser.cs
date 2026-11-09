@@ -11,10 +11,14 @@ namespace StudyAI.Application.Services;
 
 public class CurriculumImportParser : ICurriculumImportParser
 {
-    private const long MaxFileSizeBytes = 15 * 1024 * 1024; // 15MB
-    private const long MaxUncompressedZipBytes = 50 * 1024 * 1024; // 50MB
-    private const int MaxAllowedRows = 5000;
-    private const int MaxAllowedColumns = 100;
+    public const long MaxFileSizeBytes = 15 * 1024 * 1024; // 15MB
+    public const long MaxUncompressedZipBytes = 50 * 1024 * 1024; // 50MB
+    public const int MaxAllowedRows = 5000;
+    public const int MaxAllowedColumns = 100;
+
+    private static readonly XNamespace SpreadsheetNs = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+    private static readonly XNamespace RelsNs = "http://schemas.openxmlformats.org/package/2006/relationships";
+    private static readonly XNamespace OfficeRelsNs = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 
     public async Task<CurriculumImportBatchDto> ParseAsync(Stream fileStream, string fileName, CancellationToken cancellationToken = default)
     {
@@ -30,6 +34,8 @@ public class CurriculumImportParser : ICurriculumImportParser
             _ => throw new NotSupportedException($"Định dạng tệp '{ext}' không được hỗ trợ. Chỉ chấp nhận .json, .csv, .xlsx.")
         };
     }
+
+    #region JSON Parser
 
     public async Task<CurriculumImportBatchDto> ParseJsonAsync(Stream stream, string fileName, CancellationToken cancellationToken = default)
     {
@@ -51,11 +57,12 @@ public class CurriculumImportParser : ICurriculumImportParser
         });
 
         var root = doc.RootElement;
+        int totalEntities = 0;
 
         // Case 1: Tree with single subject
         if (root.TryGetProperty("subject", out var subjectElem))
         {
-            var subject = ParseSubjectElement(subjectElem, 1);
+            var subject = ParseSubjectElement(subjectElem, 1, ref totalEntities);
             batch.Subjects.Add(subject);
         }
         // Case 2: Tree with subjects array
@@ -64,9 +71,10 @@ public class CurriculumImportParser : ICurriculumImportParser
             int row = 1;
             foreach (var s in subjectsElem.EnumerateArray())
             {
-                batch.Subjects.Add(ParseSubjectElement(s, row++));
+                batch.Subjects.Add(ParseSubjectElement(s, row++, ref totalEntities));
             }
         }
+
         // Case 3: Flat question bank format
         if (root.TryGetProperty("questions", out var questionsElem) && questionsElem.ValueKind == JsonValueKind.Array)
         {
@@ -77,13 +85,28 @@ public class CurriculumImportParser : ICurriculumImportParser
             int row = 1;
             foreach (var q in questionsElem.EnumerateArray())
             {
+                totalEntities++;
+                if (totalEntities > MaxAllowedRows)
+                {
+                    throw new InvalidOperationException($"Tệp JSON chứa vượt quá giới hạn tối đa cho phép ({MaxAllowedRows} mục dữ liệu). Vui lòng chia nhỏ tệp.");
+                }
+
                 var qDto = ParseQuestionElement(q, row++, defaultSubject, defaultChapter, defaultLesson);
                 batch.FlatQuestions.Add(qDto);
             }
         }
 
+        if (totalEntities > MaxAllowedRows)
+        {
+            throw new InvalidOperationException($"Tệp JSON chứa {totalEntities} mục, vượt quá giới hạn tối đa cho phép ({MaxAllowedRows} mục dữ liệu).");
+        }
+
         return batch;
     }
+
+    #endregion
+
+    #region CSV Parser
 
     public async Task<CurriculumImportBatchDto> ParseCsvAsync(Stream stream, string fileName, CancellationToken cancellationToken = default)
     {
@@ -101,7 +124,19 @@ public class CurriculumImportParser : ICurriculumImportParser
         var lines = ParseCsvLines(text);
         if (lines.Count == 0) return batch;
 
+        // Enforce row and column limits
+        int dataRowCount = lines.Count - 1;
+        if (dataRowCount > MaxAllowedRows)
+        {
+            throw new InvalidOperationException($"Tệp CSV chứa {dataRowCount} dòng dữ liệu, vượt quá giới hạn tối đa cho phép ({MaxAllowedRows} dòng). Vui lòng chia nhỏ tệp.");
+        }
+
         var header = lines[0].Select(h => h.Trim().ToLowerInvariant()).ToList();
+        if (header.Count > MaxAllowedColumns)
+        {
+            throw new InvalidOperationException($"Tệp CSV chứa {header.Count} cột, vượt quá giới hạn tối đa cho phép ({MaxAllowedColumns} cột).");
+        }
+
         var colMap = new Dictionary<string, int>();
         for (int i = 0; i < header.Count; i++)
         {
@@ -110,7 +145,6 @@ public class CurriculumImportParser : ICurriculumImportParser
 
         for (int r = 1; r < lines.Count; r++)
         {
-            if (r > MaxAllowedRows) break;
             var row = lines[r];
             if (row.All(string.IsNullOrWhiteSpace)) continue;
 
@@ -118,57 +152,27 @@ public class CurriculumImportParser : ICurriculumImportParser
             {
                 if (colMap.TryGetValue(name.ToLowerInvariant(), out var idx) && idx < row.Count)
                 {
-                    return SanitizeCsvFormulaInjection(row[idx].Trim());
+                    return CleanExcelEscapedQuotes(row[idx].Trim());
                 }
                 return fallback;
             }
 
-            var optionsRaw = GetCol("options");
-            var optionsList = new List<string>();
-            if (!string.IsNullOrEmpty(optionsRaw))
-            {
-                string[] parts;
-                if (optionsRaw.Contains('|'))
-                {
-                    parts = optionsRaw.Split('|');
-                }
-                else if (optionsRaw.Contains('\n'))
-                {
-                    parts = optionsRaw.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
-                }
-                else if (optionsRaw.Contains(";;"))
-                {
-                    parts = optionsRaw.Split(new[] { ";;" }, StringSplitOptions.RemoveEmptyEntries);
-                }
-                else
-                {
-                    parts = optionsRaw.Split(';');
-                }
+            var prompt = GetCol("prompt");
+            if (string.IsNullOrWhiteSpace(prompt)) continue;
 
-                optionsList = parts.Select(s => s.Trim()).Where(s => !string.IsNullOrEmpty(s)).ToList();
-            }
-
-            if (optionsList.Count == 0)
-            {
-                optionsList = new List<string>
-                {
-                    GetCol("optiona"),
-                    GetCol("optionb"),
-                    GetCol("optionc"),
-                    GetCol("optiond")
-                }.Where(o => !string.IsNullOrEmpty(o)).ToList();
-            }
+            var optionsList = ExtractOptions(GetCol("options"), GetCol("optiona"), GetCol("optionb"), GetCol("optionc"), GetCol("optiond"));
 
             var qDto = new ImportQuestionItemDto
             {
                 RowNumber = r + 1,
+                Code = GetCol("code"),
                 SubjectCode = GetCol("subjectcode", "MATH12"),
                 ChapterCode = GetCol("chaptercode"),
                 LessonCode = GetCol("lessoncode"),
                 Topic = GetCol("topic"),
                 Difficulty = NormalizeDifficulty(GetCol("difficulty", "medium")),
                 Type = NormalizeType(GetCol("type", "multiple-choice")),
-                Prompt = GetCol("prompt"),
+                Prompt = prompt,
                 Options = optionsList,
                 CorrectAnswer = GetCol("correctanswer").ToUpperInvariant(),
                 Explanation = GetCol("explanation"),
@@ -177,12 +181,16 @@ public class CurriculumImportParser : ICurriculumImportParser
                 Status = "draft"
             };
 
-            qDto.Fingerprint = GenerateQuestionFingerprint(qDto.LessonCode ?? "", qDto.Prompt);
+            qDto.Fingerprint = GenerateQuestionFingerprint(qDto.LessonCode ?? qDto.SubjectCode, qDto.Prompt);
             batch.FlatQuestions.Add(qDto);
         }
 
         return batch;
     }
+
+    #endregion
+
+    #region XLSX Parser (Multi-sheet & Robust Column Mapping)
 
     public async Task<CurriculumImportBatchDto> ParseXlsxAsync(Stream stream, string fileName, CancellationToken cancellationToken = default)
     {
@@ -206,138 +214,393 @@ public class CurriculumImportParser : ICurriculumImportParser
             uncompressedTotal += entry.Length;
             if (uncompressedTotal > MaxUncompressedZipBytes)
             {
-                throw new InvalidOperationException("Tệp XLSX vượt quá dung lượng giải nén cho phép (Zip bomb prevention).");
+                throw new InvalidOperationException($"Tệp XLSX vượt quá dung lượng giải nén an toàn cho phép ({MaxUncompressedZipBytes / 1024 / 1024}MB - Zip bomb prevention).");
             }
         }
 
         // Read shared strings
-        var sharedStrings = new List<string>();
-        var sharedStringsEntry = archive.GetEntry("xl/sharedStrings.xml");
-        if (sharedStringsEntry != null)
+        var sharedStrings = LoadSharedStrings(archive);
+
+        // Map sheets from xl/workbook.xml & xl/_rels/workbook.xml.rels
+        var sheets = LoadWorkbookSheetEntries(archive);
+        if (sheets.Count == 0)
         {
-            using var entryStream = sharedStringsEntry.Open();
-            var xdoc = XDocument.Load(entryStream);
-            XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
-            foreach (var si in xdoc.Descendants(ns + "si"))
+            // Fallback: look for any sheet in xl/worksheets/
+            var fallbackEntry = archive.GetEntry("xl/worksheets/sheet1.xml") ??
+                                archive.Entries.FirstOrDefault(e => e.FullName.StartsWith("xl/worksheets/sheet", StringComparison.OrdinalIgnoreCase) && e.FullName.EndsWith(".xml", StringComparison.OrdinalIgnoreCase));
+            if (fallbackEntry != null)
             {
-                var t = si.Descendants(ns + "t").Select(x => x.Value).DefaultIfEmpty("").Aggregate((a, b) => a + b);
-                sharedStrings.Add(t);
+                sheets["Sheet1"] = fallbackEntry;
             }
         }
 
-        // Find primary question/content sheet
-        var sheetEntry = archive.GetEntry("xl/worksheets/sheet1.xml");
-        if (sheetEntry == null) return batch;
+        if (sheets.Count == 0) return batch;
 
-        using (var sheetStream = sheetEntry.Open())
+        // Check if multi-sheet curriculum hierarchy is present:
+        var subjectSheet = sheets.FirstOrDefault(s => s.Key.Contains("subject", StringComparison.OrdinalIgnoreCase) || s.Key.Contains("monhoc", StringComparison.OrdinalIgnoreCase)).Value;
+        var chapterSheet = sheets.FirstOrDefault(s => s.Key.Contains("chapter", StringComparison.OrdinalIgnoreCase) || s.Key.Contains("chuong", StringComparison.OrdinalIgnoreCase)).Value;
+        var lessonSheet = sheets.FirstOrDefault(s => s.Key.Contains("lesson", StringComparison.OrdinalIgnoreCase) || s.Key.Contains("baihoc", StringComparison.OrdinalIgnoreCase)).Value;
+        var questionSheet = sheets.FirstOrDefault(s => s.Key.Contains("question", StringComparison.OrdinalIgnoreCase) || s.Key.Contains("cauhoi", StringComparison.OrdinalIgnoreCase)).Value;
+
+        if (subjectSheet != null || chapterSheet != null || lessonSheet != null)
         {
-            var sheetDoc = XDocument.Load(sheetStream);
-            XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+            // Parse multi-sheet hierarchy
+            var subjects = subjectSheet != null ? ParseXlsxSubjectsSheet(subjectSheet, sharedStrings) : new List<ImportSubjectItemDto>();
+            var chapters = chapterSheet != null ? ParseXlsxChaptersSheet(chapterSheet, sharedStrings) : new List<ImportChapterItemDto>();
+            var lessons = lessonSheet != null ? ParseXlsxLessonsSheet(lessonSheet, sharedStrings) : new List<ImportLessonItemDto>();
+            var questions = questionSheet != null ? ParseXlsxQuestionsSheet(questionSheet, sharedStrings) : new List<ImportQuestionItemDto>();
 
-            var rows = sheetDoc.Descendants(ns + "row").Take(MaxAllowedRows + 1).ToList();
-            if (rows.Count == 0) return batch;
+            // Assemble tree
+            var chaptersBySubject = chapters.GroupBy(c => c.SubjectCode, StringComparer.OrdinalIgnoreCase)
+                                            .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
 
-            // Parse header from row 1
-            var headerRow = rows[0];
-            var colIndexMap = new Dictionary<string, int>();
-            int colCounter = 0;
+            var lessonsByChapter = lessons.GroupBy(l => l.ChapterCode, StringComparer.OrdinalIgnoreCase)
+                                          .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
 
-            foreach (var c in headerRow.Descendants(ns + "c"))
+            var questionsByLesson = questions.Where(q => !string.IsNullOrEmpty(q.LessonCode))
+                                             .GroupBy(q => q.LessonCode!, StringComparer.OrdinalIgnoreCase)
+                                             .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
+
+            var flatQuestions = questions.Where(q => string.IsNullOrEmpty(q.LessonCode)).ToList();
+
+            foreach (var ch in chapters)
             {
-                string text = GetCellValue(c, sharedStrings, ns).Trim().ToLowerInvariant();
-                if (!string.IsNullOrEmpty(text))
+                if (lessonsByChapter.TryGetValue(ch.Code, out var chLessons))
                 {
-                    colIndexMap[text] = colCounter++;
+                    ch.Lessons = chLessons;
+                    foreach (var les in chLessons)
+                    {
+                        if (questionsByLesson.TryGetValue(les.Code, out var lesQuestions))
+                        {
+                            les.Questions = lesQuestions;
+                        }
+                    }
                 }
             }
 
-            for (int r = 1; r < rows.Count; r++)
+            foreach (var sub in subjects)
             {
-                var rowElem = rows[r];
-                var cells = rowElem.Descendants(ns + "c").ToList();
-                if (cells.Count == 0) continue;
-
-                var rowValues = new List<string>();
-                foreach (var c in cells.Take(MaxAllowedColumns))
+                if (chaptersBySubject.TryGetValue(sub.Code, out var subChapters))
                 {
-                    rowValues.Add(GetCellValue(c, sharedStrings, ns));
+                    sub.Chapters = subChapters;
                 }
-
-                string GetCol(string name, string fallback = "")
-                {
-                    if (colIndexMap.TryGetValue(name.ToLowerInvariant(), out var idx) && idx < rowValues.Count)
-                    {
-                        return SanitizeCsvFormulaInjection(rowValues[idx].Trim());
-                    }
-                    return fallback;
-                }
-
-                var prompt = GetCol("prompt");
-                if (string.IsNullOrWhiteSpace(prompt)) continue;
-
-                var optionsRaw = GetCol("options");
-                var optionsList = new List<string>();
-                if (!string.IsNullOrEmpty(optionsRaw))
-                {
-                    string[] parts;
-                    if (optionsRaw.Contains('|'))
-                    {
-                        parts = optionsRaw.Split('|');
-                    }
-                    else if (optionsRaw.Contains('\n'))
-                    {
-                        parts = optionsRaw.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
-                    }
-                    else if (optionsRaw.Contains(";;"))
-                    {
-                        parts = optionsRaw.Split(new[] { ";;" }, StringSplitOptions.RemoveEmptyEntries);
-                    }
-                    else
-                    {
-                        parts = optionsRaw.Split(';');
-                    }
-
-                    optionsList = parts.Select(s => s.Trim()).Where(s => !string.IsNullOrEmpty(s)).ToList();
-                }
-
-                if (optionsList.Count == 0)
-                {
-                    optionsList = new List<string>
-                    {
-                        GetCol("optiona"),
-                        GetCol("optionb"),
-                        GetCol("optionc"),
-                        GetCol("optiond")
-                    }.Where(o => !string.IsNullOrEmpty(o)).ToList();
-                }
-
-                var qDto = new ImportQuestionItemDto
-                {
-                    RowNumber = r + 1,
-                    SubjectCode = GetCol("subjectcode", "MATH12"),
-                    ChapterCode = GetCol("chaptercode"),
-                    LessonCode = GetCol("lessoncode"),
-                    Topic = GetCol("topic"),
-                    Difficulty = NormalizeDifficulty(GetCol("difficulty", "medium")),
-                    Type = NormalizeType(GetCol("type", "multiple-choice")),
-                    Prompt = prompt,
-                    Options = optionsList,
-                    CorrectAnswer = GetCol("correctanswer").ToUpperInvariant(),
-                    Explanation = GetCol("explanation"),
-                    SourceCitation = GetCol("sourcecitation"),
-                    LicenseType = GetCol("licensetype"),
-                    Status = "draft"
-                };
-
-                qDto.Fingerprint = GenerateQuestionFingerprint(qDto.LessonCode ?? "", qDto.Prompt);
-                batch.FlatQuestions.Add(qDto);
             }
+
+            batch.Subjects = subjects;
+            batch.FlatQuestions = flatQuestions;
+            return batch;
         }
 
+        // Single Sheet or Question Bank Sheet
+        var primarySheet = questionSheet ?? sheets.First().Value;
+        batch.FlatQuestions = ParseXlsxQuestionsSheet(primarySheet, sharedStrings);
         return batch;
     }
 
-    #region Helpers
+    private static List<ImportQuestionItemDto> ParseXlsxQuestionsSheet(ZipArchiveEntry sheetEntry, List<string> sharedStrings)
+    {
+        var questions = new List<ImportQuestionItemDto>();
+        using var sheetStream = sheetEntry.Open();
+        var sheetDoc = XDocument.Load(sheetStream);
+
+        var rows = sheetDoc.Descendants(SpreadsheetNs + "row").ToList();
+        if (rows.Count <= 1) return questions;
+
+        int dataRows = rows.Count - 1;
+        if (dataRows > MaxAllowedRows)
+        {
+            throw new InvalidOperationException($"Trang tính '{sheetEntry.Name}' có {dataRows} dòng dữ liệu, vượt quá giới hạn tối đa ({MaxAllowedRows} dòng). Vui lòng chia nhỏ tệp.");
+        }
+
+        // Parse header row
+        var headerRow = rows[0];
+        var colIndexMap = new Dictionary<string, int>();
+
+        foreach (var c in headerRow.Descendants(SpreadsheetNs + "c"))
+        {
+            var rAttr = c.Attribute("r")?.Value;
+            int colIdx = !string.IsNullOrEmpty(rAttr) ? GetColumnIndexFromCellReference(rAttr) : 0;
+            string text = GetCellValue(c, sharedStrings, SpreadsheetNs).Trim().ToLowerInvariant();
+            if (!string.IsNullOrEmpty(text))
+            {
+                colIndexMap[text] = colIdx;
+            }
+        }
+
+        for (int r = 1; r < rows.Count; r++)
+        {
+            var rowElem = rows[r];
+            var cells = rowElem.Descendants(SpreadsheetNs + "c").ToList();
+            if (cells.Count == 0) continue;
+
+            var cellMap = new Dictionary<int, string>();
+            foreach (var c in cells)
+            {
+                var rAttr = c.Attribute("r")?.Value;
+                if (!string.IsNullOrEmpty(rAttr))
+                {
+                    int colIdx = GetColumnIndexFromCellReference(rAttr);
+                    if (colIdx >= MaxAllowedColumns)
+                    {
+                        throw new InvalidOperationException($"Trang tính có cột vị trí '{rAttr}' vượt quá giới hạn tối đa ({MaxAllowedColumns} cột).");
+                    }
+                    cellMap[colIdx] = GetCellValue(c, sharedStrings, SpreadsheetNs);
+                }
+            }
+
+            string GetCol(string name, string fallback = "")
+            {
+                if (colIndexMap.TryGetValue(name.ToLowerInvariant(), out var colIdx) && cellMap.TryGetValue(colIdx, out var val))
+                {
+                    return CleanExcelEscapedQuotes(val.Trim());
+                }
+                return fallback;
+            }
+
+            var prompt = GetCol("prompt");
+            if (string.IsNullOrWhiteSpace(prompt)) continue;
+
+            var optionsList = ExtractOptions(GetCol("options"), GetCol("optiona"), GetCol("optionb"), GetCol("optionc"), GetCol("optiond"));
+
+            var qDto = new ImportQuestionItemDto
+            {
+                RowNumber = r + 1,
+                Code = GetCol("code"),
+                SubjectCode = GetCol("subjectcode", "MATH12"),
+                ChapterCode = GetCol("chaptercode"),
+                LessonCode = GetCol("lessoncode"),
+                Topic = GetCol("topic"),
+                Difficulty = NormalizeDifficulty(GetCol("difficulty", "medium")),
+                Type = NormalizeType(GetCol("type", "multiple-choice")),
+                Prompt = prompt,
+                Options = optionsList,
+                CorrectAnswer = GetCol("correctanswer").ToUpperInvariant(),
+                Explanation = GetCol("explanation"),
+                SourceCitation = GetCol("sourcecitation"),
+                LicenseType = GetCol("licensetype"),
+                Status = "draft"
+            };
+
+            qDto.Fingerprint = GenerateQuestionFingerprint(qDto.LessonCode ?? qDto.SubjectCode, qDto.Prompt);
+            questions.Add(qDto);
+        }
+
+        return questions;
+    }
+
+    private static List<ImportSubjectItemDto> ParseXlsxSubjectsSheet(ZipArchiveEntry sheetEntry, List<string> sharedStrings)
+    {
+        var subjects = new List<ImportSubjectItemDto>();
+        using var stream = sheetEntry.Open();
+        var doc = XDocument.Load(stream);
+        var rows = doc.Descendants(SpreadsheetNs + "row").ToList();
+        if (rows.Count <= 1) return subjects;
+
+        var (colMap, dataRows) = ParseSheetRows(rows, sharedStrings);
+        int rNum = 2;
+        foreach (var rowValues in dataRows)
+        {
+            string Get(string col, string def = "") => colMap.TryGetValue(col, out var idx) && rowValues.TryGetValue(idx, out var v) ? CleanExcelEscapedQuotes(v) : def;
+
+            var code = Get("code");
+            var name = Get("name");
+            if (string.IsNullOrWhiteSpace(code) && string.IsNullOrWhiteSpace(name)) continue;
+
+            subjects.Add(new ImportSubjectItemDto
+            {
+                RowNumber = rNum++,
+                Code = code,
+                Name = name,
+                Grade = Get("grade", "12"),
+                Description = Get("description"),
+                OrderIndex = int.TryParse(Get("orderindex"), out var oi) ? oi : 0
+            });
+        }
+        return subjects;
+    }
+
+    private static List<ImportChapterItemDto> ParseXlsxChaptersSheet(ZipArchiveEntry sheetEntry, List<string> sharedStrings)
+    {
+        var chapters = new List<ImportChapterItemDto>();
+        using var stream = sheetEntry.Open();
+        var doc = XDocument.Load(stream);
+        var rows = doc.Descendants(SpreadsheetNs + "row").ToList();
+        if (rows.Count <= 1) return chapters;
+
+        var (colMap, dataRows) = ParseSheetRows(rows, sharedStrings);
+        int rNum = 2;
+        foreach (var rowValues in dataRows)
+        {
+            string Get(string col, string def = "") => colMap.TryGetValue(col, out var idx) && rowValues.TryGetValue(idx, out var v) ? CleanExcelEscapedQuotes(v) : def;
+
+            var code = Get("code");
+            var title = Get("title");
+            if (string.IsNullOrWhiteSpace(code) && string.IsNullOrWhiteSpace(title)) continue;
+
+            chapters.Add(new ImportChapterItemDto
+            {
+                RowNumber = rNum++,
+                Code = code,
+                SubjectCode = Get("subjectcode"),
+                Title = title,
+                Description = Get("description"),
+                OrderIndex = int.TryParse(Get("orderindex"), out var oi) ? oi : 0
+            });
+        }
+        return chapters;
+    }
+
+    private static List<ImportLessonItemDto> ParseXlsxLessonsSheet(ZipArchiveEntry sheetEntry, List<string> sharedStrings)
+    {
+        var lessons = new List<ImportLessonItemDto>();
+        using var stream = sheetEntry.Open();
+        var doc = XDocument.Load(stream);
+        var rows = doc.Descendants(SpreadsheetNs + "row").ToList();
+        if (rows.Count <= 1) return lessons;
+
+        var (colMap, dataRows) = ParseSheetRows(rows, sharedStrings);
+        int rNum = 2;
+        foreach (var rowValues in dataRows)
+        {
+            string Get(string col, string def = "") => colMap.TryGetValue(col, out var idx) && rowValues.TryGetValue(idx, out var v) ? CleanExcelEscapedQuotes(v) : def;
+
+            var code = Get("code");
+            var title = Get("title");
+            if (string.IsNullOrWhiteSpace(code) && string.IsNullOrWhiteSpace(title)) continue;
+
+            lessons.Add(new ImportLessonItemDto
+            {
+                RowNumber = rNum++,
+                Code = code,
+                ChapterCode = Get("chaptercode"),
+                SubjectCode = Get("subjectcode"),
+                Title = title,
+                Slug = Get("slug"),
+                Introduction = Get("introduction"),
+                Status = "draft",
+                OrderIndex = int.TryParse(Get("orderindex"), out var oi) ? oi : 0
+            });
+        }
+        return lessons;
+    }
+
+    private static (Dictionary<string, int> ColMap, List<Dictionary<int, string>> Rows) ParseSheetRows(List<XElement> rows, List<string> sharedStrings)
+    {
+        var colMap = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var dataRows = new List<Dictionary<int, string>>();
+        if (rows.Count == 0) return (colMap, dataRows);
+
+        foreach (var c in rows[0].Descendants(SpreadsheetNs + "c"))
+        {
+            var rAttr = c.Attribute("r")?.Value;
+            int colIdx = !string.IsNullOrEmpty(rAttr) ? GetColumnIndexFromCellReference(rAttr) : 0;
+            string text = GetCellValue(c, sharedStrings, SpreadsheetNs).Trim().ToLowerInvariant();
+            if (!string.IsNullOrEmpty(text)) colMap[text] = colIdx;
+        }
+
+        for (int r = 1; r < rows.Count; r++)
+        {
+            var cells = rows[r].Descendants(SpreadsheetNs + "c").ToList();
+            if (cells.Count == 0) continue;
+
+            var cellMap = new Dictionary<int, string>();
+            foreach (var c in cells)
+            {
+                var rAttr = c.Attribute("r")?.Value;
+                if (!string.IsNullOrEmpty(rAttr))
+                {
+                    int colIdx = GetColumnIndexFromCellReference(rAttr);
+                    cellMap[colIdx] = GetCellValue(c, sharedStrings, SpreadsheetNs);
+                }
+            }
+            dataRows.Add(cellMap);
+        }
+
+        return (colMap, dataRows);
+    }
+
+    #endregion
+
+    #region Helpers & Data Hygiene
+
+    private static List<string> LoadSharedStrings(ZipArchive archive)
+    {
+        var sharedStrings = new List<string>();
+        var sharedStringsEntry = archive.GetEntry("xl/sharedStrings.xml");
+        if (sharedStringsEntry == null) return sharedStrings;
+
+        using var entryStream = sharedStringsEntry.Open();
+        var xdoc = XDocument.Load(entryStream);
+        foreach (var si in xdoc.Descendants(SpreadsheetNs + "si"))
+        {
+            var t = si.Descendants(SpreadsheetNs + "t").Select(x => x.Value).DefaultIfEmpty("").Aggregate((a, b) => a + b);
+            sharedStrings.Add(t);
+        }
+        return sharedStrings;
+    }
+
+    private static Dictionary<string, ZipArchiveEntry> LoadWorkbookSheetEntries(ZipArchive archive)
+    {
+        var result = new Dictionary<string, ZipArchiveEntry>(StringComparer.OrdinalIgnoreCase);
+        var wbEntry = archive.GetEntry("xl/workbook.xml");
+        var wbRelsEntry = archive.GetEntry("xl/_rels/workbook.xml.rels");
+        if (wbEntry == null) return result;
+
+        var relsMap = new Dictionary<string, string>();
+        if (wbRelsEntry != null)
+        {
+            using var relsStream = wbRelsEntry.Open();
+            var relsDoc = XDocument.Load(relsStream);
+            foreach (var rel in relsDoc.Descendants(RelsNs + "Relationship"))
+            {
+                var id = rel.Attribute("Id")?.Value;
+                var target = rel.Attribute("Target")?.Value;
+                if (!string.IsNullOrEmpty(id) && !string.IsNullOrEmpty(target))
+                {
+                    relsMap[id] = target;
+                }
+            }
+        }
+
+        using (var wbStream = wbEntry.Open())
+        {
+            var wbDoc = XDocument.Load(wbStream);
+            foreach (var sheet in wbDoc.Descendants(SpreadsheetNs + "sheet"))
+            {
+                var name = sheet.Attribute("name")?.Value ?? "";
+                var rId = sheet.Attribute(OfficeRelsNs + "id")?.Value;
+                if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(rId) && relsMap.TryGetValue(rId, out var targetPath))
+                {
+                    var cleanPath = targetPath.StartsWith("/") ? targetPath.TrimStart('/') : "xl/" + targetPath.TrimStart('/');
+                    var entry = archive.GetEntry(cleanPath);
+                    if (entry != null)
+                    {
+                        result[name] = entry;
+                    }
+                }
+            }
+        }
+
+        return result;
+    }
+
+    public static int GetColumnIndexFromCellReference(string cellRef)
+    {
+        int col = 0;
+        for (int i = 0; i < cellRef.Length; i++)
+        {
+            char c = cellRef[i];
+            if (char.IsLetter(c))
+            {
+                col = col * 26 + (char.ToUpperInvariant(c) - 'A' + 1);
+            }
+            else
+            {
+                break;
+            }
+        }
+        return col > 0 ? col - 1 : 0;
+    }
 
     private static string GetCellValue(XElement cell, List<string> sharedStrings, XNamespace ns)
     {
@@ -347,8 +610,7 @@ public class CurriculumImportParser : ICurriculumImportParser
             var isElem = cell.Element(ns + "is");
             if (isElem != null)
             {
-                var t = isElem.Descendants(ns + "t").Select(x => x.Value).DefaultIfEmpty("").Aggregate((a, b) => a + b);
-                return t;
+                return isElem.Descendants(ns + "t").Select(x => x.Value).DefaultIfEmpty("").Aggregate((a, b) => a + b);
             }
         }
 
@@ -368,8 +630,64 @@ public class CurriculumImportParser : ICurriculumImportParser
         return val;
     }
 
-    private static ImportSubjectItemDto ParseSubjectElement(JsonElement elem, int row)
+    private static List<string> ExtractOptions(string optionsRaw, string optA, string optB, string optC, string optD)
     {
+        var optionsList = new List<string>();
+        if (!string.IsNullOrEmpty(optionsRaw))
+        {
+            string[] parts;
+            if (optionsRaw.Contains('|'))
+            {
+                parts = optionsRaw.Split('|');
+            }
+            else if (optionsRaw.Contains('\n'))
+            {
+                parts = optionsRaw.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries);
+            }
+            else if (optionsRaw.Contains(";;"))
+            {
+                parts = optionsRaw.Split(new[] { ";;" }, StringSplitOptions.RemoveEmptyEntries);
+            }
+            else
+            {
+                parts = optionsRaw.Split(';');
+            }
+
+            optionsList = parts.Select(CleanExcelEscapedQuotes).Where(s => !string.IsNullOrEmpty(s)).ToList();
+        }
+
+        if (optionsList.Count == 0)
+        {
+            optionsList = new List<string>
+            {
+                CleanExcelEscapedQuotes(optA),
+                CleanExcelEscapedQuotes(optB),
+                CleanExcelEscapedQuotes(optC),
+                CleanExcelEscapedQuotes(optD)
+            }.Where(o => !string.IsNullOrEmpty(o)).ToList();
+        }
+
+        return optionsList;
+    }
+
+    /// <summary>
+    /// Preserves legitimate math content (such as -3x + 2 = 0, +5, etc.) without modification.
+    /// Only removes leading apostrophe if added by spreadsheet software to escape formulas.
+    /// </summary>
+    public static string CleanExcelEscapedQuotes(string input)
+    {
+        if (string.IsNullOrEmpty(input)) return string.Empty;
+        var trimmed = input.Trim();
+        if (trimmed.StartsWith("'") && trimmed.Length > 1 && trimmed[1] is '=' or '+' or '-' or '@')
+        {
+            return trimmed[1..].Trim();
+        }
+        return trimmed;
+    }
+
+    private static ImportSubjectItemDto ParseSubjectElement(JsonElement elem, int row, ref int totalEntities)
+    {
+        totalEntities++;
         var subject = new ImportSubjectItemDto
         {
             RowNumber = row,
@@ -385,6 +703,7 @@ public class CurriculumImportParser : ICurriculumImportParser
             int chRow = 1;
             foreach (var ch in chaptersElem.EnumerateArray())
             {
+                totalEntities++;
                 var chapter = new ImportChapterItemDto
                 {
                     RowNumber = chRow++,
@@ -398,9 +717,57 @@ public class CurriculumImportParser : ICurriculumImportParser
                 if (ch.TryGetProperty("lessons", out var lessonsElem) && lessonsElem.ValueKind == JsonValueKind.Array)
                 {
                     int lesRow = 1;
-                    foreach (var l in lessonsElem.EnumerateArray())
+                    foreach (var les in lessonsElem.EnumerateArray())
                     {
-                        var lesson = ParseLessonElement(l, lesRow++, subject.Code, chapter.Code);
+                        totalEntities++;
+                        var lesson = new ImportLessonItemDto
+                        {
+                            RowNumber = lesRow++,
+                            ChapterCode = chapter.Code,
+                            SubjectCode = subject.Code,
+                            Code = les.TryGetProperty("code", out var lc) ? lc.GetString() ?? "" : "",
+                            Title = les.TryGetProperty("title", out var lt) ? lt.GetString() ?? "" : "",
+                            Slug = les.TryGetProperty("slug", out var ls) ? ls.GetString() ?? "" : "",
+                            OrderIndex = les.TryGetProperty("orderIndex", out var loi) ? loi.GetInt32() : 0,
+                            Status = "draft",
+                            Introduction = les.TryGetProperty("introduction", out var li) ? li.GetString() : null
+                        };
+
+                        if (les.TryGetProperty("definitions", out var defs) && defs.ValueKind == JsonValueKind.Array)
+                        {
+                            foreach (var defItem in defs.EnumerateArray())
+                            {
+                                lesson.Definitions.Add(new ImportDefinitionDto
+                                {
+                                    Term = defItem.TryGetProperty("term", out var dt) ? dt.GetString() ?? "" : "",
+                                    Content = defItem.TryGetProperty("content", out var dc) ? dc.GetString() ?? "" : ""
+                                });
+                            }
+                        }
+
+                        if (les.TryGetProperty("formulas", out var forms) && forms.ValueKind == JsonValueKind.Array)
+                        {
+                            foreach (var f in forms.EnumerateArray())
+                            {
+                                lesson.Formulas.Add(new ImportFormulaDto
+                                {
+                                    Name = f.TryGetProperty("name", out var fn) ? fn.GetString() ?? "" : "",
+                                    Latex = f.TryGetProperty("latex", out var fl) ? fl.GetString() ?? "" : ""
+                                });
+                            }
+                        }
+
+                        if (les.TryGetProperty("questions", out var lq) && lq.ValueKind == JsonValueKind.Array)
+                        {
+                            int qRow = 1;
+                            foreach (var q in lq.EnumerateArray())
+                            {
+                                totalEntities++;
+                                var qDto = ParseQuestionElement(q, qRow++, subject.Code, chapter.Code, lesson.Code);
+                                lesson.Questions.Add(qDto);
+                            }
+                        }
+
                         chapter.Lessons.Add(lesson);
                     }
                 }
@@ -412,84 +779,43 @@ public class CurriculumImportParser : ICurriculumImportParser
         return subject;
     }
 
-    private static ImportLessonItemDto ParseLessonElement(JsonElement elem, int row, string subjectCode, string chapterCode)
+    private static ImportQuestionItemDto ParseQuestionElement(JsonElement q, int row, string defaultSubject, string defaultChapter, string defaultLesson)
     {
-        var lesson = new ImportLessonItemDto
+        var options = new List<string>();
+        if (q.TryGetProperty("options", out var optElem) && optElem.ValueKind == JsonValueKind.Array)
         {
-            RowNumber = row,
-            SubjectCode = subjectCode,
-            ChapterCode = chapterCode,
-            Code = elem.TryGetProperty("code", out var lc) ? lc.GetString() ?? "" : "",
-            Title = elem.TryGetProperty("title", out var lt) ? lt.GetString() ?? "" : "",
-            Slug = elem.TryGetProperty("slug", out var ls) ? ls.GetString() ?? "" : "",
-            OrderIndex = elem.TryGetProperty("orderIndex", out var loi) ? loi.GetInt32() : 0,
-            Status = "draft",
-            Introduction = elem.TryGetProperty("introduction", out var intro) ? intro.GetString() : null
-        };
-
-        if (elem.TryGetProperty("definitions", out var defs) && defs.ValueKind == JsonValueKind.Array)
-        {
-            foreach (var d in defs.EnumerateArray())
+            foreach (var o in optElem.EnumerateArray())
             {
-                lesson.Definitions.Add(new ImportDefinitionDto
-                {
-                    Term = d.TryGetProperty("term", out var t) ? t.GetString() ?? "" : "",
-                    Content = d.TryGetProperty("content", out var c) ? c.GetString() ?? "" : ""
-                });
+                var str = o.GetString();
+                if (!string.IsNullOrEmpty(str)) options.Add(str);
             }
         }
 
-        if (elem.TryGetProperty("formulas", out var forms) && forms.ValueKind == JsonValueKind.Array)
-        {
-            foreach (var f in forms.EnumerateArray())
-            {
-                lesson.Formulas.Add(new ImportFormulaDto
-                {
-                    Name = f.TryGetProperty("name", out var fn) ? fn.GetString() ?? "" : "",
-                    Latex = f.TryGetProperty("latex", out var fl) ? fl.GetString() ?? "" : ""
-                });
-            }
-        }
+        var prompt = q.TryGetProperty("prompt", out var p) ? p.GetString() ?? "" : "";
+        var lessonCode = q.TryGetProperty("lessonCode", out var lc) ? lc.GetString() ?? defaultLesson : defaultLesson;
+        var subjectCode = q.TryGetProperty("subjectCode", out var sc) ? sc.GetString() ?? defaultSubject : defaultSubject;
 
-        if (elem.TryGetProperty("questions", out var questions) && questions.ValueKind == JsonValueKind.Array)
-        {
-            int qRow = 1;
-            foreach (var q in questions.EnumerateArray())
-            {
-                lesson.Questions.Add(ParseQuestionElement(q, qRow++, subjectCode, chapterCode, lesson.Code));
-            }
-        }
-
-        return lesson;
-    }
-
-    private static ImportQuestionItemDto ParseQuestionElement(JsonElement q, int row, string subjectCode, string chapterCode, string lessonCode)
-    {
         var qDto = new ImportQuestionItemDto
         {
             RowNumber = row,
-            SubjectCode = q.TryGetProperty("subjectCode", out var sc) ? sc.GetString() ?? subjectCode : subjectCode,
-            ChapterCode = q.TryGetProperty("chapterCode", out var cc) ? cc.GetString() ?? chapterCode : chapterCode,
-            LessonCode = q.TryGetProperty("lessonCode", out var lc) ? lc.GetString() ?? lessonCode : lessonCode,
-            Code = q.TryGetProperty("code", out var code) ? code.GetString() : null,
-            Prompt = q.TryGetProperty("prompt", out var p) ? p.GetString() ?? "" : "",
+            Code = q.TryGetProperty("code", out var qc) ? qc.GetString() : null,
+            SubjectCode = subjectCode,
+            ChapterCode = q.TryGetProperty("chapterCode", out var cc) ? cc.GetString() ?? defaultChapter : defaultChapter,
+            LessonCode = lessonCode,
+            Prompt = prompt,
+            Options = options,
             CorrectAnswer = q.TryGetProperty("correctAnswer", out var ca) ? ca.GetString()?.ToUpperInvariant() ?? "" : "",
             Explanation = q.TryGetProperty("explanation", out var exp) ? exp.GetString() : null,
             Topic = q.TryGetProperty("topic", out var top) ? top.GetString() : null,
             Difficulty = NormalizeDifficulty(q.TryGetProperty("difficulty", out var diff) ? diff.GetString() ?? "medium" : "medium"),
             Type = NormalizeType(q.TryGetProperty("type", out var typ) ? typ.GetString() ?? "multiple-choice" : "multiple-choice"),
-            Status = "draft"
+            Status = "draft",
+            OutcomeCode = q.TryGetProperty("outcomeCode", out var oc) ? oc.GetString() : null,
+            SourceCitation = q.TryGetProperty("sourceCitation", out var scit) ? scit.GetString() : null,
+            LicenseType = q.TryGetProperty("licenseType", out var lic) ? lic.GetString() : null
         };
 
-        if (q.TryGetProperty("options", out var opts) && opts.ValueKind == JsonValueKind.Array)
-        {
-            foreach (var opt in opts.EnumerateArray())
-            {
-                qDto.Options.Add(opt.GetString() ?? "");
-            }
-        }
-
-        qDto.Fingerprint = GenerateQuestionFingerprint(qDto.LessonCode ?? "", qDto.Prompt);
+        qDto.Fingerprint = GenerateQuestionFingerprint(qDto.LessonCode ?? qDto.SubjectCode, qDto.Prompt);
         return qDto;
     }
 
@@ -608,17 +934,6 @@ public class CurriculumImportParser : ICurriculumImportParser
         return text.StartsWith("\uFEFF", StringComparison.Ordinal) ? text[1..] : text;
     }
 
-    private static string SanitizeCsvFormulaInjection(string input)
-    {
-        if (string.IsNullOrEmpty(input)) return input;
-        char first = input[0];
-        if (first is '=' or '+' or '-' or '@' or '\t' or '\r')
-        {
-            return "'" + input;
-        }
-        return input;
-    }
-
     private static string NormalizeDifficulty(string diff)
     {
         var d = diff.ToLowerInvariant().Trim();
@@ -643,10 +958,13 @@ public class CurriculumImportParser : ICurriculumImportParser
         };
     }
 
-    public static string GenerateQuestionFingerprint(string lessonCode, string prompt)
+    public static string GenerateQuestionFingerprint(string scope, string prompt)
     {
-        string norm = Regex.Replace(prompt.Trim().ToLowerInvariant(), @"\s+", " ");
-        string raw = $"{lessonCode.Trim().ToLowerInvariant()}::{norm}";
+        var normScope = (scope ?? "").Trim().ToLowerInvariant();
+        var normPrompt = (prompt ?? "").Normalize(NormalizationForm.FormC).Trim().ToLowerInvariant();
+        normPrompt = Regex.Replace(normPrompt, @"\s+", " ");
+        normPrompt = normPrompt.TrimEnd('.', '?', ':', ';', ' ');
+        var raw = $"{normScope}::{normPrompt}";
         using var sha = SHA256.Create();
         return Convert.ToHexString(sha.ComputeHash(Encoding.UTF8.GetBytes(raw))).ToLowerInvariant();
     }
