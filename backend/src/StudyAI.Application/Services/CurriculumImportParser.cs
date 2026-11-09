@@ -101,6 +101,11 @@ public class CurriculumImportParser : ICurriculumImportParser
             throw new InvalidOperationException($"Tệp JSON chứa {totalEntities} mục, vượt quá giới hạn tối đa cho phép ({MaxAllowedRows} mục dữ liệu).");
         }
 
+        if (batch.TotalEntitiesCount == 0)
+        {
+            throw new InvalidOperationException("Tệp JSON không chứa dữ liệu cấu trúc hợp lệ (yêu cầu trường 'subject', 'subjects' hoặc 'questions').");
+        }
+
         return batch;
     }
 
@@ -122,7 +127,10 @@ public class CurriculumImportParser : ICurriculumImportParser
         };
 
         var lines = ParseCsvLines(text);
-        if (lines.Count == 0) return batch;
+        if (lines.Count <= 1)
+        {
+            throw new InvalidOperationException("Tệp CSV rỗng hoặc chỉ có dòng tiêu đề mà không có dòng dữ liệu.");
+        }
 
         // Enforce row and column limits
         int dataRowCount = lines.Count - 1;
@@ -141,6 +149,11 @@ public class CurriculumImportParser : ICurriculumImportParser
         for (int i = 0; i < header.Count; i++)
         {
             colMap[header[i]] = i;
+        }
+
+        if (!colMap.ContainsKey("prompt"))
+        {
+            throw new InvalidOperationException("Tệp CSV thiếu cấu trúc bắt buộc: Không tìm thấy cột 'prompt'.");
         }
 
         for (int r = 1; r < lines.Count; r++)
@@ -183,6 +196,11 @@ public class CurriculumImportParser : ICurriculumImportParser
 
             qDto.Fingerprint = GenerateQuestionFingerprint(qDto.LessonCode ?? qDto.SubjectCode, qDto.Prompt);
             batch.FlatQuestions.Add(qDto);
+        }
+
+        if (batch.FlatQuestions.Count == 0)
+        {
+            throw new InvalidOperationException("Tệp CSV không chứa bất kỳ câu hỏi hợp lệ nào (tất cả các dòng đều có prompt rỗng).");
         }
 
         return batch;
@@ -234,7 +252,10 @@ public class CurriculumImportParser : ICurriculumImportParser
             }
         }
 
-        if (sheets.Count == 0) return batch;
+        if (sheets.Count == 0)
+        {
+            throw new InvalidOperationException("Tệp XLSX không chứa bất kỳ trang tính nào hợp lệ.");
+        }
 
         // Check if multi-sheet curriculum hierarchy is present:
         var subjectSheet = sheets.FirstOrDefault(s => s.Key.Contains("subject", StringComparison.OrdinalIgnoreCase) || s.Key.Contains("monhoc", StringComparison.OrdinalIgnoreCase)).Value;
@@ -294,6 +315,12 @@ public class CurriculumImportParser : ICurriculumImportParser
         // Single Sheet or Question Bank Sheet
         var primarySheet = questionSheet ?? sheets.First().Value;
         batch.FlatQuestions = ParseXlsxQuestionsSheet(primarySheet, sharedStrings);
+
+        if (batch.TotalEntitiesCount == 0)
+        {
+            throw new InvalidOperationException("Tệp XLSX thiếu cấu trúc bắt buộc hoặc không tìm thấy dữ liệu câu hỏi hợp lệ.");
+        }
+
         return batch;
     }
 
@@ -304,7 +331,10 @@ public class CurriculumImportParser : ICurriculumImportParser
         var sheetDoc = XDocument.Load(sheetStream);
 
         var rows = sheetDoc.Descendants(SpreadsheetNs + "row").ToList();
-        if (rows.Count <= 1) return questions;
+        if (rows.Count <= 1)
+        {
+            throw new InvalidOperationException($"Trang tính '{sheetEntry.Name}' rỗng hoặc chỉ chứa dòng tiêu đề mà không có dữ liệu.");
+        }
 
         int dataRows = rows.Count - 1;
         if (dataRows > MaxAllowedRows)
@@ -325,6 +355,11 @@ public class CurriculumImportParser : ICurriculumImportParser
             {
                 colIndexMap[text] = colIdx;
             }
+        }
+
+        if (!colIndexMap.ContainsKey("prompt"))
+        {
+            throw new InvalidOperationException($"Trang tính '{sheetEntry.Name}' thiếu cấu trúc bắt buộc: Không tìm thấy cột 'prompt'.");
         }
 
         for (int r = 1; r < rows.Count; r++)

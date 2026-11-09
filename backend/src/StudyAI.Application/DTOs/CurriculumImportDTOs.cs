@@ -168,5 +168,19 @@ public class CurriculumImportPreviewResponseDto
     public DateTimeOffset ExpiresAt { get; set; }
 }
 
+public class CurriculumImportSessionDto
+{
+    public string PreviewToken { get; set; } = string.Empty;
+    public string ActorId { get; set; } = string.Empty;
+    public string ActorEmail { get; set; } = string.Empty;
+    public string FileHashSha256 { get; set; } = string.Empty;
+    public string FileName { get; set; } = string.Empty;
+    public string FileFormat { get; set; } = string.Empty;
+    public CurriculumImportBatchDto Batch { get; set; } = new();
+    public CurriculumImportPreviewResponseDto PreviewResponse { get; set; } = new();
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset ExpiresAt { get; set; }
+}
+
 #endregion
 
