@@ -5,13 +5,17 @@ using Microsoft.Data.SqlClient;
 namespace StudyAI.Infrastructure.Persistence;
 
 /// <summary>
-/// Fail-closed database safety guard.
-/// Ensures tests, migrations, and automated fixtures NEVER execute against or write to
-/// the production/primary database "StudyAIDb".
+/// Hardened fail-closed database safety guard.
+/// Ensures tests, migrations, and automated fixtures NEVER connect to or modify
+/// the primary database "StudyAIDb", and strictly restricts test targets to an exact whitelist:
+///   1. "StudyAIDb_E2E"
+///   2. "StudyAIDb_Clean_{GUID}" (with a cryptographically valid 32-hex or 36-char GUID format).
+/// All credentials and sensitive connection parameters are masked to prevent leakages in logs and exceptions.
 /// </summary>
 public static class DatabaseSafetyGuard
 {
     private static bool _forcedTestExecution = false;
+    private const string CleanPrefix = "StudyAIDb_Clean_";
 
     /// <summary>
     /// Indicates whether the current runtime environment is considered a test execution context.
@@ -47,9 +51,79 @@ public static class DatabaseSafetyGuard
     }
 
     /// <summary>
+    /// Sanitizes a connection string to strip passwords, user IDs, or sensitive tokens
+    /// before inclusion in any exception message or log output.
+    /// </summary>
+    public static string SanitizeConnectionString(string? connectionString)
+    {
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            return "<empty>";
+        }
+
+        try
+        {
+            var builder = new SqlConnectionStringBuilder(connectionString);
+            var server = string.IsNullOrWhiteSpace(builder.DataSource) ? "<unspecified>" : builder.DataSource;
+            var db = string.IsNullOrWhiteSpace(builder.InitialCatalog) ? "<unspecified>" : builder.InitialCatalog;
+            var auth = builder.IntegratedSecurity ? "Integrated" : "CredentialsProvided(Masked)";
+            return $"Server={server};Database={db};Auth={auth}";
+        }
+        catch
+        {
+            // If the connection string is malformed and cannot be parsed by SqlConnectionStringBuilder,
+            // regex-scrub any passwords, secrets, or user ids to guarantee zero credentials leak.
+            var scrubbed = Regex.Replace(connectionString, @"(?i)(password|pwd)\s*=\s*[^;]*", "$1=***");
+            scrubbed = Regex.Replace(scrubbed, @"(?i)(user\s*id|uid)\s*=\s*[^;]*", "$1=***");
+            return scrubbed;
+        }
+    }
+
+    /// <summary>
+    /// Checks whether a given database name strictly matches the authorized test whitelist:
+    ///   - Exactly "StudyAIDb_E2E" (case-insensitive)
+    ///   - Exactly "StudyAIDb_Clean_{GUID}" where GUID is a valid GUID
+    /// Any database that merely contains "test" or "e2e" as a substring is strictly rejected.
+    /// </summary>
+    public static bool IsAuthorizedTestDatabase(string? databaseName)
+    {
+        if (string.IsNullOrWhiteSpace(databaseName))
+        {
+            return false;
+        }
+
+        var normalized = databaseName.Trim().Trim('[', ']');
+
+        // 1. Explicit Fail-Closed Block: "StudyAIDb" in any casing or format is never authorized
+        if (string.Equals(normalized, "StudyAIDb", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        // 2. Exactly StudyAIDb_E2E
+        if (string.Equals(normalized, "StudyAIDb_E2E", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        // 3. Exactly StudyAIDb_Clean_{GUID} with valid GUID format
+        if (normalized.StartsWith(CleanPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            var guidPart = normalized[CleanPrefix.Length..];
+            if (Guid.TryParse(guidPart, out _))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Validates that a connection string points strictly to an authorized isolated test database
     /// and never to the production/primary database "StudyAIDb".
     /// Throws InvalidOperationException immediately if any violation or ambiguity is detected.
+    /// Never leaks raw connection strings, passwords, or credentials in exception messages.
     /// </summary>
     /// <param name="connectionString">The connection string resolved by the host or context.</param>
     /// <param name="callerContext">Context or caller description for diagnostic logs.</param>
@@ -61,7 +135,7 @@ public static class DatabaseSafetyGuard
             throw new InvalidOperationException(
                 $"CRITICAL DATABASE SAFETY GUARD TRIGGERED [{callerContext}]: " +
                 "Connection string is null, empty, or unconfigured. " +
-                "Integration tests and test fixtures require an explicitly designated test database (e.g., 'StudyAIDb_E2E').");
+                "Integration tests and test fixtures require an explicitly designated test database ('StudyAIDb_E2E').");
         }
 
         SqlConnectionStringBuilder builder;
@@ -71,9 +145,10 @@ public static class DatabaseSafetyGuard
         }
         catch (Exception ex)
         {
+            var safeDiagnostic = SanitizeConnectionString(connectionString);
             throw new InvalidOperationException(
                 $"CRITICAL DATABASE SAFETY GUARD TRIGGERED [{callerContext}]: " +
-                $"Malformed or unparseable connection string: '{connectionString}'. Execution is blocked.", ex);
+                $"Malformed or unparseable connection string [{safeDiagnostic}]. Execution is blocked.", ex);
         }
 
         var rawDbName = builder.InitialCatalog;
@@ -95,24 +170,14 @@ public static class DatabaseSafetyGuard
                 "Integration tests and test fixtures are strictly FORBIDDEN from connecting to or modifying 'StudyAIDb'.");
         }
 
-        // 2. Strict Whitelist Check: Must match authorized test database patterns
-        // Permitted patterns:
-        // - Exactly StudyAIDb_E2E
-        // - StudyAIDb_Clean_* (ephemeral databases created by migration integration tests)
-        // - Any database explicitly containing 'test' or 'e2e' (case-insensitive)
-        var isAuthorizedTestDb =
-            string.Equals(normalizedDb, "StudyAIDb_E2E", StringComparison.OrdinalIgnoreCase) ||
-            normalizedDb.StartsWith("StudyAIDb_Clean_", StringComparison.OrdinalIgnoreCase) ||
-            Regex.IsMatch(normalizedDb, @"(^|[_\.-])(test|e2e)($|[_\.-])", RegexOptions.IgnoreCase) ||
-            normalizedDb.Contains("test", StringComparison.OrdinalIgnoreCase) ||
-            normalizedDb.Contains("e2e", StringComparison.OrdinalIgnoreCase);
-
-        if (!isAuthorizedTestDb)
+        // 2. Strict Exact Whitelist Check
+        if (!IsAuthorizedTestDatabase(normalizedDb))
         {
             throw new InvalidOperationException(
                 $"CRITICAL DATABASE SAFETY GUARD TRIGGERED [{callerContext}]: " +
                 $"Database '{normalizedDb}' is NOT an authorized test database. " +
-                "Test executions must explicitly target isolated test databases (e.g. 'StudyAIDb_E2E', 'StudyAIDb_Clean_*', or contain 'test'/'e2e').");
+                "Test executions must target strictly authorized test databases: 'StudyAIDb_E2E' or 'StudyAIDb_Clean_{GUID}'. " +
+                "Databases containing generic 'test' or 'e2e' substrings are rejected.");
         }
 
         return normalizedDb;

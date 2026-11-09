@@ -1,10 +1,72 @@
 /**
- * Fail-Closed Database Safety Guard for E2E and Test Scripts.
- * Strictly prevents any execution against production / primary database 'StudyAIDb'.
+ * Hardened Fail-Closed Database Safety Guard for E2E and Test Scripts.
+ * Strictly prevents any execution against production / primary database 'StudyAIDb',
+ * and enforces exact whitelist:
+ *   1. 'StudyAIDb_E2E'
+ *   2. 'StudyAIDb_Clean_{GUID}' (with cryptographically valid GUID format).
+ * Credentials (passwords, tokens, user IDs) are strictly masked to prevent leaks in logs.
  */
-export function assertSafeTestDatabase(connectionString: string | undefined, callerContext = 'E2E Script'): string {
+
+const GUID_REGEX =
+  /^(?:[0-9a-fA-F]{32}|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/
+
+/**
+ * Sanitizes a connection string by replacing passwords, secrets, or user IDs with masks.
+ */
+export function sanitizeConnectionString(connectionString: string | undefined): string {
   if (!connectionString || connectionString.trim() === '') {
-    const errorMsg = `CRITICAL DATABASE SAFETY GUARD TRIGGERED [${callerContext}]: Connection string is empty or undefined. E2E tests must target an isolated test database.`
+    return '<empty>'
+  }
+  return connectionString
+    .replace(/(?:password|pwd)\s*=\s*[^;]*/gi, 'Password=***')
+    .replace(/(?:user\s*id|uid)\s*=\s*[^;]*/gi, 'User Id=***')
+}
+
+/**
+ * Checks whether a given database name strictly matches the authorized test whitelist:
+ *   - Exactly "StudyAIDb_E2E" (case-insensitive)
+ *   - Exactly "StudyAIDb_Clean_{GUID}" where GUID is a valid 32-hex or 36-char GUID.
+ * Databases that merely contain "test" or "e2e" as substrings are strictly rejected.
+ */
+export function isAuthorizedTestDatabase(dbName: string | undefined): boolean {
+  if (!dbName || !dbName.trim()) {
+    return false
+  }
+
+  const normalized = dbName.trim().replace(/^\[|\]$/g, '')
+
+  // 1. Explicit Fail-Closed Block: "StudyAIDb" in any casing or format is never authorized
+  if (normalized.toLowerCase() === 'studyaidb') {
+    return false
+  }
+
+  // 2. Exactly StudyAIDb_E2E (case-insensitive)
+  if (normalized.toLowerCase() === 'studyaidb_e2e') {
+    return true
+  }
+
+  // 3. Exactly StudyAIDb_Clean_{GUID} with valid GUID format
+  const cleanPrefix = 'studyaidb_clean_'
+  if (normalized.toLowerCase().startsWith(cleanPrefix)) {
+    const guidPart = normalized.slice(cleanPrefix.length)
+    if (GUID_REGEX.test(guidPart)) {
+      return true
+    }
+  }
+
+  return false
+}
+
+/**
+ * Validates that an E2E connection string targets an authorized test database.
+ * Throws an Error immediately if any violation or credential leak is detected.
+ */
+export function assertSafeTestDatabase(
+  connectionString: string | undefined,
+  callerContext = 'E2E Script'
+): string {
+  if (!connectionString || connectionString.trim() === '') {
+    const errorMsg = `CRITICAL DATABASE SAFETY GUARD TRIGGERED [${callerContext}]: Connection string is empty or undefined. E2E tests must target an isolated test database ('StudyAIDb_E2E').`
     console.error(`\n[CRITICAL ERROR] ${errorMsg}\n`)
     throw new Error(errorMsg)
   }
@@ -12,7 +74,8 @@ export function assertSafeTestDatabase(connectionString: string | undefined, cal
   // Parse Initial Catalog or Database name from connection string
   const dbMatch = connectionString.match(/(?:Database|Initial\s+Catalog)\s*=\s*([^;]+)/i)
   if (!dbMatch || !dbMatch[1]) {
-    const errorMsg = `CRITICAL DATABASE SAFETY GUARD TRIGGERED [${callerContext}]: Could not extract Database or Initial Catalog from connection string: '${connectionString}'. Execution is blocked.`
+    const safeConn = sanitizeConnectionString(connectionString)
+    const errorMsg = `CRITICAL DATABASE SAFETY GUARD TRIGGERED [${callerContext}]: Could not extract Database or Initial Catalog from connection string: [${safeConn}]. Execution is blocked.`
     console.error(`\n[CRITICAL ERROR] ${errorMsg}\n`)
     throw new Error(errorMsg)
   }
@@ -30,16 +93,9 @@ export function assertSafeTestDatabase(connectionString: string | undefined, cal
     throw new Error(errorMsg)
   }
 
-  // 2. Strict Whitelist Check: Must match authorized test database patterns
-  const isAuthorizedTestDb =
-    dbName.toLowerCase() === 'studyaidb_e2e' ||
-    /^studyaidb_clean_/i.test(dbName) ||
-    /(?:^|[_\.-])(?:test|e2e)(?:$|[_\.-])/i.test(dbName) ||
-    /test/i.test(dbName) ||
-    /e2e/i.test(dbName)
-
-  if (!isAuthorizedTestDb) {
-    const errorMsg = `CRITICAL DATABASE SAFETY GUARD TRIGGERED [${callerContext}]: Database '${dbName}' is NOT an authorized test database. E2E executions must explicitly target isolated test databases (e.g. 'StudyAIDb_E2E', 'StudyAIDb_Clean_*', or contain 'test'/'e2e').`
+  // 2. Strict Exact Whitelist Check
+  if (!isAuthorizedTestDatabase(dbName)) {
+    const errorMsg = `CRITICAL DATABASE SAFETY GUARD TRIGGERED [${callerContext}]: Database '${dbName}' is NOT an authorized test database. E2E executions must strictly target 'StudyAIDb_E2E' or 'StudyAIDb_Clean_{GUID}'. Generic databases containing 'test' or 'e2e' substrings are rejected.`
     console.error(`\n[CRITICAL ERROR] ${errorMsg}\n`)
     throw new Error(errorMsg)
   }

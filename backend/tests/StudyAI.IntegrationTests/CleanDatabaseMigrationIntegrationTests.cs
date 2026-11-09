@@ -34,7 +34,7 @@ public class CleanDatabaseMigrationIntegrationTests
     public async Task CleanDatabase_FullMigration_And_Seeding_Succeeds_Without_Error515()
     {
         var masterConnStr = GetMasterConnectionString();
-        var cleanDbName = $"StudyAIDb_Clean_{Guid.NewGuid():N}"[..25];
+        var cleanDbName = $"StudyAIDb_Clean_{Guid.NewGuid():N}";
         var cleanDbConnStr = new SqlConnectionStringBuilder(masterConnStr)
         {
             InitialCatalog = cleanDbName
