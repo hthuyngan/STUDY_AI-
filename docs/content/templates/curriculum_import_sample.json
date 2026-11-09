@@ -1,0 +1,99 @@
+{
+  "$schema": "https://studyai.internal/schemas/curriculum-v1.json",
+  "version": "GDPT2018.v1.0",
+  "grade": "12",
+  "subject": {
+    "code": "MATH12",
+    "name": "Toán học 12",
+    "description": "Chương trình Toán học Lớp 12 chuẩn GDPT 2018 (Thông tư 32/2018/TT-BGDĐT)",
+    "orderIndex": 1,
+    "chapters": [
+      {
+        "code": "CHP_MATH12_01",
+        "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị của hàm số",
+        "description": "Tính đơn điệu, cực trị, giá trị lớn nhất - nhỏ nhất, đường tiệm cận và khảo sát sự biến thiên của hàm số",
+        "orderIndex": 1,
+        "lessons": [
+          {
+            "code": "LES_MATH12_01_01",
+            "title": "Bài 1: Tính đơn điệu và cực trị của hàm số",
+            "slug": "tinh-don-dieu-va-cuc-tri-ham-so",
+            "orderIndex": 1,
+            "status": "draft",
+            "introduction": "Trong thực tế, việc tìm giá trị tối ưu (lợi nhuận cao nhất, chi phí thấp nhất) gắn liền với tính đơn điệu và cực trị của hàm số.",
+            "definitions": [
+              {
+                "term": "Hàm số đồng biến",
+                "content": "Ký hiệu $f(x)$ đồng biến trên khoảng $K$ nếu với mọi $x_1, x_2 \\in K$, $x_1 < x_2 \\implies f(x_1) < f(x_2)$."
+              },
+              {
+                "term": "Điểm cực trị",
+                "content": "Điểm $x_0$ được gọi là điểm cực đại của hàm số $f(x)$ nếu tồn tại khoảng $(a; b) \\subset D$ chứa $x_0$ sao cho $f(x) < f(x_0)$ với mọi $x \\in (a; b) \\setminus \\{x_0\\}$."
+              }
+            ],
+            "formulas": [
+              {
+                "name": "Định lý mở rộng về tính đơn điệu",
+                "latex": "f'(x) \\ge 0, \\forall x \\in K \\text{ (dấu bằng chỉ xảy ra tại hữu hạn điểm) } \\implies f(x) \\text{ đồng biến trên } K"
+              },
+              {
+                "name": "Quy tắc 2 tìm cực trị",
+                "latex": "f'(x_0) = 0, f''(x_0) > 0 \\implies x_0 \\text{ là điểm cực tiểu}"
+              }
+            ],
+            "examples": [
+              {
+                "title": "Ví dụ 1: Tìm khoảng đơn điệu của hàm số đa thức bậc ba",
+                "problem": "Xét chiều biến thiên của hàm số $y = x^3 - 3x^2 + 2$.",
+                "solution": "Tập xác định: $D = \\mathbb{R}$. Đạo hàm: $y' = 3x^2 - 6x = 3x(x - 2)$. Cho $y' = 0 \\iff x = 0$ hoặc $x = 2$. Bảng xét dấu: $y' > 0$ trên $(-\\infty; 0)$ và $(2; +\\infty)$; $y' < 0$ trên $(0; 2)$. Kết luận: Hàm số đồng biến trên $(-\\infty; 0)$ và $(2; +\\infty)$, nghịch biến trên $(0; 2)$."
+              }
+            ],
+            "importantNotes": [
+              "Hàm số chỉ đạt cực trị tại các điểm mà đạo hàm $f'(x)$ đổi dấu khi đi qua điểm đó.",
+              "Nếu $f'(x_0) = 0$ nhưng $f'(x)$ không đổi dấu qua $x_0$ thì $x_0$ không phải là điểm cực trị."
+            ],
+            "summaryPoints": [
+              "Quy tắc 3 bước xét tính đơn điệu: Tìm TXĐ -> Tính $f'(x)$ -> Lập bảng biến thiên và kết luận.",
+              "Quy tắc xét dấu đạo hàm cấp hai áp dụng thuận tiện cho các hàm lượng giác và đa thức đơn giản."
+            ],
+            "questions": [
+              {
+                "code": "QST_MATH12_01_01_001",
+                "prompt": "Cho hàm số $y = f(x)$ có bảng biến thiên trên đoạn $[-2; 3]$ với $f'(x) = 0$ tại $x = -1$ và $x = 2$. Đạo hàm mang dấu dương trên $(-2; -1)$ và mang dấu âm trên $(-1; 2)$. Điểm cực đại của hàm số là:",
+                "options": [
+                  "$x = -1$",
+                  "$x = 2$",
+                  "$x = -2$",
+                  "$x = 3$"
+                ],
+                "correctAnswer": "A",
+                "explanation": "Đạo hàm $f'(x)$ đổi dấu từ dương sang âm khi qua điểm $x = -1$, do đó hàm số đạt cực đại tại điểm $x = -1$.",
+                "topic": "Cực trị hàm số",
+                "difficulty": "easy",
+                "type": "multiple-choice",
+                "status": "published"
+              },
+              {
+                "code": "QST_MATH12_01_01_002",
+                "prompt": "Hàm số $y = \\frac{2x - 1}{x + 1}$ đồng biến trên các khoảng nào sau đây?",
+                "options": [
+                  "$(-\\infty; -1)$ và $(-1; +\\infty)$",
+                  "$\\mathbb{R} \\setminus \\{-1\\}$",
+                  "$(-\\infty; +\\infty)$",
+                  "$(0; +\\infty)$"
+                ],
+                "correctAnswer": "A",
+                "explanation": "Tập xác định: $D = \\mathbb{R} \\setminus \\{-1\\}$. Đạo hàm: $y' = \\frac{2(1) - (-1)(1)}{(x+1)^2} = \\frac{3}{(x+1)^2} > 0, \\forall x \\neq -1$. Do đó hàm số đồng biến trên từng khoảng xác định $(-\\infty; -1)$ và $(-1; +\\infty)$. Lưu ý: Không dùng ký hiệu $\\mathbb{R} \\setminus \\{-1\\}$ khi kết luận khoảng đơn điệu.",
+                "topic": "Tính đơn điệu",
+                "difficulty": "medium",
+                "type": "multiple-choice",
+                "status": "published"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
+

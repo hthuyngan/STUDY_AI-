@@ -1,0 +1,59 @@
+{
+  "$schema": "https://studyai.internal/schemas/question-bank-v1.json",
+  "batchId": "BATCH_MATH12_20261109_001",
+  "subjectCode": "MATH12",
+  "chapterCode": "CHP_MATH12_01",
+  "lessonCode": "LES_MATH12_01_01",
+  "source": "Hội đồng Sư phạm STUDY_AI biên soạn chuẩn GDPT 2018",
+  "questions": [
+    {
+      "code": "QST_MATH12_01_01_001",
+      "prompt": "Cho hàm số $y = f(x)$ xác định và liên tục trên $\\mathbb{R}$, có bảng biến thiên như sau: Đạo hàm $f'(x) > 0$ trên $(-\\infty; 1)$ và $(3; +\\infty)$, $f'(x) < 0$ trên $(1; 3)$. Khẳng định nào sau đây là đúng?",
+      "options": [
+        "Hàm số đồng biến trên khoảng $(1; 3)$",
+        "Hàm số nghịch biến trên khoảng $(-\\infty; 1)$",
+        "Hàm số đồng biến trên khoảng $(3; +\\infty)$",
+        "Hàm số nghịch biến trên khoảng $(1; +\\infty)$"
+      ],
+      "correctAnswer": "C",
+      "explanation": "Vì $f'(x) > 0$ trên khoảng $(3; +\\infty)$ nên theo định lý về tính đơn điệu, hàm số $y = f(x)$ đồng biến trên khoảng $(3; +\\infty)$.",
+      "topic": "Tính đơn điệu",
+      "difficulty": "easy",
+      "type": "multiple-choice",
+      "outcomeCode": "YCCD-MATH12-01-01"
+    },
+    {
+      "code": "QST_MATH12_01_01_002",
+      "prompt": "Điểm cực tiểu của đồ thị hàm số $y = x^3 - 3x + 1$ là điểm nào dưới đây?",
+      "options": [
+        "$(1; -1)$",
+        "$(-1; 3)$",
+        "$x = 1$",
+        "$y = -1$"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Ta có $y' = 3x^2 - 3 = 0 \\iff x = \\pm 1$. Bảng xét dấu: $y'$ đổi dấu từ âm sang dương khi qua $x = 1$, do đó hàm số đạt cực tiểu tại $x = 1$. Giá trị cực tiểu $y(1) = 1 - 3 + 1 = -1$. Đề bài hỏi 'điểm cực tiểu của đồ thị hàm số' nên câu trả lời phải là tọa độ $(x; y) = (1; -1)$.",
+      "topic": "Cực trị hàm số",
+      "difficulty": "medium",
+      "type": "multiple-choice",
+      "outcomeCode": "YCCD-MATH12-01-03"
+    },
+    {
+      "code": "QST_MATH12_01_01_003",
+      "prompt": "Tìm tất cả các giá trị của tham số $m$ để hàm số $y = x^3 - 3x^2 + mx - 1$ đồng biến trên khoảng $(0; +\\infty)$.",
+      "options": [
+        "$m \\ge 3$",
+        "$m \\le 3$",
+        "$m > 0$",
+        "$m \\ge 0$"
+      ],
+      "correctAnswer": "A",
+      "explanation": "Ta có $y' = 3x^2 - 6x + m$. Hàm số đồng biến trên $(0; +\\infty) \\iff y' \\ge 0, \\forall x \\in (0; +\\infty) \\iff m \\ge -3x^2 + 6x, \\forall x > 0$. Xét $g(x) = -3x^2 + 6x$ trên $(0; +\\infty)$, có đỉnh parabol tại $x = 1$ với $g(1) = 3$. Do đó $\\max_{(0; +\\infty)} g(x) = 3$. Để $m \\ge g(x), \\forall x > 0$ thì $m \\ge \\max g(x) = 3$.",
+      "topic": "Đơn điệu chứa tham số",
+      "difficulty": "hard",
+      "type": "multiple-choice",
+      "outcomeCode": "YCCD-MATH12-01-04"
+    }
+  ]
+}
+
