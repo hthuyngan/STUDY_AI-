@@ -184,3 +184,41 @@ public class CurriculumImportSessionDto
 
 #endregion
 
+#region Confirm DTOs
+
+public class CurriculumImportConfirmRequestDto
+{
+    public string PreviewToken { get; set; } = string.Empty;
+    public string? AuditNote { get; set; }
+}
+
+public class CurriculumImportConfirmSummaryDto
+{
+    public int TotalProcessed { get; set; }
+    public int Inserted { get; set; }
+    public int Updated { get; set; }
+    public int Skipped { get; set; }
+    public int Failed { get; set; }
+}
+
+public class CurriculumImportEntityCountsDto
+{
+    public int Subjects { get; set; }
+    public int Chapters { get; set; }
+    public int Lessons { get; set; }
+    public int Questions { get; set; }
+}
+
+public class CurriculumImportConfirmResponseDto
+{
+    public bool Success { get; set; } = true;
+    public string PreviewToken { get; set; } = string.Empty;
+    public string ActorId { get; set; } = string.Empty;
+    public DateTimeOffset ConfirmedAt { get; set; } = DateTimeOffset.UtcNow;
+    public string AuditLogId { get; set; } = string.Empty;
+    public CurriculumImportConfirmSummaryDto Summary { get; set; } = new();
+    public CurriculumImportEntityCountsDto EntityCounts { get; set; } = new();
+    public string Message { get; set; } = string.Empty;
+}
+
+#endregion

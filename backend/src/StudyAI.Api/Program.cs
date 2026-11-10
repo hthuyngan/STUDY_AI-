@@ -33,7 +33,8 @@ builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<IPasswordHasher, Argon2PasswordHasher>();
 builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<ICurriculumImportParser, CurriculumImportParser>();
-builder.Services.AddScoped<ICurriculumImportValidator, CurriculumImportValidator>();
+builder.Services.AddScoped<ICurriculumImportValidator, CurriculumImportValidator>();
+builder.Services.AddScoped<ICurriculumImportConfirmService, CurriculumImportConfirmService>();
 
 // 3. JWT Secret Validation & Authentication
 var jwtSecret = configuration["Jwt:SecretKey"];

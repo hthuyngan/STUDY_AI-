@@ -16,6 +16,7 @@ public class CurriculumImportController : ControllerBase
 {
     private readonly ICurriculumImportParser _parser;
     private readonly ICurriculumImportValidator _validator;
+    private readonly ICurriculumImportConfirmService _confirmService;
     private readonly IMemoryCache _cache;
     private readonly ILogger<CurriculumImportController> _logger;
 
@@ -27,11 +28,13 @@ public class CurriculumImportController : ControllerBase
     public CurriculumImportController(
         ICurriculumImportParser parser,
         ICurriculumImportValidator validator,
+        ICurriculumImportConfirmService confirmService,
         IMemoryCache cache,
         ILogger<CurriculumImportController> logger)
     {
         _parser = parser;
         _validator = validator;
+        _confirmService = confirmService;
         _cache = cache;
         _logger = logger;
     }
@@ -137,7 +140,7 @@ public class CurriculumImportController : ControllerBase
             ExpiresAt = expiresAt
         };
 
-        // 5. Lưu phiên Preview vào cache an toàn để dùng cho bước Confirm/Transaction (Mốc B phần 2)
+        // 5. Lưu phiên Preview vào cache an toàn để dùng cho bước Confirm/Transaction
         var session = new CurriculumImportSessionDto
         {
             PreviewToken = previewToken,
@@ -161,5 +164,49 @@ public class CurriculumImportController : ControllerBase
             previewToken, CurrentUserEmail, previewResponse.Summary.TotalItems, previewResponse.Summary.ErrorCount);
 
         return Ok(previewResponse);
+    }
+
+    /// <summary>
+    /// Confirm API — Thực hiện lưu dữ liệu vào cơ sở dữ liệu qua giao dịch nguyên tử (ACID).
+    /// Áp dụng chính sách Strict-only, Insert-only, kiểm soát trùng lặp và xác thực ActorId.
+    /// </summary>
+    [HttpPost("confirm")]
+    [Consumes("application/json")]
+    [ProducesResponseType(typeof(CurriculumImportConfirmResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> ConfirmImport(
+        [FromBody] CurriculumImportConfirmRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        if (request == null || string.IsNullOrWhiteSpace(request.PreviewToken))
+        {
+            return BadRequest(new
+            {
+                errorCode = "TOKEN_MISSING",
+                message = "Vui lòng cung cấp mã PreviewToken để thực hiện xác nhận."
+            });
+        }
+
+        var result = await _confirmService.ConfirmImportAsync(
+            request.PreviewToken,
+            CurrentUserId,
+            request.AuditNote,
+            cancellationToken);
+
+        if (!result.Success)
+        {
+            return StatusCode(result.StatusCode, new
+            {
+                errorCode = result.ErrorCode,
+                message = result.ErrorMessage
+            });
+        }
+
+        return Ok(result.Response);
     }
 }

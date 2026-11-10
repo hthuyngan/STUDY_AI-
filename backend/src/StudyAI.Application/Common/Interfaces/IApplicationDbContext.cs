@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using StudyAI.Domain.Entities;
 
 namespace StudyAI.Application.Common.Interfaces;
@@ -17,6 +18,8 @@ public interface IApplicationDbContext
     DbSet<ContentLesson> ContentLessons { get; }
     DbSet<ContentAssessment> ContentAssessments { get; }
     DbSet<ContentQuestion> ContentQuestions { get; }
+
+    DatabaseFacade Database { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
