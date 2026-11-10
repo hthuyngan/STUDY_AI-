@@ -1,43 +1,40 @@
-# STUDY_AI — PHASE 18: CURRICULUM IMPORT AUDIT
-## Comprehensive Technical Audit of Parsers, Limits, Encodings, and Validation Rules
+# STUDY_AI — PHASE 18: CURRICULUM IMPORT AUDIT (CORRECTED SPECIFICATION)
+## Parser Technical Audit, Schema Realities, Business Key Mapping, and Security Barriers
 
 - **Workspace**: `D:\TN`
 - **Repository**: `hthuyngan/STUDY_AI-`
-- **Baseline Git SHA**: `ad8236ce01bebb0a086174b12a16e9db27a5d8c9`
-- **Scope**: Source code audit of import engine (`CurriculumImportParser.cs`, `CurriculumImportValidator.cs`, `CurriculumImportController.cs`, `CurriculumImportDTOs.cs`).
-- **Safety Status**: `StudyAIDb` is completely untouched (Read-only verified).
+- **Status**: `[REVISED AUDIT — V1 HARDENED SPECIFICATION]`
+- **Scope**: Source code audit of import engine (`CurriculumImportParser.cs`, `CurriculumImportValidator.cs`, `ContentEntities.cs`, `StudyAIDbContext.cs`).
 
 ---
 
-## 1. Executive Summary
+## 1. Executive Summary & Schema Reconciliation
 
-The STUDY_AI Curriculum Import subsystem provides educators and content administrators with tools to ingest hierarchical curricula (Subjects, Chapters, Lessons) and question banks. Phase 17 laid down the preliminary models and read-only Preview API. 
+This technical audit evaluates the curriculum import pipeline against the **actual production database schema** in `StudyAIDbContext.cs`. 
 
-This audit evaluates the parsing engine, security boundaries, encoding handlers, and validation rules in place as of commit `ad8236ce01bebb0a086174b12a16e9db27a5d8c9`.
+While the ingestion parsers handle files with explicit entity codes (e.g., `SubjectCode`, `ChapterCode`, `LessonCode`, `QuestionCode`), the underlying SQL Server tables have significant schema asymmetries that dictate how business keys can be mapped without violating the Zero Migration policy.
 
 ```
-+-----------------------------------------------------------------------------+
-|                          CURRICULUM IMPORT AUDIT MATRIX                      |
-+-------------------+----------------------+--------------------+-------------+
-| Component         | Implementation State | Security Boundary  | Risk Level  |
-+-------------------+----------------------+--------------------+-------------+
-| JSON Parser       | Complete (Tree/Flat) | 15MB / 5,000 items | Low         |
-| CSV Parser        | Complete (RFC 4180)  | UTF-8 BOM, Escaping| Low         |
-| XLSX Parser       | Complete (OpenXML)   | Zip Bomb 50MB limit| Medium      |
-| Encoding / Bom    | Implemented          | UTF-8 BOM Stripped | Low         |
-| XML / XXE Defense | Standard XDocument   | Implicit DTD block | Low-Medium  |
-| Formula Injection | Cell value extracted | `<v>` text parsed  | Low         |
-| Hierarchy Valid.  | Multi-tier checks    | Parent-child DB ref| Low         |
-+-------------------+----------------------+--------------------+-------------+
++-------------------------------------------------------------------------------------------------------+
+|                                    SCHEMA REALITIES AUDIT MATRIX                                      |
++-------------------+--------------------+------------------------+-------------------------------------+
+| Entity            | Ingestion Payload  | Production Schema      | Architectural Finding               |
++-------------------+--------------------+------------------------+-------------------------------------+
+| ContentSubject    | Code, Name, Grade  | Code (Unique), Name    | SUPPORTED: Direct 1-to-1 code match |
+| ContentChapter    | Code, Title        | Title, SubjectId       | ASYMMETRIC: No 'Code' column in DB  |
+| ContentLesson     | Code, Title, Slug  | Title, Slug, ChapterId | ASYMMETRIC: No 'Code' column in DB  |
+| ContentQuestion   | Code, Fingerprint  | Prompt (nvarchar max)  | BLOCKED FOR CODE LOOKUP: No 'Code'  |
+|                   |                    |                        | or 'Fingerprint' column in DB       |
++-------------------+--------------------+------------------------+-------------------------------------+
 ```
 
 ---
 
-## 2. File Ingestion & Parser Limits Audit
+## 2. Ingestion Engine & Parser Limits Audit
 
 ### 2.1 File Limits Enforced in Source Code
 
-`[VERIFIED FROM SOURCE CODE]` — In `backend/src/StudyAI.Application/Services/CurriculumImportParser.cs`:
+`[VERIFIED FROM SOURCE CODE]` — `CurriculumImportParser.cs:14-17`:
 ```csharp
 public const long MaxFileSizeBytes = 15 * 1024 * 1024;        // 15 MB
 public const long MaxUncompressedZipBytes = 50 * 1024 * 1024; // 50 MB
@@ -46,125 +43,71 @@ public const int MaxAllowedColumns = 100;                     // 100 columns
 ```
 
 1. **Upload Size Limit (`MaxFileSizeBytes = 15MB`)**:
-   - Controller validation: `CurriculumImportController.cs:66` checks `if (file.Length > CurriculumImportParser.MaxFileSizeBytes)` and returns `400 BadRequest` with code `FILE_TOO_LARGE`.
-   - Parser validation: `ReadStreamWithSecurityLimitsAsync()` in `CurriculumImportParser.cs` re-verifies bytes read from stream in memory chunks (`81,920` bytes buffer) and aborts if `totalBytesRead > MaxFileSizeBytes`.
-   - Double-barrier design prevents memory exhaustion attacks even if form length headers are spoofed.
-
+   - Double-enforced at `CurriculumImportController.cs:66` (early HTTP header check) and `ReadStreamWithSecurityLimitsAsync()` in `CurriculumImportParser.cs` (chunk-level stream check).
 2. **Decompressed ZIP Safety (`MaxUncompressedZipBytes = 50MB`)**:
-   - `CurriculumImportParser.cs:228-237`: During XLSX decompression, the parser iterates through `archive.Entries` and calculates cumulative uncompressed bytes:
-     ```csharp
-     long uncompressedTotal = 0;
-     foreach (var entry in archive.Entries)
-     {
-         uncompressedTotal += entry.Length;
-         if (uncompressedTotal > MaxUncompressedZipBytes)
-         {
-             throw new InvalidOperationException($"Tệp XLSX vượt quá dung lượng giải nén an toàn cho phép ({MaxUncompressedZipBytes / 1024 / 1024}MB - Zip bomb prevention).");
-         }
-     }
-     ```
-   - Prevents ZIP-bomb attacks (e.g. tiny 42KB zip file decompressing into gigabytes of XML).
+   - Iterates through `ZipArchive.Entries` before extracting, summing uncompressed lengths to block ZIP-bomb denial-of-service.
+3. **Row & Column Limits (`MaxAllowedRows = 5,000`, `MaxAllowedColumns = 100`)**:
+   - Blocks wide spreadsheet attacks and unbounded arrays across JSON, CSV, and XLSX.
 
-3. **Entity Count Limit (`MaxAllowedRows = 5,000`)**:
-   - For JSON: Incremental counter `totalEntities` across Subjects, Chapters, Lessons, Questions throws if `> 5000`.
-   - For CSV: Data lines count `lines.Count - 1` throws if `> 5000`.
-   - For XLSX: Sheet row count `rows.Count - 1` throws if `> 5000`.
-
-4. **Column Count Limit (`MaxAllowedColumns = 100`)**:
-   - Prevents denial-of-service via sparse matrix / wide spreadsheet attacks containing tens of thousands of empty columns.
+### 2.2 Encoding & Sanitization
+- **UTF-8 BOM**: Explicitly stripped using `StripUtf8Bom()` in `CurriculumImportParser.cs:119`.
+- **Excel Escaped Quotes**: Normalized using `CleanExcelEscapedQuotes()`.
+- **Formula Injection Mitigation**: OpenXML cell parsing extracts cached evaluated values `<v>` and ignores formula expressions `<f>`.
+- **XXE Hardening**: `XDocument.Load` should be paired with explicit `XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null }`.
 
 ---
 
-## 3. Format-Specific Parser Analysis
+## 3. Business Key Mapping Without Production Migration
 
-### 3.1 JSON Parser (`ParseJsonAsync`)
-- **Structure Support**:
-  1. *Single Hierarchical Tree*: `{"subject": { "code": "MATH12", "chapters": [...] }}`
-  2. *Array of Subjects*: `{"subjects": [ {...}, {...} ]}`
-  3. *Flat Question Bank*: `{"questions": [ {...}, {...} ], "subjectCode": "MATH12"}`
-- **Security & Resilience**:
-  - Uses `System.Text.Json.JsonDocument` with `AllowTrailingCommas = true` and `CommentHandling = JsonCommentHandling.Skip`.
-  - Non-blocking asynchronous memory buffering.
-  - Generates SHA-256 fingerprint for all parsed entities.
+Because Phase 18 operates under strict **Zero Production Migration**, the import engine cannot add missing `Code` or `Fingerprint` columns to SQL Server tables. The business keys must be resolved as follows:
 
-### 3.2 CSV Parser (`ParseCsvAsync`)
-- **RFC 4180 Compliance**:
-  - Handles multiline fields enclosed in quotes.
-  - Escaped quotes (`""` -> `"`) are normalized via `CleanExcelEscapedQuotes()`.
-  - Strips UTF-8 Byte Order Mark (`\uFEFF`) using `StripUtf8Bom()`.
-  - Case-insensitive column name resolution.
-  - Compulsory header validation: Requires at least the `prompt` column.
-  - Flexible column aliases: `difficulty` (defaults to "medium"), `type` (defaults to "multiple-choice"), `subjectcode` (defaults to "MATH12").
+### 3.1 ContentSubject
+- **Schema**: `Code` is `nvarchar(32)` with unique index `IX_content_subjects_Code`.
+- **Mapping**: Mapped directly by `Code`.
+- **Status**: **Fully Supported**.
 
-### 3.3 XLSX Parser (`ParseXlsxAsync`)
-- **OpenXML Parsing via `System.IO.Compression.ZipArchive`**:
-  - Direct OpenXML parsing without relying on third-party native binaries (e.g. EPPlus, ClosedXML).
-  - Multi-sheet discovery via `xl/workbook.xml` and `xl/_rels/workbook.xml.rels`.
-  - Fallback logic: If relationships are missing, falls back to `xl/worksheets/sheet1.xml`.
-  - Reads `xl/sharedStrings.xml` for shared text table.
-  - Cell value extraction: Reads `<c>` element with attribute `t="s"` (shared string index), `t="inlineStr"` (inline string), or direct text in `<v>`.
-- `[REAL RISK / VULNERABILITY IDENTIFIED]` — **XML External Entity (XXE) Hardening in `XDocument.Load`**:
-  - While .NET Core/.NET 10 `XmlReader` and `XDocument` default to `DtdProcessing = Prohibit`, `XDocument.Load(Stream)` without explicit `XmlReaderSettings` should be locked down with `XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null }` to ensure zero tolerance across varied deployment configurations.
+### 3.2 ContentChapter
+- **Schema**: Has `Id`, `SubjectId`, `Title`, `Description`, `OrderIndex`, `IsActive`. **No `Code` column exists.**
+- **Mapping Strategy**:
+  - Chapter identity within a subject is resolved using the composite tuple: `(SubjectId, Title.Trim().ToLowerInvariant())`.
+  - The incoming `ChapterCode` from the import file is used **only in-memory** during batch parsing to link child lessons to this chapter. The code is not stored in the database.
+- **Limitation**: SQL Server does not have a unique constraint on `(SubjectId, Title)`. Application logic must enforce uniqueness inside the transaction using `UPDLOCK`.
 
-- `[VERIFIED FROM SOURCE CODE]` — **Formula Injection Mitigation**:
-  - Excel formula cells in OpenXML store formula in `<f>` and cached calculation in `<v>`.
-  - The parser reads `<v>` (the evaluated value) and ignores `<f>`.
-  - Formulas starting with `=`, `@`, `+`, `-` are treated purely as raw text and will not be executed on the server.
+### 3.3 ContentLesson
+- **Schema**: Has `Id`, `ChapterId`, `Title`, `Slug`, `OrderIndex`, `Status`, `AuthorId`, `Introduction`, etc. **No `Code` column exists.**
+- **Mapping Strategy**:
+  - Lesson identity within a chapter is resolved using the composite tuple: `(ChapterId, Slug.Trim().ToLowerInvariant())`.
+  - The incoming `LessonCode` from the file is used **only in-memory** to link child questions to this lesson.
+  - Requires setting `AuthorId` to `CurrentUserId`.
+- **Limitation**: SQL Server has a non-unique index on `Slug`. Application logic must enforce single occurrence per chapter.
+
+### 3.4 ContentQuestion
+- **Schema**: Has `Id`, `LessonId`, `SubjectId`, `ChapterId`, `Prompt`, `OptionsJson`, `CorrectAnswer`, `Explanation`, `Topic`, `Difficulty`, `Type`, `Status`, `OrderIndex`.
+- **Critical Schema Defect**:
+  - There is **NO `Code` column**.
+  - There is **NO `Fingerprint` column**.
+  - `Prompt` is configured as `nvarchar(max)`. In SQL Server, columns of type `nvarchar(max)` cannot participate in standard B-tree unique indexes or key lookups without full table scans.
+- **Architectural Status**: **BLOCKED FOR CODE-BASED DEDUPLICATION**.
+  - Without schema migration, the system cannot look up questions by `Code` or prevent duplicate questions at the database engine level.
+  - **V1 Safe Resolution**: In V1, questions are treated strictly as **Insert-Only**. When a lesson is imported, its questions are inserted as new rows. Cross-import question deduplication by code is **BLOCKED** until a schema migration adding a unique `Code` or `FingerprintHash` column is approved.
 
 ---
 
-## 4. Validation Rules & Relational Integrity
+## 4. Hierarchy Validation Engine
 
-### 4.1 Hierarchy Chain
-The curriculum follows a strict 4-level hierarchy:
-```
-Subject (e.g. MATH12)
-  └── Chapter (e.g. CH01 - Giải tích hàm số)
-        └── Lesson (e.g. LES01 - Tính đơn điệu của hàm số)
-              └── Assessment / Questions (e.g. Q01, Q02...)
-```
-
-### 4.2 Entity Validation Matrix
-
-| Entity | Required Fields | Format / Format Constraints | Pre-flight DB Checks |
-|---|---|---|---|
-| **Subject** | `Code`, `Name`, `Grade` | Alphanumeric + `_`, length <= 50 | Verified against `content_subjects` |
-| **Chapter** | `Code`, `Title`, `SubjectCode` | Alphanumeric + `_`, length <= 100 | SubjectCode must exist in DB or Batch |
-| **Lesson** | `Code`, `Title`, `ChapterCode`, `Slug` | Valid slug (`^[a-z0-9-]+$`) | ChapterCode must exist in DB or Batch |
-| **Question** | `Prompt`, `CorrectAnswer`, `Options` | Difficulty: `easy/medium/hard`<br>Type: `multiple-choice/true-false/short-answer` | Parent Lesson/Subject must exist |
-
-### 4.3 Action Categorization Engine
-Every parsed entity is evaluated against current SQL Server state and assigned an `ImportActionType`:
-
-1. `Insert`: Entity code does not exist in SQL Server. Will be created.
-2. `Update`: Entity exists in SQL Server, but payload contains updated title, description, or content.
-3. `Skip`: Entity exists in SQL Server with identical fingerprint / content. No change required.
-4. `Conflict`: Entity code exists but references a conflicting parent ID, or attempts an illegal state transition (e.g., modifying an active published curriculum item with existing learner quiz attempts).
-
-### 4.4 Question Deduplication Fingerprinting
-- Fingerprint algorithm: `SHA256(LessonCode:Prompt.Trim().ToLowerInvariant())`
-- Prevents accidental duplicates within the same batch or across historical imports.
+The validator (`CurriculumImportValidator.cs`) executes four levels of structural validation:
+1. **Subject Level**: Validates `Code`, `Name`, `Grade`. Rejects empty codes or invalid characters.
+2. **Chapter Level**: Validates `Title`, ensures parent `SubjectCode` exists in DB or current batch.
+3. **Lesson Level**: Validates `Title`, `Slug` regex (`^[a-z0-9-]+$`), ensures parent chapter exists.
+4. **Question Level**: Validates `Prompt`, `CorrectAnswer`, `Options` count (>= 2 for multiple-choice), ensures difficulty is in `[easy, medium, hard]`, type is in `[multiple-choice, true-false, short-answer]`.
 
 ---
 
-## 5. Security & Data Hygiene Findings
+## 5. Audit Conclusion & Implementation Recommendations
 
-1. `[VERIFIED FROM SOURCE CODE]` **XSS & Injection Sanitization**:
-   - `CurriculumImportValidator.cs:35-37` uses `XssPattern` regex to flag `<script>`, `javascript:`, `<iframe>`, `<object>`, `<embed>`, inline event handlers (`onload=`), and data URIs in prompts, explanations, and definitions.
-2. `[VERIFIED FROM SOURCE CODE]` **Strict Character Encoding**:
-   - Standardized to UTF-8 without BOM.
-   - Excel smart quotes (`“`, `”`) and apostrophes (`‘`, `’`) are preserved or normalized safely without breaking LaTeX strings (`$f(x) = x^2$`).
-3. `[REAL RISK / VULNERABILITY IDENTIFIED]` **LaTeX Math Delimiter Collisions**:
-   - Question prompts frequently contain `$ ... $` and `$$ ... $$` KaTeX expressions.
-   - When importing CSV files, unescaped commas inside math expressions (e.g. `(x, y) \in \mathbb{R}^2`) must be enclosed in double quotes. The parser handles this correctly when RFC 4180 quotes are used, but warns if unmatched delimiters exist.
-
----
-
-## 6. Audit Conclusion & Gaps for Confirm Design
-
-| Component | Status | Required Action in Confirm Phase |
-|---|---|---|
-| Ingestion & Parser Limits | **PASS** | Maintain 15MB file / 50MB uncompressed limits in Confirm |
-| Data Sanitization | **PASS** | Re-run XSS validator before DB commit |
-| XML Parser Hardening | **LOW RISK** | Add explicit `XmlReaderSettings` with `DtdProcessing.Prohibit` |
-| Relational Validation | **PASS** | Re-verify references inside transaction to prevent drift |
+1. **Strict Insert-Only for V1**:
+   Because chapters, lessons, and questions lack database-enforced unique business keys, attempting an "Upsert" mode would risk updating the wrong records if titles or slugs repeat. V1 must be **Insert-Only**.
+2. **In-Transaction Locking**:
+   Because `(SubjectId, Title)` and `(ChapterId, Slug)` lack database unique constraints, the transaction must execute with `UPDLOCK, HOLDLOCK` to prevent concurrent imports from inserting duplicate chapters or lessons.
+3. **Formal Schema Gap Notification**:
+   The user/architect must be advised that persistent question codes require a future migration adding `Code nvarchar(64)` to `content_questions`.

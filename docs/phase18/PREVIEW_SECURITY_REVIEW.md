@@ -1,39 +1,37 @@
-# STUDY_AI — PHASE 18: PREVIEW SECURITY REVIEW
-## Threat Modeling, Authorization Boundaries, Token Lifecycle, and State Drift
+# STUDY_AI — PHASE 18: PREVIEW SECURITY REVIEW (CORRECTED SPECIFICATION)
+## Threat Modeling, Atomic Claim, Crash Resilience, and Authorization Boundaries
 
 - **Workspace**: `D:\TN`
 - **Repository**: `hthuyngan/STUDY_AI-`
-- **Baseline Git SHA**: `ad8236ce01bebb0a086174b12a16e9db27a5d8c9`
-- **Scope**: Security audit of `CurriculumImportController.cs` (Preview endpoint), Token Generation, Actor Binding, Session Storage, and Threat Vectors.
+- **Status**: `[REVISED SECURITY REVIEW — V1 HARDENED SPECIFICATION]`
+- **Scope**: Preview Endpoint Security, Token State Transitions, Crash Durability, and Concurrency Protections.
 
 ---
 
-## 1. Executive Summary
+## 1. Executive Summary & Security Baseline
 
-The Preview endpoint (`POST /api/v1/content/import/preview`) is designed to be 100% read-only with zero database mutation. It parses the upload, performs validation against current database state, returns a preview summary, and stores a preview session identified by a cryptographic token for subsequent confirmation.
-
-This security review models potential attack vectors, evaluates the actor-binding mechanism, analyzes cache lifecycle risks, and defines mitigation strategies required for the Confirm phase.
+This security review hardens the threat model for the Curriculum Import pipeline. Specifically, it eliminates naive concurrency assumptions, explicitly designs crash-resilient idempotency, and establishes single-actor authorization invariants.
 
 ```
-+-------------------------------------------------------------------------------+
-|                            THREAT MODELING SUMMARY                            |
-+--------------------------+-----------------+---------------+------------------+
-| Threat Vector            | Vulnerability   | Severity      | Mitigation       |
-+--------------------------+-----------------+---------------+------------------+
-| Token Replay Attack      | Token re-use    | HIGH          | Single-use Burn  |
-| State Drift (Time-lag)   | DB stale reads  | HIGH          | Tx Revalidation  |
-| Distributed Cache Loss   | IMemoryCache    | MEDIUM        | DB/Redis Session |
-| Actor Impersonation      | Token stealing  | HIGH          | Actor-Token Bind |
-| Concurrent Race Import   | Simultaneous DB | HIGH          | Serializable Tx  |
-| Memory Exhaustion (DoS)  | Large cache obj | MEDIUM        | Size/Rate Limits |
-+--------------------------+-----------------+---------------+------------------+
++---------------------------------------------------------------------------------------+
+|                                REVISED THREAT MODEL MATRIX                            |
++--------------------------+-----------------------+----------+-------------------------+
+| Threat Vector            | Vulnerability         | Severity | Hardened Mitigation     |
++--------------------------+-----------------------+----------+-------------------------+
+| Check-then-Act Race      | TryGetValue + Remove  | HIGH     | Interlocked CAS State   |
+| Process Crash on Commit  | IMemoryCache Volatile | HIGH     | Durable StaffAuditLog   |
+| State Drift (TOCTOU)     | Pre-Tx DB verification| HIGH     | In-Transaction UPDLOCK  |
+| Stolen Token Attack      | Token bearer misuse   | HIGH     | ActorUserId Binding     |
+| Multi-Node Cache Miss    | Local RAM storage     | MEDIUM   | Persistent Session Store|
+| Duplicate Submission     | Network retry drop    | HIGH     | Idempotent Outcome Replay|
++--------------------------+-----------------------+----------+-------------------------+
 ```
 
 ---
 
-## 2. Authentication & Authorization Boundaries
+## 2. Authentication & Authorization Boundaries (V1 Policy)
 
-### 2.1 Role-Based Access Control (RBAC)
+### 2.1 Role Boundaries
 - `[VERIFIED FROM SOURCE CODE]` — `CurriculumImportController.cs:12`:
   ```csharp
   [Authorize(Roles = "content,admin")]
@@ -42,95 +40,101 @@ This security review models potential attack vectors, evaluates the actor-bindin
   public class CurriculumImportController : ControllerBase
   ```
 - **Access Rule Matrix**:
-  - `admin`: Full access to preview and confirm.
-  - `content`: Content staff access to preview and confirm.
-  - `teacher`: Rejected with `403 Forbidden` (Content creation is restricted to central staff/admin).
-  - `learner`: Rejected with `403 Forbidden` (Enforced in unit & integration tests).
+  - `admin`: Permitted to preview and confirm **own** sessions.
+  - `content`: Permitted to preview and confirm **own** sessions.
+  - `teacher`: Rejected with `403 Forbidden`.
+  - `learner`: Rejected with `403 Forbidden`.
   - `anonymous`: Rejected with `401 Unauthorized`.
 
-### 2.2 Actor Binding Architecture
-- `[VERIFIED FROM SOURCE CODE]` — `CurriculumImportController.cs:39-40, 141-153`:
-  ```csharp
-  private string CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub") ?? string.Empty;
-  private string CurrentUserEmail => User.FindFirstValue(ClaimTypes.Email) ?? User.Identity?.Name ?? "unknown@studyai.internal";
-  ```
-- Every preview session binds the exact `ActorId` and `ActorEmail` into the `CurriculumImportSessionDto`.
-- **Security Invariant**:
-  When `Confirm` is called, the system MUST verify:
-  `session.ActorId == currentCaller.Id`
-  *(Exception: An `admin` user may confirm a session initiated by `content` staff, but the audit log must preserve both the Originator Actor and the Confirming Actor).*
+### 2.2 Strict Single-Actor Ownership (No Admin Override in V1)
+In V1, to eliminate confusion over provenance and audit accountability:
+- `session.ActorUserId` must **strictly match** `currentCaller.Id`.
+- An administrator cannot confirm a preview created by a content staff member.
+- If an administrator wishes to import the curriculum, they must upload the file and generate their own preview token.
+- Violation triggers `403 Forbidden (ACTOR_MISMATCH)` without consuming or invalidating the token.
 
 ---
 
-## 3. Token Generation & Session Lifecycle
+## 3. Atomic Token Claim vs Naive Check-Then-Act
 
-### 3.1 Token Entropy & Structure
-- `[VERIFIED FROM SOURCE CODE]` — `CurriculumImportController.cs:124`:
-  ```csharp
-  var previewToken = $"prev_{Guid.NewGuid():N}";
-  ```
-- Structure: Prefix `prev_` followed by 32 lowercase hexadecimal characters (128-bit RFC 4122 Version 4 UUID).
-- Entropy: $2^{122}$ possible random values, mathematically immune to brute-force guessing or collision.
+### 3.1 The Vulnerability of `TryGetValue + Remove`
+When multiple requests present the same `previewToken` concurrently (e.g., fast automated double-clicks or multiple tabs):
+- `IMemoryCache.TryGetValue(key, out session)` returns `true` on Thread 1.
+- Before Thread 1 executes `IMemoryCache.Remove(key)`, Thread 2 calls `IMemoryCache.TryGetValue(key, out session)` and also returns `true`.
+- Both threads enter the transaction pipeline simultaneously.
 
-### 3.2 Cache Storage & Expiration
-- `[VERIFIED FROM SOURCE CODE]` — Stored in `IMemoryCache`:
-  ```csharp
-  var expiresAt = DateTimeOffset.UtcNow.AddHours(1);
-  _cache.Set($"import:preview:{previewToken}", session, new MemoryCacheEntryOptions
-  {
-      AbsoluteExpiration = expiresAt
-  });
-  ```
-- Key format: `import:preview:prev_<32_hex_digits>`
-- Absolute TTL: 1 hour (3600 seconds).
+### 3.2 The Solution: Atomic Compare-And-Swap (CAS)
+The session manager must employ an atomic state transition:
+```csharp
+public enum SessionStatus
+{
+    Pending = 0,
+    Claimed = 1,
+    Committed = 2,
+    Failed = 3
+}
 
----
-
-## 4. Threat Vectors & Detailed Risk Analysis
-
-### 4.1 Threat 1: In-Memory Cache in Distributed / Multi-Replica Environment
-- `[REAL RISK / VULNERABILITY IDENTIFIED]`:
-  `IMemoryCache` resides in local process memory of the backend instance.
-  - If STUDY_AI backend is scaled horizontally to 2+ pods or instances behind a load balancer, `POST /preview` may hit Pod A (caching the session), while the subsequent `POST /confirm` hits Pod B, resulting in `404 Not Found` (Token Expired or Invalid).
-  - Similarly, an application pool recycle or pod restart discards all active tokens.
-- **Architectural Solution**:
-  For single-node development and CI integration tests, `IMemoryCache` is sufficient. For multi-node staging/production, session state must be backed by Redis distributed cache or a dedicated persistence table (`content_import_sessions`) in SQL Server.
-
-### 4.2 Threat 2: State Drift (Time-to-Check vs Time-to-Use / TOCTOU)
-- `[REAL RISK / VULNERABILITY IDENTIFIED]`:
-  A preview token is valid for 1 hour. During that 1-hour window:
-  - Another administrator may rename, archive, or delete a Subject or Chapter referenced by the batch.
-  - Another batch may be imported, inserting entities with the same codes.
-  - If `Confirm` blindly executes the actions planned at `Preview` time without re-validating the live database, foreign key errors, duplicate key violations, or corrupted hierarchies will occur.
-- **Mitigation Requirement for Confirm Design**:
-  The Confirm pipeline **must not trust the preview actions blindly**. It must execute a pre-commit verification query inside the database transaction to ensure prerequisites remain unchanged.
-
-### 4.3 Threat 3: Replay Attack & Double Submission
-- `[REAL RISK / VULNERABILITY IDENTIFIED]`:
-  If a user double-clicks the "Confirm Import" button, or if network retries resend the HTTP request, two identical confirmation transactions could execute concurrently.
-  - Thread 1 and Thread 2 both retrieve `session` from cache.
-  - Both attempt to insert the same Subject and Chapter codes, causing database constraint collisions or duplicate entries.
-- **Mitigation Requirement for Confirm Design**:
-  Single-use atomic consumption:
-  `_cache.Remove(tokenKey)` or an atomic flag exchange `Interlocked.CompareExchange` / distributed lock MUST be executed immediately upon entering Confirm, before initiating the database transaction.
-
-### 4.4 Threat 4: Memory Exhaustion via Unbounded Cached Batches
-- `[REAL RISK / VULNERABILITY IDENTIFIED]`:
-  Each `CurriculumImportSessionDto` holds the full parsed object graph (`CurriculumImportBatchDto`). For a 5,000-question batch, the in-memory footprint can reach 5-10 MB per session.
-  - If a malicious or runaway client submits 100 preview requests without confirming them, memory usage can balloon by 500MB - 1GB.
-- **Mitigation Requirement**:
-  1. Enforce rate limiting on `/preview` (e.g., maximum 5 preview requests per user per 10 minutes).
-  2. Implement an eviction policy and maximum session limit per user (e.g. invalidate older preview tokens if the same user generates a new one).
+// Atomic claim: only one thread transitions 0 -> 1
+int original = Interlocked.CompareExchange(ref session.StatusInt, (int)SessionStatus.Claimed, (int)SessionStatus.Pending);
+if (original != (int)SessionStatus.Pending)
+{
+    if (session.Status == SessionStatus.Committed)
+    {
+        return ServeIdempotentResult(session.DurableResult);
+    }
+    return RejectConflict("TOKEN_IN_USE");
+}
+```
 
 ---
 
-## 5. Security Checklist for Confirm Import Phase
+## 4. Crash Resilience & Durable Idempotency
 
-| Security Control | Required Mechanism | Responsible Layer |
-|---|---|---|
-| **Role Verification** | Require `content` or `admin` role | API Controller Filter |
-| **Actor Binding** | Enforce caller ID == session Creator ID (unless Admin) | Service / Domain Logic |
-| **Token Invalidation** | Atomic single-use token consumption (Burn-on-Confirm) | Cache / Session Manager |
-| **Drift Detection** | Pre-transaction re-query of all referenced entity codes | Transaction Pipeline |
-| **Transaction Boundary**| All-or-nothing rollback on any error | EF Core ExecutionStrategy |
-| **Audit Trail** | Immutable record in `staff_audit_logs` | Infrastructure / DB |
+### 4.1 Volatility of `IMemoryCache`
+`IMemoryCache` resides exclusively in host RAM:
+- If SQL Server commits the transaction, but the application pool recycles, the backend container restarts, or the OS crashes before the HTTP response is dispatched, `IMemoryCache` is completely wiped.
+- A client retrying the request after the crash would find no token in cache and receive `404 Not Found`, erroneously assuming the import never took place.
+
+### 4.2 Durable Reconciliation via `StaffAuditLog`
+To guarantee crash durability without requiring new schema tables:
+1. Every successful confirm transaction writes an immutable entry into `StaffAuditLog`:
+   - `TargetType = "CurriculumImport"`
+   - `TargetId = previewToken`
+   - `Payload = JsonSerializer.Serialize(confirmResponse)`
+2. During token lookup, if the token is not present in RAM, the system queries:
+   ```csharp
+   var auditLog = await _context.StaffAuditLogs
+       .AsNoTracking()
+       .FirstOrDefaultAsync(l => l.TargetType == "CurriculumImport" && l.TargetId == previewToken);
+   ```
+3. If an audit log exists, the system reconstructs the `200 OK` response with `isIdempotentReplay: true`. This guarantees **strict exactly-once semantics across application crashes**.
+
+---
+
+## 5. Token Policies Across Operational States
+
+```
++--------------------------+-----------------------+---------------------------------------+
+| Operational Event        | Intermediate State    | Final Token Disposition               |
++--------------------------+-----------------------+---------------------------------------+
+| Normal Successful Commit | PENDING -> CLAIMED    | COMMITTED (Durable result recorded)   |
+| Pre-Tx Validation Error  | PENDING -> CLAIMED    | PENDING (Restored for user correction)|
+| Conflict (Entity Exists) | PENDING -> CLAIMED    | PENDING (Restored for user review)    |
+| Actor Mismatch (403)     | PENDING               | PENDING (Unchanged)                   |
+| Deadlock (Retried OK)    | PENDING -> CLAIMED    | COMMITTED (Succeeds on retry)         |
+| Deadlock (Retries Fail)  | PENDING -> CLAIMED    | PENDING (Restored for retry)          |
+| Unrecoverable DB Error   | PENDING -> CLAIMED    | FAILED                                |
+| Server Crash Pre-Commit  | PENDING -> CLAIMED    | Rolls back in SQL; Re-import needed   |
+| Server Crash Post-Commit | PENDING -> CLAIMED    | COMMITTED (Reconciled from AuditLog)  |
++--------------------------+-----------------------+---------------------------------------+
+```
+
+---
+
+## 6. Security Review Conclusion
+
+The revised design guarantees:
+1. **No Concurrency Leaks**: Naive check-then-act replaced with atomic state machine.
+2. **No Orphaned Replays**: Durable idempotency survives process crashes.
+3. **No TOCTOU Window**: Drift revalidation moved 100% inside the transaction.
+4. **Single-Actor Integrity**: Zero ambiguity over which human identity authorized the import.
