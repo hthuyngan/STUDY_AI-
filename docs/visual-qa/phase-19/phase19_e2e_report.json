@@ -1,0 +1,65 @@
+{
+  "timestamp": "2026-11-10T09:00:51.473Z",
+  "totalTime": 10887,
+  "allPassed": true,
+  "reports": [
+    {
+      "id": 1,
+      "name": "Learner Login & Navigation to /ai-tutor",
+      "status": "PASS",
+      "durationMs": 3344,
+      "screenshots": [
+        "docs\\visual-qa\\phase-19\\phase19_01_ai_tutor_loaded.png"
+      ],
+      "notes": "Successfully authenticated as learner and loaded AI Tutor chat layout."
+    },
+    {
+      "id": 2,
+      "name": "Start New Conversation & Suggestion Cards",
+      "status": "PASS",
+      "durationMs": 699,
+      "screenshots": [
+        "docs\\visual-qa\\phase-19\\phase19_02_new_chat_empty_state.png"
+      ],
+      "notes": "Initialized new conversation and displayed suggested prompt cards."
+    },
+    {
+      "id": 3,
+      "name": "Send Question & Receive Real AI Tutor Response",
+      "status": "PASS",
+      "durationMs": 362,
+      "screenshots": [
+        "docs\\visual-qa\\phase-19\\phase19_03_ai_response_received.png"
+      ],
+      "notes": "Sent question \"Làm thế nào để tính đạo hàm của hàm số hợp (Test DW5YC)?\" and received AI Tutor response with pedagogical explanation."
+    },
+    {
+      "id": 4,
+      "name": "Contextual Learning Chat with Lesson Context",
+      "status": "PASS",
+      "durationMs": 994,
+      "screenshots": [
+        "docs\\visual-qa\\phase-19\\phase19_04_contextual_lesson_chat.png"
+      ],
+      "notes": "Successfully loaded contextual topic header badge and prefilled contextual prompt."
+    },
+    {
+      "id": 5,
+      "name": "SQL Server Persistence Verification (StudyAIDb_E2E)",
+      "status": "PASS",
+      "durationMs": 285,
+      "screenshots": [],
+      "notes": "Verified in SQL Server: Conversations=12\r\n\r\n(1 rows affected), UserMessages=1\r\n\r\n(1 rows affected), AssistantMessages=5\r\n\r\n(1 rows affected)."
+    },
+    {
+      "id": 6,
+      "name": "Page Reload & Conversation History Reloading",
+      "status": "PASS",
+      "durationMs": 762,
+      "screenshots": [
+        "docs\\visual-qa\\phase-19\\phase19_05_reloaded_history_persisted.png"
+      ],
+      "notes": "Refreshed browser and verified conversation list and history rehydrated seamlessly from SQL Server."
+    }
+  ]
+}

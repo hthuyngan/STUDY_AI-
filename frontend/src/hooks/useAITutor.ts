@@ -114,21 +114,31 @@ export function useAITutor() {
   // Load conversations on mount
   useEffect(() => {
     let mounted = true
-    aiTutorService.getConversations().then((list) => {
+    aiTutorService.getConversations().then(async (list) => {
       if (!mounted) return
       setConversations(list)
       // Pick first active conversation if available, or create new
       if (list.length > 0 && !activeConversationRef.current) {
         const first = list[0]
-        setActiveConversation(first)
-        setActiveSubject(first.subject || 'all')
-        if (first.assistanceMode) {
-          setActiveMode(first.assistanceMode)
+        let fullFirst = first
+        try {
+          const detail = await aiTutorService.getConversationById(first.id)
+          if (detail) fullFirst = detail
+        } catch {
+          // use summary if detail fails
         }
-        if (first.learningContext && !activeContextRef.current) {
-          setActiveContext(first.learningContext)
+        if (!mounted) return
+        setActiveConversation(fullFirst)
+        setActiveSubject(fullFirst.subject || 'all')
+        if (fullFirst.assistanceMode) {
+          setActiveMode(fullFirst.assistanceMode)
+        }
+        if (fullFirst.learningContext && !activeContextRef.current) {
+          setActiveContext(fullFirst.learningContext)
         }
       }
+    }).catch((err) => {
+      if (mounted) setError(err?.message || 'Không thể tải danh sách cuộc trò chuyện.')
     })
     return () => {
       mounted = false
@@ -151,7 +161,13 @@ export function useAITutor() {
         setIsStreaming(false)
       }
       setError(null)
-      const conv = conversations.find((c) => c.id === id)
+      let conv = conversations.find((c) => c.id === id) || null
+      try {
+        const detail = await aiTutorService.getConversationById(id)
+        if (detail) conv = detail
+      } catch {
+        // use summary
+      }
       if (conv) {
         setActiveConversation(conv)
         setActiveSubject(conv.subject || 'all')

@@ -1,7 +1,9 @@
 import type {
   ChatConversation,
   ChatMessage,
+  ChatRole,
   LearningAssistanceMode,
+  MessageStatus,
   SendMessagePayload,
   TutorLearningContext,
 } from '../types/aiTutor'
@@ -10,18 +12,43 @@ import {
   MOCK_STREAMING_RESPONSES,
 } from '../data/aiTutor.mock'
 import { getStorageKey } from '@/repositories/storageKeys'
+import { apiClient } from '@/lib/apiClient'
+import { getAccessToken } from '@/auth/authSession'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 export const LEGACY_AI_CONVERSATIONS_KEY = 'study_ai.ai_conversations.v1'
+
+function mapConversationDetailToChatConversation(dto: any): ChatConversation {
+  return {
+    id: dto.id,
+    title: dto.title,
+    subject: dto.subject || 'all',
+    createdAt: dto.createdAt,
+    updatedAt: dto.updatedAt,
+    learningContext: dto.learningContextJson ? JSON.parse(dto.learningContextJson) : undefined,
+    assistanceMode: (dto.assistanceMode as LearningAssistanceMode) || 'explain',
+    messages: (dto.messages || []).map((m: any) => ({
+      id: m.id,
+      role: m.role as ChatRole,
+      content: m.content,
+      createdAt: m.createdAt,
+      status: 'done' as MessageStatus,
+      suggestedActions: m.suggestedActionsJson ? JSON.parse(m.suggestedActionsJson) : [],
+      learningContextSnapshot: m.learningContextSnapshotJson
+        ? JSON.parse(m.learningContextSnapshotJson)
+        : undefined,
+      assistanceMode: m.assistanceMode as LearningAssistanceMode,
+    })),
+  }
+}
 
 class AITutorService {
   private inMemoryCache: ChatConversation[] | null = null
 
   /**
-   * Check if remote AI backend is configured
+   * Check if user is authenticated with backend
    */
-  isRemoteBackendConfigured(): boolean {
-    return Boolean(API_BASE_URL)
+  isAuthenticated(): boolean {
+    return Boolean(getAccessToken())
   }
 
   /**
@@ -37,7 +64,7 @@ class AITutorService {
   }
 
   /**
-   * Load conversations from persistent storage with fallback to mock data
+   * Load conversations from persistent storage with fallback to mock data (demo/unauthenticated mode)
    */
   private loadFromStorage(): ChatConversation[] {
     if (typeof window === 'undefined') return JSON.parse(JSON.stringify(MOCK_CONVERSATIONS))
@@ -60,7 +87,7 @@ class AITutorService {
   }
 
   /**
-   * Persist conversations to localStorage
+   * Persist conversations to localStorage (demo/unauthenticated mode)
    */
   private saveToStorage(list: ChatConversation[]): void {
     if (typeof window === 'undefined') return
@@ -78,14 +105,22 @@ class AITutorService {
    * Fetch all conversations for current user
    */
   async getConversations(): Promise<ChatConversation[]> {
-    if (this.isRemoteBackendConfigured()) {
+    if (this.isAuthenticated()) {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/conversations`)
-        if (res.ok) {
-          return await res.json()
-        }
+        const list = await apiClient.get<any[]>('/api/v1/ai/conversations')
+        return (list || []).map((dto) => ({
+          id: dto.id,
+          title: dto.title,
+          subject: dto.subject || 'all',
+          createdAt: dto.createdAt,
+          updatedAt: dto.updatedAt,
+          learningContext: dto.learningContextJson ? JSON.parse(dto.learningContextJson) : undefined,
+          assistanceMode: (dto.assistanceMode as LearningAssistanceMode) || 'explain',
+          messages: [],
+        }))
       } catch (err) {
-        console.warn('Backend unavailable, falling back to local conversations:', err)
+        console.error('Failed to load conversations from backend:', err)
+        throw err
       }
     }
 
@@ -100,6 +135,16 @@ class AITutorService {
    * Fetch single conversation by ID
    */
   async getConversationById(id: string): Promise<ChatConversation | null> {
+    if (this.isAuthenticated()) {
+      try {
+        const dto = await apiClient.get<any>(`/api/v1/ai/conversations/${id}`)
+        return dto ? mapConversationDetailToChatConversation(dto) : null
+      } catch (err: any) {
+        if (err?.status === 404) return null
+        throw err
+      }
+    }
+
     const list = await this.getConversations()
     const found = list.find((c) => c.id === id)
     return found ? JSON.parse(JSON.stringify(found)) : null
@@ -114,6 +159,17 @@ class AITutorService {
     context?: TutorLearningContext,
     mode?: LearningAssistanceMode
   ): Promise<ChatConversation> {
+    if (this.isAuthenticated()) {
+      const dto = await apiClient.post<any>('/api/v1/ai/conversations', {
+        subject: subject || context?.subjectId || 'all',
+        title: initialTitle,
+        lessonId: context?.lessonId,
+        assistanceMode: mode || 'explain',
+        learningContextJson: context ? JSON.stringify(context) : null,
+      })
+      return mapConversationDetailToChatConversation(dto)
+    }
+
     const list = await this.getConversations()
     const title =
       initialTitle ||
@@ -137,9 +193,14 @@ class AITutorService {
   }
 
   /**
-   * Update conversation title or metadata
+   * Update conversation title
    */
   async updateConversationTitle(id: string, title: string): Promise<void> {
+    if (this.isAuthenticated()) {
+      await apiClient.patch(`/api/v1/ai/conversations/${id}`, { title })
+      return
+    }
+
     const list = await this.getConversations()
     const conv = list.find((c) => c.id === id)
     if (conv) {
@@ -154,6 +215,11 @@ class AITutorService {
    * Delete a conversation
    */
   async deleteConversation(id: string): Promise<void> {
+    if (this.isAuthenticated()) {
+      await apiClient.delete(`/api/v1/ai/conversations/${id}`)
+      return
+    }
+
     const list = await this.getConversations()
     const filtered = list.filter((c) => c.id !== id)
     this.inMemoryCache = filtered
@@ -161,9 +227,14 @@ class AITutorService {
   }
 
   /**
-   * Append a message to conversation and persist
+   * Append a message to conversation in demo storage
    */
   async appendMessage(conversationId: string, message: ChatMessage): Promise<void> {
+    if (this.isAuthenticated()) {
+      // In authenticated mode, messages are persisted by the backend SendMessage endpoint
+      return
+    }
+
     const list = await this.getConversations()
     const conv = list.find((c) => c.id === conversationId)
     if (conv) {
@@ -175,7 +246,7 @@ class AITutorService {
   }
 
   /**
-   * Craft pedagogical mock response with LaTeX and mode awareness
+   * Craft pedagogical mock response with LaTeX and mode awareness (for demo mode / standalone tests)
    */
   generateMockResponse(
     message: string,
@@ -185,7 +256,6 @@ class AITutorService {
     const promptLower = message.toLowerCase()
     const demoNotice = '> **[Bản mô phỏng AI Tutor · Trải nghiệm học tập có ngữ cảnh]**\n\n'
 
-    // 1. Context: Wrong Assessment Question
     if (context?.source === 'assessment-question') {
       const qPrompt = context.questionPrompt || context.title
       const correct = context.correctAnswer || 'Đáp án chính xác'
@@ -197,7 +267,7 @@ class AITutorService {
 "${qPrompt}"
 
 1. **Nhận diện dạng toán:** Hãy quan sát kỹ cấu trúc hàm số hoặc hiện tượng vật lý đang xét.
-2. **Quy tắc cốt lõi:** Chú ý công thức đạo hàm hàm hợp $\\left(u^n\\right)' = n \\cdot u^{n-1} \\cdot u'$ hoặc định luật bảo toàn liên quan.
+2. **Quy tắc cốt lõi:** Chú ý công thức đạo hàm hàm hợp $\\left(u^n\\right)' = n \\cdot u^{n-1} \\cdot u'$.
 3. **Bẫy thường gặp:** Em chọn **${selected}** có thể do quên nhân với đạo hàm của biểu thức bên trong $u'(x)$.
 
 > **Thử lại:** Hãy tính riêng $u'(x)$ trước, sau đó nhân với phần ngoài để tìm ra đáp án đúng!`,
@@ -233,7 +303,6 @@ ${context.explanation ? `\n> **Giải thích chuẩn:** ${context.explanation}` 
         }
       }
 
-      // Default explain
       return {
         text: `${demoNotice}### 💡 Giải thích bản chất câu hỏi:
 "${qPrompt}"
@@ -248,124 +317,16 @@ ${context.explanation ? `\n> **Giải thích chuẩn:** ${context.explanation}` 
 - **Lời khuyên sư phạm:**
   Mỗi khi gặp biểu thức phức tạp, hãy đóng khung $u = \\dots$ lại, tính $u'$ ra nháp trước khi ghép vào công thức tổng thể.`,
         suggestedActions: [
-          'Cho mình xin gợi ý làm lại',
-          'Tạo bài tập vận dụng',
-          'Quay lại bài giảng',
-        ],
-      }
-    }
-
-    // 2. Context: Knowledge Gap or Smart Review
-    if (context?.source === 'knowledge-gap' || context?.source === 'smart-review') {
-      if (mode === 'hint') {
-        return {
-          text: `${demoNotice}### 🔍 Gợi ý ôn tập cho kiến thức: "${context.title}"
-
-- **Dấu hiệu nhận biết:** Hãy kiểm tra xem phương trình đạo hàm cấp hai $y''(x) = 0$ có nghiệm hay không và có đổi dấu khi đi qua điểm đó hay không.
-- **Hệ thức then chốt:**
-  $$y'' = 0 \\quad \\text{và} \\quad y''(x) \\text{ đổi dấu qua } x_0$$
-- **Chiến lược:** Không cần vội nhớ đáp số, hãy viết biểu thức $y'$ rồi lấy tiếp $y''$ ra giấy nháp nhé!`,
-          suggestedActions: [
-            'Giải thích từng bước',
-            'Cho ví dụ minh họa',
-            'Mình đã hiểu, quay lại ôn tiếp',
-          ],
-        }
-      }
-
-      return {
-        text: `${demoNotice}### 💡 Củng cố kiến thức: "${context.title}"
-
-${context.excerpt ? `> **Trích dẫn nội dung:** ${context.excerpt}\n\n` : ''}
-1. **Khái niệm then chốt:**
-   Điểm uốn của đồ thị hàm số là điểm phân chia phần lồi và phần lõm của đồ thị.
-2. **Điều kiện cần và đủ:**
-   Nếu hàm số có đạo hàm cấp hai liên tục trên khoảng chứa $x_0$, thì:
-   $$y''(x_0) = 0 \\quad \\text{và } y''(x) \\text{ đổi dấu khi qua } x_0$$
-3. **Ví dụ trực quan:**
-   Với hàm số bậc ba $y = ax^3 + bx^2 + cx + d$ ($a \\neq 0$):
-   $$y' = 3ax^2 + 2bx + c$$
-   $$y'' = 6ax + 2b = 0 \\iff x = -\\frac{b}{3a}$$
-   Do $y''$ là nhị thức bậc nhất nên luôn đổi dấu qua $x = -\\frac{b}{3a}$, tức là hàm bậc 3 luôn luôn có duy nhất một điểm uốn!`,
-        suggestedActions: [
-          'Cho 1 bài tập trắc nghiệm tự luyện',
-          'Tóm tắt các dạng bài đồ thị',
-          'Quay lại bài giảng',
-        ],
-      }
-    }
-
-    // 3. Assistance Modes: Hint / Step-by-Step / Practice / Summarize
-    if (mode === 'hint') {
-      return {
-        text: `${demoNotice}### 🔍 Gợi ý tư duy (Chưa tiết lộ đáp án ngay):
-
-1. **Bước 1 — Xác định đại lượng đã biết và cần tìm:**
-   Hãy viết tóm tắt các thông số của bài toán ra giấy nháp.
-2. **Bước 2 — Áp dụng định lý hoặc công thức liên hệ:**
-   Xem xét các công thức liên hệ trực tiếp giữa đại lượng đã cho và biến số cần tìm:
-   $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a} \\quad \\text{hoặc} \\quad F = m \\cdot a$$
-3. **Bước 3 — Kiểm tra điều kiện xác định:**
-   Đừng quên xét điều kiện để biểu thức có nghĩa (mẫu khác 0, biểu thức trong căn $\\ge 0$).
-
-> Em hãy thử làm theo gợi ý trên rồi gửi đáp án ra đây để mình kiểm tra giúp nhé!`,
-        suggestedActions: [
-          'Cho hướng dẫn từng bước',
-          'Giải thích rõ hơn công thức',
-          'Đưa đáp án và lời giải',
-        ],
-      }
-    }
-
-    if (mode === 'step-by-step') {
-      return {
-        text: `${demoNotice}### 🪜 Hướng dẫn giải chi tiết từng bước:
-
-- **Bước 1: Tìm tập xác định**
-  Hàm số xác định khi và chỉ khi các biểu thức dưới mẫu khác 0 và biểu thức dưới căn bậc hai không âm:
-  $$\\mathcal{D} = \\mathbb{R} \\setminus \\{x_0\\}$$
-
-- **Bước 2: Tính đạo hàm bậc nhất**
-  Áp dụng quy tắc đạo hàm:
-  $$f'(x) = \\lim_{\\Delta x \\to 0} \\frac{f(x + \\Delta x) - f(x)}{\\Delta x}$$
-
-- **Bước 3: Giải phương trình $f'(x) = 0$**
-  Tìm các nghiệm $x_1, x_2, \\dots$ thuộc tập xác định $\\mathcal{D}$.
-
-- **Bước 4: Lập bảng biến thiên và kết luận**
-  Xét dấu của $f'(x)$ trên từng khoảng để xác định tính đồng biến, nghịch biến và các điểm cực trị.`,
-        suggestedActions: [
-          'Cho bài tập tương tự để làm thử',
-          'Tóm tắt các quy tắc đạo hàm',
-          'Hỏi thêm câu hỏi khác',
-        ],
-      }
-    }
-
-    if (mode === 'practice') {
-      return {
-        text: `${demoNotice}### 📝 Bài tập luyện tập vận dụng:
-
-**Đề bài:** Cho hàm số $y = x^3 - 3x^2 + 2$. Điểm cực đại của đồ thị hàm số có tọa độ là:
-
-- **A.** $(0; 2)$
-- **B.** $(2; -2)$
-- **C.** $(1; 0)$
-- **D.** $(0; 0)$
-
----
-*💡 Hướng dẫn: Hãy tính $y'$, giải $y' = 0$ và lập bảng xét dấu để tìm điểm cực đại trước khi bấm xem lời giải.*`,
-        suggestedActions: [
-          'Đáp án là phương án A',
-          'Cho mình xin gợi ý giải bài này',
-          'Xem lời giải chi tiết',
+          'Giải thích thêm về điều kiện áp dụng',
+          'Luyện tập câu hỏi tương tự',
+          'Quay lại câu hỏi trắc nghiệm',
         ],
       }
     }
 
     if (mode === 'summarize') {
       return {
-        text: `${demoNotice}### 📋 Bảng tóm tắt kiến thức cốt lõi:
+        text: `${demoNotice}### 📑 Bảng tóm tắt kiến thức cốt lõi:
 
 | Khái niệm | Công thức / Quy tắc | Điều kiện áp dụng |
 | :--- | :--- | :--- |
@@ -383,7 +344,6 @@ ${context.excerpt ? `> **Trích dẫn nội dung:** ${context.excerpt}\n\n` : ''
       }
     }
 
-    // Keyword Fallbacks
     if (promptLower.includes('đạo hàm') || promptLower.includes('cực trị') || promptLower.includes('tiếp tuyến')) {
       return {
         text: `${demoNotice}${MOCK_STREAMING_RESPONSES.dao_ham}`,
@@ -406,28 +366,6 @@ ${context.excerpt ? `> **Trích dẫn nội dung:** ${context.excerpt}\n\n` : ''
       }
     }
 
-    if (promptLower.includes('xác suất') || promptLower.includes('tổ hợp')) {
-      return {
-        text: `${demoNotice}${MOCK_STREAMING_RESPONSES.xac_suat}`,
-        suggestedActions: [
-          'Phân biệt chỉnh hợp và tổ hợp',
-          'Công thức xác suất cổ điển',
-          'Bài tập có lời giải',
-        ],
-      }
-    }
-
-    if (promptLower.includes('quiz') || promptLower.includes('trắc nghiệm')) {
-      return {
-        text: `${demoNotice}${MOCK_STREAMING_RESPONSES.quiz}`,
-        suggestedActions: [
-          'Giải thích chi tiết câu 1',
-          'Giải thích chi tiết câu 2',
-          'Tạo thêm 3 câu hỏi mới',
-        ],
-      }
-    }
-
     return {
       text: `${demoNotice}${MOCK_STREAMING_RESPONSES.default}`,
       suggestedActions: [
@@ -440,6 +378,8 @@ ${context.excerpt ? `> **Trích dẫn nội dung:** ${context.excerpt}\n\n` : ''
 
   /**
    * Send a message and stream assistant chunks.
+   * If authenticated, posts to real backend API with fail-closed error handling.
+   * If unauthenticated, uses mock generator for offline/demo usage.
    */
   async sendMessageStream(
     payload: SendMessagePayload,
@@ -447,55 +387,81 @@ ${context.excerpt ? `> **Trích dẫn nội dung:** ${context.excerpt}\n\n` : ''
     signal?: AbortSignal
   ): Promise<ChatMessage> {
     if (payload.message.trim() === 'error_test') {
-      await new Promise((resolve) => setTimeout(resolve, 300))
+      await new Promise((resolve) => setTimeout(resolve, 80))
       throw new Error('Lỗi kết nối tới AI Tutor. Vui lòng thử lại.')
     }
 
     const mode = payload.mode || 'explain'
     const context = payload.learningContext
 
-    // 1. If remote backend configured, attempt streaming
-    if (this.isRemoteBackendConfigured()) {
+    // 1. Authenticated mode: Connect directly to real backend API
+    if (this.isAuthenticated()) {
+      let res: any
       try {
-        const response = await fetch(`${API_BASE_URL}/api/chat`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-          signal,
-        })
-        if (response.ok && response.body) {
-          const reader = response.body.getReader()
-          const decoder = new TextDecoder()
-          let streamText = ''
-          while (true) {
-            const { done, value } = await reader.read()
-            if (done) break
-            const chunk = decoder.decode(value, { stream: true })
-            streamText += chunk
-            onChunk(streamText)
-          }
-
-          const assistantMsg: ChatMessage = {
-            id: `msg-${Date.now()}`,
-            role: 'assistant',
-            content: streamText,
-            createdAt: new Date().toISOString(),
-            status: 'done',
-            learningContextSnapshot: context,
+        res = await apiClient.post<any>(
+          `/api/v1/ai/conversations/${payload.conversationId}/messages`,
+          {
+            message: payload.message,
+            lessonId: context?.lessonId,
             assistanceMode: mode,
-          }
-          await this.appendMessage(payload.conversationId, assistantMsg)
-          return assistantMsg
-        }
-      } catch (err) {
+            learningContextJson: context ? JSON.stringify(context) : null,
+          },
+          { signal }
+        )
+      } catch (err: any) {
         if (signal?.aborted) throw err
-        console.warn('Real AI backend unavailable, falling back to simulated streaming:', err)
+
+        const status = err?.status
+        const detail = err?.data?.detail || err?.message
+
+        if (status === 403) {
+          throw new Error('Không có quyền truy cập bài học chưa xuất bản (bản nháp).')
+        }
+        if (status === 504) {
+          throw new Error('Yêu cầu AI Tutor vượt quá thời gian chờ (timeout). Vui lòng thử lại.')
+        }
+        if (status === 502) {
+          throw new Error('Lỗi kết nối tới nhà cung cấp mô hình AI (Provider error). Vui lòng thử lại sau.')
+        }
+        if (status === 503) {
+          throw new Error('Chưa cấu hình API Key AI cho hệ thống.')
+        }
+
+        throw new Error(detail || 'Không thể tạo câu trả lời từ AI Tutor.')
+      }
+
+      const assistantMsgDto = res.assistantMessage
+      const fullText = assistantMsgDto.content
+      const suggestedActions = res.suggestedActions || []
+
+      // Progressive typing animation
+      const words = fullText.split(' ')
+      let accumulated = ''
+      for (let i = 0; i < words.length; i++) {
+        if (signal?.aborted) {
+          throw new DOMException('Aborted by user', 'AbortError')
+        }
+        accumulated += (i === 0 ? words[i] : ' ' + words[i])
+        onChunk(accumulated)
+        if (words.length > 1) {
+          await new Promise((resolve) => setTimeout(resolve, 6))
+        }
+      }
+
+      return {
+        id: assistantMsgDto.id,
+        role: 'assistant',
+        content: fullText,
+        createdAt: assistantMsgDto.createdAt,
+        status: 'done',
+        suggestedActions,
+        learningContextSnapshot: context,
+        assistanceMode: mode,
       }
     }
 
-    // 2. Generate simulated pedagogical response
+    // 2. Unauthenticated demo fallback (for tests without auth token or demo mode)
     const { text, suggestedActions } = this.generateMockResponse(payload.message, context, mode)
-
     const words = text.split(' ')
     let accumulated = ''
 
@@ -503,13 +469,10 @@ ${context.excerpt ? `> **Trích dẫn nội dung:** ${context.excerpt}\n\n` : ''
       if (signal?.aborted) {
         throw new DOMException('Aborted by user', 'AbortError')
       }
-
       const wordWithSpace = i === 0 ? words[i] : ' ' + words[i]
       accumulated += wordWithSpace
       onChunk(accumulated)
-
-      // Natural streaming cadence
-      const delay = Math.floor(Math.random() * 14) + 10
+      const delay = Math.floor(Math.random() * 8) + 4
       await new Promise((resolve) => setTimeout(resolve, delay))
     }
 

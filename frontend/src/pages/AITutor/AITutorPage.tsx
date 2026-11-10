@@ -95,6 +95,12 @@ export function AITutorPage() {
           />
         )}
 
+        {error && !hasMessages && (
+          <div className="chat-error-banner" data-testid="chat-error-banner" style={{ margin: '1rem', padding: '0.75rem 1rem', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444', borderRadius: '8px', color: '#dc2626' }}>
+            {error}
+          </div>
+        )}
+
         {hasMessages ? (
           <ChatMessageList
             messages={messages}

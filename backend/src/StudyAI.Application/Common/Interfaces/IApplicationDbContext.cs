@@ -18,6 +18,8 @@ public interface IApplicationDbContext
     DbSet<ContentLesson> ContentLessons { get; }
     DbSet<ContentAssessment> ContentAssessments { get; }
     DbSet<ContentQuestion> ContentQuestions { get; }
+    DbSet<AiConversation> AiConversations { get; }
+    DbSet<AiMessage> AiMessages { get; }
 
     DatabaseFacade Database { get; }
 

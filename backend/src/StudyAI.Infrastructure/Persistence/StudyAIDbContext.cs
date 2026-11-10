@@ -47,6 +47,10 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
     public DbSet<ContentQuestion> ContentQuestions => Set<ContentQuestion>();
 
+    public DbSet<AiConversation> AiConversations => Set<AiConversation>();
+
+    public DbSet<AiMessage> AiMessages => Set<AiMessage>();
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         base.OnConfiguring(optionsBuilder);
@@ -536,7 +540,59 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
             entity.HasIndex(e => e.ChapterId);
 
             entity.HasIndex(e => e.Status);
+        });
 
+        // AiConversation
+        modelBuilder.Entity<AiConversation>(entity =>
+        {
+            entity.ToTable("ai_conversations");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.UserId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.Title).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.Subject).HasMaxLength(64);
+            entity.Property(e => e.LessonId).HasMaxLength(64);
+            entity.Property(e => e.AssistanceMode).HasMaxLength(32).HasDefaultValue("explain");
+            entity.Property(e => e.LearningContextJson).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
+
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => new { e.UserId, e.UpdatedAt });
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Lesson)
+                .WithMany()
+                .HasForeignKey(e => e.LessonId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        // AiMessage
+        modelBuilder.Entity<AiMessage>(entity =>
+        {
+            entity.ToTable("ai_messages");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.ConversationId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.Role).HasMaxLength(32).IsRequired();
+            entity.Property(e => e.Content).HasColumnType("nvarchar(max)").IsRequired();
+            entity.Property(e => e.SuggestedActionsJson).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.LearningContextSnapshotJson).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.AssistanceMode).HasMaxLength(32);
+            entity.Property(e => e.TokensUsed);
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            entity.HasIndex(e => e.ConversationId);
+            entity.HasIndex(e => new { e.ConversationId, e.CreatedAt });
+
+            entity.HasOne(e => e.Conversation)
+                .WithMany(c => c.Messages)
+                .HasForeignKey(e => e.ConversationId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
     }
