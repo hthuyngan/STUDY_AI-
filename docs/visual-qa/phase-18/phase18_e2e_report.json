@@ -1,0 +1,75 @@
+{
+  "timestamp": "2026-11-10T08:11:15.497Z",
+  "totalTime": 16668,
+  "allPassed": true,
+  "reports": [
+    {
+      "id": 1,
+      "name": "Content Staff Login & Navigation to /content/import",
+      "status": "PASS",
+      "durationMs": 5633,
+      "screenshots": [
+        "docs\\visual-qa\\phase-18\\phase18_01_import_page_loaded.png"
+      ],
+      "notes": "Successfully authenticated and loaded Curriculum Import workspace page."
+    },
+    {
+      "id": 2,
+      "name": "Client-side Validation of file format",
+      "status": "PASS",
+      "durationMs": 140,
+      "screenshots": [
+        "docs\\visual-qa\\phase-18\\phase18_02_client_validation_error.png"
+      ],
+      "notes": "Correctly rejected .pdf file and showed client validation error alert."
+    },
+    {
+      "id": 3,
+      "name": "Strict-only Fail-Closed Preview on Validation Error",
+      "status": "PASS",
+      "durationMs": 937,
+      "screenshots": [
+        "docs\\visual-qa\\phase-18\\phase18_03_preview_strict_error_blocked.png"
+      ],
+      "notes": "Detected validation issues, displayed error banner, and strictly disabled confirm button."
+    },
+    {
+      "id": 4,
+      "name": "Preview Valid File with Strict Readiness",
+      "status": "PASS",
+      "durationMs": 148,
+      "screenshots": [
+        "docs\\visual-qa\\phase-18\\phase18_04_preview_valid_success.png"
+      ],
+      "notes": "Valid batch extracted 1 Subject, 1 Chapter, 1 Lesson, 1 Question. Confirm button enabled."
+    },
+    {
+      "id": 5,
+      "name": "Execute Confirm Import with Audit Note",
+      "status": "PASS",
+      "durationMs": 1137,
+      "screenshots": [
+        "docs\\visual-qa\\phase-18\\phase18_05_confirm_success_result.png"
+      ],
+      "notes": "Successfully committed transaction, received AuditLog ID, and rendered success summary card."
+    },
+    {
+      "id": 6,
+      "name": "SQL Server Database Verification (StudyAIDb_E2E)",
+      "status": "PASS",
+      "durationMs": 1173,
+      "screenshots": [],
+      "notes": "Verified: Subject=1\r\n\r\n(1 rows affected), Chapter=1\r\n\r\n(1 rows affected), LessonStatus=draft\r\n\r\n(1 rows affected) (draft), Question=1\r\n\r\n(1 rows affected), AuditLog=4\r\n\r\n(1 rows affected)"
+    },
+    {
+      "id": 7,
+      "name": "Content Workspace & Backend API Acceptance Verification",
+      "status": "PASS",
+      "durationMs": 2205,
+      "screenshots": [
+        "docs\\visual-qa\\phase-18\\phase18_06_content_workspace_verified.png"
+      ],
+      "notes": "Verified navigation to subjects & lessons workspace. Backend API confirmed subject MATH_E2E_5UP8R1 and draft lesson ham-so-luy-thua-e2e-5up8r1."
+    }
+  ]
+}

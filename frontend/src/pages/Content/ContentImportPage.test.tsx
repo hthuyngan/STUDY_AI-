@@ -272,7 +272,7 @@ describe('ContentImportPage Component & Interaction Suite', () => {
     })
   })
 
-  it('6. Handles 409 conflict and 404 token expired errors gracefully', async () => {
+  it('6. Handles 409 conflict and displays error banner', async () => {
     const mockPreviewResponse = {
       previewToken: 'prev_conflict_token',
       fileHashSha256: 'conflicthash',
@@ -328,5 +328,229 @@ describe('ContentImportPage Component & Interaction Suite', () => {
         screen.getByText(/Xung đột dữ liệu \(409\)/i)
       ).toBeInTheDocument()
     })
+  })
+
+  it('7. Double-click Confirm does not fire duplicate confirm requests while in flight', async () => {
+    const mockPreviewResponse = {
+      previewToken: 'prev_double_click',
+      fileHashSha256: 'hash123',
+      fileName: 'valid.json',
+      fileFormat: 'json',
+      summary: {
+        totalItems: 1,
+        insertCount: 1,
+        updateCount: 0,
+        skipCount: 0,
+        conflictCount: 0,
+        errorCount: 0,
+        warningCount: 0,
+        isValid: true,
+      },
+      errors: [],
+      warnings: [],
+      previewItems: [{ entityType: 'subject', identifier: 'S1', title: 'Sub 1', action: 'Insert' }],
+      expiresAt: new Date(Date.now() + 3600000).toISOString(),
+    }
+
+    let resolveConfirm: (value: unknown) => void
+    const pendingPromise = new Promise((resolve) => {
+      resolveConfirm = resolve
+    })
+
+    vi.mocked(curriculumImportService.previewImport).mockResolvedValue(mockPreviewResponse)
+    vi.mocked(curriculumImportService.confirmImport).mockReturnValue(pendingPromise as any)
+
+    render(
+      <MemoryRouter>
+        <ContentImportPage />
+      </MemoryRouter>
+    )
+
+    const input = screen.getByTestId('file-upload-input')
+    const file = new File(['{}'], 'valid.json', { type: 'application/json' })
+    fireEvent.change(input, { target: { files: [file] } })
+    fireEvent.click(screen.getByTestId('btn-preview-import'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('btn-open-confirm-modal')).toBeEnabled()
+    })
+
+    fireEvent.click(screen.getByTestId('btn-open-confirm-modal'))
+    const modalConfirmBtn = screen.getByRole('button', { name: /^Xác nhận nhập$/i })
+
+    // Double-click
+    fireEvent.click(modalConfirmBtn)
+    fireEvent.click(modalConfirmBtn)
+
+    expect(curriculumImportService.confirmImport).toHaveBeenCalledTimes(1)
+
+    // Resolve promise
+    resolveConfirm!({
+      success: true,
+      previewToken: 'prev_double_click',
+      actorId: 'usr1',
+      confirmedAt: new Date().toISOString(),
+      auditLogId: 'audit_123',
+      summary: { totalProcessed: 1, inserted: 1, updated: 0, skipped: 0, failed: 0 },
+      entityCounts: { subjects: 1, chapters: 0, lessons: 0, questions: 0 },
+      message: 'OK',
+    })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('import-success-card')).toBeInTheDocument()
+    })
+  })
+
+  it('8. Handles network failure during Preview and shows friendly network error', async () => {
+    vi.mocked(curriculumImportService.previewImport).mockRejectedValue(
+      new Error('Failed to fetch')
+    )
+
+    render(
+      <MemoryRouter>
+        <ContentImportPage />
+      </MemoryRouter>
+    )
+
+    const input = screen.getByTestId('file-upload-input')
+    const file = new File(['{}'], 'valid.json', { type: 'application/json' })
+    fireEvent.change(input, { target: { files: [file] } })
+    fireEvent.click(screen.getByTestId('btn-preview-import'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('preview-error-banner')).toBeInTheDocument()
+      expect(
+        screen.getByText(/Không thể kết nối đến máy chủ/i)
+      ).toBeInTheDocument()
+    })
+  })
+
+  it('9. Handles network failure during Confirm and displays failure message without auto-retry', async () => {
+    const mockPreviewResponse = {
+      previewToken: 'prev_net_err',
+      fileHashSha256: 'hashnet',
+      fileName: 'valid.json',
+      fileFormat: 'json',
+      summary: {
+        totalItems: 1,
+        insertCount: 1,
+        updateCount: 0,
+        skipCount: 0,
+        conflictCount: 0,
+        errorCount: 0,
+        warningCount: 0,
+        isValid: true,
+      },
+      errors: [],
+      warnings: [],
+      previewItems: [{ entityType: 'subject', identifier: 'S1', title: 'Sub 1', action: 'Insert' }],
+      expiresAt: new Date(Date.now() + 3600000).toISOString(),
+    }
+
+    vi.mocked(curriculumImportService.previewImport).mockResolvedValue(mockPreviewResponse)
+    vi.mocked(curriculumImportService.confirmImport).mockRejectedValue(
+      new Error('Connection reset')
+    )
+
+    render(
+      <MemoryRouter>
+        <ContentImportPage />
+      </MemoryRouter>
+    )
+
+    const input = screen.getByTestId('file-upload-input')
+    const file = new File(['{}'], 'valid.json', { type: 'application/json' })
+    fireEvent.change(input, { target: { files: [file] } })
+    fireEvent.click(screen.getByTestId('btn-preview-import'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('btn-open-confirm-modal')).toBeEnabled()
+    })
+
+    fireEvent.click(screen.getByTestId('btn-open-confirm-modal'))
+    const modalConfirmBtn = screen.getByRole('button', { name: /^Xác nhận nhập$/i })
+    fireEvent.click(modalConfirmBtn)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('confirm-error-banner')).toBeInTheDocument()
+      expect(
+        screen.getByText(/Không thể hoàn thành giao dịch nhập dữ liệu do sự cố kết nối/i)
+      ).toBeInTheDocument()
+    })
+    expect(curriculumImportService.confirmImport).toHaveBeenCalledTimes(1)
+  })
+
+  it('10. Handles 404 Token expired error during Confirm', async () => {
+    const mockPreviewResponse = {
+      previewToken: 'prev_expired',
+      fileHashSha256: 'hashexp',
+      fileName: 'valid.json',
+      fileFormat: 'json',
+      summary: {
+        totalItems: 1,
+        insertCount: 1,
+        updateCount: 0,
+        skipCount: 0,
+        conflictCount: 0,
+        errorCount: 0,
+        warningCount: 0,
+        isValid: true,
+      },
+      errors: [],
+      warnings: [],
+      previewItems: [{ entityType: 'subject', identifier: 'S1', title: 'Sub 1', action: 'Insert' }],
+      expiresAt: new Date(Date.now() + 3600000).toISOString(),
+    }
+
+    vi.mocked(curriculumImportService.previewImport).mockResolvedValue(mockPreviewResponse)
+    vi.mocked(curriculumImportService.confirmImport).mockRejectedValue(
+      new ApiError(404, 'Token not found or expired', 'NOT_FOUND')
+    )
+
+    render(
+      <MemoryRouter>
+        <ContentImportPage />
+      </MemoryRouter>
+    )
+
+    const input = screen.getByTestId('file-upload-input')
+    const file = new File(['{}'], 'valid.json', { type: 'application/json' })
+    fireEvent.change(input, { target: { files: [file] } })
+    fireEvent.click(screen.getByTestId('btn-preview-import'))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('btn-open-confirm-modal')).toBeEnabled()
+    })
+
+    fireEvent.click(screen.getByTestId('btn-open-confirm-modal'))
+    const modalConfirmBtn = screen.getByRole('button', { name: /^Xác nhận nhập$/i })
+    fireEvent.click(modalConfirmBtn)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('confirm-error-banner')).toBeInTheDocument()
+      expect(
+        screen.getByText(/Mã phiên xem trước đã hết hạn \(404\)/i)
+      ).toBeInTheDocument()
+    })
+  })
+
+  it('11. Resets state completely when user clicks "Đổi tệp"', async () => {
+    render(
+      <MemoryRouter>
+        <ContentImportPage />
+      </MemoryRouter>
+    )
+
+    const input = screen.getByTestId('file-upload-input')
+    const file = new File(['{}'], 'temp.json', { type: 'application/json' })
+    fireEvent.change(input, { target: { files: [file] } })
+
+    expect(screen.getByText('temp.json')).toBeInTheDocument()
+
+    const changeFileBtn = screen.getByRole('button', { name: /Đổi tệp/i })
+    fireEvent.click(changeFileBtn)
+
+    expect(screen.queryByText('temp.json')).not.toBeInTheDocument()
+    expect(screen.getByTestId('import-dropzone')).toBeInTheDocument()
   })
 })

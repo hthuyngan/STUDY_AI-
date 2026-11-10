@@ -681,4 +681,63 @@ public class CurriculumImportConfirmIntegrationTests : IClassFixture<StudyAIApiF
         // The second request must fail either with 409 Conflict (TOKEN_IN_USE) or 404 NotFound (already consumed)
         Assert.Contains(responses, r => r.StatusCode == HttpStatusCode.Conflict || r.StatusCode == HttpStatusCode.NotFound);
     }
+
+    [Fact]
+    public async Task Confirm_AmbiguousLessonReference_ReturnsConflict409()
+    {
+        var staffToken = await GetContentStaffTokenAsync();
+        var uniqueTitle = $"Ambiguous Lesson {Guid.NewGuid():N}"[..24];
+
+        // Seed two separate lessons with identical title under an existing chapter in test database
+        using (var scope = _fixture.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            var ch1 = await db.ContentChapters.FirstOrDefaultAsync();
+            Assert.NotNull(ch1);
+            var author = await db.Users.FirstOrDefaultAsync();
+            Assert.NotNull(author);
+
+            var l1 = new Domain.Entities.ContentLesson
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                ChapterId = ch1.Id,
+                AuthorId = author.Id,
+                Title = uniqueTitle,
+                Slug = $"slug-1-{Guid.NewGuid():N}"[..20],
+                Status = "published",
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+            var l2 = new Domain.Entities.ContentLesson
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                ChapterId = ch1.Id,
+                AuthorId = author.Id,
+                Title = uniqueTitle,
+                Slug = $"slug-2-{Guid.NewGuid():N}"[..20],
+                Status = "published",
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+            db.ContentLessons.AddRange(l1, l2);
+            await db.SaveChangesAsync();
+        }
+
+        var csv = $"""
+        lessonCode,prompt,options,correctAnswer
+        "{uniqueTitle}","Câu hỏi trỏ tới bài học mơ hồ","A | B",A
+        """;
+
+        var previewToken = await GeneratePreviewTokenAsync(staffToken, csv, "ambiguous_ref.csv");
+
+        using var req = new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/import/confirm");
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", staffToken);
+        req.Content = JsonContent.Create(new CurriculumImportConfirmRequestDto { PreviewToken = previewToken });
+
+        var response = await _client.SendAsync(req);
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("AMBIGUOUS_PARENT_REFERENCE", body.GetProperty("errorCode").GetString());
+    }
 }
