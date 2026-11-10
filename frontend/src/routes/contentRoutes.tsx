@@ -11,6 +11,7 @@ import { ContentAssessmentsPage } from '@/pages/Content/ContentAssessmentsPage'
 import { ContentReviewPage } from '@/pages/Content/ContentReviewPage'
 import { ContentApprovalDetailPage } from '@/pages/Content/ContentApprovalDetailPage'
 import { ContentPublicationsPage } from '@/pages/Content/ContentPublicationsPage'
+import { ContentImportPage } from '@/pages/Content/ContentImportPage'
 
 export function ContentRoutes() {
   return (
@@ -29,6 +30,7 @@ export function ContentRoutes() {
       <Route path="lessons" element={<ContentLessonsPage />} />
       <Route path="lessons/:id" element={<ContentLessonEditorPage />} />
       <Route path="assessments" element={<ContentAssessmentsPage />} />
+      <Route path="import" element={<ContentImportPage />} />
       <Route path="review" element={<ContentReviewPage />} />
       <Route path="review/:approvalId" element={<ContentApprovalDetailPage />} />
       <Route path="publications" element={<ContentPublicationsPage />} />

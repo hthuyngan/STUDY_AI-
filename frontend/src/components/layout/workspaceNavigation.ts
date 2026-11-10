@@ -19,6 +19,7 @@ import {
   Settings,
   Shield,
   Sliders,
+  Upload,
   Users,
 } from 'lucide-react'
 import type { UserRole } from '@/auth/auth.types'
@@ -260,6 +261,12 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
             label: 'Bài thu hoạch',
             path: '/content/assessments',
             icon: CheckSquare,
+          },
+          {
+            id: 'content-import',
+            label: 'Nhập giáo trình',
+            path: '/content/import',
+            icon: Upload,
           },
         ],
       },

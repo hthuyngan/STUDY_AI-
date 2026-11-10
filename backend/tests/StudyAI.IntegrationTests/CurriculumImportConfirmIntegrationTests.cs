@@ -497,4 +497,188 @@ public class CurriculumImportConfirmIntegrationTests : IClassFixture<StudyAIApiF
             Assert.Null(ch);
         }
     }
+
+    [Fact]
+    public async Task Confirm_DuplicateLessonSlugInSameBatch_ReturnsConflict409AndRollsBack()
+    {
+        var staffToken = await GetContentStaffTokenAsync();
+        var uniqueSub = $"SUB_DSL_{Guid.NewGuid():N}"[..12];
+        var duplicateSlug = "bai-hoc-trung-slug";
+
+        var json = $$"""
+        {
+          "subject": {
+            "code": "{{uniqueSub}}",
+            "name": "Môn kiểm thử duplicate slug",
+            "grade": "12",
+            "chapters": [
+              {
+                "code": "CH_DSL",
+                "title": "Chương Kiểm Thử",
+                "lessons": [
+                  {
+                    "code": "LES_01",
+                    "title": "Bài Học Số Một",
+                    "slug": "{{duplicateSlug}}",
+                    "questions": []
+                  },
+                  {
+                    "code": "LES_02",
+                    "title": "Bài Học Số Hai Trùng Slug",
+                    "slug": "{{duplicateSlug}}",
+                    "questions": []
+                  }
+                ]
+              }
+            ]
+          }
+        }
+        """;
+
+        var previewToken = await GeneratePreviewTokenAsync(staffToken, json, "dup_slug_batch.json");
+
+        using var req = new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/import/confirm");
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", staffToken);
+        req.Content = JsonContent.Create(new CurriculumImportConfirmRequestDto { PreviewToken = previewToken });
+
+        var response = await _client.SendAsync(req);
+        Assert.True(response.StatusCode == HttpStatusCode.BadRequest || response.StatusCode == HttpStatusCode.Conflict);
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var errorCode = body.GetProperty("errorCode").GetString();
+        Assert.True(errorCode == "HAS_CRITICAL_ERRORS" || errorCode == "ENTITY_ALREADY_EXISTS");
+
+        // Verify rollback: subject was not persisted
+        using (var scope = _fixture.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            var sub = await db.ContentSubjects.FirstOrDefaultAsync(s => s.Code == uniqueSub);
+            Assert.Null(sub);
+        }
+    }
+
+    [Fact]
+    public async Task Confirm_DuplicateQuestionsInSameLesson_ReturnsConflict409AndRollsBack()
+    {
+        var staffToken = await GetContentStaffTokenAsync();
+        var uniqueSub = $"SUB_DQ_{Guid.NewGuid():N}"[..12];
+        var duplicatePrompt = $"Duplicate prompt question {Guid.NewGuid():N}";
+
+        var json = $$"""
+        {
+          "subject": {
+            "code": "{{uniqueSub}}",
+            "name": "Môn kiểm thử duplicate questions",
+            "grade": "12",
+            "chapters": [
+              {
+                "code": "CH_DQ",
+                "title": "Chương Kiểm Thử DQ",
+                "lessons": [
+                  {
+                    "code": "LES_DQ",
+                    "title": "Bài Học DQ",
+                    "slug": "bai-hoc-dq",
+                    "questions": [
+                      {
+                        "prompt": "{{duplicatePrompt}}",
+                        "options": ["A", "B"],
+                        "correctAnswer": "A"
+                      },
+                      {
+                        "prompt": "{{duplicatePrompt}}",
+                        "options": ["C", "D"],
+                        "correctAnswer": "C"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+        """;
+
+        var previewToken = await GeneratePreviewTokenAsync(staffToken, json, "dup_q_batch.json");
+
+        using var req = new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/import/confirm");
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", staffToken);
+        req.Content = JsonContent.Create(new CurriculumImportConfirmRequestDto { PreviewToken = previewToken });
+
+        var response = await _client.SendAsync(req);
+        Assert.True(response.StatusCode == HttpStatusCode.BadRequest || response.StatusCode == HttpStatusCode.Conflict);
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var errorCode = body.GetProperty("errorCode").GetString();
+        Assert.True(errorCode == "HAS_CRITICAL_ERRORS" || errorCode == "ENTITY_ALREADY_EXISTS");
+
+        // Verify rollback: subject was not persisted
+        using (var scope = _fixture.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            var sub = await db.ContentSubjects.FirstOrDefaultAsync(s => s.Code == uniqueSub);
+            Assert.Null(sub);
+        }
+    }
+
+    [Fact]
+    public async Task Confirm_DuplicateFlatQuestionsInSameLesson_ReturnsConflict409()
+    {
+        var staffToken = await GetContentStaffTokenAsync();
+        var duplicatePrompt = $"Flat duplicate prompt {Guid.NewGuid():N}";
+
+        var csv = $"""
+        subjectCode,prompt,options,correctAnswer
+        MATH12,"{duplicatePrompt}","A | B",A
+        MATH12,"{duplicatePrompt}","X | Y",X
+        """;
+
+        var previewToken = await GeneratePreviewTokenAsync(staffToken, csv, "dup_flat_q.csv");
+
+        using var req = new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/import/confirm");
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", staffToken);
+        req.Content = JsonContent.Create(new CurriculumImportConfirmRequestDto { PreviewToken = previewToken });
+
+        var response = await _client.SendAsync(req);
+        Assert.True(response.StatusCode == HttpStatusCode.BadRequest || response.StatusCode == HttpStatusCode.Conflict);
+
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>();
+        var errorCode = body.GetProperty("errorCode").GetString();
+        Assert.True(errorCode == "HAS_CRITICAL_ERRORS" || errorCode == "ENTITY_ALREADY_EXISTS");
+    }
+
+    [Fact]
+    public async Task Confirm_ConcurrentExecution_OneSucceedsOneFails()
+    {
+        var staffToken = await GetContentStaffTokenAsync();
+        var prompt = $"Concurrent test prompt {Guid.NewGuid():N}";
+
+        var csv = $"""
+        subjectCode,prompt,options,correctAnswer
+        MATH12,"{prompt}","A | B",A
+        """;
+
+        var previewToken = await GeneratePreviewTokenAsync(staffToken, csv, "concurrent.csv");
+
+        // Fire two concurrent requests for the exact same PreviewToken
+        var task1 = _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/import/confirm")
+        {
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", staffToken) },
+            Content = JsonContent.Create(new CurriculumImportConfirmRequestDto { PreviewToken = previewToken })
+        });
+
+        var task2 = _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/import/confirm")
+        {
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", staffToken) },
+            Content = JsonContent.Create(new CurriculumImportConfirmRequestDto { PreviewToken = previewToken })
+        });
+
+        var responses = await Task.WhenAll(task1, task2);
+
+        // One request must succeed (200 OK)
+        Assert.Contains(responses, r => r.StatusCode == HttpStatusCode.OK);
+
+        // The second request must fail either with 409 Conflict (TOKEN_IN_USE) or 404 NotFound (already consumed)
+        Assert.Contains(responses, r => r.StatusCode == HttpStatusCode.Conflict || r.StatusCode == HttpStatusCode.NotFound);
+    }
 }

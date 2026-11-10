@@ -144,4 +144,26 @@ describe('apiClient & HTTP Error Handling Suite', () => {
       expect(apiErr.code).toBe('TIMEOUT')
     }
   })
+
+  it('7. postFormData gửi FormData và không ép header Content-Type thành application/json', async () => {
+    let capturedHeaders: Headers | undefined
+    let capturedBody: unknown
+    globalThis.fetch = vi.fn().mockImplementation((_url: string, init?: RequestInit) => {
+      capturedHeaders = init?.headers as Headers
+      capturedBody = init?.body
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ uploaded: true }),
+      })
+    })
+
+    const fd = new FormData()
+    fd.append('testKey', 'testValue')
+    const res = await apiClient.postFormData<{ uploaded: boolean }>('/api/v1/upload', fd)
+
+    expect(res.uploaded).toBe(true)
+    expect(capturedBody).toBe(fd)
+    expect(capturedHeaders?.get('Content-Type')).toBeNull()
+  })
 })

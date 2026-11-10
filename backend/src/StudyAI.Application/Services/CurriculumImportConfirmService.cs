@@ -177,9 +177,19 @@ public class CurriculumImportConfirmService : ICurriculumImportConfirmService
                         {
                             var parentChapterId = chapterIdMap[ch.Code];
 
+                            var seenLessonSlugs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                             foreach (var les in ch.Lessons)
                             {
                                 var slug = !string.IsNullOrWhiteSpace(les.Slug) ? les.Slug.Trim().ToLowerInvariant() : GenerateSlug(les.Title);
+
+                                if (!seenLessonSlugs.Add(slug))
+                                {
+                                    await transaction.RollbackAsync(cancellationToken);
+                                    return CurriculumImportConfirmResult.Fail(
+                                        409,
+                                        "ENTITY_ALREADY_EXISTS",
+                                        $"Bài học '{les.Title}' (slug: '{slug}') bị trùng lặp trong cùng tệp nhập.");
+                                }
 
                                 var existingLesson = await _context.ContentLessons
                                     .FirstOrDefaultAsync(l => l.ChapterId == parentChapterId && (l.Slug == slug || l.Title == les.Title), cancellationToken);
@@ -217,8 +227,17 @@ public class CurriculumImportConfirmService : ICurriculumImportConfirmService
                                 insertedLessons++;
 
                                 // Chèn các câu hỏi con đi kèm bài học
+                                var seenQuestionPrompts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                                 foreach (var q in les.Questions)
                                 {
+                                    if (!seenQuestionPrompts.Add(q.Prompt.Trim()))
+                                    {
+                                        await transaction.RollbackAsync(cancellationToken);
+                                        return CurriculumImportConfirmResult.Fail(
+                                            409,
+                                            "ENTITY_ALREADY_EXISTS",
+                                            $"Câu hỏi '{q.Prompt}' bị trùng lặp trong cùng bài học.");
+                                    }
                                     var newQ = new ContentQuestion
                                     {
                                         Id = Guid.NewGuid().ToString("N"),
@@ -246,7 +265,8 @@ public class CurriculumImportConfirmService : ICurriculumImportConfirmService
                 }
 
                 // 5.4 Xử lý Flat Questions (từ CSV hoặc ngân hàng câu hỏi độc lập)
-                foreach (var q in session.Batch.FlatQuestions)
+                var seenFlatQuestions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var q in session.Batch.FlatQuestions)
                 {
                     string? qSubjectId = null;
                     string? qChapterId = null;
@@ -333,6 +353,16 @@ public class CurriculumImportConfirmService : ICurriculumImportConfirmService
                     // Kiểm tra trùng lặp prompt trong bài học (Insert-Only rule)
                     if (qLessonId != null)
                     {
+                        var batchPromptKey = $"{qLessonId}::{q.Prompt.Trim()}";
+                        if (!seenFlatQuestions.Add(batchPromptKey))
+                        {
+                            await transaction.RollbackAsync(cancellationToken);
+                            return CurriculumImportConfirmResult.Fail(
+                                409,
+                                "ENTITY_ALREADY_EXISTS",
+                                $"Câu hỏi với nội dung '{q.Prompt}' bị trùng lặp trong cùng tệp nhập cho bài học này.");
+                        }
+
                         var promptExists = await _context.ContentQuestions
                             .AnyAsync(x => x.LessonId == qLessonId && x.Prompt == q.Prompt, cancellationToken);
                         if (promptExists)

@@ -1,0 +1,407 @@
+/* ==========================================================================
+   STUDY_AI — CURRICULUM IMPORT STYLES
+   Design System tokens & Responsive Standards
+   ========================================================================== */
+
+.import-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 1200px;
+}
+
+/* ── Upload Card & Dropzone ─────────────────────────────────────────────── */
+.import-card {
+  background: var(--surface-card, var(--staff-surface, #ffffff));
+  border: 1px solid var(--border-default, var(--staff-border, #e2e8f0));
+  border-radius: var(--radius-lg, 12px);
+  padding: 20px;
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
+}
+
+.import-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.import-card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary, var(--staff-text-main, #102a43));
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.import-dropzone {
+  border: 2px dashed var(--border-strong, var(--staff-border-strong, #cbd5e1));
+  border-radius: var(--radius-lg, 10px);
+  padding: 36px 20px;
+  text-align: center;
+  background-color: var(--surface-sunken, var(--staff-surface-hover, #f8fafc));
+  cursor: pointer;
+  transition: all 0.18s ease-in-out;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.import-dropzone:hover,
+.import-dropzone.drag-active {
+  border-color: var(--color-primary, var(--staff-navy-primary, #2563eb));
+  background-color: var(--color-primary-light, var(--brand-50, #eff6ff));
+}
+
+.import-dropzone-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: var(--color-primary-bg, var(--brand-100, #dbeafe));
+  color: var(--color-primary, var(--staff-navy-primary, #2563eb));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.import-dropzone-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary, var(--staff-text-main, #102a43));
+  margin: 0;
+}
+
+.import-dropzone-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-muted, var(--staff-text-muted, #627d98));
+  margin: 0;
+}
+
+.import-file-selected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background-color: var(--surface-sunken, var(--staff-surface-hover, #f1f5f9));
+  border: 1px solid var(--border-default, var(--staff-border, #e2e8f0));
+  border-radius: var(--radius-md, 8px);
+  gap: 12px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.import-file-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.import-file-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary, var(--staff-text-main, #102a43));
+}
+
+.import-file-size {
+  font-size: 0.8rem;
+  color: var(--text-muted, var(--staff-text-muted, #627d98));
+}
+
+/* ── KPI Grid ───────────────────────────────────────────────────────────── */
+.import-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin: 16px 0;
+}
+
+.import-kpi-card {
+  background: var(--surface-card, var(--staff-surface, #ffffff));
+  border: 1px solid var(--border-default, var(--staff-border, #e2e8f0));
+  border-radius: var(--radius-md, 8px);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.import-kpi-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.import-kpi-icon.subject {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+.import-kpi-icon.chapter {
+  background-color: #f0fdf4;
+  color: #16a34a;
+}
+
+.import-kpi-icon.lesson {
+  background-color: #faf5ff;
+  color: #9333ea;
+}
+
+.import-kpi-icon.question {
+  background-color: #fff7ed;
+  color: #ea580c;
+}
+
+.import-kpi-value {
+  font-size: 1.45rem;
+  font-weight: 750;
+  line-height: 1.1;
+  color: var(--text-primary, var(--staff-text-main, #102a43));
+}
+
+.import-kpi-label {
+  font-size: 0.8rem;
+  color: var(--text-muted, var(--staff-text-muted, #627d98));
+  margin-top: 2px;
+}
+
+/* ── Status Banner (Fail-closed & Strict indicator) ─────────────────────── */
+.import-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md, 8px);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.import-banner.success {
+  background-color: var(--color-success-light, #f0fdf4);
+  border: 1px solid var(--color-success-bg, #bbf7d0);
+  color: var(--color-success, #15803d);
+}
+
+.import-banner.error {
+  background-color: var(--color-danger-light, #fef2f2);
+  border: 1px solid var(--color-danger-bg, #fecaca);
+  color: var(--color-danger, #b91c1c);
+}
+
+.import-banner.warning {
+  background-color: var(--color-warning-light, #fffbeb);
+  border: 1px solid var(--color-warning-bg, #fde68a);
+  color: var(--color-warning, #b45309);
+}
+
+.import-banner-title {
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+/* ── Issues Table (Errors & Warnings) ──────────────────────────────────── */
+.import-issues-section {
+  margin-top: 18px;
+}
+
+.import-issues-header {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.import-issues-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.825rem;
+}
+
+.import-issues-table th {
+  background-color: var(--surface-sunken, var(--staff-surface-hover, #f1f5f9));
+  color: var(--text-secondary, var(--staff-text-muted, #475569));
+  font-weight: 600;
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-default, var(--staff-border, #e2e8f0));
+}
+
+.import-issues-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-default, var(--staff-border, #f1f5f9));
+  color: var(--text-primary, var(--staff-text-main, #1e293b));
+}
+
+.badge-error {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.badge-warning {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+/* ── Audit Note & Actions ───────────────────────────────────────────────── */
+.import-audit-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.import-audit-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary, var(--staff-text-main, #102a43));
+}
+
+.import-audit-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--border-default, var(--staff-border, #cbd5e1));
+  border-radius: var(--radius-md, 6px);
+  background: var(--surface-card, #ffffff);
+  color: var(--text-primary, #0f172a);
+  font-family: inherit;
+  font-size: 0.85rem;
+  resize: vertical;
+  min-height: 60px;
+}
+
+.import-audit-textarea:focus {
+  outline: none;
+  border-color: var(--color-primary, #2563eb);
+  box-shadow: 0 0 0 2px var(--color-primary-bg, rgba(37, 99, 235, 0.15));
+}
+
+.import-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+
+/* ── Success Card ───────────────────────────────────────────────────────── */
+.import-success-card {
+  background: var(--surface-card, var(--staff-surface, #ffffff));
+  border: 1px solid var(--color-success-bg, #86efac);
+  border-radius: var(--radius-lg, 12px);
+  padding: 28px;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+}
+
+.import-success-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: var(--color-success-light, #dcfce7);
+  color: var(--color-success, #16a34a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.import-success-title {
+  font-size: 1.25rem;
+  font-weight: 750;
+  color: var(--text-primary, var(--staff-text-main, #102a43));
+  margin: 0;
+}
+
+.import-success-desc {
+  font-size: 0.9rem;
+  color: var(--text-muted, var(--staff-text-muted, #627d98));
+  max-width: 580px;
+  margin: 0;
+}
+
+.import-success-audit-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  background-color: var(--surface-sunken, #f1f5f9);
+  color: var(--text-secondary, #475569);
+  font-size: 0.8rem;
+  font-family: var(--font-mono, monospace);
+  border: 1px solid var(--border-default, #e2e8f0);
+}
+
+.import-success-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* ── Dark Mode Overrides ────────────────────────────────────────────────── */
+[data-theme="dark"] .import-dropzone {
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .import-dropzone:hover,
+[data-theme="dark"] .import-dropzone.drag-active {
+  background-color: #1e3a8a;
+  border-color: #3b82f6;
+}
+
+[data-theme="dark"] .import-kpi-icon.subject {
+  background-color: #1e3a8a;
+  color: #93c5fd;
+}
+
+[data-theme="dark"] .import-kpi-icon.chapter {
+  background-color: #14532d;
+  color: #86efac;
+}
+
+[data-theme="dark"] .import-kpi-icon.lesson {
+  background-color: #581c87;
+  color: #d8b4fe;
+}
+
+[data-theme="dark"] .import-kpi-icon.question {
+  background-color: #7c2d12;
+  color: #fdba74;
+}
+
+[data-theme="dark"] .import-audit-textarea {
+  background: #0f172a;
+  color: #f8fafc;
+  border-color: #334155;
+}

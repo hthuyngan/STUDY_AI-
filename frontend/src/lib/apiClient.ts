@@ -148,9 +148,13 @@ export async function requestJson<T>(
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
+  const isFormData = typeof FormData !== 'undefined' && restOptions.body instanceof FormData
+
   const requestHeaders = new Headers(headers as HeadersInit)
-  if (!requestHeaders.has('Content-Type')) {
+  if (!isFormData && !requestHeaders.has('Content-Type')) {
     requestHeaders.set('Content-Type', 'application/json')
+  } else if (isFormData) {
+    requestHeaders.delete('Content-Type')
   }
   if (!requestHeaders.has('Accept')) {
     requestHeaders.set('Accept', 'application/json')
@@ -233,11 +237,19 @@ export async function requestJson<T>(
 export const apiClient = {
   get: <T>(path: string, options?: RequestOptions) =>
     requestJson<T>(path, { ...options, method: 'GET' }),
-  post: <T>(path: string, body?: unknown, options?: RequestOptions) =>
+  post: <T>(path: string, body?: unknown, options?: RequestOptions) => {
+    const isFormData = typeof FormData !== 'undefined' && body instanceof FormData
+    return requestJson<T>(path, {
+      ...options,
+      method: 'POST',
+      body: body !== undefined ? (isFormData ? body : JSON.stringify(body)) : undefined,
+    })
+  },
+  postFormData: <T>(path: string, formData: FormData, options?: RequestOptions) =>
     requestJson<T>(path, {
       ...options,
       method: 'POST',
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: formData,
     }),
   put: <T>(path: string, body?: unknown, options?: RequestOptions) =>
     requestJson<T>(path, {

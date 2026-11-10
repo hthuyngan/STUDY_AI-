@@ -257,7 +257,7 @@ public class ContentManagementIntegrationTests : IClassFixture<StudyAIApiFixture
         var adminAuthHeader = new AuthenticationHeaderValue("Bearer", adminToken);
 
         // 1. Content Staff creates subject, chapter, and draft lesson
-        var uniqueCode = $"TEST_DRF_{Guid.NewGuid():N}"[..10].ToUpperInvariant();
+        var uniqueCode = $"DRF_{Guid.NewGuid():N}"[..18].ToUpperInvariant();
         var subRes = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/subjects")
         {
             Headers = { Authorization = contentAuthHeader },
