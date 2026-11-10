@@ -3,10 +3,12 @@ import { Link } from 'react-router-dom'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { SUBJECT_OPTIONS } from '../../data/aiTutor.mock'
+import type { AiProviderStatus } from '../../services/aiTutor.service'
 
 interface AITutorHeaderProps {
   title: string
   subjectId?: string
+  providerStatus?: AiProviderStatus | null
   onToggleHistory: () => void
   onNewChat: () => void
   isStreaming?: boolean
@@ -15,6 +17,7 @@ interface AITutorHeaderProps {
 export function AITutorHeader({
   title,
   subjectId = 'all',
+  providerStatus,
   onToggleHistory,
   onNewChat,
   isStreaming = false,
@@ -57,6 +60,25 @@ export function AITutorHeader({
       </div>
 
       <div className="ai-header-right">
+        {providerStatus && (
+          <div
+            className={`ai-provider-badge provider-${providerStatus.provider}`}
+            data-testid="ai-provider-status"
+            title={providerStatus.model ? `Mô hình: ${providerStatus.model}` : undefined}
+          >
+            <span
+              className={`provider-dot ${
+                providerStatus.provider === 'openai'
+                  ? 'dot-live'
+                  : providerStatus.provider === 'fake'
+                    ? 'dot-fake'
+                    : 'dot-unconfigured'
+              }`}
+            />
+            <span className="provider-text">{providerStatus.displayName}</span>
+          </div>
+        )}
+
         <Button
           variant="outline"
           icon={Plus}

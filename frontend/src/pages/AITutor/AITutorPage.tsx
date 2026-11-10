@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAITutor } from '../../hooks/useAITutor'
 import { useAutoScroll } from '../../hooks/useAutoScroll'
@@ -8,6 +8,7 @@ import { AITutorEmptyState } from '../../components/ai-tutor/AITutorEmptyState'
 import { ChatMessageList } from '../../components/ai-tutor/ChatMessageList'
 import { ChatComposer } from '../../components/ai-tutor/ChatComposer'
 import { ContextualHeaderBadge } from '../../components/ai-tutor/ContextualHeaderBadge'
+import { aiTutorService, type AiProviderStatus } from '../../services/aiTutor.service'
 import './AITutorPage.css'
 
 export function AITutorPage() {
@@ -15,6 +16,18 @@ export function AITutorPage() {
   const topicParam = searchParams.get('topic')
   const lessonParam = searchParams.get('lesson')
   const legacyContextTopic = topicParam || (lessonParam ? `Bài học #${lessonParam}` : undefined)
+
+  const [providerStatus, setProviderStatus] = useState<AiProviderStatus | null>(null)
+
+  useEffect(() => {
+    let isMounted = true
+    aiTutorService.getProviderStatus().then((status) => {
+      if (isMounted) setProviderStatus(status)
+    })
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   const {
     conversations,
@@ -82,6 +95,7 @@ export function AITutorPage() {
         <AITutorHeader
           title={conversationTitle}
           subjectId={activeSubject}
+          providerStatus={providerStatus}
           onToggleHistory={() => setIsMobileHistoryOpen(true)}
           onNewChat={() => startNewConversation()}
           isStreaming={isStreaming}

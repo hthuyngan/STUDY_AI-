@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using StudyAI.Application.Common.Interfaces;
 using StudyAI.Application.DTOs;
@@ -13,6 +14,7 @@ public class AiTutorService : IAiTutorService
     private readonly IApplicationDbContext _context;
     private readonly ILlmProvider _llmProvider;
     private readonly ILogger<AiTutorService> _logger;
+    private readonly IConfiguration? _configuration;
 
     public const int MaxMessageLength = 2000;
     public const int MaxHistoryMessages = 10;
@@ -20,11 +22,29 @@ public class AiTutorService : IAiTutorService
     public AiTutorService(
         IApplicationDbContext context,
         ILlmProvider llmProvider,
-        ILogger<AiTutorService> logger)
+        ILogger<AiTutorService> logger,
+        IConfiguration? configuration = null)
     {
         _context = context;
         _llmProvider = llmProvider;
         _logger = logger;
+        _configuration = configuration;
+    }
+
+    public AiProviderStatusDto GetProviderStatus()
+    {
+        if (_llmProvider is OpenAiLlmProvider && _llmProvider.IsConfigured)
+        {
+            var model = _configuration?["Llm:Model"] ?? "gpt-4o-mini";
+            return new AiProviderStatusDto("openai", "AI thật", true, model);
+        }
+
+        if (_llmProvider is FakeLlmProvider)
+        {
+            return new AiProviderStatusDto("fake", "Chế độ mô phỏng", true, "fake-pedagogical-v1");
+        }
+
+        return new AiProviderStatusDto("unconfigured", "AI chưa sẵn sàng", false, null);
     }
 
     public async Task<List<AiConversationSummaryDto>> GetUserConversationsAsync(

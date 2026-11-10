@@ -38,16 +38,59 @@ builder.Services.AddScoped<ICurriculumImportConfirmService, CurriculumImportConf
 
 // 2.1 LLM Provider & AI Tutor Service
 builder.Services.AddHttpClient();
-var llmProviderConfig = configuration["Llm:Provider"]?.ToLowerInvariant();
+var llmProviderConfig = configuration["Llm:Provider"]?.Trim().ToLowerInvariant();
 var llmApiKey = configuration["Llm:ApiKey"] ?? Environment.GetEnvironmentVariable("STUDY_AI_LLM_API_KEY");
+var allowDemoInProduction = configuration.GetValue<bool>("Llm:AllowDemoInProduction", false);
 
-if (llmProviderConfig == "openai" && !string.IsNullOrWhiteSpace(llmApiKey))
+if (builder.Environment.IsProduction())
 {
-    builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILlmProvider, StudyAI.Infrastructure.Services.OpenAiLlmProvider>();
+    if (llmProviderConfig == "openai")
+    {
+        if (string.IsNullOrWhiteSpace(llmApiKey))
+        {
+            throw new InvalidOperationException(
+                "FATAL: LLM provider is explicitly configured as 'openai' in production but 'Llm:ApiKey' (or STUDY_AI_LLM_API_KEY) is missing or empty.");
+        }
+        builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILlmProvider, StudyAI.Infrastructure.Services.OpenAiLlmProvider>();
+    }
+    else if (llmProviderConfig == "fake")
+    {
+        if (!allowDemoInProduction)
+        {
+            throw new InvalidOperationException(
+                "FATAL: Fake LLM provider is strictly forbidden in production unless explicitly authorized via 'Llm:AllowDemoInProduction=true'.");
+        }
+        builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILlmProvider, StudyAI.Infrastructure.Services.FakeLlmProvider>();
+    }
+    else
+    {
+        // In production, unconfigured or unknown provider fails closed via UnconfiguredLlmProvider without silent fallback
+        builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILlmProvider, StudyAI.Infrastructure.Services.UnconfiguredLlmProvider>();
+    }
 }
 else
 {
-    builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILlmProvider, StudyAI.Infrastructure.Services.FakeLlmProvider>();
+    // Development / Test / Demo environments
+    if (llmProviderConfig == "openai")
+    {
+        if (string.IsNullOrWhiteSpace(llmApiKey))
+        {
+            builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILlmProvider, StudyAI.Infrastructure.Services.UnconfiguredLlmProvider>();
+        }
+        else
+        {
+            builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILlmProvider, StudyAI.Infrastructure.Services.OpenAiLlmProvider>();
+        }
+    }
+    else if (llmProviderConfig is "none" or "unconfigured")
+    {
+        builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILlmProvider, StudyAI.Infrastructure.Services.UnconfiguredLlmProvider>();
+    }
+    else
+    {
+        // Default to FakeLlmProvider for local dev and automated testing
+        builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILlmProvider, StudyAI.Infrastructure.Services.FakeLlmProvider>();
+    }
 }
 
 builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IAiTutorService, StudyAI.Infrastructure.Services.AiTutorService>();

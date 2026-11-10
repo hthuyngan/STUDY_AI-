@@ -17,6 +17,13 @@ import { getAccessToken } from '@/auth/authSession'
 
 export const LEGACY_AI_CONVERSATIONS_KEY = 'study_ai.ai_conversations.v1'
 
+export interface AiProviderStatus {
+  provider: 'openai' | 'fake' | 'unconfigured' | string
+  displayName: string
+  isReady: boolean
+  model?: string | null
+}
+
 function mapConversationDetailToChatConversation(dto: any): ChatConversation {
   return {
     id: dto.id,
@@ -49,6 +56,28 @@ class AITutorService {
    */
   isAuthenticated(): boolean {
     return Boolean(getAccessToken())
+  }
+
+  /**
+   * Fetch current AI provider status from backend (OpenAI, Fake, or Unconfigured)
+   */
+  async getProviderStatus(): Promise<AiProviderStatus> {
+    try {
+      const res = await apiClient.get<AiProviderStatus>('/api/v1/ai/status')
+      return res || {
+        provider: 'unconfigured',
+        displayName: 'AI chưa sẵn sàng',
+        isReady: false,
+        model: null,
+      }
+    } catch {
+      return {
+        provider: 'unconfigured',
+        displayName: 'AI chưa sẵn sàng',
+        isReady: false,
+        model: null,
+      }
+    }
   }
 
   /**
@@ -424,7 +453,7 @@ ${context.explanation ? `\n> **Giải thích chuẩn:** ${context.explanation}` 
           throw new Error('Lỗi kết nối tới nhà cung cấp mô hình AI (Provider error). Vui lòng thử lại sau.')
         }
         if (status === 503) {
-          throw new Error('Chưa cấu hình API Key AI cho hệ thống.')
+          throw new Error(detail || 'Dịch vụ AI chưa sẵn sàng: Nhà cung cấp mô hình AI chưa được cấu hình hoặc thiếu API Key.')
         }
 
         throw new Error(detail || 'Không thể tạo câu trả lời từ AI Tutor.')

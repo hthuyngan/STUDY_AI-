@@ -369,4 +369,19 @@ public class AiChatIntegrationTests : IClassFixture<StudyAIApiFixture>
         Assert.True(doc.TryGetProperty("assistantMessage", out var assistantProp));
         Assert.Equal("assistant", assistantProp.GetProperty("role").GetString());
     }
+
+    [Fact]
+    public async Task GetAiStatus_Anonymous_Returns200_WithValidSchema()
+    {
+        var res = await _client.GetAsync("/api/v1/ai/status");
+        Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+
+        var doc = await res.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.True(doc.TryGetProperty("provider", out var providerProp));
+        Assert.NotEmpty(providerProp.GetString()!);
+        Assert.True(doc.TryGetProperty("displayName", out var dispProp));
+        Assert.NotEmpty(dispProp.GetString()!);
+        Assert.True(doc.TryGetProperty("isReady", out var isReadyProp));
+        Assert.True(isReadyProp.GetBoolean());
+    }
 }

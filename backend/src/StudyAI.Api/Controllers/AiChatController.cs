@@ -26,6 +26,17 @@ public class AiChatController : ControllerBase
     private string CurrentUserRole => User.FindFirstValue(ClaimTypes.Role) ?? "learner";
 
     /// <summary>
+    /// Lấy trạng thái hiện tại của nhà cung cấp AI (OpenAI thật, Fake mô phỏng, hoặc Chưa cấu hình)
+    /// </summary>
+    [AllowAnonymous]
+    [HttpGet("status")]
+    public IActionResult GetAiProviderStatus()
+    {
+        var status = _aiTutorService.GetProviderStatus();
+        return Ok(status);
+    }
+
+    /// <summary>
     /// Lấy danh sách hội thoại của người dùng hiện tại
     /// </summary>
     [HttpGet("conversations")]

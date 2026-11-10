@@ -1197,3 +1197,63 @@
     transition: none !important;
   }
 }
+
+/* ── AI Provider Status Indicator ───────────────────────────── */
+.ai-header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.ai-provider-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  border: 1px solid var(--border-default);
+  background-color: var(--surface-card);
+  user-select: none;
+}
+
+.ai-provider-badge .provider-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ai-provider-badge .dot-live {
+  background-color: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.ai-provider-badge .dot-fake {
+  background-color: #f59e0b;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+}
+
+.ai-provider-badge .dot-unconfigured {
+  background-color: #ef4444;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+}
+
+.ai-provider-badge.provider-openai {
+  color: #065f46;
+  background-color: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.ai-provider-badge.provider-fake {
+  color: #92400e;
+  background-color: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.ai-provider-badge.provider-unconfigured {
+  color: #991b1b;
+  background-color: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.3);
+}

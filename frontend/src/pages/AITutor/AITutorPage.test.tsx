@@ -102,4 +102,18 @@ describe('AITutorPage Component', () => {
       expect(screen.getAllByText(/Giải thích cho mình vì sao đạo hàm/i).length).toBeGreaterThanOrEqual(1)
     })
   })
+
+  it('renders provider status badge from backend', async () => {
+    render(
+      <MemoryRouter>
+        <AITutorPage />
+      </MemoryRouter>
+    )
+
+    await waitFor(() => {
+      const badge = screen.getByTestId('ai-provider-status')
+      expect(badge).toBeInTheDocument()
+      expect(badge).toHaveTextContent(/AI thật|Chế độ mô phỏng|AI chưa sẵn sàng/i)
+    })
+  })
 })

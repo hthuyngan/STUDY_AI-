@@ -84,7 +84,8 @@ public class OpenAiLlmProvider : ILlmProvider
             if (!response.IsSuccessStatusCode)
             {
                 var errorText = await response.Content.ReadAsStringAsync(request.CancellationToken);
-                _logger.LogError("LLM Provider returned error HTTP {StatusCode}: {ErrorText}", response.StatusCode, errorText);
+                var safeErrorText = MaskSensitiveData(errorText);
+                _logger.LogError("LLM Provider returned error HTTP {StatusCode}: {ErrorText}", response.StatusCode, safeErrorText);
                 throw new HttpRequestException($"Lỗi từ nhà cung cấp dịch vụ LLM: HTTP {(int)response.StatusCode} {response.ReasonPhrase}");
             }
 
@@ -116,5 +117,21 @@ public class OpenAiLlmProvider : ILlmProvider
             _logger.LogWarning("LLM request was canceled by user/timeout.");
             throw;
         }
+    }
+
+    public static string MaskSensitiveData(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return text;
+        // Mask API keys (e.g. sk-..., bearer tokens)
+        var masked = System.Text.RegularExpressions.Regex.Replace(
+            text,
+            @"(sk-[a-zA-Z0-9_\-]{6,})",
+            "sk-***REDACTED***");
+        masked = System.Text.RegularExpressions.Regex.Replace(
+            masked,
+            @"(Bearer\s+)[a-zA-Z0-9_\-\.]{8,}",
+            "$1***REDACTED***",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        return masked;
     }
 }

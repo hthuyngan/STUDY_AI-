@@ -75,3 +75,10 @@ public record QuickChatRequestDto(
     string? Mode = null,
     object? LearningContext = null
 );
+
+public record AiProviderStatusDto(
+    string Provider,
+    string DisplayName,
+    bool IsReady,
+    string? Model = null
+);

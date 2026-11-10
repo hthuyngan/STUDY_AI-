@@ -206,6 +206,12 @@ async function run() {
     await page.waitForLoadState('networkidle')
     await page.waitForSelector('.ai-tutor-layout', { timeout: 10000 })
 
+    // Verify provider status indicator is rendered from backend
+    const statusBadge = page.locator('[data-testid="ai-provider-status"]')
+    await statusBadge.waitFor({ timeout: 10000 })
+    const statusText = await statusBadge.innerText()
+    console.log(`AI Provider Status Badge rendered: "${statusText.trim()}"`)
+
     s1Snaps.push(await snap('phase19_01_ai_tutor_loaded'))
 
     reports.push({
@@ -214,7 +220,7 @@ async function run() {
       status: 'PASS',
       durationMs: Date.now() - s1Start,
       screenshots: s1Snaps,
-      notes: 'Successfully authenticated as learner and loaded AI Tutor chat layout.',
+      notes: `Successfully authenticated as learner and loaded AI Tutor chat layout with provider status "${statusText.trim()}".`,
     })
 
     // ──────────────────────────────────────────────────────────

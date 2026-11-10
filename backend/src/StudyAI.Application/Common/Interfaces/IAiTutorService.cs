@@ -36,4 +36,6 @@ public interface IAiTutorService
         string conversationId,
         SendAiMessageRequestDto request,
         CancellationToken cancellationToken = default);
+
+    AiProviderStatusDto GetProviderStatus();
 }

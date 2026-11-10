@@ -171,4 +171,53 @@ describe('aiTutorService Real API Integration', () => {
       )
     ).rejects.toThrow('thời gian chờ (timeout)')
   })
+
+  it('fetches provider status from backend via getProviderStatus()', async () => {
+    const mockStatus = {
+      provider: 'openai',
+      displayName: 'AI thật',
+      isReady: true,
+      model: 'gpt-4o-mini',
+    }
+
+    const getSpy = vi.spyOn(apiClient, 'get').mockResolvedValue(mockStatus)
+
+    const status = await aiTutorService.getProviderStatus()
+
+    expect(getSpy).toHaveBeenCalledWith('/api/v1/ai/status')
+    expect(status.provider).toBe('openai')
+    expect(status.displayName).toBe('AI thật')
+    expect(status.isReady).toBe(true)
+    expect(status.model).toBe('gpt-4o-mini')
+  })
+
+  it('throws descriptive error on 503 Unconfigured without fallback to mock', async () => {
+    setAccessToken('mock_bearer_token')
+
+    const unconfiguredError = new ApiError(503, 'Service Unavailable', 'SERVICE_UNAVAILABLE', {
+      detail: 'Dịch vụ AI chưa sẵn sàng: Nhà cung cấp mô hình AI chưa được cấu hình hoặc thiếu API Key.',
+    })
+
+    vi.spyOn(apiClient, 'post').mockRejectedValue(unconfiguredError)
+
+    await expect(
+      aiTutorService.sendMessageStream(
+        {
+          conversationId: 'conv_123',
+          message: 'Hỏi khi chưa cấu hình',
+        },
+        () => {}
+      )
+    ).rejects.toThrow('Dịch vụ AI chưa sẵn sàng')
+  })
+
+  it('handles getProviderStatus() failure gracefully with unconfigured fallback', async () => {
+    vi.spyOn(apiClient, 'get').mockRejectedValue(new Error('Network error'))
+
+    const status = await aiTutorService.getProviderStatus()
+
+    expect(status.provider).toBe('unconfigured')
+    expect(status.displayName).toBe('AI chưa sẵn sàng')
+    expect(status.isReady).toBe(false)
+  })
 })
