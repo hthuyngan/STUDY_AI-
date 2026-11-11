@@ -98,21 +98,57 @@ WHERE Email IN ('admin@gmail.com', 'content@gmail.com', 'admin@studyai.internal'
 
 ---
 
-## 6. Comprehensive Verification Matrix
+## 6. Content Role Primacy & Account Provisioning Verification
 
-| Test Suite | Components Tested | Result | Duration |
-|---|---|---|---|
-| **.NET Unit Tests** | VNHSGE parser (Math LaTeX, Literature essay, Physics image), subject alias resolver, KaTeX validator, published content lock | **78 / 78 PASS** | 559 ms |
-| **.NET Integration Tests** | Classroom learner-only enrollment, assignment closed/expired submission rejection, multi-role auth, preview token lifecycle | **114 / 114 PASS** | 25 s |
-| **Frontend Linter (Oxlint)** | Whole frontend codebase (398 files) | **0 Errors, 0 Warnings** | 176 ms |
-| **Frontend Tests (Vitest)** | Classroom fail-closed error propagation, import preview/confirm UI, auth guards, analytics | **403 / 403 PASS (51 test files)** | 8.57 s |
-| **Frontend Production Build** | Vite / Rolldown production bundle compilation | **SUCCESS** | 943 ms |
-| **Playwright E2E Suite** | Full Teacher $\rightarrow$ Classroom $\rightarrow$ Assignment $\rightarrow$ Learner $\rightarrow$ Submit $\rightarrow$ Grade workflow | **7 / 7 PASS** | 26 s |
+### 6.1 Content Role as Final Approver
+- **Architecture Shift**: In accordance with project owner requirements, the Content Specialist (`content` role) is the final decision-maker for all learning content.
+- **Direct Publishing**:
+  - `POST /api/v1/content/lessons/{id}/approve` (or `.../publish`): Content specialists can self-approve their own drafted lessons and publish them directly without Admin approval.
+  - `POST /api/v1/content/lessons/{id}/unpublish`: Returns published lessons back to `draft`.
+  - `POST /api/v1/content/lessons/{id}/reject`: Returns lessons to `draft` with feedback.
+- **RBAC Boundaries Verified**:
+  - `content` can manage curriculum, questions, assessments, imports, and publication.
+  - `content` is strictly forbidden from accessing Admin dashboards, managing user accounts, or modifying roles (`403 Forbidden`).
+  - `teacher` and `learner` roles cannot approve or publish lessons (`403 Forbidden`).
+  - Unauthenticated requests are rejected (`401 Unauthorized`).
+
+### 6.2 Non-Bypassable VNHSGE Copyright Gate
+- Content Specialist authority **cannot** override academic dataset licensing safeguards.
+- Any live confirm attempt (`dryRun: false`) involving VNHSGE data without explicit licensing flags returns `403 Forbidden` (`VNHSGE_COPYRIGHT_GATE_LOCKED`).
+- Any attempt to publish lessons bearing VNHSGE references without valid licensing returns `403 Forbidden`.
+
+### 6.3 Account Provisioning Results
+- **Target Database**: `StudyAIDb_E2E` (Isolated test database).
+- **Accounts Provisioned**:
+  - `admin@gmail.com` — Role: `admin`, Status: `active`, ID: `usr_adm_5a4b6b44`
+  - `content@gmail.com` — Role: `content`, Status: `active`, ID: `usr_cnt_001b4322`
+- **Password Security**:
+  - Hashed strictly using Argon2id (`$argon2id$v=19$m=19456,t=2,p=1`).
+  - Passwords supplied via environment variables without stdout leakage. Zero plaintext passwords appear in code, logs, commits, or reports.
+- **Automated Verification**:
+  - Verified via `AdminContentAccountProvisioningTests.cs` (6 dedicated integration tests covering login, role validation, content publishing, RBAC failure modes, and copyright gate enforcement).
+- **Production `StudyAIDb` Isolation**:
+  - Main production database `StudyAIDb` was verified via SQL query: 0 rows affected, remaining exactly at 120 accounts with zero writes or migrations.
+  - **SOP for Production Provisioning**: When the project owner authorizes provisioning on `StudyAIDb`, run `ADMIN_PROVISION_PASSWORD=... CONTENT_PROVISION_PASSWORD=... TARGET_DB=StudyAIDb bun scripts/provision_admin_content.ts` in an authorized maintenance window.
 
 ---
 
-## 7. Compliance with Safety Constraints
-- `StudyAIDb` on `.\SQLEXPRESS`: **100% UNTOUCHED** (119 users preserved, zero migrations, zero writes).
+## 7. Comprehensive Verification Matrix
+
+| Test Suite | Components Tested | Result | Duration |
+|---|---|---|---|
+| **.NET Unit Tests** | VNHSGE parser (Math LaTeX, Literature essay, Physics image), subject alias resolver, KaTeX validator, published content lock | **78 / 78 PASS** | 623 ms |
+| **.NET Integration Tests** | Content approval flow, admin/content provisioning & RBAC, VNHSGE copyright gate, classroom learner enrollment, assignment deadline validation | **120 / 120 PASS** | 30 s |
+| **Frontend Linter (Oxlint)** | Whole frontend codebase (398 files) | **0 Errors, 0 Warnings** | 161 ms |
+| **Frontend Tests (Vitest)** | Classroom fail-closed error propagation, import preview/confirm UI, auth guards, analytics | **403 / 403 PASS (51 test files)** | 9.32 s |
+| **Frontend Production Build** | Vite / Rolldown production bundle compilation | **SUCCESS** | 779 ms |
+| **Playwright E2E Suite** | Full Teacher $\rightarrow$ Classroom $\rightarrow$ Assignment $\rightarrow$ Learner $\rightarrow$ Submit $\rightarrow$ Grade workflow | **7 / 7 PASS** | 28 s |
+
+---
+
+## 8. Compliance with Safety Constraints
+- `StudyAIDb` on `.\SQLEXPRESS`: **100% UNTOUCHED** (120 users preserved, zero migrations, zero writes).
 - Branch: `feature/data-vnhsge-import` (isolated feature branch, `main` untouched).
 - ChatGPT files: `ai-collaboration/TASK.md` and `ai-collaboration/REVIEW.md` **NOT MODIFIED**.
 - Phase 21: **UNSTARTED** (Strictly stopped).
+

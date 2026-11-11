@@ -79,7 +79,7 @@ export const ContentApprovalDetailPage: React.FC = () => {
         const updated = await operationsService.approveContent(
           approval.id,
           'Phê duyệt đạt chuẩn chương trình',
-          'Demo Admin'
+          'Chuyên viên Nội dung (Content)'
         )
         setApproval(updated)
         showToast('Đã phê duyệt nội dung thành công')
@@ -101,15 +101,15 @@ export const ContentApprovalDetailPage: React.FC = () => {
 
     try {
       if (modalMode === 'changes') {
-        const updated = await operationsService.requestChanges(approval.id, actionNote, 'Demo Admin')
+        const updated = await operationsService.requestChanges(approval.id, actionNote, 'Chuyên viên Nội dung (Content)')
         setApproval(updated)
         showToast('Đã gửi yêu cầu chỉnh sửa tới tác giả')
       } else if (modalMode === 'reject') {
-        const updated = await operationsService.rejectContent(approval.id, actionNote, 'Demo Admin')
+        const updated = await operationsService.rejectContent(approval.id, actionNote, 'Chuyên viên Nội dung (Content)')
         setApproval(updated)
         showToast('Đã từ chối phê duyệt nội dung')
       } else if (modalMode === 'publish') {
-        await operationsService.publishContent(approval.id, actionNote, 'Demo Admin')
+        await operationsService.publishContent(approval.id, actionNote, 'Chuyên viên Nội dung (Content)')
         showToast('Nội dung đã được xuất bản chính thức!')
         loadData()
       }

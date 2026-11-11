@@ -11,3 +11,4 @@ Append one entry per handoff; never erase prior entries.
 | P20-001 Teacher/Classroom/Assignment completed | Antigravity | P20-001 | 8f6086d | 7/7 Playwright E2E PASS, 395 Vitest PASS, 169 .NET PASS, 97->119 reconciled, StudyAIDb safe |
 | P20-001 review & P20-001-FIX / DATA-001 scoped | ChatGPT | P20-001-FIX & DATA-001 | 1d64559 | Requested fail-closed fixes & VNHSGE dataset integration |
 | P20-001-FIX & DATA-001 completed | Antigravity | P20-001-FIX & DATA-001 | d7f563d | Fail-closed enforced, VNHSGE parser & dry-run verified, 192 .NET PASS, 403 Vitest PASS, StudyAIDb safe |
+| Content Role Primacy & Account Provisioning | Antigravity | DATA-001 | 092feaa | Content specialist as final approver, VNHSGE gate locked, admin/content accounts provisioned on E2E, 198 .NET PASS, 403 Vitest PASS |

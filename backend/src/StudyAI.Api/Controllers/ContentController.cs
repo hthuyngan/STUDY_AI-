@@ -25,6 +25,7 @@ public class ContentController : ControllerBase
     private string CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub") ?? string.Empty;
 
     private bool IsAuthorizedReviewer =>
+        User.IsInRole("content") ||
         User.IsInRole("admin") ||
         User.IsInRole("reviewer") ||
         User.HasClaim("permission", "content.approve") ||
@@ -716,20 +717,24 @@ public class ContentController : ControllerBase
     {
         if (!IsAuthorizedReviewer)
         {
-            return StatusCode(403, new { detail = "Chỉ Quản trị viên hoặc Người kiểm duyệt được ủy quyền mới có quyền phê duyệt bài học." });
+            return StatusCode(403, new { detail = "Chỉ Người kiểm duyệt nội dung (Content) hoặc Quản trị viên mới có quyền phê duyệt bài học." });
         }
 
         var les = await _db.ContentLessons.Include(l => l.Author).FirstOrDefaultAsync(l => l.Id == lessonId);
         if (les == null)
             return NotFound(new { detail = "Bài học không tồn tại." });
 
-        if (les.Status != "in-review")
-            return BadRequest(new { detail = $"Chỉ có bài học đang chờ duyệt ('in-review') mới có thể xuất bản. Trạng thái hiện tại: {les.Status}" });
+        if (les.Status != "in-review" && les.Status != "draft")
+            return BadRequest(new { detail = $"Chỉ có bài học đang chờ duyệt ('in-review') hoặc bản nháp ('draft') mới có thể phê duyệt xuất bản. Trạng thái hiện tại: {les.Status}" });
 
-        // Independent moderation: Author cannot self-approve their own content
-        if (!string.IsNullOrEmpty(les.AuthorId) && les.AuthorId != DbInitializer.SystemAuthorUserId && les.AuthorId == CurrentUserId)
+        // VNHSGE Copyright Gate: Unlicensed VNHSGE items cannot be published
+        if (les.Title.Contains("VNHSGE", StringComparison.OrdinalIgnoreCase) ||
+            les.Introduction?.Contains("VNHSGE", StringComparison.OrdinalIgnoreCase) == true)
         {
-            return StatusCode(403, new { detail = "Tác giả không được tự phê duyệt bài học của chính mình. Yêu cầu kiểm duyệt độc lập từ biên tập viên khác hoặc Quản trị viên." });
+            return StatusCode(403, new
+            {
+                detail = "Nội dung thuộc bộ khảo cứu VNHSGE đang chịu cơ chế khóa bản quyền học thuật (CC BY-NC-SA 4.0 / arXiv:2305.12199). Không thể xuất bản công khai khi chưa có giấy phép hợp lệ."
+            });
         }
 
         les.Status = "published";
@@ -751,26 +756,53 @@ public class ContentController : ControllerBase
         return Ok(FormatLesson(les, les.Author));
     }
 
-    [HttpPost("lessons/{lessonId}/request-changes")]
-    public async Task<IActionResult> RequestChanges(string lessonId, [FromBody] JsonObject? body = null)
+    [HttpPost("lessons/{lessonId}/publish")]
+    public async Task<IActionResult> PublishLesson(string lessonId)
+    {
+        return await ApproveLesson(lessonId);
+    }
+
+    [HttpPost("lessons/{lessonId}/unpublish")]
+    public async Task<IActionResult> UnpublishLesson(string lessonId)
     {
         if (!IsAuthorizedReviewer)
         {
-            return StatusCode(403, new { detail = "Chỉ Quản trị viên hoặc Người kiểm duyệt được ủy quyền mới có quyền yêu cầu chỉnh sửa bài học." });
+            return StatusCode(403, new { detail = "Chỉ Người kiểm duyệt nội dung (Content) hoặc Quản trị viên mới có quyền gỡ xuất bản bài học." });
         }
 
         var les = await _db.ContentLessons.Include(l => l.Author).FirstOrDefaultAsync(l => l.Id == lessonId);
         if (les == null)
             return NotFound(new { detail = "Bài học không tồn tại." });
 
-        if (les.Status != "in-review")
-            return BadRequest(new { detail = $"Chỉ có bài học đang chờ duyệt ('in-review') mới có thể yêu cầu chỉnh sửa. Trạng thái hiện tại: {les.Status}" });
+        les.Status = "draft";
+        les.UpdatedAt = DateTimeOffset.UtcNow;
 
-        // Independent moderation: Author cannot self-request changes in review queue
-        if (!string.IsNullOrEmpty(les.AuthorId) && les.AuthorId != DbInitializer.SystemAuthorUserId && les.AuthorId == CurrentUserId)
+        _db.StaffAuditLogs.Add(new StaffAuditLog
         {
-            return StatusCode(403, new { detail = "Tác giả không được tự yêu cầu chỉnh sửa bài học của chính mình trong quy trình kiểm duyệt độc lập." });
+            Id = $"log_{Guid.NewGuid():N}",
+            ActorUserId = CurrentUserId,
+            Action = "lesson_unpublished",
+            TargetType = "content_lesson",
+            TargetId = les.Id,
+            Payload = JsonSerializer.Serialize(new { title = les.Title, unpublisherId = CurrentUserId }),
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+        return Ok(FormatLesson(les, les.Author));
+    }
+
+    [HttpPost("lessons/{lessonId}/request-changes")]
+    public async Task<IActionResult> RequestChanges(string lessonId, [FromBody] JsonObject? body = null)
+    {
+        if (!IsAuthorizedReviewer)
+        {
+            return StatusCode(403, new { detail = "Chỉ Người kiểm duyệt nội dung (Content) hoặc Quản trị viên mới có quyền yêu cầu chỉnh sửa/từ chối bài học." });
         }
+
+        var les = await _db.ContentLessons.Include(l => l.Author).FirstOrDefaultAsync(l => l.Id == lessonId);
+        if (les == null)
+            return NotFound(new { detail = "Bài học không tồn tại." });
 
         les.Status = "draft";
         les.UpdatedAt = DateTimeOffset.UtcNow;
@@ -789,6 +821,12 @@ public class ContentController : ControllerBase
 
         await _db.SaveChangesAsync();
         return Ok(FormatLesson(les, les.Author));
+    }
+
+    [HttpPost("lessons/{lessonId}/reject")]
+    public async Task<IActionResult> RejectLesson(string lessonId, [FromBody] JsonObject? body = null)
+    {
+        return await RequestChanges(lessonId, body);
     }
 
     #endregion

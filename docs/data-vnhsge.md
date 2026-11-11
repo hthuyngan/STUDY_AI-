@@ -72,3 +72,34 @@ The STUDY_AI parsing engine transforms each item into an `ImportQuestionItemDto`
   - Flag `dryRun = true` performs full schema validation and reports `TotalProcessed`, `Inserted`, `Updated`, `EntityCounts`, and `Provenance` while strictly executing zero database writes.
 - **Audit Logging**:
   - Every confirm operation (including dry-runs) records an `AuditLogId` for full compliance tracking.
+
+---
+
+## 5. Content Role Primacy & Governance Architecture
+
+### 5.1 Content Specialist as Final Approver
+Under the updated authorization architecture:
+- **Final Approval Authority**: The Content Specialist (`content` role) is the sole and final authority for learning content (subjects, chapters, lessons, questions, assessments).
+- **Direct Workflow Endpoints**:
+  - `POST /api/v1/content/lessons/{id}/approve` (also `.../publish`): Direct approval to `published` status by Content Specialists without requiring Admin intervention.
+  - `POST /api/v1/content/lessons/{id}/unpublish`: Returns published lessons back to `draft`.
+  - `POST /api/v1/content/lessons/{id}/reject` (also `.../request-changes`): Returns lessons to `draft` with feedback.
+- **Role Separation**:
+  - `content`: Content lifecycle, curriculum imports, dry-runs, and publication. Cannot manage user accounts, change roles, or access administrative operational dashboards (`403 Forbidden`).
+  - `admin`: User administration, platform settings, operational monitoring, and audit logs. Admin is no longer a blocking step in the content publishing pipeline.
+  - `teacher` & `learner`: Strictly prohibited from approving or publishing curriculum content (`403 Forbidden`).
+
+### 5.2 Non-Bypassable VNHSGE Copyright Gate
+- Content Specialist authority **cannot** bypass the academic copyright gate.
+- When an import confirmation (`/api/v1/content/import/confirm`) with `dryRun: false` contains VNHSGE provenance or filenames, the backend rejects it with `403 Forbidden` (`VNHSGE_COPYRIGHT_GATE_LOCKED`).
+- Any attempt to publish lessons bearing VNHSGE references without verified licensing is blocked at the API layer.
+
+### 5.3 Account Provisioning Procedure
+- **Isolated Testing Environment**:
+  - Accounts `admin@gmail.com` (`admin` role) and `content@gmail.com` (`content` role) are provisioned on `StudyAIDb_E2E` via `scripts/provision_admin_content.ts`.
+  - Passwords are encrypted using Argon2id (`$argon2id$v=19$m=19456,t=2,p=1`).
+  - Passwords are provided strictly through local environment variables (`ADMIN_PROVISION_PASSWORD`, `CONTENT_PROVISION_PASSWORD`) and are never committed to git repositories, logs, or reports.
+- **Production Safety Policy**:
+  - Main production database `StudyAIDb` (120 users) remains untouched during testing.
+  - Provisioning on `StudyAIDb` requires formal authorization from the project owner and execution of migration scripts in a dedicated deployment window.
+

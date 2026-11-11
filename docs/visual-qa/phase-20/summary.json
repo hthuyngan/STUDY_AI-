@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-11T08:42:04.733Z",
+  "timestamp": "2026-11-11T09:35:38.934Z",
   "totalScenarios": 7,
   "passedScenarios": 7,
   "failedScenarios": 0,
@@ -8,7 +8,7 @@
       "id": 1,
       "name": "Teacher/Admin Login & Navigation to Teacher Classes",
       "status": "PASS",
-      "durationMs": 4017,
+      "durationMs": 4180,
       "screenshots": [
         "phase20_01_teacher_classes_list.png"
       ],
@@ -18,18 +18,18 @@
       "id": 2,
       "name": "Classroom Creation with Validation and State Sync",
       "status": "PASS",
-      "durationMs": 1396,
+      "durationMs": 1484,
       "screenshots": [
         "phase20_02_create_classroom_modal.png",
         "phase20_03_classroom_created_in_list.png"
       ],
-      "notes": "Successfully created classroom \"Lớp 12A Chuyên Toán 12A6931\" with code \"12A6931\"."
+      "notes": "Successfully created classroom \"Lớp 12A Chuyên Toán 12A1094\" with code \"12A1094\"."
     },
     {
       "id": 3,
       "name": "Classroom Detail & Learner Enrollment",
       "status": "PASS",
-      "durationMs": 1648,
+      "durationMs": 1638,
       "screenshots": [
         "phase20_04_classroom_detail_page.png",
         "phase20_05_enroll_student_modal.png",
@@ -41,18 +41,18 @@
       "id": 4,
       "name": "Assignment Creation with Due Date and Instructions",
       "status": "PASS",
-      "durationMs": 2059,
+      "durationMs": 2139,
       "screenshots": [
         "phase20_07_create_assignment_modal.png",
         "phase20_08_assignment_in_teacher_list.png"
       ],
-      "notes": "Successfully created assignment \"Bài tập GDPT 2018 - Khảo sát Đạo hàm 637\"."
+      "notes": "Successfully created assignment \"Bài tập GDPT 2018 - Khảo sát Đạo hàm 4942\"."
     },
     {
       "id": 5,
       "name": "Learner Submission Workflow",
       "status": "PASS",
-      "durationMs": 4694,
+      "durationMs": 4748,
       "screenshots": [
         "phase20_09_learner_assignments_dashboard.png",
         "phase20_10_learner_submit_dialog_opened.png",
@@ -64,7 +64,7 @@
       "id": 6,
       "name": "Teacher Grading and Academic Feedback",
       "status": "PASS",
-      "durationMs": 3821,
+      "durationMs": 3705,
       "screenshots": [
         "phase20_12_teacher_assignment_submissions_list.png",
         "phase20_13_teacher_grading_modal.png",
@@ -76,7 +76,7 @@
       "id": 7,
       "name": "Learner Verification of Grade and Strict RBAC Enforcement",
       "status": "PASS",
-      "durationMs": 4014,
+      "durationMs": 3995,
       "screenshots": [
         "phase20_15_learner_viewing_graded_result.png",
         "phase20_16_learner_rbac_access_denied.png"

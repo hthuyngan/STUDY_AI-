@@ -107,6 +107,22 @@ public class CurriculumImportConfirmService : ICurriculumImportConfirmService
                 return CurriculumImportConfirmResult.Ok(dryRunResponse);
             }
 
+            // 4.2 Kiểm tra cổng bản quyền VNHSGE: Chặn import thật nếu chưa có giấy phép hợp lệ
+            bool isVnhsgeBatch = session.Batch.FlatQuestions.Any(q => q.SourceCitation?.Contains("VNHSGE", StringComparison.OrdinalIgnoreCase) == true) ||
+                                 session.Batch.FileName.Contains("MET_", StringComparison.OrdinalIgnoreCase);
+
+            if (isVnhsgeBatch)
+            {
+                bool hasVerifiedCopyright = auditNote?.Contains("VNHSGE_COPYRIGHT_LICENSED", StringComparison.OrdinalIgnoreCase) == true;
+                if (!hasVerifiedCopyright)
+                {
+                    return CurriculumImportConfirmResult.Fail(
+                        403,
+                        "VNHSGE_COPYRIGHT_GATE_LOCKED",
+                        "Bộ dữ liệu khảo cứu VNHSGE đang trong cơ chế khóa bản quyền học thuật (CC BY-NC-SA 4.0 / arXiv:2305.12199). Chỉ được phép thực hiện ở chế độ kiểm thử an toàn (Dry-Run). Thao tác ghi CSDL và xuất bản công khai bị chặn cho đến khi được cấp quyền sử dụng hợp lệ.");
+                }
+            }
+
             // 5. Giao dịch nguyên tử (ACID Transaction) thông qua ExecutionStrategy
             var strategy = _context.Database.CreateExecutionStrategy();
             return await strategy.ExecuteAsync(async () =>
