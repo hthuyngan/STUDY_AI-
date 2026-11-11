@@ -1,53 +1,61 @@
 # TASK — ChatGPT → Antigravity
 
-- Task ID: **P20-000**
-- Title: **Authentication/API Recovery & Header Navigation Cleanup — Phase 20 prerequisite**
-- Status: READY
+- Task ID: **P20-001**
+- Title: **Phase 20 — Teacher, Classroom, Assignment & Submission Backend + Frontend Integration**
+- Status: **READY — USER APPROVED**
 - Owner: Antigravity
-- Baseline SHA: `50b11272eb6b0bbe133faf726ea6c52149f38eee` (fetch latest `origin/main` before starting)
-- Priority: BLOCKER — fix before implementing Phase 20 entities or endpoints.
-- User authorization: explicit request to fix broken login/APIs and clean up navigation.
+- Baseline: `9b7c3b94f95aaa052bad16c60fd29ceb4d5a1287` (verify latest origin/main before coding)
+- Workspace: `E:\AI_tutor`
+- Predecessor: P20-000 **APPROVED WITH DATABASE BASELINE FOLLOW-UP** in `REVIEW.md`
+- Stop gate: no Phase 21; no unrelated changes.
 
-## Observed issue
-User screenshot shows simultaneously: `Trang quản trị`, role dropdown `Quản trị`, `Đăng nhập`, `Đăng ký`. User reports login/API actions fail despite BE and FE running. **Do not assume cause from screenshot**; reproduce and gather evidence.
+## 0. Mandatory preflight / DB safety
+1. Check git status, branch, remote and HEAD. Do not reset/clean/force-push or overwrite local changes; fetch/pull --ff-only only if safe.
+2. Read `ai-collaboration/README.md`, `STATUS.md`, `REPORT.md`, `REVIEW.md`, current task, and inspect existing backend/frontend code and schema.
+3. **Read-only reconciliation**: prior protected `StudyAIDb` baseline was **97 users**, latest Antigravity report says **119**. Identify whether these refer to the same SQL instance/database/time, review available read-only audit/backup history and sanitized aggregate metadata. Report what is proven, unknown, and whether 22 additional accounts are explainable. Never alter/delete accounts or claim 'zero writes' from user count alone. Do not expose user records, credentials or personal data.
+4. **Never write/migrate/seed/reset/restore `StudyAIDb`**, nor alter the 15 historical accidental accounts or `DatabaseSafetyGuard`. Test writes/migrations only to `StudyAIDb_E2E` or `StudyAIDb_Clean_{GUID}`, after verifying effective connection strings, target SQL instance, database guard and permissions. If isolation cannot be proven, STOP and report BLOCKED before any write.
+5. No automatic production migrations, no credentials committed, no hardcoded test accounts in application code.
 
-## A. Diagnose end-to-end first
-1. Sync safely: inspect git status, fetch, pull --ff-only; do not overwrite local work.
-2. Identify actual FE/BE URLs, API base URL, environment variables, proxy, CORS, HTTPS, cookies/SameSite, JWT issuer/audience, auth endpoints, DB connection and role mapping.
-3. Reproduce login with browser DevTools/Playwright; record request URL, method, status code, response shape, CORS/network errors and server logs **without passwords, tokens, PII, or secrets**.
-4. Check login, logout, refresh/reload session, unauthorized 401, forbidden 403, registration if present, and authenticated requests for key modules (AI Tutor, lessons, teacher/admin). Verify startup configuration on the new machine; don't silently substitute mock.
-5. Distinguish frontend-only bugs from backend/database/configuration failures. Do not reset credentials, rehash users, reseed accounts, or write to `StudyAIDb`.
+## 1. Discovery & design
+- Inspect existing teacher/classroom/assignment/submission pages, services, mocks, routes, backend controllers/services/entities/DTOs, DbContext, migrations, auth/RBAC, and conventions.
+- Inventory implemented vs mocked vs missing functionality; reuse existing APIs/schema where possible; avoid duplicate entities or breaking Phase 18/19.
+- Define minimal data model and API contract before implementing; keep a concise design note in `docs/phase-20.md`.
+- Use ASP.NET Core .NET 10, EF Core, SQL Server, React 19/TypeScript/Vite, existing JWT/session and role enforcement.
 
-## B. Repair auth/API flow
-- Correct API base URL/proxy/CORS/auth handling according to existing architecture.
-- Keep access token **in memory only** as established by `authSession.ts`; do not move tokens into localStorage/sessionStorage/IndexedDB.
-- Restore session via existing secure mechanism where available; fail closed, don't fake a logged-in state.
-- Handle 401/403 and network failures visibly and consistently; prevent protected API calls from silently using mock data.
-- Do not bypass authorization or add hardcoded test credentials.
+## 2. Classroom
+- Teacher create/list/detail/edit classes they own; manage enrollment (add/list/remove learner), reject duplicate enrollment; learner lists only enrolled classes.
+- Validate IDs, roles, permissions, membership, ownership, pagination/limits as appropriate. Deny cross-class access (403/404 as existing convention).
 
-## C. Clean up navigation and header
-- **Unauthenticated:** show `Đăng nhập` (and `Đăng ký` only if existing UX requires it); no role/admin-only navigation; no account dropdown pretending to be logged in.
-- **Authenticated:** hide standalone `Đăng nhập`/`Đăng ký` buttons and duplicate role/admin buttons. Show ONE account/name dropdown with appropriate role-specific links (e.g. Trang quản trị, dashboard, profile, logout) only inside that dropdown.
-- Remove redundant page-level auth/navigation shortcut buttons across affected pages; preserve functional task/action buttons (save, submit, create, grade, etc.), primary content navigation and accessibility.
-- Make menu items role-aware and prevent privilege escalation by direct URL (backend remains authoritative).
-- Loading/refreshing auth state must not flash contradictory login/admin controls.
-- Responsive desktop/mobile behavior, keyboard access, focus and click-outside close.
+## 3. Assignment
+- Teacher create/list/detail/edit assignments for owned classes, set title, description, due date and open/closed state.
+- Learner list/detail assignments only for enrolled classes; show due date and status.
+- Define consistent policy for deadline, closing and edits after submissions. Do not delete/overwrite submitted learner work inadvertently.
 
-## D. Tests & evidence
-- Backend unit/integration tests for auth/session and role enforcement as relevant.
-- Frontend tests for logged-out, learner, teacher, admin, pending-auth states, dropdown links, login/logout, API failures.
-- Playwright real BE+FE login, authenticated API request, logout, refresh; screenshot before/after navigation. Test with **dedicated test accounts in test DB only**.
-- Verify no mock fallback for authenticated users.
-- Run dotnet build, backend tests, frontend lint/Vitest/build, Playwright E2E, GitHub Actions.
-- Mark unrun tests NOT RUN or BLOCKED; do not claim live OpenAI verification.
+## 4. Submission & grading
+- Learner submit **text** response only to enrolled, open, eligible assignments; store submitted timestamp and content.
+- Define and test duplicate submission/resubmission and late-submission policy; avoid race-condition duplicates via DB constraints/transaction where relevant.
+- Teacher sees submissions for owned classes and grades with bounded score and feedback; learner sees **only their own** result.
+- Prevent learner grade manipulation, teacher cross-class grading and data leakage.
+- Keep this phase simple: no file uploads, plagiarism detection, auto-grading, microservices or queues.
 
-## E. Strict database protection
-`StudyAIDb`: NO writes, migrations, seeds, reset, restore, password/role/user changes. Preserve 15 historical accidental accounts and `DatabaseSafetyGuard`. Test writes only in `StudyAIDb_E2E` or `StudyAIDb_Clean_{GUID}`. If diagnosis requires main DB inspection, read-only and avoid exposing PII; if risk cannot be eliminated, stop and report.
+## 5. Frontend
+- Integrate existing Teacher/Classroom/Assignment screens with real authenticated API. Replace relevant authenticated mock/localStorage data flows; tests/demo can use explicit mocks.
+- Add loading/empty/error states, validation, role-aware routing, stale-state refresh and persistence across reload.
+- Preserve working UI and P20-000 auth/menu behavior. Keep necessary functional buttons (create/save/submit/grade); do not reintroduce duplicate auth/admin navigation.
+- Backend remains authority for permissions; frontend route guards are not sufficient.
 
-## F. Deliverables / handoff
-- Code changes limited to authentication/API integration, navigation, tests, docs; no Phase 20 classroom/assignment feature implementation yet.
-- Update `ai-collaboration/REPORT.md` with root cause, affected files, HTTP evidence (sanitized), tests, screenshots, database safety evidence, commit SHA, CI run URL, remaining issues.
-- Update `ai-collaboration/STATUS.md` and append `HISTORY.md`; do not edit `TASK.md` or `REVIEW.md`.
-- Commit/push safely; stop for ChatGPT review. Once P20-000 is approved, ChatGPT will issue `P20-001` for Phase 20 features.
+## 6. Tests and evidence
+- Backend unit/integration: classroom ownership, enrollment uniqueness, role validation, assignment deadline/status, submission duplication, grading permissions, learner privacy, cross-class denial, 401/403/404.
+- Frontend Vitest: authenticated API loading, forms, validation, error states, learner/teacher views, no silent mock fallback.
+- Playwright real FE+BE+SQL test DB: teacher login → create class → enroll learner → create assignment → learner login → submit → teacher grades → learner sees score/feedback → reload confirms persistence; include negative authorization cases.
+- Run dotnet build, backend unit/integration tests, frontend lint/Vitest/build, E2E and GitHub Actions. Mark unrun tests NOT RUN or BLOCKED; preserve screenshots/manifest under `docs/visual-qa/phase-20/`.
+- Record database name/instance and sanitized pre/post safety evidence; never assert main DB untouched solely from count.
 
-**STOP GATE:** No Phase 21. No feature Phase 20 code before P20-000 review. No main DB writes.
+## 7. Handoff
+- Implement incrementally, commit and push safely to main per repository conventions; do not overwrite unrelated work.
+- Update `docs/phase-20.md`, `ai-collaboration/REPORT.md`, `STATUS.md`, append `HISTORY.md`.
+- **Do not edit `TASK.md` or `REVIEW.md`** (ChatGPT-owned).
+- REPORT must contain task ID, actual root findings, entities/migrations/endpoints, changed files, mock removal, test counts, CI URL/SHA, E2E artifacts, DB isolation verification, 97→119 reconciliation status, limitations and blockers.
+- Stop after P20-001 and await ChatGPT review; do not self-approve or start Phase 21.
+
+**Start P20-001 now. If DB safety preflight is blocked, report without performing DB writes.**
