@@ -94,7 +94,8 @@ export const TeacherAssignmentDetailPage: React.FC = () => {
         selectedSub.id,
         gradeScore,
         gradeFeedback,
-        'Giáo viên bộ môn'
+        'Giáo viên bộ môn',
+        selectedSub.assignmentId
       )
       showToast(`Đã lưu điểm cho học viên ${selectedSub.studentName}: ${gradeScore} điểm`)
       setIsGradingOpen(false)

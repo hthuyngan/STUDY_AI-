@@ -21,6 +21,7 @@ import AchievementsPage from '@/pages/Achievements/AchievementsPage'
 import ProfilePage from '@/pages/Profile/ProfilePage'
 import SettingsPage from '@/pages/Settings/SettingsPage'
 import DesignSystemPage from '@/pages/DesignSystem/DesignSystemPage'
+import { LearnerAssignmentsPage } from '@/pages/Assignments/LearnerAssignmentsPage'
 
 export function LegacyCoursesRedirect() {
   const { courseId } = useParams<{ courseId?: string }>()
@@ -228,6 +229,16 @@ export function LearnerRoutes() {
         element={
           <AppShell>
             <PracticeHubPage />
+          </AppShell>
+        }
+      />
+
+      {/* Phase 20: Learner Assignments */}
+      <Route
+        path="/assignments"
+        element={
+          <AppShell>
+            <LearnerAssignmentsPage />
           </AppShell>
         }
       />

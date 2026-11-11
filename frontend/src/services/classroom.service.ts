@@ -1,3 +1,5 @@
+import { apiClient } from '@/lib/apiClient'
+import { getAccessToken } from '@/auth/authSession'
 import type {
   AdminAssignmentItem,
   AdminClassItem,
@@ -6,7 +8,14 @@ import type {
   AdminStudentItem,
   AdminSubmissionItem,
   AlertStatus,
+  AssignmentStatus,
   ClassActivityItem,
+  ClassroomDto,
+  ClassroomStudentDto,
+  ClassStatus,
+  AssignmentDto,
+  SubmissionDto,
+  SubmissionStatus,
 } from '@/types/classroom'
 import type {
   ClassStudentItem,
@@ -546,15 +555,136 @@ function saveToStorage<T>(key: string, data: T): void {
 export const classroomService = {
   // ==================== CLASSES ====================
   async getClasses(): Promise<AdminClassItem[]> {
+    if (getAccessToken()) {
+      try {
+        const dtos = await apiClient.get<ClassroomDto[]>('/api/v1/classrooms')
+        if (Array.isArray(dtos)) {
+          return dtos.map((c) => ({
+            id: c.id,
+            code: c.code || c.id,
+            name: c.name,
+            grade: c.grade || 'Lớp 12',
+            homeroomTeacherId: c.teacherId,
+            homeroomTeacherName: c.teacherName || 'Giáo viên',
+            room: c.room || 'P.101',
+            academicYear: c.academicYear || '2025 - 2026',
+            description: c.description || '',
+            maxStudents: 40,
+            studentCount: c.studentCount,
+            averageProgress: 0,
+            averageScore: 0,
+            activeAssignments: c.assignmentCount,
+            status: (c.status as ClassStatus) || 'active',
+            createdAt: c.createdAt,
+            updatedAt: c.updatedAt,
+          }))
+        }
+      } catch (err) {
+        console.warn('apiClient.get(/api/v1/classrooms) fallback to local:', err)
+      }
+    }
     return loadFromStorage<AdminClassItem[]>(STORAGE_KEYS.CLASSES, INITIAL_CLASSES)
   },
 
   async getClassById(classId: string): Promise<AdminClassItem | null> {
+    if (getAccessToken()) {
+      try {
+        const c = await apiClient.get<ClassroomDto>(`/api/v1/classrooms/${classId}`)
+        if (c && c.id) {
+          return {
+            id: c.id,
+            code: c.code || c.id,
+            name: c.name,
+            grade: c.grade || 'Lớp 12',
+            homeroomTeacherId: c.teacherId,
+            homeroomTeacherName: c.teacherName || 'Giáo viên',
+            room: c.room || 'P.101',
+            academicYear: c.academicYear || '2025 - 2026',
+            description: c.description || '',
+            maxStudents: 40,
+            studentCount: c.studentCount,
+            averageProgress: 0,
+            averageScore: 0,
+            activeAssignments: c.assignmentCount,
+            status: (c.status as ClassStatus) || 'active',
+            createdAt: c.createdAt,
+            updatedAt: c.updatedAt,
+          }
+        }
+      } catch (err) {
+        console.warn(`apiClient.get(/api/v1/classrooms/${classId}) fallback to local:`, err)
+      }
+    }
     const classes = await this.getClasses()
     return classes.find((c) => c.id === classId) || null
   },
 
   async saveClass(classData: Partial<AdminClassItem>): Promise<AdminClassItem> {
+    if (getAccessToken()) {
+      try {
+        if (classData.id && !classData.id.startsWith('cls-temp') && !classData.id.startsWith('cls-12')) {
+          const updated = await apiClient.put<ClassroomDto>(`/api/v1/classrooms/${classData.id}`, {
+            name: classData.name,
+            code: classData.code,
+            grade: classData.grade,
+            room: classData.room,
+            academicYear: classData.academicYear,
+            description: classData.description,
+            status: classData.status,
+          })
+          return {
+            id: updated.id,
+            code: updated.code || updated.id,
+            name: updated.name,
+            grade: updated.grade || 'Lớp 12',
+            homeroomTeacherId: updated.teacherId,
+            homeroomTeacherName: updated.teacherName || 'Giáo viên',
+            room: updated.room || 'P.101',
+            academicYear: updated.academicYear || '2025 - 2026',
+            description: updated.description || '',
+            maxStudents: 40,
+            studentCount: updated.studentCount,
+            averageProgress: 0,
+            averageScore: 0,
+            activeAssignments: updated.assignmentCount,
+            status: (updated.status as ClassStatus) || 'active',
+            createdAt: updated.createdAt,
+            updatedAt: updated.updatedAt,
+          }
+        } else {
+          const created = await apiClient.post<ClassroomDto>('/api/v1/classrooms', {
+            name: classData.name,
+            code: classData.code,
+            grade: classData.grade,
+            room: classData.room,
+            academicYear: classData.academicYear,
+            description: classData.description,
+          })
+          return {
+            id: created.id,
+            code: created.code || created.id,
+            name: created.name,
+            grade: created.grade || 'Lớp 12',
+            homeroomTeacherId: created.teacherId,
+            homeroomTeacherName: created.teacherName || 'Giáo viên',
+            room: created.room || 'P.101',
+            academicYear: created.academicYear || '2025 - 2026',
+            description: created.description || '',
+            maxStudents: 40,
+            studentCount: created.studentCount,
+            averageProgress: 0,
+            averageScore: 0,
+            activeAssignments: created.assignmentCount,
+            status: (created.status as ClassStatus) || 'active',
+            createdAt: created.createdAt,
+            updatedAt: created.updatedAt,
+          }
+        }
+      } catch (err) {
+        console.warn('apiClient saveClass fallback to local storage:', err)
+      }
+    }
+
     const classes = await this.getClasses()
     const now = new Date().toISOString()
 
@@ -626,11 +756,54 @@ export const classroomService = {
   },
 
   async getStudentsByClass(classId: string): Promise<AdminStudentItem[]> {
+    if (getAccessToken()) {
+      try {
+        const dtos = await apiClient.get<ClassroomStudentDto[]>(`/api/v1/classrooms/${classId}/students`)
+        if (Array.isArray(dtos)) {
+          return dtos.map((s) => ({
+            id: s.id,
+            code: s.studentId,
+            name: s.studentName || 'Học sinh',
+            email: s.studentEmail || '',
+            classId: s.classroomId,
+            className: '',
+            grade: s.studentGrade || 'Lớp 12',
+            progress: 0,
+            lessonsCompleted: 0,
+            averageScore: 0,
+            totalLearningMinutes: 0,
+            lastActive: s.enrolledAt,
+            status: 'on-track',
+          }))
+        }
+      } catch (err) {
+        console.warn(`apiClient.get(/api/v1/classrooms/${classId}/students) fallback:`, err)
+      }
+    }
     const students = await this.getStudents()
     return students.filter((s) => s.classId === classId)
   },
 
   async addStudentToClass(studentData: Omit<AdminStudentItem, 'id'>): Promise<AdminStudentItem> {
+    if (getAccessToken() && studentData.classId) {
+      try {
+        const enrolled = await apiClient.post<ClassroomStudentDto>(
+          `/api/v1/classrooms/${studentData.classId}/students`,
+          {
+            studentId: studentData.code?.startsWith('usr-') ? studentData.code : undefined,
+            studentEmail: studentData.email,
+          }
+        )
+        return {
+          ...studentData,
+          id: enrolled.id,
+          name: enrolled.studentName || studentData.name,
+          email: enrolled.studentEmail || studentData.email,
+        }
+      } catch (err) {
+        console.warn('apiClient addStudentToClass fallback:', err)
+      }
+    }
     const students = await this.getStudents()
     const newStudent: AdminStudentItem = {
       ...studentData,
@@ -640,6 +813,13 @@ export const classroomService = {
     saveToStorage(STORAGE_KEYS.STUDENTS, updatedList)
     await this._syncClassCounts()
     return newStudent
+  },
+
+  async enrollStudent(
+    classId: string,
+    payload: { studentId?: string; studentEmail?: string }
+  ): Promise<ClassroomStudentDto> {
+    return apiClient.post<ClassroomStudentDto>(`/api/v1/classrooms/${classId}/students`, payload)
   },
 
   async moveStudentClass(studentId: string, targetClassId: string, targetClassName: string): Promise<AdminStudentItem> {
@@ -656,7 +836,14 @@ export const classroomService = {
     return students[idx]
   },
 
-  async removeStudentFromClass(studentId: string): Promise<void> {
+  async removeStudentFromClass(studentId: string, classId?: string): Promise<void> {
+    if (getAccessToken() && classId) {
+      try {
+        await apiClient.delete(`/api/v1/classrooms/${classId}/students/${studentId}`)
+      } catch (err) {
+        console.warn('apiClient removeStudentFromClass fallback:', err)
+      }
+    }
     const students = await this.getStudents()
     const filtered = students.filter((s) => s.id !== studentId)
     saveToStorage(STORAGE_KEYS.STUDENTS, filtered)
@@ -664,21 +851,135 @@ export const classroomService = {
   },
 
   // ==================== ASSIGNMENTS ====================
-  async getAssignments(): Promise<AdminAssignmentItem[]> {
-    return loadFromStorage<AdminAssignmentItem[]>(STORAGE_KEYS.ASSIGNMENTS, INITIAL_ASSIGNMENTS)
+  async getAssignments(classId?: string): Promise<AdminAssignmentItem[]> {
+    if (getAccessToken()) {
+      try {
+        const path = classId ? `/api/v1/classrooms/${classId}/assignments` : '/api/v1/assignments'
+        const dtos = await apiClient.get<AssignmentDto[]>(path)
+        if (Array.isArray(dtos)) {
+          return dtos.map((a) => ({
+            id: a.id,
+            title: a.title,
+            classId: a.classroomId,
+            className: a.classroomName || '',
+            subjectId: 'sub-math-12',
+            subjectName: 'Toán học 12',
+            description: a.description || '',
+            instructions: a.instructions || '',
+            dueDate: a.dueDate,
+            maxScore: a.maxScore,
+            submissionsCount: a.submissionsCount,
+            totalStudents: a.totalStudents,
+            status: (a.status as AssignmentStatus) || 'active',
+            createdAt: a.createdAt,
+          }))
+        }
+      } catch (err) {
+        console.warn('apiClient getAssignments fallback:', err)
+      }
+    }
+    const all = loadFromStorage<AdminAssignmentItem[]>(STORAGE_KEYS.ASSIGNMENTS, INITIAL_ASSIGNMENTS)
+    if (classId) {
+      return all.filter((a) => a.classId === classId)
+    }
+    return all
+  },
+
+  async getAssignmentsByClass(classId: string): Promise<AdminAssignmentItem[]> {
+    return this.getAssignments(classId)
   },
 
   async getAssignmentById(assignmentId: string): Promise<AdminAssignmentItem | null> {
+    if (getAccessToken()) {
+      try {
+        const a = await apiClient.get<AssignmentDto>(`/api/v1/assignments/${assignmentId}`)
+        if (a && a.id) {
+          return {
+            id: a.id,
+            title: a.title,
+            classId: a.classroomId,
+            className: a.classroomName || '',
+            subjectId: 'sub-math-12',
+            subjectName: 'Toán học 12',
+            description: a.description || '',
+            instructions: a.instructions || '',
+            dueDate: a.dueDate,
+            maxScore: a.maxScore,
+            submissionsCount: a.submissionsCount,
+            totalStudents: a.totalStudents,
+            status: (a.status as AssignmentStatus) || 'active',
+            createdAt: a.createdAt,
+          }
+        }
+      } catch (err) {
+        console.warn(`apiClient getAssignmentById(${assignmentId}) fallback:`, err)
+      }
+    }
     const assignments = await this.getAssignments()
     return assignments.find((a) => a.id === assignmentId) || null
   },
 
-  async getAssignmentsByClass(classId: string): Promise<AdminAssignmentItem[]> {
-    const assignments = await this.getAssignments()
-    return assignments.filter((a) => a.classId === classId)
-  },
-
   async saveAssignment(data: Partial<AdminAssignmentItem>): Promise<AdminAssignmentItem> {
+    if (getAccessToken()) {
+      try {
+        if (data.id && !data.id.startsWith('asg-temp') && !data.id.startsWith('asg-1')) {
+          const updated = await apiClient.put<AssignmentDto>(`/api/v1/assignments/${data.id}`, {
+            title: data.title,
+            description: data.description,
+            instructions: data.instructions,
+            dueDate: data.dueDate,
+            maxScore: data.maxScore,
+            status: data.status,
+          })
+          return {
+            id: updated.id,
+            title: updated.title,
+            classId: updated.classroomId,
+            className: updated.classroomName || '',
+            subjectId: 'sub-math-12',
+            subjectName: 'Toán học 12',
+            description: updated.description || '',
+            instructions: updated.instructions || '',
+            dueDate: updated.dueDate,
+            maxScore: updated.maxScore,
+            submissionsCount: updated.submissionsCount,
+            totalStudents: updated.totalStudents,
+            status: (updated.status as AssignmentStatus) || 'active',
+            createdAt: updated.createdAt,
+          }
+        } else if (data.classId) {
+          const created = await apiClient.post<AssignmentDto>(
+            `/api/v1/classrooms/${data.classId}/assignments`,
+            {
+              title: data.title,
+              description: data.description,
+              instructions: data.instructions,
+              dueDate: data.dueDate,
+              maxScore: data.maxScore,
+            }
+          )
+          return {
+            id: created.id,
+            title: created.title,
+            classId: created.classroomId,
+            className: created.classroomName || '',
+            subjectId: 'sub-math-12',
+            subjectName: 'Toán học 12',
+            description: created.description || '',
+            instructions: created.instructions || '',
+            dueDate: created.dueDate,
+            maxScore: created.maxScore,
+            submissionsCount: created.submissionsCount,
+            totalStudents: created.totalStudents,
+            status: (created.status as AssignmentStatus) || 'active',
+            createdAt: created.createdAt,
+          }
+        }
+      } catch (err) {
+        console.warn('apiClient saveAssignment fallback:', err)
+      }
+    }
+
     const assignments = await this.getAssignments()
     const now = new Date().toISOString()
 
@@ -725,6 +1026,31 @@ export const classroomService = {
 
   // ==================== SUBMISSIONS ====================
   async getSubmissions(assignmentId?: string): Promise<AdminSubmissionItem[]> {
+    if (getAccessToken() && assignmentId) {
+      try {
+        const dtos = await apiClient.get<SubmissionDto[]>(`/api/v1/assignments/${assignmentId}/submissions`)
+        if (Array.isArray(dtos)) {
+          return dtos.map((s) => ({
+            id: s.id,
+            assignmentId: s.assignmentId,
+            assignmentTitle: s.assignmentTitle || '',
+            studentId: s.studentId,
+            studentName: s.studentName || 'Học sinh',
+            studentEmail: s.studentEmail || '',
+            className: '',
+            submittedAt: s.submittedAt,
+            status: (s.status as SubmissionStatus) || 'pending',
+            score: s.score ?? undefined,
+            maxScore: 10,
+            feedback: s.feedback || undefined,
+            gradedBy: s.gradedByTeacherId || undefined,
+            content: s.content,
+          }))
+        }
+      } catch (err) {
+        console.warn(`apiClient getSubmissions(${assignmentId}) fallback:`, err)
+      }
+    }
     const all = loadFromStorage<AdminSubmissionItem[]>(STORAGE_KEYS.SUBMISSIONS, INITIAL_SUBMISSIONS)
     if (assignmentId) {
       return all.filter((s) => s.assignmentId === assignmentId)
@@ -736,22 +1062,63 @@ export const classroomService = {
     submissionId: string,
     score: number,
     feedback: string,
-    gradedBy: string = 'Quản trị viên'
+    gradedBy: string = 'Quản trị viên',
+    assignmentId?: string
   ): Promise<AdminSubmissionItem> {
-    const submissions = await this.getSubmissions()
-    const idx = submissions.findIndex((s) => s.id === submissionId)
+    const submissions = await this.getSubmissions(assignmentId)
+    const sub = submissions.find((s) => s.id === submissionId)
+    const effectiveAssignmentId = assignmentId || sub?.assignmentId
+
+    if (getAccessToken() && effectiveAssignmentId) {
+      try {
+        const graded = await apiClient.post<SubmissionDto>(
+          `/api/v1/assignments/${effectiveAssignmentId}/submissions/${submissionId}/grade`,
+          { score, feedback }
+        )
+        return {
+          id: graded.id,
+          assignmentId: graded.assignmentId,
+          assignmentTitle: graded.assignmentTitle || sub?.assignmentTitle || '',
+          studentId: graded.studentId,
+          studentName: graded.studentName || sub?.studentName || 'Học sinh',
+          studentEmail: graded.studentEmail || sub?.studentEmail || '',
+          className: sub?.className || '',
+          submittedAt: graded.submittedAt,
+          status: 'graded',
+          score: graded.score ?? score,
+          maxScore: 10,
+          feedback: graded.feedback || feedback,
+          gradedBy,
+          content: graded.content,
+        }
+      } catch (err) {
+        console.warn('apiClient gradeSubmission fallback:', err)
+      }
+    }
+
+    const allSubs = loadFromStorage<AdminSubmissionItem[]>(STORAGE_KEYS.SUBMISSIONS, INITIAL_SUBMISSIONS)
+    const idx = allSubs.findIndex((s) => s.id === submissionId)
     if (idx === -1) throw new Error('Không tìm thấy bài nộp')
     const updated: AdminSubmissionItem = {
-      ...submissions[idx],
+      ...allSubs[idx],
       score,
       feedback,
       gradedBy,
       status: 'graded',
-      submittedAt: submissions[idx].submittedAt || new Date().toISOString(),
+      submittedAt: allSubs[idx].submittedAt || new Date().toISOString(),
     }
-    submissions[idx] = updated
-    saveToStorage(STORAGE_KEYS.SUBMISSIONS, submissions)
+    allSubs[idx] = updated
+    saveToStorage(STORAGE_KEYS.SUBMISSIONS, allSubs)
     return updated
+  },
+
+  // Learner submission endpoints
+  async submitAssignment(assignmentId: string, content: string): Promise<SubmissionDto> {
+    return apiClient.post<SubmissionDto>(`/api/v1/assignments/${assignmentId}/submissions`, { content })
+  },
+
+  async getMySubmission(assignmentId: string): Promise<SubmissionDto> {
+    return apiClient.get<SubmissionDto>(`/api/v1/assignments/${assignmentId}/my-submission`)
   },
 
   // ==================== GRADES & ANALYTICS ====================

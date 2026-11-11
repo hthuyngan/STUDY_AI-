@@ -20,6 +20,10 @@ public interface IApplicationDbContext
     DbSet<ContentQuestion> ContentQuestions { get; }
     DbSet<AiConversation> AiConversations { get; }
     DbSet<AiMessage> AiMessages { get; }
+    DbSet<Classroom> Classrooms { get; }
+    DbSet<ClassroomStudent> ClassroomStudents { get; }
+    DbSet<Assignment> Assignments { get; }
+    DbSet<AssignmentSubmission> AssignmentSubmissions { get; }
 
     DatabaseFacade Database { get; }
 

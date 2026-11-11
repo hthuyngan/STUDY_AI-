@@ -51,6 +51,14 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
     public DbSet<AiMessage> AiMessages => Set<AiMessage>();
 
+    public DbSet<Classroom> Classrooms => Set<Classroom>();
+
+    public DbSet<ClassroomStudent> ClassroomStudents => Set<ClassroomStudent>();
+
+    public DbSet<Assignment> Assignments => Set<Assignment>();
+
+    public DbSet<AssignmentSubmission> AssignmentSubmissions => Set<AssignmentSubmission>();
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         base.OnConfiguring(optionsBuilder);
@@ -593,6 +601,121 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
                 .WithMany(c => c.Messages)
                 .HasForeignKey(e => e.ConversationId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Phase 20: Classrooms
+        modelBuilder.Entity<Classroom>(entity =>
+        {
+            entity.ToTable("classrooms");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.Name).HasMaxLength(128).IsRequired();
+            entity.Property(e => e.Code).HasMaxLength(64);
+            entity.Property(e => e.Grade).HasMaxLength(64);
+            entity.Property(e => e.Subject).HasMaxLength(128);
+            entity.Property(e => e.TeacherId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.TeacherName).HasMaxLength(128);
+            entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.Property(e => e.Room).HasMaxLength(64);
+            entity.Property(e => e.AcademicYear).HasMaxLength(64);
+            entity.Property(e => e.Status).HasMaxLength(32).HasDefaultValue("active");
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
+
+            entity.HasIndex(e => e.TeacherId);
+            entity.HasIndex(e => e.Status);
+
+            entity.HasOne(e => e.Teacher)
+                .WithMany()
+                .HasForeignKey(e => e.TeacherId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Phase 20: Classroom Students
+        modelBuilder.Entity<ClassroomStudent>(entity =>
+        {
+            entity.ToTable("classroom_students");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.ClassroomId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.StudentId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.EnrolledAt).IsRequired();
+
+            entity.HasIndex(e => new { e.ClassroomId, e.StudentId }).IsUnique();
+            entity.HasIndex(e => e.StudentId);
+
+            entity.HasOne(e => e.Classroom)
+                .WithMany(c => c.Students)
+                .HasForeignKey(e => e.ClassroomId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Student)
+                .WithMany()
+                .HasForeignKey(e => e.StudentId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Phase 20: Assignments
+        modelBuilder.Entity<Assignment>(entity =>
+        {
+            entity.ToTable("assignments");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.ClassroomId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.Title).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.Description).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.Instructions).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.DueDate).IsRequired();
+            entity.Property(e => e.MaxScore).HasDefaultValue(10.0);
+            entity.Property(e => e.Status).HasMaxLength(32).HasDefaultValue("active");
+            entity.Property(e => e.CreatedByTeacherId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
+
+            entity.HasIndex(e => e.ClassroomId);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.DueDate);
+
+            entity.HasOne(e => e.Classroom)
+                .WithMany(c => c.Assignments)
+                .HasForeignKey(e => e.ClassroomId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.CreatedByTeacher)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedByTeacherId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Phase 20: Assignment Submissions
+        modelBuilder.Entity<AssignmentSubmission>(entity =>
+        {
+            entity.ToTable("assignment_submissions");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.AssignmentId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.StudentId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.Content).HasColumnType("nvarchar(max)").IsRequired();
+            entity.Property(e => e.SubmittedAt).IsRequired();
+            entity.Property(e => e.Status).HasMaxLength(32).HasDefaultValue("submitted");
+            entity.Property(e => e.Score);
+            entity.Property(e => e.Feedback).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.GradedAt);
+            entity.Property(e => e.GradedByTeacherId).HasMaxLength(64);
+
+            entity.HasIndex(e => new { e.AssignmentId, e.StudentId }).IsUnique();
+            entity.HasIndex(e => e.StudentId);
+            entity.HasIndex(e => e.Status);
+
+            entity.HasOne(e => e.Assignment)
+                .WithMany(a => a.Submissions)
+                .HasForeignKey(e => e.AssignmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Student)
+                .WithMany()
+                .HasForeignKey(e => e.StudentId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
     }

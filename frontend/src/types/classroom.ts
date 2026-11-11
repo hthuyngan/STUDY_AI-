@@ -124,3 +124,69 @@ export interface ClassActivityItem {
   timestamp: string
   actor: string
 }
+
+// ==========================================
+// Phase 20: Real Backend DTOs
+// ==========================================
+export interface ClassroomDto {
+  id: string
+  name: string
+  code?: string
+  grade?: string
+  subject?: string
+  teacherId: string
+  teacherName?: string
+  description?: string
+  room?: string
+  academicYear?: string
+  status: string
+  studentCount: number
+  assignmentCount: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ClassroomStudentDto {
+  id: string
+  classroomId: string
+  studentId: string
+  studentName?: string
+  studentEmail?: string
+  studentGrade?: string
+  enrolledAt: string
+}
+
+export interface AssignmentDto {
+  id: string
+  classroomId: string
+  classroomName?: string
+  title: string
+  description?: string
+  instructions?: string
+  dueDate: string
+  maxScore: number
+  status: string
+  createdByTeacherId: string
+  createdByTeacherName?: string
+  submissionsCount: number
+  totalStudents: number
+  createdAt: string
+  updatedAt: string
+  mySubmission?: SubmissionDto
+}
+
+export interface SubmissionDto {
+  id: string
+  assignmentId: string
+  assignmentTitle?: string
+  studentId: string
+  studentName?: string
+  studentEmail?: string
+  content: string
+  submittedAt: string
+  status: string
+  score?: number | null
+  feedback?: string | null
+  gradedAt?: string | null
+  gradedByTeacherId?: string | null
+}

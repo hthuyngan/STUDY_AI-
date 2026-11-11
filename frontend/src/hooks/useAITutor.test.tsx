@@ -1,4 +1,4 @@
-import { renderHook, act } from '@testing-library/react'
+import { renderHook, act, waitFor } from '@testing-library/react'
 import { describe, it, expect } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import type { ReactNode } from 'react'
@@ -12,21 +12,18 @@ describe('useAITutor Hook', () => {
   it('initializes with mock conversations and first active conversation', async () => {
     const { result } = renderHook(() => useAITutor(), { wrapper })
 
-    // Wait for initial conversation fetch to resolve
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 120))
-    })
-
-    expect(result.current.conversations.length).toBeGreaterThan(0)
-    expect(result.current.activeConversation).not.toBeNull()
+    await waitFor(() => {
+      expect(result.current.conversations.length).toBeGreaterThan(0)
+      expect(result.current.activeConversation).not.toBeNull()
+    }, { timeout: 3000 })
   })
 
   it('allows starting a new conversation', async () => {
     const { result } = renderHook(() => useAITutor(), { wrapper })
 
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 120))
-    })
+    await waitFor(() => {
+      expect(result.current.conversations.length).toBeGreaterThan(0)
+    }, { timeout: 3000 })
 
     const initialCount = result.current.conversations.length
 
