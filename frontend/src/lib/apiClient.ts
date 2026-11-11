@@ -6,7 +6,7 @@
  */
 
 import { clearAuthSession, getAccessToken, setAccessToken } from '@/auth/authSession'
-import { getApiBaseUrl } from '@/config/learner'
+import { getApiBaseUrl, isRemoteApiConfigured } from '@/config/learner'
 
 export type ApiErrorCode =
   | 'UNAUTHORIZED'
@@ -74,7 +74,7 @@ let activeRefreshPromise: Promise<string | null> | null = null
 
 async function performTokenRefresh(): Promise<string | null> {
   const baseUrl = getApiBaseUrl()
-  if (!baseUrl) return null
+  if (!baseUrl && !isRemoteApiConfigured()) return null
 
   try {
     const res = await fetch(`${baseUrl}/api/v1/auth/refresh`, {
@@ -125,7 +125,7 @@ export async function requestJson<T>(
   options: RequestOptions = {}
 ): Promise<T> {
   const baseUrl = getApiBaseUrl()
-  if (!baseUrl) {
+  if (!baseUrl && !isRemoteApiConfigured()) {
     throw new ApiError(0, 'Remote API base URL is not configured', 'NETWORK_OFFLINE')
   }
 

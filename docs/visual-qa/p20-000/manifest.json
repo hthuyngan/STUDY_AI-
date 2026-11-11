@@ -1,0 +1,61 @@
+{
+  "timestamp": "2026-11-11T07:04:27.400Z",
+  "task": "P20-000",
+  "totalScenarios": 5,
+  "passed": 5,
+  "failed": 0,
+  "totalDurationMs": 11530,
+  "scenarios": [
+    {
+      "id": 1,
+      "name": "Unauthenticated Guest State & Clean Header",
+      "status": "PASS",
+      "durationMs": 1790,
+      "screenshots": [
+        "p20_000_01_guest_navigation.png"
+      ],
+      "notes": "Topbar cleanly renders \"Đăng nhập\" and \"Đăng ký\", hides account dropdown and management shortcuts for unauthenticated guests."
+    },
+    {
+      "id": 2,
+      "name": "Learner Login & Unified Account Dropdown",
+      "status": "PASS",
+      "durationMs": 1390,
+      "screenshots": [
+        "p20_000_02_learner_authenticated_dropdown.png"
+      ],
+      "notes": "Learner logs in successfully, Topbar hides guest buttons and opens single account menu with role badge \"Học viên\" and dashboard link."
+    },
+    {
+      "id": 3,
+      "name": "Real Authenticated API Request & AI Tutor",
+      "status": "PASS",
+      "durationMs": 908,
+      "screenshots": [
+        "p20_000_03_authenticated_api_aitutor.png"
+      ],
+      "notes": "Real backend API answered authenticated requests successfully. Provider status: \"Chế độ mô phỏng\". No mock fallback."
+    },
+    {
+      "id": 4,
+      "name": "Page Reload & Session Restore",
+      "status": "PASS",
+      "durationMs": 916,
+      "screenshots": [
+        "p20_000_04_session_restored_after_reload.png"
+      ],
+      "notes": "Session cleanly restored after page reload via rotating refresh token without state loss or flickering."
+    },
+    {
+      "id": 5,
+      "name": "Logout & Admin Workspace Navigation",
+      "status": "PASS",
+      "durationMs": 2369,
+      "screenshots": [
+        "p20_000_05_admin_authenticated_workspace.png",
+        "p20_000_06_admin_dropdown_in_appshell.png"
+      ],
+      "notes": "Logout clears session; admin logs in, navigates to /admin, and views role-specific \"Trang quản trị\" link inside single Topbar menu when browsing dashboard."
+    }
+  ]
+}

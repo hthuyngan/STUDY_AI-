@@ -17,7 +17,6 @@ import {
 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/auth/useAuth'
-import { isPrototypeMode } from '@/config/prototype'
 import { Avatar } from '@/components/ui/Avatar'
 import { IconButton } from '@/components/ui/IconButton'
 
@@ -110,7 +109,7 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
 
 export function Topbar({ onOpenMobileMenu }: TopbarProps) {
   const navigate = useNavigate()
-  const { user, isAuthenticated, logout } = useAuth()
+  const { user, isAuthenticated, state, logout } = useAuth()
   const searchInputRef = useRef<HTMLInputElement>(null)
   const searchDropdownRef = useRef<HTMLDivElement>(null)
   const notificationsRef = useRef<HTMLDivElement>(null)
@@ -428,43 +427,10 @@ export function Topbar({ onOpenMobileMenu }: TopbarProps) {
           )}
         </div>
 
-        {/* Quick Admin Access Button & Workspace Switcher */}
-        {(() => {
-          const canShowAdminShortcut = isPrototypeMode() || user?.role === 'admin'
-          if (!canShowAdminShortcut) return null
-          return (
-            <div className="topbar-admin-shortcut-group">
-              <Link
-                to="/admin"
-                className="topbar-admin-quick-btn"
-                aria-label="Trang quản trị"
-                title="Trang quản trị hệ thống"
-              >
-                <Shield size={14} aria-hidden="true" />
-                <span className="topbar-admin-quick-label">Trang quản trị</span>
-              </Link>
-              {isPrototypeMode() && (
-                <select
-                  className="topbar-workspace-mini-select desktop-only"
-                  defaultValue="/admin"
-                  onChange={(e) => {
-                    navigate(e.target.value)
-                  }}
-                  aria-label="Chuyển nhanh workspace"
-                  title="Chuyển nhanh sang workspace nhân sự"
-                >
-                  <option value="/admin">Quản trị</option>
-                  <option value="/teacher">Giáo viên</option>
-                  <option value="/content">Nội dung</option>
-                  <option value="/support">Hỗ trợ</option>
-                </select>
-              )}
-            </div>
-          )
-        })()}
-
-        {/* User state: Authenticated vs Guest */}
-        {isAuthenticated && user ? (
+        {/* User Authentication & Role-Aware Navigation */}
+        {state === 'initializing' ? (
+          <div className="topbar-auth-initializing" aria-hidden="true" style={{ width: 80, height: 36 }} />
+        ) : isAuthenticated && user ? (
           <div className="topbar-user-wrap" ref={userMenuRef}>
             <button
               type="button"
@@ -493,12 +459,21 @@ export function Topbar({ onOpenMobileMenu }: TopbarProps) {
                   <div className="topbar-user-dropdown-sub">
                     {user.email || user.grade || 'Học viên'}
                   </div>
-                  {user.role === 'admin' && (
-                    <span className="topbar-user-role-badge">Quản trị viên</span>
-                  )}
+                  <span className="topbar-user-role-badge">
+                    {user.role === 'admin'
+                      ? 'Quản trị viên'
+                      : user.role === 'teacher'
+                        ? 'Giáo viên'
+                        : user.role === 'content'
+                          ? 'Biên tập nội dung'
+                          : user.role === 'support'
+                            ? 'Hỗ trợ viên'
+                            : 'Học viên'}
+                  </span>
                 </div>
 
-                {(isPrototypeMode() || user.role === 'admin') && (
+                {/* Role-Specific Workspaces & Dashboards */}
+                {user.role === 'admin' && (
                   <Link
                     to="/admin"
                     className="topbar-user-dropdown-item topbar-admin-shortcut"
@@ -510,14 +485,62 @@ export function Topbar({ onOpenMobileMenu }: TopbarProps) {
                   </Link>
                 )}
 
+                {user.role === 'teacher' && (
+                  <Link
+                    to="/teacher"
+                    className="topbar-user-dropdown-item"
+                    role="menuitem"
+                    onClick={() => setIsUserMenuOpen(false)}
+                  >
+                    <Shield size={15} />
+                    <span>Không gian giáo viên</span>
+                  </Link>
+                )}
+
+                {user.role === 'content' && (
+                  <Link
+                    to="/content"
+                    className="topbar-user-dropdown-item"
+                    role="menuitem"
+                    onClick={() => setIsUserMenuOpen(false)}
+                  >
+                    <Shield size={15} />
+                    <span>Quản lý nội dung</span>
+                  </Link>
+                )}
+
+                {user.role === 'support' && (
+                  <Link
+                    to="/support"
+                    className="topbar-user-dropdown-item"
+                    role="menuitem"
+                    onClick={() => setIsUserMenuOpen(false)}
+                  >
+                    <Shield size={15} />
+                    <span>Hỗ trợ khách hàng</span>
+                  </Link>
+                )}
+
+                {user.role === 'learner' && (
+                  <Link
+                    to="/dashboard"
+                    className="topbar-user-dropdown-item"
+                    role="menuitem"
+                    onClick={() => setIsUserMenuOpen(false)}
+                  >
+                    <UserIcon size={15} />
+                    <span>Bảng điều khiển học tập</span>
+                  </Link>
+                )}
+
                 <Link
-                  to="/settings"
+                  to="/profile"
                   className="topbar-user-dropdown-item"
                   role="menuitem"
                   onClick={() => setIsUserMenuOpen(false)}
                 >
                   <UserIcon size={15} />
-                  <span>Tài khoản</span>
+                  <span>Hồ sơ cá nhân</span>
                 </Link>
 
                 <Link
@@ -539,7 +562,7 @@ export function Topbar({ onOpenMobileMenu }: TopbarProps) {
                   onClick={async () => {
                     setIsUserMenuOpen(false)
                     await logout()
-                    navigate('/dashboard')
+                    navigate('/login')
                   }}
                 >
                   <LogOut size={15} />

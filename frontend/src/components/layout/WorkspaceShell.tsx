@@ -16,6 +16,7 @@ import {
 import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom'
 import { useAuth } from '@/auth/useAuth'
 import type { UserRole } from '@/auth/auth.types'
+import { isPrototypeMode } from '@/config/prototype'
 import {
   getWorkspaceConfig,
   ROLE_LABELS,
@@ -279,41 +280,43 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
               <span>Giao diện học viên</span>
             </Link>
 
-            {/* Quick Workspace Switcher for Prototype Mode */}
-            <div className="workspace-switcher-wrapper">
-              <select
-                className="workspace-switcher-select"
-                value={role}
-                onChange={(e) => {
-                  const target = e.target.value
-                  switch (target) {
-                    case 'learner':
-                      navigate('/dashboard')
-                      break
-                    case 'admin':
-                      navigate('/admin')
-                      break
-                    case 'teacher':
-                      navigate('/teacher')
-                      break
-                    case 'content':
-                      navigate('/content')
-                      break
-                    case 'support':
-                      navigate('/support')
-                      break
-                  }
-                }}
-                aria-label="Chuyển không gian làm việc"
-                title="Chuyển đổi giữa các workspace"
-              >
-                <option value="admin">Quản trị (Admin)</option>
-                <option value="teacher">Giáo viên (Teacher)</option>
-                <option value="content">Nội dung (Content)</option>
-                <option value="support">Hỗ trợ (Support)</option>
-                <option value="learner">Học viên (Learner)</option>
-              </select>
-            </div>
+            {/* Quick Workspace Switcher for Admin or Prototype Mode */}
+            {(isPrototypeMode() || user?.role === 'admin' || role === 'admin') && (
+              <div className="workspace-switcher-wrapper">
+                <select
+                  className="workspace-switcher-select"
+                  value={role}
+                  onChange={(e) => {
+                    const target = e.target.value
+                    switch (target) {
+                      case 'learner':
+                        navigate('/dashboard')
+                        break
+                      case 'admin':
+                        navigate('/admin')
+                        break
+                      case 'teacher':
+                        navigate('/teacher')
+                        break
+                      case 'content':
+                        navigate('/content')
+                        break
+                      case 'support':
+                        navigate('/support')
+                        break
+                    }
+                  }}
+                  aria-label="Chuyển không gian làm việc"
+                  title="Chuyển đổi giữa các workspace"
+                >
+                  <option value="admin">Quản trị (Admin)</option>
+                  <option value="teacher">Giáo viên (Teacher)</option>
+                  <option value="content">Nội dung (Content)</option>
+                  <option value="support">Hỗ trợ (Support)</option>
+                  <option value="learner">Học viên (Learner)</option>
+                </select>
+              </div>
+            )}
 
             {/* Role Badge */}
             <div className={`staff-role-pill role-${user?.role || role}`}>
