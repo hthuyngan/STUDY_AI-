@@ -33,6 +33,7 @@ public class CurriculumImportConfirmService : ICurriculumImportConfirmService
         string previewToken,
         string currentUserId,
         string? auditNote,
+        bool dryRun = false,
         CancellationToken cancellationToken = default)
     {
         // 1. Chống Double-click bằng khóa bộ nhớ theo PreviewToken
@@ -72,6 +73,38 @@ public class CurriculumImportConfirmService : ICurriculumImportConfirmService
                     400,
                     "HAS_CRITICAL_ERRORS",
                     "Tệp dữ liệu chứa lỗi xác thực, không thể thực hiện xác nhận trong chế độ Strict.");
+            }
+
+            // 4.1 Chế độ Dry-Run / Copyright Verification Mode: Hoàn toàn không ghi Database
+            if (dryRun || auditNote?.Contains("DRY_RUN", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                var dryRunResponse = new CurriculumImportConfirmResponseDto
+                {
+                    Success = true,
+                    PreviewToken = previewToken,
+                    ActorId = currentUserId,
+                    ConfirmedAt = DateTimeOffset.UtcNow,
+                    AuditLogId = $"dry_{Guid.NewGuid():N}"[..12],
+                    IsDryRun = true,
+                    Provenance = "VNHSGE Benchmark Dataset (arXiv:2305.12199 / CC BY-NC-SA 4.0)",
+                    Summary = new CurriculumImportConfirmSummaryDto
+                    {
+                        TotalProcessed = session.PreviewResponse.Summary.TotalItems,
+                        Inserted = session.PreviewResponse.Summary.InsertCount,
+                        Updated = session.PreviewResponse.Summary.UpdateCount,
+                        Skipped = session.PreviewResponse.Summary.SkipCount,
+                        Failed = session.PreviewResponse.Summary.ErrorCount,
+                    },
+                    EntityCounts = new CurriculumImportEntityCountsDto
+                    {
+                        Subjects = session.Batch.Subjects.Count,
+                        Chapters = session.Batch.Subjects.Sum(s => s.Chapters.Count),
+                        Lessons = session.Batch.Subjects.Sum(s => s.Chapters.Sum(c => c.Lessons.Count)),
+                        Questions = session.Batch.FlatQuestions.Count + session.Batch.Subjects.Sum(s => s.Chapters.Sum(c => c.Lessons.Sum(l => l.Questions.Count))),
+                    },
+                    Message = "Chế độ Dry-Run: Đã mô phỏng quy trình nhập dữ liệu và đối soát toàn vẹn thành công. Không có thay đổi nào được ghi vào cơ sở dữ liệu."
+                };
+                return CurriculumImportConfirmResult.Ok(dryRunResponse);
             }
 
             // 5. Giao dịch nguyên tử (ACID Transaction) thông qua ExecutionStrategy

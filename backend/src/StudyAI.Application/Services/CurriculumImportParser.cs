@@ -59,31 +59,11 @@ public class CurriculumImportParser : ICurriculumImportParser
         var root = doc.RootElement;
         int totalEntities = 0;
 
-        // Case 1: Tree with single subject
-        if (root.TryGetProperty("subject", out var subjectElem))
-        {
-            var subject = ParseSubjectElement(subjectElem, 1, ref totalEntities);
-            batch.Subjects.Add(subject);
-        }
-        // Case 2: Tree with subjects array
-        else if (root.TryGetProperty("subjects", out var subjectsElem) && subjectsElem.ValueKind == JsonValueKind.Array)
+        // Case 1: Direct JSON array (VNHSGE benchmark format or generic question array)
+        if (root.ValueKind == JsonValueKind.Array)
         {
             int row = 1;
-            foreach (var s in subjectsElem.EnumerateArray())
-            {
-                batch.Subjects.Add(ParseSubjectElement(s, row++, ref totalEntities));
-            }
-        }
-
-        // Case 3: Flat question bank format
-        if (root.TryGetProperty("questions", out var questionsElem) && questionsElem.ValueKind == JsonValueKind.Array)
-        {
-            string defaultSubject = root.TryGetProperty("subjectCode", out var sc) ? sc.GetString() ?? "" : "";
-            string defaultChapter = root.TryGetProperty("chapterCode", out var cc) ? cc.GetString() ?? "" : "";
-            string defaultLesson = root.TryGetProperty("lessonCode", out var lc) ? lc.GetString() ?? "" : "";
-
-            int row = 1;
-            foreach (var q in questionsElem.EnumerateArray())
+            foreach (var item in root.EnumerateArray())
             {
                 totalEntities++;
                 if (totalEntities > MaxAllowedRows)
@@ -91,8 +71,103 @@ public class CurriculumImportParser : ICurriculumImportParser
                     throw new InvalidOperationException($"Tệp JSON chứa vượt quá giới hạn tối đa cho phép ({MaxAllowedRows} mục dữ liệu). Vui lòng chia nhỏ tệp.");
                 }
 
-                var qDto = ParseQuestionElement(q, row++, defaultSubject, defaultChapter, defaultLesson);
-                batch.FlatQuestions.Add(qDto);
+                if (IsVnhsgeFormat(item))
+                {
+                    var qDto = ParseVnhsgeQuestionElement(item, row++, fileName);
+                    batch.FlatQuestions.Add(qDto);
+
+                    if (!batch.Subjects.Any(s => string.Equals(s.Code, qDto.SubjectCode, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        batch.Subjects.Add(new ImportSubjectItemDto
+                        {
+                            Code = qDto.SubjectCode,
+                            Name = GetSubjectName(qDto.SubjectCode),
+                            Grade = "12",
+                            Description = $"Môn học THPT ({qDto.SubjectCode}) theo chuẩn ngân hàng câu hỏi VNHSGE",
+                            OrderIndex = batch.Subjects.Count + 1
+                        });
+                    }
+                }
+                else
+                {
+                    var qDto = ParseQuestionElement(item, row++, "", "", "");
+                    batch.FlatQuestions.Add(qDto);
+                }
+            }
+        }
+        else if (root.ValueKind == JsonValueKind.Object)
+        {
+            // Case 2: Tree with single subject
+            if (root.TryGetProperty("subject", out var subjectElem))
+            {
+                var subject = ParseSubjectElement(subjectElem, 1, ref totalEntities);
+                batch.Subjects.Add(subject);
+            }
+            // Case 3: Tree with subjects array
+            else if (root.TryGetProperty("subjects", out var subjectsElem) && subjectsElem.ValueKind == JsonValueKind.Array)
+            {
+                int row = 1;
+                foreach (var s in subjectsElem.EnumerateArray())
+                {
+                    batch.Subjects.Add(ParseSubjectElement(s, row++, ref totalEntities));
+                }
+            }
+
+            // Case 4: Flat question bank format
+            if (root.TryGetProperty("questions", out var questionsElem) && questionsElem.ValueKind == JsonValueKind.Array)
+            {
+                string defaultSubject = root.TryGetProperty("subjectCode", out var sc) ? sc.GetString() ?? "" : "";
+                string defaultChapter = root.TryGetProperty("chapterCode", out var cc) ? cc.GetString() ?? "" : "";
+                string defaultLesson = root.TryGetProperty("lessonCode", out var lc) ? lc.GetString() ?? "" : "";
+
+                int row = 1;
+                foreach (var q in questionsElem.EnumerateArray())
+                {
+                    totalEntities++;
+                    if (totalEntities > MaxAllowedRows)
+                    {
+                        throw new InvalidOperationException($"Tệp JSON chứa vượt quá giới hạn tối đa cho phép ({MaxAllowedRows} mục dữ liệu). Vui lòng chia nhỏ tệp.");
+                    }
+
+                    var qDto = ParseQuestionElement(q, row++, defaultSubject, defaultChapter, defaultLesson);
+                    batch.FlatQuestions.Add(qDto);
+                }
+            }
+            // Case 5: Root wrapper containing "vnhsge" or "data" array
+            else if ((root.TryGetProperty("vnhsge", out var vnhsgeElem) || root.TryGetProperty("data", out vnhsgeElem)) && vnhsgeElem.ValueKind == JsonValueKind.Array)
+            {
+                int row = 1;
+                foreach (var item in vnhsgeElem.EnumerateArray())
+                {
+                    totalEntities++;
+                    if (totalEntities > MaxAllowedRows)
+                    {
+                        throw new InvalidOperationException($"Tệp JSON chứa vượt quá giới hạn tối đa cho phép ({MaxAllowedRows} mục dữ liệu). Vui lòng chia nhỏ tệp.");
+                    }
+
+                    if (IsVnhsgeFormat(item))
+                    {
+                        var qDto = ParseVnhsgeQuestionElement(item, row++, fileName);
+                        batch.FlatQuestions.Add(qDto);
+
+                        if (!batch.Subjects.Any(s => string.Equals(s.Code, qDto.SubjectCode, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            batch.Subjects.Add(new ImportSubjectItemDto
+                            {
+                                Code = qDto.SubjectCode,
+                                Name = GetSubjectName(qDto.SubjectCode),
+                                Grade = "12",
+                                Description = $"Môn học THPT ({qDto.SubjectCode}) theo chuẩn ngân hàng câu hỏi VNHSGE",
+                                OrderIndex = batch.Subjects.Count + 1
+                            });
+                        }
+                    }
+                    else
+                    {
+                        var qDto = ParseQuestionElement(item, row++, "", "", "");
+                        batch.FlatQuestions.Add(qDto);
+                    }
+                }
             }
         }
 
@@ -103,7 +178,7 @@ public class CurriculumImportParser : ICurriculumImportParser
 
         if (batch.TotalEntitiesCount == 0)
         {
-            throw new InvalidOperationException("Tệp JSON không chứa dữ liệu cấu trúc hợp lệ (yêu cầu trường 'subject', 'subjects' hoặc 'questions').");
+            throw new InvalidOperationException("Tệp JSON không chứa dữ liệu cấu trúc hợp lệ (yêu cầu trường 'subject', 'subjects', 'questions' hoặc mảng câu hỏi VNHSGE).");
         }
 
         return batch;
@@ -853,6 +928,203 @@ public class CurriculumImportParser : ICurriculumImportParser
         qDto.Fingerprint = GenerateQuestionFingerprint(qDto.LessonCode ?? qDto.SubjectCode, qDto.Prompt);
         return qDto;
     }
+
+    #region VNHSGE Benchmark Dataset Parser Helpers
+
+    public static bool IsVnhsgeFormat(JsonElement elem)
+    {
+        if (elem.ValueKind != JsonValueKind.Object) return false;
+        bool hasId = elem.TryGetProperty("ID", out _) || elem.TryGetProperty("id", out _);
+        bool hasQuestion = elem.TryGetProperty("Question", out _) || elem.TryGetProperty("question", out _);
+        bool hasChoice = elem.TryGetProperty("Choice", out _) || elem.TryGetProperty("choice", out _);
+        bool hasImage = elem.TryGetProperty("Image_Question", out _) || elem.TryGetProperty("Image_Answer", out _);
+
+        return (hasId || hasQuestion) && (hasChoice || hasImage);
+    }
+
+    public static string InferSubjectCode(string fileName, string? questionId = null)
+    {
+        var fn = (fileName ?? "").ToLowerInvariant();
+        if (fn.Contains("math") || fn.Contains("toan")) return "MATH12";
+        if (fn.Contains("phys") || fn.Contains("vat_ly") || fn.Contains("vatly") || fn.Contains("vat-ly")) return "PHYS12";
+        if (fn.Contains("chem") || fn.Contains("hoa_hoc") || fn.Contains("hoahoc") || fn.Contains("hoa-hoc")) return "CHEM12";
+        if (fn.Contains("bio") || fn.Contains("sinh_hoc") || fn.Contains("sinhhoc") || fn.Contains("sinh-hoc")) return "BIO12";
+        if (fn.Contains("lit") || fn.Contains("ngu_van") || fn.Contains("nguvan") || fn.Contains("ngu-van") || fn.Contains("van")) return "LIT12";
+        if (fn.Contains("eng") || fn.Contains("tieng_anh") || fn.Contains("tienganh") || fn.Contains("tieng-anh")) return "ENG12";
+        if (fn.Contains("hist") || fn.Contains("lich_su") || fn.Contains("lichsu") || fn.Contains("lich-su")) return "HIST12";
+        if (fn.Contains("geo") || fn.Contains("dia_ly") || fn.Contains("dialy") || fn.Contains("dia-ly")) return "GEO12";
+        if (fn.Contains("gdcd") || fn.Contains("civic") || fn.Contains("giao_duc_cong_dan")) return "GDCD12";
+
+        return "MATH12";
+    }
+
+    public static string GetSubjectName(string subjectCode) => subjectCode.ToUpperInvariant() switch
+    {
+        "MATH12" => "Toán học 12",
+        "PHYS12" => "Vật lý 12",
+        "CHEM12" => "Hóa học 12",
+        "BIO12" => "Sinh học 12",
+        "LIT12" => "Ngữ văn 12",
+        "ENG12" => "Tiếng Anh 12",
+        "HIST12" => "Lịch sử 12",
+        "GEO12" => "Địa lý 12",
+        "GDCD12" => "Giáo dục công dân 12",
+        _ => subjectCode
+    };
+
+    public static (string Prompt, List<string> Options) ExtractOptionsFromVnhsgeQuestion(string rawText)
+    {
+        if (string.IsNullOrWhiteSpace(rawText))
+        {
+            return (string.Empty, new List<string>());
+        }
+
+        var text = rawText.Trim();
+
+        // 1. Look for markers with newline or multi-space first (most common and reliable in VNHSGE)
+        // Matches \nA. or \nA) or at string start A. or A)
+        var markerRegex = new Regex(@"(?:^|\r?\n|[ \t]{2,}|\t)(?<letter>[A-D])[\.\)][ \t]*", RegexOptions.Compiled);
+        var matches = markerRegex.Matches(text);
+
+        var sequence = new List<(string Letter, int StartIndex, int ContentIndex)>();
+        char expected = 'A';
+        foreach (Match m in matches)
+        {
+            var letterChar = m.Groups["letter"].Value[0];
+            if (letterChar == expected)
+            {
+                sequence.Add((m.Groups["letter"].Value, m.Index, m.Index + m.Length));
+                expected++;
+            }
+        }
+
+        // 2. If we couldn't find at least A, B, C with strict prefix, try looser search
+        if (sequence.Count < 3)
+        {
+            var looseRegex = new Regex(@"(?:^|[ \t\r\n])(?<letter>[A-D])[\.\)][ \t]*", RegexOptions.Compiled);
+            var looseMatches = looseRegex.Matches(text);
+            sequence.Clear();
+            expected = 'A';
+            foreach (Match m in looseMatches)
+            {
+                var letterChar = m.Groups["letter"].Value[0];
+                if (letterChar == expected)
+                {
+                    sequence.Add((m.Groups["letter"].Value, m.Index, m.Index + m.Length));
+                    expected++;
+                }
+            }
+        }
+
+        // 3. If we have at least 2 options (A and B, typically 4: A, B, C, D)
+        if (sequence.Count >= 2)
+        {
+            var prompt = text.Substring(0, sequence[0].StartIndex).Trim();
+            var options = new List<string>();
+
+            for (int i = 0; i < sequence.Count; i++)
+            {
+                int start = sequence[i].ContentIndex;
+                int end = (i + 1 < sequence.Count) ? sequence[i + 1].StartIndex : text.Length;
+                if (end > start)
+                {
+                    var optText = text.Substring(start, end - start).Trim();
+                    options.Add(optText);
+                }
+                else
+                {
+                    options.Add(string.Empty);
+                }
+            }
+
+            return (prompt, options);
+        }
+
+        // If no option sequence found (e.g. Literature essay or short answer)
+        return (text, new List<string>());
+    }
+
+    private static ImportQuestionItemDto ParseVnhsgeQuestionElement(JsonElement q, int row, string fileName)
+    {
+        string id = "";
+        if (q.TryGetProperty("ID", out var idProp) || q.TryGetProperty("id", out idProp))
+        {
+            id = idProp.ValueKind == JsonValueKind.Number ? idProp.GetInt64().ToString() : (idProp.GetString() ?? "");
+        }
+
+        string rawQuestion = "";
+        if (q.TryGetProperty("Question", out var qProp) || q.TryGetProperty("question", out qProp))
+        {
+            rawQuestion = qProp.GetString() ?? "";
+        }
+
+        string choice = "";
+        if (q.TryGetProperty("Choice", out var cProp) || q.TryGetProperty("choice", out cProp))
+        {
+            choice = cProp.GetString()?.Trim().ToUpperInvariant() ?? "";
+        }
+
+        string explanation = "";
+        if (q.TryGetProperty("Explanation", out var expProp) || q.TryGetProperty("explanation", out expProp))
+        {
+            explanation = expProp.GetString() ?? "";
+        }
+
+        string imgQ = "";
+        if (q.TryGetProperty("Image_Question", out var iqProp) || q.TryGetProperty("image_question", out iqProp))
+        {
+            imgQ = iqProp.GetString()?.Trim() ?? "";
+        }
+
+        string imgA = "";
+        if (q.TryGetProperty("Image_Answer", out var iaProp) || q.TryGetProperty("image_answer", out iaProp))
+        {
+            imgA = iaProp.GetString()?.Trim() ?? "";
+        }
+
+        var (prompt, options) = ExtractOptionsFromVnhsgeQuestion(rawQuestion);
+
+        if (!string.IsNullOrWhiteSpace(imgQ))
+        {
+            prompt = string.IsNullOrWhiteSpace(prompt)
+                ? $"[Hình ảnh đề bài: {imgQ}]"
+                : $"{prompt}\n\n[Hình ảnh đề bài: {imgQ}]";
+        }
+
+        if (!string.IsNullOrWhiteSpace(imgA))
+        {
+            explanation = string.IsNullOrWhiteSpace(explanation)
+                ? $"[Hình ảnh lời giải: {imgA}]"
+                : $"{explanation}\n\n[Hình ảnh lời giải: {imgA}]";
+        }
+
+        var subjectCode = InferSubjectCode(fileName, id);
+        var qType = options.Count >= 2 ? "multiple-choice" : "essay";
+
+        var qDto = new ImportQuestionItemDto
+        {
+            RowNumber = row,
+            Code = !string.IsNullOrWhiteSpace(id) ? $"vnhsge_{subjectCode.ToLowerInvariant()}_{id}" : null,
+            SubjectCode = subjectCode,
+            ChapterCode = null,
+            LessonCode = null,
+            Prompt = prompt,
+            Options = options,
+            CorrectAnswer = choice,
+            Explanation = !string.IsNullOrWhiteSpace(explanation) ? explanation : null,
+            Topic = $"VNHSGE {subjectCode}",
+            Difficulty = "medium",
+            Type = qType,
+            Status = "draft",
+            SourceCitation = $"VNHSGE (arXiv:2305.12199) - ID: {id}",
+            LicenseType = "CC-BY-NC-SA-4.0"
+        };
+
+        qDto.Fingerprint = GenerateQuestionFingerprint(qDto.SubjectCode, qDto.Prompt);
+        return qDto;
+    }
+
+    #endregion
 
     private static List<List<string>> ParseCsvLines(string text)
     {

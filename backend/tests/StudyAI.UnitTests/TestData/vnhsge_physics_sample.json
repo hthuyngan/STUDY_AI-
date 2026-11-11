@@ -1,0 +1,10 @@
+[
+  {
+    "ID": "201",
+    "Image_Question": "images/phys_circuit.png",
+    "Question": "Một con lắc lò xo gồm vật nặng khối lượng $m = 100\\text{ g}$ và lò xo có độ cứng $k = 40\\text{ N/m}$. Chu kì dao động riêng của con lắc là:\nA. $0{,}314\\text{ s}$\nB. $0{,}628\\text{ s}$\nC. $0{,}157\\text{ s}$\nD. $1{,}256\\text{ s}$",
+    "Choice": "A",
+    "Image_Answer": "",
+    "Explanation": "Chu kì dao động riêng: $T = 2\\pi \\sqrt{\\frac{m}{k}} = 2\\pi \\sqrt{\\frac{0{,}1}{40}} \\approx 0{,}314\\text{ s}$."
+  }
+]

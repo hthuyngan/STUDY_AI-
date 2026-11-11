@@ -38,5 +38,6 @@ public interface ICurriculumImportConfirmService
         string previewToken,
         string currentUserId,
         string? auditNote,
+        bool dryRun = false,
         CancellationToken cancellationToken = default);
 }

@@ -45,6 +45,7 @@ export const ContentImportPage: React.FC = () => {
 
   // Confirm states
   const [auditNote, setAuditNote] = useState('')
+  const [isDryRun, setIsDryRun] = useState(false)
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false)
   const [isConfirming, setIsConfirming] = useState(false)
   const [confirmError, setConfirmError] = useState<string | null>(null)
@@ -164,10 +165,16 @@ export const ContentImportPage: React.FC = () => {
     setConfirmError(null)
 
     try {
-      const res = await curriculumImportService.confirmImport(
-        previewData.previewToken,
-        auditNote
-      )
+      const res = isDryRun
+        ? await curriculumImportService.confirmImport(
+            previewData.previewToken,
+            auditNote,
+            true
+          )
+        : await curriculumImportService.confirmImport(
+            previewData.previewToken,
+            auditNote
+          )
       setConfirmResult(res)
       setIsConfirmDialogOpen(false)
     } catch (err: unknown) {
@@ -250,21 +257,38 @@ export const ContentImportPage: React.FC = () => {
       </div>
 
       <div className="import-container">
-        {/* SUCCESS STATE */}
+        {/* SUCCESS OR DRY-RUN RESULT STATE */}
         {confirmResult && (
           <div className="import-success-card" data-testid="import-success-card">
             <div className="import-success-icon">
               <CheckCircle2 size={32} />
             </div>
-            <h2 className="import-success-title">Nhập giáo trình thành công!</h2>
+            <h2 className="import-success-title">
+              {confirmResult.isDryRun
+                ? 'Đối soát Dry-Run hoàn thành thành công!'
+                : 'Nhập giáo trình thành công!'}
+            </h2>
             <p className="import-success-desc">
-              Toàn bộ cấu trúc giáo trình đã được nhập an toàn vào hệ thống trong giao dịch ACID
-              duy nhất. Dữ liệu đã sẵn sàng để quản lý và học tập.
+              {confirmResult.isDryRun
+                ? 'Đã đối soát toàn vẹn cấu trúc và mô phỏng quy trình nhập dữ liệu thành công. Không có bất kỳ thay đổi nào được ghi vào cơ sở dữ liệu.'
+                : 'Toàn bộ cấu trúc giáo trình đã được nhập an toàn vào hệ thống trong giao dịch ACID duy nhất. Dữ liệu đã sẵn sàng để quản lý và học tập.'}
             </p>
 
-            <div className="import-success-audit-chip" title="Mã ghi vết kiểm toán hệ thống">
-              <ShieldCheck size={16} />
-              <span>AuditLog ID: <strong>{confirmResult.auditLogId}</strong></span>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <div className="import-success-audit-chip" title="Mã ghi vết kiểm toán hệ thống">
+                <ShieldCheck size={16} />
+                <span>AuditLog ID: <strong>{confirmResult.auditLogId}</strong></span>
+              </div>
+              {confirmResult.isDryRun && (
+                <div className="import-success-audit-chip" style={{ background: '#f0fdf4', borderColor: '#86efac', color: '#166534' }}>
+                  <span>Chế độ: <strong>DRY-RUN (Zero DB Writes)</strong></span>
+                </div>
+              )}
+              {confirmResult.provenance && (
+                <div className="import-success-audit-chip" style={{ background: '#eff6ff', borderColor: '#bfdbfe', color: '#1e40af' }}>
+                  <span>Nguồn: <strong>{confirmResult.provenance}</strong></span>
+                </div>
+              )}
             </div>
 
             {/* Imported entities summary */}
@@ -330,6 +354,17 @@ export const ContentImportPage: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* VNHSGE Academic Attribution & Copyright Notice */}
+        <div style={{ marginBottom: '16px', padding: '14px 18px', background: 'rgba(37, 99, 235, 0.05)', border: '1px solid rgba(37, 99, 235, 0.25)', borderRadius: '10px' }} data-testid="vnhsge-attribution-banner">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, color: 'var(--color-primary, #2563eb)', marginBottom: '4px' }}>
+            <ShieldCheck size={18} />
+            <span>Hỗ trợ bộ dữ liệu chuẩn hóa VNHSGE (arXiv:2305.12199 / CC BY-NC-SA 4.0)</span>
+          </div>
+          <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--color-text-secondary, #475569)', lineHeight: 1.5 }}>
+            Hệ thống hỗ trợ phân tích và trích xuất tự động 9 môn thi THPT (Toán, Vật lý, Hóa học, Sinh học, Ngữ văn, Tiếng Anh, Lịch sử, Địa lý, GDCD), tự động nhận diện câu hỏi trắc nghiệm và tự luận, bảo toàn biểu thức Toán học (KaTeX/LaTeX) và liên kết tệp hình ảnh. Thao tác đối soát được thực hiện an toàn qua chế độ Dry-run bảo đảm tính toàn vẹn dữ liệu.
+          </p>
+        </div>
 
         {/* STEP 1: FILE SELECTION / DROPZONE */}
         {!confirmResult && (
@@ -596,7 +631,7 @@ export const ContentImportPage: React.FC = () => {
               </div>
             )}
 
-            {/* AUDIT NOTE & CONFIRM ACTION */}
+            {/* AUDIT NOTE & DRY-RUN OPTION & CONFIRM ACTION */}
             <div className="import-audit-section">
               <label htmlFor={auditNoteId} className="import-audit-label">
                 Ghi chú kiểm toán hệ thống (Audit Note - Tùy chọn)
@@ -611,6 +646,23 @@ export const ContentImportPage: React.FC = () => {
                 maxLength={500}
                 data-testid="audit-note-input"
               />
+
+              {/* Dry-run simulation mode toggle */}
+              <div style={{ marginTop: '12px', padding: '12px 14px', background: 'var(--color-bg-subtle, #f8fafc)', border: '1px solid var(--color-border, #e2e8f0)', borderRadius: '8px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontWeight: 500, fontSize: '0.9rem' }}>
+                  <input
+                    type="checkbox"
+                    checked={isDryRun}
+                    onChange={(e) => setIsDryRun(e.target.checked)}
+                    data-testid="dry-run-checkbox"
+                    style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                  />
+                  <span>Chế độ kiểm thử an toàn (Dry-Run) — Đối soát toàn vẹn, hoàn toàn không ghi CSDL</span>
+                </label>
+                <p style={{ margin: '4px 0 0 26px', fontSize: '0.8rem', color: 'var(--color-text-secondary, #64748b)' }}>
+                  Khuyến nghị bật khi kiểm thử cấu trúc đề thi VNHSGE hoặc tệp mới trước khi thực hiện ghi dữ liệu.
+                </p>
+              </div>
             </div>
 
             <div className="import-action-bar">
@@ -647,9 +699,13 @@ export const ContentImportPage: React.FC = () => {
       {/* CONFIRMATION MODAL */}
       <ConfirmDialog
         isOpen={isConfirmDialogOpen}
-        title="Xác nhận nhập giáo trình vào CSDL"
-        description={`Bạn chuẩn bị nhập ${previewData?.summary?.totalItems || 0} thực thể (${entityCounts.subjects} môn học, ${entityCounts.chapters} chương, ${entityCounts.lessons} bài học, ${entityCounts.questions} câu hỏi) vào hệ thống. Hành động này sẽ được ghi vết kiểm toán vĩnh viễn.`}
-        confirmText={isConfirming ? 'Đang thực thi...' : 'Xác nhận nhập'}
+        title={isDryRun ? 'Xác nhận đối soát Dry-Run' : 'Xác nhận nhập giáo trình vào CSDL'}
+        description={
+          isDryRun
+            ? `Bạn chuẩn bị thực hiện đối soát Dry-Run cho ${previewData?.summary?.totalItems || 0} thực thể (${entityCounts.subjects} môn học, ${entityCounts.chapters} chương, ${entityCounts.lessons} bài học, ${entityCounts.questions} câu hỏi). Quá trình này sẽ mô phỏng toàn diện và hoàn toàn không ghi dữ liệu vào CSDL.`
+            : `Bạn chuẩn bị nhập ${previewData?.summary?.totalItems || 0} thực thể (${entityCounts.subjects} môn học, ${entityCounts.chapters} chương, ${entityCounts.lessons} bài học, ${entityCounts.questions} câu hỏi) vào hệ thống. Hành động này sẽ được ghi vết kiểm toán vĩnh viễn.`
+        }
+        confirmText={isConfirming ? 'Đang thực thi...' : isDryRun ? 'Xác nhận Dry-Run' : 'Xác nhận nhập'}
         cancelText="Đóng"
         isLoading={isConfirming}
         onConfirm={handleConfirmImport}

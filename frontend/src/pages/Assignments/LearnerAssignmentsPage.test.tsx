@@ -172,4 +172,23 @@ describe('LearnerAssignmentsPage UI Suite', () => {
     expect(screen.getByText('Lời giải rất tốt và chuẩn xác')).toBeInTheDocument()
     expect(screen.getByText(/Bài tập đã được chấm điểm/)).toBeInTheDocument()
   })
+
+  it('renders actionable error banner and does NOT show mock assignments when authenticated API fails', async () => {
+    vi.mocked(apiClient.get).mockRejectedValue(new Error('Kết nối máy chủ thất bại (500)'))
+
+    render(
+      <MemoryRouter>
+        <LearnerAssignmentsPage />
+      </MemoryRouter>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('assignments-error-banner')).toBeInTheDocument()
+      expect(screen.getByText(/Kết nối máy chủ thất bại \(500\)/)).toBeInTheDocument()
+    })
+
+    // Assert that mock assignments are NOT loaded
+    expect(screen.queryByText('Bài tập Khảo sát Đạo hàm')).not.toBeInTheDocument()
+    expect(screen.queryByText('Bài tập Tích phân từng phần')).not.toBeInTheDocument()
+  })
 })
