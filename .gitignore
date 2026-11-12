@@ -27,6 +27,7 @@ credentials.json
 service-account*.json
 scripts/sql/
 scripts/verify_sql_logins.ts
+database_backups/
 
 # Python cache & virtual environments
 __pycache__/
