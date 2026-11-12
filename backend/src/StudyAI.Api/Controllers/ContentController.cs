@@ -838,55 +838,115 @@ public class ContentController : ControllerBase
         [FromQuery] string? lessonId = null,
         [FromQuery] string? subjectId = null,
         [FromQuery] string? chapterId = null,
+        [FromQuery] string? grade = null,
         [FromQuery] string? difficulty = null,
+        [FromQuery] string? type = null,
         [FromQuery] string? status = null,
+        [FromQuery] string? sourceType = null,
         [FromQuery] string? search = null,
+        [FromQuery] bool includeDeleted = false,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
         var query = _db.ContentQuestions
+            .Include(q => q.Author)
             .Include(q => q.Lesson)
                 .ThenInclude(l => l!.Chapter)
                     .ThenInclude(c => c!.Subject)
             .AsQueryable();
 
+        if (!includeDeleted)
+        {
+            query = query.Where(q => !q.IsDeleted);
+        }
+
         if (!string.IsNullOrWhiteSpace(lessonId) && lessonId != "all")
             query = query.Where(q => q.LessonId == lessonId);
 
         if (!string.IsNullOrWhiteSpace(subjectId) && subjectId != "all")
-            query = query.Where(q => q.SubjectId == subjectId || q.Lesson!.Chapter!.SubjectId == subjectId);
+            query = query.Where(q => q.SubjectId == subjectId || (q.Lesson != null && q.Lesson.Chapter != null && q.Lesson.Chapter.SubjectId == subjectId));
 
         if (!string.IsNullOrWhiteSpace(chapterId) && chapterId != "all")
-            query = query.Where(q => q.ChapterId == chapterId || q.Lesson!.ChapterId == chapterId);
+            query = query.Where(q => q.ChapterId == chapterId || (q.Lesson != null && q.Lesson.ChapterId == chapterId));
+
+        if (!string.IsNullOrWhiteSpace(grade) && grade != "all")
+            query = query.Where(q => q.Grade == grade || (q.Lesson != null && q.Lesson.Chapter != null && q.Lesson.Chapter.Subject != null && q.Lesson.Chapter.Subject.Grade == grade));
 
         if (!string.IsNullOrWhiteSpace(difficulty) && difficulty != "all")
             query = query.Where(q => q.Difficulty == difficulty);
 
+        if (!string.IsNullOrWhiteSpace(type) && type != "all")
+            query = query.Where(q => q.Type == type);
+
         if (!string.IsNullOrWhiteSpace(status) && status != "all")
             query = query.Where(q => q.Status == status);
+
+        if (!string.IsNullOrWhiteSpace(sourceType) && sourceType != "all")
+            query = query.Where(q => q.SourceType == sourceType);
 
         if (!string.IsNullOrWhiteSpace(search))
         {
             var term = search.Trim().ToLower();
-            query = query.Where(q => q.Prompt.ToLower().Contains(term) || (q.Topic != null && q.Topic.ToLower().Contains(term)));
+            query = query.Where(q => q.Prompt.ToLower().Contains(term) ||
+                                     q.Id.ToLower().Contains(term) ||
+                                     (q.Code != null && q.Code.ToLower().Contains(term)) ||
+                                     (q.Topic != null && q.Topic.ToLower().Contains(term)));
         }
 
         var total = await query.CountAsync();
         var questions = await query
             .OrderBy(q => q.OrderIndex)
             .ThenByDescending(q => q.CreatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
+            .Skip((Math.Max(1, page) - 1) * Math.Clamp(pageSize, 1, 100))
+            .Take(Math.Clamp(pageSize, 1, 100))
             .ToListAsync();
 
         var result = questions.Select(FormatQuestion).ToList();
         return Ok(new { items = result, total, page, pageSize });
     }
 
+    [HttpGet("questions/statistics")]
+    public async Task<IActionResult> GetQuestionStatistics()
+    {
+        var allQuestions = await _db.ContentQuestions
+            .Include(q => q.Lesson)
+                .ThenInclude(l => l!.Chapter)
+                    .ThenInclude(c => c!.Subject)
+            .ToListAsync();
+
+        var nonDeleted = allQuestions.Where(q => !q.IsDeleted).ToList();
+
+        var stats = new QuestionStatsDto
+        {
+            TotalQuestions = nonDeleted.Count,
+            DraftCount = nonDeleted.Count(q => q.Status == "draft"),
+            InReviewCount = nonDeleted.Count(q => q.Status == "in-review"),
+            ApprovedCount = nonDeleted.Count(q => q.Status == "approved"),
+            PublishedCount = nonDeleted.Count(q => q.Status == "published"),
+            RejectedCount = nonDeleted.Count(q => q.Status == "rejected"),
+            DeletedCount = allQuestions.Count(q => q.IsDeleted),
+            ByDifficulty = nonDeleted
+                .GroupBy(q => string.IsNullOrWhiteSpace(q.Difficulty) ? "medium" : q.Difficulty)
+                .ToDictionary(g => g.Key, g => g.Count()),
+            ByType = nonDeleted
+                .GroupBy(q => string.IsNullOrWhiteSpace(q.Type) ? "multiple-choice" : q.Type)
+                .ToDictionary(g => g.Key, g => g.Count()),
+            BySubject = nonDeleted
+                .GroupBy(q => q.Lesson?.Chapter?.Subject?.Name ?? q.SubjectId ?? "Chưa phân loại")
+                .ToDictionary(g => g.Key, g => g.Count()),
+            BySource = nonDeleted
+                .GroupBy(q => string.IsNullOrWhiteSpace(q.SourceType) ? "manual" : q.SourceType)
+                .ToDictionary(g => g.Key, g => g.Count())
+        };
+
+        return Ok(stats);
+    }
+
     [HttpGet("questions/{questionId}")]
     public async Task<IActionResult> GetQuestionDetail(string questionId)
     {
         var q = await _db.ContentQuestions
+            .Include(x => x.Author)
             .Include(x => x.Lesson)
                 .ThenInclude(l => l!.Chapter)
                     .ThenInclude(c => c!.Subject)
@@ -901,47 +961,88 @@ public class ContentController : ControllerBase
     [HttpPost("questions")]
     public async Task<IActionResult> CreateQuestion([FromBody] CreateQuestionRequestDto req)
     {
-        if (string.IsNullOrWhiteSpace(req.Prompt) || string.IsNullOrWhiteSpace(req.CorrectAnswer))
-            return BadRequest(new { detail = "Nội dung câu hỏi và đáp án đúng không được để trống." });
+        if (string.IsNullOrWhiteSpace(req.Prompt))
+            return BadRequest(new { detail = "Nội dung câu hỏi không được để trống." });
 
-        if (req.Options == null || req.Options.Count < 2)
-            return BadRequest(new { detail = "Câu hỏi trắc nghiệm phải có ít nhất 2 phương án lựa chọn." });
+        var qType = string.IsNullOrWhiteSpace(req.Type) ? "multiple-choice" : req.Type.ToLowerInvariant();
 
-        if (!req.Options.Contains(req.CorrectAnswer))
-            return BadRequest(new { detail = "Đáp án đúng phải nằm trong danh sách các phương án lựa chọn." });
+        if (qType == "multiple-choice" || qType == "single-choice")
+        {
+            if (string.IsNullOrWhiteSpace(req.CorrectAnswer))
+                return BadRequest(new { detail = "Câu hỏi trắc nghiệm một đáp án yêu cầu phải có đáp án đúng." });
+            if (req.Options == null || req.Options.Count < 2)
+                return BadRequest(new { detail = "Câu hỏi trắc nghiệm phải có ít nhất 2 phương án lựa chọn." });
+            if (!req.Options.Contains(req.CorrectAnswer))
+                return BadRequest(new { detail = "Đáp án đúng phải nằm trong danh sách các phương án lựa chọn." });
+        }
+        else if (qType == "multiple-select")
+        {
+            if (string.IsNullOrWhiteSpace(req.CorrectAnswer))
+                return BadRequest(new { detail = "Câu hỏi trắc nghiệm nhiều đáp án yêu cầu phải có đáp án đúng." });
+            if (req.Options == null || req.Options.Count < 2)
+                return BadRequest(new { detail = "Câu hỏi trắc nghiệm nhiều đáp án phải có ít nhất 2 phương án lựa chọn." });
+        }
+        else if (qType == "true-false")
+        {
+            if (string.IsNullOrWhiteSpace(req.CorrectAnswer) && string.IsNullOrWhiteSpace(req.MetadataJson))
+                return BadRequest(new { detail = "Câu hỏi đúng/sai yêu cầu đáp án đúng (Đúng/Sai) hoặc danh sách mệnh đề." });
+        }
+        else if (qType == "short-answer")
+        {
+            if (string.IsNullOrWhiteSpace(req.CorrectAnswer))
+                return BadRequest(new { detail = "Câu hỏi trả lời ngắn yêu cầu kết quả mẫu/đáp án chuẩn." });
+        }
 
-        // Resolve subject & chapter from lesson if lessonId provided
         string? resolvedSubjectId = req.SubjectId;
         string? resolvedChapterId = req.ChapterId;
+        string? resolvedGrade = req.Grade;
 
         if (!string.IsNullOrWhiteSpace(req.LessonId))
         {
             var lesson = await _db.ContentLessons
                 .Include(l => l.Chapter)
+                    .ThenInclude(c => c!.Subject)
                 .FirstOrDefaultAsync(l => l.Id == req.LessonId);
 
             if (lesson != null)
             {
                 resolvedChapterId ??= lesson.ChapterId;
                 resolvedSubjectId ??= lesson.Chapter?.SubjectId;
+                resolvedGrade ??= lesson.Chapter?.Subject?.Grade;
             }
         }
+
+        var code = !string.IsNullOrWhiteSpace(req.Code)
+            ? req.Code.Trim()
+            : $"Q-{DateTime.UtcNow:yyMMdd}-{Guid.NewGuid():N}"[..16].ToUpperInvariant();
 
         var question = new ContentQuestion
         {
             Id = $"qst_{Guid.NewGuid():N}",
+            Code = code,
             LessonId = req.LessonId,
             ChapterId = resolvedChapterId,
             SubjectId = resolvedSubjectId,
+            Grade = resolvedGrade,
             Prompt = req.Prompt.Trim(),
-            OptionsJson = JsonSerializer.Serialize(req.Options),
-            CorrectAnswer = req.CorrectAnswer.Trim(),
+            OptionsJson = JsonSerializer.Serialize(req.Options ?? new List<string>()),
+            CorrectAnswer = req.CorrectAnswer?.Trim() ?? string.Empty,
             Explanation = req.Explanation?.Trim(),
             Topic = req.Topic?.Trim(),
             Difficulty = string.IsNullOrWhiteSpace(req.Difficulty) ? "medium" : req.Difficulty,
-            Type = string.IsNullOrWhiteSpace(req.Type) ? "multiple-choice" : req.Type,
+            Type = qType,
             Status = string.IsNullOrWhiteSpace(req.Status) ? "published" : req.Status,
             OrderIndex = req.OrderIndex,
+            ImageUrl = req.ImageUrl,
+            MetadataJson = req.MetadataJson,
+            AuthorId = CurrentUserId,
+            ReviewedBy = User.IsInRole("content") && req.Status == "published" ? CurrentUserId : null,
+            SourceType = string.IsNullOrWhiteSpace(req.SourceType) ? "manual" : req.SourceType,
+            SourceBatchId = req.SourceBatchId,
+            SourceUrl = req.SourceUrl,
+            CopyrightStatus = string.IsNullOrWhiteSpace(req.CopyrightStatus) ? "proprietary" : req.CopyrightStatus,
+            CopyrightProofRef = req.CopyrightProofRef,
+            Version = 1,
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
         };
@@ -955,7 +1056,13 @@ public class ContentController : ControllerBase
             Action = "question_created",
             TargetType = "content_question",
             TargetId = question.Id,
-            Payload = JsonSerializer.Serialize(new { prompt = question.Prompt.Substring(0, Math.Min(60, question.Prompt.Length)) }),
+            Payload = JsonSerializer.Serialize(new
+            {
+                code = question.Code,
+                prompt = question.Prompt.Substring(0, Math.Min(60, question.Prompt.Length)),
+                type = question.Type,
+                status = question.Status
+            }),
             CreatedAt = DateTimeOffset.UtcNow
         });
 
@@ -964,10 +1071,22 @@ public class ContentController : ControllerBase
         return StatusCode(201, FormatQuestion(question));
     }
 
+    [HttpPut("questions/{questionId}")]
+    public async Task<IActionResult> PutQuestion(string questionId, [FromBody] UpdateQuestionRequestDto req)
+    {
+        return await HandleUpdateQuestion(questionId, req);
+    }
+
     [HttpPatch("questions/{questionId}")]
     public async Task<IActionResult> UpdateQuestion(string questionId, [FromBody] UpdateQuestionRequestDto req)
     {
+        return await HandleUpdateQuestion(questionId, req);
+    }
+
+    private async Task<IActionResult> HandleUpdateQuestion(string questionId, UpdateQuestionRequestDto req)
+    {
         var question = await _db.ContentQuestions
+            .Include(q => q.Author)
             .Include(q => q.Lesson)
                 .ThenInclude(l => l!.Chapter)
                     .ThenInclude(c => c!.Subject)
@@ -976,6 +1095,7 @@ public class ContentController : ControllerBase
         if (question == null)
             return NotFound(new { detail = "Câu hỏi không tồn tại." });
 
+        if (req.Code != null) question.Code = req.Code.Trim();
         if (req.Prompt != null) question.Prompt = req.Prompt.Trim();
         if (req.Options != null) question.OptionsJson = JsonSerializer.Serialize(req.Options);
         if (req.CorrectAnswer != null) question.CorrectAnswer = req.CorrectAnswer.Trim();
@@ -983,10 +1103,19 @@ public class ContentController : ControllerBase
         if (req.Topic != null) question.Topic = req.Topic.Trim();
         if (req.Difficulty != null) question.Difficulty = req.Difficulty.Trim();
         if (req.Type != null) question.Type = req.Type.Trim();
+        if (req.Grade != null) question.Grade = req.Grade.Trim();
         if (req.Status != null) question.Status = req.Status.Trim();
         if (req.OrderIndex.HasValue) question.OrderIndex = req.OrderIndex.Value;
         if (req.LessonId != null) question.LessonId = req.LessonId;
+        if (req.SubjectId != null) question.SubjectId = req.SubjectId;
+        if (req.ChapterId != null) question.ChapterId = req.ChapterId;
+        if (req.ImageUrl != null) question.ImageUrl = req.ImageUrl;
+        if (req.MetadataJson != null) question.MetadataJson = req.MetadataJson;
+        if (req.SourceType != null) question.SourceType = req.SourceType;
+        if (req.CopyrightStatus != null) question.CopyrightStatus = req.CopyrightStatus;
+        if (req.CopyrightProofRef != null) question.CopyrightProofRef = req.CopyrightProofRef;
 
+        question.Version += 1;
         question.UpdatedAt = DateTimeOffset.UtcNow;
 
         _db.StaffAuditLogs.Add(new StaffAuditLog
@@ -996,7 +1125,12 @@ public class ContentController : ControllerBase
             Action = "question_updated",
             TargetType = "content_question",
             TargetId = question.Id,
-            Payload = JsonSerializer.Serialize(new { prompt = question.Prompt.Substring(0, Math.Min(60, question.Prompt.Length)) }),
+            Payload = JsonSerializer.Serialize(new
+            {
+                code = question.Code,
+                version = question.Version,
+                prompt = question.Prompt.Substring(0, Math.Min(60, question.Prompt.Length))
+            }),
             CreatedAt = DateTimeOffset.UtcNow
         });
 
@@ -1011,31 +1145,380 @@ public class ContentController : ControllerBase
         if (question == null)
             return NotFound(new { detail = "Câu hỏi không tồn tại." });
 
-        // Safety Invariant: Check if question responses exist in assessment attempts
-        var responseExists = await _db.AssessmentResponses.AnyAsync(r => r.QuestionId == questionId);
-        if (responseExists)
-        {
-            return BadRequest(new
-            {
-                detail = "Không thể xóa câu hỏi này vì đã có dữ liệu làm bài thi lịch sử của học viên. Vui lòng chuyển trạng thái sang 'archived' thay vì xóa."
-            });
-        }
-
-        _db.ContentQuestions.Remove(question);
+        question.IsDeleted = true;
+        question.DeletedAt = DateTimeOffset.UtcNow;
+        question.DeletedBy = CurrentUserId;
+        question.Status = "archived";
+        question.UpdatedAt = DateTimeOffset.UtcNow;
 
         _db.StaffAuditLogs.Add(new StaffAuditLog
         {
             Id = $"log_{Guid.NewGuid():N}",
             ActorUserId = CurrentUserId,
-            Action = "question_deleted",
+            Action = "question_soft_deleted",
             TargetType = "content_question",
             TargetId = questionId,
-            Payload = JsonSerializer.Serialize(new { prompt = question.Prompt.Substring(0, Math.Min(60, question.Prompt.Length)) }),
+            Payload = JsonSerializer.Serialize(new
+            {
+                prompt = question.Prompt.Substring(0, Math.Min(60, question.Prompt.Length)),
+                code = question.Code
+            }),
             CreatedAt = DateTimeOffset.UtcNow
         });
 
         await _db.SaveChangesAsync();
-        return Ok(new { success = true, message = "Đã xóa câu hỏi thành công." });
+        return Ok(new { success = true, message = "Đã chuyển câu hỏi vào thùng rác (xóa mềm) thành công." });
+    }
+
+    [HttpPost("questions/{questionId}/restore")]
+    public async Task<IActionResult> RestoreQuestion(string questionId)
+    {
+        var question = await _db.ContentQuestions
+            .Include(q => q.Author)
+            .Include(q => q.Lesson)
+                .ThenInclude(l => l!.Chapter)
+                    .ThenInclude(c => c!.Subject)
+            .FirstOrDefaultAsync(q => q.Id == questionId);
+
+        if (question == null)
+            return NotFound(new { detail = "Câu hỏi không tồn tại." });
+
+        if (!question.IsDeleted)
+            return BadRequest(new { detail = "Câu hỏi này đang hoạt động, không ở trạng thái đã xóa." });
+
+        question.IsDeleted = false;
+        question.DeletedAt = null;
+        question.DeletedBy = null;
+        question.Status = "draft";
+        question.UpdatedAt = DateTimeOffset.UtcNow;
+
+        _db.StaffAuditLogs.Add(new StaffAuditLog
+        {
+            Id = $"log_{Guid.NewGuid():N}",
+            ActorUserId = CurrentUserId,
+            Action = "question_restored",
+            TargetType = "content_question",
+            TargetId = questionId,
+            Payload = JsonSerializer.Serialize(new { code = question.Code }),
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+        return Ok(FormatQuestion(question));
+    }
+
+    [HttpPost("questions/{questionId}/submit-review")]
+    public async Task<IActionResult> SubmitQuestionReview(string questionId)
+    {
+        var question = await _db.ContentQuestions
+            .Include(q => q.Author)
+            .Include(q => q.Lesson)
+                .ThenInclude(l => l!.Chapter)
+                    .ThenInclude(c => c!.Subject)
+            .FirstOrDefaultAsync(q => q.Id == questionId);
+
+        if (question == null)
+            return NotFound(new { detail = "Câu hỏi không tồn tại." });
+
+        question.Status = "in-review";
+        question.UpdatedAt = DateTimeOffset.UtcNow;
+
+        _db.StaffAuditLogs.Add(new StaffAuditLog
+        {
+            Id = $"log_{Guid.NewGuid():N}",
+            ActorUserId = CurrentUserId,
+            Action = "question_submitted_review",
+            TargetType = "content_question",
+            TargetId = questionId,
+            Payload = JsonSerializer.Serialize(new { code = question.Code }),
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+        return Ok(FormatQuestion(question));
+    }
+
+    [HttpPost("questions/{questionId}/approve")]
+    public async Task<IActionResult> ApproveQuestion(string questionId)
+    {
+        var question = await _db.ContentQuestions
+            .Include(q => q.Author)
+            .Include(q => q.Lesson)
+                .ThenInclude(l => l!.Chapter)
+                    .ThenInclude(c => c!.Subject)
+            .FirstOrDefaultAsync(q => q.Id == questionId);
+
+        if (question == null)
+            return NotFound(new { detail = "Câu hỏi không tồn tại." });
+
+        question.Status = "approved";
+        question.ReviewedBy = CurrentUserId;
+        question.RejectionReason = null;
+        question.UpdatedAt = DateTimeOffset.UtcNow;
+
+        _db.StaffAuditLogs.Add(new StaffAuditLog
+        {
+            Id = $"log_{Guid.NewGuid():N}",
+            ActorUserId = CurrentUserId,
+            Action = "question_approved",
+            TargetType = "content_question",
+            TargetId = questionId,
+            Payload = JsonSerializer.Serialize(new { code = question.Code }),
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+        return Ok(FormatQuestion(question));
+    }
+
+    [HttpPost("questions/{questionId}/reject")]
+    public async Task<IActionResult> RejectQuestion(string questionId, [FromBody] RejectQuestionRequestDto? body = null)
+    {
+        var question = await _db.ContentQuestions
+            .Include(q => q.Author)
+            .Include(q => q.Lesson)
+                .ThenInclude(l => l!.Chapter)
+                    .ThenInclude(c => c!.Subject)
+            .FirstOrDefaultAsync(q => q.Id == questionId);
+
+        if (question == null)
+            return NotFound(new { detail = "Câu hỏi không tồn tại." });
+
+        var reason = !string.IsNullOrWhiteSpace(body?.Reason)
+            ? body.Reason.Trim()
+            : "Nội dung câu hỏi chưa đạt tiêu chuẩn kiểm duyệt chất lượng.";
+
+        question.Status = "rejected";
+        question.ReviewedBy = CurrentUserId;
+        question.RejectionReason = reason;
+        question.UpdatedAt = DateTimeOffset.UtcNow;
+
+        _db.StaffAuditLogs.Add(new StaffAuditLog
+        {
+            Id = $"log_{Guid.NewGuid():N}",
+            ActorUserId = CurrentUserId,
+            Action = "question_rejected",
+            TargetType = "content_question",
+            TargetId = questionId,
+            Payload = JsonSerializer.Serialize(new { code = question.Code, reason }),
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+        return Ok(FormatQuestion(question));
+    }
+
+    [HttpPost("questions/{questionId}/publish")]
+    public async Task<IActionResult> PublishQuestion(string questionId)
+    {
+        var question = await _db.ContentQuestions
+            .Include(q => q.Author)
+            .Include(q => q.Lesson)
+                .ThenInclude(l => l!.Chapter)
+                    .ThenInclude(c => c!.Subject)
+            .FirstOrDefaultAsync(q => q.Id == questionId);
+
+        if (question == null)
+            return NotFound(new { detail = "Câu hỏi không tồn tại." });
+
+        question.Status = "published";
+        question.UpdatedAt = DateTimeOffset.UtcNow;
+
+        _db.StaffAuditLogs.Add(new StaffAuditLog
+        {
+            Id = $"log_{Guid.NewGuid():N}",
+            ActorUserId = CurrentUserId,
+            Action = "question_published",
+            TargetType = "content_question",
+            TargetId = questionId,
+            Payload = JsonSerializer.Serialize(new { code = question.Code }),
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+        return Ok(FormatQuestion(question));
+    }
+
+    [HttpPost("questions/{questionId}/unpublish")]
+    public async Task<IActionResult> UnpublishQuestion(string questionId)
+    {
+        var question = await _db.ContentQuestions
+            .Include(q => q.Author)
+            .Include(q => q.Lesson)
+                .ThenInclude(l => l!.Chapter)
+                    .ThenInclude(c => c!.Subject)
+            .FirstOrDefaultAsync(q => q.Id == questionId);
+
+        if (question == null)
+            return NotFound(new { detail = "Câu hỏi không tồn tại." });
+
+        question.Status = "draft";
+        question.UpdatedAt = DateTimeOffset.UtcNow;
+
+        _db.StaffAuditLogs.Add(new StaffAuditLog
+        {
+            Id = $"log_{Guid.NewGuid():N}",
+            ActorUserId = CurrentUserId,
+            Action = "question_unpublished",
+            TargetType = "content_question",
+            TargetId = questionId,
+            Payload = JsonSerializer.Serialize(new { code = question.Code }),
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+        return Ok(FormatQuestion(question));
+    }
+
+    #endregion
+
+    #region Question Import Pipeline (Phase 5)
+
+    [HttpPost("questions/import")]
+    public async Task<IActionResult> ImportQuestions([FromBody] QuestionImportBatchRequestDto req)
+    {
+        var batchId = $"batch_{Guid.NewGuid():N}"[..18];
+        var sourceType = (req.SourceType ?? "manual").Trim().ToLowerInvariant();
+
+        if (sourceType == "vnhsge" && !req.DryRun)
+        {
+            if (string.IsNullOrWhiteSpace(req.LicenseProofRef) || req.LicenseProofRef != "LIC-VNHSGE-OFFICIAL-VERIFIED")
+            {
+                return BadRequest(new
+                {
+                    detail = "BẢN QUYỀN: Bộ dữ liệu VNHSGE thật chưa có bằng chứng cấp phép bản quyền được hệ thống backend xác nhận. Chỉ cho phép kiểm tra cấu trúc (dry-run)."
+                });
+            }
+        }
+
+        var result = new QuestionImportResultDto
+        {
+            BatchId = batchId,
+            SourceType = sourceType,
+            DryRun = req.DryRun,
+            TotalItems = req.Items.Count
+        };
+
+        if (req.Items == null || req.Items.Count == 0)
+        {
+            return Ok(result);
+        }
+
+        var existingPrompts = await _db.ContentQuestions
+            .Where(q => !q.IsDeleted)
+            .Select(q => q.Prompt.Trim().ToLower())
+            .ToListAsync();
+
+        var existingPromptSet = new HashSet<string>(existingPrompts, StringComparer.OrdinalIgnoreCase);
+        var seenInBatch = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        var validQuestions = new List<ContentQuestion>();
+
+        for (int i = 0; i < req.Items.Count; i++)
+        {
+            var item = req.Items[i];
+            if (string.IsNullOrWhiteSpace(item.Prompt))
+            {
+                result.ErrorItems++;
+                result.Errors.Add($"Bản ghi #{i + 1}: Thiếu nội dung câu hỏi (Prompt).");
+                continue;
+            }
+
+            var promptKey = item.Prompt.Trim().ToLower();
+            if (existingPromptSet.Contains(promptKey) || seenInBatch.Contains(promptKey))
+            {
+                result.DuplicateItems++;
+                result.Errors.Add($"Bản ghi #{i + 1} ('{item.Prompt[..Math.Min(40, item.Prompt.Length)]}...'): Đã tồn tại trong hệ thống (Duplicate).");
+                continue;
+            }
+
+            seenInBatch.Add(promptKey);
+
+            var qType = string.IsNullOrWhiteSpace(item.Type) ? "multiple-choice" : item.Type.ToLowerInvariant();
+            if (qType == "multiple-choice" && (item.Options == null || item.Options.Count < 2))
+            {
+                result.ErrorItems++;
+                result.Errors.Add($"Bản ghi #{i + 1}: Câu hỏi trắc nghiệm phải có ít nhất 2 phương án.");
+                continue;
+            }
+
+            var initialStatus = (sourceType == "manual") ? "approved" : "draft";
+
+            var code = !string.IsNullOrWhiteSpace(item.Code)
+                ? item.Code.Trim()
+                : $"Q-IMP-{DateTime.UtcNow:yyMMdd}-{Guid.NewGuid():N}"[..18].ToUpperInvariant();
+
+            var question = new ContentQuestion
+            {
+                Id = $"qst_{Guid.NewGuid():N}",
+                Code = code,
+                Prompt = item.Prompt.Trim(),
+                OptionsJson = JsonSerializer.Serialize(item.Options ?? new List<string>()),
+                CorrectAnswer = item.CorrectAnswer?.Trim() ?? string.Empty,
+                Explanation = item.Explanation?.Trim(),
+                Topic = item.Topic?.Trim(),
+                Difficulty = string.IsNullOrWhiteSpace(item.Difficulty) ? "medium" : item.Difficulty,
+                Type = qType,
+                Grade = item.Grade,
+                SubjectId = item.SubjectId,
+                ChapterId = item.ChapterId,
+                LessonId = item.LessonId,
+                ImageUrl = item.ImageUrl,
+                MetadataJson = item.MetadataJson,
+                Status = initialStatus,
+                SourceType = sourceType,
+                SourceBatchId = batchId,
+                SourceUrl = req.SourceUrl,
+                CopyrightStatus = (sourceType == "vnhsge" || sourceType == "external_licensed") ? "pending_proof" : "proprietary",
+                CopyrightProofRef = req.LicenseProofRef,
+                AuthorId = CurrentUserId,
+                Version = 1,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+
+            validQuestions.Add(question);
+            result.ValidItems++;
+            result.PreviewItems.Add(FormatQuestion(question));
+        }
+
+        if (!req.DryRun && validQuestions.Count > 0)
+        {
+            await using var tx = await _db.Database.BeginTransactionAsync();
+            try
+            {
+                await _db.ContentQuestions.AddRangeAsync(validQuestions);
+
+                _db.StaffAuditLogs.Add(new StaffAuditLog
+                {
+                    Id = $"log_{Guid.NewGuid():N}",
+                    ActorUserId = CurrentUserId,
+                    Action = "questions_batch_imported",
+                    TargetType = "content_question_batch",
+                    TargetId = batchId,
+                    Payload = JsonSerializer.Serialize(new
+                    {
+                        batchId,
+                        sourceType,
+                        importedCount = validQuestions.Count,
+                        licenseRef = req.LicenseProofRef
+                    }),
+                    CreatedAt = DateTimeOffset.UtcNow
+                });
+
+                await _db.SaveChangesAsync();
+                await tx.CommitAsync();
+
+                result.ImportedIds = validQuestions.Select(q => q.Id).ToList();
+            }
+            catch (Exception ex)
+            {
+                await tx.RollbackAsync();
+                return StatusCode(500, new { detail = $"Lỗi khi lưu dữ liệu nhập: {ex.Message}" });
+            }
+        }
+
+        return Ok(result);
     }
 
     #endregion
@@ -1091,12 +1574,14 @@ public class ContentController : ControllerBase
         return new ContentQuestionItemDto
         {
             Id = q.Id,
+            Code = q.Code,
             LessonId = q.LessonId,
             LessonTitle = q.Lesson?.Title ?? "",
             ChapterId = q.ChapterId ?? q.Lesson?.ChapterId,
             ChapterTitle = q.Lesson?.Chapter?.Title ?? "",
             SubjectId = q.SubjectId ?? q.Lesson?.Chapter?.SubjectId,
             SubjectName = q.Lesson?.Chapter?.Subject?.Name ?? "",
+            Grade = q.Grade ?? q.Lesson?.Chapter?.Subject?.Grade ?? "",
             Prompt = q.Prompt,
             Options = options,
             CorrectAnswer = q.CorrectAnswer,
@@ -1106,6 +1591,21 @@ public class ContentController : ControllerBase
             Type = q.Type,
             Status = q.Status,
             OrderIndex = q.OrderIndex,
+            ImageUrl = q.ImageUrl,
+            MetadataJson = q.MetadataJson,
+            IsDeleted = q.IsDeleted,
+            DeletedAt = q.DeletedAt?.ToString("o"),
+            DeletedBy = q.DeletedBy,
+            AuthorId = q.AuthorId,
+            AuthorName = q.Author?.DisplayName ?? "",
+            ReviewedBy = q.ReviewedBy,
+            RejectionReason = q.RejectionReason,
+            SourceType = q.SourceType,
+            SourceBatchId = q.SourceBatchId,
+            SourceUrl = q.SourceUrl,
+            CopyrightStatus = q.CopyrightStatus,
+            CopyrightProofRef = q.CopyrightProofRef,
+            Version = q.Version,
             CreatedAt = q.CreatedAt.ToString("o"),
             UpdatedAt = q.UpdatedAt.ToString("o")
         };

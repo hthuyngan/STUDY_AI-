@@ -128,6 +128,7 @@ public class StudyAIApiFixture : WebApplicationFactory<Program>
         {
             adminGmail.Role = "admin";
             adminGmail.Status = "active";
+            adminGmail.PasswordHash = hasher.HashPassword("admin");
         }
 
         var contentGmail = db.Users.FirstOrDefault(u => u.EmailNormalized == "CONTENT@GMAIL.COM" || u.EmailNormalized == "content@gmail.com");
@@ -135,6 +136,7 @@ public class StudyAIApiFixture : WebApplicationFactory<Program>
         {
             contentGmail.Role = "content";
             contentGmail.Status = "active";
+            contentGmail.PasswordHash = hasher.HashPassword("Vinh123!@#");
         }
 
         var learner = db.Users.FirstOrDefault(u => u.EmailNormalized == "learner@studyai.internal");

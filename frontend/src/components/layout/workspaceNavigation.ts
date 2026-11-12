@@ -10,6 +10,7 @@ import {
   FileCheck,
   FileText,
   GraduationCap,
+  HelpCircle,
   History,
   Layers,
   LayoutDashboard,
@@ -255,6 +256,12 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
             label: 'Bài học',
             path: '/content/lessons',
             icon: FileText,
+          },
+          {
+            id: 'content-questions',
+            label: 'Ngân hàng câu hỏi',
+            path: '/content/questions',
+            icon: HelpCircle,
           },
           {
             id: 'content-assessments',
