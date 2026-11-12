@@ -144,7 +144,7 @@ public class AdminContentAccountProvisioningTests : IClassFixture<StudyAIApiFixt
         var contentToken = await LoginAsync("content@gmail.com", _contentPassword);
 
         // Seed a test lesson in draft status
-        string lessonId = $"les_test_{Guid.NewGuid():N}"[..12];
+        string lessonId = $"les_test_{Guid.NewGuid():N}";
         using (var scope = _factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
@@ -159,7 +159,7 @@ public class AdminContentAccountProvisioningTests : IClassFixture<StudyAIApiFixt
                 Id = lessonId,
                 ChapterId = ch.Id,
                 Title = "Bài học thử nghiệm phân quyền Content",
-                Slug = $"bai-hoc-thu-nghiem-{Guid.NewGuid():N}"[..20],
+                Slug = $"bai-hoc-thu-nghiem-{Guid.NewGuid():N}",
                 Status = "draft",
                 AuthorId = contentUser.Id,
                 Introduction = "Giới thiệu bài học kiểm thử quyền Content",
@@ -282,7 +282,7 @@ public class AdminContentAccountProvisioningTests : IClassFixture<StudyAIApiFixt
         var contentToken = await LoginAsync("content@gmail.com", _contentPassword);
 
         // Seed a VNHSGE lesson
-        string lessonId = $"les_vnhsge_{Guid.NewGuid():N}"[..12];
+        string lessonId = $"les_vnh_{Guid.NewGuid():N}";
         using (var scope = _factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
@@ -295,7 +295,7 @@ public class AdminContentAccountProvisioningTests : IClassFixture<StudyAIApiFixt
                 Id = lessonId,
                 ChapterId = ch.Id,
                 Title = "Đề thi thử tốt nghiệp THPT VNHSGE 2023",
-                Slug = $"vnhsge-exam-{Guid.NewGuid():N}"[..20],
+                Slug = $"vnhsge-exam-{Guid.NewGuid():N}",
                 Status = "draft",
                 AuthorId = contentUser.Id,
                 Introduction = "Dữ liệu khảo cứu VNHSGE (arXiv:2305.12199)",

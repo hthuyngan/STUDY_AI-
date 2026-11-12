@@ -958,6 +958,15 @@ public class CurriculumImportParser : ICurriculumImportParser
         return "MATH12";
     }
 
+    public static string InferSplit(string fileName)
+    {
+        var fn = (fileName ?? "").ToLowerInvariant();
+        if (fn.Contains("train")) return "train";
+        if (fn.Contains("test")) return "test";
+        if (fn.Contains("eval") || fn.Contains("val")) return "eval";
+        return "";
+    }
+
     public static string GetSubjectName(string subjectCode) => subjectCode.ToUpperInvariant() switch
     {
         "MATH12" => "Toán học 12",
@@ -1100,11 +1109,14 @@ public class CurriculumImportParser : ICurriculumImportParser
 
         var subjectCode = InferSubjectCode(fileName, id);
         var qType = options.Count >= 2 ? "multiple-choice" : "essay";
+        var split = InferSplit(fileName);
+        var splitTag = !string.IsNullOrWhiteSpace(split) ? $" ({split})" : "";
+        var splitCitation = !string.IsNullOrWhiteSpace(split) ? $" [{split}]" : "";
 
         var qDto = new ImportQuestionItemDto
         {
             RowNumber = row,
-            Code = !string.IsNullOrWhiteSpace(id) ? $"vnhsge_{subjectCode.ToLowerInvariant()}_{id}" : null,
+            Code = !string.IsNullOrWhiteSpace(id) ? $"vnhsge_{subjectCode.ToLowerInvariant()}_{(string.IsNullOrEmpty(split) ? "" : split + "_")}{id}" : null,
             SubjectCode = subjectCode,
             ChapterCode = null,
             LessonCode = null,
@@ -1112,11 +1124,11 @@ public class CurriculumImportParser : ICurriculumImportParser
             Options = options,
             CorrectAnswer = choice,
             Explanation = !string.IsNullOrWhiteSpace(explanation) ? explanation : null,
-            Topic = $"VNHSGE {subjectCode}",
+            Topic = $"VNHSGE {subjectCode}{splitTag}",
             Difficulty = "medium",
             Type = qType,
             Status = "draft",
-            SourceCitation = $"VNHSGE (arXiv:2305.12199) - ID: {id}",
+            SourceCitation = $"VNHSGE (arXiv:2305.12199){splitCitation} - ID: {id}",
             LicenseType = "CC-BY-NC-SA-4.0"
         };
 

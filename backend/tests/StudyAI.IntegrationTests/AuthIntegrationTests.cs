@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using StudyAI.Application.Common.Interfaces;
 using StudyAI.Application.DTOs;
@@ -102,20 +103,44 @@ public class AuthIntegrationTests : IClassFixture<StudyAIApiFixture>
         var loginResult = JsonSerializer.Deserialize<AuthResponseDto>(loginBody, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
         Assert.NotNull(loginResult);
 
-        // 2. Try to demote the admin to learner
-        var updateRoleDto = new UpdateRoleRequestDto { Role = "learner" };
-        var roleContent = new StringContent(JsonSerializer.Serialize(updateRoleDto), Encoding.UTF8, "application/json");
-        var roleReq = new HttpRequestMessage(HttpMethod.Patch, $"/api/v1/admin/users/{loginResult.User.Id}/role")
+        // Ensure admin@studyai.internal is the sole active admin for this test by temporarily disabling other active admins
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+        var otherAdmins = await db.Users.Where(u => u.Role == "admin" && u.Id != loginResult.User.Id && u.Status == "active").ToListAsync();
+        foreach (var oa in otherAdmins)
         {
-            Content = roleContent
-        };
-        roleReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginResult.AccessToken);
+            oa.Status = "disabled";
+        }
+        await db.SaveChangesAsync();
 
-        var roleResponse = await _client.SendAsync(roleReq);
-        Assert.Equal(HttpStatusCode.BadRequest, roleResponse.StatusCode);
+        try
+        {
+            // 2. Try to demote the admin to learner
+            var updateRoleDto = new UpdateRoleRequestDto { Role = "learner" };
+            var roleContent = new StringContent(JsonSerializer.Serialize(updateRoleDto), Encoding.UTF8, "application/json");
+            var roleReq = new HttpRequestMessage(HttpMethod.Patch, $"/api/v1/admin/users/{loginResult.User.Id}/role")
+            {
+                Content = roleContent
+            };
+            roleReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", loginResult.AccessToken);
 
-        var errBody = await roleResponse.Content.ReadAsStringAsync();
-        Assert.Contains("duy nhất", errBody);
+            var roleResponse = await _client.SendAsync(roleReq);
+            Assert.Equal(HttpStatusCode.BadRequest, roleResponse.StatusCode);
+
+            var errBody = await roleResponse.Content.ReadAsStringAsync();
+            Assert.Contains("duy nhất", errBody);
+        }
+        finally
+        {
+            foreach (var oa in otherAdmins)
+            {
+                oa.Status = "active";
+            }
+            var selfAdmin = await db.Users.FirstAsync(u => u.Id == loginResult.User.Id);
+            selfAdmin.Role = "admin";
+            selfAdmin.Status = "active";
+            await db.SaveChangesAsync();
+        }
     }
 
     [Fact]

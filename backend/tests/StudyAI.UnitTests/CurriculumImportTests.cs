@@ -355,6 +355,31 @@ public class CurriculumImportParserTests
         Assert.Equal(@"$0{,}314\text{ s}$", q.Options[0]);
     }
 
+    [Theory]
+    [InlineData("vnhsge_math_train.json", "train")]
+    [InlineData("MET_Physics_test_2023.json", "test")]
+    [InlineData("eval_chemistry_vnhsge.json", "eval")]
+    public async Task ParseJson_VnhsgeSplits_DistinguishesTrainTestEval(string fileName, string expectedSplit)
+    {
+        var sampleJson = """
+        [
+          {
+            "ID": "101",
+            "Question": "Câu hỏi khảo sát?\\nA. Đáp án A\\nB. Đáp án B\\nC. Đáp án C\\nD. Đáp án D",
+            "Choice": "A"
+          }
+        ]
+        """;
+        using var ms = new MemoryStream(Encoding.UTF8.GetBytes(sampleJson));
+        var batch = await _parser.ParseAsync(ms, fileName);
+
+        Assert.Single(batch.FlatQuestions);
+        var q = batch.FlatQuestions[0];
+        Assert.Contains(expectedSplit, q.Topic);
+        Assert.Contains(expectedSplit, q.SourceCitation);
+        Assert.Contains(expectedSplit, q.Code ?? "");
+    }
+
     #endregion
 }
 
