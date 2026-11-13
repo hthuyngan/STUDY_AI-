@@ -11,9 +11,9 @@ import {
   FileQuestion,
   ChevronLeft,
   ChevronRight,
-  Sparkles,
   Globe,
   Undo2,
+  MoreHorizontal,
 } from 'lucide-react';
 import type { ContentQuestionItem } from '../types';
 import { MathView } from '../../../components/common/MathView';
@@ -152,18 +152,15 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
       {/* Table responsive container (Evondev R9 rule) */}
       <div className="overflow-x-auto min-w-full">
-        <table className="staff-table w-full text-left text-sm border-collapse min-w-[960px]">
+        <table className="staff-table w-full text-left text-sm border-collapse min-w-[700px]">
           <thead>
             <tr className="bg-slate-50/80 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase tracking-wider">
               <th className="py-3 px-4 w-12 text-center">STT</th>
               <th className="py-3 px-4 w-32">Mã câu</th>
               <th className="py-3 px-4 w-36">Môn & Lớp</th>
               <th className="py-3 px-4 min-w-[280px]">Nội dung câu hỏi</th>
-              <th className="py-3 px-4 w-32">Dạng câu</th>
-              <th className="py-3 px-4 w-28">Độ khó</th>
-              <th className="py-3 px-4 w-28">Nguồn</th>
               <th className="py-3 px-4 w-32 text-center">Trạng thái</th>
-              <th className="py-3 px-4 w-44 text-right">Thao tác</th>
+              <th className="py-3 px-4 w-32 text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -175,9 +172,6 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
                   <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-20" /></td>
                   <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-24" /></td>
                   <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-3/4 mb-1" /><div className="h-3 bg-slate-100 rounded w-1/2" /></td>
-                  <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-20" /></td>
-                  <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-16" /></td>
-                  <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-16" /></td>
                   <td className="py-4 px-4 text-center"><div className="h-5 bg-slate-200 rounded-full w-20 mx-auto" /></td>
                   <td className="py-4 px-4 text-right"><div className="h-7 bg-slate-200 rounded w-24 ml-auto" /></td>
                 </tr>
@@ -185,7 +179,7 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
             ) : questions.length === 0 ? (
               // Empty state
               <tr>
-                <td colSpan={9} className="py-16 text-center text-slate-500">
+                <td colSpan={6} className="py-16 text-center text-slate-500">
                   <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
                     <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-4">
                       <FileQuestion className="w-8 h-8" />
@@ -232,10 +226,10 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
                     {/* Môn & Lớp */}
                     <td className="py-3 px-4">
                       <div className="font-medium text-slate-800 text-xs">
-                        {q.subjectName || 'Toán học'}
+                        {q.subjectName || 'Chưa phân loại'}
                       </div>
                       <div className="text-[11px] text-slate-500">
-                        Lớp {q.grade || 12}
+                        {q.grade ? `Lớp ${q.grade}` : "Chưa xác định lớp"}
                       </div>
                     </td>
 
@@ -244,39 +238,12 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
                       <div className="line-clamp-2 text-xs text-slate-800 font-normal leading-relaxed">
                         <MathView math={q.prompt} />
                       </div>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">{renderQuestionType(q.questionType || q.type)}<span>·</span>{renderDifficultyBadge(q.difficulty)}<span>·</span>{isVNHSGE ? "VNHSGE" : "Thủ công"}</div>
                       {q.options && q.options.length > 0 && (
                         <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1">
                           <span>{q.options.length} phương án</span>
-                          {q.correctAnswer && (
-                            <span className="text-emerald-600 font-medium ml-1">
-                              • Đáp án: {q.correctAnswer}
-                            </span>
-                          )}
+
                         </div>
-                      )}
-                    </td>
-
-                    {/* Dạng câu */}
-                    <td className="py-3 px-4">
-                      {renderQuestionType(q.questionType || q.type)}
-                    </td>
-
-                    {/* Độ khó */}
-                    <td className="py-3 px-4">
-                      {renderDifficultyBadge(q.difficulty)}
-                    </td>
-
-                    {/* Nguồn */}
-                    <td className="py-3 px-4">
-                      {isVNHSGE ? (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-indigo-700 bg-indigo-50 border border-indigo-200/80 px-2 py-0.5 rounded">
-                          <Sparkles className="w-3 h-3 text-indigo-500" />
-                          VNHSGE
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center text-[11px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
-                          Thủ công
-                        </span>
                       )}
                     </td>
 
@@ -285,114 +252,37 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
                       {renderStatusBadge(q.status)}
                     </td>
 
-                    {/* Quick actions */}
+                    {/* Primary actions and accessible overflow menu */}
                     <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-end gap-1">
-                        {/* Preview button with title="Xem trước" */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            onSelectQuestion(q);
-                            onPreviewModal(q);
-                          }}
-                          title="Xem trước"
-                          className="p-1.5 rounded-md text-slate-500 hover:text-[#183B69] hover:bg-slate-100 transition-colors"
-                        >
+                      <div className="flex items-center justify-end gap-2">
+                        <button type="button" onClick={() => { onSelectQuestion(q); onPreviewModal(q); }}
+                          title="Xem trước" aria-label={`Xem trước câu hỏi ${q.code || q.id}`}
+                          className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-[#183B69] hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600">
                           <Eye className="w-4 h-4" />
                         </button>
-
-                        {!isTrashView ? (
-                          <>
-                            {/* Chỉnh sửa */}
-                            <button
-                              type="button"
-                              onClick={() => onEditQuestion(q)}
-                              title="Chỉnh sửa"
-                              className="p-1.5 rounded-md text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-
-                            {/* Gửi kiểm duyệt nếu là draft hoặc rejected */}
-                            {(q.status === 'draft' || q.status === 'rejected') && (
-                              <button
-                                type="button"
-                                onClick={() => onSubmitReview(q)}
-                                title="Gửi kiểm duyệt"
-                                className="p-1.5 rounded-md text-amber-600 hover:bg-amber-50 transition-colors"
-                              >
-                                <Send className="w-4 h-4" />
-                              </button>
-                            )}
-
-                            {/* Phê duyệt nhanh nếu đang in_review hoặc in-review */}
-                            {(q.status === 'in_review' || q.status === 'in-review') && (
+                        <details className="relative group">
+                          <summary aria-label={`Thao tác câu hỏi ${q.code || q.id}`}
+                            className="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 [&::-webkit-details-marker]:hidden">
+                            <MoreHorizontal className="w-5 h-5" />
+                          </summary>
+                          <div className="absolute right-0 top-full z-30 mt-1 min-w-[190px] rounded-xl border border-slate-200 bg-white p-1.5 text-left shadow-xl">
+                            {!isTrashView ? (
                               <>
-                                <button
-                                  type="button"
-                                  onClick={() => onApproveQuestion(q)}
-                                  title="Phê duyệt"
-                                  className="p-1.5 rounded-md text-emerald-600 hover:bg-emerald-50 transition-colors"
-                                >
-                                  <CheckCircle2 className="w-4 h-4" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => onRejectQuestion(q)}
-                                  title="Từ chối"
-                                  className="p-1.5 rounded-md text-rose-600 hover:bg-rose-50 transition-colors"
-                                >
-                                  <XCircle className="w-4 h-4" />
-                                </button>
+                                <button type="button" onClick={() => onEditQuestion(q)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm hover:bg-slate-100"><Edit2 className="w-4 h-4" /> Chỉnh sửa</button>
+                                {(q.status === 'draft' || q.status === 'rejected') && <button type="button" onClick={() => onSubmitReview(q)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm hover:bg-amber-50"><Send className="w-4 h-4" /> Gửi duyệt</button>}
+                                {(q.status === 'in_review' || q.status === 'in-review') && (
+                                  <>
+                                    <button type="button" onClick={() => onApproveQuestion(q)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm hover:bg-emerald-50"><CheckCircle2 className="w-4 h-4" /> Phê duyệt</button>
+                                    <button type="button" onClick={() => onRejectQuestion(q)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm hover:bg-rose-50"><XCircle className="w-4 h-4" /> Từ chối</button>
+                                  </>
+                                )}
+                                {q.status === 'approved' && <button type="button" onClick={() => onPublishQuestion(q)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm hover:bg-emerald-50"><Globe className="w-4 h-4" /> Xuất bản</button>}
+                                {q.status === 'published' && <button type="button" onClick={() => onUnpublishQuestion(q)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm hover:bg-amber-50"><Undo2 className="w-4 h-4" /> Gỡ xuất bản</button>}
+                                <button type="button" onClick={() => onDeleteQuestion(q)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm text-rose-700 hover:bg-rose-50"><Trash2 className="w-4 h-4" /> Xóa câu hỏi</button>
                               </>
-                            )}
-
-                            {/* Xuất bản nếu đang approved */}
-                            {q.status === 'approved' && (
-                              <button
-                                type="button"
-                                onClick={() => onPublishQuestion(q)}
-                                title="Xuất bản"
-                                className="p-1.5 rounded-md text-emerald-600 hover:bg-emerald-50 transition-colors"
-                              >
-                                <Globe className="w-4 h-4" />
-                              </button>
-                            )}
-
-                            {/* Gỡ xuất bản nếu đang published */}
-                            {q.status === 'published' && (
-                              <button
-                                type="button"
-                                onClick={() => onUnpublishQuestion(q)}
-                                title="Gỡ xuất bản"
-                                className="p-1.5 rounded-md text-slate-500 hover:text-amber-600 hover:bg-amber-50 transition-colors"
-                              >
-                                <Undo2 className="w-4 h-4" />
-                              </button>
-                            )}
-
-                            {/* Xóa mềm */}
-                            <button
-                              type="button"
-                              onClick={() => onDeleteQuestion(q)}
-                              title="Xóa mềm"
-                              className="p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </>
-                        ) : (
-                          // Trong thùng rác: nút Phục hồi
-                          <button
-                            type="button"
-                            onClick={() => onRestoreQuestion(q)}
-                            title="Khôi phục"
-                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded border border-emerald-200 transition-colors"
-                          >
-                            <RotateCcw className="w-3.5 h-3.5" />
-                            Khôi phục
-                          </button>
-                        )}
+                            ) : <button type="button" onClick={() => onRestoreQuestion(q)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm text-emerald-700 hover:bg-emerald-50"><RotateCcw className="w-4 h-4" /> Khôi phục</button>}
+                          </div>
+                        </details>
                       </div>
                     </td>
                   </tr>
