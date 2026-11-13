@@ -273,7 +273,7 @@ public class QuestionBankIntegrationTests : IClassFixture<StudyAIApiFixture>
     }
 
     [Fact]
-    public async Task Strict_Copyright_Gate_Blocks_VNHSGE_Unverified_Publishing_And_Enforces_Server_Metadata()
+    public async Task VNHSGE_Dataset_Curated_By_Content_Role_And_Enforces_Server_Metadata()
     {
         var token = await GetTokenAsync("content@studyai.internal", "Content@123456");
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -329,12 +329,22 @@ public class QuestionBankIntegrationTests : IClassFixture<StudyAIApiFixture>
         Assert.Equal("draft", qItem!.Status);
         Assert.Equal("pending_verification", qItem.CopyrightStatus);
         Assert.Equal("vnhsge", qItem.SourceType);
+        Assert.Contains("arXiv:2305.12199", qItem.CopyrightProofRef);
 
-        // 4. Server-Side Hard Gate: Attempting to publish an unverified VNHSGE question is strictly forbidden (403)
+        // 4. Client cannot bypass approval by sending status='published' directly via patch
+        var bypassPatchRes = await _client.PatchAsJsonAsync($"/api/v1/content/questions/{importedId}", new UpdateQuestionRequestDto
+        {
+            Status = "published"
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, bypassPatchRes.StatusCode);
+
+        // 5. Role Content has final editorial authority and CAN curate/publish the VNHSGE question in test DB
         var pubRes = await _client.PostAsync($"/api/v1/content/questions/{importedId}/publish", null);
-        Assert.Equal(HttpStatusCode.Forbidden, pubRes.StatusCode);
-        var pubErr = await pubRes.Content.ReadAsStringAsync();
-        Assert.Contains("BẢN QUYỀN", pubErr);
+        Assert.Equal(HttpStatusCode.OK, pubRes.StatusCode);
+        var publishedItem = await pubRes.Content.ReadFromJsonAsync<ContentQuestionItemDto>();
+        Assert.NotNull(publishedItem);
+        Assert.Equal("published", publishedItem.Status);
+        Assert.Equal("vnhsge", publishedItem.SourceType);
     }
 
     [Fact]

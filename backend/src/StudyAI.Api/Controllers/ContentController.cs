@@ -1104,7 +1104,21 @@ public class ContentController : ControllerBase
         if (req.Difficulty != null) question.Difficulty = req.Difficulty.Trim();
         if (req.Type != null) question.Type = req.Type.Trim();
         if (req.Grade != null) question.Grade = req.Grade.Trim();
-        if (req.Status != null) question.Status = req.Status.Trim();
+        if (req.Status != null)
+        {
+            var targetStatus = req.Status.Trim().ToLowerInvariant();
+            if (targetStatus == "published" || targetStatus == "approved")
+            {
+                return BadRequest(new
+                {
+                    detail = "Không thể trực tiếp thay đổi trạng thái sang 'published' hoặc 'approved' qua cập nhật thông thường. Vui lòng sử dụng quy trình phê duyệt (/approve) hoặc xuất bản (/publish) của vai trò Content."
+                });
+            }
+            else
+            {
+                question.Status = targetStatus;
+            }
+        }
         if (req.OrderIndex.HasValue) question.OrderIndex = req.OrderIndex.Value;
         if (req.LessonId != null) question.LessonId = req.LessonId;
         if (req.SubjectId != null) question.SubjectId = req.SubjectId;
@@ -1344,15 +1358,6 @@ public class ContentController : ControllerBase
 
         if (question == null)
             return NotFound(new { detail = "Câu hỏi không tồn tại." });
-
-        // Server-Side Copyright Gate: Unverified external/VNHSGE dataset items cannot be published to live learners
-        if (question.SourceType == "vnhsge" && question.CopyrightStatus != "verified")
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, new
-            {
-                detail = "BẢN QUYỀN: Bộ câu hỏi VNHSGE chưa được xác minh giấy phép thương mại/phát hành công khai từ phía máy chủ (CopyrightStatus != 'verified'). Không được phép xuất bản cho học viên làm bài thi."
-            });
-        }
 
         question.Status = "published";
         question.UpdatedAt = DateTimeOffset.UtcNow;

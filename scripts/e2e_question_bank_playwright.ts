@@ -400,8 +400,8 @@ async function run() {
     }
     reports.push({ id: 18, name: 'Zero Leak of Unsubmitted Answers', status: 'PASS', durationMs: Date.now() - sTime })
 
-    // SCENARIO 19: VNHSGE Copyright Hard Gate (403 on Publish)
-    console.log('\n--- Scenario 19: VNHSGE Copyright Hard Gate ---')
+    // SCENARIO 19: VNHSGE Content Curation & Unblocked Publishing in E2E
+    console.log('\n--- Scenario 19: VNHSGE Content Curation & Publishing ---')
     sTime = Date.now()
     const contentLoginRes = await fetch(`${BACKEND_URL}/api/v1/auth/login`, {
       method: 'POST',
@@ -410,25 +410,42 @@ async function run() {
     })
     const contentToken = (await contentLoginRes.json()).accessToken
 
-    // Find any VNHSGE question ID from the database
-    const vnhsgeListRes = await fetch(`${BACKEND_URL}/api/v1/content/questions?sourceType=vnhsge&pageSize=1`, {
+    // Find any VNHSGE draft question ID from the database
+    const vnhsgeListRes = await fetch(`${BACKEND_URL}/api/v1/content/questions?sourceType=vnhsge&status=draft&pageSize=1`, {
       headers: { Authorization: `Bearer ${contentToken}` },
     })
     const vnhsgeList = await vnhsgeListRes.json()
     if (vnhsgeList.items.length > 0) {
       const vnhsgeId = vnhsgeList.items[0].id
-      const publishBlockRes = await fetch(`${BACKEND_URL}/api/v1/content/questions/${vnhsgeId}/publish`, {
+
+      // 1. Client cannot bypass approval by sending status='published' directly via patch
+      const patchBypassRes = await fetch(`${BACKEND_URL}/api/v1/content/questions/${vnhsgeId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${contentToken}`,
+        },
+        body: JSON.stringify({ status: 'published' }),
+      })
+      if (patchBypassRes.status !== 400) {
+        throw new Error(`Expected 400 Bad Request when attempting to bypass review via PATCH, got ${patchBypassRes.status}`)
+      }
+
+      // 2. Role content CAN curate and publish the VNHSGE question via /publish endpoint
+      const publishRes = await fetch(`${BACKEND_URL}/api/v1/content/questions/${vnhsgeId}/publish`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${contentToken}` },
       })
-      if (publishBlockRes.status !== 403) {
-        throw new Error(`Expected 403 Forbidden when publishing unverified VNHSGE question, got ${publishBlockRes.status}`)
+      if (publishRes.status !== 200) {
+        const errText = await publishRes.text()
+        throw new Error(`Expected 200 OK when publishing VNHSGE question as role content, got ${publishRes.status}: ${errText}`)
       }
-      const errText = await publishBlockRes.text()
-      if (!errText.includes('BẢN QUYỀN')) throw new Error('Expected copyright notice in error response')
-      console.log('Server-side copyright gate successfully blocked publishing unverified VNHSGE question!')
+      const pubData = await publishRes.json()
+      if (pubData.status !== 'published') throw new Error(`Expected status to be published, got ${pubData.status}`)
+      if (pubData.sourceType !== 'vnhsge') throw new Error(`Expected sourceType to remain vnhsge, got ${pubData.sourceType}`)
+      console.log('Role content successfully curated and published VNHSGE question with full provenance preserved!')
     }
-    reports.push({ id: 19, name: 'VNHSGE Server-Side Copyright Hard Gate', status: 'PASS', durationMs: Date.now() - sTime })
+    reports.push({ id: 19, name: 'VNHSGE Content Curation & Unblocked Publishing', status: 'PASS', durationMs: Date.now() - sTime })
 
     // SCENARIO 20: Database Safety & Primary DB Zero-Write Check
     console.log('\n--- Scenario 20: Database Safety Guard & StudyAIDb Untouched Check ---')
