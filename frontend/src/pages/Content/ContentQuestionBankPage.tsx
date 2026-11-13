@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import {
   Plus,
   Search,
@@ -80,26 +80,40 @@ export const ContentQuestionBankPage: React.FC = () => {
     setTimeout(() => setToastMessage(null), 3500)
   }
 
-  // Fetch Stats & Subjects & Lessons
-  const fetchMetadata = useCallback(async () => {
-    try {
-      const [subs, st] = await Promise.all([
-        educationService.getSubjects(),
-        contentQuestionBankService.getStatistics(),
-      ])
-      setSubjects(subs)
-      setStats(st)
-    } catch (err: any) {
-      console.error('Failed to load metadata:', err)
+  const [refreshToken, setRefreshToken] = useState(0)
+
+  const refreshData = () => {
+    setLoading(true)
+    setRefreshToken((prev) => prev + 1)
+  }
+
+  // Fetch Stats & Subjects
+  useEffect(() => {
+    let active = true
+    Promise.all([
+      educationService.getSubjects(),
+      contentQuestionBankService.getStatistics(),
+    ])
+      .then(([subs, st]) => {
+        if (active) {
+          setSubjects(subs)
+          setStats(st)
+        }
+      })
+      .catch((err: any) => {
+        console.error('Failed to load metadata:', err)
+      })
+
+    return () => {
+      active = false
     }
-  }, [])
+  }, [refreshToken])
 
   // Fetch Questions
-  const fetchQuestions = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const res = await contentQuestionBankService.getQuestions({
+  useEffect(() => {
+    let active = true
+    contentQuestionBankService
+      .getQuestions({
         subjectId: subjectFilter,
         grade: gradeFilter,
         difficulty: difficultyFilter,
@@ -111,12 +125,22 @@ export const ContentQuestionBankPage: React.FC = () => {
         page,
         pageSize,
       })
-      setQuestions(res.items)
-      setTotalQuestions(res.total)
-    } catch (err: any) {
-      setError(err?.message || 'Không thể tải danh sách câu hỏi.')
-    } finally {
-      setLoading(false)
+      .then((res) => {
+        if (active) {
+          setQuestions(res.items)
+          setTotalQuestions(res.total)
+          setLoading(false)
+        }
+      })
+      .catch((err: any) => {
+        if (active) {
+          setError(err?.message || 'Không thể tải danh sách câu hỏi.')
+          setLoading(false)
+        }
+      })
+
+    return () => {
+      active = false
     }
   }, [
     subjectFilter,
@@ -129,28 +153,7 @@ export const ContentQuestionBankPage: React.FC = () => {
     showDeleted,
     page,
     pageSize,
-  ])
-
-  useEffect(() => {
-    fetchMetadata()
-  }, [fetchMetadata])
-
-  useEffect(() => {
-    fetchQuestions()
-  }, [fetchQuestions])
-
-  // Reset page when filter changes
-  useEffect(() => {
-    setPage(1)
-  }, [
-    search,
-    subjectFilter,
-    gradeFilter,
-    difficultyFilter,
-    typeFilter,
-    statusFilter,
-    sourceFilter,
-    showDeleted,
+    refreshToken,
   ])
 
   // Open Create Dialog
@@ -259,8 +262,7 @@ export const ContentQuestionBankPage: React.FC = () => {
       }
 
       setFormOpen(false)
-      fetchQuestions()
-      fetchMetadata()
+      refreshData()
     } catch (err: any) {
       setFormError(err?.message || 'Có lỗi xảy ra khi lưu câu hỏi.')
     } finally {
@@ -274,8 +276,7 @@ export const ContentQuestionBankPage: React.FC = () => {
     try {
       await contentQuestionBankService.deleteQuestion(id)
       showToast('Đã chuyển câu hỏi vào thùng rác.')
-      fetchQuestions()
-      fetchMetadata()
+      refreshData()
     } catch (err: any) {
       alert(err?.message || 'Không thể xóa câu hỏi.')
     }
@@ -285,8 +286,7 @@ export const ContentQuestionBankPage: React.FC = () => {
     try {
       await contentQuestionBankService.restoreQuestion(id)
       showToast('Đã khôi phục câu hỏi thành công!')
-      fetchQuestions()
-      fetchMetadata()
+      refreshData()
     } catch (err: any) {
       alert(err?.message || 'Không thể khôi phục câu hỏi.')
     }
@@ -296,8 +296,7 @@ export const ContentQuestionBankPage: React.FC = () => {
     try {
       await contentQuestionBankService.submitReview(id)
       showToast('Đã gửi câu hỏi vào hàng đợi kiểm duyệt.')
-      fetchQuestions()
-      fetchMetadata()
+      refreshData()
     } catch (err: any) {
       alert(err?.message || 'Lỗi khi gửi kiểm duyệt.')
     }
@@ -307,8 +306,7 @@ export const ContentQuestionBankPage: React.FC = () => {
     try {
       await contentQuestionBankService.approveQuestion(id)
       showToast('Đã phê duyệt câu hỏi thành công!')
-      fetchQuestions()
-      fetchMetadata()
+      refreshData()
     } catch (err: any) {
       alert(err?.message || 'Lỗi khi phê duyệt.')
     }
@@ -318,8 +316,7 @@ export const ContentQuestionBankPage: React.FC = () => {
     try {
       await contentQuestionBankService.publishQuestion(id)
       showToast('Đã xuất bản câu hỏi thành công!')
-      fetchQuestions()
-      fetchMetadata()
+      refreshData()
     } catch (err: any) {
       alert(err?.message || 'Lỗi khi xuất bản.')
     }
@@ -329,8 +326,7 @@ export const ContentQuestionBankPage: React.FC = () => {
     try {
       await contentQuestionBankService.unpublishQuestion(id)
       showToast('Đã gỡ xuất bản câu hỏi.')
-      fetchQuestions()
-      fetchMetadata()
+      refreshData()
     } catch (err: any) {
       alert(err?.message || 'Lỗi khi gỡ xuất bản.')
     }
@@ -348,8 +344,7 @@ export const ContentQuestionBankPage: React.FC = () => {
       showToast('Đã từ chối câu hỏi kèm lý do.')
       setRejectItem(null)
       setRejectReason('')
-      fetchQuestions()
-      fetchMetadata()
+      refreshData()
     } catch (err: any) {
       alert(err?.message || 'Lỗi khi từ chối.')
     }
@@ -438,7 +433,10 @@ export const ContentQuestionBankPage: React.FC = () => {
               type="text"
               placeholder="Tìm theo nội dung, mã câu hỏi, chủ đề..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value)
+                setPage(1)
+              }}
               style={{
                 width: '100%',
                 height: '34px',
@@ -455,7 +453,10 @@ export const ContentQuestionBankPage: React.FC = () => {
           {/* Subject Filter */}
           <select
             value={subjectFilter}
-            onChange={(e) => setSubjectFilter(e.target.value)}
+            onChange={(e) => {
+              setSubjectFilter(e.target.value)
+              setPage(1)
+            }}
             style={{ height: '34px', padding: '0 10px', fontSize: '13px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
           >
             <option value="all">Tất cả môn học</option>
@@ -469,7 +470,10 @@ export const ContentQuestionBankPage: React.FC = () => {
           {/* Grade Filter */}
           <select
             value={gradeFilter}
-            onChange={(e) => setGradeFilter(e.target.value)}
+            onChange={(e) => {
+              setGradeFilter(e.target.value)
+              setPage(1)
+            }}
             style={{ height: '34px', padding: '0 10px', fontSize: '13px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
           >
             <option value="all">Tất cả khối lớp</option>
@@ -481,7 +485,10 @@ export const ContentQuestionBankPage: React.FC = () => {
           {/* Difficulty Filter */}
           <select
             value={difficultyFilter}
-            onChange={(e) => setDifficultyFilter(e.target.value)}
+            onChange={(e) => {
+              setDifficultyFilter(e.target.value)
+              setPage(1)
+            }}
             style={{ height: '34px', padding: '0 10px', fontSize: '13px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
           >
             <option value="all">Tất cả độ khó</option>
@@ -497,7 +504,10 @@ export const ContentQuestionBankPage: React.FC = () => {
           {/* Type Filter */}
           <select
             value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
+            onChange={(e) => {
+              setTypeFilter(e.target.value)
+              setPage(1)
+            }}
             style={{ height: '34px', padding: '0 10px', fontSize: '13px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
           >
             <option value="all">Tất cả dạng câu hỏi</option>
@@ -511,7 +521,10 @@ export const ContentQuestionBankPage: React.FC = () => {
           {/* Status Filter */}
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={(e) => {
+              setStatusFilter(e.target.value)
+              setPage(1)
+            }}
             style={{ height: '34px', padding: '0 10px', fontSize: '13px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
           >
             <option value="all">Tất cả trạng thái</option>
@@ -525,7 +538,10 @@ export const ContentQuestionBankPage: React.FC = () => {
           {/* Source Filter */}
           <select
             value={sourceFilter}
-            onChange={(e) => setSourceFilter(e.target.value)}
+            onChange={(e) => {
+              setSourceFilter(e.target.value)
+              setPage(1)
+            }}
             style={{ height: '34px', padding: '0 10px', fontSize: '13px', border: '1px solid #cbd5e1', borderRadius: '6px' }}
           >
             <option value="all">Mọi nguồn</option>
@@ -548,6 +564,7 @@ export const ContentQuestionBankPage: React.FC = () => {
               setStatusFilter('all')
               setSourceFilter('all')
               setShowDeleted(false)
+              setPage(1)
             }}
           >
             <RotateCcw size={14} />
@@ -569,7 +586,7 @@ export const ContentQuestionBankPage: React.FC = () => {
           <div style={{ padding: '32px', textAlign: 'center', color: '#dc2626' }}>
             <AlertCircle size={32} style={{ margin: '0 auto 8px' }} />
             <p>{error}</p>
-            <button type="button" className="staff-btn staff-btn-secondary" onClick={fetchQuestions}>
+            <button type="button" className="staff-btn staff-btn-secondary" onClick={refreshData}>
               Thử lại
             </button>
           </div>

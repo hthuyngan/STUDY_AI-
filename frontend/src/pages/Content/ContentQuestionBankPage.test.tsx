@@ -3,7 +3,6 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { ContentQuestionBankPage } from './ContentQuestionBankPage'
 import { contentQuestionBankService } from '@/services/contentQuestionBank.service'
-import { educationService } from '@/services/education.service'
 
 vi.mock('@/auth/useAuth', () => ({
   useAuth: () => ({

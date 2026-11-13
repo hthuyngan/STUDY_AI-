@@ -273,12 +273,12 @@ public class QuestionBankIntegrationTests : IClassFixture<StudyAIApiFixture>
     }
 
     [Fact]
-    public async Task Strict_Copyright_Gate_Blocks_VNHSGE_Real_Import_Without_Verified_Proof()
+    public async Task Strict_Copyright_Gate_Blocks_VNHSGE_Unverified_Publishing_And_Enforces_Server_Metadata()
     {
         var token = await GetTokenAsync("content@studyai.internal", "Content@123456");
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-        // Dry run is allowed for VNHSGE structure validation
+        // 1. Dry run is allowed for VNHSGE structure validation
         var dryRunReq = new QuestionImportBatchRequestDto
         {
             SourceType = "vnhsge",
@@ -300,12 +300,11 @@ public class QuestionBankIntegrationTests : IClassFixture<StudyAIApiFixture>
         Assert.Equal(1, dryResult.ValidItems);
         Assert.Empty(dryResult.ImportedIds); // Zero writes in dry run
 
-        // Real import without backend-verified proof is STRICTLY BLOCKED
+        // 2. Real import into test DB succeeds with server-side copyright enforcement (status='draft', copyrightStatus='pending_verification')
         var realImportReq = new QuestionImportBatchRequestDto
         {
             SourceType = "vnhsge",
             DryRun = false,
-            LicenseProofRef = "unverified_client_string",
             Items = new List<QuestionImportItemDto>
             {
                 new()
@@ -317,9 +316,70 @@ public class QuestionBankIntegrationTests : IClassFixture<StudyAIApiFixture>
             }
         };
         var realImportRes = await _client.PostAsJsonAsync("/api/v1/content/questions/import", realImportReq);
-        Assert.Equal(HttpStatusCode.BadRequest, realImportRes.StatusCode);
-        var errBody = await realImportRes.Content.ReadAsStringAsync();
-        Assert.Contains("BẢN QUYỀN", errBody);
+        Assert.Equal(HttpStatusCode.OK, realImportRes.StatusCode);
+        var realResult = await realImportRes.Content.ReadFromJsonAsync<QuestionImportResultDto>();
+        Assert.NotNull(realResult);
+        Assert.Single(realResult.ImportedIds);
+        var importedId = realResult.ImportedIds.First();
+
+        // 3. Verify server-controlled metadata
+        var getRes = await _client.GetAsync($"/api/v1/content/questions/{importedId}");
+        Assert.Equal(HttpStatusCode.OK, getRes.StatusCode);
+        var qItem = await getRes.Content.ReadFromJsonAsync<ContentQuestionItemDto>();
+        Assert.Equal("draft", qItem!.Status);
+        Assert.Equal("pending_verification", qItem.CopyrightStatus);
+        Assert.Equal("vnhsge", qItem.SourceType);
+
+        // 4. Server-Side Hard Gate: Attempting to publish an unverified VNHSGE question is strictly forbidden (403)
+        var pubRes = await _client.PostAsync($"/api/v1/content/questions/{importedId}/publish", null);
+        Assert.Equal(HttpStatusCode.Forbidden, pubRes.StatusCode);
+        var pubErr = await pubRes.Content.ReadAsStringAsync();
+        Assert.Contains("BẢN QUYỀN", pubErr);
+    }
+
+    [Fact]
+    public async Task RBAC_Content_Primacy_Admin_And_Learner_Cannot_Approve_Or_Publish_Questions()
+    {
+        // 1. Content creates question and submits for review
+        var contentToken = await GetTokenAsync("content@studyai.internal", "Content@123456");
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+
+        var createRes = await _client.PostAsJsonAsync("/api/v1/content/questions", new CreateQuestionRequestDto
+        {
+            Prompt = $"Content Primacy Test Question {Guid.NewGuid():N}",
+            Options = new List<string> { "A", "B", "C", "D" },
+            CorrectAnswer = "A",
+            Status = "draft"
+        });
+        Assert.Equal(HttpStatusCode.Created, createRes.StatusCode);
+        var qItem = await createRes.Content.ReadFromJsonAsync<ContentQuestionItemDto>();
+        var qId = qItem!.Id;
+
+        await _client.PostAsync($"/api/v1/content/questions/{qId}/submit-review", null);
+
+        // 2. Admin attempts to approve question -> 403 Forbidden (Content Primacy)
+        var adminToken = await GetTokenAsync("admin@studyai.internal", "Admin@123456");
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+
+        var adminApproveRes = await _client.PostAsync($"/api/v1/content/questions/{qId}/approve", null);
+        Assert.Equal(HttpStatusCode.Forbidden, adminApproveRes.StatusCode);
+
+        var adminPublishRes = await _client.PostAsync($"/api/v1/content/questions/{qId}/publish", null);
+        Assert.Equal(HttpStatusCode.Forbidden, adminPublishRes.StatusCode);
+
+        // 3. Learner attempts to approve question -> 403 Forbidden
+        var learnerToken = await GetTokenAsync("learner@studyai.internal", "Learner@123456");
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", learnerToken);
+
+        var learnerApproveRes = await _client.PostAsync($"/api/v1/content/questions/{qId}/approve", null);
+        Assert.Equal(HttpStatusCode.Forbidden, learnerApproveRes.StatusCode);
+
+        // 4. Content Specialist approves question -> 200 OK (Sole authority)
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        var contentApproveRes = await _client.PostAsync($"/api/v1/content/questions/{qId}/approve", null);
+        Assert.Equal(HttpStatusCode.OK, contentApproveRes.StatusCode);
+        var approvedItem = await contentApproveRes.Content.ReadFromJsonAsync<ContentQuestionItemDto>();
+        Assert.Equal("approved", approvedItem!.Status);
     }
 
     [Fact]

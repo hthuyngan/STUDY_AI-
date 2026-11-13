@@ -1241,6 +1241,14 @@ public class ContentController : ControllerBase
     [HttpPost("questions/{questionId}/approve")]
     public async Task<IActionResult> ApproveQuestion(string questionId)
     {
+        if (!User.IsInRole("content"))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                detail = "QUYỀN PHÊ DUYỆT: Role 'content' là người có thẩm quyền phê duyệt nội dung giáo dục cuối cùng. Admin hoặc vai trò khác không được phép phê duyệt câu hỏi."
+            });
+        }
+
         var question = await _db.ContentQuestions
             .Include(q => q.Author)
             .Include(q => q.Lesson)
@@ -1274,6 +1282,14 @@ public class ContentController : ControllerBase
     [HttpPost("questions/{questionId}/reject")]
     public async Task<IActionResult> RejectQuestion(string questionId, [FromBody] RejectQuestionRequestDto? body = null)
     {
+        if (!User.IsInRole("content"))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                detail = "QUYỀN PHÊ DUYỆT: Role 'content' là người có thẩm quyền từ chối nội dung giáo dục cuối cùng."
+            });
+        }
+
         var question = await _db.ContentQuestions
             .Include(q => q.Author)
             .Include(q => q.Lesson)
@@ -1311,6 +1327,14 @@ public class ContentController : ControllerBase
     [HttpPost("questions/{questionId}/publish")]
     public async Task<IActionResult> PublishQuestion(string questionId)
     {
+        if (!User.IsInRole("content"))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                detail = "QUYỀN PHÊ DUYỆT: Role 'content' là người có thẩm quyền xuất bản nội dung giáo dục cuối cùng."
+            });
+        }
+
         var question = await _db.ContentQuestions
             .Include(q => q.Author)
             .Include(q => q.Lesson)
@@ -1320,6 +1344,15 @@ public class ContentController : ControllerBase
 
         if (question == null)
             return NotFound(new { detail = "Câu hỏi không tồn tại." });
+
+        // Server-Side Copyright Gate: Unverified external/VNHSGE dataset items cannot be published to live learners
+        if (question.SourceType == "vnhsge" && question.CopyrightStatus != "verified")
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                detail = "BẢN QUYỀN: Bộ câu hỏi VNHSGE chưa được xác minh giấy phép thương mại/phát hành công khai từ phía máy chủ (CopyrightStatus != 'verified'). Không được phép xuất bản cho học viên làm bài thi."
+            });
+        }
 
         question.Status = "published";
         question.UpdatedAt = DateTimeOffset.UtcNow;
@@ -1342,6 +1375,14 @@ public class ContentController : ControllerBase
     [HttpPost("questions/{questionId}/unpublish")]
     public async Task<IActionResult> UnpublishQuestion(string questionId)
     {
+        if (!User.IsInRole("content"))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                detail = "QUYỀN PHÊ DUYỆT: Role 'content' là người có thẩm quyền gỡ xuất bản nội dung giáo dục."
+            });
+        }
+
         var question = await _db.ContentQuestions
             .Include(q => q.Author)
             .Include(q => q.Lesson)
@@ -1380,23 +1421,19 @@ public class ContentController : ControllerBase
         var batchId = $"batch_{Guid.NewGuid():N}"[..18];
         var sourceType = (req.SourceType ?? "manual").Trim().ToLowerInvariant();
 
-        if (sourceType == "vnhsge" && !req.DryRun)
-        {
-            if (string.IsNullOrWhiteSpace(req.LicenseProofRef) || req.LicenseProofRef != "LIC-VNHSGE-OFFICIAL-VERIFIED")
-            {
-                return BadRequest(new
-                {
-                    detail = "BẢN QUYỀN: Bộ dữ liệu VNHSGE thật chưa có bằng chứng cấp phép bản quyền được hệ thống backend xác nhận. Chỉ cho phép kiểm tra cấu trúc (dry-run)."
-                });
-            }
-        }
+        var isExternalVnhsge = sourceType == "vnhsge" || sourceType == "external_licensed";
+        var copyrightStatus = isExternalVnhsge ? "pending_verification" : "proprietary";
+        var copyrightProofRef = isExternalVnhsge
+            ? "CC-BY-NC-SA-4.0 (arXiv:2305.12199 - Server Controlled License)"
+            : (!string.IsNullOrWhiteSpace(req.LicenseProofRef) ? req.LicenseProofRef.Trim() : "Internal Proprietary");
+        var initialStatus = isExternalVnhsge ? "draft" : (sourceType == "manual" ? "approved" : "draft");
 
         var result = new QuestionImportResultDto
         {
             BatchId = batchId,
             SourceType = sourceType,
             DryRun = req.DryRun,
-            TotalItems = req.Items.Count
+            TotalItems = req.Items?.Count ?? 0
         };
 
         if (req.Items == null || req.Items.Count == 0)
@@ -1404,13 +1441,32 @@ public class ContentController : ControllerBase
             return Ok(result);
         }
 
+        var batchPrompts = req.Items
+            .Where(i => !string.IsNullOrWhiteSpace(i.Prompt))
+            .Select(i => i.Prompt.Trim().ToLower())
+            .Distinct()
+            .ToList();
+
+        var batchCodes = req.Items
+            .Where(i => !string.IsNullOrWhiteSpace(i.Code))
+            .Select(i => i.Code!.Trim().ToLower())
+            .Distinct()
+            .ToList();
+
         var existingPrompts = await _db.ContentQuestions
-            .Where(q => !q.IsDeleted)
+            .Where(q => !q.IsDeleted && (batchPrompts.Contains(q.Prompt.ToLower()) || (q.Code != null && batchCodes.Contains(q.Code.ToLower()))))
             .Select(q => q.Prompt.Trim().ToLower())
             .ToListAsync();
 
+        var existingCodes = await _db.ContentQuestions
+            .Where(q => !q.IsDeleted && q.Code != null && batchCodes.Contains(q.Code.ToLower()))
+            .Select(q => q.Code!.Trim().ToLower())
+            .ToListAsync();
+
         var existingPromptSet = new HashSet<string>(existingPrompts, StringComparer.OrdinalIgnoreCase);
+        var existingCodeSet = new HashSet<string>(existingCodes, StringComparer.OrdinalIgnoreCase);
         var seenInBatch = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seenCodesInBatch = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         var validQuestions = new List<ContentQuestion>();
 
@@ -1425,7 +1481,10 @@ public class ContentController : ControllerBase
             }
 
             var promptKey = item.Prompt.Trim().ToLower();
-            if (existingPromptSet.Contains(promptKey) || seenInBatch.Contains(promptKey))
+            var codeKey = !string.IsNullOrWhiteSpace(item.Code) ? item.Code.Trim().ToLower() : null;
+
+            if (existingPromptSet.Contains(promptKey) || seenInBatch.Contains(promptKey) ||
+                (codeKey != null && (existingCodeSet.Contains(codeKey) || seenCodesInBatch.Contains(codeKey))))
             {
                 result.DuplicateItems++;
                 result.Errors.Add($"Bản ghi #{i + 1} ('{item.Prompt[..Math.Min(40, item.Prompt.Length)]}...'): Đã tồn tại trong hệ thống (Duplicate).");
@@ -1433,6 +1492,7 @@ public class ContentController : ControllerBase
             }
 
             seenInBatch.Add(promptKey);
+            if (codeKey != null) seenCodesInBatch.Add(codeKey);
 
             var qType = string.IsNullOrWhiteSpace(item.Type) ? "multiple-choice" : item.Type.ToLowerInvariant();
             if (qType == "multiple-choice" && (item.Options == null || item.Options.Count < 2))
@@ -1441,8 +1501,6 @@ public class ContentController : ControllerBase
                 result.Errors.Add($"Bản ghi #{i + 1}: Câu hỏi trắc nghiệm phải có ít nhất 2 phương án.");
                 continue;
             }
-
-            var initialStatus = (sourceType == "manual") ? "approved" : "draft";
 
             var code = !string.IsNullOrWhiteSpace(item.Code)
                 ? item.Code.Trim()
@@ -1469,8 +1527,8 @@ public class ContentController : ControllerBase
                 SourceType = sourceType,
                 SourceBatchId = batchId,
                 SourceUrl = req.SourceUrl,
-                CopyrightStatus = (sourceType == "vnhsge" || sourceType == "external_licensed") ? "pending_proof" : "proprietary",
-                CopyrightProofRef = req.LicenseProofRef,
+                CopyrightStatus = copyrightStatus,
+                CopyrightProofRef = copyrightProofRef,
                 AuthorId = CurrentUserId,
                 Version = 1,
                 CreatedAt = DateTimeOffset.UtcNow,
@@ -1479,43 +1537,50 @@ public class ContentController : ControllerBase
 
             validQuestions.Add(question);
             result.ValidItems++;
-            result.PreviewItems.Add(FormatQuestion(question));
+            if (result.PreviewItems.Count < 20)
+            {
+                result.PreviewItems.Add(FormatQuestion(question));
+            }
         }
 
         if (!req.DryRun && validQuestions.Count > 0)
         {
-            await using var tx = await _db.Database.BeginTransactionAsync();
-            try
+            var strategy = _db.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
             {
-                await _db.ContentQuestions.AddRangeAsync(validQuestions);
-
-                _db.StaffAuditLogs.Add(new StaffAuditLog
+                await using var tx = await _db.Database.BeginTransactionAsync();
+                try
                 {
-                    Id = $"log_{Guid.NewGuid():N}",
-                    ActorUserId = CurrentUserId,
-                    Action = "questions_batch_imported",
-                    TargetType = "content_question_batch",
-                    TargetId = batchId,
-                    Payload = JsonSerializer.Serialize(new
+                    await _db.ContentQuestions.AddRangeAsync(validQuestions);
+
+                    _db.StaffAuditLogs.Add(new StaffAuditLog
                     {
-                        batchId,
-                        sourceType,
-                        importedCount = validQuestions.Count,
-                        licenseRef = req.LicenseProofRef
-                    }),
-                    CreatedAt = DateTimeOffset.UtcNow
-                });
+                        Id = $"log_{Guid.NewGuid():N}",
+                        ActorUserId = CurrentUserId,
+                        Action = "questions_batch_imported",
+                        TargetType = "content_question_batch",
+                        TargetId = batchId,
+                        Payload = JsonSerializer.Serialize(new
+                        {
+                            batchId,
+                            sourceType,
+                            importedCount = validQuestions.Count,
+                            licenseRef = copyrightProofRef
+                        }),
+                        CreatedAt = DateTimeOffset.UtcNow
+                    });
 
-                await _db.SaveChangesAsync();
-                await tx.CommitAsync();
+                    await _db.SaveChangesAsync();
+                    await tx.CommitAsync();
 
-                result.ImportedIds = validQuestions.Select(q => q.Id).ToList();
-            }
-            catch (Exception ex)
-            {
-                await tx.RollbackAsync();
-                return StatusCode(500, new { detail = $"Lỗi khi lưu dữ liệu nhập: {ex.Message}" });
-            }
+                    result.ImportedIds = validQuestions.Select(q => q.Id).ToList();
+                }
+                catch
+                {
+                    await tx.RollbackAsync();
+                    throw;
+                }
+            });
         }
 
         return Ok(result);
