@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Sparkles,
   CheckCircle,
   AlertCircle,
   Database,
@@ -101,26 +100,12 @@ export const ModernQuestionBankPage: React.FC = () => {
               <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
                 Ngân hàng câu hỏi
               </h1>
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
-                <Sparkles className="w-3 h-3 text-blue-600" />
-                Modern Admin UI
-              </span>
             </div>
             <p className="text-xs sm:text-sm text-slate-500">
               Quản lý toàn bộ câu hỏi ôn luyện, ngân hàng đề VNHSGE và quy trình kiểm duyệt nội dung của vai trò Content.
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={openCreateModal}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-white bg-[#183B69] hover:bg-[#132f54] active:bg-[#0e233f] transition-all duration-150 shadow-sm hover:shadow"
-            >
-              <span className="text-base font-bold leading-none">+</span>
-              Soạn câu hỏi mới
-            </button>
-          </div>
         </div>
 
         {/* Section 1: Real KPI Dashboard Cards */}
@@ -152,15 +137,7 @@ export const ModernQuestionBankPage: React.FC = () => {
               onSelectQuestion={setSelectedQuestion}
               onPreviewModal={setPreviewModalQuestion}
               onEditQuestion={openEditModal}
-              onDeleteQuestion={(q) => {
-                if (typeof window !== 'undefined' && window.confirm) {
-                  if (window.confirm(`Bạn có chắc chắn muốn xóa câu hỏi ${q.code || q.id} không?`)) {
-                    void handleDeleteQuestion(q.id);
-                  }
-                } else {
-                  openDeleteModal(q);
-                }
-              }}
+              onDeleteQuestion={openDeleteModal}
               onRestoreQuestion={(q) => handleRestoreQuestion(q.id)}
               onSubmitReview={(q) => handleSubmitReview(q.id)}
               onApproveQuestion={(q) => handleApproveQuestion(q.id)}
