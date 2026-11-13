@@ -453,8 +453,7 @@ export const educationService = {
   // ── SUBJECTS ───────────────────────────────────────────────
   async getSubjects(): Promise<CurriculumSubjectItem[]> {
     if (getAccessToken()) {
-      {
-        const res = await apiClient.get<{
+      const res = await apiClient.get<{
           items: Array<{
             id: string
             name: string
@@ -483,7 +482,6 @@ export const educationService = {
             updatedAt: s.updatedAt,
           }))
         }
-      }
       throw new Error('API môn học trả dữ liệu không hợp lệ')
     }
     return readStorage<CurriculumSubjectItem[]>(STORAGE_KEYS.SUBJECTS, INITIAL_SUBJECTS)
