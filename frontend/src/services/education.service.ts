@@ -453,7 +453,7 @@ export const educationService = {
   // ── SUBJECTS ───────────────────────────────────────────────
   async getSubjects(): Promise<CurriculumSubjectItem[]> {
     if (getAccessToken()) {
-      try {
+      {
         const res = await apiClient.get<{
           items: Array<{
             id: string
@@ -467,7 +467,7 @@ export const educationService = {
             updatedAt: string
           }>
         }>('/api/v1/content/subjects')
-        if (res?.items && Array.isArray(res.items) && res.items.length > 0) {
+        if (res?.items && Array.isArray(res.items)) {
           return res.items.map((s) => ({
             id: s.id,
             name: s.name,
@@ -483,9 +483,8 @@ export const educationService = {
             updatedAt: s.updatedAt,
           }))
         }
-      } catch {
-        // Fallback to local storage if offline
       }
+      throw new Error('API môn học trả dữ liệu không hợp lệ')
     }
     return readStorage<CurriculumSubjectItem[]>(STORAGE_KEYS.SUBJECTS, INITIAL_SUBJECTS)
   },
