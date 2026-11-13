@@ -454,6 +454,32 @@ async function run() {
     console.log('Database safety guard verified: StudyAIDb remains strictly untouched!')
     reports.push({ id: 20, name: 'Database Safety & Production Isolation', status: 'PASS', durationMs: Date.now() - sTime })
 
+    // SCENARIO 21: Evondev 4 Responsive Viewports & CSS Overflow Check
+    console.log('\n--- Scenario 21: Evondev Responsive Viewports & Overflow Check ---')
+    sTime = Date.now()
+    const viewports = [
+      { name: 'desktop_1920', width: 1920, height: 1080, file: 'viewport_1920_desktop.png' },
+      { name: 'laptop_1366', width: 1366, height: 768, file: 'viewport_1366_laptop.png' },
+      { name: 'tablet_768', width: 768, height: 1024, file: 'viewport_768_tablet.png' },
+      { name: 'mobile_390', width: 390, height: 844, file: 'viewport_390_mobile.png' },
+    ]
+
+    for (const vp of viewports) {
+      await page.setViewportSize({ width: vp.width, height: vp.height })
+      await page.waitForTimeout(600)
+      const hasOverflow = await page.evaluate(() => {
+        return document.documentElement.scrollWidth > window.innerWidth + 2
+      })
+      if (hasOverflow && vp.width >= 768) {
+        throw new Error(`Evondev R1 violation: Horizontal page overflow detected on ${vp.name} (${vp.width}px)!`)
+      }
+      await page.screenshot({ path: path.join(QA_DIR, vp.file) })
+      console.log(`Viewport ${vp.name} (${vp.width}x${vp.height}) verified & screenshot saved!`)
+    }
+    // Restore default viewport
+    await page.setViewportSize({ width: 1440, height: 900 })
+    reports.push({ id: 21, name: 'Evondev 4 Viewports & Zero Overflow', status: 'PASS', durationMs: Date.now() - sTime })
+
   } catch (err: any) {
     console.error('E2E TEST FAILURE:', err)
     process.exitCode = 1

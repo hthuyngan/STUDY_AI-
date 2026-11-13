@@ -452,6 +452,41 @@ function writeStorage<T>(key: string, data: T): void {
 export const educationService = {
   // ── SUBJECTS ───────────────────────────────────────────────
   async getSubjects(): Promise<CurriculumSubjectItem[]> {
+    if (getAccessToken()) {
+      try {
+        const res = await apiClient.get<{
+          items: Array<{
+            id: string
+            name: string
+            code: string
+            grade: string
+            description?: string
+            isActive: boolean
+            chapterCount: number
+            lessonCount: number
+            updatedAt: string
+          }>
+        }>('/api/v1/content/subjects')
+        if (res?.items && Array.isArray(res.items) && res.items.length > 0) {
+          return res.items.map((s) => ({
+            id: s.id,
+            name: s.name,
+            code: s.code,
+            grade: s.grade ? `Lớp ${s.grade}` : 'Lớp 12',
+            icon: s.code.includes('MATH') ? '∑' : s.code.includes('PHYS') ? '⚛' : s.code.includes('CHEM') ? '⚗' : '📚',
+            description: s.description || '',
+            chapterCount: s.chapterCount,
+            lessonCount: s.lessonCount,
+            assessmentCount: 0,
+            publishedPercent: s.isActive ? 100 : 0,
+            status: s.isActive ? 'published' : 'draft',
+            updatedAt: s.updatedAt,
+          }))
+        }
+      } catch {
+        // Fallback to local storage if offline
+      }
+    }
     return readStorage<CurriculumSubjectItem[]>(STORAGE_KEYS.SUBJECTS, INITIAL_SUBJECTS)
   },
 

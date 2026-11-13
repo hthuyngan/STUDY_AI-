@@ -87,6 +87,19 @@ export const ContentQuestionBankPage: React.FC = () => {
     setRefreshToken((prev) => prev + 1)
   }
 
+  // Keyboard Escape handler to close dialogs
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setFormOpen(false)
+        setPreviewItem(null)
+        setRejectItem(null)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
   // Fetch Stats & Subjects
   useEffect(() => {
     let active = true
@@ -254,7 +267,9 @@ export const ContentQuestionBankPage: React.FC = () => {
       }
 
       if (editingItem) {
-        await contentQuestionBankService.updateQuestion(editingItem.id, payload)
+        // Exclude status from direct update payload so moderation workflow endpoints (/approve, /publish) are respected
+        const { status: _status, ...updatePayload } = payload
+        await contentQuestionBankService.updateQuestion(editingItem.id, updatePayload)
         showToast('Đã cập nhật câu hỏi thành công!')
       } else {
         await contentQuestionBankService.createQuestion(payload)
@@ -629,14 +644,14 @@ export const ContentQuestionBankPage: React.FC = () => {
                       </span>
                     </td>
                     <td>
-                      <div style={{ maxHeight: '72px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        <span style={{ fontSize: '13.5px', color: '#0f172a', fontWeight: 500, lineHeight: 1.4 }}>
-                          {q.prompt.length > 120 ? `${q.prompt.slice(0, 120)}...` : q.prompt}
-                        </span>
+                      <div style={{ maxHeight: '72px', overflow: 'hidden', textOverflow: 'ellipsis', overflowWrap: 'break-word' }}>
+                        <div style={{ fontSize: '13.5px', color: '#0f172a', fontWeight: 500, lineHeight: 1.4 }}>
+                          <MathView math={q.prompt.length > 150 ? `${q.prompt.slice(0, 150)}...` : q.prompt} />
+                        </div>
                       </div>
                       {q.explanation && (
-                        <div style={{ marginTop: '4px', fontSize: '12px', color: '#64748b', fontStyle: 'italic' }}>
-                          Lời giải: {q.explanation.slice(0, 70)}...
+                        <div style={{ marginTop: '4px', fontSize: '12px', color: '#64748b', fontStyle: 'italic', overflowWrap: 'break-word' }}>
+                          Lời giải: <MathView math={q.explanation.length > 70 ? `${q.explanation.slice(0, 70)}...` : q.explanation} />
                         </div>
                       )}
                     </td>
@@ -738,6 +753,7 @@ export const ContentQuestionBankPage: React.FC = () => {
                           className="staff-btn staff-btn-secondary"
                           style={{ padding: '0 8px', height: '28px' }}
                           title="Xem trước"
+                          aria-label="Xem trước câu hỏi"
                           onClick={() => setPreviewItem(q)}
                         >
                           <Eye size={13} />
@@ -747,6 +763,7 @@ export const ContentQuestionBankPage: React.FC = () => {
                           className="staff-btn staff-btn-secondary"
                           style={{ padding: '0 8px', height: '28px' }}
                           title="Chỉnh sửa"
+                          aria-label="Chỉnh sửa câu hỏi"
                           onClick={() => handleOpenEdit(q)}
                         >
                           <Edit2 size={13} />
@@ -759,6 +776,7 @@ export const ContentQuestionBankPage: React.FC = () => {
                             className="staff-btn staff-btn-secondary"
                             style={{ padding: '0 8px', height: '28px', color: '#0284c7' }}
                             title="Gửi kiểm duyệt"
+                            aria-label="Gửi kiểm duyệt"
                             onClick={() => handleSubmitReview(q.id)}
                           >
                             <Send size={13} />
@@ -772,6 +790,7 @@ export const ContentQuestionBankPage: React.FC = () => {
                               className="staff-btn staff-btn-secondary"
                               style={{ padding: '0 8px', height: '28px', color: '#16a34a' }}
                               title="Phê duyệt (Content Primacy)"
+                              aria-label="Phê duyệt câu hỏi"
                               onClick={() => handleApprove(q.id)}
                             >
                               <CheckCircle2 size={13} />
@@ -781,6 +800,7 @@ export const ContentQuestionBankPage: React.FC = () => {
                               className="staff-btn staff-btn-secondary"
                               style={{ padding: '0 8px', height: '28px', color: '#dc2626' }}
                               title="Từ chối"
+                              aria-label="Từ chối câu hỏi"
                               onClick={() => setRejectItem(q)}
                             >
                               <XCircle size={13} />
@@ -794,6 +814,7 @@ export const ContentQuestionBankPage: React.FC = () => {
                             className="staff-btn staff-btn-primary"
                             style={{ padding: '0 8px', height: '28px' }}
                             title="Xuất bản"
+                            aria-label="Xuất bản câu hỏi"
                             onClick={() => handlePublish(q.id)}
                           >
                             <Globe size={13} />
@@ -806,6 +827,7 @@ export const ContentQuestionBankPage: React.FC = () => {
                             className="staff-btn staff-btn-secondary"
                             style={{ padding: '0 8px', height: '28px' }}
                             title="Gỡ xuất bản"
+                            aria-label="Gỡ xuất bản câu hỏi"
                             onClick={() => handleUnpublish(q.id)}
                           >
                             <RotateCcw size={13} />
@@ -818,6 +840,7 @@ export const ContentQuestionBankPage: React.FC = () => {
                             className="staff-btn staff-btn-secondary"
                             style={{ padding: '0 8px', height: '28px', color: '#16a34a' }}
                             title="Khôi phục"
+                            aria-label="Khôi phục câu hỏi"
                             onClick={() => handleRestore(q.id)}
                           >
                             <RefreshCw size={13} />
@@ -828,6 +851,7 @@ export const ContentQuestionBankPage: React.FC = () => {
                             className="staff-btn staff-btn-secondary"
                             style={{ padding: '0 8px', height: '28px', color: '#dc2626' }}
                             title="Xóa mềm"
+                            aria-label="Xóa mềm câu hỏi"
                             onClick={() => handleSoftDelete(q.id)}
                           >
                             <Trash2 size={13} />
