@@ -141,3 +141,4 @@ Toàn bộ ảnh chụp màn hình kiểm thử thực tế từ Playwright đư
 ## 8. KẾT LUẬN
 
 Hệ thống Ngân hàng câu hỏi (Question Bank) đã chuyển đổi hoàn toàn sang kết nối API và cơ sở dữ liệu E2E thật, hiển thị đầy đủ bộ dữ liệu VNHSGE, loại bỏ sự phụ thuộc vào mock data ở runtime, đạt chuẩn thiết kế responsive theo Evondev skill và vượt qua 100% các bài kiểm thử nghiêm ngặt.
+

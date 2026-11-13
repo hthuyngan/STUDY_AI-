@@ -152,6 +152,9 @@ async function run() {
           })
 
           const resBody = await fetchRes.arrayBuffer()
+          if (fetchRes.status >= 400) {
+            console.error(`[API ERROR ${fetchRes.status}] ${route.request().method()} ${targetApiUrl}:`, Buffer.from(resBody).toString('utf-8'))
+          }
           await route.fulfill({
             status: fetchRes.status,
             headers: resHeaders,
@@ -169,6 +172,7 @@ async function run() {
     const context = await createRoutedContext()
     const page = await context.newPage()
     page.on('pageerror', (err) => console.error('[Browser PageError]', err))
+    page.on('console', (msg) => console.log('[Browser Console]', msg.text()))
 
     // SCENARIO 1: Content Specialist Login
     console.log('\n--- Scenario 1: Content Specialist Login ---')

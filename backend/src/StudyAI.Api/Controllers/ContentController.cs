@@ -864,7 +864,25 @@ public class ContentController : ControllerBase
             query = query.Where(q => q.LessonId == lessonId);
 
         if (!string.IsNullOrWhiteSpace(subjectId) && subjectId != "all")
-            query = query.Where(q => q.SubjectId == subjectId || (q.Lesson != null && q.Lesson.Chapter != null && q.Lesson.Chapter.SubjectId == subjectId));
+        {
+            var sLower = subjectId.Trim().ToLowerInvariant();
+            query = query.Where(q =>
+                q.SubjectId == subjectId ||
+                (q.Lesson != null && q.Lesson.Chapter != null && q.Lesson.Chapter.SubjectId == subjectId) ||
+                (q.Topic != null && (
+                    q.Topic.ToLower() == sLower ||
+                    (sLower == "math" && q.Topic.ToLower() == "mathematics") ||
+                    (sLower == "physics" && q.Topic.ToLower() == "physics") ||
+                    (sLower == "chemistry" && q.Topic.ToLower() == "chemistry") ||
+                    (sLower == "english" && q.Topic.ToLower() == "english") ||
+                    (sLower == "history" && q.Topic.ToLower() == "history") ||
+                    (sLower == "geography" && q.Topic.ToLower() == "geography") ||
+                    (sLower == "biology" && q.Topic.ToLower() == "biology") ||
+                    (sLower == "civic" && q.Topic.ToLower() == "civiceducation") ||
+                    (sLower == "literature" && (q.Topic.ToLower() == "ngữ văn" || q.Topic.ToLower() == "literature"))
+                ))
+            );
+        }
 
         if (!string.IsNullOrWhiteSpace(chapterId) && chapterId != "all")
             query = query.Where(q => q.ChapterId == chapterId || (q.Lesson != null && q.Lesson.ChapterId == chapterId));
@@ -932,7 +950,7 @@ public class ContentController : ControllerBase
                 .GroupBy(q => string.IsNullOrWhiteSpace(q.Type) ? "multiple-choice" : q.Type)
                 .ToDictionary(g => g.Key, g => g.Count()),
             BySubject = nonDeleted
-                .GroupBy(q => q.Lesson?.Chapter?.Subject?.Name ?? q.SubjectId ?? "Chưa phân loại")
+                .GroupBy(q => ResolveSubjectName(q))
                 .ToDictionary(g => g.Key, g => g.Count()),
             BySource = nonDeleted
                 .GroupBy(q => string.IsNullOrWhiteSpace(q.SourceType) ? "manual" : q.SourceType)
@@ -1629,6 +1647,29 @@ public class ContentController : ControllerBase
         };
     }
 
+    private static string ResolveSubjectName(ContentQuestion q)
+    {
+        var sName = q.Lesson?.Chapter?.Subject?.Name;
+        if (!string.IsNullOrWhiteSpace(sName)) return sName;
+        if (!string.IsNullOrWhiteSpace(q.Topic))
+        {
+            return q.Topic switch
+            {
+                "Mathematics" => "Toán học",
+                "English" => "Tiếng Anh",
+                "History" => "Lịch sử",
+                "Physics" => "Vật lý",
+                "Biology" => "Sinh học",
+                "Chemistry" => "Hóa học",
+                "Geography" => "Địa lý",
+                "CivicEducation" => "Giáo dục công dân",
+                "Ngữ văn" => "Ngữ văn",
+                _ => q.Topic
+            };
+        }
+        return !string.IsNullOrWhiteSpace(q.SubjectId) ? q.SubjectId : "Chưa phân loại";
+    }
+
     private static ContentQuestionItemDto FormatQuestion(ContentQuestion q)
     {
         List<string> options;
@@ -1650,7 +1691,7 @@ public class ContentController : ControllerBase
             ChapterId = q.ChapterId ?? q.Lesson?.ChapterId,
             ChapterTitle = q.Lesson?.Chapter?.Title ?? "",
             SubjectId = q.SubjectId ?? q.Lesson?.Chapter?.SubjectId,
-            SubjectName = q.Lesson?.Chapter?.Subject?.Name ?? "",
+            SubjectName = ResolveSubjectName(q),
             Grade = q.Grade ?? q.Lesson?.Chapter?.Subject?.Grade ?? "",
             Prompt = q.Prompt,
             Options = options,
