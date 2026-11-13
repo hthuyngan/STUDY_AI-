@@ -284,6 +284,18 @@ public class AssignmentsController : ControllerBase
             return NotFound(new { message = "Không tìm thấy bài tập" });
         }
 
+        // Kiểm tra trạng thái bài tập: không cho nộp khi bài đã đóng hoặc lưu trữ
+        if (assignment.Status == "closed" || assignment.Status == "archived")
+        {
+            return BadRequest(new { message = "Bài tập đã đóng hoặc được lưu trữ, không nhận thêm bài nộp" });
+        }
+
+        // Kiểm tra hạn nộp bài tập
+        if (DateTimeOffset.UtcNow > assignment.DueDate)
+        {
+            return BadRequest(new { message = "Hạn nộp bài tập đã kết thúc" });
+        }
+
         // Kiểm tra học sinh có trong lớp không
         if (!IsAdmin)
         {

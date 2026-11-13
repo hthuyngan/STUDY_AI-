@@ -112,11 +112,31 @@ public class StudyAIApiFixture : WebApplicationFactory<Program>
             DbInitializer.BootstrapAdminAsync(db, hasher, "admin@studyai.internal", "Admin@123456", "Integration Test Admin").GetAwaiter().GetResult();
         }
 
-        // Clean up any lingering temporary test admins so admin@studyai.internal is the sole active admin
-        var otherAdmins = db.Users.Where(u => u.Role == "admin" && u.EmailNormalized != "admin@studyai.internal").ToList();
+        // Clean up any lingering temporary test admins so admin@studyai.internal and admin@gmail.com remain active admins
+        var otherAdmins = db.Users.Where(u => u.Role == "admin" 
+            && u.EmailNormalized != "ADMIN@STUDYAI.INTERNAL" 
+            && u.EmailNormalized != "admin@studyai.internal"
+            && u.EmailNormalized != "ADMIN@GMAIL.COM"
+            && u.EmailNormalized != "admin@gmail.com").ToList();
         foreach (var oa in otherAdmins)
         {
             oa.Role = "learner";
+        }
+
+        var adminGmail = db.Users.FirstOrDefault(u => u.EmailNormalized == "ADMIN@GMAIL.COM" || u.EmailNormalized == "admin@gmail.com");
+        if (adminGmail != null)
+        {
+            adminGmail.Role = "admin";
+            adminGmail.Status = "active";
+            adminGmail.PasswordHash = hasher.HashPassword("admin");
+        }
+
+        var contentGmail = db.Users.FirstOrDefault(u => u.EmailNormalized == "CONTENT@GMAIL.COM" || u.EmailNormalized == "content@gmail.com");
+        if (contentGmail != null)
+        {
+            contentGmail.Role = "content";
+            contentGmail.Status = "active";
+            contentGmail.PasswordHash = hasher.HashPassword("Vinh123!@#");
         }
 
         var learner = db.Users.FirstOrDefault(u => u.EmailNormalized == "learner@studyai.internal");

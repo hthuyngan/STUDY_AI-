@@ -196,6 +196,7 @@ public class CurriculumImportController : ControllerBase
             request.PreviewToken,
             CurrentUserId,
             request.AuditNote,
+            request.DryRun,
             cancellationToken);
 
         if (!result.Success)

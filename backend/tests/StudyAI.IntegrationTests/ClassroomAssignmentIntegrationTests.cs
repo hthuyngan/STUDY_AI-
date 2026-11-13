@@ -308,5 +308,127 @@ public class ClassroomAssignmentIntegrationTests : IClassFixture<StudyAIApiFixtu
         var bViewResp = await _client.SendAsync(bViewClassReq);
         Assert.Equal(HttpStatusCode.Forbidden, bViewResp.StatusCode);
     }
+
+    [Fact]
+    public async Task Enrollment_Rejects_Non_Learner_Role_With_BadRequest()
+    {
+        var (teacherToken, _, _) = await CreateAndLoginUserAsync("teacher", "Thầy Chủ Nhiệm");
+        var (otherTeacherToken, otherTeacherId, otherTeacherEmail) = await CreateAndLoginUserAsync("teacher", "Cô Giáo Khác");
+
+        // Create class
+        var classReq = new HttpRequestMessage(HttpMethod.Post, "/api/v1/classrooms")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateClassroomRequestDto
+            {
+                Name = "Lớp Chuyên Sinh",
+                Grade = "12",
+                Subject = "Sinh học"
+            }), Encoding.UTF8, "application/json")
+        };
+        classReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        var classResp = await _client.SendAsync(classReq);
+        var classDto = JsonSerializer.Deserialize<ClassroomDto>(await classResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        // Try enrolling another teacher as student -> 400 BadRequest
+        var enrollTeacherReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/classrooms/{classDto.Id}/students")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new EnrollStudentRequestDto
+            {
+                StudentEmail = otherTeacherEmail
+            }), Encoding.UTF8, "application/json")
+        };
+        enrollTeacherReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        var enrollResp = await _client.SendAsync(enrollTeacherReq);
+        Assert.Equal(HttpStatusCode.BadRequest, enrollResp.StatusCode);
+    }
+
+    [Fact]
+    public async Task Submission_Rejects_Closed_Or_Expired_Assignments()
+    {
+        var (teacherToken, _, _) = await CreateAndLoginUserAsync("teacher", "Thầy Toán");
+        var (learnerToken, learnerId, learnerEmail) = await CreateAndLoginUserAsync("learner", "Học sinh A");
+
+        // 1. Create class & enroll learner
+        var classReq = new HttpRequestMessage(HttpMethod.Post, "/api/v1/classrooms")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateClassroomRequestDto
+            {
+                Name = "Lớp 12 Hóa",
+                Grade = "12",
+                Subject = "Hóa học"
+            }), Encoding.UTF8, "application/json")
+        };
+        classReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        var classResp = await _client.SendAsync(classReq);
+        var classDto = JsonSerializer.Deserialize<ClassroomDto>(await classResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        var enrollReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/classrooms/{classDto.Id}/students")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new EnrollStudentRequestDto { StudentEmail = learnerEmail }), Encoding.UTF8, "application/json")
+        };
+        enrollReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        await _client.SendAsync(enrollReq);
+
+        // 2. Create closed assignment
+        var asgClosedReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/classrooms/{classDto.Id}/assignments")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateAssignmentRequestDto
+            {
+                Title = "Bài tập đã đóng",
+                DueDate = DateTimeOffset.UtcNow.AddDays(2),
+            }), Encoding.UTF8, "application/json")
+        };
+        asgClosedReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        var asgClosedResp = await _client.SendAsync(asgClosedReq);
+        var asgClosedDto = JsonSerializer.Deserialize<AssignmentDto>(await asgClosedResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        // Update status to closed
+        var updateStatusReq = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/assignments/{asgClosedDto.Id}")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new UpdateAssignmentRequestDto
+            {
+                Status = "closed"
+            }), Encoding.UTF8, "application/json")
+        };
+        updateStatusReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        await _client.SendAsync(updateStatusReq);
+
+        // Learner attempt to submit to closed assignment -> 400 BadRequest
+        var submitClosedReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/assignments/{asgClosedDto.Id}/submissions")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateSubmissionRequestDto
+            {
+                Content = "Lời giải bài đã đóng"
+            }), Encoding.UTF8, "application/json")
+        };
+        submitClosedReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", learnerToken);
+        var submitClosedResp = await _client.SendAsync(submitClosedReq);
+        Assert.Equal(HttpStatusCode.BadRequest, submitClosedResp.StatusCode);
+
+        // 3. Create expired assignment (DueDate in the past)
+        var asgExpiredReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/classrooms/{classDto.Id}/assignments")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateAssignmentRequestDto
+            {
+                Title = "Bài tập quá hạn",
+                DueDate = DateTimeOffset.UtcNow.AddHours(-2),
+            }), Encoding.UTF8, "application/json")
+        };
+        asgExpiredReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        var asgExpiredResp = await _client.SendAsync(asgExpiredReq);
+        var asgExpiredDto = JsonSerializer.Deserialize<AssignmentDto>(await asgExpiredResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        // Learner attempt to submit to expired assignment -> 400 BadRequest
+        var submitExpiredReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/assignments/{asgExpiredDto.Id}/submissions")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateSubmissionRequestDto
+            {
+                Content = "Lời giải nộp trễ hạn"
+            }), Encoding.UTF8, "application/json")
+        };
+        submitExpiredReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", learnerToken);
+        var submitExpiredResp = await _client.SendAsync(submitExpiredReq);
+        Assert.Equal(HttpStatusCode.BadRequest, submitExpiredResp.StatusCode);
+    }
 }
 

@@ -43,6 +43,7 @@ export interface CurriculumImportPreviewResponse {
 export interface CurriculumImportConfirmRequest {
   previewToken: string
   auditNote?: string
+  dryRun?: boolean
 }
 
 export interface CurriculumImportConfirmSummary {
@@ -66,6 +67,8 @@ export interface CurriculumImportConfirmResponse {
   actorId: string
   confirmedAt: string
   auditLogId: string
+  isDryRun?: boolean
+  provenance?: string
   summary: CurriculumImportConfirmSummary
   entityCounts: CurriculumImportEntityCounts
   message: string
@@ -81,10 +84,15 @@ export const curriculumImportService = {
     )
   },
 
-  async confirmImport(previewToken: string, auditNote?: string): Promise<CurriculumImportConfirmResponse> {
+  async confirmImport(
+    previewToken: string,
+    auditNote?: string,
+    dryRun: boolean = false
+  ): Promise<CurriculumImportConfirmResponse> {
     const payload: CurriculumImportConfirmRequest = {
       previewToken,
       auditNote: auditNote?.trim() || undefined,
+      dryRun,
     }
     return apiClient.post<CurriculumImportConfirmResponse>(
       '/api/v1/content/import/confirm',

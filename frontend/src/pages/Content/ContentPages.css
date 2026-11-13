@@ -486,3 +486,60 @@
   background-color: rgba(56, 189, 248, 0.1);
   border-color: #38bdf8;
 }
+
+/* ── Evondev Responsive & Mobile Usability Standards ──────────────────────── */
+@media (max-width: 640px) {
+  /* R8: Editable inputs must be >= 16px on mobile to avoid iOS automatic zoom */
+  .staff-input,
+  .staff-form-label input,
+  .staff-form-label select,
+  .staff-form-label textarea,
+  .admin-search-input,
+  .admin-filter-group select,
+  input[type='text'],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* R1: Prevent horizontal scroll by constraining card padding */
+  .staff-card {
+    padding: 12px 14px !important;
+  }
+
+  /* R9: Table container allows horizontal scrolling within bounds */
+  .staff-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+  }
+
+  .staff-table {
+    min-width: 880px;
+  }
+
+  /* Modal responsiveness on small screens */
+  .staff-modal {
+    width: 95% !important;
+    max-height: 92vh !important;
+    margin: auto;
+    border-radius: var(--staff-radius-md, 8px) !important;
+  }
+}
+
+/* KaTeX Formula Overflow Protection */
+.katex-display-wrapper,
+.math-view-display,
+.ai-math-block-container {
+  overflow-x: auto;
+  max-width: 100%;
+  padding: 4px 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.katex-inline-wrapper,
+.math-view-inline {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+

@@ -627,9 +627,28 @@ namespace StudyAI.Infrastructure.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
+                    b.Property<string>("AuthorId")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<string>("ChapterId")
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Code")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("CopyrightProofRef")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("CopyrightStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasDefaultValue("proprietary");
 
                     b.Property<string>("CorrectAnswer")
                         .IsRequired()
@@ -637,6 +656,13 @@ namespace StudyAI.Infrastructure.Migrations
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<string>("Difficulty")
                         .IsRequired()
@@ -648,9 +674,25 @@ namespace StudyAI.Infrastructure.Migrations
                     b.Property<string>("Explanation")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Grade")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("LessonId")
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("MetadataJson")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("OptionsJson")
                         .IsRequired()
@@ -664,6 +706,29 @@ namespace StudyAI.Infrastructure.Migrations
                     b.Property<string>("Prompt")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("ReviewedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("SourceBatchId")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("SourceType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)")
+                        .HasDefaultValue("manual");
+
+                    b.Property<string>("SourceUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -690,13 +755,26 @@ namespace StudyAI.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<int>("Version")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.HasKey("Id");
 
                     b.HasIndex("AssessmentId");
 
+                    b.HasIndex("AuthorId");
+
                     b.HasIndex("ChapterId");
 
+                    b.HasIndex("Code");
+
+                    b.HasIndex("IsDeleted");
+
                     b.HasIndex("LessonId");
+
+                    b.HasIndex("SourceType");
 
                     b.HasIndex("Status");
 
@@ -1175,12 +1253,18 @@ namespace StudyAI.Infrastructure.Migrations
                         .HasForeignKey("AssessmentId")
                         .OnDelete(DeleteBehavior.Cascade);
 
+                    b.HasOne("StudyAI.Domain.Entities.User", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId");
+
                     b.HasOne("StudyAI.Domain.Entities.ContentLesson", "Lesson")
                         .WithMany("Questions")
                         .HasForeignKey("LessonId")
                         .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("Assessment");
+
+                    b.Navigation("Author");
 
                     b.Navigation("Lesson");
                 });

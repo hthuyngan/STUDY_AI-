@@ -25,6 +25,18 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
 
     private async Task<string> GetAdminTokenAsync()
     {
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            var adminUser = await db.Users.FirstOrDefaultAsync(u => u.EmailNormalized == "ADMIN@STUDYAI.INTERNAL" || u.EmailNormalized == "admin@studyai.internal");
+            if (adminUser != null && (adminUser.Role != "admin" || adminUser.Status != "active"))
+            {
+                adminUser.Role = "admin";
+                adminUser.Status = "active";
+                await db.SaveChangesAsync();
+            }
+        }
+
         var loginResp = await _client.PostAsync("/api/v1/auth/login", new StringContent(
             JsonSerializer.Serialize(new UserLoginRequestDto
             {
@@ -267,17 +279,38 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
         var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
         var admin = await db.Users.FirstAsync(u => u.EmailNormalized == "admin@studyai.internal");
 
-        // Attempt to demote sole active admin to learner
-        var req = new HttpRequestMessage(HttpMethod.Patch, $"/api/v1/admin/users/{admin.Id}/role")
+        // Temporarily disable any other active admins so admin@studyai.internal is the sole active admin
+        var otherAdmins = await db.Users.Where(u => u.Role == "admin" && u.Id != admin.Id && u.Status == "active").ToListAsync();
+        foreach (var oa in otherAdmins)
         {
-            Content = new StringContent(JsonSerializer.Serialize(new UpdateRoleRequestDto { Role = "learner" }), Encoding.UTF8, "application/json")
-        };
-        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            oa.Status = "disabled";
+        }
+        await db.SaveChangesAsync();
 
-        var resp = await _client.SendAsync(req);
-        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
-        var body = await resp.Content.ReadAsStringAsync();
-        Assert.Contains("Không thể hủy quyền quản trị viên hoạt động duy nhất", body);
+        try
+        {
+            // Attempt to demote sole active admin to learner
+            var req = new HttpRequestMessage(HttpMethod.Patch, $"/api/v1/admin/users/{admin.Id}/role")
+            {
+                Content = new StringContent(JsonSerializer.Serialize(new UpdateRoleRequestDto { Role = "learner" }), Encoding.UTF8, "application/json")
+            };
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var resp = await _client.SendAsync(req);
+            Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+            var body = await resp.Content.ReadAsStringAsync();
+            Assert.Contains("Không thể hủy quyền quản trị viên hoạt động duy nhất", body);
+        }
+        finally
+        {
+            foreach (var oa in otherAdmins)
+            {
+                oa.Status = "active";
+            }
+            admin.Role = "admin";
+            admin.Status = "active";
+            await db.SaveChangesAsync();
+        }
     }
 
     [Fact]
@@ -289,17 +322,38 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
         var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
         var admin = await db.Users.FirstAsync(u => u.EmailNormalized == "admin@studyai.internal");
 
-        // Attempt to suspend sole active admin
-        var req = new HttpRequestMessage(HttpMethod.Patch, $"/api/v1/admin/users/{admin.Id}/status")
+        // Temporarily disable any other active admins so admin@studyai.internal is the sole active admin
+        var otherAdmins = await db.Users.Where(u => u.Role == "admin" && u.Id != admin.Id && u.Status == "active").ToListAsync();
+        foreach (var oa in otherAdmins)
         {
-            Content = new StringContent(JsonSerializer.Serialize(new UpdateStatusRequestDto { Status = "suspended" }), Encoding.UTF8, "application/json")
-        };
-        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            oa.Status = "disabled";
+        }
+        await db.SaveChangesAsync();
 
-        var resp = await _client.SendAsync(req);
-        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
-        var body = await resp.Content.ReadAsStringAsync();
-        Assert.Contains("Không thể tạm khóa hoặc vô hiệu hóa quản trị viên", body);
+        try
+        {
+            // Attempt to suspend sole active admin
+            var req = new HttpRequestMessage(HttpMethod.Patch, $"/api/v1/admin/users/{admin.Id}/status")
+            {
+                Content = new StringContent(JsonSerializer.Serialize(new UpdateStatusRequestDto { Status = "suspended" }), Encoding.UTF8, "application/json")
+            };
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var resp = await _client.SendAsync(req);
+            Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+            var body = await resp.Content.ReadAsStringAsync();
+            Assert.Contains("Không thể tạm khóa hoặc vô hiệu hóa quản trị viên", body);
+        }
+        finally
+        {
+            foreach (var oa in otherAdmins)
+            {
+                oa.Status = "active";
+            }
+            admin.Role = "admin";
+            admin.Status = "active";
+            await db.SaveChangesAsync();
+        }
     }
 
     [Fact]
@@ -484,13 +538,34 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
         var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
         var admin = await db.Users.FirstAsync(u => u.EmailNormalized == "admin@studyai.internal");
 
-        var req = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/admin/users/{admin.Id}");
-        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        // Temporarily disable any other active admins so admin@studyai.internal is the sole active admin
+        var otherAdmins = await db.Users.Where(u => u.Role == "admin" && u.Id != admin.Id && u.Status == "active").ToListAsync();
+        foreach (var oa in otherAdmins)
+        {
+            oa.Status = "disabled";
+        }
+        await db.SaveChangesAsync();
 
-        var resp = await _client.SendAsync(req);
-        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
-        var body = await resp.Content.ReadAsStringAsync();
-        Assert.Contains("Không thể xóa quản trị viên hoạt động duy nhất", body);
+        try
+        {
+            var req = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/admin/users/{admin.Id}");
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var resp = await _client.SendAsync(req);
+            Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+            var body = await resp.Content.ReadAsStringAsync();
+            Assert.Contains("Không thể xóa quản trị viên hoạt động duy nhất", body);
+        }
+        finally
+        {
+            foreach (var oa in otherAdmins)
+            {
+                oa.Status = "active";
+            }
+            admin.Role = "admin";
+            admin.Status = "active";
+            await db.SaveChangesAsync();
+        }
     }
 
     [Fact]
