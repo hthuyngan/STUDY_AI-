@@ -270,3 +270,4 @@ Quá trình điều tra thực tế đã xác định chính xác nguyên nhân 
 ---
 
 **Kết luận**: Backend STUDY_AI đã được kiểm tra, phân tích, khắc phục và kiểm chứng toàn diện. Toàn bộ 208 bài test (81 Unit + 127 Integration) đều pass 100%, build 0 warning / 0 error, API Question Bank phản hồi nhanh và chính xác.
+

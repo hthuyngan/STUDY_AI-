@@ -27,6 +27,9 @@ interface QuestionTableProps {
   currentPage: number;
   pageSize: number;
   isLoading: boolean;
+  error?: string | null;
+  errorCode?: string | null;
+  onRetry?: () => void;
   selectedQuestionId: string | null;
   isTrashView: boolean;
   onPageChange: (page: number) => void;
@@ -54,6 +57,9 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
   currentPage,
   pageSize,
   isLoading,
+  error,
+  errorCode,
+  onRetry,
   selectedQuestionId,
   isTrashView,
   onPageChange,
@@ -249,6 +255,56 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
                   <td className={styles.td} style={{ padding: '16px', textAlign: 'right' }}><div style={{ height: '28px', background: '#e2e8f0', borderRadius: '6px', width: '60px', marginLeft: 'auto' }} /></td>
                 </tr>
               ))
+            ) : error ? (
+              // Explicit error state with distinct messaging and actionable buttons
+              <tr>
+                <td colSpan={5} style={{ padding: '48px 16px', textAlign: 'center' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', maxWidth: '420px', margin: '0 auto' }}>
+                    <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#DC2626', marginBottom: '16px' }}>
+                      <AlertCircle size={28} />
+                    </div>
+                    <p style={{ fontSize: '15px', fontWeight: 600, color: '#991B1B', margin: '0 0 6px 0' }}>
+                      {errorCode === 'UNAUTHORIZED'
+                        ? 'Phiên đăng nhập đã hết hạn'
+                        : errorCode === 'FORBIDDEN'
+                        ? 'Không có quyền truy cập'
+                        : errorCode === 'NETWORK_OFFLINE'
+                        ? 'Không thể kết nối đến máy chủ backend'
+                        : 'Không thể nạp dữ liệu Ngân hàng câu hỏi'}
+                    </p>
+                    <p style={{ fontSize: '13px', color: '#64748B', margin: '0 0 16px 0', lineHeight: 1.5 }}>
+                      {errorCode === 'UNAUTHORIZED'
+                        ? 'Phiên làm việc của bạn đã kết thúc. Vui lòng đăng nhập lại để tiếp tục thao tác.'
+                        : errorCode === 'FORBIDDEN'
+                        ? 'Tài khoản hiện tại không có quyền quản trị nội dung (yêu cầu vai trò Content hoặc Admin).'
+                        : errorCode === 'NETWORK_OFFLINE'
+                        ? 'Không thể kết nối tới dịch vụ API backend. Hãy đảm bảo API đang chạy tại http://localhost:8000.'
+                        : error}
+                    </p>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      {errorCode === 'UNAUTHORIZED' ? (
+                        <a
+                          href="/login"
+                          className="staff-btn staff-btn-primary"
+                          style={{ height: '36px', padding: '0 16px', borderRadius: '8px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                        >
+                          Đăng nhập lại
+                        </a>
+                      ) : onRetry ? (
+                        <button
+                          type="button"
+                          className="staff-btn staff-btn-primary"
+                          onClick={onRetry}
+                          style={{ height: '36px', padding: '0 16px', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                        >
+                          <RotateCcw size={14} />
+                          Thử lại
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                </td>
+              </tr>
             ) : questions.length === 0 ? (
               // Empty state
               <tr>

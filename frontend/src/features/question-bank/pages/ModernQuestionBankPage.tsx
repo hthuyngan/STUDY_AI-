@@ -38,6 +38,9 @@ export const ModernQuestionBankPage: React.FC = () => {
     currentPage,
     pageSize,
     isLoading,
+    error,
+    errorCode,
+    subjects,
     kpiStats,
     filters,
     selectedQuestion,
@@ -62,6 +65,7 @@ export const ModernQuestionBankPage: React.FC = () => {
     handleRejectQuestion,
     handlePublishQuestion,
     handleUnpublishQuestion,
+    reload,
   } = useQuestionBank();
 
   // Standalone preview modal state (for deep inspection & Scenario 6 E2E compatibility)
@@ -114,7 +118,7 @@ export const ModernQuestionBankPage: React.FC = () => {
           filters={filters}
           onFilterChange={updateFilters}
           onReset={resetFilters}
-          subjects={SUBJECT_OPTIONS}
+          subjects={subjects.length > 0 ? subjects : SUBJECT_OPTIONS}
           onOpenCreate={openCreateModal}
         />
 
@@ -128,6 +132,9 @@ export const ModernQuestionBankPage: React.FC = () => {
               currentPage={currentPage}
               pageSize={pageSize}
               isLoading={isLoading}
+              error={error}
+              errorCode={errorCode}
+              onRetry={reload}
               selectedQuestionId={selectedQuestion?.id || null}
               isTrashView={Boolean(filters.includeDeleted)}
               onPageChange={setPage}

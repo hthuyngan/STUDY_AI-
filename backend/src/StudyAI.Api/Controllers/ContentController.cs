@@ -868,7 +868,22 @@ public class ContentController : ControllerBase
             var sLower = subjectId.Trim().ToLowerInvariant();
             query = query.Where(q =>
                 q.SubjectId == subjectId ||
-                (q.Lesson != null && q.Lesson.Chapter != null && q.Lesson.Chapter.SubjectId == subjectId) ||
+                (q.Lesson != null && q.Lesson.Chapter != null && (
+                    q.Lesson.Chapter.SubjectId == subjectId ||
+                    (q.Lesson.Chapter.Subject != null && (
+                        q.Lesson.Chapter.Subject.Id.ToLower() == sLower ||
+                        q.Lesson.Chapter.Subject.Code.ToLower() == sLower ||
+                        (sLower == "math" && (q.Lesson.Chapter.Subject.Code.ToLower().StartsWith("math") || q.Lesson.Chapter.Subject.Name.ToLower().Contains("toán"))) ||
+                        (sLower == "physics" && (q.Lesson.Chapter.Subject.Code.ToLower().StartsWith("phys") || q.Lesson.Chapter.Subject.Name.ToLower().Contains("vật lý") || q.Lesson.Chapter.Subject.Name.ToLower().Contains("vật lí"))) ||
+                        (sLower == "chemistry" && (q.Lesson.Chapter.Subject.Code.ToLower().StartsWith("chem") || q.Lesson.Chapter.Subject.Name.ToLower().Contains("hóa"))) ||
+                        (sLower == "english" && (q.Lesson.Chapter.Subject.Code.ToLower().StartsWith("eng") || q.Lesson.Chapter.Subject.Name.ToLower().Contains("tiếng anh"))) ||
+                        (sLower == "history" && (q.Lesson.Chapter.Subject.Code.ToLower().StartsWith("hist") || q.Lesson.Chapter.Subject.Name.ToLower().Contains("lịch sử"))) ||
+                        (sLower == "geography" && (q.Lesson.Chapter.Subject.Code.ToLower().StartsWith("geo") || q.Lesson.Chapter.Subject.Name.ToLower().Contains("địa"))) ||
+                        (sLower == "biology" && (q.Lesson.Chapter.Subject.Code.ToLower().StartsWith("bio") || q.Lesson.Chapter.Subject.Name.ToLower().Contains("sinh"))) ||
+                        (sLower == "civic" && (q.Lesson.Chapter.Subject.Code.ToLower().StartsWith("civ") || q.Lesson.Chapter.Subject.Name.ToLower().Contains("công dân"))) ||
+                        (sLower == "literature" && (q.Lesson.Chapter.Subject.Code.ToLower().StartsWith("lit") || q.Lesson.Chapter.Subject.Name.ToLower().Contains("văn")))
+                    ))
+                )) ||
                 (q.Topic != null && (
                     q.Topic.ToLower() == sLower ||
                     (sLower == "math" && q.Topic.ToLower() == "mathematics") ||
