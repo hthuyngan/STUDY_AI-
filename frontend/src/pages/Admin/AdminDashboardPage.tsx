@@ -71,7 +71,7 @@ export const AdminDashboardPage: React.FC = () => {
       `Học viên hoạt động: ${metrics?.activeLearners ?? 0}`,
       `Bài học hoàn thành: ${metrics?.completedLessonsTotal ?? 'Không có dữ liệu'}`,
       `Yêu cầu cần xử lý: ${attentionItems.length}`,
-      `Trạng thái hạ tầng: ${metrics?.systemStatus ?? 'healthy'}`,
+      `Trạng thái hạ tầng: ${metrics?.systemStatus ?? 'Không có dữ liệu'}`,
     ].join('\r\n')
 
     const blob = new Blob(['\uFEFF' + reportData], { type: 'text/plain;charset=utf-8;' })
