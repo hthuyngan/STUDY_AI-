@@ -12,9 +12,10 @@ import {
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAdminDashboard } from '@/hooks/useAdmin'
-import { StaffMetricCard } from '@/components/ui/StaffMetricCard'
-import { Skeleton } from '@/components/ui/Skeleton'
-import { Button } from '@/components/ui/Button'
+import {
+  AdminStatCard,
+  AdminSkeleton,
+} from '@/components/admin/ui'
 import { PageErrorState } from '@/components/ui/PageErrorState'
 import { AdminAnalyticsChart } from '@/components/admin/AdminAnalyticsChart'
 import { AdminQuickActions } from '@/components/admin/AdminQuickActions'
@@ -68,9 +69,9 @@ export const AdminDashboardPage: React.FC = () => {
       `Thời điểm xuất: ${new Date().toLocaleString('vi-VN')}`,
       `Tổng người dùng: ${metrics?.totalUsers ?? 0}`,
       `Học viên hoạt động: ${metrics?.activeLearners ?? 0}`,
-      `Bài học hoàn thành: ${metrics?.completedLessonsTotal ?? 8642}`,
+      `Bài học hoàn thành: ${metrics?.completedLessonsTotal ?? 'Không có dữ liệu'}`,
       `Yêu cầu cần xử lý: ${attentionItems.length}`,
-      `Trạng thái hạ tầng: ${metrics?.systemStatus ?? 'healthy'}`,
+      `Trạng thái hạ tầng: ${metrics?.systemStatus ?? 'Không có dữ liệu'}`,
     ].join('\r\n')
 
     const blob = new Blob(['\uFEFF' + reportData], { type: 'text/plain;charset=utf-8;' })
@@ -86,11 +87,19 @@ export const AdminDashboardPage: React.FC = () => {
 
   return (
     <div className="admin-dashboard-page">
+      {/* Row 1: Modern Admin Page Header */}
       <div className="admin-header-row">
         <div className="staff-page-header admin-dashboard-heading">
           <div className="admin-prototype-badge">
-            <span className="prototype-dot" style={{ backgroundColor: metrics?.isPrototypeMode ? '#f59e0b' : '#10b981' }} />
-            <span>{metrics?.isPrototypeMode ? 'FE Prototype Standalone' : 'ASP.NET Core 10 + SQL Server'}</span>
+            <span
+              className="prototype-dot"
+              style={{ backgroundColor: metrics?.isPrototypeMode ? '#f59e0b' : '#10b981' }}
+            />
+            <span>
+              {metrics?.isPrototypeMode
+                ? 'FE Prototype Standalone'
+                : 'ASP.NET Core 10 + SQL Server'}
+            </span>
           </div>
           <h1 className="staff-page-title">Tổng quan hệ thống</h1>
           <p className="staff-page-desc">
@@ -114,62 +123,70 @@ export const AdminDashboardPage: React.FC = () => {
             </select>
           </div>
 
-          <Button
-            variant="outline"
-            icon={FileText}
+          <button
+            type="button"
+            className="staff-btn staff-btn-secondary"
             onClick={() => setReportModalOpen(true)}
             aria-label="Xem báo cáo tổng quan"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
-            Báo cáo nhanh
-          </Button>
+            <FileText size={15} aria-hidden="true" />
+            <span>Báo cáo nhanh</span>
+          </button>
         </div>
       </div>
 
+      {/* Row 2: 4 Modern Metric Cards */}
       <div className="staff-metric-grid" aria-label="Thống kê chính">
         {loading ? (
           <>
-            <Skeleton height={96} />
-            <Skeleton height={96} />
-            <Skeleton height={96} />
-            <Skeleton height={96} />
+            <AdminSkeleton height={110} />
+            <AdminSkeleton height={110} />
+            <AdminSkeleton height={110} />
+            <AdminSkeleton height={110} />
           </>
         ) : (
           <>
-            <StaffMetricCard
-              label="Tổng người dùng"
-              value={metrics?.totalUsers ?? 0}
-              context={`${metrics?.activeLearners ?? 0} người hoạt động tuần này`}
-              icon={Users}
-              trend={{ value: '+12.4% so với kỳ trước', isPositive: true }}
+            <AdminStatCard
+              title="Tổng người dùng"
+              value={(metrics?.totalUsers ?? 0).toLocaleString('vi-VN')}
+              icon={<Users size={18} />}
+              variant="primary"
+              
+              subtitle={`${metrics?.activeLearners ?? 0} người hoạt động tuần này`}
             />
-            <StaffMetricCard
-              label="Học viên đang hoạt động"
-              value={metrics?.activeLearners ?? 0}
-              context="Đang theo học các môn"
-              icon={GraduationCap}
-              trend={{ value: '+8.1%', isPositive: true }}
+            <AdminStatCard
+              title="Học viên đang hoạt động"
+              value={(metrics?.activeLearners ?? 0).toLocaleString('vi-VN')}
+              icon={<GraduationCap size={18} />}
+              variant="success"
+              
+              subtitle="Đang theo học các môn"
             />
-            <StaffMetricCard
-              label="Bài học đã hoàn thành"
-              value={(metrics?.completedLessonsTotal || 8642).toLocaleString('vi-VN')}
-              context="Tiến độ học tập tích cực"
-              icon={BookCheck}
-              trend={{ value: '+18.5%', isPositive: true }}
+            <AdminStatCard
+              title="Bài học đã hoàn thành"
+              value={metrics?.completedLessonsTotal == null ? '—' : metrics.completedLessonsTotal.toLocaleString('vi-VN')}
+              icon={<BookCheck size={18} />}
+              variant="primary"
+              
+              subtitle="Tiến độ học tập tích cực"
             />
-            <StaffMetricCard
-              label="Yêu cầu cần xử lý"
+            <AdminStatCard
+              title="Yêu cầu cần xử lý"
               value={attentionItems.length}
-              context="Tài khoản chờ duyệt & khiếu nại"
-              icon={AlertCircle}
-              trend={{
+              icon={<AlertCircle size={18} />}
+              variant={attentionItems.length > 0 ? 'warning' : 'success'}
+              change={{
                 value: `${attentionItems.length} mục đang chờ`,
                 isPositive: attentionItems.length === 0,
               }}
+              subtitle="Tài khoản chờ duyệt & khiếu nại"
             />
           </>
         )}
       </div>
 
+      {/* Row 3: Analytics Chart with Role & Status Distribution */}
       <AdminAnalyticsChart
         trends={trends}
         timeRange={timeRange}
@@ -178,6 +195,7 @@ export const AdminDashboardPage: React.FC = () => {
         statusDistribution={statusDistribution}
       />
 
+      {/* Row 4: Operations Grid (Việc cần xử lý & Hoạt động gần đây) */}
       <div className="admin-dashboard-operations-grid">
         <section className="staff-card" aria-labelledby="admin-attention-title">
           <div className="staff-card-header admin-dashboard-card-header">
@@ -194,9 +212,9 @@ export const AdminDashboardPage: React.FC = () => {
           <div className="staff-card-body">
             {loading ? (
               <div className="admin-dashboard-skeleton-stack">
-                <Skeleton height={60} />
-                <Skeleton height={60} />
-                <Skeleton height={60} />
+                <AdminSkeleton height={60} />
+                <AdminSkeleton height={60} />
+                <AdminSkeleton height={60} />
               </div>
             ) : attentionItems.length === 0 ? (
               <p className="admin-dashboard-empty-copy">
@@ -238,9 +256,9 @@ export const AdminDashboardPage: React.FC = () => {
           <div className="staff-card-body">
             {loading ? (
               <div className="admin-dashboard-skeleton-stack">
-                <Skeleton height={40} />
-                <Skeleton height={40} />
-                <Skeleton height={40} />
+                <AdminSkeleton height={40} />
+                <AdminSkeleton height={40} />
+                <AdminSkeleton height={40} />
               </div>
             ) : activities.length === 0 ? (
               <p className="admin-dashboard-empty-copy">Chưa có hoạt động nào được ghi nhận.</p>
@@ -264,8 +282,10 @@ export const AdminDashboardPage: React.FC = () => {
         </section>
       </div>
 
+      {/* Row 5: Quick Actions Navigation */}
       <AdminQuickActions />
 
+      {/* Row 6: System & Infrastructure Health */}
       <section className="staff-card admin-dashboard-health-card" aria-labelledby="admin-health-title">
         <div className="staff-card-header admin-dashboard-card-header">
           <div>
@@ -277,7 +297,7 @@ export const AdminDashboardPage: React.FC = () => {
         </div>
         <div className="staff-card-body">
           {loading ? (
-            <Skeleton height={112} />
+            <AdminSkeleton height={112} />
           ) : (
             <div className="admin-system-health-list">
               <div className="admin-health-row">
@@ -301,6 +321,7 @@ export const AdminDashboardPage: React.FC = () => {
         </div>
       </section>
 
+      {/* Report Modal */}
       {reportModalOpen && (
         <div
           className="confirm-dialog-backdrop"
@@ -361,12 +382,22 @@ export const AdminDashboardPage: React.FC = () => {
             </div>
 
             <div className="confirm-dialog-footer">
-              <Button variant="outline" icon={Download} onClick={handleExportQuickReport}>
-                Tải tệp báo cáo
-              </Button>
-              <Button variant="primary" onClick={() => setReportModalOpen(false)}>
+              <button
+                type="button"
+                className="staff-btn staff-btn-secondary"
+                onClick={handleExportQuickReport}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Download size={14} aria-hidden="true" />
+                <span>Tải tệp báo cáo</span>
+              </button>
+              <button
+                type="button"
+                className="staff-btn staff-btn-primary"
+                onClick={() => setReportModalOpen(false)}
+              >
                 Đóng
-              </Button>
+              </button>
             </div>
           </div>
         </div>
