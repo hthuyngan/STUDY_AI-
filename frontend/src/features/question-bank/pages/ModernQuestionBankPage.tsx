@@ -16,6 +16,7 @@ import { QuestionFormModal } from '../components/QuestionFormModal';
 import { QuestionRejectModal } from '../components/QuestionRejectModal';
 import { QuestionDeleteModal } from '../components/QuestionDeleteModal';
 import { MathView } from '../../../components/common/MathView';
+import '@/components/admin/ui/AdminDesignSystem.css';
 
 const SUBJECT_OPTIONS = [
   { id: 'all', name: 'Tất cả môn học' },
