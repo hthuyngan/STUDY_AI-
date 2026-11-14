@@ -69,7 +69,7 @@ export const AdminDashboardPage: React.FC = () => {
       `Thời điểm xuất: ${new Date().toLocaleString('vi-VN')}`,
       `Tổng người dùng: ${metrics?.totalUsers ?? 0}`,
       `Học viên hoạt động: ${metrics?.activeLearners ?? 0}`,
-      `Bài học hoàn thành: ${metrics?.completedLessonsTotal ?? 8642}`,
+      `Bài học hoàn thành: ${metrics?.completedLessonsTotal ?? 'Không có dữ liệu'}`,
       `Yêu cầu cần xử lý: ${attentionItems.length}`,
       `Trạng thái hạ tầng: ${metrics?.systemStatus ?? 'healthy'}`,
     ].join('\r\n')
@@ -152,7 +152,7 @@ export const AdminDashboardPage: React.FC = () => {
               value={(metrics?.totalUsers ?? 0).toLocaleString('vi-VN')}
               icon={<Users size={18} />}
               variant="primary"
-              change={{ value: '+12.4% so với kỳ trước', isPositive: true }}
+              
               subtitle={`${metrics?.activeLearners ?? 0} người hoạt động tuần này`}
             />
             <AdminStatCard
@@ -160,15 +160,15 @@ export const AdminDashboardPage: React.FC = () => {
               value={(metrics?.activeLearners ?? 0).toLocaleString('vi-VN')}
               icon={<GraduationCap size={18} />}
               variant="success"
-              change={{ value: '+8.1%', isPositive: true }}
+              
               subtitle="Đang theo học các môn"
             />
             <AdminStatCard
               title="Bài học đã hoàn thành"
-              value={(metrics?.completedLessonsTotal || 8642).toLocaleString('vi-VN')}
+              value={metrics?.completedLessonsTotal == null ? '—' : metrics.completedLessonsTotal.toLocaleString('vi-VN')}
               icon={<BookCheck size={18} />}
               variant="primary"
-              change={{ value: '+18.5%', isPositive: true }}
+              
               subtitle="Tiến độ học tập tích cực"
             />
             <AdminStatCard
