@@ -1,0 +1,123 @@
+/* ============================================================
+   RESET CSS — Modern CSS Reset
+   STUDY_AI Design System Foundation
+   ============================================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  tab-size: 4;
+}
+
+body {
+  font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
+  font-size: var(--text-base, 1rem);
+  line-height: var(--leading-normal, 1.5);
+  color: var(--ui-color-text, var(--text-primary, #0f172a));
+  background-color: var(--ui-color-canvas, var(--surface-page, #f8fafc));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+#root {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Form Elements Normalization ─────────────────────────── */
+button,
+input,
+optgroup,
+select,
+textarea {
+  font-family: inherit;
+  font-size: 100%;
+  line-height: inherit;
+  color: inherit;
+  margin: 0;
+}
+
+button,
+select {
+  text-transform: none;
+}
+
+button,
+[type='button'],
+[type='reset'],
+[type='submit'] {
+  -webkit-appearance: button;
+  background-color: transparent;
+  background-image: none;
+}
+
+/* ── Focus Outline ───────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--border-focus, var(--ui-color-primary, #1d4ed8));
+  outline-offset: 2px;
+  border-radius: var(--ui-radius-sm, 6px);
+}
+
+/* ── Scrollbars ──────────────────────────────────────────── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--neutral-300, #cbd5e1) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--neutral-300, #cbd5e1);
+  border-radius: var(--radius-full, 9999px);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--neutral-400, #94a3b8);
+}
+
+[data-theme='dark'] * {
+  scrollbar-color: var(--neutral-700, #334155) transparent;
+}
+
+[data-theme='dark'] *::-webkit-scrollbar-thumb {
+  background: var(--neutral-700, #334155);
+}
+
+/* ── Media Elements ──────────────────────────────────────── */
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+/* ── Reduced Motion ──────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
