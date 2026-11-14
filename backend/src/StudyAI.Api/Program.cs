@@ -315,6 +315,8 @@ else
 
 app.UseCors("DefaultCorsPolicy");
 
+app.UseStaticFiles();
+
 app.UseAuthentication();
 app.UseAuthorization();
 

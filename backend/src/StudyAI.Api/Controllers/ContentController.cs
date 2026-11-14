@@ -1544,6 +1544,21 @@ public class ContentController : ControllerBase
                 ? item.Code.Trim()
                 : $"Q-IMP-{DateTime.UtcNow:yyMMdd}-{Guid.NewGuid():N}"[..18].ToUpperInvariant();
 
+            var resolvedSubjectId = item.SubjectId;
+            if (string.IsNullOrWhiteSpace(resolvedSubjectId))
+            {
+                var combined = $"{item.Topic} {item.Code}".ToLowerInvariant();
+                if (combined.Contains("math") || combined.Contains("toan")) resolvedSubjectId = "sub_math12";
+                else if (combined.Contains("phys") || combined.Contains("vatly")) resolvedSubjectId = "sub_phys12";
+                else if (combined.Contains("chem") || combined.Contains("hoahoc")) resolvedSubjectId = "sub_chem12";
+                else if (combined.Contains("bio") || combined.Contains("sinhhoc")) resolvedSubjectId = "sub_bio12";
+                else if (combined.Contains("lit") || combined.Contains("nguvan") || combined.Contains("văn")) resolvedSubjectId = "sub_lit12";
+                else if (combined.Contains("eng") || combined.Contains("tienganh")) resolvedSubjectId = "sub_eng12";
+                else if (combined.Contains("hist") || combined.Contains("lichsu")) resolvedSubjectId = "sub_hist12";
+                else if (combined.Contains("geo") || combined.Contains("dialy")) resolvedSubjectId = "sub_geo12";
+                else if (combined.Contains("civic") || combined.Contains("gdcd")) resolvedSubjectId = "sub_civic12";
+            }
+
             var question = new ContentQuestion
             {
                 Id = $"qst_{Guid.NewGuid():N}",
@@ -1556,7 +1571,7 @@ public class ContentController : ControllerBase
                 Difficulty = string.IsNullOrWhiteSpace(item.Difficulty) ? "medium" : item.Difficulty,
                 Type = qType,
                 Grade = item.Grade,
-                SubjectId = item.SubjectId,
+                SubjectId = resolvedSubjectId,
                 ChapterId = item.ChapterId,
                 LessonId = item.LessonId,
                 ImageUrl = item.ImageUrl,
@@ -1668,21 +1683,32 @@ public class ContentController : ControllerBase
         if (!string.IsNullOrWhiteSpace(sName)) return sName;
         if (!string.IsNullOrWhiteSpace(q.Topic))
         {
-            return q.Topic switch
-            {
-                "Mathematics" => "Toán học",
-                "English" => "Tiếng Anh",
-                "History" => "Lịch sử",
-                "Physics" => "Vật lý",
-                "Biology" => "Sinh học",
-                "Chemistry" => "Hóa học",
-                "Geography" => "Địa lý",
-                "CivicEducation" => "Giáo dục công dân",
-                "Ngữ văn" => "Ngữ văn",
-                _ => q.Topic
-            };
+            var topicLower = q.Topic.Trim().ToLowerInvariant();
+            if (topicLower == "mathematics" || topicLower == "toán") return "Toán 12";
+            if (topicLower == "physics" || topicLower == "vật lý") return "Vật lý 12";
+            if (topicLower == "chemistry" || topicLower == "hóa học") return "Hóa học 12";
+            if (topicLower == "biology" || topicLower == "sinh học") return "Sinh học 12";
+            if (topicLower == "english" || topicLower == "tiếng anh") return "Tiếng Anh 12";
+            if (topicLower == "history" || topicLower == "lịch sử") return "Lịch sử 12";
+            if (topicLower == "geography" || topicLower == "địa lý") return "Địa lý 12";
+            if (topicLower == "civiceducation" || topicLower == "giáo dục công dân") return "Giáo dục kinh tế và pháp luật 12";
+            if (topicLower == "ngữ văn" || topicLower == "literature") return "Ngữ văn 12";
         }
-        return !string.IsNullOrWhiteSpace(q.SubjectId) ? q.SubjectId : "Chưa phân loại";
+        if (!string.IsNullOrWhiteSpace(q.SubjectId))
+        {
+            var sLower = q.SubjectId.ToLowerInvariant();
+            if (sLower.Contains("math") || sLower.Contains("toan")) return "Toán 12";
+            if (sLower.Contains("phys") || sLower.Contains("vatly")) return "Vật lý 12";
+            if (sLower.Contains("chem") || sLower.Contains("hoahoc")) return "Hóa học 12";
+            if (sLower.Contains("bio") || sLower.Contains("sinhhoc")) return "Sinh học 12";
+            if (sLower.Contains("lit") || sLower.Contains("nguvan")) return "Ngữ văn 12";
+            if (sLower.Contains("eng") || sLower.Contains("tienganh")) return "Tiếng Anh 12";
+            if (sLower.Contains("hist") || sLower.Contains("lichsu")) return "Lịch sử 12";
+            if (sLower.Contains("geo") || sLower.Contains("dialy")) return "Địa lý 12";
+            if (sLower.Contains("civic") || sLower.Contains("gdcd")) return "Giáo dục kinh tế và pháp luật 12";
+            return q.SubjectId;
+        }
+        return !string.IsNullOrWhiteSpace(q.Topic) ? q.Topic : "Chưa phân loại";
     }
 
     private static ContentQuestionItemDto FormatQuestion(ContentQuestion q)

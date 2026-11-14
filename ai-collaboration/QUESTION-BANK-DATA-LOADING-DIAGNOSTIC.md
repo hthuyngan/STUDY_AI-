@@ -199,3 +199,4 @@ Các bằng chứng kiểm thử giao diện thực tế đã được chụp v�
    - Cần bổ sung hướng dẫn rõ ràng trên giao diện Content Import rằng file CSV/Excel chỉ chứa danh mục bài học sẽ không tự động sinh ra câu hỏi trong Ngân hàng câu hỏi.
 3. **Database Safety**:
    - Tiếp tục duy trì quy tắc `DatabaseSafetyGuard`: Cấm tuyệt đối mọi thao tác ghi lên database chính `StudyAIDb`.
+

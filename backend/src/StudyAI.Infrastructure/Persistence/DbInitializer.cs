@@ -87,6 +87,40 @@ public static class DbInitializer
             await context.SaveChangesAsync();
         }
 
+        // 2b. Seed standard THPT 12 subjects if not already existing
+        var standardSubjects = new (string Id, string Code, string Name, string Desc, int Order)[]
+        {
+            ("sub_phys12", "PHYS12", "Vật lý 12", "Chương trình Vật lý Lớp 12", 2),
+            ("sub_chem12", "CHEM12", "Hóa học 12", "Chương trình Hóa học Lớp 12", 3),
+            ("sub_bio12", "BIO12", "Sinh học 12", "Chương trình Sinh học Lớp 12", 4),
+            ("sub_lit12", "LIT12", "Ngữ văn 12", "Chương trình Ngữ văn Lớp 12", 5),
+            ("sub_eng12", "ENG12", "Tiếng Anh 12", "Chương trình Tiếng Anh Lớp 12", 6),
+            ("sub_hist12", "HIST12", "Lịch sử 12", "Chương trình Lịch sử Lớp 12", 7),
+            ("sub_geo12", "GEO12", "Địa lý 12", "Chương trình Địa lý Lớp 12", 8),
+            ("sub_civic12", "CIVIC12", "Giáo dục kinh tế và pháp luật 12", "Chương trình Giáo dục kinh tế và pháp luật 12", 9),
+        };
+
+        foreach (var s in standardSubjects)
+        {
+            var exists = await context.ContentSubjects.AnyAsync(x => x.Code == s.Code || x.Id == s.Id);
+            if (!exists)
+            {
+                context.ContentSubjects.Add(new ContentSubject
+                {
+                    Id = s.Id,
+                    Code = s.Code,
+                    Name = s.Name,
+                    Grade = "12",
+                    Description = s.Desc,
+                    OrderIndex = s.Order,
+                    IsActive = true,
+                    CreatedAt = DateTimeOffset.UtcNow,
+                    UpdatedAt = DateTimeOffset.UtcNow
+                });
+            }
+        }
+        await context.SaveChangesAsync();
+
         // 3. Seed initial questions for Lesson 1 if none exist
         var existingQuestions = await context.ContentQuestions.AnyAsync(q => q.LessonId == "les_math12_c1_b1");
         if (!existingQuestions)
