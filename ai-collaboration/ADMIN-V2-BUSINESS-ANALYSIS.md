@@ -192,3 +192,4 @@ Hệ thống quản trị STUDY_AI V2 loại bỏ hoàn toàn các yếu tố tr
 - **Bước 2 & 4:** Xây dựng thư viện component V2 riêng tại `frontend/src/components/management/` gồm `ManagementLayout`, `ManagementSidebar`, `ManagementHeader`, `ManagementTable`, `ManagementFilter`, `ManagementDrawer`, `ManagementDialog`, `ManagementPagination`, v.v.
 - **Bước 3:** Áp dụng vào Admin Dashboard, Users, Question Bank, Content, Teacher, Support.
 - **Bước 5 & 7:** Kiểm thử toàn diện không lỗi TypeScript, Vitest 100% xanh, Visual QA bằng Playwright.
+

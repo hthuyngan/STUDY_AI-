@@ -36,3 +36,4 @@ export const ManagementErrorState: React.FC<ManagementErrorStateProps> = ({
     </div>
   )
 }
+

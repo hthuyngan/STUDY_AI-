@@ -66,3 +66,4 @@ export const ManagementLayout: React.FC<ManagementLayoutProps> = ({
     </div>
   )
 }
+

@@ -39,3 +39,4 @@ export const ManagementEmptyState: React.FC<ManagementEmptyStateProps> = ({
     </div>
   )
 }
+

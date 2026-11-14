@@ -185,3 +185,4 @@ export function ManagementTable<T extends Record<string, unknown>>({
     </div>
   )
 }
+

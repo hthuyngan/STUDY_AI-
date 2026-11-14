@@ -190,3 +190,4 @@ export const ManagementSidebar: React.FC<ManagementSidebarProps> = ({
     </aside>
   )
 }
+

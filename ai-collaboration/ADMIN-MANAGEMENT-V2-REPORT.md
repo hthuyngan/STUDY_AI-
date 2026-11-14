@@ -156,3 +156,4 @@ Frontend quản trị STUDY_AI V2 đã hoàn thành theo đúng yêu cầu:
 - Không có bất kỳ thành phần AI thừa thãi nào trong khu vực quản trị.
 - Bảo đảm 100% tính ổn định, không thay đổi giao diện học viên và không chạm vào production database.
 - Mã nguồn và bằng chứng kiểm thử đã được lưu trên nhánh `feature/admin-management-v2`.
+
