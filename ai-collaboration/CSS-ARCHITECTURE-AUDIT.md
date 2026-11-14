@@ -101,3 +101,4 @@
 3. **Giai đoạn 3:** Chuẩn hóa Shared Components (`src/components/management/` và `src/components/ui/`).
 4. **Giai đoạn 4:** Chuẩn hóa từng Workspace (Content, Admin, Teacher, Support, Learner).
 5. **Giai đoạn 5:** Kiểm thử hồi quy toàn diện, Vitest 406/406, Build, Lint và báo cáo cuối.
+

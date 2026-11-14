@@ -160,3 +160,4 @@ export const CustomModal: React.FC<Props> = ({ isOpen, onClose, title }) => {
   );
 };
 ```
+

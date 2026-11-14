@@ -117,3 +117,4 @@ Tất cả ảnh chụp màn hình được lưu trong thư mục `docs/visual-q
 - **Database Safety Guard**: Tuyệt đối không ghi, không migrate và không làm thay đổi dữ liệu `StudyAIDb`.
 - **Learner UI Protection**: Không làm thay đổi layout hay luồng trải nghiệm học viên; bảo đảm 100% tính nguyên vẹn.
 - **Git Hygiene**: Toàn bộ thay đổi đã được chia commit rõ ràng theo từng giai đoạn và đẩy lên nhánh `feature/frontend-css-architecture` trên GitHub.
+

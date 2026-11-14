@@ -78,7 +78,7 @@ public class CurriculumController : ControllerBase
                 Name = s.Name,
                 Code = s.Code,
                 Grade = s.Grade,
-                Description = s.Description,
+                Description = s.Description ?? string.Empty,
                 OrderIndex = s.OrderIndex,
                 ChapterCount = activeChapters.Count,
                 LessonCount = publishedLessonCount
