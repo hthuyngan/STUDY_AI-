@@ -1,0 +1,30 @@
+:root {
+  /* Shared semantic design tokens — STUDY_AI */
+  --ui-color-primary: #1d4ed8;
+  --ui-color-primary-hover: #1e40af;
+  --ui-color-primary-subtle: #eff6ff;
+  --ui-color-canvas: #f8fafc;
+  --ui-color-surface: #ffffff;
+  --ui-color-text: #0f172a;
+  --ui-color-text-muted: #64748b;
+  --ui-color-border: #e2e8f0;
+  --ui-color-success: #16a34a;
+  --ui-color-warning: #d97706;
+  --ui-color-danger: #dc2626;
+  --ui-space-1: 4px;
+  --ui-space-2: 8px;
+  --ui-space-3: 12px;
+  --ui-space-4: 16px;
+  --ui-space-5: 20px;
+  --ui-space-6: 24px;
+  --ui-space-8: 32px;
+  --ui-radius-sm: 6px;
+  --ui-radius-md: 8px;
+  --ui-radius-lg: 12px;
+  --ui-shadow-sm: 0 1px 2px rgb(15 23 42 / 5%);
+  --ui-focus-ring: 0 0 0 3px rgb(59 130 246 / 20%);
+  --ui-layer-header: 50;
+  --ui-layer-sidebar: 100;
+  --ui-layer-dropdown: 200;
+  --ui-layer-dialog: 500;
+}
