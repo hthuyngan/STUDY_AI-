@@ -168,3 +168,4 @@ Toàn bộ ảnh chụp nghiệm thu tự động được lưu tại `docs/visu
 - `viewport_1366_laptop.png` - Giao diện responsive trên Laptop 1366x768 (Zero overflow)
 - `viewport_768_tablet.png` - Giao diện responsive trên Tablet 768x1024 (Zero overflow)
 - `viewport_390_mobile.png` - Giao diện responsive trên Mobile 390x844 (Zero overflow)
+
