@@ -340,6 +340,12 @@ public class ClassroomsController : ControllerBase
             return NotFound(new { message = "Không tìm thấy học sinh với thông tin cung cấp" });
         }
 
+        // Đảm bảo đối tượng được ghi danh là học sinh (learner)
+        if (student.Role != "learner" && student.Role != "student")
+        {
+            return BadRequest(new { message = "Chỉ có thể ghi danh người dùng có vai trò học sinh (learner) vào lớp học" });
+        }
+
         // Kiểm tra xem đã tham gia lớp chưa
         var alreadyEnrolled = await _db.ClassroomStudents.AnyAsync(
             cs => cs.ClassroomId == id && cs.StudentId == student.Id,

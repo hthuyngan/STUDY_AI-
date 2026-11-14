@@ -190,6 +190,7 @@ public class CurriculumImportConfirmRequestDto
 {
     public string PreviewToken { get; set; } = string.Empty;
     public string? AuditNote { get; set; }
+    public bool DryRun { get; set; } = false;
 }
 
 public class CurriculumImportConfirmSummaryDto
@@ -219,6 +220,8 @@ public class CurriculumImportConfirmResponseDto
     public CurriculumImportConfirmSummaryDto Summary { get; set; } = new();
     public CurriculumImportEntityCountsDto EntityCounts { get; set; } = new();
     public string Message { get; set; } = string.Empty;
+    public bool IsDryRun { get; set; } = false;
+    public string? Provenance { get; set; }
 }
 
 #endregion

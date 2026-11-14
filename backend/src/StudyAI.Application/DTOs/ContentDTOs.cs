@@ -142,9 +142,11 @@ public class ContentLessonDetailDto
 
 public class CreateQuestionRequestDto
 {
+    public string? Code { get; set; }
     public string? LessonId { get; set; }
     public string? SubjectId { get; set; }
     public string? ChapterId { get; set; }
+    public string? Grade { get; set; }
     public string Prompt { get; set; } = string.Empty;
     public List<string> Options { get; set; } = new();
     public string CorrectAnswer { get; set; } = string.Empty;
@@ -154,11 +156,22 @@ public class CreateQuestionRequestDto
     public string Type { get; set; } = "multiple-choice";
     public string Status { get; set; } = "published";
     public int OrderIndex { get; set; } = 0;
+    public string? ImageUrl { get; set; }
+    public string? MetadataJson { get; set; }
+    public string SourceType { get; set; } = "manual";
+    public string? SourceBatchId { get; set; }
+    public string? SourceUrl { get; set; }
+    public string CopyrightStatus { get; set; } = "proprietary";
+    public string? CopyrightProofRef { get; set; }
 }
 
 public class UpdateQuestionRequestDto
 {
+    public string? Code { get; set; }
     public string? LessonId { get; set; }
+    public string? SubjectId { get; set; }
+    public string? ChapterId { get; set; }
+    public string? Grade { get; set; }
     public string? Prompt { get; set; }
     public List<string>? Options { get; set; }
     public string? CorrectAnswer { get; set; }
@@ -168,17 +181,29 @@ public class UpdateQuestionRequestDto
     public string? Type { get; set; }
     public string? Status { get; set; }
     public int? OrderIndex { get; set; }
+    public string? ImageUrl { get; set; }
+    public string? MetadataJson { get; set; }
+    public string? SourceType { get; set; }
+    public string? CopyrightStatus { get; set; }
+    public string? CopyrightProofRef { get; set; }
+}
+
+public class RejectQuestionRequestDto
+{
+    public string Reason { get; set; } = string.Empty;
 }
 
 public class ContentQuestionItemDto
 {
     public string Id { get; set; } = string.Empty;
+    public string? Code { get; set; }
     public string? LessonId { get; set; }
     public string LessonTitle { get; set; } = string.Empty;
     public string? ChapterId { get; set; }
     public string ChapterTitle { get; set; } = string.Empty;
     public string? SubjectId { get; set; }
     public string SubjectName { get; set; } = string.Empty;
+    public string? Grade { get; set; }
     public string Prompt { get; set; } = string.Empty;
     public List<string> Options { get; set; } = new();
     public string CorrectAnswer { get; set; } = string.Empty;
@@ -188,8 +213,80 @@ public class ContentQuestionItemDto
     public string Type { get; set; } = "multiple-choice";
     public string Status { get; set; } = "published";
     public int OrderIndex { get; set; } = 0;
+    public string? ImageUrl { get; set; }
+    public string? MetadataJson { get; set; }
+    public bool IsDeleted { get; set; }
+    public string? DeletedAt { get; set; }
+    public string? DeletedBy { get; set; }
+    public string? AuthorId { get; set; }
+    public string AuthorName { get; set; } = string.Empty;
+    public string? ReviewedBy { get; set; }
+    public string? RejectionReason { get; set; }
+    public string SourceType { get; set; } = "manual";
+    public string? SourceBatchId { get; set; }
+    public string? SourceUrl { get; set; }
+    public string CopyrightStatus { get; set; } = "proprietary";
+    public string? CopyrightProofRef { get; set; }
+    public int Version { get; set; } = 1;
     public string CreatedAt { get; set; } = string.Empty;
     public string UpdatedAt { get; set; } = string.Empty;
+}
+
+public class QuestionStatsDto
+{
+    public int TotalQuestions { get; set; }
+    public int DraftCount { get; set; }
+    public int InReviewCount { get; set; }
+    public int ApprovedCount { get; set; }
+    public int PublishedCount { get; set; }
+    public int RejectedCount { get; set; }
+    public int DeletedCount { get; set; }
+    public Dictionary<string, int> ByDifficulty { get; set; } = new();
+    public Dictionary<string, int> ByType { get; set; } = new();
+    public Dictionary<string, int> BySubject { get; set; } = new();
+    public Dictionary<string, int> BySource { get; set; } = new();
+}
+
+public class QuestionImportItemDto
+{
+    public string? Code { get; set; }
+    public string Prompt { get; set; } = string.Empty;
+    public List<string> Options { get; set; } = new();
+    public string CorrectAnswer { get; set; } = string.Empty;
+    public string? Explanation { get; set; }
+    public string? Topic { get; set; }
+    public string Difficulty { get; set; } = "medium";
+    public string Type { get; set; } = "multiple-choice";
+    public string? Grade { get; set; }
+    public string? SubjectId { get; set; }
+    public string? ChapterId { get; set; }
+    public string? LessonId { get; set; }
+    public string? ImageUrl { get; set; }
+    public string? MetadataJson { get; set; }
+}
+
+public class QuestionImportBatchRequestDto
+{
+    public string SourceType { get; set; } = "manual"; // manual, csv, json, ai-generated, vnhsge, external_licensed
+    public string? SourceUrl { get; set; }
+    public string? SourceVersion { get; set; }
+    public string? LicenseProofRef { get; set; }
+    public bool DryRun { get; set; } = true;
+    public List<QuestionImportItemDto> Items { get; set; } = new();
+}
+
+public class QuestionImportResultDto
+{
+    public string BatchId { get; set; } = string.Empty;
+    public string SourceType { get; set; } = string.Empty;
+    public bool DryRun { get; set; }
+    public int TotalItems { get; set; }
+    public int ValidItems { get; set; }
+    public int DuplicateItems { get; set; }
+    public int ErrorItems { get; set; }
+    public List<string> Errors { get; set; } = new();
+    public List<ContentQuestionItemDto> PreviewItems { get; set; } = new();
+    public List<string> ImportedIds { get; set; } = new();
 }
 
 #endregion

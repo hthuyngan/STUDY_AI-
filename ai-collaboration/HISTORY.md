@@ -9,3 +9,7 @@ Append one entry per handoff; never erase prior entries.
 | Bridge approved & P20-000 assigned | ChatGPT | P20-000 | aa52be2c10b77c598bc6f82729352e466b039485 | Auth blocker assigned |
 | Auth & navigation repaired, E2E verified | Antigravity | P20-000 | f3e9ae1 | 5/5 Playwright E2E PASS, 391 Vitest PASS, 165 .NET PASS, StudyAIDb safe |
 | P20-001 Teacher/Classroom/Assignment completed | Antigravity | P20-001 | 8f6086d | 7/7 Playwright E2E PASS, 395 Vitest PASS, 169 .NET PASS, 97->119 reconciled, StudyAIDb safe |
+| P20-001 review & P20-001-FIX / DATA-001 scoped | ChatGPT | P20-001-FIX & DATA-001 | 1d64559 | Requested fail-closed fixes & VNHSGE dataset integration |
+| P20-001-FIX & DATA-001 completed | Antigravity | P20-001-FIX & DATA-001 | d7f563d | Fail-closed enforced, VNHSGE parser & dry-run verified, 192 .NET PASS, 403 Vitest PASS, StudyAIDb safe |
+| Content Role Primacy & Account Provisioning | Antigravity | DATA-001 | 7026663 | Content specialist as final approver, VNHSGE gate locked, admin/content accounts provisioned on E2E, 198 .NET PASS, 403 Vitest PASS |
+| Final Comprehensive Audit & E2E Verification | Antigravity | DATA-001-FINAL | b7fde50 | Complete pre-acceptance audit, 119->120 reconciled with forensic SQL proof, 198 .NET PASS, 403 Vitest PASS, 14/14 Playwright PASS |

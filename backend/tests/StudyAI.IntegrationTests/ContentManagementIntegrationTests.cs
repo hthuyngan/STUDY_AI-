@@ -175,13 +175,15 @@ public class ContentManagementIntegrationTests : IClassFixture<StudyAIApiFixture
         var submitData = await submitReviewRes.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal("in-review", submitData.GetProperty("status").GetString());
 
-        // 7. SECURITY GUARD: Author cannot self-approve their own content -> 403 Forbidden
+        // 7. CONTENT WORKFLOW: Content specialist is the final approver and can self-approve valid content -> 200 OK
         var selfApproveMsg = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lessonId}/approve")
         {
             Headers = { Authorization = contentAuthHeader }
         };
         var selfApproveRes = await _client.SendAsync(selfApproveMsg);
-        Assert.Equal(HttpStatusCode.Forbidden, selfApproveRes.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, selfApproveRes.StatusCode);
+        var selfApprovedData = await selfApproveRes.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("published", selfApprovedData.GetProperty("status").GetString());
 
         // 8. SECURITY GUARD: Learner cannot approve -> 403 Forbidden
         var learnerApproveMsg = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lessonId}/approve")
@@ -191,8 +193,17 @@ public class ContentManagementIntegrationTests : IClassFixture<StudyAIApiFixture
         var learnerApproveRes = await _client.SendAsync(learnerApproveMsg);
         Assert.Equal(HttpStatusCode.Forbidden, learnerApproveRes.StatusCode);
 
-        // 9. Independent Reviewer / Admin approves content -> 200 OK & Status = 'published'
-        var adminApproveMsg = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lessonId}/approve")
+        // 9. Content can unpublish -> 200 OK & Status = 'draft', then Admin can publish -> 200 OK & Status = 'published'
+        var unpublishMsg = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lessonId}/unpublish")
+        {
+            Headers = { Authorization = contentAuthHeader }
+        };
+        var unpublishRes = await _client.SendAsync(unpublishMsg);
+        Assert.Equal(HttpStatusCode.OK, unpublishRes.StatusCode);
+        var unpublishData = await unpublishRes.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("draft", unpublishData.GetProperty("status").GetString());
+
+        var adminApproveMsg = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lessonId}/publish")
         {
             Headers = { Authorization = adminAuthHeader }
         };
@@ -227,17 +238,28 @@ public class ContentManagementIntegrationTests : IClassFixture<StudyAIApiFixture
         var submit2Res = await _client.SendAsync(submit2Msg);
         Assert.Equal(HttpStatusCode.OK, submit2Res.StatusCode);
 
-        // Content Staff cannot self-request changes in review queue -> 403 Forbidden
+        // Content Staff can reject / request changes in review queue -> 200 OK & Status = 'draft'
         var selfReqChangesMsg = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lesson2Id}/request-changes")
         {
             Headers = { Authorization = contentAuthHeader },
-            Content = JsonContent.Create(new { feedback = "Tự từ chối" })
+            Content = JsonContent.Create(new { feedback = "Cần chỉnh sửa lại phần mở đầu bài 2." })
         };
         var selfReqChangesRes = await _client.SendAsync(selfReqChangesMsg);
-        Assert.Equal(HttpStatusCode.Forbidden, selfReqChangesRes.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, selfReqChangesRes.StatusCode);
+        var selfReqData = await selfReqChangesRes.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("draft", selfReqData.GetProperty("status").GetString());
 
-        // Reviewer / Admin requests changes with feedback -> 200 OK & Status = 'draft'
-        var adminReqChangesMsg = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lesson2Id}/request-changes")
+        // SECURITY GUARD: Learner cannot request changes -> 403 Forbidden
+        var learnerReqChangesMsg = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lesson2Id}/request-changes")
+        {
+            Headers = { Authorization = learnerAuthHeader },
+            Content = JsonContent.Create(new { feedback = "Hack attempt" })
+        };
+        var learnerReqChangesRes = await _client.SendAsync(learnerReqChangesMsg);
+        Assert.Equal(HttpStatusCode.Forbidden, learnerReqChangesRes.StatusCode);
+
+        // Admin can also request changes with feedback -> 200 OK & Status = 'draft'
+        var adminReqChangesMsg = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lesson2Id}/reject")
         {
             Headers = { Authorization = adminAuthHeader },
             Content = JsonContent.Create(new { feedback = "Cần bổ sung thêm ví dụ và hình ảnh minh họa bài 2." })
