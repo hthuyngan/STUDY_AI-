@@ -83,6 +83,10 @@ export const useQuestionBank = () => {
 
           if (res.items.length > 0) {
             setSelectedQuestion((prev: ContentQuestionItem | null) => {
+              // On mobile & tablet (< 1024px), do not auto-open the drawer on initial load
+              if (typeof window !== 'undefined' && window.innerWidth < 1024 && !prev) {
+                return null;
+              }
               if (!prev) return res.items[0];
               const found = res.items.find((item: ContentQuestionItem) => item.id === prev.id);
               return found || res.items[0];

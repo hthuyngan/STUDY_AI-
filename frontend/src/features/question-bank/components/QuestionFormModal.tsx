@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import type { ContentQuestionItem, CreateQuestionPayload, QuestionOption } from '../types';
 import { MathView } from '../../../components/common/MathView';
+import styles from '../QuestionBank.module.css';
 
 interface QuestionFormModalProps {
   isOpen: boolean;
@@ -147,277 +148,282 @@ export const QuestionFormModal: React.FC<QuestionFormModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/50 backdrop-blur-sm animate-fadeIn">
-      <div className="staff-modal bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden animate-scaleUp">
+    <div className={styles.modalBackdrop}>
+      <div className={`staff-modal ${styles.modalDialog} ${styles.modalLg}`}>
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-200 bg-[#183B69] text-white flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Layers className="w-5 h-5 text-blue-200" />
-            <h3 className="font-semibold text-base">
+        <div className={`${styles.modalHeader} ${styles.modalHeaderNavy}`}>
+          <div className={styles.modalTitleGroup}>
+            <Layers size={18} style={{ color: '#93c5fd' }} />
+            <h3 className={styles.modalTitle} style={{ color: '#ffffff' }}>
               {isEdit ? 'Chỉnh sửa câu hỏi' : 'Soạn câu hỏi mới'}
             </h3>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="staff-modal-close p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
+            className={`staff-modal-close ${styles.closeIconBtn} ${styles.closeIconBtnLight}`}
             title="Đóng modal"
+            aria-label="Đóng modal"
           >
-            <X className="w-5 h-5" />
+            <X size={18} />
           </button>
         </div>
 
         {/* Scrollable Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-6 flex-1 text-xs">
-          {error && (
-            <div className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-lg p-3 flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{error}</span>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+          <div className={styles.modalBody}>
+            {error && (
+              <div className={`${styles.formAlert} ${styles.formAlertError}`}>
+                <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {/* Section 1: Phân loại & Metadata */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div className={styles.formSectionHeader}>
+                <BookOpen size={15} style={{ color: '#183b69' }} />
+                1. Thông tin phân loại
+              </div>
+
+              <div className={`${styles.formGrid} ${styles.formGrid3}`}>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>
+                    Mã câu hỏi <span className={styles.requiredStar}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="VD: Q-TOAN12-001"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    className={styles.formInput}
+                    style={{ fontFamily: 'ui-monospace, monospace' }}
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>
+                    Chuyên đề / Chủ đề
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="VD: Cực trị hàm số"
+                    value={topic}
+                    onChange={(e) => setTopic(e.target.value)}
+                    className={styles.formInput}
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Môn học</label>
+                  <select
+                    value={subjectId}
+                    onChange={(e) => setSubjectId(e.target.value)}
+                    className={styles.formSelect}
+                  >
+                    <option value="sub-math">Toán học</option>
+                    <option value="sub-phys">Vật lý</option>
+                    <option value="sub-chem">Hóa học</option>
+                    <option value="sub-bio">Sinh học</option>
+                    <option value="sub-eng">Tiếng Anh</option>
+                    <option value="sub-hist">Lịch sử</option>
+                    <option value="sub-geo">Địa lý</option>
+                    <option value="sub-gdcd">Giáo dục công dân</option>
+                    <option value="sub-lit">Ngữ văn</option>
+                  </select>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Khối lớp</label>
+                  <select
+                    value={grade}
+                    onChange={(e) => setGrade(Number(e.target.value))}
+                    className={styles.formSelect}
+                  >
+                    <option value={12}>Lớp 12</option>
+                    <option value={11}>Lớp 11</option>
+                    <option value={10}>Lớp 10</option>
+                  </select>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Độ khó</label>
+                  <select
+                    value={difficulty}
+                    onChange={(e) => setDifficulty(e.target.value)}
+                    className={styles.formSelect}
+                  >
+                    <option value="easy">Nhận biết (Easy)</option>
+                    <option value="medium">Thông hiểu (Medium)</option>
+                    <option value="hard">Vận dụng (Hard)</option>
+                    <option value="expert">Vận dụng cao (Expert)</option>
+                  </select>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Dạng câu hỏi</label>
+                  <select
+                    value={questionType}
+                    onChange={(e) => setQuestionType(e.target.value)}
+                    className={styles.formSelect}
+                  >
+                    <option value="multiple-choice">Trắc nghiệm đơn</option>
+                    <option value="multiple-select">Nhiều lựa chọn</option>
+                    <option value="true-false">Đúng / Sai</option>
+                    <option value="short-answer">Điền câu trả lời ngắn</option>
+                    <option value="essay">Tự luận</option>
+                  </select>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Trạng thái khởi tạo</label>
+                  <select
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value)}
+                    className={styles.formSelect}
+                  >
+                    <option value="draft">Bản nháp</option>
+                    <option value="published">Xuất bản ngay</option>
+                  </select>
+                </div>
+              </div>
             </div>
-          )}
 
-          {/* Section 1: Phân loại & Metadata */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5 border-b pb-1.5 border-slate-100">
-              <BookOpen className="w-4 h-4 text-[#183B69]" />
-              1. Thông tin phân loại
-            </h4>
+            {/* Section 2: Nội dung câu hỏi with KaTeX */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div className={styles.formSectionHeader} style={{ justifyContent: 'space-between' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <FileEdit size={15} style={{ color: '#183b69' }} />
+                  2. Nội dung câu hỏi (KaTeX $...$)
+                </span>
+                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 400, textTransform: 'none' }}>
+                  Hỗ trợ công thức KaTeX inline $...$ và block $$...$$
+                </span>
+              </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">
-                  Mã câu hỏi <span className="text-rose-500">*</span>
+              <div className={styles.formGroup}>
+                <textarea
+                  placeholder="Cho hàm số $y = x^3 - 3x^2 + 2$. Điểm cực đại của đồ thị hàm số là:"
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  rows={3}
+                  className={styles.formTextarea}
+                />
+                {prompt && (
+                  <div style={{ marginTop: '8px', padding: '10px 12px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                    <span style={{ fontSize: '10.5px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>
+                      Xem trước trực tiếp (KaTeX Live Preview):
+                    </span>
+                    <div style={{ fontSize: '13px', color: '#0f172a' }}>
+                      <MathView math={prompt} />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>
+                  Đường dẫn hình ảnh minh họa (nếu có)
                 </label>
                 <input
                   type="text"
-                  placeholder="VD: Q-TOAN12-001"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  className="w-full text-xs font-mono rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#183B69]"
+                  placeholder="https://example.com/hinh-ve.png"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  className={styles.formInput}
                 />
               </div>
+            </div>
 
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">
-                  Chuyên đề / Chủ đề
+            {/* Section 3: Phương án lựa chọn & Đáp án đúng */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div className={styles.formSectionHeader}>
+                3. Các phương án lựa chọn & Đáp án
+              </div>
+
+              <div className={`${styles.formGrid} ${styles.formGrid2}`}>
+                {options.map((opt, idx) => (
+                  <div key={opt.key} style={{ padding: '10px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <span style={{ fontWeight: 700, color: '#334155', fontSize: '12px' }}>Phương án {opt.key}:</span>
+                    <input
+                      type="text"
+                      placeholder={`phương án ${opt.key}`}
+                      value={opt.text}
+                      onChange={(e) => handleOptionTextChange(idx, e.target.value)}
+                      className={styles.formInput}
+                    />
+                    {opt.text && (
+                      <div style={{ fontSize: '11.5px', color: '#334155', backgroundColor: '#ffffff', padding: '4px 8px', borderRadius: '4px', border: '1px solid #f1f5f9' }}>
+                        <MathView math={opt.text} />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Select for correct answer */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingTop: '6px', flexWrap: 'wrap' }}>
+                <label className={styles.formLabel} style={{ whiteSpace: 'nowrap' }}>
+                  Chọn đáp án đúng <span className={styles.requiredStar}>*</span>:
                 </label>
-                <input
-                  type="text"
-                  placeholder="VD: Cực trị hàm số"
-                  value={topic}
-                  onChange={(e) => setTopic(e.target.value)}
-                  className="w-full text-xs rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#183B69]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">Môn học</label>
                 <select
-                  value={subjectId}
-                  onChange={(e) => setSubjectId(e.target.value)}
-                  className="w-full text-xs rounded-lg border border-slate-300 px-3 py-2 text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#183B69]"
+                  value={correctAnswer}
+                  onChange={(e) => handleOptionSelectCorrect(e.target.value)}
+                  className={styles.formSelect}
+                  style={{ flex: 1, minWidth: '200px' }}
                 >
-                  <option value="sub-math">Toán học</option>
-                  <option value="sub-phys">Vật lý</option>
-                  <option value="sub-chem">Hóa học</option>
-                  <option value="sub-bio">Sinh học</option>
-                  <option value="sub-eng">Tiếng Anh</option>
-                  <option value="sub-hist">Lịch sử</option>
-                  <option value="sub-geo">Địa lý</option>
-                  <option value="sub-gdcd">Giáo dục công dân</option>
-                  <option value="sub-lit">Ngữ văn</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">Khối lớp</label>
-                <select
-                  value={grade}
-                  onChange={(e) => setGrade(Number(e.target.value))}
-                  className="w-full text-xs rounded-lg border border-slate-300 px-3 py-2 text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#183B69]"
-                >
-                  <option value={12}>Lớp 12</option>
-                  <option value={11}>Lớp 11</option>
-                  <option value={10}>Lớp 10</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">Độ khó</label>
-                <select
-                  value={difficulty}
-                  onChange={(e) => setDifficulty(e.target.value)}
-                  className="w-full text-xs rounded-lg border border-slate-300 px-3 py-2 text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#183B69]"
-                >
-                  <option value="easy">Nhận biết (Easy)</option>
-                  <option value="medium">Thông hiểu (Medium)</option>
-                  <option value="hard">Vận dụng (Hard)</option>
-                  <option value="expert">Vận dụng cao (Expert)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">Dạng câu hỏi</label>
-                <select
-                  value={questionType}
-                  onChange={(e) => setQuestionType(e.target.value)}
-                  className="w-full text-xs rounded-lg border border-slate-300 px-3 py-2 text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#183B69]"
-                >
-                  <option value="multiple-choice">Trắc nghiệm đơn</option>
-                  <option value="multiple-select">Nhiều lựa chọn</option>
-                  <option value="true-false">Đúng / Sai</option>
-                  <option value="short-answer">Điền câu trả lời ngắn</option>
-                  <option value="essay">Tự luận</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">Trạng thái khởi tạo</label>
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                  className="w-full text-xs rounded-lg border border-slate-300 px-3 py-2 text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#183B69]"
-                >
-                  <option value="draft">Bản nháp</option>
-                  <option value="published">Xuất bản ngay</option>
+                  <option value="">Chọn đáp án đúng</option>
+                  {options.map((opt) => (
+                    <option key={opt.key} value={opt.text || opt.key}>
+                      {opt.text || `Phương án ${opt.key}`}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
-          </div>
 
-          {/* Section 2: Nội dung câu hỏi with KaTeX */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center justify-between border-b pb-1.5 border-slate-100">
-              <span className="flex items-center gap-1.5">
-                <FileEdit className="w-4 h-4 text-[#183B69]" />
-                2. Nội dung câu hỏi (KaTeX $...$)
-              </span>
-              <span className="text-[11px] text-slate-400 font-normal">
-                Hỗ trợ công thức KaTeX inline $...$ và block $$...$$
-              </span>
-            </h4>
+            {/* Section 4: Lời giải chi tiết with KaTeX */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div className={styles.formSectionHeader}>
+                4. Lời giải chi tiết
+              </div>
 
-            <div>
               <textarea
-                placeholder="Cho hàm số $y = x^3 - 3x^2 + 2$. Điểm cực đại của đồ thị hàm số là:"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="Áp dụng công thức và kiến thức để giải chi tiết câu hỏi..."
+                value={explanation}
+                onChange={(e) => setExplanation(e.target.value)}
                 rows={3}
-                className="w-full text-xs rounded-lg border border-slate-300 p-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#183B69]"
+                className={styles.formTextarea}
               />
-              {prompt && (
-                <div className="mt-2 p-3 bg-slate-50 border border-slate-200 rounded-lg">
-                  <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block mb-1">
-                    Xem trước trực tiếp (KaTeX Live Preview):
+              {explanation && (
+                <div style={{ padding: '10px 12px', backgroundColor: '#f0f7ff', border: '1px solid #bfdbfe', borderRadius: '8px' }}>
+                  <span style={{ fontSize: '10.5px', fontWeight: 600, color: '#1d4ed8', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>
+                    Xem trước lời giải:
                   </span>
-                  <div className="text-xs text-slate-900">
-                    <MathView math={prompt} />
+                  <div style={{ fontSize: '13px', color: '#1e3a8a' }}>
+                    <MathView math={explanation} />
                   </div>
                 </div>
               )}
             </div>
-
-            <div>
-              <label className="block text-slate-700 font-semibold mb-1">
-                Đường dẫn hình ảnh minh họa (nếu có)
-              </label>
-              <input
-                type="text"
-                placeholder="https://example.com/hinh-ve.png"
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                className="w-full text-xs rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#183B69]"
-              />
-            </div>
-          </div>
-
-          {/* Section 3: Phương án lựa chọn & Đáp án đúng */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider border-b pb-1.5 border-slate-100">
-              3. Các phương án lựa chọn & Đáp án
-            </h4>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {options.map((opt, idx) => (
-                <div key={opt.key} className="p-2.5 rounded-lg border border-slate-200 bg-slate-50/50 space-y-1.5">
-                  <span className="font-bold text-slate-700 text-xs">Phương án {opt.key}:</span>
-                  <input
-                    type="text"
-                    placeholder={`phương án ${opt.key}`}
-                    value={opt.text}
-                    onChange={(e) => handleOptionTextChange(idx, e.target.value)}
-                    className="w-full text-xs rounded border border-slate-300 px-2.5 py-1.5 text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#183B69]"
-                  />
-                  {opt.text && (
-                    <div className="text-[11px] text-slate-600 bg-white px-2 py-1 rounded border border-slate-100">
-                      <MathView math={opt.text} />
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* Select for correct answer */}
-            <div className="pt-2 flex flex-col sm:flex-row sm:items-center gap-3">
-              <label className="font-semibold text-slate-700 shrink-0">
-                Chọn đáp án đúng <span className="text-rose-500">*</span>:
-              </label>
-              <select
-                value={correctAnswer}
-                onChange={(e) => handleOptionSelectCorrect(e.target.value)}
-                className="flex-1 text-xs rounded-lg border border-slate-300 px-3 py-2 text-slate-900 bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#183B69]"
-              >
-                <option value="">Chọn đáp án đúng</option>
-                {options.map((opt) => (
-                  <option key={opt.key} value={opt.text || opt.key}>
-                    {opt.text || `Phương án ${opt.key}`}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Section 4: Lời giải chi tiết with KaTeX */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider border-b pb-1.5 border-slate-100">
-              4. Lời giải chi tiết
-            </h4>
-
-            <textarea
-              placeholder="Áp dụng công thức và kiến thức để giải chi tiết câu hỏi..."
-              value={explanation}
-              onChange={(e) => setExplanation(e.target.value)}
-              rows={3}
-              className="w-full text-xs rounded-lg border border-slate-300 p-3 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#183B69]"
-            />
-            {explanation && (
-              <div className="p-3 bg-blue-50/50 border border-blue-100 rounded-lg">
-                <span className="text-[10px] font-semibold text-blue-700 uppercase tracking-wider block mb-1">
-                  Xem trước lời giải:
-                </span>
-                <div className="text-xs text-slate-800">
-                  <MathView math={explanation} />
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Modal Action Buttons */}
-          <div className="pt-4 border-t border-slate-200 flex items-center justify-end gap-2.5">
+          <div className={styles.modalFooter}>
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2 text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+              className={`${styles.btn} ${styles.btnSecondary}`}
             >
               Hủy
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-semibold text-white bg-[#183B69] hover:bg-[#132f54] rounded-lg transition-colors shadow-sm disabled:opacity-50"
+              className={`${styles.btn} ${styles.btnPrimary} ${isSubmitting ? styles.btnDisabled : ''}`}
             >
-              <Save className="w-4 h-4" />
+              <Save size={14} />
               {isSubmitting ? 'Đang lưu...' : isEdit ? 'Lưu cập nhật' : 'Tạo câu hỏi'}
             </button>
           </div>
