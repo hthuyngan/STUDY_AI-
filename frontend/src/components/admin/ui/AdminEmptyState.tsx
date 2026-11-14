@@ -26,3 +26,4 @@ export const AdminEmptyState: React.FC<AdminEmptyStateProps> = ({
     </div>
   )
 }
+

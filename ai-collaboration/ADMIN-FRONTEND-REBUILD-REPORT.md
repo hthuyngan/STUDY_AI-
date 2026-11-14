@@ -122,3 +122,4 @@ Hệ thống giao diện quản trị STUDY_AI đã được nâng cấp toàn d
 - Trực quan, tinh tế, nhất quán và thân thiện với người dùng cán bộ/quản trị.
 - Tốc độ tải và phản hồi vượt trội nhờ hệ thống component tối ưu.
 - Bảo đảm 100% tính tương thích ngược, không ảnh hưởng đến giao diện học viên và không tác động đến cơ sở dữ liệu.
+

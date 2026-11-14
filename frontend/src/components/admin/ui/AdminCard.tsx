@@ -36,3 +36,4 @@ export const AdminCard: React.FC<AdminCardProps> = ({
     </div>
   )
 }
+
