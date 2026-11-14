@@ -53,24 +53,32 @@ export const QuestionPreviewPanel: React.FC<QuestionPreviewPanelProps> = ({
   const parsedOptions: QuestionOption[] = useMemo(() => {
     if (!question || !question.options || !Array.isArray(question.options)) return [];
     return question.options.map((opt: unknown, idx: number) => {
+      const correctAns = question.correctAnswer?.trim() || '';
       if (typeof opt === 'string') {
         const match = opt.match(/^(\[[A-Z]\]|[A-Z]\.|\([A-Z]\)|[A-Z]:)\s*(.*)$/i);
         const key = match ? match[1].replace(/[[\]().:]/g, '').toUpperCase() : String.fromCharCode(65 + idx);
         const text = match ? match[2] : opt;
+        const isCorrect =
+          correctAns.toUpperCase() === key ||
+          correctAns === text.trim() ||
+          correctAns === opt.trim();
         return {
           key,
           text,
-          isCorrect: question.correctAnswer?.trim().toUpperCase() === key,
+          isCorrect,
         };
       }
       const o = opt as QuestionOption;
       const key = o.key || String.fromCharCode(65 + idx);
+      const text = o.text || '';
+      const isCorrect =
+        correctAns.toUpperCase() === key ||
+        correctAns === text.trim() ||
+        o.isCorrect === true;
       return {
         key,
-        text: o.text || '',
-        isCorrect:
-          question.correctAnswer?.trim().toUpperCase() === key ||
-          o.isCorrect === true,
+        text,
+        isCorrect,
       };
     });
   }, [question]);

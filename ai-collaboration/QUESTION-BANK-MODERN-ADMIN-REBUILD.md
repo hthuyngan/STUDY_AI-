@@ -91,3 +91,4 @@ Các ảnh chụp màn hình thực tế từ Playwright được lưu trữ t�
 - `viewport_1366_laptop.png`: Hiển thị trên laptop 1366x768.
 - `viewport_768_tablet.png`: Hiển thị trên tablet 768x1024.
 - `viewport_390_mobile.png`: Hiển thị trên điện thoại di động 390x844.
+

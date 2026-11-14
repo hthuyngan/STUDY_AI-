@@ -24,11 +24,23 @@
 }
 
 .math-view-inline {
-  display: inline-block;
+  display: inline;
   padding: 0 2px;
   vertical-align: baseline;
   font-size: 1em;
-  color: var(--color-primary-navy, #102a43);
+  color: inherit;
+}
+
+.katex-inline-wrapper {
+  display: inline-block;
+  margin: 0 0.25rem;
+  vertical-align: -0.05em;
+}
+
+.katex-display-wrapper {
+  display: block;
+  margin: 0.5rem 0;
+  text-align: center;
 }
 
 /* KaTeX custom responsive adjustments */
@@ -43,4 +55,3 @@
     font-size: 0.95rem;
   }
 }
-

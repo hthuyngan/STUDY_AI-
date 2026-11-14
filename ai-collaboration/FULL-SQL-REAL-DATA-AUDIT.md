@@ -87,3 +87,4 @@ Khi kiểm tra dữ liệu 16.684 câu hỏi VNHSGE trong `StudyAIDb_E2E`:
 3. **Frontend Vitest:** 52 files, 406/406 passed.
 4. **Playwright E2E Suite:** 21/21 scenarios passed (100%).
 5. **Database Safety Check:** Số lượng bản ghi `dbo.content_questions` trong `StudyAIDb` là **14 câu** (không thay đổi trước và sau quá trình kiểm thử).
+

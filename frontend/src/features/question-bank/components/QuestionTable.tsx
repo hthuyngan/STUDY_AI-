@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Eye,
   Edit2,
@@ -11,9 +12,10 @@ import {
   FileQuestion,
   ChevronLeft,
   ChevronRight,
+  Sparkles,
   Globe,
   Undo2,
-  MoreHorizontal,
+  MoreVertical,
 } from 'lucide-react';
 import type { ContentQuestionItem } from '../types';
 import { MathView } from '../../../components/common/MathView';
@@ -40,6 +42,11 @@ interface QuestionTableProps {
   onUnpublishQuestion: (question: ContentQuestionItem) => void;
 }
 
+interface MenuCoords {
+  top: number;
+  right: number;
+}
+
 export const QuestionTable: React.FC<QuestionTableProps> = ({
   questions,
   totalCount,
@@ -63,42 +70,103 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
 }) => {
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
-  // Helper for status badge styling
-  const renderStatusBadge = (status: string) => {
+  // 3-dots Kebab Dropdown Menu state
+  const [openMenuQuestionId, setOpenMenuQuestionId] = useState<string | null>(null);
+  const [menuCoords, setMenuCoords] = useState<MenuCoords | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close kebab menu on outside click, window resize, scroll or Escape key
+  useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setOpenMenuQuestionId(null);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpenMenuQuestionId(null);
+      }
+    };
+
+    const handleScrollOrResize = () => {
+      setOpenMenuQuestionId(null);
+    };
+
+    if (openMenuQuestionId) {
+      document.addEventListener('mousedown', handleOutsideClick);
+      document.addEventListener('keydown', handleKeyDown);
+      window.addEventListener('resize', handleScrollOrResize);
+      window.addEventListener('scroll', handleScrollOrResize, true);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('resize', handleScrollOrResize);
+      window.removeEventListener('scroll', handleScrollOrResize, true);
+    };
+  }, [openMenuQuestionId]);
+
+  const handleToggleMenu = (q: ContentQuestionItem, e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    if (openMenuQuestionId === q.id) {
+      setOpenMenuQuestionId(null);
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMenuCoords({
+      top: rect.bottom + 6,
+      right: window.innerWidth - rect.right,
+    });
+    setOpenMenuQuestionId(q.id);
+  };
+
+  // Helper for standardized status badge styling (Lỗi 5)
+  const renderStatusBadge = (status: string, isDeleted?: boolean) => {
+    if (isDeleted || isTrashView) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
+          <Trash2 className="w-3.5 h-3.5 text-red-600" />
+          Đã xóa
+        </span>
+      );
+    }
+
     switch (status) {
       case 'published':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
             Đã xuất bản
           </span>
         );
       case 'approved':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200">
-            <CheckCircle2 className="w-3 h-3 text-blue-600" />
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-800 border border-blue-200">
+            <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
             Đã duyệt
           </span>
         );
       case 'in_review':
       case 'in-review':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
-            <AlertCircle className="w-3 h-3 text-amber-600" />
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+            <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
             Chờ duyệt
           </span>
         );
       case 'rejected':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-200">
-            <XCircle className="w-3 h-3 text-rose-600" />
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-800 border border-rose-200">
+            <XCircle className="w-3.5 h-3.5 text-rose-600" />
             Bị từ chối
           </span>
         );
       case 'draft':
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
             <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
             Bản nháp
           </span>
@@ -111,18 +179,18 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
     switch (difficulty) {
       case 'easy':
       case 'nhan_biet':
-        return <span className="text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">Nhận biết</span>;
+        return <span className="text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">Nhận biết</span>;
       case 'medium':
       case 'thong_hieu':
-        return <span className="text-xs font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded">Thông hiểu</span>;
+        return <span className="text-[11px] font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200/60">Thông hiểu</span>;
       case 'hard':
       case 'van_dung':
-        return <span className="text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded">Vận dụng</span>;
+        return <span className="text-[11px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60">Vận dụng</span>;
       case 'expert':
       case 'van_dung_cao':
-        return <span className="text-xs font-medium text-purple-700 bg-purple-50 px-2 py-0.5 rounded">VD cao</span>;
+        return <span className="text-[11px] font-medium text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200/60">VD cao</span>;
       default:
-        return <span className="text-xs font-medium text-slate-600 bg-slate-50 px-2 py-0.5 rounded">{difficulty || 'Chuẩn'}</span>;
+        return <span className="text-[11px] font-medium text-slate-600 bg-slate-50 px-2 py-0.5 rounded border border-slate-200/60">{difficulty || 'Chuẩn'}</span>;
     }
   };
 
@@ -131,36 +199,41 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
     switch (type) {
       case 'single_choice':
       case 'multiple-choice':
-        return <span className="text-xs font-medium text-slate-700">Trắc nghiệm</span>;
+        return <span className="text-[11px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/60">Trắc nghiệm</span>;
       case 'multiple_choice':
       case 'multiple-select':
-        return <span className="text-xs font-medium text-slate-700">Nhiều lựa chọn</span>;
+        return <span className="text-[11px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/60">Nhiều lựa chọn</span>;
       case 'true_false':
       case 'true-false':
-        return <span className="text-xs font-medium text-slate-700">Đúng / Sai</span>;
+        return <span className="text-[11px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/60">Đúng / Sai</span>;
       case 'short_answer':
       case 'short-answer':
-        return <span className="text-xs font-medium text-slate-700">Điền câu trả lời</span>;
+        return <span className="text-[11px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/60">Điền câu trả lời</span>;
       case 'essay':
-        return <span className="text-xs font-medium text-slate-700">Tự luận</span>;
+        return <span className="text-[11px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/60">Tự luận</span>;
       default:
-        return <span className="text-xs font-medium text-slate-500">{type || 'Trắc nghiệm'}</span>;
+        return <span className="text-[11px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/60">{type || 'Trắc nghiệm'}</span>;
     }
   };
+
+  // Currently opened menu question
+  const activeMenuQuestion = openMenuQuestionId
+    ? questions.find((q) => q.id === openMenuQuestionId)
+    : null;
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
       {/* Table responsive container (Evondev R9 rule) */}
       <div className="overflow-x-auto min-w-full">
-        <table className="staff-table w-full text-left text-sm border-collapse min-w-[700px]">
+        {/* Streamlined 5-column Table: [Mã câu], [Môn / Lớp], [Nội dung câu hỏi], [Trạng thái], [Thao tác] */}
+        <table className="staff-table w-full text-left text-sm border-collapse min-w-[760px]">
           <thead>
-            <tr className="bg-slate-50/80 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-              <th className="py-3 px-4 w-12 text-center">STT</th>
-              <th className="py-3 px-4 w-32">Mã câu</th>
-              <th className="py-3 px-4 w-36">Môn & Lớp</th>
-              <th className="py-3 px-4 min-w-[280px]">Nội dung câu hỏi</th>
-              <th className="py-3 px-4 w-32 text-center">Trạng thái</th>
-              <th className="py-3 px-4 w-32 text-right">Thao tác</th>
+            <tr className="bg-slate-50/90 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+              <th className="py-3.5 px-4 w-28">Mã câu</th>
+              <th className="py-3.5 px-4 w-36">Môn / Lớp</th>
+              <th className="py-3.5 px-4 min-w-[320px]">Nội dung câu hỏi</th>
+              <th className="py-3.5 px-4 w-32 text-center">Trạng thái</th>
+              <th className="py-3.5 px-4 w-24 text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -168,18 +241,17 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
               // Loading skeleton rows
               Array.from({ length: 6 }).map((_, i) => (
                 <tr key={i} className="animate-pulse">
-                  <td className="py-4 px-4 text-center"><div className="h-4 bg-slate-200 rounded w-6 mx-auto" /></td>
                   <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-20" /></td>
                   <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-24" /></td>
-                  <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-3/4 mb-1" /><div className="h-3 bg-slate-100 rounded w-1/2" /></td>
+                  <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-3/4 mb-2" /><div className="h-3 bg-slate-100 rounded w-1/2" /></td>
                   <td className="py-4 px-4 text-center"><div className="h-5 bg-slate-200 rounded-full w-20 mx-auto" /></td>
-                  <td className="py-4 px-4 text-right"><div className="h-7 bg-slate-200 rounded w-24 ml-auto" /></td>
+                  <td className="py-4 px-4 text-right"><div className="h-7 bg-slate-200 rounded w-16 ml-auto" /></td>
                 </tr>
               ))
             ) : questions.length === 0 ? (
               // Empty state
               <tr>
-                <td colSpan={6} className="py-16 text-center text-slate-500">
+                <td colSpan={5} className="py-16 text-center text-slate-500">
                   <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
                     <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-4">
                       <FileQuestion className="w-8 h-8" />
@@ -196,9 +268,8 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
                 </td>
               </tr>
             ) : (
-              questions.map((q, index) => {
+              questions.map((q) => {
                 const isSelected = selectedQuestionId === q.id;
-                const rowNumber = (currentPage - 1) * pageSize + index + 1;
                 const isVNHSGE = q.sourceType === 'vnhsge';
 
                 return (
@@ -211,78 +282,96 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
                         : 'hover:bg-slate-50/80'
                     }`}
                   >
-                    {/* STT */}
-                    <td className="py-3 px-4 text-center text-xs font-medium text-slate-400">
-                      {rowNumber}
-                    </td>
-
-                    {/* Mã câu */}
-                    <td className="py-3 px-4">
-                      <span className="font-mono text-xs font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                    {/* 1. Mã câu */}
+                    <td className="py-3 px-4 align-top">
+                      <span className="font-mono text-xs font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 inline-block">
                         {q.code || q.id.slice(0, 8)}
                       </span>
                     </td>
 
-                    {/* Môn & Lớp */}
-                    <td className="py-3 px-4">
+                    {/* 2. Môn / Lớp (Không hardcode mặc định Toán học hay lớp 12) */}
+                    <td className="py-3 px-4 align-top">
                       <div className="font-medium text-slate-800 text-xs">
-                        {q.subjectName || 'Chưa phân loại'}
+                        {q.subjectName || 'Chưa phân môn'}
                       </div>
-                      <div className="text-[11px] text-slate-500">
-                        {q.grade ? `Lớp ${q.grade}` : "Chưa xác định lớp"}
+                      <div className="text-[11px] text-slate-500 mt-0.5">
+                        {q.grade ? `Lớp ${q.grade}` : 'Chưa xếp lớp'}
                       </div>
                     </td>
 
-                    {/* Nội dung tóm tắt with MathView */}
-                    <td className="py-3 px-4 max-w-md">
-                      <div className="line-clamp-2 text-xs text-slate-800 font-normal leading-relaxed">
+                    {/* 3. Nội dung câu hỏi (Chiếm phần lớn chiều rộng, max 2-3 dòng, kèm dạng câu/độ khó/nguồn) */}
+                    <td className="py-3 px-4 align-top">
+                      <div className="line-clamp-2 text-xs text-slate-800 font-normal leading-relaxed mb-1.5">
                         <MathView math={q.prompt} />
                       </div>
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">{renderQuestionType(q.questionType || q.type)}<span>·</span>{renderDifficultyBadge(q.difficulty)}<span>·</span>{isVNHSGE ? "VNHSGE" : "Thủ công"}</div>
-                      {q.options && q.options.length > 0 && (
-                        <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1">
-                          <span>{q.options.length} phương án</span>
 
-                        </div>
-                      )}
+                      {/* Metadata Chips: Dạng câu, Độ khó, Nguồn, Phương án */}
+                      <div className="flex items-center flex-wrap gap-1.5">
+                        {renderQuestionType(q.questionType || q.type)}
+                        {renderDifficultyBadge(q.difficulty)}
+
+                        {isVNHSGE ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-indigo-700 bg-indigo-50 border border-indigo-200/80 px-2 py-0.5 rounded">
+                            <Sparkles className="w-3 h-3 text-indigo-500" />
+                            VNHSGE
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center text-[11px] font-medium text-slate-600 bg-slate-100 border border-slate-200/60 px-2 py-0.5 rounded">
+                            Thủ công
+                          </span>
+                        )}
+
+                        {q.options && q.options.length > 0 && (
+                          <span className="text-[11px] text-slate-400 font-normal ml-1">
+                            {q.options.length} phương án
+                            {q.correctAnswer && (
+                              <span className="text-emerald-700 font-medium ml-1">
+                                • Đáp án: {q.correctAnswer}
+                              </span>
+                            )}
+                          </span>
+                        )}
+                      </div>
                     </td>
 
-                    {/* Trạng thái */}
-                    <td className="py-3 px-4 text-center">
-                      {renderStatusBadge(q.status)}
+                    {/* 4. Trạng thái (Standardized Badge) */}
+                    <td className="py-3 px-4 align-top text-center whitespace-nowrap">
+                      {renderStatusBadge(q.status, q.isDeleted)}
                     </td>
 
-                    {/* Primary actions and accessible overflow menu */}
-                    <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-end gap-2">
-                        <button type="button" onClick={() => { onSelectQuestion(q); onPreviewModal(q); }}
-                          title="Xem trước" aria-label={`Xem trước câu hỏi ${q.code || q.id}`}
-                          className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-[#183B69] hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600">
+                    {/* 5. Thao tác: Nút Xem trước độc lập + 3-dots Kebab Menu */}
+                    <td className="py-3 px-4 align-top text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-1">
+                        {/* 1-Click Preview Button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onSelectQuestion(q);
+                            onPreviewModal(q);
+                          }}
+                          title="Xem trước"
+                          aria-label="Xem trước"
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-[#183B69] hover:bg-slate-100 transition-colors"
+                        >
                           <Eye className="w-4 h-4" />
                         </button>
-                        <details className="relative group">
-                          <summary aria-label={`Thao tác câu hỏi ${q.code || q.id}`}
-                            className="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 [&::-webkit-details-marker]:hidden">
-                            <MoreHorizontal className="w-5 h-5" />
-                          </summary>
-                          <div className="absolute right-0 top-full z-30 mt-1 min-w-[190px] rounded-xl border border-slate-200 bg-white p-1.5 text-left shadow-xl">
-                            {!isTrashView ? (
-                              <>
-                                <button type="button" onClick={() => onEditQuestion(q)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm hover:bg-slate-100"><Edit2 className="w-4 h-4" /> Chỉnh sửa</button>
-                                {(q.status === 'draft' || q.status === 'rejected') && <button type="button" onClick={() => onSubmitReview(q)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm hover:bg-amber-50"><Send className="w-4 h-4" /> Gửi duyệt</button>}
-                                {(q.status === 'in_review' || q.status === 'in-review') && (
-                                  <>
-                                    <button type="button" onClick={() => onApproveQuestion(q)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm hover:bg-emerald-50"><CheckCircle2 className="w-4 h-4" /> Phê duyệt</button>
-                                    <button type="button" onClick={() => onRejectQuestion(q)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm hover:bg-rose-50"><XCircle className="w-4 h-4" /> Từ chối</button>
-                                  </>
-                                )}
-                                {q.status === 'approved' && <button type="button" onClick={() => onPublishQuestion(q)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm hover:bg-emerald-50"><Globe className="w-4 h-4" /> Xuất bản</button>}
-                                {q.status === 'published' && <button type="button" onClick={() => onUnpublishQuestion(q)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm hover:bg-amber-50"><Undo2 className="w-4 h-4" /> Gỡ xuất bản</button>}
-                                <button type="button" onClick={() => onDeleteQuestion(q)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm text-rose-700 hover:bg-rose-50"><Trash2 className="w-4 h-4" /> Xóa câu hỏi</button>
-                              </>
-                            ) : <button type="button" onClick={() => onRestoreQuestion(q)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm text-emerald-700 hover:bg-emerald-50"><RotateCcw className="w-4 h-4" /> Khôi phục</button>}
-                          </div>
-                        </details>
+
+                        {/* 3-dots Kebab Dropdown Menu Trigger */}
+                        <button
+                          type="button"
+                          onClick={(e) => handleToggleMenu(q, e)}
+                          title="Thao tác khác"
+                          aria-label="Thao tác khác"
+                          aria-haspopup="true"
+                          aria-expanded={openMenuQuestionId === q.id}
+                          className={`p-1.5 rounded-lg transition-colors ${
+                            openMenuQuestionId === q.id
+                              ? 'bg-slate-200 text-slate-900'
+                              : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+                          }`}
+                        >
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -292,6 +381,157 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
           </tbody>
         </table>
       </div>
+
+      {/* Portal Kebab Menu Dropdown (Prevents clipping inside table overflow-x-auto container) */}
+      {openMenuQuestionId && activeMenuQuestion && menuCoords && typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            ref={menuRef}
+            className="kebab-menu-portal fixed z-50 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 min-w-[190px] text-xs font-medium text-slate-700 animate-fadeIn"
+            style={{
+              top: `${menuCoords.top}px`,
+              right: `${menuCoords.right}px`,
+            }}
+            role="menu"
+            aria-orientation="vertical"
+          >
+            {!isTrashView ? (
+              <>
+                {/* Chỉnh sửa */}
+                <button
+                  type="button"
+                  title="Chỉnh sửa"
+                  onClick={() => {
+                    setOpenMenuQuestionId(null);
+                    onEditQuestion(activeMenuQuestion);
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-left hover:bg-slate-50 hover:text-[#183B69] transition-colors"
+                  role="menuitem"
+                >
+                  <Edit2 className="w-4 h-4 text-blue-600" />
+                  <span>Chỉnh sửa</span>
+                </button>
+
+                {/* Gửi kiểm duyệt (draft hoặc rejected) */}
+                {(activeMenuQuestion.status === 'draft' || activeMenuQuestion.status === 'rejected') && (
+                  <button
+                    type="button"
+                    title="Gửi kiểm duyệt"
+                    onClick={() => {
+                      setOpenMenuQuestionId(null);
+                      onSubmitReview(activeMenuQuestion);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-left hover:bg-amber-50 text-amber-700 transition-colors"
+                    role="menuitem"
+                  >
+                    <Send className="w-4 h-4 text-amber-600" />
+                    <span>Gửi kiểm duyệt</span>
+                  </button>
+                )}
+
+                {/* Phê duyệt / Từ chối (in_review hoặc in-review) */}
+                {(activeMenuQuestion.status === 'in_review' || activeMenuQuestion.status === 'in-review') && (
+                  <>
+                    <button
+                      type="button"
+                      title="Phê duyệt"
+                      onClick={() => {
+                        setOpenMenuQuestionId(null);
+                        onApproveQuestion(activeMenuQuestion);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-left hover:bg-emerald-50 text-emerald-700 transition-colors"
+                      role="menuitem"
+                    >
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      <span>Phê duyệt</span>
+                    </button>
+                    <button
+                      type="button"
+                      title="Từ chối"
+                      onClick={() => {
+                        setOpenMenuQuestionId(null);
+                        onRejectQuestion(activeMenuQuestion);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-left hover:bg-rose-50 text-rose-700 transition-colors"
+                      role="menuitem"
+                    >
+                      <XCircle className="w-4 h-4 text-rose-600" />
+                      <span>Từ chối</span>
+                    </button>
+                  </>
+                )}
+
+                {/* Xuất bản (approved) */}
+                {activeMenuQuestion.status === 'approved' && (
+                  <button
+                    type="button"
+                    title="Xuất bản"
+                    onClick={() => {
+                      setOpenMenuQuestionId(null);
+                      onPublishQuestion(activeMenuQuestion);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-left hover:bg-emerald-50 text-emerald-700 transition-colors"
+                    role="menuitem"
+                  >
+                    <Globe className="w-4 h-4 text-emerald-600" />
+                    <span>Xuất bản</span>
+                  </button>
+                )}
+
+                {/* Gỡ xuất bản (published) */}
+                {activeMenuQuestion.status === 'published' && (
+                  <button
+                    type="button"
+                    title="Gỡ xuất bản"
+                    onClick={() => {
+                      setOpenMenuQuestionId(null);
+                      onUnpublishQuestion(activeMenuQuestion);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-left hover:bg-amber-50 text-amber-700 transition-colors"
+                    role="menuitem"
+                  >
+                    <Undo2 className="w-4 h-4 text-amber-600" />
+                    <span>Gỡ xuất bản</span>
+                  </button>
+                )}
+
+                <div className="h-px bg-slate-100 my-1" />
+
+                {/* Xóa mềm */}
+                <button
+                  type="button"
+                  title="Xóa mềm"
+                  onClick={() => {
+                    setOpenMenuQuestionId(null);
+                    onDeleteQuestion(activeMenuQuestion);
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-left hover:bg-rose-50 text-rose-600 transition-colors"
+                  role="menuitem"
+                >
+                  <Trash2 className="w-4 h-4 text-rose-600" />
+                  <span>Xóa mềm</span>
+                </button>
+              </>
+            ) : (
+              /* Thùng rác: Khôi phục */
+              <button
+                type="button"
+                title="Khôi phục"
+                onClick={() => {
+                  setOpenMenuQuestionId(null);
+                  onRestoreQuestion(activeMenuQuestion);
+                }}
+                className="w-full flex items-center gap-2.5 px-3.5 py-2 text-left hover:bg-emerald-50 text-emerald-700 transition-colors"
+                role="menuitem"
+              >
+                <RotateCcw className="w-4 h-4 text-emerald-600" />
+                <span>Khôi phục câu hỏi</span>
+              </button>
+            )}
+          </div>,
+          document.body
+        )
+      }
 
       {/* Pagination Footer */}
       <div className="bg-white border-t border-slate-200 px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">

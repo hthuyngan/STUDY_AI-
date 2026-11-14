@@ -264,14 +264,28 @@ async function run() {
     console.log(`Created question ${uniqueCode} in draft state!`)
     reports.push({ id: 7, name: 'Create Question with KaTeX', status: 'PASS', durationMs: Date.now() - sTime })
 
+    // Helper to click an action on a row via direct button or 3-dots kebab menu
+    const clickRowAction = async (targetText: string, actionTitle: string) => {
+      const row = page.locator(`tr:has-text("${targetText}")`).first()
+      const directBtn = row.locator(`button[title*="${actionTitle}"]`)
+      if (await directBtn.count() > 0 && await directBtn.first().isVisible()) {
+        await directBtn.first().click()
+        return
+      }
+      const kebabBtn = row.locator('button[title="Thao tác khác"]').first()
+      await kebabBtn.click()
+      await page.waitForTimeout(250)
+      const menuBtn = page.locator(`.kebab-menu-portal button[title*="${actionTitle}"]`).first()
+      await menuBtn.click()
+    }
+
     // SCENARIO 8: Search & Edit Question
     console.log('\n--- Scenario 8: Edit Question ---')
     sTime = Date.now()
     await page.locator('input[placeholder*="Tìm theo nội dung"]').fill(uniqueCode)
     await page.waitForTimeout(600)
     await page.waitForSelector(`text=${uniqueCode}`, { timeout: 8000 })
-    const editBtn = page.locator(`tr:has-text("${uniqueCode}") button[title="Chỉnh sửa"]`)
-    await editBtn.click()
+    await clickRowAction(uniqueCode, 'Chỉnh sửa')
     await page.waitForSelector('.staff-modal', { timeout: 5000 })
     const editModal = page.locator('.staff-modal')
     await editModal.locator('input[placeholder="VD: Cực trị hàm số"]').fill('Cực trị hàm đa thức bậc 3')
@@ -283,8 +297,7 @@ async function run() {
     // SCENARIO 9: Submit Review
     console.log('\n--- Scenario 9: Submit Question for Review ---')
     sTime = Date.now()
-    const submitBtn = page.locator(`tr:has-text("${uniqueCode}") button[title="Gửi kiểm duyệt"]`)
-    await submitBtn.click()
+    await clickRowAction(uniqueCode, 'Gửi kiểm duyệt')
     await page.waitForSelector(`tr:has-text("${uniqueCode}"):has-text("Chờ duyệt")`, { timeout: 8000 })
     console.log('Submitted question for review!')
     reports.push({ id: 9, name: 'Submit Review', status: 'PASS', durationMs: Date.now() - sTime })
@@ -292,8 +305,7 @@ async function run() {
     // SCENARIO 10: Approve Question (Content Primacy)
     console.log('\n--- Scenario 10: Content Primacy Approval ---')
     sTime = Date.now()
-    const approveBtn = page.locator(`tr:has-text("${uniqueCode}") button[title*="Phê duyệt"]`)
-    await approveBtn.click()
+    await clickRowAction(uniqueCode, 'Phê duyệt')
     await page.waitForSelector(`tr:has-text("${uniqueCode}"):has-text("Đã duyệt")`, { timeout: 8000 })
     console.log('Approved question under Content Primacy!')
     reports.push({ id: 10, name: 'Content Primacy Approval', status: 'PASS', durationMs: Date.now() - sTime })
@@ -301,8 +313,7 @@ async function run() {
     // SCENARIO 11: Publish Question
     console.log('\n--- Scenario 11: Publish Question ---')
     sTime = Date.now()
-    const publishBtn = page.locator(`tr:has-text("${uniqueCode}") button[title="Xuất bản"]`)
-    await publishBtn.click()
+    await clickRowAction(uniqueCode, 'Xuất bản')
     await page.waitForSelector(`tr:has-text("${uniqueCode}"):has-text("Đã xuất bản")`, { timeout: 8000 })
     await page.screenshot({ path: path.join(QA_DIR, '07_published_question.png') })
     console.log('Published question successfully!')
@@ -311,8 +322,7 @@ async function run() {
     // SCENARIO 12: Unpublish Question
     console.log('\n--- Scenario 12: Unpublish Question ---')
     sTime = Date.now()
-    const unpublishBtn = page.locator(`tr:has-text("${uniqueCode}") button[title="Gỡ xuất bản"]`)
-    await unpublishBtn.click()
+    await clickRowAction(uniqueCode, 'Gỡ xuất bản')
     await page.waitForSelector(`tr:has-text("${uniqueCode}"):has-text("Bản nháp")`, { timeout: 8000 })
     console.log('Unpublished question successfully!')
     reports.push({ id: 12, name: 'Unpublish Question', status: 'PASS', durationMs: Date.now() - sTime })
@@ -321,8 +331,7 @@ async function run() {
     console.log('\n--- Scenario 13: Soft Delete Question ---')
     sTime = Date.now()
     page.once('dialog', async (d) => await d.accept())
-    const deleteBtn = page.locator(`tr:has-text("${uniqueCode}") button[title="Xóa mềm"]`)
-    await deleteBtn.click()
+    await clickRowAction(uniqueCode, 'Xóa mềm')
     await page.waitForTimeout(600)
     console.log('Soft deleted question to trash!')
     reports.push({ id: 13, name: 'Soft Delete Question', status: 'PASS', durationMs: Date.now() - sTime })
@@ -332,9 +341,8 @@ async function run() {
     sTime = Date.now()
     await page.click('button:has-text("Thùng rác")')
     await page.waitForTimeout(600)
-    await page.waitForSelector(`tr:has-text("${uniqueCode}")`, { timeout: 8000 })
-    const restoreBtn = page.locator(`tr:has-text("${uniqueCode}") button[title="Khôi phục"]`)
-    await restoreBtn.click()
+    await page.waitForSelector(`text=${uniqueCode}`, { timeout: 8000 })
+    await clickRowAction(uniqueCode, 'Khôi phục')
     await page.waitForTimeout(600)
     await page.click('button:has-text("Đang xem thùng rác")')
     await page.waitForTimeout(600)

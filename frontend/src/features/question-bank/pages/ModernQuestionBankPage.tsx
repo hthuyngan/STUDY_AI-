@@ -91,7 +91,7 @@ export const ModernQuestionBankPage: React.FC = () => {
       {/* Main Container */}
       <div className="max-w-[1600px] mx-auto space-y-6">
         {/* Page Top Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/80 pb-5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/80 pb-4">
           <div>
             <div className="flex items-center gap-2.5 mb-1">
               <div className="w-9 h-9 rounded-xl bg-[#183B69] flex items-center justify-center text-white shadow-sm">
@@ -105,7 +105,6 @@ export const ModernQuestionBankPage: React.FC = () => {
               Quản lý toàn bộ câu hỏi ôn luyện, ngân hàng đề VNHSGE và quy trình kiểm duyệt nội dung của vai trò Content.
             </p>
           </div>
-
         </div>
 
         {/* Section 1: Real KPI Dashboard Cards */}
