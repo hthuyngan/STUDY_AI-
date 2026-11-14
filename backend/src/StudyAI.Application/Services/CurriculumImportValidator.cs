@@ -29,7 +29,7 @@ public class CurriculumImportValidator : ICurriculumImportValidator
 
     private static readonly HashSet<string> ValidQuestionTypes = new(StringComparer.OrdinalIgnoreCase)
     {
-        "multiple-choice", "true-false", "short-answer"
+        "multiple-choice", "true-false", "short-answer", "essay", "reading-comprehension"
     };
 
     private static readonly Regex XssPattern = new(
@@ -443,6 +443,25 @@ public class CurriculumImportValidator : ICurriculumImportValidator
         }
     }
 
+    public static string ResolveSubjectAlias(string? rawSubjectCode)
+    {
+        if (string.IsNullOrWhiteSpace(rawSubjectCode)) return "MATH12";
+        var norm = rawSubjectCode.Trim().ToUpperInvariant();
+        return norm switch
+        {
+            "MATH" or "TOAN" or "TOAN12" or "MATH12" => "MATH12",
+            "PHYS" or "PHYSICS" or "VATLY" or "VAT_LY" or "VAT-LY" or "LY" or "PHYS12" => "PHYS12",
+            "CHEM" or "CHEMISTRY" or "HOAHOC" or "HOA_HOC" or "HOA-HOC" or "HOA" or "CHEM12" => "CHEM12",
+            "BIO" or "BIOLOGY" or "SINHHOC" or "SINH_HOC" or "SINH-HOC" or "SINH" or "BIO12" => "BIO12",
+            "LIT" or "LITERATURE" or "NGUVAN" or "NGU_VAN" or "NGU-VAN" or "VAN" or "LIT12" => "LIT12",
+            "ENG" or "ENGLISH" or "TIENGANH" or "TIENG_ANH" or "TIENG-ANH" or "ANH" or "ENG12" => "ENG12",
+            "HIST" or "HISTORY" or "LICHSU" or "LICH_SU" or "LICH-SU" or "SU" or "HIST12" => "HIST12",
+            "GEO" or "GEOGRAPHY" or "DIALY" or "DIA_LY" or "DIA-LY" or "DIA" or "GEO12" => "GEO12",
+            "GDCD" or "CIVICS" or "CIVIC_EDUCATION" or "GDCD12" => "GDCD12",
+            _ => rawSubjectCode.Trim()
+        };
+    }
+
     private void ValidateQuestion(
         ImportQuestionItemDto q,
         HashSet<string> dbSubjectCodes,
@@ -477,6 +496,8 @@ public class CurriculumImportValidator : ICurriculumImportValidator
         // 2. Relational check: Subject
         if (!string.IsNullOrWhiteSpace(q.SubjectCode))
         {
+            q.SubjectCode = ResolveSubjectAlias(q.SubjectCode);
+
             if (!dbSubjectCodes.Contains(q.SubjectCode) && !batchSubjectCodes.Contains(q.SubjectCode))
             {
                 errors.Add(new ImportValidationErrorDto

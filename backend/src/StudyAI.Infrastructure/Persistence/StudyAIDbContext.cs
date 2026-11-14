@@ -509,6 +509,8 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
             entity.Property(e => e.Id).HasMaxLength(64);
 
+            entity.Property(e => e.Code).HasMaxLength(64);
+
             entity.Property(e => e.AssessmentId).HasMaxLength(64);
 
             entity.Property(e => e.LessonId).HasMaxLength(64);
@@ -516,6 +518,8 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.SubjectId).HasMaxLength(64);
 
             entity.Property(e => e.ChapterId).HasMaxLength(64);
+
+            entity.Property(e => e.Grade).HasMaxLength(32);
 
             entity.Property(e => e.Prompt).IsRequired();
 
@@ -533,11 +537,39 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
             entity.Property(e => e.OrderIndex).HasDefaultValue(0);
 
+            entity.Property(e => e.ImageUrl).HasMaxLength(1000);
+
+            entity.Property(e => e.MetadataJson).HasColumnType("nvarchar(max)");
+
+            entity.Property(e => e.IsDeleted).HasDefaultValue(false);
+
+            entity.Property(e => e.DeletedBy).HasMaxLength(64);
+
+            entity.Property(e => e.AuthorId).HasMaxLength(64);
+
+            entity.Property(e => e.ReviewedBy).HasMaxLength(64);
+
+            entity.Property(e => e.RejectionReason).HasMaxLength(500);
+
+            entity.Property(e => e.SourceType).HasMaxLength(64).HasDefaultValue("manual");
+
+            entity.Property(e => e.SourceBatchId).HasMaxLength(64);
+
+            entity.Property(e => e.SourceUrl).HasMaxLength(1000);
+
+            entity.Property(e => e.CopyrightStatus).HasMaxLength(64).HasDefaultValue("proprietary");
+
+            entity.Property(e => e.CopyrightProofRef).HasMaxLength(255);
+
+            entity.Property(e => e.Version).HasDefaultValue(1);
+
             entity.Property(e => e.CreatedAt).IsRequired();
 
             entity.Property(e => e.UpdatedAt).IsRequired();
 
 
+
+            entity.HasIndex(e => e.Code);
 
             entity.HasIndex(e => e.AssessmentId);
 
@@ -548,6 +580,10 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
             entity.HasIndex(e => e.ChapterId);
 
             entity.HasIndex(e => e.Status);
+
+            entity.HasIndex(e => e.IsDeleted);
+
+            entity.HasIndex(e => e.SourceType);
         });
 
         // AiConversation

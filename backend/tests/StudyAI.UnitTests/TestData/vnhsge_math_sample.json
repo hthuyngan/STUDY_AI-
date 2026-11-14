@@ -1,0 +1,19 @@
+[
+  {
+    "ID": "1",
+    "Image_Question": "",
+    "Question": "Cho hàm số $y=f(x)$ có đạo hàm $f'(x) = x^2 - 4x + 3$. Điểm cực đại của hàm số là:\nA. $x = 1$\nB. $x = 3$\nC. $x = -1$\nD. $x = -3$",
+    "Choice": "A",
+    "Image_Answer": "",
+    "Explanation": "Ta có $f'(x) = 0 \\Leftrightarrow x = 1$ hoặc $x = 3$. Qua điểm $x = 1$, đạo hàm đổi dấu từ dương sang âm nên $x = 1$ là điểm cực đại."
+  },
+  {
+    "ID": "2",
+    "Image_Question": "images/math_q2.png",
+    "Question": "Thể tích của khối chóp có diện tích đáy $B = 6a^2$ và chiều cao $h = 2a$ bằng:\nA. $12a^3$\nB. $4a^3$\nC. $2a^3$\nD. $6a^3$",
+    "Choice": "B",
+    "Image_Answer": "images/math_ans2.png",
+    "Explanation": "Áp dụng công thức thể tích khối chóp: $V = \\frac{1}{3}Bh = \\frac{1}{3} \\cdot 6a^2 \\cdot 2a = 4a^3$."
+  }
+]
+

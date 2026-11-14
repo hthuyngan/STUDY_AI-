@@ -10,46 +10,57 @@
   --staff-header-height: 52px;
   --staff-max-content-width: 1680px;
 
-  /* Navy Notebook Palette */
-  --staff-navy-primary: #102a43;
-  --staff-navy-hover: #173f5f;
+  /* Modern SaaS Admin & Premium Education Palette */
+  --staff-navy-primary: #1D4ED8;
+  --staff-navy-hover: #1E3A8A;
   --staff-accent-gold: #f4b942;
-  --staff-warm-paper: #fff9ea;
-  --staff-navy-light: rgba(16, 42, 67, 0.06);
-  --staff-navy-border: rgba(16, 42, 67, 0.12);
+  --staff-warm-paper: #eff6ff;
+  --staff-navy-light: rgba(29, 78, 216, 0.08);
+  --staff-navy-border: rgba(29, 78, 216, 0.16);
 
   /* Surface & Borders */
-  --staff-bg-app: #f8fafc;
-  --staff-surface: #ffffff;
-  --staff-surface-hover: #f1f5f9;
-  --staff-border: #e2e8f0;
-  --staff-border-strong: #cbd5e1;
-  --staff-border-subtle: #f1f5f9;
+  --staff-bg-app: #F8FAFC;
+  --staff-surface: #FFFFFF;
+  --staff-surface-hover: #F1F5F9;
+  --staff-border: #E2E8F0;
+  --staff-border-strong: #CBD5E1;
+  --staff-border-subtle: #F1F5F9;
 
   /* Typography */
-  --staff-text-main: #102a43;
-  --staff-text-muted: #627d98;
-  --staff-text-subtle: #9fb3c8;
+  --staff-text-main: #0F172A;
+  --staff-text-muted: #64748B;
+  --staff-text-subtle: #94A3B8;
 
   /* Status Colors */
-  --staff-success: #16a34a;
+  --staff-success: #16A34A;
   --staff-success-bg: rgba(22, 163, 74, 0.08);
-  --staff-warning: #d97706;
+  --staff-warning: #D97706;
   --staff-warning-bg: rgba(217, 119, 6, 0.08);
-  --staff-danger: #dc2626;
+  --staff-danger: #DC2626;
   --staff-danger-bg: rgba(220, 38, 38, 0.08);
-  --staff-info: #0284c7;
+  --staff-info: #0284C7;
   --staff-info-bg: rgba(2, 132, 199, 0.08);
+
+  /* Legacy alias mappings to modern SaaS tokens */
+  --navy-primary: var(--staff-navy-primary);
+  --navy-hover: var(--staff-navy-hover);
+  --navy-light: var(--staff-navy-light);
+  --text-main: var(--staff-text-main);
+  --text-muted: var(--staff-text-muted);
+  --border-subtle: var(--staff-border);
+  --border-default: var(--staff-border);
+  --bg-card: var(--staff-surface);
+  --bg-app: var(--staff-bg-app);
 
   /* Radii & Shadows */
   --staff-radius-sm: 6px;
   --staff-radius-md: 8px;
-  --staff-radius-lg: 10px;
-  --staff-radius-xl: 12px;
+  --staff-radius-lg: 12px;
+  --staff-radius-xl: 16px;
   --staff-radius-full: 9999px;
-  --staff-shadow-sm: 0 1px 2px 0 rgba(16, 42, 67, 0.05);
-  --staff-shadow-md: 0 4px 6px -1px rgba(16, 42, 67, 0.08);
-  --staff-shadow-lg: 0 10px 15px -3px rgba(16, 42, 67, 0.1);
+  --staff-shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  --staff-shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+  --staff-shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
 }
 
 /* Dark Mode Tokens */
