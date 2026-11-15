@@ -95,6 +95,11 @@ else
 }
 
 builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IAiTutorService, StudyAI.Infrastructure.Services.AiTutorService>();
+builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IAiUsageService, StudyAI.Infrastructure.Services.AiUsageService>();
+builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IAiHintService, StudyAI.Infrastructure.Services.AiHintService>();
+builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IAiAnalysisService, StudyAI.Infrastructure.Services.AiAnalysisService>();
+builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IStudentMasteryService, StudyAI.Infrastructure.Services.StudentMasteryService>();
+builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILearningRecommendationService, StudyAI.Infrastructure.Services.LearningRecommendationService>();
 
 // 3. JWT Secret Validation & Authentication
 var jwtSecret = configuration["Jwt:SecretKey"];

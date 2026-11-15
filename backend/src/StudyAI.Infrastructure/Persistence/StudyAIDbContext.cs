@@ -63,6 +63,14 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
     public DbSet<AssignmentSubmission> AssignmentSubmissions => Set<AssignmentSubmission>();
 
+    public DbSet<AiUsageLog> AiUsageLogs => Set<AiUsageLog>();
+
+    public DbSet<StudentTopicMastery> StudentTopicMasteries => Set<StudentTopicMastery>();
+
+    public DbSet<AiHintUsage> AiHintUsages => Set<AiHintUsage>();
+
+    public DbSet<AiLearningRecommendation> AiLearningRecommendations => Set<AiLearningRecommendation>();
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         base.OnConfiguring(optionsBuilder);
@@ -455,7 +463,7 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
                 .HasForeignKey(l => l.TopicId)
 
-                .OnDelete(DeleteBehavior.SetNull);
+                .OnDelete(DeleteBehavior.NoAction);
 
         });
 
@@ -874,6 +882,126 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
+        // Phase AI-01: AiUsageLog
+        modelBuilder.Entity<AiUsageLog>(entity =>
+        {
+            entity.ToTable("ai_usage_logs");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.UserId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.Feature).HasMaxLength(32).IsRequired();
+            entity.Property(e => e.Provider).HasMaxLength(32).IsRequired();
+            entity.Property(e => e.Model).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.InputTokens);
+            entity.Property(e => e.OutputTokens);
+            entity.Property(e => e.EstimatedCostUsd).HasColumnType("decimal(10,6)");
+            entity.Property(e => e.LatencyMs);
+            entity.Property(e => e.Status).HasMaxLength(32).HasDefaultValue("success");
+            entity.Property(e => e.ErrorMessage).HasMaxLength(500);
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.Feature);
+            entity.HasIndex(e => e.CreatedAt);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Phase AI-01: StudentTopicMastery
+        modelBuilder.Entity<StudentTopicMastery>(entity =>
+        {
+            entity.ToTable("student_topic_mastery");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.UserId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.SubjectId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.TopicId).HasMaxLength(64);
+            entity.Property(e => e.TopicName).HasMaxLength(255).IsRequired();
+            entity.Property(e => e.AttemptCount);
+            entity.Property(e => e.CorrectCount);
+            entity.Property(e => e.HintCount);
+            entity.Property(e => e.MasteryScore);
+            entity.Property(e => e.Status).HasMaxLength(32).HasDefaultValue("insufficient_data");
+            entity.Property(e => e.LastAttemptAt);
+            entity.Property(e => e.UpdatedAt).IsRequired();
+
+            entity.HasIndex(e => new { e.UserId, e.SubjectId, e.TopicName }).IsUnique();
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.Status);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(e => e.Subject)
+                .WithMany()
+                .HasForeignKey(e => e.SubjectId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(e => e.Topic)
+                .WithMany()
+                .HasForeignKey(e => e.TopicId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        // Phase AI-01: AiHintUsage
+        modelBuilder.Entity<AiHintUsage>(entity =>
+        {
+            entity.ToTable("ai_hint_usage");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.UserId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.QuestionId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.SessionId).HasMaxLength(64);
+            entity.Property(e => e.HintLevel);
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            entity.HasIndex(e => new { e.UserId, e.QuestionId });
+            entity.HasIndex(e => e.CreatedAt);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(e => e.Question)
+                .WithMany()
+                .HasForeignKey(e => e.QuestionId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Phase AI-01: AiLearningRecommendation
+        modelBuilder.Entity<AiLearningRecommendation>(entity =>
+        {
+            entity.ToTable("ai_learning_recommendations");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.UserId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.LessonId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.TopicId).HasMaxLength(64);
+            entity.Property(e => e.Reason).HasMaxLength(500).IsRequired();
+            entity.Property(e => e.Priority).HasMaxLength(32).HasDefaultValue("standard");
+            entity.Property(e => e.Status).HasMaxLength(32).HasDefaultValue("pending");
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            entity.HasIndex(e => new { e.UserId, e.Status });
+            entity.HasIndex(e => new { e.UserId, e.Priority });
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(e => e.Lesson)
+                .WithMany()
+                .HasForeignKey(e => e.LessonId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
     }
 
     public override int SaveChanges()
@@ -902,7 +1030,7 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
     private void EnforceDatabaseSafetyIfTesting()
     {
-        if (DatabaseSafetyGuard.IsTestExecutionContext)
+        if (DatabaseSafetyGuard.IsTestExecutionContext && Database.IsRelational())
         {
             var connStr = Database.GetDbConnection().ConnectionString;
             DatabaseSafetyGuard.EnsureSafeTestDatabase(connStr, "StudyAIDbContext.SaveChanges");

@@ -1,5 +1,15 @@
 import React, { useState } from 'react'
+import {
+  AlertCircle,
+  ChevronDown,
+  ChevronUp,
+  Lightbulb,
+  Loader2,
+  Sparkles,
+} from 'lucide-react'
 import { MathView } from '@/components/common/MathView'
+import { aiTutorService } from '@/services/aiTutor.service'
+import type { HintResponse } from '@/types/aiTutor'
 import type { QuestionItem } from '@/types/questionBank'
 import type {
   MultipleChoiceAnswer,
@@ -16,6 +26,8 @@ interface PracticeQuestionCardProps {
   answer?: StudentAnswer | null
   onAnswerChange: (answer: StudentAnswer) => void
   disabled?: boolean
+  sessionId?: string
+  mode?: string
 }
 
 export const PracticeQuestionCard: React.FC<PracticeQuestionCardProps> = ({
@@ -25,11 +37,51 @@ export const PracticeQuestionCard: React.FC<PracticeQuestionCardProps> = ({
   answer,
   onAnswerChange,
   disabled = false,
+  sessionId,
+  mode,
 }) => {
   // Local state for Short Answer to prevent jarring re-renders while typing
   const [localInput, setLocalInput] = useState<string>(
     answer?.questionType === 'short_answer' ? (answer as ShortAnswerAnswer).rawInput : ''
   )
+
+  // AI Hint Ladder state
+  const [showHints, setShowHints] = useState<boolean>(false)
+  const [hintLevel, setHintLevel] = useState<1 | 2 | 3>(1)
+  const [hintData, setHintData] = useState<HintResponse | null>(null)
+  const [hintLoading, setHintLoading] = useState<boolean>(false)
+  const [hintError, setHintError] = useState<string | null>(null)
+
+  const isExamMode = mode === 'exam' || mode === 'test'
+
+  const fetchHint = async (level: 1 | 2 | 3) => {
+    setHintLevel(level)
+    setHintLoading(true)
+    setHintError(null)
+
+    try {
+      const res = await aiTutorService.getHintLadder(
+        question.id,
+        level,
+        answer ? JSON.stringify(answer) : undefined,
+        sessionId,
+        mode
+      )
+      setHintData(res)
+    } catch (err: any) {
+      setHintError(err?.message || 'Không thể tải gợi ý vào lúc này.')
+    } finally {
+      setHintLoading(false)
+    }
+  }
+
+  const toggleHintDrawer = () => {
+    const next = !showHints
+    setShowHints(next)
+    if (next && !hintData && !hintLoading) {
+      fetchHint(1)
+    }
+  }
 
   const handleMcqSelect = (optionId: 'A' | 'B' | 'C' | 'D') => {
     if (disabled) return
@@ -211,6 +263,95 @@ export const PracticeQuestionCard: React.FC<PracticeQuestionCardProps> = ({
           </div>
         )}
       </div>
+
+      {/* Socratic AI Hint Ladder Section */}
+      {!isExamMode && (
+        <div className="practice-hint-ladder-container">
+          <div className="practice-hint-header">
+            <button
+              type="button"
+              className="practice-hint-toggle-btn"
+              onClick={toggleHintDrawer}
+              aria-expanded={showHints}
+            >
+              <Lightbulb className="hint-btn-icon" size={16} />
+              <span>Gợi ý Socratic (AI Hint)</span>
+              {showHints ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+            <span className="practice-hint-mode-badge">3 Cấp độ tư duy</span>
+          </div>
+
+          {showHints && (
+            <div className="practice-hint-drawer" role="region" aria-label="Gợi ý AI">
+              <div className="hint-ladder-pills">
+                <button
+                  type="button"
+                  className={`hint-ladder-pill ${hintLevel === 1 ? 'active' : ''}`}
+                  onClick={() => fetchHint(1)}
+                  disabled={hintLoading}
+                >
+                  <Sparkles size={14} />
+                  <span>Cấp 1: Định hướng</span>
+                </button>
+                <button
+                  type="button"
+                  className={`hint-ladder-pill ${hintLevel === 2 ? 'active' : ''}`}
+                  onClick={() => fetchHint(2)}
+                  disabled={hintLoading}
+                >
+                  <span>Cấp 2: Phương pháp</span>
+                </button>
+                <button
+                  type="button"
+                  className={`hint-ladder-pill ${hintLevel === 3 ? 'active' : ''}`}
+                  onClick={() => fetchHint(3)}
+                  disabled={hintLoading}
+                >
+                  <span>Cấp 3: Bước then chốt</span>
+                </button>
+              </div>
+
+              {hintLoading && (
+                <div className="hint-loading-state">
+                  <Loader2 className="spinner" size={18} />
+                  <span>AI Tutor đang phân tích bài toán và tạo gợi ý...</span>
+                </div>
+              )}
+
+              {hintError && (
+                <div className="hint-error-state">
+                  <AlertCircle size={16} />
+                  <span>{hintError}</span>
+                  <button type="button" onClick={() => fetchHint(hintLevel)} className="hint-retry-btn">
+                    Thử lại
+                  </button>
+                </div>
+              )}
+
+              {!hintLoading && !hintError && hintData && (
+                <div className="hint-result-box">
+                  <div className="hint-title-row">
+                    <strong>{hintData.hintLevelName}</strong>
+                  </div>
+                  <div className="hint-text-body">
+                    <MathView math={hintData.hintText} />
+                  </div>
+                  {hintData.suggestedNextSteps && hintData.suggestedNextSteps.length > 0 && (
+                    <div className="hint-steps-list">
+                      <span className="hint-steps-label">Các bước tiếp theo nên làm:</span>
+                      <ul>
+                        {hintData.suggestedNextSteps.map((step, idx) => (
+                          <li key={idx}>{step}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

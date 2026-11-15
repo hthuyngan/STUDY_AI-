@@ -1,10 +1,18 @@
 import type {
+  AdaptiveLearningPath,
+  AiErrorAnalysisResult,
+  AiFeatureConfig,
+  AiLearningRecommendation,
+  AiUsageLogItem,
+  AiUsageStats,
   ChatConversation,
   ChatMessage,
   ChatRole,
+  HintResponse,
   LearningAssistanceMode,
   MessageStatus,
   SendMessagePayload,
+  SkillMasteryResponse,
   TutorLearningContext,
 } from '../types/aiTutor'
 import {
@@ -526,24 +534,22 @@ ${context.explanation ? `\n> **Giải thích chuẩn:** ${context.explanation}` 
   async getHintLadder(
     questionId: string,
     hintLevel: 1 | 2 | 3,
-    studentAnswer?: string
-  ): Promise<{
-    questionId: string
-    hintLevel: number
-    hintLevelName: string
-    hintText: string
-    mathFormulas: string[]
-    suggestedNextSteps: string[]
-  }> {
+    studentAnswer?: string,
+    sessionId?: string,
+    mode?: string
+  ): Promise<HintResponse> {
     try {
-      const res = await apiClient.post<any>('/api/v1/ai/hints', {
+      const url = `/api/v1/ai/hints${sessionId ? `?sessionId=${sessionId}` : ''}${mode ? `&mode=${mode}` : ''}`
+      const res = await apiClient.post<HintResponse>(url, {
         questionId,
         hintLevel,
         studentAnswer,
       })
       if (res) return res
-    } catch {
-      // Fallback
+    } catch (err) {
+      if (err instanceof Error && err.message.includes('không được phép')) {
+        throw err
+      }
     }
 
     const levelName =
@@ -551,7 +557,7 @@ ${context.explanation ? `\n> **Giải thích chuẩn:** ${context.explanation}` 
         ? 'Gợi ý định hướng'
         : hintLevel === 2
         ? 'Gợi ý phương pháp'
-        : 'Gợi ý then chốt'
+        : 'Gợi ý bước then chốt'
 
     return {
       questionId,
@@ -562,6 +568,92 @@ ${context.explanation ? `\n> **Giải thích chuẩn:** ${context.explanation}` 
       mathFormulas: [],
       suggestedNextSteps: ['Đọc lại định nghĩa', 'Xác định đại lượng cần tìm'],
     }
+  }
+
+  /**
+   * AI Error Analysis for a completed practice session
+   */
+  async analyzeSessionErrors(
+    sessionId: string,
+    subjectId?: string
+  ): Promise<AiErrorAnalysisResult> {
+    const res = await apiClient.post<AiErrorAnalysisResult>('/api/v1/ai/error-analysis', {
+      sessionId,
+      subjectId,
+    })
+    return res
+  }
+
+  /**
+   * Get deterministic topic mastery scores
+   */
+  async getStudentMastery(subjectId?: string): Promise<SkillMasteryResponse> {
+    const url = `/api/v1/ai/mastery${subjectId ? `?subjectId=${subjectId}` : ''}`
+    const res = await apiClient.get<SkillMasteryResponse>(url)
+    return res || {
+      userId: '',
+      overallMasteryScore: 0,
+      skillsEvaluated: 0,
+      skillsMastered: 0,
+      skills: [],
+    }
+  }
+
+  /**
+   * Get adaptive learning path
+   */
+  async getLearningPath(subjectId?: string): Promise<AdaptiveLearningPath> {
+    const url = `/api/v1/ai/learning-path${subjectId ? `?subjectId=${subjectId}` : ''}`
+    const res = await apiClient.get<AdaptiveLearningPath>(url)
+    return res
+  }
+
+  /**
+   * Get verified recommended lessons
+   */
+  async getRecommendations(subjectId?: string): Promise<AiLearningRecommendation[]> {
+    const url = `/api/v1/ai/recommendations${subjectId ? `?subjectId=${subjectId}` : ''}`
+    const res = await apiClient.get<AiLearningRecommendation[]>(url)
+    return res || []
+  }
+
+  /**
+   * Admin: Get AI feature toggles & provider status
+   */
+  async getAdminAiStatus(): Promise<AiFeatureConfig> {
+    return await apiClient.get<AiFeatureConfig>('/api/v1/admin/ai/status')
+  }
+
+  /**
+   * Admin: Get AI usage metrics and token statistics
+   */
+  async getAdminAiStats(userId?: string, from?: string, to?: string): Promise<AiUsageStats> {
+    const params = new URLSearchParams()
+    if (userId) params.append('userId', userId)
+    if (from) params.append('from', from)
+    if (to) params.append('to', to)
+    const queryString = params.toString() ? `?${params.toString()}` : ''
+    return await apiClient.get<AiUsageStats>(`/api/v1/admin/ai/usage-stats${queryString}`)
+  }
+
+  /**
+   * Admin: Get recent AI audit logs
+   */
+  async getAdminAiLogs(limit: number = 50): Promise<AiUsageLogItem[]> {
+    return await apiClient.get<AiUsageLogItem[]>(`/api/v1/admin/ai/logs?limit=${limit}`)
+  }
+
+  /**
+   * Admin: Toggle AI feature
+   */
+  async toggleAdminAiFeature(
+    feature: string,
+    enabled: boolean
+  ): Promise<{ message: string; config: AiFeatureConfig }> {
+    return await apiClient.post('/api/v1/admin/ai/feature-toggle', {
+      feature,
+      enabled,
+    })
   }
 }
 

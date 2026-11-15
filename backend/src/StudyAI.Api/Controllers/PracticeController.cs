@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using StudyAI.Application.Common.Interfaces;
 using StudyAI.Application.DTOs;
 using StudyAI.Domain.Entities;
 using StudyAI.Infrastructure.Persistence;
@@ -17,10 +18,12 @@ namespace StudyAI.Api.Controllers;
 public class PracticeController : ControllerBase
 {
     private readonly StudyAIDbContext _db;
+    private readonly IStudentMasteryService? _masteryService;
 
-    public PracticeController(StudyAIDbContext db)
+    public PracticeController(StudyAIDbContext db, IStudentMasteryService? masteryService = null)
     {
         _db = db;
+        _masteryService = masteryService;
     }
 
     private string CurrentUserId =>
@@ -513,6 +516,18 @@ public class PracticeController : ControllerBase
         }
 
         await _db.SaveChangesAsync();
+
+        if (_masteryService != null)
+        {
+            try
+            {
+                await _masteryService.UpdateMasteryFromAttemptAsync(attempt.UserId, attempt.Id);
+            }
+            catch
+            {
+                // Non-blocking mastery update
+            }
+        }
 
         var diffStats = perfByDiff.ToDictionary(
             kvp => kvp.Key,

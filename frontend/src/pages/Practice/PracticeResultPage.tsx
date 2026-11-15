@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react'
 import {
+  AlertCircle,
   Award,
+  BookOpen,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
   Clock,
   HelpCircle,
+  Loader2,
   RotateCcw,
   Sparkles,
   Target,
@@ -17,9 +20,11 @@ import { Breadcrumb } from '@/components/ui/Breadcrumb'
 import { Button } from '@/components/ui/Button'
 import { PageErrorState } from '@/components/ui/PageErrorState'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { aiTutorService } from '@/services/aiTutor.service'
 import { learningContextService } from '@/services/learningContext.service'
 import { practiceService } from '@/services/practice.service'
 import { roundPoints } from '@/services/scoringEngine'
+import type { AiErrorAnalysisResult } from '@/types/aiTutor'
 import type { PracticeResult, ScoredQuestionResult } from '@/types/practice'
 import './PracticeResultPage.css'
 
@@ -33,6 +38,30 @@ export const PracticeResultPage: React.FC = () => {
 
   // Track expanded question explanation drawers
   const [expandedQuestions, setExpandedQuestions] = useState<Record<string, boolean>>({})
+
+  // AI Error Analysis state
+  const [aiAnalysis, setAiAnalysis] = useState<AiErrorAnalysisResult | null>(null)
+  const [analysisLoading, setAnalysisLoading] = useState<boolean>(false)
+  const [analysisError, setAnalysisError] = useState<string | null>(null)
+  const [showAnalysis, setShowAnalysis] = useState<boolean>(false)
+
+  const handleRunAiAnalysis = async () => {
+    if (!result) return
+    setShowAnalysis(true)
+    if (aiAnalysis) return // Already loaded
+
+    setAnalysisLoading(true)
+    setAnalysisError(null)
+
+    try {
+      const res = await aiTutorService.analyzeSessionErrors(result.sessionId, result.subjectId)
+      setAiAnalysis(res)
+    } catch (err: any) {
+      setAnalysisError(err?.message || 'Không thể thực hiện phân tích lỗi sai AI vào lúc này.')
+    } finally {
+      setAnalysisLoading(false)
+    }
+  }
 
   useEffect(() => {
     let isMounted = true
@@ -255,7 +284,124 @@ export const PracticeResultPage: React.FC = () => {
         </div>
       )}
 
-      {/* Detailed Question Reviews */}
+      {/* AI Error Analysis Section */}
+      <div className="ai-error-analysis-card">
+        <div className="ai-analysis-header">
+          <div className="ai-analysis-title-group">
+            <Sparkles className="ai-sparkle-icon" size={22} />
+            <div>
+              <h2 className="ai-analysis-title">Phân tích Lỗi sai Thông minh (AI Error Analysis)</h2>
+              <p className="ai-analysis-subtitle">
+                Trợ lý AI phân tích các bước làm bài, chỉ ra nguyên nhân sai sót và đề xuất kế hoạch ôn tập.
+              </p>
+            </div>
+          </div>
+          <Button
+            variant={showAnalysis ? 'outline' : 'primary'}
+            icon={showAnalysis ? ChevronUp : Sparkles}
+            onClick={showAnalysis ? () => setShowAnalysis(false) : handleRunAiAnalysis}
+            disabled={analysisLoading}
+          >
+            {analysisLoading ? 'Đang phân tích...' : showAnalysis ? 'Thu gọn phân tích' : 'Chẩn đoán bài làm với AI'}
+          </Button>
+        </div>
+
+        {showAnalysis && (
+          <div className="ai-analysis-body">
+            {analysisLoading && (
+              <div className="ai-analysis-loading">
+                <Loader2 className="spinner" size={24} />
+                <span>AI đang đối chiếu kết quả làm bài với chuẩn kiến thức GDPT 2018...</span>
+              </div>
+            )}
+
+            {analysisError && (
+              <div className="ai-analysis-error">
+                <AlertCircle size={18} />
+                <span>{analysisError}</span>
+                <Button size="sm" variant="outline" onClick={handleRunAiAnalysis}>Thử lại</Button>
+              </div>
+            )}
+
+            {!analysisLoading && !analysisError && aiAnalysis && (
+              <div className="ai-analysis-content">
+                {/* Overall Assessment */}
+                <div className="ai-overall-box">
+                  <h3 className="ai-subheading">Đánh giá tổng quan từ AI Tutor:</h3>
+                  <p className="ai-overall-text">{aiAnalysis.overallAssessment}</p>
+                </div>
+
+                {/* Key Concepts to Review */}
+                {aiAnalysis.keyConceptsToReview.length > 0 && (
+                  <div className="ai-concepts-box">
+                    <h3 className="ai-subheading">Chuyên đề trọng tâm cần củng cố:</h3>
+                    <div className="ai-concept-tags">
+                      {aiAnalysis.keyConceptsToReview.map((concept, idx) => (
+                        <span key={idx} className="ai-concept-tag">{concept}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Question Errors List */}
+                {aiAnalysis.analyzedErrors.length > 0 ? (
+                  <div className="ai-errors-list">
+                    <h3 className="ai-subheading">Chi tiết nguyên nhân sai theo từng câu ({aiAnalysis.analyzedErrors.length} câu):</h3>
+                    {aiAnalysis.analyzedErrors.map((errItem) => (
+                      <div key={errItem.questionId} className="ai-error-item-card">
+                        <div className="ai-error-item-header">
+                          <span className="ai-error-qid">Câu {errItem.questionId}</span>
+                          <span className={`ai-error-badge badge-${errItem.errorClassification}`}>
+                            {errItem.errorClassification === 'verified'
+                              ? 'Lỗi kiến thức đã xác nhận'
+                              : errItem.errorClassification === 'hypothesized'
+                                ? 'Nguyên nhân giả định'
+                                : 'Lỗi có thể suy luận'}
+                          </span>
+                          <span className="ai-error-concept">Chủ đề: {errItem.prerequisiteConcept}</span>
+                        </div>
+
+                        <div className="ai-error-stem">
+                          <MathView math={errItem.stem} />
+                        </div>
+
+                        <div className="ai-error-cause-box">
+                          <strong>Nguyên nhân có khả năng cao:</strong> {errItem.likelyCause}
+                        </div>
+
+                        <div className="ai-error-correct-method">
+                          <strong>Phương pháp giải đúng:</strong>
+                          <div className="method-math">
+                            <MathView math={errItem.correctMethod} />
+                          </div>
+                        </div>
+
+                        {errItem.recommendedLessonId && (
+                          <div className="ai-error-lesson-link">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              icon={BookOpen}
+                              onClick={() => navigate(`/subjects/${result.subjectId || 'sub_math12'}/lessons/${errItem.recommendedLessonId}`)}
+                            >
+                              Ôn lại bài giảng: {errItem.recommendedLessonTitle || 'Xem bài học'}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="ai-no-errors-box">
+                    <CheckCircle2 className="ai-perfect-icon" size={24} />
+                    <span>Chúc mừng! Bạn đã trả lời đúng tất cả các câu hỏi trong bài làm này. Không phát hiện lỗi sai kiến thức.</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
       <div className="question-reviews-container">
         <h2 className="section-heading">Chi tiết từng câu hỏi & Hướng dẫn giải KaTeX</h2>
 

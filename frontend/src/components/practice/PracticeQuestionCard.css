@@ -261,3 +261,170 @@
   margin: 8px 0 0;
   font-style: italic;
 }
+
+/* Socratic AI Hint Ladder */
+.practice-hint-ladder-container {
+  margin-top: 20px;
+  border-top: 1px dashed #d9e2ec;
+  padding-top: 16px;
+}
+
+.practice-hint-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.practice-hint-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #f8fafc;
+  color: #035388;
+  border: 1px solid #bae3ff;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.practice-hint-toggle-btn:hover {
+  background: #e6f6ff;
+  border-color: #62b0e8;
+}
+
+.hint-btn-icon {
+  color: #f59e0b;
+}
+
+.practice-hint-mode-badge {
+  font-size: 11px;
+  color: #627d98;
+  background: #f0f4f8;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.practice-hint-drawer {
+  margin-top: 14px;
+  background: #f0f4f8;
+  border: 1px solid #d9e2ec;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.hint-ladder-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.hint-ladder-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  color: #334e68;
+  border: 1px solid #bcccdc;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.hint-ladder-pill:hover:not(:disabled) {
+  border-color: #035388;
+  color: #035388;
+}
+
+.hint-ladder-pill.active {
+  background: #035388;
+  color: #ffffff;
+  border-color: #035388;
+}
+
+.hint-loading-state,
+.hint-error-state {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  padding: 12px;
+  border-radius: 6px;
+}
+
+.hint-loading-state {
+  color: #486581;
+  background: #ffffff;
+}
+
+.hint-loading-state .spinner {
+  animation: spin 1s linear infinite;
+  color: #035388;
+}
+
+.hint-error-state {
+  color: #ba2525;
+  background: #ffe3e3;
+}
+
+.hint-retry-btn {
+  margin-left: auto;
+  font-size: 12px;
+  background: #ffffff;
+  border: 1px solid #e12d39;
+  color: #e12d39;
+  padding: 2px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.hint-result-box {
+  background: #ffffff;
+  border: 1px solid #bcccdc;
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.hint-title-row {
+  font-size: 13px;
+  color: #102a43;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #f0f4f8;
+  padding-bottom: 6px;
+}
+
+.hint-text-body {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #243b53;
+}
+
+.hint-steps-list {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.hint-steps-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #486581;
+}
+
+.hint-steps-list ul {
+  margin: 6px 0 0 16px;
+  padding: 0;
+  font-size: 13px;
+  color: #334e68;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
