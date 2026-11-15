@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { ArrowRight, BookOpen, Bot, CheckCircle2, Clock, Search, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
@@ -13,20 +13,17 @@ import './SubjectsPage.css'
 export function SubjectsPage() {
   const { subjects, isLoading, error, reload } = useSubjects()
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedGrade, setSelectedGrade] = useState('all')
+  // Temporary Math 12-only pilot. Other subjects remain untouched in API and database.
+  const math12Subjects = subjects.filter((s) => {
+    const isMath = /toán|math/i.test(s.name) || /math/i.test(s.id)
+    return isMath && /12/.test(s.grade || s.name)
+  })
 
-  const gradeTabs = useMemo(() => {
-    const rawGrades = Array.from(new Set(subjects.map((s) => s.grade).filter(Boolean)))
-    rawGrades.sort((a, b) => b.localeCompare(a, undefined, { numeric: true }))
-    return [{ id: 'all', label: 'Tất cả khối' }, ...rawGrades.map((g) => ({ id: g, label: g }))]
-  }, [subjects])
-
-  const filteredSubjects = subjects.filter((s) => {
+  const filteredSubjects = math12Subjects.filter((s) => {
     const matchesSearch =
       s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (s.description && s.description.toLowerCase().includes(searchQuery.toLowerCase()))
-    const matchesGrade = selectedGrade === 'all' || s.grade === selectedGrade
-    return matchesSearch && matchesGrade
+    return matchesSearch
   })
 
   if (isLoading) {
@@ -65,8 +62,8 @@ export function SubjectsPage() {
       {/* Header */}
       <div className="page-header-row">
         <div>
-          <h1 className="page-title">Môn học</h1>
-          <p className="page-subtitle">Học theo giáo trình chuẩn và theo dõi tiến độ của từng môn.</p>
+          <h1 className="page-title">Giáo trình Toán 12</h1>
+          <p className="page-subtitle">Học theo chương và bài, theo dõi tiến độ, luyện tập và hỏi AI trong từng bài học.</p>
         </div>
 
         {/* Search */}
@@ -76,28 +73,10 @@ export function SubjectsPage() {
             type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm môn học..."
+            placeholder="Tìm Toán 12..."
             className="subject-search-input"
-            aria-label="Tìm môn học..."
+            aria-label="Tìm Toán 12..."
           />
-        </div>
-      </div>
-
-      {/* Grade filter tabs & AI Tutor Banner */}
-      <div className="subject-toolbar-row">
-        <div className="subject-grade-tabs" role="tablist" aria-label="Lọc theo khối lớp">
-          {gradeTabs.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              role="tab"
-              aria-selected={selectedGrade === item.id}
-              onClick={() => setSelectedGrade(item.id)}
-              className={`subject-grade-pill ${selectedGrade === item.id ? 'active' : ''}`}
-            >
-              {item.label}
-            </button>
-          ))}
         </div>
       </div>
 
@@ -123,8 +102,8 @@ export function SubjectsPage() {
       {filteredSubjects.length === 0 ? (
         <EmptyState
           icon={BookOpen}
-          title="Không tìm thấy môn học"
-          description={`Không có môn học nào khớp với từ khóa "${searchQuery}".`}
+          title="Chưa tìm thấy giáo trình Toán 12"
+          description={`Không có bài học Toán 12 nào khớp với từ khóa "${searchQuery}".`}
           actionLabel="Xóa bộ lọc tìm kiếm"
           onAction={() => setSearchQuery('')}
         />
@@ -149,7 +128,7 @@ export function SubjectsPage() {
                       </span>
                       {isAvailable ? (
                         <span className="subject-status-badge available">
-                          <CheckCircle2 size={11} aria-hidden /> Đã phát hành
+                          <CheckCircle2 size={11} aria-hidden /> Có bài học
                         </span>
                       ) : (
                         <span className="subject-status-badge coming-soon">
@@ -213,7 +192,7 @@ export function SubjectsPage() {
                         icon={ArrowRight}
                         fullWidth
                       >
-                        {isAvailable ? 'Mở giáo trình' : 'Xem định hướng'}
+                        {isAvailable ? 'Xem chương và bài học' : 'Xem định hướng'}
                       </Button>
                     </Link>
                     <Link to={`/ai-tutor?topic=${encodeURIComponent(sub.name)}`} style={{ textDecoration: 'none' }}>
