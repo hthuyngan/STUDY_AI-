@@ -3,6 +3,7 @@
  * Implements rule-based Spaced Repetition scheduling, session persistence, and progress evaluation.
  */
 
+import { apiClient } from '@/lib/apiClient'
 import { getStorageKey } from '@/repositories/storageKeys'
 import type { KnowledgeGap } from '@/types/knowledgeGaps'
 import type {
@@ -315,6 +316,56 @@ export const smartReviewService = {
     const key = getStorageKey('active_review_session')
     localStorage.removeItem(key)
     localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY)
+  },
+
+  async fetchServerMistakes(subjectId?: string): Promise<SmartReviewItem[]> {
+    try {
+      const query = subjectId ? `?subjectId=${subjectId}` : ''
+      const mistakes = await apiClient.get<Array<{
+        questionId: string
+        subjectId: string
+        prompt: string
+        options: string[]
+        difficulty: string
+        lastAttemptAt: string
+        mistakeCount: number
+        reviewBox: number
+        nextReviewDate: string
+        status: string
+      }>>(`/api/v1/practice/mistakes${query}`)
+
+      if (mistakes && mistakes.length > 0) {
+        const all = loadStoredItems()
+        for (const m of mistakes) {
+          const id = `rev_mst_${m.questionId}`
+          const existing = all.find((item) => item.id === id)
+          if (!existing) {
+            all.unshift({
+              id,
+              gapId: m.questionId,
+              knowledgePointId: m.questionId,
+              subjectId: m.subjectId,
+              subjectName: m.subjectId,
+              lessonId: 'lesson-review',
+              lessonTitle: 'Ôn tập câu sai',
+              title: `Ôn tập câu sai: ${m.prompt.slice(0, 45)}...`,
+              prompt: m.prompt,
+              dueDate: m.nextReviewDate,
+              reviewCount: m.mistakeCount,
+              intervalDays: m.reviewBox === 1 ? 1 : m.reviewBox === 2 ? 3 : 7,
+              status: m.status as any,
+              history: [],
+              createdAt: m.lastAttemptAt,
+              updatedAt: new Date().toISOString(),
+            })
+          }
+        }
+        persistItems(all)
+      }
+      return this.getAllItems()
+    } catch {
+      return this.getAllItems()
+    }
   },
 }
 
