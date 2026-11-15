@@ -139,4 +139,63 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
         Assert.True(stats.TotalQuestionsPracticed >= session.Questions.Count);
         Assert.NotNull(stats.SubjectProgress);
     }
+
+    [Fact]
+    public async Task Practice_Unauthenticated_ReturnsUnauthorized()
+    {
+        var createReq = new CreatePracticeSessionRequest
+        {
+            SubjectId = "sub_math12",
+            QuestionCount = 3,
+            Mode = "practice"
+        };
+        var content = new StringContent(JsonSerializer.Serialize(createReq), Encoding.UTF8, "application/json");
+        var resp = await _client.PostAsync("/api/v1/practice/sessions", content);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task Practice_ExamMode_CheckQuestionBeforeSubmit_ReturnsForbidden()
+    {
+        var token = await GetLearnerTokenAsync();
+
+        // 1. Create Exam Session
+        var createReq = new CreatePracticeSessionRequest
+        {
+            SubjectId = "sub_math12",
+            QuestionCount = 2,
+            Mode = "exam"
+        };
+
+        var postMsg = new HttpRequestMessage(HttpMethod.Post, "/api/v1/practice/sessions")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(createReq), Encoding.UTF8, "application/json")
+        };
+        postMsg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var createResp = await _client.SendAsync(postMsg);
+        Assert.Equal(HttpStatusCode.OK, createResp.StatusCode);
+
+        var session = JsonSerializer.Deserialize<PracticeSessionResponseDto>(
+            await createResp.Content.ReadAsStringAsync(), _jsonOptions);
+        Assert.NotNull(session);
+
+        // 2. Try to peek answer in exam mode before submit -> MUST BE FORBIDDEN (403)
+        var checkReq = new CheckQuestionRequest
+        {
+            QuestionId = session.Questions[0].Id,
+            Answer = session.Questions[0].Options[0]
+        };
+
+        var checkMsg = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/practice/sessions/{session.SessionId}/check-question")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(checkReq), Encoding.UTF8, "application/json")
+        };
+        checkMsg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var checkResp = await _client.SendAsync(checkMsg);
+        Assert.Equal(HttpStatusCode.Forbidden, checkResp.StatusCode);
+    }
 }
+

@@ -78,3 +78,4 @@
   4. Làm bài kiểm tra cuối bài với câu hỏi xuất bản thật, Zero-Leak.
   5. Chấm điểm server-side và lưu kết quả vào CSDL.
 - **Sẵn sàng chuyển giao**: Tự động chuyển tiếp sang **PHASE 2 — PRACTICE, EXAM & LEARNING PROGRESS**.
+

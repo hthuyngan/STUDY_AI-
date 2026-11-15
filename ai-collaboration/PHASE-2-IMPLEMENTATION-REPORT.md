@@ -125,3 +125,4 @@ FROM content_questions;
 Phase 2 đã **HOÀN THÀNH 100% CÁC TIÊU CHÍ NGHIỆM THU**.
 Hệ sinh thái STUDY_AI hiện đã sẵn sàng chuyển sang:
 - **Phase 3:** AI Tutor & Adaptive Learning (Socratic AI Tutor, Hint Ladder, Knowledge Gap Detection, Personalized Path).
+

@@ -85,3 +85,4 @@ public class AdaptiveLearningPathDto
     public List<AdaptiveStepDto> Steps { get; set; } = new();
     public DateTimeOffset GeneratedAt { get; set; }
 }
+

@@ -11,6 +11,7 @@ using StudyAI.Infrastructure.Persistence;
 
 namespace StudyAI.Api.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/v1/practice")]
 public class PracticeController : ControllerBase
@@ -25,7 +26,10 @@ public class PracticeController : ControllerBase
     private string CurrentUserId =>
         User.FindFirstValue(ClaimTypes.NameIdentifier) ??
         User.FindFirstValue("sub") ??
-        "guest_student";
+        throw new UnauthorizedAccessException("Người dùng chưa được xác thực.");
+
+    private bool IsStaffOrAdmin =>
+        User.IsInRole("admin") || User.IsInRole("teacher") || User.IsInRole("content");
 
     // ─────────────────────────────────────────────────────────────────────────────
     // 1. PRACTICE & EXAM SESSION ENGINE
@@ -39,8 +43,9 @@ public class PracticeController : ControllerBase
             return BadRequest(new { detail = "Mã môn học (SubjectId) là bắt buộc." });
         }
 
-        // Query active questions matching criteria
-        var query = _db.ContentQuestions.AsNoTracking().Where(q => !q.IsDeleted);
+        // Query active, published questions matching criteria with verified correct answers
+        var query = _db.ContentQuestions.AsNoTracking()
+            .Where(q => !q.IsDeleted && q.Status == "published" && !string.IsNullOrWhiteSpace(q.CorrectAnswer));
 
         // Subject filter
         query = query.Where(q => q.SubjectId == request.SubjectId);
@@ -170,6 +175,11 @@ public class PracticeController : ControllerBase
             return NotFound(new { detail = $"Không tìm thấy phiên làm bài '{sessionId}'." });
         }
 
+        if (attempt.UserId != CurrentUserId && !IsStaffOrAdmin)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Bạn không có quyền truy cập phiên làm bài của người khác." });
+        }
+
         List<string> questionIds = new();
         var savedAnswers = new Dictionary<string, string>();
         int? timeLimit = null;
@@ -258,6 +268,11 @@ public class PracticeController : ControllerBase
             return NotFound(new { detail = $"Không tìm thấy phiên làm bài '{sessionId}'." });
         }
 
+        if (attempt.UserId != CurrentUserId && !IsStaffOrAdmin)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Bạn không có quyền chỉnh sửa phiên làm bài của người khác." });
+        }
+
         if (attempt.CompletionStatus != "in_progress")
         {
             return BadRequest(new { detail = $"Phiên làm bài đã ở trạng thái '{attempt.CompletionStatus}', không thể sửa câu trả lời." });
@@ -297,10 +312,48 @@ public class PracticeController : ControllerBase
     [HttpPost("sessions/{sessionId}/check-question")]
     public async Task<IActionResult> CheckSingleQuestion(string sessionId, [FromBody] CheckQuestionRequest request)
     {
-        var question = await _db.ContentQuestions.AsNoTracking().FirstOrDefaultAsync(q => q.Id == request.QuestionId);
+        var attempt = await _db.AssessmentAttempts.AsNoTracking()
+            .FirstOrDefaultAsync(a => a.Id == sessionId);
+
+        if (attempt == null)
+        {
+            return NotFound(new { detail = $"Không tìm thấy phiên làm bài '{sessionId}'." });
+        }
+
+        if (attempt.UserId != CurrentUserId && !IsStaffOrAdmin)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Bạn không có quyền truy cập phiên làm bài này." });
+        }
+
+        // ANTI-CHEAT: In exam mode, students CANNOT view answers before submitting!
+        if (attempt.AssessmentId == "asmt_exam")
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Không được phép xem đáp án trong chế độ thi thử trước khi nộp bài." });
+        }
+
+        // Validate question belongs to this session
+        if (!string.IsNullOrEmpty(attempt.SuspendDataJson))
+        {
+            try
+            {
+                var doc = JsonDocument.Parse(attempt.SuspendDataJson);
+                if (doc.RootElement.TryGetProperty("questionIds", out var qIdsElem) && qIdsElem.ValueKind == JsonValueKind.Array)
+                {
+                    var qIds = qIdsElem.EnumerateArray().Select(x => x.GetString()).Where(x => !string.IsNullOrEmpty(x)).ToList();
+                    if (!qIds.Contains(request.QuestionId))
+                    {
+                        return BadRequest(new { detail = "Câu hỏi không thuộc phiên làm bài này." });
+                    }
+                }
+            }
+            catch { }
+        }
+
+        var question = await _db.ContentQuestions.AsNoTracking()
+            .FirstOrDefaultAsync(q => q.Id == request.QuestionId && !q.IsDeleted && q.Status == "published");
         if (question == null)
         {
-            return NotFound(new { detail = $"Không tìm thấy câu hỏi '{request.QuestionId}'." });
+            return NotFound(new { detail = $"Không tìm thấy câu hỏi published '{request.QuestionId}'." });
         }
 
         var options = SafeDeserializeStringList(question.OptionsJson);
@@ -325,6 +378,11 @@ public class PracticeController : ControllerBase
         if (attempt == null)
         {
             return NotFound(new { detail = $"Không tìm thấy phiên làm bài '{sessionId}'." });
+        }
+
+        if (attempt.UserId != CurrentUserId && !IsStaffOrAdmin)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Bạn không có quyền nộp bài cho học sinh khác." });
         }
 
         // Anti double-submit: if already completed, compute from existing responses
@@ -578,7 +636,7 @@ public class PracticeController : ControllerBase
 
         var qIds = grouped.Select(g => g.QuestionId).ToList();
         var questions = await _db.ContentQuestions.AsNoTracking()
-            .Where(q => qIds.Contains(q.Id))
+            .Where(q => qIds.Contains(q.Id) && !q.IsDeleted && q.Status == "published")
             .ToDictionaryAsync(q => q.Id);
 
         var today = DateTimeOffset.UtcNow.Date;
@@ -622,10 +680,11 @@ public class PracticeController : ControllerBase
     [HttpPost("mistakes/{questionId}/review")]
     public async Task<IActionResult> ReviewMistake(string questionId, [FromBody] ReviewMistakeRequest request)
     {
-        var question = await _db.ContentQuestions.AsNoTracking().FirstOrDefaultAsync(q => q.Id == questionId);
+        var question = await _db.ContentQuestions.AsNoTracking()
+            .FirstOrDefaultAsync(q => q.Id == questionId && !q.IsDeleted && q.Status == "published");
         if (question == null)
         {
-            return NotFound(new { detail = $"Không tìm thấy câu hỏi '{questionId}'." });
+            return NotFound(new { detail = $"Không tìm thấy câu hỏi published '{questionId}'." });
         }
 
         var options = SafeDeserializeStringList(question.OptionsJson);

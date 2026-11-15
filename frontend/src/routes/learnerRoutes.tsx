@@ -198,6 +198,7 @@ export function LearnerRoutes() {
           </AppShell>
         }
       />
+      <Route path="/exam" element={<Navigate to="/practice?mode=exam" replace />} />
       <Route
         path="/practice/session/:sessionId"
         element={

@@ -155,7 +155,7 @@ export class PracticeService {
           lessonId: config.lessonId,
           difficulty: config.difficulty,
           questionCount: config.limit || 10,
-          mode: config.lessonId ? 'lesson' : 'practice',
+          mode: config.mode || (config.lessonId ? 'lesson' : 'practice'),
         }
       )
 

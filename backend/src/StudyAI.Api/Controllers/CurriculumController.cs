@@ -235,7 +235,7 @@ public class CurriculumController : ControllerBase
 
     /// <summary>
     /// GET /api/v1/curriculum/lessons/{lessonId}
-    /// Returns lesson theory & KaTeX formulas.
+    /// Returns lesson theory &amp; KaTeX formulas.
     /// Returns HTTP 404 for Draft or In-Review lessons.
     /// </summary>
     [HttpGet("lessons/{lessonId}")]
