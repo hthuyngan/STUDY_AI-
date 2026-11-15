@@ -148,6 +148,15 @@ function mapLearnerDetailToLessonDetail(
     xp: 50,
     isCompleted,
     isBookmarked,
+    topicId: (detail as any).topicId,
+    topicTitle: (detail as any).topicTitle,
+    contentType: (detail as any).contentType || 'article',
+    video: (detail as any).video || {
+      hasVideo: false,
+      sourceReferenceUrl: 'https://vi.khanacademy.org/math/toan-lop-12-viet-nam',
+      licenseNotice: 'Tham khảo khung khóa học Khan Academy Tiếng Việt',
+    },
+    sourceReferenceUrl: (detail as any).sourceReferenceUrl || 'https://vi.khanacademy.org/math/toan-lop-12-viet-nam',
     content: {
       introduction: detail.introduction || '',
       definitions: parseDefinitions(detail.definitions),
@@ -224,6 +233,10 @@ export async function getCourseOutline(courseOrSubjectId: string): Promise<Cours
           title: l.title,
           status,
           durationMinutes: 45,
+          topicId: (l as any).topicId,
+          topicTitle: (l as any).topicTitle,
+          contentType: (l as any).contentType || 'article',
+          hasVideo: !!(l as any).hasVideo,
         }
       }),
     }))

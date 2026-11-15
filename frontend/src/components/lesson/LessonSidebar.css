@@ -197,3 +197,90 @@
     cursor: pointer;
   }
 }
+
+/* Enhanced Accordion Chapter Header */
+.sidebar-chapter-header-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background-color: var(--surface-sunken, #f8fafc);
+  border: none;
+  border-top: 1px solid var(--border-default, #e2e8f0);
+  border-bottom: 1px solid var(--border-default, #e2e8f0);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s ease;
+}
+
+.sidebar-chapter-header-btn:hover {
+  background-color: var(--surface-hover, #f1f5f9);
+}
+
+.sidebar-chapter-header-btn.is-open {
+  background-color: var(--surface-selected, #eff6ff);
+}
+
+.chapter-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  padding-right: 8px;
+}
+
+.sidebar-chapter-counter {
+  font-size: 11px;
+  color: var(--text-tertiary, #64748b);
+  font-weight: 500;
+}
+
+.chapter-header-arrow {
+  color: var(--text-secondary, #64748b);
+  display: flex;
+  align-items: center;
+}
+
+/* Chapter Progress Track */
+.sidebar-chapter-progress-track {
+  width: 100%;
+  height: 3px;
+  background-color: rgba(226, 232, 240, 0.6);
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar-chapter-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6 0%, #10b981 100%);
+  transition: width 0.3s ease;
+}
+
+/* Content Type Badges & Icons */
+.type-icon-video {
+  color: #2563eb;
+}
+
+.type-icon-exercise {
+  color: #d97706;
+}
+
+.type-icon-test {
+  color: #7c3aed;
+}
+
+.type-icon-article {
+  color: #64748b;
+}
+
+.item-badge-video {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background-color: #dbeafe;
+  color: #1d4ed8;
+  text-transform: uppercase;
+}

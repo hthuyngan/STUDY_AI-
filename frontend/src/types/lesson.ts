@@ -73,6 +73,16 @@ export interface LessonContent {
   summaryPoints: string[]
 }
 
+export interface LessonVideoMetadata {
+  videoUrl?: string
+  youtubeId?: string
+  durationSeconds?: number
+  provider?: 'youtube' | 'local' | 'khan_ref' | 'none'
+  hasVideo: boolean
+  sourceReferenceUrl?: string
+  licenseNotice?: string
+}
+
 export interface LessonDetail {
   id: string
   courseId: string
@@ -81,6 +91,8 @@ export interface LessonDetail {
   subjectName: string
   chapterId: string
   chapterTitle: string
+  topicId?: string
+  topicTitle?: string
   lessonNumber: number
   title: string
   durationMinutes: number
@@ -89,6 +101,9 @@ export interface LessonDetail {
   isBookmarked?: boolean
   quizId?: string
   assessmentId?: string
+  contentType?: 'video' | 'article' | 'exercise' | 'test'
+  video?: LessonVideoMetadata
+  sourceReferenceUrl?: string
   content: LessonContent
   previousLessonId?: string
   nextLessonId?: string
@@ -104,10 +119,24 @@ export interface LessonOutlineItem {
   title: string
   status: 'completed' | 'in-progress' | 'available' | 'locked'
   durationMinutes: number
+  topicId?: string
+  topicTitle?: string
+  contentType?: 'video' | 'article' | 'exercise' | 'test'
+  hasVideo?: boolean
+}
+
+export interface CourseOutlineTopic {
+  id: string
+  title: string
+  order: number
+  lessons: LessonOutlineItem[]
 }
 
 export interface CourseOutlineChapter {
   id: string
   title: string
+  chapterNumber?: number
+  progressPercent?: number
+  topics?: CourseOutlineTopic[]
   lessons: LessonOutlineItem[]
 }
