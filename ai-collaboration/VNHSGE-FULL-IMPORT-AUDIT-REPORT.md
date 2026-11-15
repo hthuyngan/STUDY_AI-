@@ -128,3 +128,4 @@ Khi nhận được **lệnh phê duyệt ghi dữ liệu chính thức**, quy t
 [Bước 5: Kế hoạch Rollback (Nếu có sự cố bất khả kháng)]
   └── Chạy lệnh khôi phục từ bản backup snapshot ngay lập tức nếu có bất kỳ lỗi không đồng nhất nào.
 ```
+

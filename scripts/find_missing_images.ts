@@ -21,3 +21,4 @@ for (const imgUrl of imageUrls) {
 
 console.log('Total missing image URLs:', missing.length)
 missing.slice(0, 10).forEach(m => console.log('Missing:', m))
+

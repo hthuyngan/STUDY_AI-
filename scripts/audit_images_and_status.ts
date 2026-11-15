@@ -63,3 +63,4 @@ async function auditImagesAndStatus() {
 }
 
 auditImagesAndStatus().catch(console.error)
+
