@@ -519,6 +519,50 @@ ${context.explanation ? `\n> **Giải thích chuẩn:** ${context.explanation}` 
     await this.appendMessage(payload.conversationId, completedMessage)
     return completedMessage
   }
+
+  /**
+   * Multi-level Hint Ladder (Cấp độ 1: Định hướng, Cấp độ 2: Phương pháp, Cấp độ 3: Then chốt)
+   */
+  async getHintLadder(
+    questionId: string,
+    hintLevel: 1 | 2 | 3,
+    studentAnswer?: string
+  ): Promise<{
+    questionId: string
+    hintLevel: number
+    hintLevelName: string
+    hintText: string
+    mathFormulas: string[]
+    suggestedNextSteps: string[]
+  }> {
+    try {
+      const res = await apiClient.post<any>('/api/v1/ai/hints', {
+        questionId,
+        hintLevel,
+        studentAnswer,
+      })
+      if (res) return res
+    } catch {
+      // Fallback
+    }
+
+    const levelName =
+      hintLevel === 1
+        ? 'Gợi ý định hướng'
+        : hintLevel === 2
+        ? 'Gợi ý phương pháp'
+        : 'Gợi ý then chốt'
+
+    return {
+      questionId,
+      hintLevel,
+      hintLevelName: levelName,
+      hintText:
+        'Hãy quan sát kỹ giả thiết đề bài, xác định công thức cốt lõi và loại trừ các phương án không phù hợp.',
+      mathFormulas: [],
+      suggestedNextSteps: ['Đọc lại định nghĩa', 'Xác định đại lượng cần tìm'],
+    }
+  }
 }
 
 export const aiTutorService = new AITutorService()
