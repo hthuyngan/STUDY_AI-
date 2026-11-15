@@ -125,3 +125,4 @@ ALTER DATABASE StudyAIDb SET MULTI_USER;
 ---
 
 > **KẾT LUẬN CUỐI CÙNG**: Quá trình triển khai nạp toàn bộ kho câu hỏi VNHSGE vào database chính `StudyAIDb` đã hoàn thành xuất sắc, tuân thủ đúng yêu cầu Single Database, bảo toàn nguyên vẹn 14 câu hỏi ban đầu và đạt độ tin cậy dữ liệu 100%.
+
