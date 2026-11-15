@@ -5,38 +5,38 @@
    ========================================================================== */
 
 :root {
-  /* Core Management Palette */
-  --mgmt-primary: #1D4ED8;
-  --mgmt-primary-hover: #1E40AF;
+  /* Core Management Palette — Mapped to Standard Design Tokens */
+  --mgmt-primary: var(--ui-color-primary, #1D4ED8);
+  --mgmt-primary-hover: var(--ui-color-primary-hover, #1E40AF);
   --mgmt-primary-active: #1E3A8A;
-  --mgmt-primary-light: #EFF6FF;
+  --mgmt-primary-light: var(--ui-color-primary-subtle, #EFF6FF);
   --mgmt-primary-border: #BFDBFE;
 
   /* Surfaces & Backgrounds */
-  --mgmt-bg-app: #F8FAFC;
-  --mgmt-bg-surface: #FFFFFF;
+  --mgmt-bg-app: var(--ui-color-canvas, #F8FAFC);
+  --mgmt-bg-surface: var(--ui-color-surface, #FFFFFF);
   --mgmt-bg-subtle: #F1F5F9;
   --mgmt-bg-hover: #F8FAFC;
 
   /* Borders */
-  --mgmt-border: #E2E8F0;
+  --mgmt-border: var(--ui-color-border, #E2E8F0);
   --mgmt-border-strong: #CBD5E1;
-  --mgmt-border-focus: #3B82F6;
+  --mgmt-border-focus: var(--ui-color-primary, #1D4ED8);
 
   /* Typography */
-  --mgmt-text-primary: #0F172A;
+  --mgmt-text-primary: var(--ui-color-text, #0F172A);
   --mgmt-text-secondary: #475569;
-  --mgmt-text-muted: #64748B;
+  --mgmt-text-muted: var(--ui-color-text-muted, #64748B);
   --mgmt-text-subtle: #94A3B8;
 
   /* Status Colors */
-  --mgmt-success: #16A34A;
+  --mgmt-success: var(--ui-color-success, #16A34A);
   --mgmt-success-bg: #DCFCE7;
   --mgmt-success-border: #86EFAC;
-  --mgmt-warning: #D97706;
+  --mgmt-warning: var(--ui-color-warning, #D97706);
   --mgmt-warning-bg: #FEF3C7;
   --mgmt-warning-border: #FCD34D;
-  --mgmt-danger: #DC2626;
+  --mgmt-danger: var(--ui-color-danger, #DC2626);
   --mgmt-danger-bg: #FEE2E2;
   --mgmt-danger-border: #FCA5A5;
   --mgmt-info: #0284C7;
@@ -47,15 +47,15 @@
   --mgmt-sidebar-width: 240px;
   --mgmt-sidebar-collapsed: 64px;
   --mgmt-header-height: 48px;
-  --mgmt-radius-sm: 4px;
-  --mgmt-radius-md: 6px;
+  --mgmt-radius-sm: var(--ui-radius-sm, 4px);
+  --mgmt-radius-md: var(--ui-radius-md, 6px);
   --mgmt-radius-lg: 8px;
-  --mgmt-radius-xl: 12px;
+  --mgmt-radius-xl: var(--ui-radius-lg, 12px);
 
-  /* Shadows (subtle, non-distracting) */
-  --mgmt-shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
-  --mgmt-shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
-  --mgmt-shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08);
+  /* Shadows */
+  --mgmt-shadow-sm: var(--ui-shadow-sm, 0 1px 2px 0 rgba(15, 23, 42, 0.05));
+  --mgmt-shadow-md: var(--ui-shadow-md, 0 4px 6px -1px rgba(15, 23, 42, 0.07));
+  --mgmt-shadow-lg: var(--ui-shadow-lg, 0 10px 15px -3px rgba(15, 23, 42, 0.08));
 }
 
 /* Base Management Layout Container */
@@ -576,9 +576,10 @@
 .mgmt-drawer-backdrop {
   position: fixed;
   inset: 0;
-  background-color: rgba(15, 23, 42, 0.4);
-  z-index: 200;
-  backdrop-filter: blur(1px);
+  background-color: rgba(15, 23, 42, 0.45);
+  z-index: var(--ui-layer-dialog, 500);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
 }
 
 .mgmt-drawer {
@@ -590,7 +591,7 @@
   max-width: 540px;
   background-color: var(--mgmt-bg-surface);
   border-left: 1px solid var(--mgmt-border);
-  z-index: 210;
+  z-index: calc(var(--ui-layer-dialog, 500) + 10);
   box-shadow: var(--mgmt-shadow-lg);
   display: flex;
   flex-direction: column;
@@ -640,8 +641,9 @@
   align-items: center;
   justify-content: center;
   padding: 16px;
-  z-index: 300;
-  backdrop-filter: blur(1px);
+  z-index: var(--ui-layer-dialog, 500);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
 }
 
 .mgmt-dialog {
@@ -651,9 +653,11 @@
   box-shadow: var(--mgmt-shadow-lg);
   width: 100%;
   max-width: 480px;
+  max-height: calc(100vh - 40px);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  z-index: calc(var(--ui-layer-dialog, 500) + 10);
 }
 
 .mgmt-dialog-header {

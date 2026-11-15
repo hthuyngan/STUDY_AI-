@@ -1,5 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Bookmark, BookmarkCheck, CheckCircle2, FileText, List, Sparkles, Target } from 'lucide-react'
+import {
+  Bookmark,
+  BookmarkCheck,
+  BookOpen,
+  Bot,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  Lightbulb,
+  List,
+  Sparkles,
+  Target,
+  Tv,
+} from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { AssessmentModal } from '@/components/assessment/AssessmentModal'
 import { LessonAssessmentCard } from '@/components/assessment/LessonAssessmentCard'
@@ -22,11 +36,13 @@ import { LessonSectionBookmarkBtn } from '@/components/lesson/LessonSectionBookm
 import { LessonAskAIBtn } from '@/components/lesson/LessonAskAIBtn'
 import { LessonSectionProgress } from '@/components/lesson/LessonSectionProgress'
 import { LessonSidebar } from '@/components/lesson/LessonSidebar'
+import { LessonVideoPlayer } from '@/components/lesson/LessonVideoPlayer'
+import { LessonAITutorTab } from '@/components/lesson/LessonAITutorTab'
 import { Breadcrumb } from '@/components/ui/Breadcrumb'
 import { Button } from '@/components/ui/Button'
 import { PageErrorState } from '@/components/ui/PageErrorState'
 import { Skeleton } from '@/components/ui/Skeleton'
-import { getMockAssessmentByLessonId } from '@/data/assessments.mock'
+import { curriculumService } from '@/services/curriculum.service'
 import { useLesson } from '@/hooks/useLesson'
 import { useLessonAssessment } from '@/hooks/useLessonAssessment'
 import { useLessonProgress } from '@/hooks/useLessonProgress'
@@ -34,6 +50,7 @@ import { useStudyNotes } from '@/hooks/useStudyNotes'
 import { learningProgressRepository } from '@/repositories/learningProgress.repository'
 import { learningContextService } from '@/services/learningContext.service'
 import { lessonProgressService } from '@/services/lessonProgress.service'
+import type { AssessmentOption, AssessmentQuestion, LessonAssessment } from '@/types/assessment'
 import type { TutorLearningContext } from '@/types/aiTutor'
 import './LessonPage.css'
 
@@ -45,7 +62,9 @@ export function LessonPage() {
     lessonId: string
   }>()
   const [mobileOutlineOpen, setMobileOutlineOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [notesPanelOpen, setNotesPanelOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<'overview' | 'theory' | 'examples' | 'practice' | 'ai_tutor'>('theory')
 
   const resolvedSubjectId =
     paramSubjectId ||
@@ -203,10 +222,65 @@ export function LessonPage() {
     actualSectionIds,
   })
 
-  // Harvest assessment model
-  const assessment = useMemo(() => {
-    if (!lesson) return null
-    return getMockAssessmentByLessonId(lesson.id, resolvedSubjectId, lesson.title)
+  // Fetch real published assessment questions from StudyAIDb via Curriculum API (Zero-Leak)
+  const [assessment, setAssessment] = useState<LessonAssessment | null>(null)
+
+  useEffect(() => {
+    if (!lesson) return
+
+    let isMounted = true
+    curriculumService
+      .getLessonQuestions(lesson.id)
+      .then((rawQuestions) => {
+        if (!isMounted) return
+        if (!rawQuestions || rawQuestions.length === 0) {
+          setAssessment(null)
+          return
+        }
+
+        const questions: AssessmentQuestion[] = rawQuestions.map((q) => {
+          const options: AssessmentOption[] = (q.options || []).map((optStr, optIdx) => {
+            const letter = String.fromCharCode(65 + optIdx)
+            const match = optStr.match(/^[A-D][.:]\s*(.+)$/i)
+            const text = match ? match[1].trim() : optStr.trim()
+            const label = match ? optStr.substring(0, 1).toUpperCase() : letter
+            return {
+              id: `opt_${optIdx}_${label}`,
+              label,
+              text,
+            }
+          })
+
+          return {
+            id: q.id,
+            type: 'single-choice',
+            prompt: q.prompt,
+            options,
+            correctOptionId: '', // Strict zero-leak
+            explanation: '', // Strict zero-leak
+            topic: q.topic || 'Kiểm tra kiến thức bài học',
+          }
+        })
+
+        setAssessment({
+          id: `asmt_${lesson.id}`,
+          lessonId: lesson.id,
+          subjectId: resolvedSubjectId,
+          title: `Bài tập thu hoạch: ${lesson.title}`,
+          description: 'Làm bài trắc nghiệm để đánh giá mức độ hiểu bài và đạt 100% tiến độ học tập.',
+          estimatedMinutes: Math.max(3, questions.length * 2),
+          passingScorePercent: 60,
+          questions,
+        })
+      })
+      .catch(() => {
+        if (!isMounted) return
+        setAssessment(null)
+      })
+
+    return () => {
+      isMounted = false
+    }
   }, [lesson, resolvedSubjectId])
 
   // Assessment hook
@@ -282,7 +356,7 @@ export function LessonPage() {
     : lesson.title
 
   return (
-    <div className="lesson-page-container">
+    <div className={`lesson-page-container ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       {/* Sidebar with outline and current lesson progress */}
       <LessonSidebar
         subjectId={resolvedSubjectId}
@@ -303,19 +377,44 @@ export function LessonPage() {
               { label: 'Môn học', to: '/subjects' },
               { label: lesson.subjectName || 'Toán học', to: `/subjects/${resolvedSubjectId}` },
               { label: chapterShortLabel },
+              ...(lesson.topicTitle ? [{ label: lesson.topicTitle }] : []),
               { label: lessonShortLabel },
             ]}
           />
 
-          <button
-            type="button"
-            className="mobile-outline-toggle mobile-only"
-            onClick={() => setMobileOutlineOpen(true)}
-            aria-label="Mở danh sách bài học"
-          >
-            <List size={16} aria-hidden />
-            <span>Mục lục</span>
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              className="desktop-sidebar-toggle"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              title={sidebarCollapsed ? 'Hiện danh mục giáo trình' : 'Ẩn danh mục (Chế độ đọc tập trung)'}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '5px 10px',
+                borderRadius: '6px',
+                border: '1px solid var(--border-default, #e2e8f0)',
+                background: 'var(--surface-card, #fff)',
+                fontSize: '0.8rem',
+                color: 'var(--text-secondary, #64748b)',
+                cursor: 'pointer',
+              }}
+            >
+              {sidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+              <span>{sidebarCollapsed ? 'Hiện mục lục' : 'Thu gọn'}</span>
+            </button>
+
+            <button
+              type="button"
+              className="mobile-outline-toggle mobile-only"
+              onClick={() => setMobileOutlineOpen(true)}
+              aria-label="Mở danh sách bài học"
+            >
+              <List size={16} aria-hidden />
+              <span>Mục lục</span>
+            </button>
+          </div>
         </div>
 
         {/* Lesson Header Banner with Global Lesson Progress */}
@@ -361,424 +460,525 @@ export function LessonPage() {
           </div>
         </header>
 
+        {/* Video Player Frame with multi-video and fallback support */}
+        {((lesson as any).videos?.length > 0 || (lesson.video?.hasVideo && (lesson.video.youtubeId || lesson.video.videoUrl))) ? (
+          <LessonVideoPlayer
+            video={lesson.video}
+            videos={(lesson as any).videos}
+            lessonTitle={lesson.title}
+            sourceReferenceUrl={lesson.sourceReferenceUrl}
+            onSwitchToTheoryTab={() => setActiveTab('theory')}
+          />
+        ) : (
+          <div className="lesson-video-unavailable" role="status">
+            <div>
+              <strong>Bài học chưa có video phát trực tiếp</strong>
+              <p>Ưu tiên học lý thuyết và ví dụ bên dưới; video sẽ được bổ sung sau khi xác minh nguồn.</p>
+            </div>
+            <button type="button" onClick={() => setActiveTab('theory')}>
+              <BookOpen size={16} aria-hidden /> Bắt đầu học lý thuyết
+            </button>
+          </div>
+        )}
+
+        {/* Lesson Sub-Tabs Navigation (Khan Academy Style) */}
+        <div className="lesson-tabs-nav" role="tablist">
+          <button
+            type="button"
+            className={`lesson-tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
+            onClick={() => setActiveTab('overview')}
+            role="tab"
+            aria-selected={activeTab === 'overview'}
+          >
+            <Tv size={15} aria-hidden />
+            <span>Tổng quan & Video</span>
+          </button>
+          <button
+            type="button"
+            className={`lesson-tab-btn ${activeTab === 'theory' ? 'active' : ''}`}
+            onClick={() => setActiveTab('theory')}
+            role="tab"
+            aria-selected={activeTab === 'theory'}
+          >
+            <BookOpen size={15} aria-hidden />
+            <span>Lý thuyết & KaTeX</span>
+          </button>
+          <button
+            type="button"
+            className={`lesson-tab-btn ${activeTab === 'examples' ? 'active' : ''}`}
+            onClick={() => setActiveTab('examples')}
+            role="tab"
+            aria-selected={activeTab === 'examples'}
+          >
+            <Lightbulb size={15} aria-hidden />
+            <span>Ví dụ mẫu ({lesson.content?.examples?.length || 0})</span>
+          </button>
+          <button
+            type="button"
+            className={`lesson-tab-btn ${activeTab === 'practice' ? 'active' : ''}`}
+            onClick={() => setActiveTab('practice')}
+            role="tab"
+            aria-selected={activeTab === 'practice'}
+          >
+            <Target size={15} aria-hidden />
+            <span>Luyện tập</span>
+          </button>
+          <button
+            type="button"
+            className={`lesson-tab-btn ${activeTab === 'ai_tutor' ? 'active' : ''}`}
+            onClick={() => setActiveTab('ai_tutor')}
+            role="tab"
+            aria-selected={activeTab === 'ai_tutor'}
+          >
+            <Bot size={15} aria-hidden />
+            <span>AI Tutor</span>
+          </button>
+        </div>
+
         {/* Lesson Content Article */}
         <article className="lesson-article-body">
-          {/* Pedagogical Objectives & Competency Skills Card (GDPT 2018) */}
-          {((lesson.learningObjectives && lesson.learningObjectives.length > 0) ||
-            (lesson.skills && lesson.skills.length > 0)) && (
-            <div className="lesson-objectives-card">
-              <div className="lesson-objectives-header">
-                <div className="lesson-objectives-badge">
-                  <Target size={14} aria-hidden />
-                  <span>CHUẨN GDPT 2018</span>
+          {/* TAB 1: TỔNG QUAN & VIDEO */}
+          <div style={{ display: activeTab === 'overview' ? 'block' : 'none' }}>
+            {/* Pedagogical Objectives & Competency Skills Card (GDPT 2018) */}
+            {((lesson.learningObjectives && lesson.learningObjectives.length > 0) ||
+              (lesson.skills && lesson.skills.length > 0)) && (
+              <div className="lesson-objectives-card">
+                <div className="lesson-objectives-header">
+                  <div className="lesson-objectives-badge">
+                    <Target size={14} aria-hidden />
+                    <span>CHUẨN GDPT 2018</span>
+                  </div>
+                  {lesson.curriculumVersion && (
+                    <span className="lesson-curriculum-version-tag">
+                      {lesson.textbookAlignment === 'general_standard'
+                        ? 'Bộ GD&ĐT · Chuẩn phát triển năng lực'
+                        : lesson.textbookAlignment || 'Chương trình GDPT 2018'}
+                    </span>
+                  )}
                 </div>
-                {lesson.curriculumVersion && (
-                  <span className="lesson-curriculum-version-tag">
-                    {lesson.textbookAlignment === 'general_standard'
-                      ? 'Bộ GD&ĐT · Chuẩn phát triển năng lực'
-                      : lesson.textbookAlignment || 'Chương trình GDPT 2018'}
-                  </span>
+
+                {lesson.learningObjectives && lesson.learningObjectives.length > 0 && (
+                  <div className="lesson-objectives-block">
+                    <h2 className="lesson-objectives-title">Mục tiêu bài học cần đạt</h2>
+                    <ul className="lesson-objectives-list">
+                      {lesson.learningObjectives.map((obj, i) => (
+                        <li key={i} className="lesson-objective-item">
+                          <CheckCircle2 size={16} className="objective-check-icon" aria-hidden />
+                          <span>{obj}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {lesson.skills && lesson.skills.length > 0 && (
+                  <div className="lesson-skills-block">
+                    <h3 className="lesson-skills-title">Kỹ năng năng lực cốt lõi</h3>
+                    <div className="lesson-skills-pills">
+                      {lesson.skills.map((sk) => (
+                        <span
+                          key={sk.skillCode}
+                          className={`lesson-skill-pill skill-level-${sk.level}`}
+                          title={`Kỹ năng: ${sk.skillName} (${sk.level})`}
+                        >
+                          <code className="skill-code">{sk.skillCode}</code>
+                          <span className="skill-name">{sk.skillName}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
+            )}
 
-              {lesson.learningObjectives && lesson.learningObjectives.length > 0 && (
-                <div className="lesson-objectives-block">
-                  <h2 className="lesson-objectives-title">Mục tiêu bài học cần đạt</h2>
-                  <ul className="lesson-objectives-list">
-                    {lesson.learningObjectives.map((obj, i) => (
-                      <li key={i} className="lesson-objective-item">
-                        <CheckCircle2 size={16} className="objective-check-icon" aria-hidden />
-                        <span>{obj}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {lesson.skills && lesson.skills.length > 0 && (
-                <div className="lesson-skills-block">
-                  <h3 className="lesson-skills-title">Kỹ năng năng lực cốt lõi</h3>
-                  <div className="lesson-skills-pills">
-                    {lesson.skills.map((sk) => (
-                      <span
-                        key={sk.skillCode}
-                        className={`lesson-skill-pill skill-level-${sk.level}`}
-                        title={`Kỹ năng: ${sk.skillName} (${sk.level})`}
-                      >
-                        <code className="skill-code">{sk.skillCode}</code>
-                        <span className="skill-name">{sk.skillName}</span>
-                      </span>
-                    ))}
+            {/* Introduction Section */}
+            {lesson.content.introduction && (
+              <div
+                ref={(el) => registerSection('introduction', el)}
+                data-section-id="introduction"
+                className="lesson-section-block lesson-intro-section"
+              >
+                <div className="lesson-heading-row">
+                  <span className="lesson-intro-tag">Mở đầu bài học</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <LessonAskAIBtn
+                      lessonId={lesson.id}
+                      subjectId={resolvedSubjectId}
+                      lessonTitle={lesson.title}
+                      subjectName={lesson.subjectName || 'Môn học'}
+                      sectionId="introduction"
+                      sectionTitle="Mở đầu bài học"
+                      excerpt={typeof lesson.content.introduction === 'string' ? lesson.content.introduction : undefined}
+                    />
+                    <LessonSectionBookmarkBtn
+                      lessonId={lesson.id}
+                      subjectId={resolvedSubjectId}
+                      lessonTitle={lesson.title}
+                      subjectName={lesson.subjectName || 'Môn học'}
+                      sectionId="introduction"
+                      sectionTitle="Mở đầu bài học"
+                    />
+                    <LessonSectionProgress
+                      progressPercent={getSectionProgress('introduction')}
+                      isCompleted={isSectionCompleted('introduction')}
+                    />
                   </div>
                 </div>
-              )}
-            </div>
-          )}
-          {/* Introduction Section */}
-          {lesson.content.introduction && (
-            <div
-              ref={(el) => registerSection('introduction', el)}
-              data-section-id="introduction"
-              className="lesson-section-block lesson-intro-section"
-            >
-              <div className="lesson-heading-row">
-                <span className="lesson-intro-tag">Mở đầu bài học</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <LessonAskAIBtn
-                    lessonId={lesson.id}
-                    subjectId={resolvedSubjectId}
-                    lessonTitle={lesson.title}
-                    subjectName={lesson.subjectName || 'Môn học'}
-                    sectionId="introduction"
-                    sectionTitle="Mở đầu bài học"
-                    excerpt={typeof lesson.content.introduction === 'string' ? lesson.content.introduction : undefined}
-                  />
-                  <LessonSectionBookmarkBtn
-                    lessonId={lesson.id}
-                    subjectId={resolvedSubjectId}
-                    lessonTitle={lesson.title}
-                    subjectName={lesson.subjectName || 'Môn học'}
-                    sectionId="introduction"
-                    sectionTitle="Mở đầu bài học"
-                  />
-                  <LessonSectionProgress
-                    progressPercent={getSectionProgress('introduction')}
-                    isCompleted={isSectionCompleted('introduction')}
-                  />
-                </div>
+                <LessonParagraph>{lesson.content.introduction}</LessonParagraph>
               </div>
-              <LessonParagraph>{lesson.content.introduction}</LessonParagraph>
-            </div>
-          )}
+            )}
 
-          {/* Definitions */}
-          {lesson.content.definitions.length > 0 && (
-            <div
-              ref={(el) => registerSection('definitions', el)}
-              data-section-id="definitions"
-              className="lesson-section-block"
-            >
-              <LessonHeading
-                extra={
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <LessonAskAIBtn
-                      lessonId={lesson.id}
-                      subjectId={resolvedSubjectId}
-                      lessonTitle={lesson.title}
-                      subjectName={lesson.subjectName || 'Môn học'}
-                      sectionId="definitions"
-                      sectionTitle="Khái niệm và Định nghĩa cơ bản"
-                    />
-                    <LessonSectionBookmarkBtn
-                      lessonId={lesson.id}
-                      subjectId={resolvedSubjectId}
-                      lessonTitle={lesson.title}
-                      subjectName={lesson.subjectName || 'Môn học'}
-                      sectionId="definitions"
-                      sectionTitle="Khái niệm và Định nghĩa cơ bản"
-                    />
-                    <LessonSectionProgress
-                      progressPercent={getSectionProgress('definitions')}
-                      isCompleted={isSectionCompleted('definitions')}
-                    />
-                  </div>
-                }
+            {/* Summary */}
+            {lesson.content.summaryPoints.length > 0 && (
+              <div
+                ref={(el) => registerSection('summary', el)}
+                data-section-id="summary"
+                className="lesson-section-block"
               >
-                1. Khái niệm và Định nghĩa cơ bản
-              </LessonHeading>
-              {lesson.content.definitions.map((def, idx) => (
-                <DefinitionBlock
-                  key={idx}
-                  term={def.term}
-                  content={def.content}
-                  onAskAI={(term, content) => handleAskAIContext('definitions', `Khái niệm: ${term}`, content)}
+                <LessonHeading
+                  extra={
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <LessonAskAIBtn
+                        lessonId={lesson.id}
+                        subjectId={resolvedSubjectId}
+                        lessonTitle={lesson.title}
+                        subjectName={lesson.subjectName || 'Môn học'}
+                        sectionId="summary"
+                        sectionTitle="Tổng kết kiến thức bài học"
+                      />
+                      <LessonSectionBookmarkBtn
+                        lessonId={lesson.id}
+                        subjectId={resolvedSubjectId}
+                        lessonTitle={lesson.title}
+                        subjectName={lesson.subjectName || 'Môn học'}
+                        sectionId="summary"
+                        sectionTitle="Tổng kết kiến thức bài học"
+                      />
+                      <LessonSectionProgress
+                        progressPercent={getSectionProgress('summary')}
+                        isCompleted={isSectionCompleted('summary')}
+                      />
+                    </div>
+                  }
+                >
+                  Tổng kết kiến thức trọng tâm
+                </LessonHeading>
+                <LessonSummaryBlock
+                  points={lesson.content.summaryPoints}
+                  onAskAI={() => handleAskAIContext('summary', 'Tổng kết bài học', lesson.content.summaryPoints.join('; '))}
                 />
-              ))}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
 
-          {/* Formulas */}
-          {lesson.content.formulas.length > 0 && (
-            <div
-              ref={(el) => registerSection('formulas', el)}
-              data-section-id="formulas"
-              className="lesson-section-block"
-            >
-              <LessonHeading
-                extra={
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <LessonAskAIBtn
-                      lessonId={lesson.id}
-                      subjectId={resolvedSubjectId}
-                      lessonTitle={lesson.title}
-                      subjectName={lesson.subjectName || 'Môn học'}
-                      sectionId="formulas"
-                      sectionTitle="Công thức trọng tâm"
-                    />
-                    <LessonSectionBookmarkBtn
-                      lessonId={lesson.id}
-                      subjectId={resolvedSubjectId}
-                      lessonTitle={lesson.title}
-                      subjectName={lesson.subjectName || 'Môn học'}
-                      sectionId="formulas"
-                      sectionTitle="Công thức trọng tâm"
-                    />
-                    <LessonSectionProgress
-                      progressPercent={getSectionProgress('formulas')}
-                      isCompleted={isSectionCompleted('formulas')}
-                    />
-                  </div>
-                }
+          {/* TAB 2: LÝ THUYẾT & CÔNG THỨC */}
+          <div style={{ display: activeTab === 'theory' ? 'block' : 'none' }}>
+            {/* Definitions */}
+            {lesson.content.definitions.length > 0 && (
+              <div
+                ref={(el) => registerSection('definitions', el)}
+                data-section-id="definitions"
+                className="lesson-section-block"
               >
-                2. Công thức trọng tâm
-              </LessonHeading>
-              {lesson.content.formulas.map((form) => (
-                <FormulaBlock
-                  key={form.id}
-                  formula={form}
-                  onAskAI={(label, formStr) => handleAskAIContext('formulas', `Công thức: ${label}`, formStr)}
-                />
-              ))}
-            </div>
-          )}
+                <LessonHeading
+                  extra={
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <LessonAskAIBtn
+                        lessonId={lesson.id}
+                        subjectId={resolvedSubjectId}
+                        lessonTitle={lesson.title}
+                        subjectName={lesson.subjectName || 'Môn học'}
+                        sectionId="definitions"
+                        sectionTitle="Khái niệm và Định nghĩa cơ bản"
+                      />
+                      <LessonSectionBookmarkBtn
+                        lessonId={lesson.id}
+                        subjectId={resolvedSubjectId}
+                        lessonTitle={lesson.title}
+                        subjectName={lesson.subjectName || 'Môn học'}
+                        sectionId="definitions"
+                        sectionTitle="Khái niệm và Định nghĩa cơ bản"
+                      />
+                      <LessonSectionProgress
+                        progressPercent={getSectionProgress('definitions')}
+                        isCompleted={isSectionCompleted('definitions')}
+                      />
+                    </div>
+                  }
+                >
+                  1. Khái niệm và Định nghĩa cơ bản
+                </LessonHeading>
+                {lesson.content.definitions.map((def, idx) => (
+                  <DefinitionBlock
+                    key={idx}
+                    term={def.term}
+                    content={def.content}
+                    onAskAI={(term, content) => handleAskAIContext('definitions', `Khái niệm: ${term}`, content)}
+                  />
+                ))}
+              </div>
+            )}
 
-          {/* Variation Tables */}
-          {lesson.content.variationTables && lesson.content.variationTables.length > 0 && (
-            <div
-              ref={(el) => registerSection('variation-tables', el)}
-              data-section-id="variation-tables"
-              className="lesson-section-block"
-            >
-              <LessonHeading
-                extra={
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <LessonAskAIBtn
-                      lessonId={lesson.id}
-                      subjectId={resolvedSubjectId}
-                      lessonTitle={lesson.title}
-                      subjectName={lesson.subjectName || 'Môn học'}
-                      sectionId="variation-tables"
-                      sectionTitle="Bảng biến thiên sư phạm"
-                    />
-                    <LessonSectionBookmarkBtn
-                      lessonId={lesson.id}
-                      subjectId={resolvedSubjectId}
-                      lessonTitle={lesson.title}
-                      subjectName={lesson.subjectName || 'Môn học'}
-                      sectionId="variation-tables"
-                      sectionTitle="Bảng biến thiên sư phạm"
-                    />
-                    <LessonSectionProgress
-                      progressPercent={getSectionProgress('variation-tables')}
-                      isCompleted={isSectionCompleted('variation-tables')}
-                    />
-                  </div>
-                }
+            {/* Formulas */}
+            {lesson.content.formulas.length > 0 && (
+              <div
+                ref={(el) => registerSection('formulas', el)}
+                data-section-id="formulas"
+                className="lesson-section-block"
               >
-                3. Bảng biến thiên sư phạm
-              </LessonHeading>
-              {lesson.content.variationTables.map((vt, idx) => (
-                <VariationTable
-                  key={vt.id || `vt-${idx}`}
-                  {...vt}
-                  onAskAI={(title, summary) => handleAskAIContext('variation-tables', title, summary)}
-                />
-              ))}
-            </div>
-          )}
+                <LessonHeading
+                  extra={
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <LessonAskAIBtn
+                        lessonId={lesson.id}
+                        subjectId={resolvedSubjectId}
+                        lessonTitle={lesson.title}
+                        subjectName={lesson.subjectName || 'Môn học'}
+                        sectionId="formulas"
+                        sectionTitle="Công thức trọng tâm"
+                      />
+                      <LessonSectionBookmarkBtn
+                        lessonId={lesson.id}
+                        subjectId={resolvedSubjectId}
+                        lessonTitle={lesson.title}
+                        subjectName={lesson.subjectName || 'Môn học'}
+                        sectionId="formulas"
+                        sectionTitle="Công thức trọng tâm"
+                      />
+                      <LessonSectionProgress
+                        progressPercent={getSectionProgress('formulas')}
+                        isCompleted={isSectionCompleted('formulas')}
+                      />
+                    </div>
+                  }
+                >
+                  2. Công thức trọng tâm
+                </LessonHeading>
+                {lesson.content.formulas.map((form) => (
+                  <FormulaBlock
+                    key={form.id}
+                    formula={form}
+                    onAskAI={(label, formStr) => handleAskAIContext('formulas', `Công thức: ${label}`, formStr)}
+                  />
+                ))}
+              </div>
+            )}
 
-          {/* Examples */}
-          {lesson.content.examples.length > 0 && (
-            <div
-              ref={(el) => registerSection('examples', el)}
-              data-section-id="examples"
-              className="lesson-section-block"
-            >
-              <LessonHeading
-                extra={
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <LessonAskAIBtn
-                      lessonId={lesson.id}
-                      subjectId={resolvedSubjectId}
-                      lessonTitle={lesson.title}
-                      subjectName={lesson.subjectName || 'Môn học'}
-                      sectionId="examples"
-                      sectionTitle="Ví dụ mẫu & Phương pháp giải"
-                    />
-                    <LessonSectionBookmarkBtn
-                      lessonId={lesson.id}
-                      subjectId={resolvedSubjectId}
-                      lessonTitle={lesson.title}
-                      subjectName={lesson.subjectName || 'Môn học'}
-                      sectionId="examples"
-                      sectionTitle="Ví dụ mẫu & Phương pháp giải"
-                    />
-                    <LessonSectionProgress
-                      progressPercent={getSectionProgress('examples')}
-                      isCompleted={isSectionCompleted('examples')}
-                    />
-                  </div>
-                }
+            {/* Variation Tables */}
+            {lesson.content.variationTables && lesson.content.variationTables.length > 0 && (
+              <div
+                ref={(el) => registerSection('variation-tables', el)}
+                data-section-id="variation-tables"
+                className="lesson-section-block"
               >
-                4. Ví dụ mẫu & Phương pháp giải
-              </LessonHeading>
-              {lesson.content.examples.map((ex) => (
-                <ExampleBlock
-                  key={ex.id}
-                  example={ex}
-                  onAskAI={(title, problem) => handleAskAIContext('examples', `Ví dụ: ${title}`, problem)}
-                />
-              ))}
-            </div>
-          )}
+                <LessonHeading
+                  extra={
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <LessonAskAIBtn
+                        lessonId={lesson.id}
+                        subjectId={resolvedSubjectId}
+                        lessonTitle={lesson.title}
+                        subjectName={lesson.subjectName || 'Môn học'}
+                        sectionId="variation-tables"
+                        sectionTitle="Bảng biến thiên sư phạm"
+                      />
+                      <LessonSectionBookmarkBtn
+                        lessonId={lesson.id}
+                        subjectId={resolvedSubjectId}
+                        lessonTitle={lesson.title}
+                        subjectName={lesson.subjectName || 'Môn học'}
+                        sectionId="variation-tables"
+                        sectionTitle="Bảng biến thiên sư phạm"
+                      />
+                      <LessonSectionProgress
+                        progressPercent={getSectionProgress('variation-tables')}
+                        isCompleted={isSectionCompleted('variation-tables')}
+                      />
+                    </div>
+                  }
+                >
+                  3. Bảng biến thiên sư phạm
+                </LessonHeading>
+                {lesson.content.variationTables.map((vt, idx) => (
+                  <VariationTable
+                    key={vt.id || `vt-${idx}`}
+                    {...vt}
+                    onAskAI={(title, summary) => handleAskAIContext('variation-tables', title, summary)}
+                  />
+                ))}
+              </div>
+            )}
 
-          {/* Function Graphs */}
-          {lesson.content.functionGraphs && lesson.content.functionGraphs.length > 0 && (
-            <div
-              ref={(el) => registerSection('function-graphs', el)}
-              data-section-id="function-graphs"
-              className="lesson-section-block"
-            >
-              <LessonHeading
-                extra={
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <LessonAskAIBtn
-                      lessonId={lesson.id}
-                      subjectId={resolvedSubjectId}
-                      lessonTitle={lesson.title}
-                      subjectName={lesson.subjectName || 'Môn học'}
-                      sectionId="function-graphs"
-                      sectionTitle="Đồ thị hình học toán học"
-                    />
-                    <LessonSectionBookmarkBtn
-                      lessonId={lesson.id}
-                      subjectId={resolvedSubjectId}
-                      lessonTitle={lesson.title}
-                      subjectName={lesson.subjectName || 'Môn học'}
-                      sectionId="function-graphs"
-                      sectionTitle="Đồ thị hình học toán học"
-                    />
-                    <LessonSectionProgress
-                      progressPercent={getSectionProgress('function-graphs')}
-                      isCompleted={isSectionCompleted('function-graphs')}
-                    />
-                  </div>
-                }
+            {/* Function Graphs */}
+            {lesson.content.functionGraphs && lesson.content.functionGraphs.length > 0 && (
+              <div
+                ref={(el) => registerSection('function-graphs', el)}
+                data-section-id="function-graphs"
+                className="lesson-section-block"
               >
-                5. Đồ thị hình học toán học
-              </LessonHeading>
-              {lesson.content.functionGraphs.map((fg, idx) => (
-                <FunctionGraph
-                  key={fg.id || `fg-${idx}`}
-                  {...fg}
-                  onAskAI={(title, summary) => handleAskAIContext('function-graphs', title, summary)}
-                />
-              ))}
-            </div>
-          )}
+                <LessonHeading
+                  extra={
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <LessonAskAIBtn
+                        lessonId={lesson.id}
+                        subjectId={resolvedSubjectId}
+                        lessonTitle={lesson.title}
+                        subjectName={lesson.subjectName || 'Môn học'}
+                        sectionId="function-graphs"
+                        sectionTitle="Đồ thị hình học toán học"
+                      />
+                      <LessonSectionBookmarkBtn
+                        lessonId={lesson.id}
+                        subjectId={resolvedSubjectId}
+                        lessonTitle={lesson.title}
+                        subjectName={lesson.subjectName || 'Môn học'}
+                        sectionId="function-graphs"
+                        sectionTitle="Đồ thị hình học toán học"
+                      />
+                      <LessonSectionProgress
+                        progressPercent={getSectionProgress('function-graphs')}
+                        isCompleted={isSectionCompleted('function-graphs')}
+                      />
+                    </div>
+                  }
+                >
+                  4. Đồ thị hình học toán học
+                </LessonHeading>
+                {lesson.content.functionGraphs.map((fg, idx) => (
+                  <FunctionGraph
+                    key={fg.id || `fg-${idx}`}
+                    {...fg}
+                    onAskAI={(title, summary) => handleAskAIContext('function-graphs', title, summary)}
+                  />
+                ))}
+              </div>
+            )}
 
-          {/* Important Notes & Common Mistakes */}
-          {(lesson.content.importantNotes.length > 0 || (lesson.content.commonMistakes && lesson.content.commonMistakes.length > 0)) && (
-            <div
-              ref={(el) => registerSection('important-notes', el)}
-              data-section-id="important-notes"
-              className="lesson-section-block"
-            >
-              <LessonHeading
-                extra={
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <LessonAskAIBtn
-                      lessonId={lesson.id}
-                      subjectId={resolvedSubjectId}
-                      lessonTitle={lesson.title}
-                      subjectName={lesson.subjectName || 'Môn học'}
-                      sectionId="important-notes"
-                      sectionTitle="Bẫy đề thi & Lưu ý cần nhớ"
-                    />
-                    <LessonSectionBookmarkBtn
-                      lessonId={lesson.id}
-                      subjectId={resolvedSubjectId}
-                      lessonTitle={lesson.title}
-                      subjectName={lesson.subjectName || 'Môn học'}
-                      sectionId="important-notes"
-                      sectionTitle="Bẫy đề thi & Lưu ý cần nhớ"
-                    />
-                    <LessonSectionProgress
-                      progressPercent={getSectionProgress('important-notes')}
-                      isCompleted={isSectionCompleted('important-notes')}
-                    />
-                  </div>
-                }
+            {/* Important Notes & Common Mistakes */}
+            {(lesson.content.importantNotes.length > 0 || (lesson.content.commonMistakes && lesson.content.commonMistakes.length > 0)) && (
+              <div
+                ref={(el) => registerSection('important-notes', el)}
+                data-section-id="important-notes"
+                className="lesson-section-block"
               >
-                6. Bẫy đề thi & Lưu ý cần nhớ
-              </LessonHeading>
+                <LessonHeading
+                  extra={
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <LessonAskAIBtn
+                        lessonId={lesson.id}
+                        subjectId={resolvedSubjectId}
+                        lessonTitle={lesson.title}
+                        subjectName={lesson.subjectName || 'Môn học'}
+                        sectionId="important-notes"
+                        sectionTitle="Bẫy đề thi & Lưu ý cần nhớ"
+                      />
+                      <LessonSectionBookmarkBtn
+                        lessonId={lesson.id}
+                        subjectId={resolvedSubjectId}
+                        lessonTitle={lesson.title}
+                        subjectName={lesson.subjectName || 'Môn học'}
+                        sectionId="important-notes"
+                        sectionTitle="Bẫy đề thi & Lưu ý cần nhớ"
+                      />
+                      <LessonSectionProgress
+                        progressPercent={getSectionProgress('important-notes')}
+                        isCompleted={isSectionCompleted('important-notes')}
+                      />
+                    </div>
+                  }
+                >
+                  5. Bẫy đề thi & Lưu ý cần nhớ
+                </LessonHeading>
 
-              {lesson.content.commonMistakes && lesson.content.commonMistakes.length > 0 && (
-                <CommonMistakesBlock
-                  mistakes={lesson.content.commonMistakes}
-                  onAskAI={(title, detail) => handleAskAIContext('important-notes', title, detail)}
-                />
-              )}
+                {lesson.content.commonMistakes && lesson.content.commonMistakes.length > 0 && (
+                  <CommonMistakesBlock
+                    mistakes={lesson.content.commonMistakes}
+                    onAskAI={(title, detail) => handleAskAIContext('important-notes', title, detail)}
+                  />
+                )}
 
-              {lesson.content.importantNotes.length > 0 && (
-                <ImportantNote notes={lesson.content.importantNotes} />
-              )}
-            </div>
-          )}
+                {lesson.content.importantNotes.length > 0 && (
+                  <ImportantNote notes={lesson.content.importantNotes} />
+                )}
+              </div>
+            )}
+          </div>
 
-          {/* Summary */}
-          {lesson.content.summaryPoints.length > 0 && (
-            <div
-              ref={(el) => registerSection('summary', el)}
-              data-section-id="summary"
-              className="lesson-section-block"
-            >
-              <LessonHeading
-                extra={
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <LessonAskAIBtn
-                      lessonId={lesson.id}
-                      subjectId={resolvedSubjectId}
-                      lessonTitle={lesson.title}
-                      subjectName={lesson.subjectName || 'Môn học'}
-                      sectionId="summary"
-                      sectionTitle="Tổng kết kiến thức bài học"
-                    />
-                    <LessonSectionBookmarkBtn
-                      lessonId={lesson.id}
-                      subjectId={resolvedSubjectId}
-                      lessonTitle={lesson.title}
-                      subjectName={lesson.subjectName || 'Môn học'}
-                      sectionId="summary"
-                      sectionTitle="Tổng kết kiến thức bài học"
-                    />
-                    <LessonSectionProgress
-                      progressPercent={getSectionProgress('summary')}
-                      isCompleted={isSectionCompleted('summary')}
-                    />
-                  </div>
-                }
+          {/* TAB 3: VÍ DỤ MẪU */}
+          <div style={{ display: activeTab === 'examples' ? 'block' : 'none' }}>
+            {lesson.content.examples.length > 0 ? (
+              <div
+                ref={(el) => registerSection('examples', el)}
+                data-section-id="examples"
+                className="lesson-section-block"
               >
-                7. Tổng kết kiến thức bài học
-              </LessonHeading>
-              <LessonSummaryBlock
-                points={lesson.content.summaryPoints}
-                onAskAI={() => handleAskAIContext('summary', 'Tổng kết bài học', lesson.content.summaryPoints.join('; '))}
-              />
-            </div>
-          )}
+                <LessonHeading
+                  extra={
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <LessonAskAIBtn
+                        lessonId={lesson.id}
+                        subjectId={resolvedSubjectId}
+                        lessonTitle={lesson.title}
+                        subjectName={lesson.subjectName || 'Môn học'}
+                        sectionId="examples"
+                        sectionTitle="Ví dụ mẫu & Phương pháp giải"
+                      />
+                      <LessonSectionBookmarkBtn
+                        lessonId={lesson.id}
+                        subjectId={resolvedSubjectId}
+                        lessonTitle={lesson.title}
+                        subjectName={lesson.subjectName || 'Môn học'}
+                        sectionId="examples"
+                        sectionTitle="Ví dụ mẫu & Phương pháp giải"
+                      />
+                      <LessonSectionProgress
+                        progressPercent={getSectionProgress('examples')}
+                        isCompleted={isSectionCompleted('examples')}
+                      />
+                    </div>
+                  }
+                >
+                  Ví dụ mẫu & Phương pháp giải từng bước
+                </LessonHeading>
+                {lesson.content.examples.map((ex) => (
+                  <ExampleBlock
+                    key={ex.id}
+                    example={ex}
+                    onAskAI={(title, problem) => handleAskAIContext('examples', `Ví dụ: ${title}`, problem)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="tab-empty-notice">
+                Chưa có ví dụ mẫu cho bài học này. Bạn có thể nhấn sang tab AI Tutor để yêu cầu AI tạo ví dụ minh họa tự động!
+              </div>
+            )}
+          </div>
 
-          {/* Embedded Lesson Harvest Assessment Card */}
-          <LessonAssessmentCard
-            assessment={assessment}
-            isCompleted={isAssessmentCompleted}
-            hasUnfinishedAttempt={hasUnfinishedAttempt}
-            activeAttempt={activeAttempt}
-            latestAttempt={latestCompletedAttempt}
-            onStartAttempt={handleStartAttempt}
-            onViewResult={handleViewLatestResult}
-            onRetryAttempt={handleRestartAttempt}
-          />
+          {/* TAB 4: LUYỆN TẬP & BÀI THU HOẠCH */}
+          <div style={{ display: activeTab === 'practice' ? 'block' : 'none' }}>
+            <LessonAssessmentCard
+              assessment={assessment}
+              isCompleted={isAssessmentCompleted}
+              hasUnfinishedAttempt={hasUnfinishedAttempt}
+              activeAttempt={activeAttempt}
+              latestAttempt={latestCompletedAttempt}
+              onStartAttempt={handleStartAttempt}
+              onViewResult={handleViewLatestResult}
+              onRetryAttempt={handleRestartAttempt}
+            />
+          </div>
+
+          {/* TAB 5: AI TUTOR SOCRATIC */}
+          <div style={{ display: activeTab === 'ai_tutor' ? 'block' : 'none' }}>
+            <LessonAITutorTab
+              lessonId={lesson.id}
+              subjectId={resolvedSubjectId}
+              lessonTitle={lesson.title}
+              subjectName={lesson.subjectName || 'Toán học'}
+              chapterTitle={lesson.chapterTitle}
+            />
+          </div>
         </article>
 
         {/* Bottom Action Bar */}

@@ -5,6 +5,7 @@ import type { QuestionFilterParams } from '../types'
 interface SubjectOption {
   id: string
   name: string
+  code?: string
 }
 
 interface QuestionFiltersProps {
@@ -145,22 +146,11 @@ export const QuestionFilters: React.FC<QuestionFiltersProps> = ({
           }}
         >
           <option value="all">Tất cả môn học</option>
-          <option value="math">Toán học</option>
-          <option value="physics">Vật lý</option>
-          <option value="chemistry">Hóa học</option>
-          <option value="english">Tiếng Anh</option>
-          <option value="history">Lịch sử</option>
-          <option value="geography">Địa lý</option>
-          <option value="biology">Sinh học</option>
-          <option value="civic">Giáo dục công dân</option>
-          <option value="literature">Ngữ văn</option>
-          {subjects
-            .filter((s) => !['math', 'physics', 'chemistry', 'english', 'history', 'geography', 'biology', 'civic', 'literature'].includes(s.id.toLowerCase()))
-            .map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
+          {subjects.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name} {s.code ? `(${s.code})` : ''}
+            </option>
+          ))}
         </select>
 
         {/* Grade */}

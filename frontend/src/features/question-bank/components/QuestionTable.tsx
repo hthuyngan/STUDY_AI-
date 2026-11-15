@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import type { ContentQuestionItem } from '../types';
 import { MathView } from '../../../components/common/MathView';
+import styles from '../QuestionBank.module.css';
 
 interface QuestionTableProps {
   questions: ContentQuestionItem[];
@@ -26,6 +27,9 @@ interface QuestionTableProps {
   currentPage: number;
   pageSize: number;
   isLoading: boolean;
+  error?: string | null;
+  errorCode?: string | null;
+  onRetry?: () => void;
   selectedQuestionId: string | null;
   isTrashView: boolean;
   onPageChange: (page: number) => void;
@@ -53,6 +57,9 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
   currentPage,
   pageSize,
   isLoading,
+  error,
+  errorCode,
+  onRetry,
   selectedQuestionId,
   isTrashView,
   onPageChange,
@@ -122,12 +129,12 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
     setOpenMenuQuestionId(q.id);
   };
 
-  // Helper for standardized status badge styling (Lỗi 5)
+  // Helper for standardized status badge styling
   const renderStatusBadge = (status: string, isDeleted?: boolean) => {
     if (isDeleted || isTrashView) {
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
-          <Trash2 className="w-3.5 h-3.5 text-red-600" />
+        <span className={`${styles.badge} ${styles.badgeDeleted}`}>
+          <Trash2 size={13} style={{ color: '#dc2626' }} />
           Đã xóa
         </span>
       );
@@ -136,38 +143,38 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
     switch (status) {
       case 'published':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+          <span className={`${styles.badge} ${styles.badgePublished}`}>
+            <span className={`${styles.badgeDot} ${styles.dotPublished}`} />
             Đã xuất bản
           </span>
         );
       case 'approved':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-800 border border-blue-200">
-            <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
+          <span className={`${styles.badge} ${styles.badgeApproved}`}>
+            <CheckCircle2 size={13} style={{ color: '#1d4ed8' }} />
             Đã duyệt
           </span>
         );
       case 'in_review':
       case 'in-review':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
-            <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+          <span className={`${styles.badge} ${styles.badgeInReview}`}>
+            <AlertCircle size={13} style={{ color: '#d97706' }} />
             Chờ duyệt
           </span>
         );
       case 'rejected':
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-800 border border-rose-200">
-            <XCircle className="w-3.5 h-3.5 text-rose-600" />
+          <span className={`${styles.badge} ${styles.badgeRejected}`}>
+            <XCircle size={13} style={{ color: '#e11d48' }} />
             Bị từ chối
           </span>
         );
       case 'draft':
       default:
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+          <span className={`${styles.badge} ${styles.badgeDraft}`}>
+            <span className={`${styles.badgeDot} ${styles.dotDraft}`} />
             Bản nháp
           </span>
         );
@@ -179,18 +186,18 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
     switch (difficulty) {
       case 'easy':
       case 'nhan_biet':
-        return <span className="text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60">Nhận biết</span>;
+        return <span className={`${styles.chip} ${styles.chipEasy}`}>Nhận biết</span>;
       case 'medium':
       case 'thong_hieu':
-        return <span className="text-[11px] font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200/60">Thông hiểu</span>;
+        return <span className={`${styles.chip} ${styles.chipMedium}`}>Thông hiểu</span>;
       case 'hard':
       case 'van_dung':
-        return <span className="text-[11px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60">Vận dụng</span>;
+        return <span className={`${styles.chip} ${styles.chipHard}`}>Vận dụng</span>;
       case 'expert':
       case 'van_dung_cao':
-        return <span className="text-[11px] font-medium text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200/60">VD cao</span>;
+        return <span className={`${styles.chip} ${styles.chipExpert}`}>VD cao</span>;
       default:
-        return <span className="text-[11px] font-medium text-slate-600 bg-slate-50 px-2 py-0.5 rounded border border-slate-200/60">{difficulty || 'Chuẩn'}</span>;
+        return <span className={`${styles.chip} ${styles.chipDefault}`}>{difficulty || 'Chuẩn'}</span>;
     }
   };
 
@@ -199,20 +206,20 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
     switch (type) {
       case 'single_choice':
       case 'multiple-choice':
-        return <span className="text-[11px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/60">Trắc nghiệm</span>;
+        return <span className={`${styles.chip} ${styles.chipDefault}`}>Trắc nghiệm</span>;
       case 'multiple_choice':
       case 'multiple-select':
-        return <span className="text-[11px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/60">Nhiều lựa chọn</span>;
+        return <span className={`${styles.chip} ${styles.chipDefault}`}>Nhiều lựa chọn</span>;
       case 'true_false':
       case 'true-false':
-        return <span className="text-[11px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/60">Đúng / Sai</span>;
+        return <span className={`${styles.chip} ${styles.chipDefault}`}>Đúng / Sai</span>;
       case 'short_answer':
       case 'short-answer':
-        return <span className="text-[11px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/60">Điền câu trả lời</span>;
+        return <span className={`${styles.chip} ${styles.chipDefault}`}>Điền câu trả lời</span>;
       case 'essay':
-        return <span className="text-[11px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/60">Tự luận</span>;
+        return <span className={`${styles.chip} ${styles.chipDefault}`}>Tự luận</span>;
       default:
-        return <span className="text-[11px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/60">{type || 'Trắc nghiệm'}</span>;
+        return <span className={`${styles.chip} ${styles.chipDefault}`}>{type || 'Trắc nghiệm'}</span>;
     }
   };
 
@@ -222,44 +229,94 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
     : null;
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-      {/* Table responsive container (Evondev R9 rule) */}
-      <div className="overflow-x-auto min-w-full">
+    <div className={styles.tableCard}>
+      {/* Table responsive container */}
+      <div className={styles.tableScroll}>
         {/* Streamlined 5-column Table: [Mã câu], [Môn / Lớp], [Nội dung câu hỏi], [Trạng thái], [Thao tác] */}
-        <table className="staff-table w-full text-left text-sm border-collapse min-w-[760px]">
+        <table className={`staff-table ${styles.table}`}>
           <thead>
-            <tr className="bg-slate-50/90 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-              <th className="py-3.5 px-4 w-28">Mã câu</th>
-              <th className="py-3.5 px-4 w-36">Môn / Lớp</th>
-              <th className="py-3.5 px-4 min-w-[320px]">Nội dung câu hỏi</th>
-              <th className="py-3.5 px-4 w-32 text-center">Trạng thái</th>
-              <th className="py-3.5 px-4 w-24 text-right">Thao tác</th>
+            <tr>
+              <th className={`${styles.th} ${styles.thCode}`}>Mã câu</th>
+              <th className={`${styles.th} ${styles.thSubject}`}>Môn / Lớp</th>
+              <th className={`${styles.th} ${styles.thContent}`}>Nội dung câu hỏi</th>
+              <th className={`${styles.th} ${styles.thStatus}`}>Trạng thái</th>
+              <th className={`${styles.th} ${styles.thActions}`}>Thao tác</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className={styles.tbody}>
             {isLoading ? (
               // Loading skeleton rows
               Array.from({ length: 6 }).map((_, i) => (
-                <tr key={i} className="animate-pulse">
-                  <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-20" /></td>
-                  <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-24" /></td>
-                  <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-3/4 mb-2" /><div className="h-3 bg-slate-100 rounded w-1/2" /></td>
-                  <td className="py-4 px-4 text-center"><div className="h-5 bg-slate-200 rounded-full w-20 mx-auto" /></td>
-                  <td className="py-4 px-4 text-right"><div className="h-7 bg-slate-200 rounded w-16 ml-auto" /></td>
+                <tr key={i}>
+                  <td className={styles.td} style={{ padding: '16px' }}><div style={{ height: '16px', background: '#e2e8f0', borderRadius: '4px', width: '80px' }} /></td>
+                  <td className={styles.td} style={{ padding: '16px' }}><div style={{ height: '16px', background: '#e2e8f0', borderRadius: '4px', width: '96px' }} /></td>
+                  <td className={styles.td} style={{ padding: '16px' }}><div style={{ height: '16px', background: '#e2e8f0', borderRadius: '4px', width: '75%', marginBottom: '8px' }} /><div style={{ height: '12px', background: '#f1f5f9', borderRadius: '4px', width: '50%' }} /></td>
+                  <td className={styles.td} style={{ padding: '16px', textAlign: 'center' }}><div style={{ height: '20px', background: '#e2e8f0', borderRadius: '9999px', width: '80px', margin: '0 auto' }} /></td>
+                  <td className={styles.td} style={{ padding: '16px', textAlign: 'right' }}><div style={{ height: '28px', background: '#e2e8f0', borderRadius: '6px', width: '60px', marginLeft: 'auto' }} /></td>
                 </tr>
               ))
+            ) : error ? (
+              // Explicit error state with distinct messaging and actionable buttons
+              <tr>
+                <td colSpan={5} style={{ padding: '48px 16px', textAlign: 'center' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', maxWidth: '420px', margin: '0 auto' }}>
+                    <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#DC2626', marginBottom: '16px' }}>
+                      <AlertCircle size={28} />
+                    </div>
+                    <p style={{ fontSize: '15px', fontWeight: 600, color: '#991B1B', margin: '0 0 6px 0' }}>
+                      {errorCode === 'UNAUTHORIZED'
+                        ? 'Phiên đăng nhập đã hết hạn'
+                        : errorCode === 'FORBIDDEN'
+                        ? 'Không có quyền truy cập'
+                        : errorCode === 'NETWORK_OFFLINE'
+                        ? 'Không thể kết nối đến máy chủ backend'
+                        : 'Không thể nạp dữ liệu Ngân hàng câu hỏi'}
+                    </p>
+                    <p style={{ fontSize: '13px', color: '#64748B', margin: '0 0 16px 0', lineHeight: 1.5 }}>
+                      {errorCode === 'UNAUTHORIZED'
+                        ? 'Phiên làm việc của bạn đã kết thúc. Vui lòng đăng nhập lại để tiếp tục thao tác.'
+                        : errorCode === 'FORBIDDEN'
+                        ? 'Tài khoản hiện tại không có quyền quản trị nội dung (yêu cầu vai trò Content hoặc Admin).'
+                        : errorCode === 'NETWORK_OFFLINE'
+                        ? 'Không thể kết nối tới dịch vụ API backend. Hãy đảm bảo API đang chạy tại http://localhost:8000.'
+                        : error}
+                    </p>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      {errorCode === 'UNAUTHORIZED' ? (
+                        <a
+                          href="/login"
+                          className="staff-btn staff-btn-primary"
+                          style={{ height: '36px', padding: '0 16px', borderRadius: '8px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                        >
+                          Đăng nhập lại
+                        </a>
+                      ) : onRetry ? (
+                        <button
+                          type="button"
+                          className="staff-btn staff-btn-primary"
+                          onClick={onRetry}
+                          style={{ height: '36px', padding: '0 16px', borderRadius: '8px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                        >
+                          <RotateCcw size={14} />
+                          Thử lại
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                </td>
+              </tr>
             ) : questions.length === 0 ? (
               // Empty state
               <tr>
-                <td colSpan={5} className="py-16 text-center text-slate-500">
-                  <div className="flex flex-col items-center justify-center max-w-sm mx-auto">
-                    <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-4">
-                      <FileQuestion className="w-8 h-8" />
+                <td colSpan={5} style={{ padding: '64px 16px', textAlign: 'center', color: '#64748b' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', maxWidth: '360px', margin: '0 auto' }}>
+                    <div style={{ width: '60px', height: '60px', borderRadius: '50%', backgroundColor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', marginBottom: '16px' }}>
+                      <FileQuestion size={28} />
                     </div>
-                    <p className="text-base font-semibold text-slate-800 mb-1">
+                    <p style={{ fontSize: '15px', fontWeight: 600, color: '#1e293b', margin: '0 0 4px 0' }}>
                       {isTrashView ? 'Thùng rác trống' : 'Không tìm thấy câu hỏi nào'}
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p style={{ fontSize: '12.5px', color: '#64748b', margin: 0 }}>
                       {isTrashView
                         ? 'Chưa có câu hỏi nào bị đưa vào thùng rác.'
                         : 'Thử thay đổi từ khóa tìm kiếm hoặc bỏ bớt các bộ lọc đang chọn.'}
@@ -276,56 +333,52 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
                   <tr
                     key={q.id}
                     onClick={() => onSelectQuestion(q)}
-                    className={`cursor-pointer transition-colors duration-150 ${
-                      isSelected
-                        ? 'bg-blue-50/70 border-l-4 border-l-[#183B69]'
-                        : 'hover:bg-slate-50/80'
-                    }`}
+                    className={`${styles.tr} ${isSelected ? styles.trSelected : ''}`}
                   >
                     {/* 1. Mã câu */}
-                    <td className="py-3 px-4 align-top">
-                      <span className="font-mono text-xs font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 inline-block">
+                    <td className={styles.td}>
+                      <span className={styles.codeBadge}>
                         {q.code || q.id.slice(0, 8)}
                       </span>
                     </td>
 
-                    {/* 2. Môn / Lớp (Không hardcode mặc định Toán học hay lớp 12) */}
-                    <td className="py-3 px-4 align-top">
-                      <div className="font-medium text-slate-800 text-xs">
+                    {/* 2. Môn / Lớp */}
+                    <td className={styles.td}>
+                      <div className={styles.subjectName}>
                         {q.subjectName || 'Chưa phân môn'}
                       </div>
-                      <div className="text-[11px] text-slate-500 mt-0.5">
+                      <div className={styles.gradeText}>
                         {q.grade ? `Lớp ${q.grade}` : 'Chưa xếp lớp'}
                       </div>
                     </td>
 
-                    {/* 3. Nội dung câu hỏi (Chiếm phần lớn chiều rộng, max 2-3 dòng, kèm dạng câu/độ khó/nguồn) */}
-                    <td className="py-3 px-4 align-top">
-                      <div className="line-clamp-2 text-xs text-slate-800 font-normal leading-relaxed mb-1.5">
+                    {/* 3. Nội dung câu hỏi (MathView + Chips) */}
+                    <td className={styles.td}>
+                      <div className={styles.promptClamp}>
                         <MathView math={q.prompt} />
                       </div>
 
                       {/* Metadata Chips: Dạng câu, Độ khó, Nguồn, Phương án */}
-                      <div className="flex items-center flex-wrap gap-1.5">
+                      <div className={styles.metaRow}>
                         {renderQuestionType(q.questionType || q.type)}
                         {renderDifficultyBadge(q.difficulty)}
 
                         {isVNHSGE ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-indigo-700 bg-indigo-50 border border-indigo-200/80 px-2 py-0.5 rounded">
-                            <Sparkles className="w-3 h-3 text-indigo-500" />
+                          <span className={`${styles.chip} ${styles.chipVnhsge}`}>
+                            <Sparkles size={11} style={{ color: '#6366f1' }} />
                             VNHSGE
                           </span>
                         ) : (
-                          <span className="inline-flex items-center text-[11px] font-medium text-slate-600 bg-slate-100 border border-slate-200/60 px-2 py-0.5 rounded">
+                          <span className={`${styles.chip} ${styles.chipDefault}`}>
                             Thủ công
                           </span>
                         )}
 
                         {q.options && q.options.length > 0 && (
-                          <span className="text-[11px] text-slate-400 font-normal ml-1">
+                          <span className={styles.optionsCount}>
                             {q.options.length} phương án
                             {q.correctAnswer && (
-                              <span className="text-emerald-700 font-medium ml-1">
+                              <span className={styles.correctAnswerText}>
                                 • Đáp án: {q.correctAnswer}
                               </span>
                             )}
@@ -335,13 +388,13 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
                     </td>
 
                     {/* 4. Trạng thái (Standardized Badge) */}
-                    <td className="py-3 px-4 align-top text-center whitespace-nowrap">
+                    <td className={styles.td} style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
                       {renderStatusBadge(q.status, q.isDeleted)}
                     </td>
 
                     {/* 5. Thao tác: Nút Xem trước độc lập + 3-dots Kebab Menu */}
-                    <td className="py-3 px-4 align-top text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-end gap-1">
+                    <td className={styles.td} style={{ textAlign: 'right', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
+                      <div className={styles.rowActions}>
                         {/* 1-Click Preview Button */}
                         <button
                           type="button"
@@ -351,9 +404,9 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
                           }}
                           title="Xem trước"
                           aria-label="Xem trước"
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-[#183B69] hover:bg-slate-100 transition-colors"
+                          className={styles.actionBtn}
                         >
-                          <Eye className="w-4 h-4" />
+                          <Eye size={16} />
                         </button>
 
                         {/* 3-dots Kebab Dropdown Menu Trigger */}
@@ -364,13 +417,9 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
                           aria-label="Thao tác khác"
                           aria-haspopup="true"
                           aria-expanded={openMenuQuestionId === q.id}
-                          className={`p-1.5 rounded-lg transition-colors ${
-                            openMenuQuestionId === q.id
-                              ? 'bg-slate-200 text-slate-900'
-                              : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
-                          }`}
+                          className={`${styles.actionBtn} ${openMenuQuestionId === q.id ? styles.actionBtnActive : ''}`}
                         >
-                          <MoreVertical className="w-4 h-4" />
+                          <MoreVertical size={16} />
                         </button>
                       </div>
                     </td>
@@ -382,12 +431,12 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
         </table>
       </div>
 
-      {/* Portal Kebab Menu Dropdown (Prevents clipping inside table overflow-x-auto container) */}
+      {/* Portal Kebab Menu Dropdown */}
       {openMenuQuestionId && activeMenuQuestion && menuCoords && typeof document !== 'undefined' &&
         createPortal(
           <div
             ref={menuRef}
-            className="kebab-menu-portal fixed z-50 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 min-w-[190px] text-xs font-medium text-slate-700 animate-fadeIn"
+            className={`kebab-menu-portal ${styles.kebabPortal}`}
             style={{
               top: `${menuCoords.top}px`,
               right: `${menuCoords.right}px`,
@@ -405,10 +454,10 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
                     setOpenMenuQuestionId(null);
                     onEditQuestion(activeMenuQuestion);
                   }}
-                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-left hover:bg-slate-50 hover:text-[#183B69] transition-colors"
+                  className={styles.kebabItem}
                   role="menuitem"
                 >
-                  <Edit2 className="w-4 h-4 text-blue-600" />
+                  <Edit2 size={14} style={{ color: '#2563eb' }} />
                   <span>Chỉnh sửa</span>
                 </button>
 
@@ -421,10 +470,10 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
                       setOpenMenuQuestionId(null);
                       onSubmitReview(activeMenuQuestion);
                     }}
-                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-left hover:bg-amber-50 text-amber-700 transition-colors"
+                    className={`${styles.kebabItem} ${styles.kebabItemWarning}`}
                     role="menuitem"
                   >
-                    <Send className="w-4 h-4 text-amber-600" />
+                    <Send size={14} style={{ color: '#d97706' }} />
                     <span>Gửi kiểm duyệt</span>
                   </button>
                 )}
@@ -439,10 +488,10 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
                         setOpenMenuQuestionId(null);
                         onApproveQuestion(activeMenuQuestion);
                       }}
-                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-left hover:bg-emerald-50 text-emerald-700 transition-colors"
+                      className={`${styles.kebabItem} ${styles.kebabItemSuccess}`}
                       role="menuitem"
                     >
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      <CheckCircle2 size={14} style={{ color: '#16a34a' }} />
                       <span>Phê duyệt</span>
                     </button>
                     <button
@@ -452,10 +501,10 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
                         setOpenMenuQuestionId(null);
                         onRejectQuestion(activeMenuQuestion);
                       }}
-                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-left hover:bg-rose-50 text-rose-700 transition-colors"
+                      className={`${styles.kebabItem} ${styles.kebabItemDanger}`}
                       role="menuitem"
                     >
-                      <XCircle className="w-4 h-4 text-rose-600" />
+                      <XCircle size={14} style={{ color: '#dc2626' }} />
                       <span>Từ chối</span>
                     </button>
                   </>
@@ -470,10 +519,10 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
                       setOpenMenuQuestionId(null);
                       onPublishQuestion(activeMenuQuestion);
                     }}
-                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-left hover:bg-emerald-50 text-emerald-700 transition-colors"
+                    className={`${styles.kebabItem} ${styles.kebabItemSuccess}`}
                     role="menuitem"
                   >
-                    <Globe className="w-4 h-4 text-emerald-600" />
+                    <Globe size={14} style={{ color: '#16a34a' }} />
                     <span>Xuất bản</span>
                   </button>
                 )}
@@ -487,15 +536,15 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
                       setOpenMenuQuestionId(null);
                       onUnpublishQuestion(activeMenuQuestion);
                     }}
-                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-left hover:bg-amber-50 text-amber-700 transition-colors"
+                    className={`${styles.kebabItem} ${styles.kebabItemWarning}`}
                     role="menuitem"
                   >
-                    <Undo2 className="w-4 h-4 text-amber-600" />
+                    <Undo2 size={14} style={{ color: '#d97706' }} />
                     <span>Gỡ xuất bản</span>
                   </button>
                 )}
 
-                <div className="h-px bg-slate-100 my-1" />
+                <div className={styles.kebabDivider} />
 
                 {/* Xóa mềm */}
                 <button
@@ -505,10 +554,10 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
                     setOpenMenuQuestionId(null);
                     onDeleteQuestion(activeMenuQuestion);
                   }}
-                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-left hover:bg-rose-50 text-rose-600 transition-colors"
+                  className={`${styles.kebabItem} ${styles.kebabItemDanger}`}
                   role="menuitem"
                 >
-                  <Trash2 className="w-4 h-4 text-rose-600" />
+                  <Trash2 size={14} style={{ color: '#dc2626' }} />
                   <span>Xóa mềm</span>
                 </button>
               </>
@@ -521,10 +570,10 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
                   setOpenMenuQuestionId(null);
                   onRestoreQuestion(activeMenuQuestion);
                 }}
-                className="w-full flex items-center gap-2.5 px-3.5 py-2 text-left hover:bg-emerald-50 text-emerald-700 transition-colors"
+                className={`${styles.kebabItem} ${styles.kebabItemSuccess}`}
                 role="menuitem"
               >
-                <RotateCcw className="w-4 h-4 text-emerald-600" />
+                <RotateCcw size={14} style={{ color: '#16a34a' }} />
                 <span>Khôi phục câu hỏi</span>
               </button>
             )}
@@ -534,19 +583,19 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
       }
 
       {/* Pagination Footer */}
-      <div className="bg-white border-t border-slate-200 px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
-        <div className="flex items-center gap-3">
-          <span>
-            Hiển thị <span className="font-semibold text-slate-900">{questions.length}</span> /{' '}
-            <span className="font-semibold text-slate-900">{totalCount.toLocaleString()}</span> câu hỏi
+      <div className={styles.pagination}>
+        <div className={styles.paginationLeft}>
+          <span className={styles.paginationCount}>
+            Hiển thị <strong>{questions.length}</strong> /{' '}
+            <strong>{totalCount.toLocaleString()}</strong> câu hỏi
           </span>
 
-          <div className="flex items-center gap-1.5 pl-3 border-l border-slate-200">
+          <div className={styles.pageSizeGroup}>
             <span>Mỗi trang:</span>
             <select
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
-              className="border border-slate-200 rounded px-2 py-1 text-xs bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#183B69]"
+              className={styles.pageSizeSelect}
             >
               <option value={10}>10</option>
               <option value={15}>15</option>
@@ -557,27 +606,27 @@ export const QuestionTable: React.FC<QuestionTableProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-1">
-          <span className="mr-2">
-            Trang <span className="font-semibold text-slate-900">{currentPage}</span> / {totalPages}
+        <div className={styles.paginationRight}>
+          <span className={styles.pageNumber}>
+            Trang <strong>{currentPage}</strong> / {totalPages}
           </span>
           <button
             type="button"
             disabled={currentPage <= 1 || isLoading}
             onClick={() => onPageChange(currentPage - 1)}
-            className="p-1.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className={styles.pageNavBtn}
             title="Trang trước"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft size={16} />
           </button>
           <button
             type="button"
             disabled={currentPage >= totalPages || isLoading}
             onClick={() => onPageChange(currentPage + 1)}
-            className="p-1.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className={styles.pageNavBtn}
             title="Trang sau"
           >
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight size={16} />
           </button>
         </div>
       </div>

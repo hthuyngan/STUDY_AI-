@@ -11,12 +11,45 @@ export interface LearnerSubject {
   lessonCount: number
 }
 
+export interface LearnerSubjectWithChapters extends LearnerSubject {
+  chapters: LearnerChapter[]
+}
+
+export interface LearnerTopic {
+  id: string
+  chapterId: string
+  title: string
+  description?: string
+  orderIndex: number
+  lessons: LearnerLessonSummary[]
+}
+
+export interface LearnerVideo {
+  id: string
+  title: string
+  description?: string
+  provider: string
+  sourceUrl: string
+  embedUrl?: string
+  youTubeVideoId?: string
+  durationSeconds: number
+  thumbnailUrl?: string
+  embedAllowed: boolean
+  verificationStatus: string
+}
+
 export interface LearnerLessonSummary {
   id: string
+  topicId?: string
+  topicTitle?: string
   title: string
   slug: string
   orderIndex: number
   status: string
+  contentType?: string
+  hasVideo?: boolean
+  videoProvider?: string
+  youTubeVideoId?: string
 }
 
 export interface LearnerChapter {
@@ -24,6 +57,7 @@ export interface LearnerChapter {
   title: string
   description: string
   orderIndex: number
+  topics?: LearnerTopic[]
   lessons: LearnerLessonSummary[]
 }
 
@@ -31,17 +65,22 @@ export interface LearnerLessonDetail {
   id: string
   chapterId: string
   chapterTitle: string
+  topicId?: string
+  topicTitle?: string
   subjectId: string
   subjectName: string
   title: string
   slug: string
   orderIndex: number
+  contentType?: string
   introduction: string
+  learningObjectives?: string[]
   definitions: string[]
   formulas: string[]
   examples: string[]
   importantNotes: string[]
   summaryPoints: string[]
+  videos?: LearnerVideo[]
 }
 
 export interface LearnerQuestion {
@@ -71,6 +110,10 @@ export const curriculumService = {
     if (search) params.append('search', search)
     const qs = params.toString() ? `?${params.toString()}` : ''
     return apiClient.get<LearnerSubject[]>(`/api/v1/curriculum/subjects${qs}`)
+  },
+
+  async getSubject(subjectId: string): Promise<LearnerSubjectWithChapters> {
+    return apiClient.get<LearnerSubjectWithChapters>(`/api/v1/curriculum/subjects/${subjectId}`)
   },
 
   async getSubjectChapters(subjectId: string): Promise<LearnerChapter[]> {

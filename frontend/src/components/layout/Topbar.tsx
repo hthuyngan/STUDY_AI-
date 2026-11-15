@@ -56,11 +56,11 @@ const MOCK_SEARCH_ITEMS: SearchResult[] = [
     url: '/subjects/math',
   },
   {
-    category: 'Tài liệu',
+    category: 'Bài học',
     icon: FileText,
     title: 'Sổ tay Công thức Đạo hàm & Bảng biến thiên',
-    subtitle: 'Thư viện tài liệu 12',
-    url: '/library',
+    subtitle: 'Toán học 12 · Tóm tắt lý thuyết',
+    url: '/subjects/math',
   },
   {
     category: 'AI Tutor',
@@ -99,11 +99,11 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
   },
   {
     id: 'notif-3',
-    title: 'Thành tích mới mở khóa',
-    subtitle: 'Chúc mừng bạn đạt mốc 2,450 XP học tập!',
+    title: 'Kỷ lục điểm số bài luyện tập mới',
+    subtitle: 'Chúc mừng bạn đạt điểm tối đa phần Tính đơn điệu!',
     time: '1 ngày trước',
     unread: false,
-    url: '/achievements',
+    url: '/practice',
   },
 ]
 

@@ -6,8 +6,9 @@
   align-items: center;
   justify-content: center;
   padding: var(--spacing-4, 16px);
-  z-index: 100;
+  z-index: var(--ui-layer-dialog, 500);
   backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
 }
 
 .confirm-dialog-modal {

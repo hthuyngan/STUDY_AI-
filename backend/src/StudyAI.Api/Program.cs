@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 using StudyAI.Application.Common.Interfaces;
 using StudyAI.Application.Services;
 using StudyAI.Infrastructure.Persistence;
@@ -215,8 +216,47 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never;
     });
 
-// 7. OpenAPI
-builder.Services.AddOpenApi();
+// 7. OpenAPI & Swagger Documentation
+builder.Services.AddOpenApi("v1", options =>
+{
+    options.AddDocumentTransformer((document, context, cancellationToken) =>
+    {
+        document.Info = new OpenApiInfo
+        {
+            Title = "STUDY_AI Intelligent Learning Platform API",
+            Version = "v1",
+            Description = "Hệ thống API nền tảng học tập thông minh STUDY_AI theo chuẩn GDPT 2018 (Ngân hàng câu hỏi VNHSGE, Lộ trình thích ứng, AI Tutor, Lớp học & Bài tập)",
+            Contact = new OpenApiContact
+            {
+                Name = "STUDY_AI Engineering Team",
+                Email = "support@studyai.internal"
+            }
+        };
+
+        document.Components ??= new OpenApiComponents();
+        document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
+        var scheme = new OpenApiSecurityScheme
+        {
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            Description = "Nhập JWT Access Token để xác thực các API phân quyền. Định dạng: {token} (không cần gõ tiền tố Bearer)",
+            In = ParameterLocation.Header,
+            Name = "Authorization"
+        };
+        document.Components.SecuritySchemes["Bearer"] = scheme;
+
+        var schemeRef = new OpenApiSecuritySchemeReference("Bearer", document);
+        var securityRequirement = new OpenApiSecurityRequirement
+        {
+            { schemeRef, new List<string>() }
+        };
+        document.Security ??= new List<OpenApiSecurityRequirement>();
+        document.Security.Add(securityRequirement);
+
+        return Task.CompletedTask;
+    });
+});
 
 var app = builder.Build();
 
@@ -307,6 +347,15 @@ using (var scope = app.Services.CreateScope())
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/openapi/v1.json", "STUDY_AI API v1");
+        options.RoutePrefix = "swagger";
+        options.DocumentTitle = "STUDY_AI API Documentation & Explorer";
+        options.DisplayRequestDuration();
+        options.EnablePersistAuthorization();
+        options.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.None);
+    });
 }
 else
 {
@@ -314,6 +363,8 @@ else
 }
 
 app.UseCors("DefaultCorsPolicy");
+
+app.UseStaticFiles();
 
 app.UseAuthentication();
 app.UseAuthorization();

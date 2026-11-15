@@ -31,6 +31,15 @@ export const questionBankApi = {
     return apiClient.get<QuestionStatsResponse>('/api/v1/content/questions/statistics')
   },
 
+  async getSubjects(): Promise<Array<{ id: string; name: string; code: string; grade: string }>> {
+    try {
+      const res = await apiClient.get<{ items: Array<{ id: string; name: string; code: string; grade: string }> }>('/api/v1/content/subjects?isActive=true')
+      return res?.items || []
+    } catch {
+      return []
+    }
+  },
+
   async getQuestionById(id: string): Promise<ContentQuestionItem> {
     return apiClient.get<ContentQuestionItem>(`/api/v1/content/questions/${id}`)
   },

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { ApiError } from '@/lib/apiClient';
 import type {
   ContentQuestionItem,
   QuestionFilterParams,
@@ -24,6 +25,8 @@ export const useQuestionBank = () => {
   const [pageSize, setPageSize] = useState(10);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
+  const [subjects, setSubjects] = useState<Array<{ id: string; name: string; code: string; grade: string }>>([]);
 
   const [kpiStats, setKpiStats] = useState<QuestionStatsResponse | null>(null);
   const [filters, setFiltersState] = useState<QuestionFilterParams>(DEFAULT_FILTERS);
@@ -45,6 +48,22 @@ export const useQuestionBank = () => {
   const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3500);
+  }, []);
+
+  // Effect to load Subjects from API
+  useEffect(() => {
+    let isCancelled = false;
+    questionBankApi.getSubjects()
+      .then((items) => {
+        if (!isCancelled && Array.isArray(items) && items.length > 0) {
+          setSubjects(items);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isCancelled = true;
+    };
   }, []);
 
   // Effect to load KPIs
@@ -69,6 +88,7 @@ export const useQuestionBank = () => {
       try {
         setIsLoading(true);
         setError(null);
+        setErrorCode(null);
 
         const res = await questionBankApi.getQuestions({
           ...filters,
@@ -83,6 +103,10 @@ export const useQuestionBank = () => {
 
           if (res.items.length > 0) {
             setSelectedQuestion((prev: ContentQuestionItem | null) => {
+              // On mobile & tablet (< 1024px), do not auto-open the drawer on initial load
+              if (typeof window !== 'undefined' && window.innerWidth < 1024 && !prev) {
+                return null;
+              }
               if (!prev) return res.items[0];
               const found = res.items.find((item: ContentQuestionItem) => item.id === prev.id);
               return found || res.items[0];
@@ -93,9 +117,20 @@ export const useQuestionBank = () => {
         }
       } catch (err: unknown) {
         if (!isCancelled) {
-          const msg = err instanceof Error ? err.message : 'Lỗi khi tải danh sách câu hỏi';
-          setError(msg);
-          showToast(msg, 'error');
+          if (err instanceof ApiError) {
+            setError(err.message);
+            setErrorCode(err.code);
+            showToast(err.message, 'error');
+          } else if (err instanceof Error) {
+            setError(err.message);
+            setErrorCode(null);
+            showToast(err.message, 'error');
+          } else {
+            const fallback = 'Lỗi không xác định khi tải danh sách câu hỏi';
+            setError(fallback);
+            setErrorCode(null);
+            showToast(fallback, 'error');
+          }
         }
       } finally {
         if (!isCancelled) {
@@ -293,6 +328,8 @@ export const useQuestionBank = () => {
     pageSize,
     isLoading,
     error,
+    errorCode,
+    subjects,
     kpiStats,
     filters,
     isTrashView,

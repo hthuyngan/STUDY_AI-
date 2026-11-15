@@ -4,40 +4,40 @@
    ============================================================ */
 
 :root {
-  /* Admin Brand Palette */
-  --admin-primary: #1D4ED8;
-  --admin-primary-dark: #1E3A8A;
-  --admin-primary-light: #EFF6FF;
-  --admin-primary-hover: #1E40AF;
+  /* Admin Brand Palette — Connected to Design Tokens */
+  --admin-primary: var(--ui-color-primary, #1D4ED8);
+  --admin-primary-dark: var(--brand-900, #1E3A8A);
+  --admin-primary-light: var(--ui-color-primary-subtle, #EFF6FF);
+  --admin-primary-hover: var(--ui-color-primary-hover, #1E40AF);
   
   /* Admin Surfaces & Backgrounds */
-  --admin-bg-page: #F8FAFC;
-  --admin-bg-surface: #FFFFFF;
+  --admin-bg-page: var(--ui-color-canvas, #F8FAFC);
+  --admin-bg-surface: var(--ui-color-surface, #FFFFFF);
   --admin-bg-subtle: #F1F5F9;
   --admin-bg-sunken: #E2E8F0;
   
   /* Admin Typography & Text */
-  --admin-text-main: #0F172A;
-  --admin-text-muted: #64748B;
+  --admin-text-main: var(--ui-color-text, #0F172A);
+  --admin-text-muted: var(--ui-color-text-muted, #64748B);
   --admin-text-subtle: #94A3B8;
   --admin-text-inverse: #FFFFFF;
   
   /* Admin Borders & Dividers */
   --admin-border-subtle: #F1F5F9;
-  --admin-border-default: #E2E8F0;
+  --admin-border-default: var(--ui-color-border, #E2E8F0);
   --admin-border-strong: #CBD5E1;
-  --admin-border-focus: #3B82F6;
+  --admin-border-focus: var(--ui-color-primary, #1D4ED8);
   
   /* Admin Semantics */
-  --admin-success: #16A34A;
+  --admin-success: var(--ui-color-success, #16A34A);
   --admin-success-light: #F0FDF4;
   --admin-success-border: #BBF7D0;
   
-  --admin-warning: #D97706;
+  --admin-warning: var(--ui-color-warning, #D97706);
   --admin-warning-light: #FFFBEB;
   --admin-warning-border: #FDE68A;
   
-  --admin-danger: #DC2626;
+  --admin-danger: var(--ui-color-danger, #DC2626);
   --admin-danger-light: #FEF2F2;
   --admin-danger-border: #FECACA;
   
@@ -46,16 +46,16 @@
   --admin-info-border: #BAE6FD;
   
   /* Shadows */
-  --admin-shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
-  --admin-shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
-  --admin-shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
-  --admin-shadow-modal: 0 20px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.06);
+  --admin-shadow-sm: var(--ui-shadow-sm, 0 1px 2px 0 rgba(15, 23, 42, 0.05));
+  --admin-shadow-md: var(--ui-shadow-md, 0 4px 6px -1px rgba(15, 23, 42, 0.07));
+  --admin-shadow-lg: var(--ui-shadow-lg, 0 10px 15px -3px rgba(15, 23, 42, 0.08));
+  --admin-shadow-modal: var(--ui-shadow-xl, 0 20px 25px -5px rgba(15, 23, 42, 0.12));
 
-  /* Radius (4px scale) */
-  --admin-radius-sm: 6px;
-  --admin-radius-md: 8px;
-  --admin-radius-lg: 12px;
-  --admin-radius-xl: 16px;
+  /* Radius */
+  --admin-radius-sm: var(--ui-radius-sm, 6px);
+  --admin-radius-md: var(--ui-radius-md, 8px);
+  --admin-radius-lg: var(--ui-radius-lg, 12px);
+  --admin-radius-xl: var(--ui-radius-xl, 16px);
   --admin-radius-full: 9999px;
   
   /* Transitions */

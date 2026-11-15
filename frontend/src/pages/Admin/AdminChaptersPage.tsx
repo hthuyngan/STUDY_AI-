@@ -8,10 +8,11 @@ import {
   Trash2,
   CheckCircle2,
   X,
+  FolderTree,
 } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import { educationService } from '@/services/education.service'
-import type { CurriculumChapterItem, CurriculumSubjectItem, ContentStatus } from '@/types/education'
+import type { CurriculumChapterItem, CurriculumSubjectItem, CurriculumTopicItem, ContentStatus } from '@/types/education'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -37,9 +38,82 @@ export const AdminChaptersPage: React.FC = () => {
   const [formStatus, setFormStatus] = useState<ContentStatus>('published')
   const [formError, setFormError] = useState<string | null>(null)
 
+  // Topic Management Modal State
+  const [topicModalChapter, setTopicModalChapter] = useState<CurriculumChapterItem | null>(null)
+  const [topicList, setTopicList] = useState<CurriculumTopicItem[]>([])
+  const [topicLoading, setTopicLoading] = useState(false)
+  const [newTopicTitle, setNewTopicTitle] = useState('')
+  const [newTopicDesc, setNewTopicDesc] = useState('')
+  const [newTopicOrder, setNewTopicOrder] = useState(1)
+  const [topicError, setTopicError] = useState<string | null>(null)
+
   const showToast = (msg: string) => {
     setToastMessage(msg)
     setTimeout(() => setToastMessage(null), 3000)
+  }
+
+  const openTopicModal = async (ch: CurriculumChapterItem) => {
+    setTopicModalChapter(ch)
+    setTopicLoading(true)
+    setTopicError(null)
+    setNewTopicTitle('')
+    setNewTopicDesc('')
+    try {
+      const tops = await educationService.getTopics(ch.id)
+      setTopicList(tops)
+      setNewTopicOrder(tops.length + 1)
+    } catch (err: any) {
+      setTopicError(err?.message || 'Không thể tải danh sách chủ đề.')
+    } finally {
+      setTopicLoading(false)
+    }
+  }
+
+  const handleAddTopic = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!topicModalChapter) return
+    if (!newTopicTitle.trim()) {
+      setTopicError('Vui lòng nhập tên chủ đề.')
+      return
+    }
+    setTopicLoading(true)
+    setTopicError(null)
+    try {
+      const created = await educationService.createTopic({
+        chapterId: topicModalChapter.id,
+        title: newTopicTitle.trim(),
+        description: newTopicDesc.trim(),
+        orderIndex: Number(newTopicOrder) || 1,
+        isActive: true,
+      })
+      if (created) {
+        showToast(`Đã thêm chủ đề: ${newTopicTitle}`)
+        const tops = await educationService.getTopics(topicModalChapter.id)
+        setTopicList(tops)
+        setNewTopicTitle('')
+        setNewTopicDesc('')
+        setNewTopicOrder(tops.length + 1)
+      } else {
+        setTopicError('Không thể thêm chủ đề.')
+      }
+    } catch (err: any) {
+      setTopicError(err?.message || 'Lỗi thêm chủ đề.')
+    } finally {
+      setTopicLoading(false)
+    }
+  }
+
+  const handleDeleteTopic = async (topicId: string, title: string) => {
+    if (!topicModalChapter) return
+    if (!window.confirm(`Bạn có chắc muốn xóa chủ đề "${title}"?`)) return
+    try {
+      await educationService.deleteTopic(topicId)
+      showToast(`Đã xóa chủ đề: ${title}`)
+      const tops = await educationService.getTopics(topicModalChapter.id)
+      setTopicList(tops)
+    } catch {
+      showToast('Lỗi khi xóa chủ đề.')
+    }
   }
 
   const loadData = useCallback(() => {
@@ -312,6 +386,17 @@ export const AdminChaptersPage: React.FC = () => {
                         <button
                           type="button"
                           className="admin-btn-outline"
+                          onClick={() => openTopicModal(ch)}
+                          title="Quản lý chủ đề (Topics)"
+                          aria-label={`Chủ đề ${ch.title}`}
+                          style={{ color: '#0284c7', fontSize: '0.75rem', padding: '4px 8px' }}
+                        >
+                          <FolderTree size={14} />
+                          <span>Chủ đề</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="admin-btn-outline"
                           onClick={() => openEditDialog(ch)}
                           title="Chỉnh sửa chương"
                           aria-label={`Chỉnh sửa ${ch.title}`}
@@ -463,6 +548,159 @@ export const AdminChaptersPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Topic Management Modal */}
+      {topicModalChapter && (
+        <div className="admin-dialog-backdrop" onClick={() => setTopicModalChapter(null)}>
+          <div
+            className="admin-dialog-card admin-form-dialog"
+            style={{ maxWidth: '620px', width: '92%' }}
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="admin-dialog-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="admin-form-icon-wrap" style={{ color: '#0284c7', background: '#f0f9ff' }}>
+                  <FolderTree size={18} />
+                </span>
+                <div>
+                  <h2 className="admin-dialog-title">Quản lý Chủ đề (Topics)</h2>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted, #627d98)' }}>
+                    Chương: <strong>{topicModalChapter.title}</strong>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="admin-dialog-close"
+                onClick={() => setTopicModalChapter(null)}
+                aria-label="Đóng"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="admin-dialog-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+              {topicError && (
+                <div style={{ padding: '8px 12px', borderRadius: '6px', background: '#fef2f2', color: '#dc2626', fontSize: '0.82rem', marginBottom: '12px' }}>
+                  {topicError}
+                </div>
+              )}
+
+              {/* Add Topic Form */}
+              <form onSubmit={handleAddTopic} style={{ background: '#f8fafc', padding: '14px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
+                <div style={{ fontWeight: 600, fontSize: '0.88rem', marginBottom: '10px', color: '#1e293b' }}>
+                  + Thêm chủ đề mới vào chương
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                  <div>
+                    <label className="admin-form-label" style={{ fontSize: '0.78rem' }}>Tên chủ đề *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="VD: Chủ đề 1: Tính đơn điệu của hàm số"
+                      value={newTopicTitle}
+                      onChange={(e) => setNewTopicTitle(e.target.value)}
+                      className="admin-input"
+                      style={{ fontSize: '0.82rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label className="admin-form-label" style={{ fontSize: '0.78rem' }}>Thứ tự</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={newTopicOrder}
+                      onChange={(e) => setNewTopicOrder(Number(e.target.value))}
+                      className="admin-input"
+                      style={{ fontSize: '0.82rem' }}
+                    />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
+                  <div style={{ flex: 1 }}>
+                    <label className="admin-form-label" style={{ fontSize: '0.78rem' }}>Mô tả ngắn</label>
+                    <input
+                      type="text"
+                      placeholder="Mô tả mục tiêu của chủ đề này..."
+                      value={newTopicDesc}
+                      onChange={(e) => setNewTopicDesc(e.target.value)}
+                      className="admin-input"
+                      style={{ fontSize: '0.82rem' }}
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="admin-btn-primary"
+                    disabled={topicLoading}
+                    style={{ fontSize: '0.82rem', padding: '7px 14px' }}
+                  >
+                    {topicLoading ? 'Đang thêm...' : 'Thêm chủ đề'}
+                  </button>
+                </div>
+              </form>
+
+              {/* Current Topics List */}
+              <div style={{ fontWeight: 600, fontSize: '0.88rem', marginBottom: '8px', color: '#1e293b' }}>
+                Danh sách chủ đề ({topicList.length})
+              </div>
+              {topicLoading && topicList.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>Đang tải chủ đề...</div>
+              ) : topicList.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '20px', background: '#f1f5f9', borderRadius: '6px', color: '#64748b', fontSize: '0.82rem' }}>
+                  Chưa có chủ đề nào trong chương này.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {topicList.map((top) => (
+                    <div
+                      key={top.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 14px',
+                        background: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px',
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#0f172a' }}>
+                          {top.title}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                          Thứ tự: {top.orderIndex} {top.description ? `· ${top.description}` : ''}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="admin-btn-outline"
+                        style={{ color: '#dc2626', padding: '4px 8px', fontSize: '0.75rem' }}
+                        onClick={() => handleDeleteTopic(top.id, top.title)}
+                        title="Xóa chủ đề"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="admin-dialog-footer">
+              <button
+                type="button"
+                className="admin-btn-secondary"
+                onClick={() => setTopicModalChapter(null)}
+              >
+                Đóng
+              </button>
+            </div>
           </div>
         </div>
       )}

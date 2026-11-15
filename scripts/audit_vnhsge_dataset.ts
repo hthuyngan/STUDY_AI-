@@ -34,7 +34,7 @@ interface VnhsgeStats {
   errors: string[]
 }
 
-const ROOT_DIR = 'e:\\AI_tutor\\temp_vnhsge\\Dataset'
+const ROOT_DIR = 'D:\\TN\\temp_vnhsge\\Dataset'
 
 function parseOptionsFromQuestion(rawQuestion: string): { prompt: string; options: string[] } {
   const optionRegex = /\n([A-D])\.\s/g
@@ -214,9 +214,11 @@ async function auditDataset() {
   console.log('Duplicates Stats:', stats.duplicates)
   console.log(`Errors: ${stats.errors.length}`)
 
-  // Generate docs/import/VNHSGE-SOURCE-AUDIT.md
-  const docsDir = 'e:\\AI_tutor\\docs\\import'
+  // Generate reports in both docs/import and ai-collaboration
+  const docsDir = path.join(process.cwd(), 'docs', 'import')
+  const aiCollabDir = path.join(process.cwd(), 'ai-collaboration')
   if (!fs.existsSync(docsDir)) fs.mkdirSync(docsDir, { recursive: true })
+  if (!fs.existsSync(aiCollabDir)) fs.mkdirSync(aiCollabDir, { recursive: true })
 
   const auditReportMd = `# BÁO CÁO KHẢO SÁT TOÀN DIỆN NGUỒN DỮ LIỆU VNHSGE (SOURCE AUDIT)
 
@@ -285,7 +287,9 @@ ${Object.entries(stats.bySubject)
 `
 
   fs.writeFileSync(path.join(docsDir, 'VNHSGE-SOURCE-AUDIT.md'), auditReportMd, 'utf-8')
+  fs.writeFileSync(path.join(aiCollabDir, 'VNHSGE-SOURCE-INVENTORY.md'), auditReportMd, 'utf-8')
   console.log(`\nSuccessfully generated: ${path.join(docsDir, 'VNHSGE-SOURCE-AUDIT.md')}`)
+  console.log(`Successfully generated: ${path.join(aiCollabDir, 'VNHSGE-SOURCE-INVENTORY.md')}`)
 }
 
 auditDataset()

@@ -2,28 +2,47 @@ import React, { useEffect, useState } from 'react'
 import {
   ArrowRight,
   Calendar,
+  CheckCircle2,
   Clock,
   FileQuestion,
   History,
   Play,
+  RotateCw,
+  Sparkles,
   Target,
 } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { PracticeSetup } from '@/components/practice/PracticeSetup'
 import { Breadcrumb } from '@/components/ui/Breadcrumb'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { practiceService } from '@/services/practice.service'
+import { useSmartReview } from '@/hooks/useSmartReview'
 import type { PracticeResult, PracticeSession, PracticeSetupConfig } from '@/types/practice'
 import './PracticeHubPage.css'
 
 export const PracticeHubPage: React.FC = () => {
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState<'setup' | 'history'>('setup')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const initialTab = searchParams.get('tab') === 'mistakes'
+    ? 'mistakes'
+    : searchParams.get('tab') === 'history'
+      ? 'history'
+      : 'setup'
+  const [activeTab, setActiveTab] = useState<'setup' | 'mistakes' | 'history'>(initialTab)
+  const isExamMode = searchParams.get('mode') === 'exam'
   const [activeSession, setActiveSession] = useState<PracticeSession | null>(null)
   const [history, setHistory] = useState<PracticeResult[]>([])
   const [loading, setLoading] = useState<boolean>(true)
+  const { items: reviewItems, dueItems } = useSmartReview()
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab')
+    if (tabParam === 'mistakes' || tabParam === 'history' || tabParam === 'setup') {
+      setActiveTab(tabParam)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     let isMounted = true
@@ -53,7 +72,10 @@ export const PracticeHubPage: React.FC = () => {
 
   const handleStartSession = async (config: PracticeSetupConfig) => {
     try {
-      const session = await practiceService.startSession(config)
+      const session = await practiceService.startSession({
+        ...config,
+        mode: isExamMode ? 'exam' : config.mode,
+      })
       navigate(`/practice/session/${session.id}`)
     } catch (err: any) {
       alert(err?.message || 'Lỗi khi khởi tạo bài luyện tập.')
@@ -80,7 +102,7 @@ export const PracticeHubPage: React.FC = () => {
         <Breadcrumb
           items={[
             { label: 'Học tập', to: '/dashboard' },
-            { label: 'Luyện tập & Đánh giá năng lực' },
+            { label: isExamMode ? 'Thi thử trực tuyến' : 'Luyện tập & Đánh giá năng lực' },
           ]}
         />
       </div>
@@ -89,12 +111,15 @@ export const PracticeHubPage: React.FC = () => {
       <div className="practice-hub-hero">
         <div className="hub-hero-badge">
           <Target size={14} aria-hidden />
-          <span>HỆ THỐNG LUYỆN TẬP XÁC ĐỊNH · GDPT 2018</span>
+          <span>{isExamMode ? 'CHẾ ĐỘ THI THỬ CHUẨN HOÁ · GDPT 2018' : 'HỆ THỐNG LUYỆN TẬP XÁC ĐỊNH · GDPT 2018'}</span>
         </div>
-        <h1 className="hub-hero-title">Luyện tập & Đánh giá năng lực Toán 12</h1>
+        <h1 className="hub-hero-title">
+          {isExamMode ? 'Thi thử trực tuyến môn Toán 12' : 'Luyện tập & Đánh giá năng lực Toán 12'}
+        </h1>
         <p className="hub-hero-desc">
-          Làm bài tập thực tế từ Ngân hàng câu hỏi kiểm chứng, tự động lưu nháp, chấm điểm
-          theo thang chuẩn GDPT 2018 và phân tích độ thành thạo theo từng kỹ năng năng lực.
+          {isExamMode
+            ? 'Kỳ thi thử mô phỏng theo cấu trúc đề thi tốt nghiệp THPT chuẩn GDPT 2018. Không xem đáp án trước trong lúc làm bài, tự động khóa nộp bài và phân tích kết quả sau khi hoàn thành.'
+            : 'Làm bài tập thực tế từ Ngân hàng câu hỏi kiểm chứng, tự động lưu nháp, chấm điểm theo thang chuẩn GDPT 2018 và phân tích độ thành thạo theo từng kỹ năng năng lực.'}
         </p>
       </div>
 
@@ -126,7 +151,10 @@ export const PracticeHubPage: React.FC = () => {
         <button
           type="button"
           className={`hub-tab-btn ${activeTab === 'setup' ? 'active' : ''}`}
-          onClick={() => setActiveTab('setup')}
+          onClick={() => {
+            setActiveTab('setup')
+            setSearchParams({ tab: 'setup' })
+          }}
           role="tab"
           aria-selected={activeTab === 'setup'}
         >
@@ -136,8 +164,25 @@ export const PracticeHubPage: React.FC = () => {
 
         <button
           type="button"
+          className={`hub-tab-btn ${activeTab === 'mistakes' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveTab('mistakes')
+            setSearchParams({ tab: 'mistakes' })
+          }}
+          role="tab"
+          aria-selected={activeTab === 'mistakes'}
+        >
+          <RotateCw size={16} aria-hidden />
+          <span>Ôn câu sai & Smart Review ({dueItems.length})</span>
+        </button>
+
+        <button
+          type="button"
           className={`hub-tab-btn ${activeTab === 'history' ? 'active' : ''}`}
-          onClick={() => setActiveTab('history')}
+          onClick={() => {
+            setActiveTab('history')
+            setSearchParams({ tab: 'history' })
+          }}
           role="tab"
           aria-selected={activeTab === 'history'}
         >
@@ -152,6 +197,86 @@ export const PracticeHubPage: React.FC = () => {
           <Skeleton variant="rect" width="100%" height={320} />
         ) : activeTab === 'setup' ? (
           <PracticeSetup onStartSession={handleStartSession} />
+        ) : activeTab === 'mistakes' ? (
+          /* Mistakes & Spaced Repetition View */
+          <div className="practice-mistakes-container" style={{ padding: '8px 0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <div>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0 0 6px', color: 'var(--text-primary, #0F172A)' }}>
+                  Ôn tập câu sai & Lặp lại ngắt quãng (Spaced Repetition)
+                </h2>
+                <p style={{ margin: 0, color: 'var(--text-secondary, #64748B)', fontSize: '0.9rem' }}>
+                  Hệ thống Leitner 5 hộp tự động phân bố lịch ôn lại các câu hỏi đã trả lời sai để củng cố trí nhớ dài hạn.
+                </p>
+              </div>
+              {dueItems.length > 0 && (
+                <Button variant="primary" icon={Sparkles} onClick={() => navigate('/review')}>
+                  Bắt đầu phiên ôn ({dueItems.length} mục)
+                </Button>
+              )}
+            </div>
+
+            {reviewItems.length === 0 ? (
+              <EmptyState
+                icon={CheckCircle2}
+                title="Không có câu sai cần ôn!"
+                description="Bạn chưa có câu hỏi nào bị làm sai cần ôn tập lại. Hãy tiếp tục duy trì phong độ tốt!"
+                actionLabel="Tạo bài luyện tập mới"
+                onAction={() => setActiveTab('setup')}
+              />
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {reviewItems.map((item) => (
+                  <div
+                    key={item.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '16px',
+                      background: 'var(--surface-color, #FFFFFF)',
+                      border: '1px solid var(--border-color, #E2E8F0)',
+                      borderRadius: '8px',
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0, marginRight: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        <span
+                          style={{
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            background: item.status === 'overdue' ? '#FEE2E2' : item.status === 'due' ? '#FEF3C7' : '#E2E8F0',
+                            color: item.status === 'overdue' ? '#DC2626' : item.status === 'due' ? '#D97706' : '#475569',
+                          }}
+                        >
+                          {item.status === 'overdue' ? 'Quá hạn' : item.status === 'due' ? 'Đến hạn hôm nay' : 'Đã củng cố'}
+                        </span>
+                        <span style={{ fontSize: '0.8rem', color: '#64748B' }}>
+                          {item.subjectName} · Chu kỳ {item.intervalDays || 1} ngày
+                        </span>
+                      </div>
+                      <h4 style={{ margin: '0 0 4px', fontSize: '0.95rem', fontWeight: 600, color: '#1E293B' }}>
+                        {item.title}
+                      </h4>
+                      <p style={{ margin: 0, fontSize: '0.85rem', color: '#475569' }}>
+                        {item.prompt}
+                      </p>
+                    </div>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => navigate(`/review?gapId=${encodeURIComponent(item.gapId || item.id)}`)}
+                    >
+                      Ôn lại
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         ) : (
           /* History View */
           <div className="practice-history-container">

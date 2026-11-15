@@ -133,4 +133,5 @@ export interface PracticeSetupConfig {
   questionType?: QuestionType
   difficulty?: QuestionDifficulty
   limit: number // e.g. 5, 10
+  mode?: 'practice' | 'exam'
 }
