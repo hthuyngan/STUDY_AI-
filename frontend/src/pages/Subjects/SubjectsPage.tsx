@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ArrowRight, BookOpen, Bot, CheckCircle2, Clock, Search, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
@@ -14,6 +14,12 @@ export function SubjectsPage() {
   const { subjects, isLoading, error, reload } = useSubjects()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedGrade, setSelectedGrade] = useState('all')
+
+  const gradeTabs = useMemo(() => {
+    const rawGrades = Array.from(new Set(subjects.map((s) => s.grade).filter(Boolean)))
+    rawGrades.sort((a, b) => b.localeCompare(a, undefined, { numeric: true }))
+    return [{ id: 'all', label: 'Tất cả khối' }, ...rawGrades.map((g) => ({ id: g, label: g }))]
+  }, [subjects])
 
   const filteredSubjects = subjects.filter((s) => {
     const matchesSearch =
@@ -80,12 +86,7 @@ export function SubjectsPage() {
       {/* Grade filter tabs & AI Tutor Banner */}
       <div className="subject-toolbar-row">
         <div className="subject-grade-tabs" role="tablist" aria-label="Lọc theo khối lớp">
-          {[
-            { id: 'all', label: 'Tất cả khối' },
-            { id: 'Lớp 12', label: 'Lớp 12' },
-            { id: 'Lớp 11', label: 'Lớp 11' },
-            { id: 'Lớp 10', label: 'Lớp 10' },
-          ].map((item) => (
+          {gradeTabs.map((item) => (
             <button
               key={item.id}
               type="button"

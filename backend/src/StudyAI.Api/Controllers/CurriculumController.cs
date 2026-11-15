@@ -35,6 +35,41 @@ public class CurriculumController : ControllerBase
         try { return JsonNode.Parse(val) as JsonArray ?? new JsonArray(); } catch { return new JsonArray(); }
     }
 
+    private static List<string> SafeDeserializeStringList(string? rawJson)
+    {
+        if (string.IsNullOrWhiteSpace(rawJson)) return new List<string>();
+        try
+        {
+            return JsonSerializer.Deserialize<List<string>>(rawJson) ?? new List<string>();
+        }
+        catch
+        {
+            // Fallback for LaTeX backslash escapes: sanitize single backslashes that are invalid in JSON into double backslashes
+            try
+            {
+                var sanitized = System.Text.RegularExpressions.Regex.Replace(rawJson, @"\\(?![/""\\bfnrtu]|u[0-9a-fA-F]{4})", "\\\\");
+                return JsonSerializer.Deserialize<List<string>>(sanitized) ?? new List<string>();
+            }
+            catch
+            {
+                try
+                {
+                    var matches = System.Text.RegularExpressions.Regex.Matches(rawJson, @"""((?:\\""|[^""])*)""");
+                    var list = new List<string>();
+                    foreach (System.Text.RegularExpressions.Match m in matches)
+                    {
+                        list.Add(m.Groups[1].Value.Replace("\\\"", "\""));
+                    }
+                    return list;
+                }
+                catch
+                {
+                    return new List<string>();
+                }
+            }
+        }
+    }
+
     /// <summary>
     /// GET /api/v1/curriculum/subjects
     /// Returns only active subjects with published content.
@@ -265,15 +300,7 @@ public class CurriculumController : ControllerBase
 
         var dtos = questions.Select(q =>
         {
-            List<string> options = new();
-            try
-            {
-                options = JsonSerializer.Deserialize<List<string>>(q.OptionsJson) ?? new List<string>();
-            }
-            catch
-            {
-                options = new List<string>();
-            }
+            var options = SafeDeserializeStringList(q.OptionsJson);
 
             return new LearnerQuestionDto
             {
@@ -342,22 +369,25 @@ public class CurriculumController : ControllerBase
         // Also check if selected is option index/letter (e.g. "A", "B", "C", "D") matching the index
         if (!isCorrect)
         {
-            try
+            var options = SafeDeserializeStringList(question.OptionsJson);
+            int correctIdx = options.FindIndex(o => string.Equals(o.Trim(), correct, StringComparison.OrdinalIgnoreCase));
+            if (correctIdx >= 0)
             {
-                var options = JsonSerializer.Deserialize<List<string>>(question.OptionsJson) ?? new List<string>();
-                int correctIdx = options.FindIndex(o => string.Equals(o.Trim(), correct, StringComparison.OrdinalIgnoreCase));
-                if (correctIdx >= 0)
+                string correctLetter = ((char)('A' + correctIdx)).ToString();
+                if (string.Equals(selected, correctLetter, StringComparison.OrdinalIgnoreCase))
                 {
-                    string correctLetter = ((char)('A' + correctIdx)).ToString();
-                    if (string.Equals(selected, correctLetter, StringComparison.OrdinalIgnoreCase))
-                    {
-                        isCorrect = true;
-                    }
+                    isCorrect = true;
                 }
             }
-            catch
+
+            // Also check client option id pattern like "opt_1_B"
+            if (!isCorrect && selected.StartsWith("opt_"))
             {
-                // ignore
+                var parts = selected.Split('_');
+                if (parts.Length >= 3 && correctIdx >= 0 && parts[2].Equals(((char)('A' + correctIdx)).ToString(), StringComparison.OrdinalIgnoreCase))
+                {
+                    isCorrect = true;
+                }
             }
         }
 
