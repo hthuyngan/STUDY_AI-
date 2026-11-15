@@ -7,7 +7,6 @@ import {
   questionBankRepository,
   type IQuestionBankRepository,
 } from '@/repositories/questionBank.repository'
-import { evaluatePracticeSession } from './scoringEngine'
 import type {
   PracticeResult,
   PracticeSession,
@@ -101,7 +100,7 @@ function mapBackendDtoToQuestionItem(dto: BackendQuestionDto, index: number): Qu
     explanation: '', // Zero-leak placeholder before submit
     reviewStatus: 'approved',
     options,
-    correctAnswer: 'A', // Zero-leak placeholder before submit
+    correctAnswer: '', // Unknown until the server returns the graded result
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }
@@ -181,37 +180,12 @@ export class PracticeService {
         await this.practiceRepo.saveSession(session)
         return session
       }
-    } catch {
-      // Fallback to local pure repository if server is unreachable
+    } catch (error) {
+      throw new Error('Không thể tạo phiên luyện tập từ máy chủ. Vui lòng kiểm tra kết nối và thử lại.', { cause: error })
     }
 
-    // 2. Fallback to local approved repository
-    const available = await this.getAvailableQuestions(config)
-    if (available.length === 0) {
-      throw new Error('Không có câu hỏi đã duyệt (approved) nào phù hợp với bộ lọc đã chọn.')
-    }
-
-    const selected = available.slice(0, Math.min(config.limit, available.length))
-    const questionIds = selected.map((q) => q.id)
-    const now = new Date().toISOString()
-
-    const session: PracticeSession = {
-      id: this.generateSessionId(),
-      mode: config.lessonId ? 'lesson' : config.skillIds?.length ? 'skill' : 'mixed',
-      subjectId: config.subjectId,
-      chapterId: config.chapterId || 'chap-math-12-01',
-      lessonId: config.lessonId,
-      selectedSkillIds: config.skillIds || [],
-      questionIds,
-      status: 'in_progress',
-      startedAt: now,
-      updatedAt: now,
-      answers: {},
-      schemaVersion: 1,
-    }
-
-    await this.practiceRepo.saveSession(session)
-    return session
+    // Offline fallback is disabled for production sessions.
+    throw new Error('Máy chủ không trả về câu hỏi hợp lệ.')
   }
 
   async saveAnswer(
@@ -232,31 +206,28 @@ export class PracticeService {
       throw new Error(`Câu hỏi ${questionId} không thuộc phiên làm bài này.`)
     }
 
-    session.answers[questionId] = answer
-    session.updatedAt = new Date().toISOString()
-
-    await this.practiceRepo.saveSession(session)
-
-    // Sync answer to backend in background
     let rawAns = ''
     if (answer.questionType === 'multiple_choice') rawAns = answer.selectedOption || ''
     else if (answer.questionType === 'short_answer') rawAns = answer.rawInput || ''
     else rawAns = JSON.stringify(answer)
 
-    apiClient
-      .post(`/api/v1/practice/sessions/${sessionId}/answer`, {
-        questionId,
-        answer: rawAns,
-        timeSpentMs: 0,
-      })
-      .catch(() => {})
+    // Persist on the server before reporting success locally.
+    await apiClient.post(`/api/v1/practice/sessions/${sessionId}/answer`, {
+      questionId,
+      answer: rawAns,
+      timeSpentMs: 0,
+    })
+
+    session.answers[questionId] = answer
+    session.updatedAt = new Date().toISOString()
+    await this.practiceRepo.saveSession(session)
 
     return session
   }
 
   async submitSession(
     sessionId: string,
-    skillNameMap: Record<string, string> = {}
+    _skillNameMap: Record<string, string> = {}
   ): Promise<PracticeResult> {
     const session = await this.practiceRepo.getSessionById(sessionId)
     if (!session) {
@@ -359,35 +330,11 @@ export class PracticeService {
 
         return result
       }
-    } catch {
-      // Fallback to local pure scoring engine
+    } catch (error) {
+      throw new Error('Không thể chấm bài trên máy chủ. Bài làm chưa được xác nhận đã nộp.', { cause: error })
     }
 
-    // 2. Pure offline fallback evaluation
-    const questions: QuestionItem[] = []
-    for (const qId of session.questionIds) {
-      const q = await this.qbRepo.getById(qId)
-      if (!q) {
-        throw new Error(`Không tìm thấy câu hỏi ID ${qId} trong ngân hàng dữ liệu.`)
-      }
-      questions.push(q)
-    }
-
-    session.status = 'submitted'
-    session.submittedAt = new Date().toISOString()
-    session.updatedAt = session.submittedAt
-
-    const result = evaluatePracticeSession(session, questions, skillNameMap)
-    session.resultId = result.id
-
-    await this.practiceRepo.saveSession(session)
-    await this.practiceRepo.saveResult(result)
-
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('study_ai:personalization_changed'))
-    }
-
-    return result
+    throw new Error('Máy chủ không trả về kết quả chấm bài hợp lệ.')
   }
 
   async getActiveSession(): Promise<PracticeSession | null> {
