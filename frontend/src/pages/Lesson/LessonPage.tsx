@@ -61,7 +61,7 @@ export function LessonPage() {
   }>()
   const [mobileOutlineOpen, setMobileOutlineOpen] = useState(false)
   const [notesPanelOpen, setNotesPanelOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState<'overview' | 'theory' | 'examples' | 'practice' | 'ai_tutor'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'theory' | 'examples' | 'practice' | 'ai_tutor'>('theory')
 
   const resolvedSubjectId =
     paramSubjectId ||
@@ -433,13 +433,25 @@ export function LessonPage() {
           </div>
         </header>
 
-        {/* Khan Academy Inspired Video Player Frame */}
-        <LessonVideoPlayer
-          video={lesson.video}
-          lessonTitle={lesson.title}
-          sourceReferenceUrl={lesson.sourceReferenceUrl}
-          onSwitchToTheoryTab={() => setActiveTab('theory')}
-        />
+        {/* Do not force a large empty video frame when the lesson has no playable media. */}
+        {lesson.video?.hasVideo && (lesson.video.youtubeId || lesson.video.videoUrl) ? (
+          <LessonVideoPlayer
+            video={lesson.video}
+            lessonTitle={lesson.title}
+            sourceReferenceUrl={lesson.sourceReferenceUrl}
+            onSwitchToTheoryTab={() => setActiveTab('theory')}
+          />
+        ) : (
+          <div className="lesson-video-unavailable" role="status">
+            <div>
+              <strong>Bài học chưa có video phát trực tiếp</strong>
+              <p>Ưu tiên học lý thuyết và ví dụ bên dưới; video sẽ được bổ sung sau khi xác minh nguồn.</p>
+            </div>
+            <button type="button" onClick={() => setActiveTab('theory')}>
+              <BookOpen size={16} aria-hidden /> Bắt đầu học lý thuyết
+            </button>
+          </div>
+        )
 
         {/* Lesson Sub-Tabs Navigation (Khan Academy Style) */}
         <div className="lesson-tabs-nav" role="tablist">
