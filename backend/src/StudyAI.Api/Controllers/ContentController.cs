@@ -484,6 +484,417 @@ public class ContentController : ControllerBase
 
     #endregion
 
+    #region Topic Endpoints
+
+    [HttpGet("topics")]
+    public async Task<IActionResult> ListTopics([FromQuery] string? chapterId = null, [FromQuery] string? search = null)
+    {
+        var query = _db.ContentTopics
+            .Include(t => t.Chapter)
+            .Include(t => t.Lessons)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(chapterId) && chapterId != "all")
+        {
+            query = query.Where(t => t.ChapterId == chapterId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLower();
+            query = query.Where(t => t.Title.ToLower().Contains(term));
+        }
+
+        var topics = await query
+            .OrderBy(t => t.OrderIndex)
+            .ThenBy(t => t.CreatedAt)
+            .ToListAsync();
+
+        var result = topics.Select(t => new ContentTopicItemDto
+        {
+            Id = t.Id,
+            ChapterId = t.ChapterId,
+            ChapterTitle = t.Chapter?.Title ?? "",
+            Title = t.Title,
+            Description = t.Description ?? "",
+            OrderIndex = t.OrderIndex,
+            IsActive = t.IsActive,
+            LessonCount = t.Lessons.Count,
+            CreatedAt = t.CreatedAt.ToString("o"),
+            UpdatedAt = t.UpdatedAt.ToString("o")
+        }).ToList();
+
+        return Ok(new { items = result, total = result.Count });
+    }
+
+    [HttpGet("topics/{topicId}")]
+    public async Task<IActionResult> GetTopicDetail(string topicId)
+    {
+        var topic = await _db.ContentTopics
+            .Include(t => t.Chapter)
+            .Include(t => t.Lessons)
+            .FirstOrDefaultAsync(t => t.Id == topicId);
+
+        if (topic == null)
+            return NotFound(new { detail = "Chủ đề không tồn tại." });
+
+        return Ok(new ContentTopicItemDto
+        {
+            Id = topic.Id,
+            ChapterId = topic.ChapterId,
+            ChapterTitle = topic.Chapter?.Title ?? "",
+            Title = topic.Title,
+            Description = topic.Description ?? "",
+            OrderIndex = topic.OrderIndex,
+            IsActive = topic.IsActive,
+            LessonCount = topic.Lessons.Count,
+            CreatedAt = topic.CreatedAt.ToString("o"),
+            UpdatedAt = topic.UpdatedAt.ToString("o")
+        });
+    }
+
+    [HttpPost("topics")]
+    public async Task<IActionResult> CreateTopic([FromBody] CreateTopicRequestDto req)
+    {
+        if (string.IsNullOrWhiteSpace(req.ChapterId) || string.IsNullOrWhiteSpace(req.Title))
+            return BadRequest(new { detail = "ChapterId và Tiêu đề chủ đề không được để trống." });
+
+        var chapter = await _db.ContentChapters.FindAsync(req.ChapterId);
+        if (chapter == null)
+            return BadRequest(new { detail = "Chương học không tồn tại." });
+
+        var topic = new ContentTopic
+        {
+            Id = $"top_{Guid.NewGuid():N}",
+            ChapterId = req.ChapterId,
+            Title = req.Title.Trim(),
+            Description = req.Description?.Trim(),
+            OrderIndex = req.OrderIndex,
+            IsActive = req.IsActive,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        _db.ContentTopics.Add(topic);
+
+        _db.StaffAuditLogs.Add(new StaffAuditLog
+        {
+            Id = $"log_{Guid.NewGuid():N}",
+            ActorUserId = CurrentUserId,
+            Action = "topic_created",
+            TargetType = "content_topic",
+            TargetId = topic.Id,
+            Payload = JsonSerializer.Serialize(new { title = topic.Title, chapterId = topic.ChapterId }),
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+
+        return StatusCode(201, new ContentTopicItemDto
+        {
+            Id = topic.Id,
+            ChapterId = topic.ChapterId,
+            ChapterTitle = chapter.Title,
+            Title = topic.Title,
+            Description = topic.Description ?? "",
+            OrderIndex = topic.OrderIndex,
+            IsActive = topic.IsActive,
+            LessonCount = 0,
+            CreatedAt = topic.CreatedAt.ToString("o"),
+            UpdatedAt = topic.UpdatedAt.ToString("o")
+        });
+    }
+
+    [HttpPatch("topics/{topicId}")]
+    public async Task<IActionResult> UpdateTopic(string topicId, [FromBody] UpdateTopicRequestDto req)
+    {
+        var topic = await _db.ContentTopics.Include(t => t.Chapter).FirstOrDefaultAsync(t => t.Id == topicId);
+        if (topic == null)
+            return NotFound(new { detail = "Chủ đề không tồn tại." });
+
+        if (!string.IsNullOrWhiteSpace(req.Title)) topic.Title = req.Title.Trim();
+        if (req.Description != null) topic.Description = req.Description.Trim();
+        if (req.OrderIndex.HasValue) topic.OrderIndex = req.OrderIndex.Value;
+        if (req.IsActive.HasValue) topic.IsActive = req.IsActive.Value;
+
+        topic.UpdatedAt = DateTimeOffset.UtcNow;
+
+        _db.StaffAuditLogs.Add(new StaffAuditLog
+        {
+            Id = $"log_{Guid.NewGuid():N}",
+            ActorUserId = CurrentUserId,
+            Action = "topic_updated",
+            TargetType = "content_topic",
+            TargetId = topic.Id,
+            Payload = JsonSerializer.Serialize(new { title = topic.Title }),
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+
+        var lessonCount = await _db.ContentLessons.CountAsync(l => l.TopicId == topic.Id);
+
+        return Ok(new ContentTopicItemDto
+        {
+            Id = topic.Id,
+            ChapterId = topic.ChapterId,
+            ChapterTitle = topic.Chapter?.Title ?? "",
+            Title = topic.Title,
+            Description = topic.Description ?? "",
+            OrderIndex = topic.OrderIndex,
+            IsActive = topic.IsActive,
+            LessonCount = lessonCount,
+            CreatedAt = topic.CreatedAt.ToString("o"),
+            UpdatedAt = topic.UpdatedAt.ToString("o")
+        });
+    }
+
+    [HttpDelete("topics/{topicId}")]
+    public async Task<IActionResult> DeleteTopic(string topicId)
+    {
+        var topic = await _db.ContentTopics.Include(t => t.Lessons).FirstOrDefaultAsync(t => t.Id == topicId);
+        if (topic == null)
+            return NotFound(new { detail = "Chủ đề không tồn tại." });
+
+        if (topic.Lessons.Count > 0)
+        {
+            return BadRequest(new
+            {
+                detail = $"Không thể xóa chủ đề đang chứa {topic.Lessons.Count} bài học. Vui lòng chuyển hoặc xóa bài học trước."
+            });
+        }
+
+        _db.ContentTopics.Remove(topic);
+
+        _db.StaffAuditLogs.Add(new StaffAuditLog
+        {
+            Id = $"log_{Guid.NewGuid():N}",
+            ActorUserId = CurrentUserId,
+            Action = "topic_deleted",
+            TargetType = "content_topic",
+            TargetId = topicId,
+            Payload = JsonSerializer.Serialize(new { title = topic.Title }),
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+        return Ok(new { success = true, message = $"Đã xóa chủ đề '{topic.Title}' thành công." });
+    }
+
+    #endregion
+
+    #region Lesson Video Endpoints
+
+    [HttpGet("lessons/{lessonId}/videos")]
+    public async Task<IActionResult> ListLessonVideos(string lessonId)
+    {
+        var les = await _db.ContentLessons.FindAsync(lessonId);
+        if (les == null)
+            return NotFound(new { detail = "Bài học không tồn tại." });
+
+        var videos = await _db.ContentLessonVideos
+            .Where(v => v.LessonId == lessonId)
+            .OrderBy(v => v.SortOrder)
+            .ThenBy(v => v.CreatedAt)
+            .ToListAsync();
+
+        var result = videos.Select(v => new ContentLessonVideoItemDto
+        {
+            Id = v.Id,
+            LessonId = v.LessonId,
+            LessonTitle = les.Title,
+            Title = v.Title,
+            Description = v.Description ?? "",
+            Provider = v.Provider,
+            SourceUrl = v.SourceUrl,
+            EmbedUrl = v.EmbedUrl,
+            YouTubeVideoId = v.YouTubeVideoId,
+            Language = v.Language,
+            DurationSeconds = v.DurationSeconds,
+            ThumbnailUrl = v.ThumbnailUrl,
+            SortOrder = v.SortOrder,
+            EmbedAllowed = v.EmbedAllowed,
+            VerificationStatus = v.VerificationStatus,
+            VerifiedAt = v.VerifiedAt?.ToString("o"),
+            IsPublished = v.IsPublished,
+            CreatedAt = v.CreatedAt.ToString("o"),
+            UpdatedAt = v.UpdatedAt.ToString("o")
+        }).ToList();
+
+        return Ok(new { items = result, total = result.Count });
+    }
+
+    [HttpPost("lessons/{lessonId}/videos")]
+    public async Task<IActionResult> AddLessonVideo(string lessonId, [FromBody] CreateLessonVideoRequestDto req)
+    {
+        var les = await _db.ContentLessons.FindAsync(lessonId);
+        if (les == null)
+            return NotFound(new { detail = "Bài học không tồn tại." });
+
+        if (string.IsNullOrWhiteSpace(req.SourceUrl) || string.IsNullOrWhiteSpace(req.Title))
+            return BadRequest(new { detail = "Tiêu đề và Đường dẫn URL video không được để trống." });
+
+        var (detectedProvider, ytId, embedUrl) = ParseVideoUrl(req.SourceUrl);
+        var provider = !string.IsNullOrWhiteSpace(req.Provider) ? req.Provider : detectedProvider;
+        var finalEmbedUrl = !string.IsNullOrWhiteSpace(req.EmbedUrl) ? req.EmbedUrl : embedUrl;
+        var finalYtId = !string.IsNullOrWhiteSpace(req.YouTubeVideoId) ? req.YouTubeVideoId : ytId;
+        var thumb = !string.IsNullOrWhiteSpace(req.ThumbnailUrl)
+            ? req.ThumbnailUrl
+            : (finalYtId != null ? $"https://i.ytimg.com/vi/{finalYtId}/hqdefault.jpg" : null);
+
+        var video = new ContentLessonVideo
+        {
+            Id = $"vid_{Guid.NewGuid():N}",
+            LessonId = lessonId,
+            Title = req.Title.Trim(),
+            Description = req.Description?.Trim(),
+            Provider = provider ?? "youtube",
+            SourceUrl = req.SourceUrl.Trim(),
+            EmbedUrl = finalEmbedUrl,
+            YouTubeVideoId = finalYtId,
+            Language = !string.IsNullOrWhiteSpace(req.Language) ? req.Language : "vi",
+            DurationSeconds = req.DurationSeconds,
+            ThumbnailUrl = thumb,
+            SortOrder = req.SortOrder,
+            EmbedAllowed = req.EmbedAllowed,
+            VerificationStatus = req.VerificationStatus ?? "verified",
+            VerifiedAt = DateTimeOffset.UtcNow,
+            IsPublished = req.IsPublished,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        _db.ContentLessonVideos.Add(video);
+
+        _db.StaffAuditLogs.Add(new StaffAuditLog
+        {
+            Id = $"log_{Guid.NewGuid():N}",
+            ActorUserId = CurrentUserId,
+            Action = "lesson_video_added",
+            TargetType = "content_lesson_video",
+            TargetId = video.Id,
+            Payload = JsonSerializer.Serialize(new { title = video.Title, lessonId = video.LessonId, provider = video.Provider }),
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+
+        return StatusCode(201, new ContentLessonVideoItemDto
+        {
+            Id = video.Id,
+            LessonId = video.LessonId,
+            LessonTitle = les.Title,
+            Title = video.Title,
+            Description = video.Description ?? "",
+            Provider = video.Provider,
+            SourceUrl = video.SourceUrl,
+            EmbedUrl = video.EmbedUrl,
+            YouTubeVideoId = video.YouTubeVideoId,
+            Language = video.Language,
+            DurationSeconds = video.DurationSeconds,
+            ThumbnailUrl = video.ThumbnailUrl,
+            SortOrder = video.SortOrder,
+            EmbedAllowed = video.EmbedAllowed,
+            VerificationStatus = video.VerificationStatus,
+            VerifiedAt = video.VerifiedAt?.ToString("o"),
+            IsPublished = video.IsPublished,
+            CreatedAt = video.CreatedAt.ToString("o"),
+            UpdatedAt = video.UpdatedAt.ToString("o")
+        });
+    }
+
+    [HttpPatch("videos/{videoId}")]
+    public async Task<IActionResult> UpdateLessonVideo(string videoId, [FromBody] UpdateLessonVideoRequestDto req)
+    {
+        var video = await _db.ContentLessonVideos.Include(v => v.Lesson).FirstOrDefaultAsync(v => v.Id == videoId);
+        if (video == null)
+            return NotFound(new { detail = "Video không tồn tại." });
+
+        if (!string.IsNullOrWhiteSpace(req.Title)) video.Title = req.Title.Trim();
+        if (req.Description != null) video.Description = req.Description.Trim();
+        if (req.Provider != null) video.Provider = req.Provider;
+        if (!string.IsNullOrWhiteSpace(req.SourceUrl))
+        {
+            video.SourceUrl = req.SourceUrl.Trim();
+            var (_, ytId, embedUrl) = ParseVideoUrl(req.SourceUrl);
+            if (ytId != null) video.YouTubeVideoId = ytId;
+            if (embedUrl != null) video.EmbedUrl = embedUrl;
+        }
+        if (req.EmbedUrl != null) video.EmbedUrl = req.EmbedUrl;
+        if (req.YouTubeVideoId != null) video.YouTubeVideoId = req.YouTubeVideoId;
+        if (req.Language != null) video.Language = req.Language;
+        if (req.DurationSeconds.HasValue) video.DurationSeconds = req.DurationSeconds.Value;
+        if (req.ThumbnailUrl != null) video.ThumbnailUrl = req.ThumbnailUrl;
+        if (req.SortOrder.HasValue) video.SortOrder = req.SortOrder.Value;
+        if (req.EmbedAllowed.HasValue) video.EmbedAllowed = req.EmbedAllowed.Value;
+        if (req.VerificationStatus != null) video.VerificationStatus = req.VerificationStatus;
+        if (req.IsPublished.HasValue) video.IsPublished = req.IsPublished.Value;
+
+        video.UpdatedAt = DateTimeOffset.UtcNow;
+
+        _db.StaffAuditLogs.Add(new StaffAuditLog
+        {
+            Id = $"log_{Guid.NewGuid():N}",
+            ActorUserId = CurrentUserId,
+            Action = "lesson_video_updated",
+            TargetType = "content_lesson_video",
+            TargetId = video.Id,
+            Payload = JsonSerializer.Serialize(new { title = video.Title }),
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+
+        return Ok(new ContentLessonVideoItemDto
+        {
+            Id = video.Id,
+            LessonId = video.LessonId,
+            LessonTitle = video.Lesson?.Title ?? "",
+            Title = video.Title,
+            Description = video.Description ?? "",
+            Provider = video.Provider,
+            SourceUrl = video.SourceUrl,
+            EmbedUrl = video.EmbedUrl,
+            YouTubeVideoId = video.YouTubeVideoId,
+            Language = video.Language,
+            DurationSeconds = video.DurationSeconds,
+            ThumbnailUrl = video.ThumbnailUrl,
+            SortOrder = video.SortOrder,
+            EmbedAllowed = video.EmbedAllowed,
+            VerificationStatus = video.VerificationStatus,
+            VerifiedAt = video.VerifiedAt?.ToString("o"),
+            IsPublished = video.IsPublished,
+            CreatedAt = video.CreatedAt.ToString("o"),
+            UpdatedAt = video.UpdatedAt.ToString("o")
+        });
+    }
+
+    [HttpDelete("videos/{videoId}")]
+    public async Task<IActionResult> DeleteLessonVideo(string videoId)
+    {
+        var video = await _db.ContentLessonVideos.FindAsync(videoId);
+        if (video == null)
+            return NotFound(new { detail = "Video không tồn tại." });
+
+        _db.ContentLessonVideos.Remove(video);
+
+        _db.StaffAuditLogs.Add(new StaffAuditLog
+        {
+            Id = $"log_{Guid.NewGuid():N}",
+            ActorUserId = CurrentUserId,
+            Action = "lesson_video_deleted",
+            TargetType = "content_lesson_video",
+            TargetId = videoId,
+            Payload = JsonSerializer.Serialize(new { title = video.Title, lessonId = video.LessonId }),
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+        return Ok(new { success = true, message = $"Đã xóa liên kết video '{video.Title}' thành công." });
+    }
+
+    #endregion
+
     #region Lesson Endpoints
 
     [HttpGet("lessons")]
@@ -491,6 +902,7 @@ public class ContentController : ControllerBase
         [FromQuery] string? status = null,
         [FromQuery] string? subjectId = null,
         [FromQuery] string? chapterId = null,
+        [FromQuery] string? topicId = null,
         [FromQuery] string? search = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
@@ -499,6 +911,8 @@ public class ContentController : ControllerBase
             .Include(l => l.Author)
             .Include(l => l.Chapter)
                 .ThenInclude(c => c!.Subject)
+            .Include(l => l.Topic)
+            .Include(l => l.Videos)
             .Include(l => l.Questions)
             .AsQueryable();
 
@@ -515,6 +929,11 @@ public class ContentController : ControllerBase
         if (!string.IsNullOrWhiteSpace(chapterId) && chapterId != "all")
         {
             query = query.Where(l => l.ChapterId == chapterId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(topicId) && topicId != "all")
+        {
+            query = query.Where(l => l.TopicId == topicId);
         }
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -547,6 +966,8 @@ public class ContentController : ControllerBase
             .Include(l => l.Author)
             .Include(l => l.Chapter)
                 .ThenInclude(c => c!.Subject)
+            .Include(l => l.Topic)
+            .Include(l => l.Videos)
             .Include(l => l.Questions)
             .FirstOrDefaultAsync(l => l.Id == lessonId);
 
@@ -571,11 +992,13 @@ public class ContentController : ControllerBase
         {
             Id = lessonId,
             ChapterId = req.ChapterId,
+            TopicId = string.IsNullOrWhiteSpace(req.TopicId) ? null : req.TopicId,
             Title = req.Title.Trim(),
             Slug = req.Slug.Trim().ToLowerInvariant(),
             OrderIndex = req.OrderIndex,
             Status = "draft",
             AuthorId = CurrentUserId,
+            LearningObjectivesJson = req.LearningObjectives?.ToJsonString() ?? "[]",
             Introduction = req.Introduction,
             DefinitionsJson = req.Definitions?.ToJsonString() ?? "[]",
             FormulasJson = req.Formulas?.ToJsonString() ?? "[]",
@@ -612,16 +1035,21 @@ public class ContentController : ControllerBase
             .Include(l => l.Author)
             .Include(l => l.Chapter)
                 .ThenInclude(c => c!.Subject)
+            .Include(l => l.Topic)
+            .Include(l => l.Videos)
             .Include(l => l.Questions)
             .FirstOrDefaultAsync(l => l.Id == lessonId);
 
         if (les == null)
             return NotFound(new { detail = "Bài học không tồn tại." });
 
+        if (req.ChapterId != null) les.ChapterId = req.ChapterId;
+        if (req.TopicId != null) les.TopicId = string.IsNullOrWhiteSpace(req.TopicId) ? null : req.TopicId;
         if (req.Title != null) les.Title = req.Title.Trim();
         if (req.Slug != null) les.Slug = req.Slug.Trim().ToLowerInvariant();
         if (req.OrderIndex.HasValue) les.OrderIndex = req.OrderIndex.Value;
         if (req.Introduction != null) les.Introduction = req.Introduction;
+        if (req.LearningObjectives != null) les.LearningObjectivesJson = req.LearningObjectives.ToJsonString();
         if (req.Definitions != null) les.DefinitionsJson = req.Definitions.ToJsonString();
         if (req.Formulas != null) les.FormulasJson = req.Formulas.ToJsonString();
         if (req.Examples != null) les.ExamplesJson = req.Examples.ToJsonString();
@@ -1643,6 +2071,23 @@ public class ContentController : ControllerBase
 
     #region Helper Formatters
 
+    private static (string? provider, string? videoId, string? embedUrl) ParseVideoUrl(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return ("external", null, null);
+        url = url.Trim();
+        var ytMatch = System.Text.RegularExpressions.Regex.Match(url, @"(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})");
+        if (ytMatch.Success)
+        {
+            var id = ytMatch.Groups[1].Value;
+            return ("youtube", id, $"https://www.youtube-nocookie.com/embed/{id}");
+        }
+        if (url.Contains("khanacademy.org"))
+        {
+            return ("khan_academy", null, url);
+        }
+        return ("external", null, url);
+    }
+
     private static ContentLessonDetailDto FormatLesson(ContentLesson lesson, User? author)
     {
         static JsonArray SafeJsonArray(string? val)
@@ -1651,11 +2096,38 @@ public class ContentController : ControllerBase
             try { return JsonNode.Parse(val) as JsonArray ?? new JsonArray(); } catch { return new JsonArray(); }
         }
 
+        var videoDtos = lesson.Videos?
+            .OrderBy(v => v.SortOrder)
+            .Select(v => new ContentLessonVideoItemDto
+            {
+                Id = v.Id,
+                LessonId = v.LessonId,
+                LessonTitle = lesson.Title,
+                Title = v.Title,
+                Description = v.Description ?? "",
+                Provider = v.Provider,
+                SourceUrl = v.SourceUrl,
+                EmbedUrl = v.EmbedUrl,
+                YouTubeVideoId = v.YouTubeVideoId,
+                Language = v.Language,
+                DurationSeconds = v.DurationSeconds,
+                ThumbnailUrl = v.ThumbnailUrl,
+                SortOrder = v.SortOrder,
+                EmbedAllowed = v.EmbedAllowed,
+                VerificationStatus = v.VerificationStatus,
+                VerifiedAt = v.VerifiedAt?.ToString("o"),
+                IsPublished = v.IsPublished,
+                CreatedAt = v.CreatedAt.ToString("o"),
+                UpdatedAt = v.UpdatedAt.ToString("o")
+            }).ToList() ?? new List<ContentLessonVideoItemDto>();
+
         return new ContentLessonDetailDto
         {
             Id = lesson.Id,
             ChapterId = lesson.ChapterId,
             ChapterTitle = lesson.Chapter?.Title ?? "",
+            TopicId = lesson.TopicId,
+            TopicTitle = lesson.Topic?.Title ?? "",
             SubjectId = lesson.Chapter?.SubjectId ?? "",
             SubjectName = lesson.Chapter?.Subject?.Name ?? "",
             Title = lesson.Title,
@@ -1666,11 +2138,13 @@ public class ContentController : ControllerBase
             AuthorName = author?.DisplayName ?? "",
             ReviewedBy = lesson.ReviewedBy,
             Introduction = lesson.Introduction ?? "",
+            LearningObjectives = SafeJsonArray(lesson.LearningObjectivesJson),
             Definitions = SafeJsonArray(lesson.DefinitionsJson),
             Formulas = SafeJsonArray(lesson.FormulasJson),
             Examples = SafeJsonArray(lesson.ExamplesJson),
             ImportantNotes = SafeJsonArray(lesson.ImportantNotesJson),
             SummaryPoints = SafeJsonArray(lesson.SummaryPointsJson),
+            Videos = videoDtos,
             QuestionsCount = lesson.Questions?.Count ?? 0,
             CreatedAt = lesson.CreatedAt.ToString("o"),
             UpdatedAt = lesson.UpdatedAt.ToString("o")

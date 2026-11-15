@@ -76,6 +76,49 @@ export function CurriculumLessonsPanel({
               onAction={onClearSearch}
             />
           </div>
+        ) : chapter.topics && chapter.topics.length > 0 ? (
+          chapter.topics.map((topic, tIdx) => {
+            const topicLessons = lessons.filter((l) => l.topicId === topic.id)
+            if (topicLessons.length === 0 && searchQuery) return null
+            return (
+              <div key={topic.id} className="curriculum-topic-group" style={{ marginBottom: '1.25rem' }}>
+                <div
+                  className="curriculum-topic-header"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.5rem 0.75rem',
+                    backgroundColor: 'var(--color-bg-secondary, #f8fafc)',
+                    borderRadius: '8px',
+                    margin: '0.75rem 0 0.5rem 0',
+                    fontSize: '0.8125rem',
+                    fontWeight: 600,
+                    color: 'var(--color-text-secondary, #475569)',
+                  }}
+                >
+                  <span
+                    style={{
+                      display: 'inline-block',
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      backgroundColor: 'var(--color-primary, #2563eb)',
+                    }}
+                  />
+                  <span>Chủ đề {tIdx + 1}: {topic.title}</span>
+                </div>
+                {topicLessons.map((lesson, idx) => (
+                  <CurriculumLessonRow
+                    key={lesson.id}
+                    lesson={lesson}
+                    indexInChapter={idx}
+                    subjectId={subjectId}
+                  />
+                ))}
+              </div>
+            )
+          })
         ) : (
           lessons.map((lesson, idx) => (
             <CurriculumLessonRow

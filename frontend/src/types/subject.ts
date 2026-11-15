@@ -21,18 +21,30 @@ export interface SubjectSummary {
   plannedTopics?: string[]
 }
 
+export interface SubjectTopic {
+  id: string
+  chapterId?: string
+  title: string
+  order?: number
+  lessons?: SubjectLessonItem[]
+}
+
 export interface SubjectLessonItem {
   id: string
   subjectId: string
   courseId?: string // backward compatibility
   chapterId?: string
   chapterTitle?: string
+  topicId?: string
+  topicTitle?: string
   title: string
   durationMinutes: number
   status: LessonStatus
   progress?: number
   quizId?: string
   availability?: ContentAvailability
+  contentType?: 'video' | 'article' | 'exercise' | 'test'
+  hasVideo?: boolean
   skillsCount?: number
   learningObjectives?: string[]
 }
@@ -43,6 +55,7 @@ export interface SubjectChapter {
   title: string
   description?: string
   availability?: ContentAvailability
+  topics?: SubjectTopic[]
   lessons: SubjectLessonItem[]
 }
 

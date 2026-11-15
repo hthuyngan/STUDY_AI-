@@ -13,10 +13,21 @@ import {
   Globe,
   FileEdit,
   MoreHorizontal,
+  Video,
+  Play,
+  Eye,
+  EyeOff,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { educationService } from '@/services/education.service'
-import type { CurriculumLessonItem, CurriculumSubjectItem, CurriculumChapterItem, ContentStatus } from '@/types/education'
+import type {
+  CurriculumLessonItem,
+  CurriculumSubjectItem,
+  CurriculumChapterItem,
+  CurriculumTopicItem,
+  CurriculumLessonVideoItem,
+  ContentStatus,
+} from '@/types/education'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -38,6 +49,7 @@ export const ContentLessonsPage: React.FC = () => {
   const [subjectFilter, setSubjectFilter] = useState('all')
   const [chapterFilter, setChapterFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState<'all' | ContentStatus>('all')
+  const [videoFilter, setVideoFilter] = useState<'all' | 'missing_video' | 'has_video' | 'pending' | 'verified'>('all')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
@@ -45,11 +57,116 @@ export const ContentLessonsPage: React.FC = () => {
   // Create Dialog State
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [formTitle, setFormTitle] = useState('')
-  const [formSubjectId, setFormSubjectId] = useState('math')
-  const [formChapterId, setFormChapterId] = useState('ch-01')
+  const [formSubjectId, setFormSubjectId] = useState('sub_math12')
+  const [formChapterId, setFormChapterId] = useState('chp_math12_c1')
+  const [formTopicId, setFormTopicId] = useState<string>('')
+  const [availableTopics, setAvailableTopics] = useState<CurriculumTopicItem[]>([])
   const [formAuthor, setFormAuthor] = useState('Quản trị viên')
   const [formStatus, setFormStatus] = useState<ContentStatus>('draft')
   const [formError, setFormError] = useState<string | null>(null)
+
+  // Video Management State
+  const [videoModalLesson, setVideoModalLesson] = useState<CurriculumLessonItem | null>(null)
+  const [videoList, setVideoList] = useState<CurriculumLessonVideoItem[]>([])
+  const [videoLoading, setVideoLoading] = useState(false)
+  const [newVideoTitle, setNewVideoTitle] = useState('')
+  const [newVideoUrl, setNewVideoUrl] = useState('')
+  const [newVideoDesc, setNewVideoDesc] = useState('')
+  const [newVideoSortOrder, setNewVideoSortOrder] = useState(1)
+  const [newVideoPublished, setNewVideoPublished] = useState(true)
+  const [videoError, setVideoError] = useState<string | null>(null)
+
+  // Load available topics when chapter changes
+  useEffect(() => {
+    if (formChapterId) {
+      educationService.getTopics(formChapterId).then((tops) => {
+        setAvailableTopics(tops)
+        setFormTopicId(tops[0]?.id || '')
+      })
+    } else {
+      setAvailableTopics([])
+      setFormTopicId('')
+    }
+  }, [formChapterId])
+
+  const openVideoModal = async (lesson: CurriculumLessonItem) => {
+    setVideoModalLesson(lesson)
+    setVideoLoading(true)
+    setVideoError(null)
+    setNewVideoTitle('')
+    setNewVideoUrl('')
+    setNewVideoDesc('')
+    try {
+      const vids = await educationService.getLessonVideos(lesson.id)
+      setVideoList(vids)
+      setNewVideoSortOrder(vids.length + 1)
+    } catch (err: any) {
+      setVideoError(err?.message || 'Không thể tải danh sách video.')
+    } finally {
+      setVideoLoading(false)
+    }
+  }
+
+  const handleAddVideo = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!videoModalLesson) return
+    if (!newVideoTitle.trim() || !newVideoUrl.trim()) {
+      setVideoError('Vui lòng nhập đầy đủ tiêu đề và URL video.')
+      return
+    }
+    setVideoLoading(true)
+    setVideoError(null)
+    try {
+      const created = await educationService.addLessonVideo(videoModalLesson.id, {
+        title: newVideoTitle.trim(),
+        sourceUrl: newVideoUrl.trim(),
+        description: newVideoDesc.trim(),
+        sortOrder: Number(newVideoSortOrder) || 1,
+        isPublished: newVideoPublished,
+        embedAllowed: true,
+      })
+      if (created) {
+        showToast(`Đã thêm video: ${newVideoTitle}`)
+        const vids = await educationService.getLessonVideos(videoModalLesson.id)
+        setVideoList(vids)
+        setNewVideoTitle('')
+        setNewVideoUrl('')
+        setNewVideoDesc('')
+        setNewVideoSortOrder(vids.length + 1)
+      } else {
+        setVideoError('Lỗi thêm video. Vui lòng kiểm tra quyền hoặc kết nối.')
+      }
+    } catch (err: any) {
+      setVideoError(err?.message || 'Lỗi thêm video.')
+    } finally {
+      setVideoLoading(false)
+    }
+  }
+
+  const handleDeleteVideo = async (videoId: string, title: string) => {
+    if (!videoModalLesson) return
+    if (!window.confirm(`Bạn có chắc muốn xóa video "${title}"?`)) return
+    try {
+      await educationService.deleteLessonVideo(videoId)
+      showToast(`Đã xóa video: ${title}`)
+      const vids = await educationService.getLessonVideos(videoModalLesson.id)
+      setVideoList(vids)
+    } catch {
+      showToast('Lỗi khi xóa video.')
+    }
+  }
+
+  const handleToggleVideoPublish = async (v: CurriculumLessonVideoItem) => {
+    if (!videoModalLesson) return
+    try {
+      await educationService.updateLessonVideo(v.id, { isPublished: !v.isPublished })
+      showToast(`Đã ${!v.isPublished ? 'xuất bản' : 'ẩn'} video: ${v.title}`)
+      const vids = await educationService.getLessonVideos(videoModalLesson.id)
+      setVideoList(vids)
+    } catch {
+      showToast('Lỗi khi cập nhật trạng thái video.')
+    }
+  }
 
   // Action Menu Dropdown State
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
@@ -141,10 +258,23 @@ export const ContentLessonsPage: React.FC = () => {
     (c) => formSubjectId === 'all' || c.subjectId === formSubjectId
   )
 
+  const filteredLessons = lessons.filter((l) => {
+    const vCount = l.videoCount ?? l.videos?.length ?? 0
+    if (videoFilter === 'missing_video') return vCount === 0
+    if (videoFilter === 'has_video') return vCount > 0
+    if (videoFilter === 'pending') {
+      return (l.videos || []).some((v) => v.verificationStatus === 'pending')
+    }
+    if (videoFilter === 'verified') {
+      return (l.videos || []).length > 0 && (l.videos || []).every((v) => v.verificationStatus === 'verified')
+    }
+    return true
+  })
+
   // Pagination calculation
-  const totalCount = lessons.length
+  const totalCount = filteredLessons.length
   const totalPages = Math.ceil(totalCount / pageSize) || 1
-  const paginatedLessons = lessons.slice((page - 1) * pageSize, page * pageSize)
+  const paginatedLessons = filteredLessons.slice((page - 1) * pageSize, page * pageSize)
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -155,6 +285,7 @@ export const ContentLessonsPage: React.FC = () => {
 
     const subj = subjects.find((s) => s.id === formSubjectId)
     const ch = chapters.find((c) => c.id === formChapterId)
+    const top = availableTopics.find((t) => t.id === formTopicId)
 
     await educationService.createLesson({
       title: formTitle.trim(),
@@ -162,12 +293,14 @@ export const ContentLessonsPage: React.FC = () => {
       subjectName: subj ? subj.name : 'Toán học 12',
       chapterId: formChapterId,
       chapterName: ch ? ch.title : 'Chương 1',
+      topicId: formTopicId || undefined,
+      topicTitle: top ? top.title : undefined,
       authorName: formAuthor.trim() || 'Quản trị viên',
       status: formStatus,
       hasAssessment: false,
     })
 
-    showToast(`Đã tạo thành công bài học demo: ${formTitle}`)
+    showToast(`Đã tạo thành công bài học: ${formTitle}`)
     setIsCreateOpen(false)
     setFormTitle('')
     setFormError(null)
@@ -317,6 +450,23 @@ export const ContentLessonsPage: React.FC = () => {
             <option value="draft">Bản nháp</option>
           </select>
 
+          {/* Video Filter */}
+          <select
+            value={videoFilter}
+            onChange={(e) => {
+              setVideoFilter(e.target.value as any)
+              setPage(1)
+            }}
+            className="admin-select"
+            aria-label="Lọc theo video"
+          >
+            <option value="all">Tất cả video</option>
+            <option value="has_video">Đã có video</option>
+            <option value="missing_video">Chưa có video</option>
+            <option value="verified">Video đã xác minh</option>
+            <option value="pending">Video chờ duyệt</option>
+          </select>
+
           {/* Page Size */}
           <select
             value={pageSize}
@@ -360,6 +510,7 @@ export const ContentLessonsPage: React.FC = () => {
                 <th>Môn & Chương học</th>
                 <th>Tác giả</th>
                 <th>Thu hoạch</th>
+                <th>Video</th>
                 <th>Trạng thái</th>
                 <th style={{ textAlign: 'right' }}>Thao tác</th>
               </tr>
@@ -394,10 +545,61 @@ export const ContentLessonsPage: React.FC = () => {
                     )}
                   </td>
                   <td>
+                    {(l.videoCount ?? l.videos?.length ?? 0) > 0 ? (
+                      <span
+                        className="badge-video-present"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          backgroundColor: '#dcfce7',
+                          color: '#15803d',
+                        }}
+                      >
+                        <Play size={10} style={{ fill: 'currentColor' }} />
+                        {l.videoCount ?? l.videos?.length} video
+                      </span>
+                    ) : (
+                      <span
+                        className="badge-video-missing"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          backgroundColor: '#fee2e2',
+                          color: '#b91c1c',
+                        }}
+                      >
+                        ⚠ Thiếu video
+                      </span>
+                    )}
+                  </td>
+                  <td>
                     <StatusBadge status={l.status} />
                   </td>
                   <td style={{ textAlign: 'right' }}>
                     <div className="table-action-group">
+                      {/* Video Action: Open Video Management Modal */}
+                      <button
+                        type="button"
+                        className="admin-btn-outline"
+                        style={{ color: '#2563eb', padding: '4px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                        onClick={() => openVideoModal(l)}
+                        title="Quản lý video bài giảng"
+                        aria-label={`Video ${l.title}`}
+                      >
+                        <Video size={13} aria-hidden />
+                        <span>Video</span>
+                      </button>
+
                       {/* Primary Action: Open Editor */}
                       <Link
                         to={`/content/lessons/${l.id}`}
@@ -654,6 +856,26 @@ export const ContentLessonsPage: React.FC = () => {
                   </div>
                 </div>
 
+                <div className="admin-form-group">
+                  <label htmlFor="form-lesson-topic" className="admin-form-label">
+                    Chủ đề (Topics)
+                  </label>
+                  <select
+                    id="form-lesson-topic"
+                    value={formTopicId}
+                    onChange={(e) => setFormTopicId(e.target.value)}
+                    className="admin-select"
+                    style={{ width: '100%' }}
+                  >
+                    <option value="">-- Không chọn / Bài học trực thuộc chương --</option>
+                    {availableTopics.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div className="admin-form-group">
                     <label htmlFor="form-lesson-author" className="admin-form-label">
@@ -718,6 +940,230 @@ export const ContentLessonsPage: React.FC = () => {
           setDeletingLesson(null)
         }}
       />
+
+      {/* Video Management Modal */}
+      {videoModalLesson && (
+        <div className="admin-dialog-backdrop" onClick={() => setVideoModalLesson(null)}>
+          <div
+            className="admin-dialog-card admin-form-dialog"
+            style={{ maxWidth: '680px', width: '92%' }}
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="admin-dialog-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="admin-form-icon-wrap" style={{ color: '#2563eb', background: '#eff6ff' }}>
+                  <Video size={18} />
+                </span>
+                <div>
+                  <h2 className="admin-dialog-title">Quản lý Video bài giảng</h2>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted, #627d98)' }}>
+                    Bài học: <strong>{videoModalLesson.title}</strong>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="admin-dialog-close"
+                onClick={() => setVideoModalLesson(null)}
+                aria-label="Đóng"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="admin-dialog-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+              {videoError && (
+                <div style={{ padding: '8px 12px', borderRadius: '6px', background: '#fef2f2', color: '#dc2626', fontSize: '0.82rem', marginBottom: '12px' }}>
+                  {videoError}
+                </div>
+              )}
+
+              {/* Add New Video Form */}
+              <form onSubmit={handleAddVideo} style={{ background: '#f8fafc', padding: '14px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '18px' }}>
+                <div style={{ fontWeight: 600, fontSize: '0.88rem', marginBottom: '10px', color: '#1e293b' }}>
+                  + Thêm Video bài giảng mới (YouTube / HLS)
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                  <div>
+                    <label className="admin-form-label" style={{ fontSize: '0.78rem' }}>Tiêu đề Video *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="VD: Lý thuyết trọng tâm Đạo hàm"
+                      value={newVideoTitle}
+                      onChange={(e) => setNewVideoTitle(e.target.value)}
+                      className="admin-input"
+                      style={{ fontSize: '0.82rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label className="admin-form-label" style={{ fontSize: '0.78rem' }}>Link YouTube / URL *</label>
+                    <input
+                      type="url"
+                      required
+                      placeholder="https://www.youtube.com/watch?v=..."
+                      value={newVideoUrl}
+                      onChange={(e) => setNewVideoUrl(e.target.value)}
+                      className="admin-input"
+                      style={{ fontSize: '0.82rem' }}
+                    />
+                  </div>
+                </div>
+                <div style={{ marginBottom: '10px' }}>
+                  <label className="admin-form-label" style={{ fontSize: '0.78rem' }}>Mô tả ngắn (tùy chọn)</label>
+                  <input
+                    type="text"
+                    placeholder="VD: Thầy Phạm Tuấn giảng chi tiết các dạng bài..."
+                    value={newVideoDesc}
+                    onChange={(e) => setNewVideoDesc(e.target.value)}
+                    className="admin-input"
+                    style={{ fontSize: '0.82rem' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={newVideoPublished}
+                        onChange={(e) => setNewVideoPublished(e.target.checked)}
+                      />
+                      <span>Xuất bản ngay</span>
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.82rem' }}>
+                      <span>Thứ tự:</span>
+                      <input
+                        type="number"
+                        min="1"
+                        value={newVideoSortOrder}
+                        onChange={(e) => setNewVideoSortOrder(Number(e.target.value))}
+                        style={{ width: '50px', padding: '2px 6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    className="admin-btn-primary"
+                    disabled={videoLoading}
+                    style={{ fontSize: '0.82rem', padding: '6px 12px' }}
+                  >
+                    {videoLoading ? 'Đang lưu...' : 'Thêm video'}
+                  </button>
+                </div>
+              </form>
+
+              {/* Current Videos List */}
+              <div style={{ fontWeight: 600, fontSize: '0.88rem', marginBottom: '8px', color: '#1e293b' }}>
+                Danh sách video ({videoList.length})
+              </div>
+              {videoLoading && videoList.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>Đang tải video...</div>
+              ) : videoList.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '20px', background: '#f1f5f9', borderRadius: '6px', color: '#64748b', fontSize: '0.82rem' }}>
+                  Bài học này chưa có video nào. Hãy dán link YouTube ở trên để thêm video.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {videoList.map((v) => (
+                    <div
+                      key={v.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 14px',
+                        background: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px',
+                        gap: '12px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                        <div
+                          style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '6px',
+                            background: '#0284c7',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#fff',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Play size={18} />
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {v.title}
+                          </div>
+                          <div style={{ fontSize: '0.74rem', color: '#64748b', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            <span>Thứ tự: {v.sortOrder}</span>
+                            <span>•</span>
+                            <span style={{ color: v.isPublished ? '#059669' : '#d97706', fontWeight: 500 }}>
+                              {v.isPublished ? 'Đã xuất bản' : 'Bản nháp'}
+                            </span>
+                            {v.youTubeVideoId && (
+                              <>
+                                <span>•</span>
+                                <span>YT: {v.youTubeVideoId}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                        <button
+                          type="button"
+                          className="admin-btn-outline"
+                          style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                          onClick={() => handleToggleVideoPublish(v)}
+                          title={v.isPublished ? 'Ẩn video' : 'Xuất bản video'}
+                        >
+                          {v.isPublished ? <EyeOff size={13} /> : <Eye size={13} />}
+                        </button>
+                        <a
+                          href={v.sourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="admin-btn-outline"
+                          style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                          title="Mở link ngoài"
+                        >
+                          <ExternalLink size={13} />
+                        </a>
+                        <button
+                          type="button"
+                          className="admin-btn-outline"
+                          style={{ color: '#dc2626', padding: '4px 8px', fontSize: '0.75rem' }}
+                          onClick={() => handleDeleteVideo(v.id, v.title)}
+                          title="Xóa video"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="admin-dialog-footer">
+              <button
+                type="button"
+                className="admin-btn-secondary"
+                onClick={() => setVideoModalLesson(null)}
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

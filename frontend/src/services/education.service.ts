@@ -5,6 +5,8 @@ import type {
   CurriculumChapterItem,
   CurriculumLessonItem,
   CurriculumSubjectItem,
+  CurriculumTopicItem,
+  CurriculumLessonVideoItem,
   LearningReportsData,
 } from '@/types/education'
 import type { ContentStatus } from '@/types/content'
@@ -558,6 +560,46 @@ export const educationService = {
 
   // ── CHAPTERS ───────────────────────────────────────────────
   async getChapters(subjectId?: string): Promise<CurriculumChapterItem[]> {
+    if (getAccessToken()) {
+      try {
+        const queryParams = new URLSearchParams()
+        if (subjectId && subjectId !== 'all') {
+          queryParams.set('subjectId', subjectId)
+        }
+        const qs = queryParams.toString() ? `?${queryParams.toString()}` : ''
+        const res = await apiClient.get<{
+          items: Array<{
+            id: string
+            subjectId: string
+            subjectName: string
+            title: string
+            description?: string
+            orderIndex: number
+            isActive: boolean
+            lessonCount: number
+            createdAt: string
+            updatedAt: string
+          }>
+          total: number
+        }>(`/api/v1/content/chapters${qs}`)
+
+        if (res?.items && Array.isArray(res.items)) {
+          return res.items.map((c) => ({
+            id: c.id,
+            subjectId: c.subjectId,
+            subjectName: c.subjectName,
+            title: c.title,
+            order: c.orderIndex,
+            lessonsCount: c.lessonCount,
+            status: c.isActive ? 'published' : 'draft',
+            updatedAt: c.updatedAt,
+          }))
+        }
+      } catch {
+        // Fallback to local storage if API error
+      }
+    }
+
     let chapters = readStorage<CurriculumChapterItem[]>(STORAGE_KEYS.CHAPTERS, INITIAL_CHAPTERS)
     if (subjectId && subjectId !== 'all') {
       chapters = chapters.filter((c) => c.subjectId === subjectId)
@@ -570,12 +612,36 @@ export const educationService = {
   ): Promise<CurriculumChapterItem> {
     if (getAccessToken()) {
       try {
-        await apiClient.post('/api/v1/content/chapters', {
+        const res = await apiClient.post<{
+          id: string
+          subjectId: string
+          subjectName: string
+          title: string
+          description?: string
+          orderIndex: number
+          isActive: boolean
+          lessonCount: number
+          createdAt: string
+          updatedAt: string
+        }>('/api/v1/content/chapters', {
           subjectId: input.subjectId,
           title: input.title,
           description: '',
           orderIndex: input.order || 1,
+          isActive: input.status === 'published',
         })
+        if (res?.id) {
+          return {
+            id: res.id,
+            subjectId: res.subjectId,
+            subjectName: res.subjectName,
+            title: res.title,
+            order: res.orderIndex,
+            lessonsCount: res.lessonCount,
+            status: res.isActive ? 'published' : 'draft',
+            updatedAt: res.updatedAt,
+          }
+        }
       } catch {
         // Fallback to local storage
       }
@@ -606,6 +672,41 @@ export const educationService = {
     id: string,
     updates: Partial<CurriculumChapterItem>
   ): Promise<CurriculumChapterItem | undefined> {
+    if (getAccessToken()) {
+      try {
+        const res = await apiClient.patch<{
+          id: string
+          subjectId: string
+          subjectName: string
+          title: string
+          description?: string
+          orderIndex: number
+          isActive: boolean
+          lessonCount: number
+          createdAt: string
+          updatedAt: string
+        }>(`/api/v1/content/chapters/${id}`, {
+          title: updates.title,
+          orderIndex: updates.order,
+          isActive: updates.status ? updates.status === 'published' : undefined,
+        })
+        if (res?.id) {
+          return {
+            id: res.id,
+            subjectId: res.subjectId,
+            subjectName: res.subjectName,
+            title: res.title,
+            order: res.orderIndex,
+            lessonsCount: res.lessonCount,
+            status: res.isActive ? 'published' : 'draft',
+            updatedAt: res.updatedAt,
+          }
+        }
+      } catch {
+        // Fallback to local storage
+      }
+    }
+
     const chapters = await this.getChapters()
     let found: CurriculumChapterItem | undefined
     const updated = chapters.map((c) => {
@@ -624,6 +725,15 @@ export const educationService = {
   },
 
   async deleteChapter(id: string): Promise<boolean> {
+    if (getAccessToken()) {
+      try {
+        await apiClient.delete(`/api/v1/content/chapters/${id}`)
+        return true
+      } catch {
+        // Fallback to local storage
+      }
+    }
+
     const chapters = await this.getChapters()
     const toDelete = chapters.find((c) => c.id === id)
     const filtered = chapters.filter((c) => c.id !== id)
@@ -642,6 +752,19 @@ export const educationService = {
   },
 
   async reorderChapters(subjectId: string, orderedIds: string[]): Promise<CurriculumChapterItem[]> {
+    if (getAccessToken()) {
+      try {
+        for (let i = 0; i < orderedIds.length; i++) {
+          await apiClient.patch(`/api/v1/content/chapters/${orderedIds[i]}`, {
+            orderIndex: i + 1,
+          })
+        }
+        return this.getChapters(subjectId)
+      } catch {
+        // Fallback to local storage
+      }
+    }
+
     const allChapters = await this.getChapters()
     const updated = allChapters.map((c) => {
       if (c.subjectId === subjectId) {
@@ -656,13 +779,222 @@ export const educationService = {
     return updated.filter((c) => c.subjectId === subjectId).sort((a, b) => a.order - b.order)
   },
 
+  // ── TOPICS ─────────────────────────────────────────────────
+  async getTopics(chapterId?: string, search?: string): Promise<CurriculumTopicItem[]> {
+    if (getAccessToken()) {
+      try {
+        const params = new URLSearchParams()
+        if (chapterId && chapterId !== 'all') params.set('chapterId', chapterId)
+        if (search?.trim()) params.set('search', search.trim())
+        const qs = params.toString() ? `?${params.toString()}` : ''
+        const res = await apiClient.get<{
+          items: CurriculumTopicItem[]
+          total: number
+        }>(`/api/v1/content/topics${qs}`)
+        if (res?.items && Array.isArray(res.items)) {
+          return res.items
+        }
+      } catch {
+        // Fallback
+      }
+    }
+    return []
+  },
+
+  async createTopic(input: {
+    chapterId: string
+    title: string
+    description?: string
+    orderIndex?: number
+    isActive?: boolean
+  }): Promise<CurriculumTopicItem | null> {
+    if (getAccessToken()) {
+      const res = await apiClient.post<CurriculumTopicItem>('/api/v1/content/topics', {
+        chapterId: input.chapterId,
+        title: input.title,
+        description: input.description || '',
+        orderIndex: input.orderIndex || 1,
+        isActive: input.isActive ?? true,
+      })
+      return res
+    }
+    return null
+  },
+
+  async updateTopic(
+    id: string,
+    updates: {
+      title?: string
+      description?: string
+      orderIndex?: number
+      isActive?: boolean
+    }
+  ): Promise<CurriculumTopicItem | null> {
+    if (getAccessToken()) {
+      const res = await apiClient.patch<CurriculumTopicItem>(`/api/v1/content/topics/${id}`, updates)
+      return res
+    }
+    return null
+  },
+
+  async deleteTopic(id: string): Promise<boolean> {
+    if (getAccessToken()) {
+      await apiClient.delete(`/api/v1/content/topics/${id}`)
+      return true
+    }
+    return false
+  },
+
+  // ── LESSON VIDEOS ──────────────────────────────────────────
+  async getLessonVideos(lessonId: string): Promise<CurriculumLessonVideoItem[]> {
+    if (getAccessToken()) {
+      try {
+        const res = await apiClient.get<{
+          items: CurriculumLessonVideoItem[]
+          total: number
+        }>(`/api/v1/content/lessons/${lessonId}/videos`)
+        if (res?.items && Array.isArray(res.items)) {
+          return res.items
+        }
+      } catch {
+        // Fallback
+      }
+    }
+    return []
+  },
+
+  async addLessonVideo(
+    lessonId: string,
+    data: {
+      title: string
+      sourceUrl: string
+      description?: string
+      provider?: string
+      sortOrder?: number
+      isPublished?: boolean
+      embedAllowed?: boolean
+      language?: string
+    }
+  ): Promise<CurriculumLessonVideoItem | null> {
+    if (getAccessToken()) {
+      const res = await apiClient.post<CurriculumLessonVideoItem>(
+        `/api/v1/content/lessons/${lessonId}/videos`,
+        {
+          title: data.title,
+          sourceUrl: data.sourceUrl,
+          description: data.description,
+          provider: data.provider,
+          sortOrder: data.sortOrder || 1,
+          isPublished: data.isPublished ?? true,
+          embedAllowed: data.embedAllowed ?? true,
+          language: data.language || 'vi',
+        }
+      )
+      return res
+    }
+    return null
+  },
+
+  async updateLessonVideo(
+    videoId: string,
+    data: Partial<{
+      title: string
+      sourceUrl: string
+      description?: string
+      provider?: string
+      sortOrder?: number
+      isPublished?: boolean
+      embedAllowed?: boolean
+      language?: string
+    }>
+  ): Promise<CurriculumLessonVideoItem | null> {
+    if (getAccessToken()) {
+      const res = await apiClient.patch<CurriculumLessonVideoItem>(
+        `/api/v1/content/videos/${videoId}`,
+        data
+      )
+      return res
+    }
+    return null
+  },
+
+  async deleteLessonVideo(videoId: string): Promise<boolean> {
+    if (getAccessToken()) {
+      await apiClient.delete(`/api/v1/content/videos/${videoId}`)
+      return true
+    }
+    return false
+  },
+
   // ── LESSONS ────────────────────────────────────────────────
   async getLessons(filter?: {
     subjectId?: string
     chapterId?: string
+    topicId?: string
     status?: string
     search?: string
+    page?: number
+    pageSize?: number
   }): Promise<CurriculumLessonItem[]> {
+    if (getAccessToken()) {
+      try {
+        const params = new URLSearchParams()
+        if (filter?.subjectId && filter.subjectId !== 'all') params.set('subjectId', filter.subjectId)
+        if (filter?.chapterId && filter.chapterId !== 'all') params.set('chapterId', filter.chapterId)
+        if (filter?.topicId && filter.topicId !== 'all') params.set('topicId', filter.topicId)
+        if (filter?.status && filter.status !== 'all') params.set('status', filter.status)
+        if (filter?.search?.trim()) params.set('search', filter.search.trim())
+        params.set('page', String(filter?.page || 1))
+        params.set('pageSize', String(filter?.pageSize || 100))
+
+        const res = await apiClient.get<{
+          items: Array<{
+            id: string
+            subjectId: string
+            subjectName: string
+            chapterId: string
+            chapterTitle: string
+            topicId?: string | null
+            topicTitle?: string | null
+            title: string
+            slug: string
+            orderIndex: number
+            status: ContentStatus
+            difficulty?: string
+            estimatedMinutes?: number
+            authorName?: string
+            questionCount: number
+            videoCount?: number
+            createdAt: string
+            updatedAt: string
+          }>
+          total: number
+        }>(`/api/v1/content/lessons?${params.toString()}`)
+
+        if (res?.items && Array.isArray(res.items)) {
+          return res.items.map((l) => ({
+            id: l.id,
+            title: l.title,
+            subjectId: l.subjectId,
+            subjectName: l.subjectName,
+            chapterId: l.chapterId,
+            chapterName: l.chapterTitle,
+            topicId: l.topicId || undefined,
+            topicTitle: l.topicTitle || undefined,
+            status: l.status,
+            authorName: l.authorName || 'Quản trị viên',
+            updatedAt: l.updatedAt,
+            hasAssessment: l.questionCount > 0,
+            order: l.orderIndex,
+            videos: (l as any).videos || [],
+            videoCount: (l as any).videos?.length ?? (l as any).videoCount ?? 0,
+          }))
+        }
+      } catch {
+        // Fallback to local storage
+      }
+    }
+
     let lessons = readStorage<CurriculumLessonItem[]>(STORAGE_KEYS.LESSONS, INITIAL_LESSONS)
 
     if (filter?.subjectId && filter.subjectId !== 'all') {
@@ -688,6 +1020,47 @@ export const educationService = {
   },
 
   async getLessonById(id: string): Promise<CurriculumLessonItem | undefined> {
+    if (getAccessToken()) {
+      try {
+        const res = await apiClient.get<{
+          id: string
+          chapterId: string
+          chapterTitle: string
+          subjectId: string
+          subjectName: string
+          topicId?: string | null
+          topicTitle?: string | null
+          title: string
+          slug: string
+          orderIndex: number
+          status: ContentStatus
+          authorName?: string
+          updatedAt: string
+          questions?: any[]
+        }>(`/api/v1/content/lessons/${id}`)
+
+        if (res?.id) {
+          return {
+            id: res.id,
+            title: res.title,
+            subjectId: res.subjectId,
+            subjectName: res.subjectName,
+            chapterId: res.chapterId,
+            chapterName: res.chapterTitle,
+            topicId: res.topicId || undefined,
+            topicTitle: res.topicTitle || undefined,
+            status: res.status,
+            authorName: res.authorName || 'Quản trị viên',
+            updatedAt: res.updatedAt,
+            hasAssessment: (res.questions?.length ?? 0) > 0,
+            order: res.orderIndex,
+          }
+        }
+      } catch {
+        // Fallback
+      }
+    }
+
     const lessons = await this.getLessons()
     return lessons.find((l) => l.id === id)
   },
@@ -697,13 +1070,46 @@ export const educationService = {
   ): Promise<CurriculumLessonItem> {
     if (getAccessToken()) {
       try {
-        await apiClient.post('/api/v1/content/lessons', {
+        const res = await apiClient.post<{
+          id: string
+          chapterId: string
+          chapterTitle: string
+          subjectId: string
+          subjectName: string
+          topicId?: string | null
+          topicTitle?: string | null
+          title: string
+          slug: string
+          orderIndex: number
+          status: ContentStatus
+          authorName?: string
+          updatedAt: string
+        }>('/api/v1/content/lessons', {
           chapterId: input.chapterId,
+          topicId: input.topicId || null,
           title: input.title,
           slug: input.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40),
           orderIndex: input.order || 1,
           introduction: '',
         })
+
+        if (res?.id) {
+          return {
+            id: res.id,
+            title: res.title,
+            subjectId: res.subjectId,
+            subjectName: res.subjectName,
+            chapterId: res.chapterId,
+            chapterName: res.chapterTitle,
+            topicId: res.topicId || undefined,
+            topicTitle: res.topicTitle || undefined,
+            status: res.status,
+            authorName: res.authorName || 'Quản trị viên',
+            updatedAt: res.updatedAt,
+            hasAssessment: false,
+            order: res.orderIndex,
+          }
+        }
       } catch {
         // Fallback to local storage
       }
@@ -740,6 +1146,52 @@ export const educationService = {
     id: string,
     updates: Partial<CurriculumLessonItem>
   ): Promise<CurriculumLessonItem | undefined> {
+    if (getAccessToken()) {
+      try {
+        const res = await apiClient.patch<{
+          id: string
+          chapterId: string
+          chapterTitle: string
+          subjectId: string
+          subjectName: string
+          topicId?: string | null
+          topicTitle?: string | null
+          title: string
+          slug: string
+          orderIndex: number
+          status: ContentStatus
+          authorName?: string
+          updatedAt: string
+        }>(`/api/v1/content/lessons/${id}`, {
+          title: updates.title,
+          chapterId: updates.chapterId,
+          topicId: updates.topicId,
+          orderIndex: updates.order,
+          status: updates.status,
+        })
+
+        if (res?.id) {
+          return {
+            id: res.id,
+            title: res.title,
+            subjectId: res.subjectId,
+            subjectName: res.subjectName,
+            chapterId: res.chapterId,
+            chapterName: res.chapterTitle,
+            topicId: res.topicId || undefined,
+            topicTitle: res.topicTitle || undefined,
+            status: res.status,
+            authorName: res.authorName || 'Quản trị viên',
+            updatedAt: res.updatedAt,
+            hasAssessment: updates.hasAssessment ?? false,
+            order: res.orderIndex,
+          }
+        }
+      } catch {
+        // Fallback to local storage
+      }
+    }
+
     const lessons = await this.getLessons()
     let found: CurriculumLessonItem | undefined
     const updated = lessons.map((l) => {
@@ -758,6 +1210,15 @@ export const educationService = {
   },
 
   async deleteLesson(id: string): Promise<boolean> {
+    if (getAccessToken()) {
+      try {
+        await apiClient.delete(`/api/v1/content/lessons/${id}`)
+        return true
+      } catch {
+        // Fallback to local storage
+      }
+    }
+
     const lessons = await this.getLessons()
     const toDelete = lessons.find((l) => l.id === id)
     const filtered = lessons.filter((l) => l.id !== id)

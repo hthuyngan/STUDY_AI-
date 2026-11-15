@@ -82,15 +82,114 @@ public class ContentChapterItemDto
 
 #endregion
 
+#region Topic DTOs
+
+public class ContentTopicItemDto
+{
+    public string Id { get; set; } = string.Empty;
+    public string ChapterId { get; set; } = string.Empty;
+    public string ChapterTitle { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public int OrderIndex { get; set; } = 0;
+    public bool IsActive { get; set; } = true;
+    public int LessonCount { get; set; }
+    public string CreatedAt { get; set; } = string.Empty;
+    public string UpdatedAt { get; set; } = string.Empty;
+}
+
+public class CreateTopicRequestDto
+{
+    public string ChapterId { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public int OrderIndex { get; set; } = 0;
+    public bool IsActive { get; set; } = true;
+}
+
+public class UpdateTopicRequestDto
+{
+    public string? Title { get; set; }
+    public string? Description { get; set; }
+    public int? OrderIndex { get; set; }
+    public bool? IsActive { get; set; }
+}
+
+#endregion
+
+#region Lesson Video DTOs
+
+public class ContentLessonVideoItemDto
+{
+    public string Id { get; set; } = string.Empty;
+    public string LessonId { get; set; } = string.Empty;
+    public string LessonTitle { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Provider { get; set; } = "youtube";
+    public string SourceUrl { get; set; } = string.Empty;
+    public string? EmbedUrl { get; set; }
+    public string? YouTubeVideoId { get; set; }
+    public string Language { get; set; } = "vi";
+    public int DurationSeconds { get; set; }
+    public string? ThumbnailUrl { get; set; }
+    public int SortOrder { get; set; } = 1;
+    public bool EmbedAllowed { get; set; } = true;
+    public string VerificationStatus { get; set; } = "verified";
+    public string? VerifiedAt { get; set; }
+    public bool IsPublished { get; set; } = true;
+    public string CreatedAt { get; set; } = string.Empty;
+    public string UpdatedAt { get; set; } = string.Empty;
+}
+
+public class CreateLessonVideoRequestDto
+{
+    public string LessonId { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string Provider { get; set; } = "youtube";
+    public string SourceUrl { get; set; } = string.Empty;
+    public string? EmbedUrl { get; set; }
+    public string? YouTubeVideoId { get; set; }
+    public string Language { get; set; } = "vi";
+    public int DurationSeconds { get; set; } = 0;
+    public string? ThumbnailUrl { get; set; }
+    public int SortOrder { get; set; } = 1;
+    public bool EmbedAllowed { get; set; } = true;
+    public string VerificationStatus { get; set; } = "verified";
+    public bool IsPublished { get; set; } = true;
+}
+
+public class UpdateLessonVideoRequestDto
+{
+    public string? Title { get; set; }
+    public string? Description { get; set; }
+    public string? Provider { get; set; }
+    public string? SourceUrl { get; set; }
+    public string? EmbedUrl { get; set; }
+    public string? YouTubeVideoId { get; set; }
+    public string? Language { get; set; }
+    public int? DurationSeconds { get; set; }
+    public string? ThumbnailUrl { get; set; }
+    public int? SortOrder { get; set; }
+    public bool? EmbedAllowed { get; set; }
+    public string? VerificationStatus { get; set; }
+    public bool? IsPublished { get; set; }
+}
+
+#endregion
+
 #region Lesson DTOs
 
 public class CreateLessonRequestDto
 {
     public string ChapterId { get; set; } = string.Empty;
+    public string? TopicId { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
     public int OrderIndex { get; set; } = 0;
     public string? Introduction { get; set; }
+    public JsonArray? LearningObjectives { get; set; }
     public JsonArray? Definitions { get; set; }
     public JsonArray? Formulas { get; set; }
     public JsonArray? Examples { get; set; }
@@ -100,10 +199,13 @@ public class CreateLessonRequestDto
 
 public class UpdateLessonRequestDto
 {
+    public string? ChapterId { get; set; }
+    public string? TopicId { get; set; }
     public string? Title { get; set; }
     public string? Slug { get; set; }
     public int? OrderIndex { get; set; }
     public string? Introduction { get; set; }
+    public JsonArray? LearningObjectives { get; set; }
     public JsonArray? Definitions { get; set; }
     public JsonArray? Formulas { get; set; }
     public JsonArray? Examples { get; set; }
@@ -116,6 +218,8 @@ public class ContentLessonDetailDto
     public string Id { get; set; } = string.Empty;
     public string ChapterId { get; set; } = string.Empty;
     public string ChapterTitle { get; set; } = string.Empty;
+    public string? TopicId { get; set; }
+    public string? TopicTitle { get; set; }
     public string SubjectId { get; set; } = string.Empty;
     public string SubjectName { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
@@ -126,11 +230,13 @@ public class ContentLessonDetailDto
     public string AuthorName { get; set; } = string.Empty;
     public string? ReviewedBy { get; set; }
     public string Introduction { get; set; } = string.Empty;
+    public JsonArray LearningObjectives { get; set; } = new();
     public JsonArray Definitions { get; set; } = new();
     public JsonArray Formulas { get; set; } = new();
     public JsonArray Examples { get; set; } = new();
     public JsonArray ImportantNotes { get; set; } = new();
     public JsonArray SummaryPoints { get; set; } = new();
+    public List<ContentLessonVideoItemDto> Videos { get; set; } = new();
     public int QuestionsCount { get; set; }
     public string CreatedAt { get; set; } = string.Empty;
     public string UpdatedAt { get; set; } = string.Empty;
@@ -310,22 +416,54 @@ public class LearnerSubjectWithChaptersDto : LearnerSubjectDto
     public List<LearnerChapterDto> Chapters { get; set; } = new();
 }
 
-public class LearnerChapterDto
+public class LearnerTopicDto
 {
     public string Id { get; set; } = string.Empty;
+    public string ChapterId { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public int OrderIndex { get; set; } = 0;
     public List<LearnerLessonSummaryDto> Lessons { get; set; } = new();
 }
 
+public class LearnerVideoDto
+{
+    public string Id { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string Provider { get; set; } = "youtube";
+    public string SourceUrl { get; set; } = string.Empty;
+    public string? EmbedUrl { get; set; }
+    public string? YouTubeVideoId { get; set; }
+    public int DurationSeconds { get; set; }
+    public string? ThumbnailUrl { get; set; }
+    public bool EmbedAllowed { get; set; } = true;
+    public string VerificationStatus { get; set; } = "verified";
+}
+
+public class LearnerChapterDto
+{
+    public string Id { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public int OrderIndex { get; set; } = 0;
+    public List<LearnerTopicDto> Topics { get; set; } = new();
+    public List<LearnerLessonSummaryDto> Lessons { get; set; } = new();
+}
+
 public class LearnerLessonSummaryDto
 {
     public string Id { get; set; } = string.Empty;
+    public string? TopicId { get; set; }
+    public string? TopicTitle { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
     public int OrderIndex { get; set; } = 0;
     public string Status { get; set; } = "published";
+    public string ContentType { get; set; } = "video";
+    public bool HasVideo { get; set; }
+    public string? VideoProvider { get; set; }
+    public string? YouTubeVideoId { get; set; }
 }
 
 public class LearnerLessonDetailDto
@@ -333,17 +471,22 @@ public class LearnerLessonDetailDto
     public string Id { get; set; } = string.Empty;
     public string ChapterId { get; set; } = string.Empty;
     public string ChapterTitle { get; set; } = string.Empty;
+    public string? TopicId { get; set; }
+    public string? TopicTitle { get; set; }
     public string SubjectId { get; set; } = string.Empty;
     public string SubjectName { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
     public int OrderIndex { get; set; } = 0;
+    public string ContentType { get; set; } = "video";
     public string Introduction { get; set; } = string.Empty;
+    public JsonArray LearningObjectives { get; set; } = new();
     public JsonArray Definitions { get; set; } = new();
     public JsonArray Formulas { get; set; } = new();
     public JsonArray Examples { get; set; } = new();
     public JsonArray ImportantNotes { get; set; } = new();
     public JsonArray SummaryPoints { get; set; } = new();
+    public List<LearnerVideoDto> Videos { get; set; } = new();
 }
 
 /// <summary>

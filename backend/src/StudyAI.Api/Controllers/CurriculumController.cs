@@ -134,7 +134,13 @@ public class CurriculumController : ControllerBase
     {
         var subject = await _db.ContentSubjects
             .Include(s => s.Chapters)
+                .ThenInclude(c => c.Topics)
+            .Include(s => s.Chapters)
                 .ThenInclude(c => c.Lessons)
+                    .ThenInclude(l => l.Topic)
+            .Include(s => s.Chapters)
+                .ThenInclude(c => c.Lessons)
+                    .ThenInclude(l => l.Videos)
             .AsNoTracking()
             .FirstOrDefaultAsync(s => (s.Id == subjectId || s.Code == subjectId || s.Code.ToLower() == subjectId.ToLower()) && s.IsActive);
 
@@ -146,24 +152,54 @@ public class CurriculumController : ControllerBase
         var activeChapters = subject.Chapters
             .Where(c => c.IsActive)
             .OrderBy(c => c.OrderIndex)
-            .Select(c => new LearnerChapterDto
+            .Select(c =>
             {
-                Id = c.Id,
-                Title = c.Title,
-                Description = c.Description ?? string.Empty,
-                OrderIndex = c.OrderIndex,
-                Lessons = c.Lessons
+                var publishedLessons = c.Lessons
                     .Where(l => l.Status == "published")
                     .OrderBy(l => l.OrderIndex)
-                    .Select(l => new LearnerLessonSummaryDto
+                    .Select(l =>
                     {
-                        Id = l.Id,
-                        Title = l.Title,
-                        Slug = l.Slug,
-                        OrderIndex = l.OrderIndex,
-                        Status = l.Status
+                        var primaryVideo = l.Videos.FirstOrDefault(v => v.IsPublished && v.EmbedAllowed);
+                        return new LearnerLessonSummaryDto
+                        {
+                            Id = l.Id,
+                            TopicId = l.TopicId,
+                            TopicTitle = l.Topic?.Title,
+                            Title = l.Title,
+                            Slug = l.Slug,
+                            OrderIndex = l.OrderIndex,
+                            Status = l.Status,
+                            ContentType = "video",
+                            HasVideo = l.Videos.Any(v => v.IsPublished),
+                            VideoProvider = primaryVideo?.Provider ?? (l.Videos.Any() ? "youtube" : null),
+                            YouTubeVideoId = primaryVideo?.YouTubeVideoId
+                        };
                     })
-                    .ToList()
+                    .ToList();
+
+                var activeTopics = c.Topics
+                    .Where(t => t.IsActive)
+                    .OrderBy(t => t.OrderIndex)
+                    .Select(t => new LearnerTopicDto
+                    {
+                        Id = t.Id,
+                        ChapterId = t.ChapterId,
+                        Title = t.Title,
+                        Description = t.Description ?? string.Empty,
+                        OrderIndex = t.OrderIndex,
+                        Lessons = publishedLessons.Where(l => l.TopicId == t.Id).ToList()
+                    })
+                    .ToList();
+
+                return new LearnerChapterDto
+                {
+                    Id = c.Id,
+                    Title = c.Title,
+                    Description = c.Description ?? string.Empty,
+                    OrderIndex = c.OrderIndex,
+                    Topics = activeTopics,
+                    Lessons = publishedLessons
+                };
             })
             .ToList();
 
@@ -206,28 +242,62 @@ public class CurriculumController : ControllerBase
 
         var chapters = await _db.ContentChapters
             .Where(c => c.SubjectId == subject.Id && c.IsActive)
+            .Include(c => c.Topics)
             .Include(c => c.Lessons.Where(l => l.Status == "published"))
+                .ThenInclude(l => l.Topic)
+            .Include(c => c.Lessons.Where(l => l.Status == "published"))
+                .ThenInclude(l => l.Videos)
             .AsNoTracking()
             .OrderBy(c => c.OrderIndex)
             .ToListAsync();
 
-        var response = chapters.Select(c => new LearnerChapterDto
+        var response = chapters.Select(c =>
         {
-            Id = c.Id,
-            Title = c.Title,
-            Description = c.Description ?? string.Empty,
-            OrderIndex = c.OrderIndex,
-            Lessons = c.Lessons
+            var publishedLessons = c.Lessons
                 .OrderBy(l => l.OrderIndex)
-                .Select(l => new LearnerLessonSummaryDto
+                .Select(l =>
                 {
-                    Id = l.Id,
-                    Title = l.Title,
-                    Slug = l.Slug,
-                    OrderIndex = l.OrderIndex,
-                    Status = l.Status
+                    var primaryVideo = l.Videos.FirstOrDefault(v => v.IsPublished && v.EmbedAllowed);
+                    return new LearnerLessonSummaryDto
+                    {
+                        Id = l.Id,
+                        TopicId = l.TopicId,
+                        TopicTitle = l.Topic?.Title,
+                        Title = l.Title,
+                        Slug = l.Slug,
+                        OrderIndex = l.OrderIndex,
+                        Status = l.Status,
+                        ContentType = "video",
+                        HasVideo = l.Videos.Any(v => v.IsPublished),
+                        VideoProvider = primaryVideo?.Provider ?? (l.Videos.Any() ? "youtube" : null),
+                        YouTubeVideoId = primaryVideo?.YouTubeVideoId
+                    };
                 })
-                .ToList()
+                .ToList();
+
+            var activeTopics = c.Topics
+                .Where(t => t.IsActive)
+                .OrderBy(t => t.OrderIndex)
+                .Select(t => new LearnerTopicDto
+                {
+                    Id = t.Id,
+                    ChapterId = t.ChapterId,
+                    Title = t.Title,
+                    Description = t.Description ?? string.Empty,
+                    OrderIndex = t.OrderIndex,
+                    Lessons = publishedLessons.Where(l => l.TopicId == t.Id).ToList()
+                })
+                .ToList();
+
+            return new LearnerChapterDto
+            {
+                Id = c.Id,
+                Title = c.Title,
+                Description = c.Description ?? string.Empty,
+                OrderIndex = c.OrderIndex,
+                Topics = activeTopics,
+                Lessons = publishedLessons
+            };
         }).ToList();
 
         return Ok(response);
@@ -244,6 +314,8 @@ public class CurriculumController : ControllerBase
         var lesson = await _db.ContentLessons
             .Include(l => l.Chapter)
                 .ThenInclude(c => c!.Subject)
+            .Include(l => l.Topic)
+            .Include(l => l.Videos)
             .AsNoTracking()
             .FirstOrDefaultAsync(l => l.Id == lessonId || l.Slug == lessonId);
 
@@ -252,22 +324,46 @@ public class CurriculumController : ControllerBase
             return NotFound(new { message = "Bài học không tồn tại hoặc chưa được xuất bản." });
         }
 
+        var publishedVideos = lesson.Videos
+            .Where(v => v.IsPublished)
+            .OrderBy(v => v.SortOrder)
+            .Select(v => new LearnerVideoDto
+            {
+                Id = v.Id,
+                Title = v.Title,
+                Description = v.Description,
+                Provider = v.Provider,
+                SourceUrl = v.SourceUrl,
+                EmbedUrl = v.EmbedUrl,
+                YouTubeVideoId = v.YouTubeVideoId,
+                DurationSeconds = v.DurationSeconds,
+                ThumbnailUrl = v.ThumbnailUrl,
+                EmbedAllowed = v.EmbedAllowed,
+                VerificationStatus = v.VerificationStatus
+            })
+            .ToList();
+
         var dto = new LearnerLessonDetailDto
         {
             Id = lesson.Id,
             ChapterId = lesson.ChapterId,
             ChapterTitle = lesson.Chapter.Title,
+            TopicId = lesson.TopicId,
+            TopicTitle = lesson.Topic?.Title,
             SubjectId = lesson.Chapter.SubjectId,
             SubjectName = lesson.Chapter.Subject.Name,
             Title = lesson.Title,
             Slug = lesson.Slug,
             OrderIndex = lesson.OrderIndex,
+            ContentType = "video",
             Introduction = lesson.Introduction ?? string.Empty,
+            LearningObjectives = SafeJsonArray(lesson.LearningObjectivesJson),
             Definitions = SafeJsonArray(lesson.DefinitionsJson),
             Formulas = SafeJsonArray(lesson.FormulasJson),
             Examples = SafeJsonArray(lesson.ExamplesJson),
             ImportantNotes = SafeJsonArray(lesson.ImportantNotesJson),
-            SummaryPoints = SafeJsonArray(lesson.SummaryPointsJson)
+            SummaryPoints = SafeJsonArray(lesson.SummaryPointsJson),
+            Videos = publishedVideos
         };
 
         return Ok(dto);

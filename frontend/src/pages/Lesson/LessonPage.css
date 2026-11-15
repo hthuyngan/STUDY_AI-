@@ -392,3 +392,12 @@
   .lesson-video-unavailable { align-items: stretch; flex-direction: column; }
   .lesson-video-unavailable button { width: 100%; }
 }
+
+.lesson-page-container.sidebar-collapsed .lesson-outline-sidebar {
+  display: none !important;
+}
+
+.lesson-page-container.sidebar-collapsed .lesson-main-content {
+  max-width: 1040px;
+}
+}

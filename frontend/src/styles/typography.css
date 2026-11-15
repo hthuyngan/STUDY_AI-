@@ -1,57 +1,121 @@
 /* ============================================================
    TYPOGRAPHY CSS — Hierarchy & Font Specifications
-   STUDY_AI Design System Foundation
+   STUDY_AI Design System Foundation — Inter Typography
    ============================================================ */
 
-/* ── Google Fonts ─────────────────────────────────────────── */
+/* ── Self-Hosted Fonts via @fontsource (Offline-First, Zero Latency) ── */
+@import '@fontsource/inter/index.css';
+@import '@fontsource/inter/vietnamese.css';
+@import '@fontsource/jetbrains-mono/index.css';
+
+/* Fallback Google Fonts for legacy or CDN contexts */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
-/* ── Headings ────────────────────────────────────────────── */
+/* ── Base Headings (Vietnamese Accent Safe) ────────────────── */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-sans);
   font-weight: var(--font-semibold, 600);
-  line-height: var(--leading-tight, 1.25);
+  line-height: var(--leading-tight, 1.3);
   color: var(--ui-color-text, var(--text-primary, #0f172a));
+  text-rendering: optimizeLegibility;
 }
 
 h1 {
-  font-size: var(--text-3xl, 1.875rem);
+  font-size: var(--text-page-title, 1.625rem);
   font-weight: var(--font-bold, 700);
-  letter-spacing: -0.025em;
-}
-
-h2 {
-  font-size: var(--text-2xl, 1.5rem);
-  font-weight: var(--font-bold, 700);
-  letter-spacing: -0.02em;
-}
-
-h3 {
-  font-size: var(--text-xl, 1.25rem);
+  line-height: var(--leading-page-title, 1.3);
   letter-spacing: -0.015em;
 }
 
-h4 {
-  font-size: var(--text-lg, 1.125rem);
+h2 {
+  font-size: var(--text-section-title, 1.1875rem);
+  font-weight: var(--font-bold, 700);
+  line-height: var(--leading-section-title, 1.35);
   letter-spacing: -0.01em;
 }
 
+h3 {
+  font-size: var(--text-card-title, 1.0625rem);
+  font-weight: var(--font-semibold, 600);
+  line-height: var(--leading-card-title, 1.4);
+  letter-spacing: -0.005em;
+}
+
+h4 {
+  font-size: var(--text-body, 0.9375rem);
+  font-weight: var(--font-semibold, 600);
+  line-height: 1.45;
+}
+
 h5 {
-  font-size: var(--text-base, 1rem);
+  font-size: var(--text-secondary, 0.84375rem);
+  font-weight: var(--font-medium, 500);
 }
 
 h6 {
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--text-caption, 0.78125rem);
+  font-weight: var(--font-medium, 500);
+}
+
+/* ── Standard Hierarchy Semantic Classes ──────────────────── */
+.page-title {
+  font-family: var(--font-sans);
+  font-size: var(--text-page-title, 1.625rem);
+  font-weight: var(--font-bold, 700);
+  line-height: var(--leading-page-title, 1.3);
+  color: var(--ui-color-text, var(--text-primary, #0f172a));
+  letter-spacing: -0.015em;
+}
+
+.section-title {
+  font-family: var(--font-sans);
+  font-size: var(--text-section-title, 1.1875rem);
+  font-weight: var(--font-bold, 700);
+  line-height: var(--leading-section-title, 1.35);
+  color: var(--ui-color-text, var(--text-primary, #0f172a));
+}
+
+.card-title {
+  font-family: var(--font-sans);
+  font-size: var(--text-card-title, 1.0625rem);
+  font-weight: var(--font-semibold, 600);
+  line-height: var(--leading-card-title, 1.4);
+  color: var(--ui-color-text, var(--text-primary, #0f172a));
+}
+
+.body-text {
+  font-family: var(--font-sans);
+  font-size: var(--text-body, 0.9375rem);
+  line-height: var(--leading-body, 1.6);
+  color: var(--ui-color-text-muted, var(--text-secondary, #475569));
+}
+
+.secondary-text {
+  font-family: var(--font-sans);
+  font-size: var(--text-secondary, 0.84375rem);
+  line-height: var(--leading-secondary, 1.5);
+  color: var(--text-secondary, #64748b);
+}
+
+.caption-text {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption, 0.78125rem);
+  line-height: var(--leading-caption, 1.45);
+  color: var(--text-tertiary, #94a3b8);
 }
 
 /* ── Body & Paragraphs ───────────────────────────────────── */
 p {
-  line-height: var(--leading-relaxed, 1.625);
-  color: var(--ui-color-text-muted, var(--text-secondary, #64748b));
+  font-family: var(--font-sans);
+  font-size: var(--text-body, 0.9375rem);
+  line-height: var(--leading-relaxed, 1.65);
+  color: var(--ui-color-text-muted, var(--text-secondary, #475569));
+  word-break: break-word;
 }
 
 /* ── Links ───────────────────────────────────────────────── */
 a {
+  font-family: inherit;
   color: var(--ui-color-primary, var(--color-primary, #1d4ed8));
   text-decoration: none;
   transition: color var(--duration-base, 150ms) var(--ease-default, ease);
@@ -98,6 +162,136 @@ b {
   font-weight: var(--font-semibold, 600);
 }
 
+/* ── Component Typography Normalization ──────────────────── */
+/* Buttons */
+button,
+.btn,
+.button {
+  font-family: var(--font-button, var(--font-sans));
+  font-size: var(--font-button-size, 0.875rem);
+  font-weight: var(--font-button-weight, 500);
+  line-height: var(--font-button-leading, 1.4);
+}
+
+/* Inputs, Textareas & Selects */
+input,
+select,
+textarea,
+.form-input,
+.form-select,
+.form-textarea {
+  font-family: var(--font-input, var(--font-sans));
+  font-size: var(--font-input-size, 0.9375rem);
+  font-weight: var(--font-input-weight, 400);
+  line-height: var(--font-input-leading, 1.5);
+}
+
+/* Tables */
+table,
+.staff-table,
+.admin-table,
+.data-table {
+  font-family: var(--font-table, var(--font-sans));
+  font-size: var(--font-table-size, 0.875rem);
+  line-height: 1.5;
+}
+
+th,
+.staff-table th,
+.admin-table th {
+  font-family: var(--font-sans);
+  font-size: var(--font-table-size, 0.875rem);
+  font-weight: var(--font-table-header-weight, 600);
+  line-height: 1.4;
+  letter-spacing: -0.005em;
+}
+
+td,
+.staff-table td,
+.admin-table td {
+  font-family: var(--font-sans);
+  font-size: var(--font-table-size, 0.875rem);
+  line-height: 1.5;
+}
+
+/* Navigation & Sidebar Items */
+nav,
+.sidebar,
+.sidebar-nav,
+.nav-link,
+.sidebar-link {
+  font-family: var(--font-nav, var(--font-sans));
+}
+
+.nav-link,
+.sidebar-item,
+.sidebar-link {
+  font-size: var(--font-nav-size, 0.9375rem);
+  font-weight: var(--font-nav-weight, 500);
+  line-height: var(--font-nav-leading, 1.4);
+}
+
+/* Breadcrumbs */
+.breadcrumb,
+.breadcrumb-item {
+  font-family: var(--font-sans);
+  font-size: var(--text-secondary, 0.84375rem);
+  line-height: 1.4;
+}
+
+/* Modals */
+.modal-title {
+  font-family: var(--font-sans);
+  font-size: var(--font-modal-title-size, 1.25rem);
+  font-weight: var(--font-modal-title-weight, 600);
+  line-height: 1.35;
+}
+
+/* Badges */
+.badge,
+.tag,
+.pill {
+  font-family: var(--font-badge, var(--font-sans));
+  font-size: var(--font-badge-size, 0.75rem);
+  font-weight: var(--font-badge-weight, 600);
+  line-height: 1.2;
+}
+
+/* Toasts & Tooltips */
+.toast {
+  font-family: var(--font-sans);
+  font-size: var(--font-toast-size, 0.875rem);
+  line-height: 1.45;
+}
+
+.tooltip {
+  font-family: var(--font-sans);
+  font-size: var(--font-tooltip-size, 0.75rem);
+  line-height: 1.3;
+}
+
+/* ── KaTeX Math Formula Protection ────────────────────────── */
+/* Do NOT allow Inter font to override mathematical symbols */
+.katex,
+.katex * {
+  font-family: KaTeX_Main, 'Times New Roman', serif !important;
+  text-rendering: auto;
+}
+
+.katex .mathnormal {
+  font-family: KaTeX_Math, 'Times New Roman', serif !important;
+}
+
+.katex .amsrm {
+  font-family: KaTeX_AMS, 'Times New Roman', serif !important;
+}
+
+.katex-display {
+  margin: 1em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
 /* ── Text Helper Classes ─────────────────────────────────── */
 .text-xs   { font-size: var(--text-xs, 0.75rem); }
 .text-sm   { font-size: var(--text-sm, 0.875rem); }
@@ -119,4 +313,3 @@ b {
 .text-success   { color: var(--ui-color-success, #16a34a); }
 .text-warning   { color: var(--ui-color-warning, #d97706); }
 .text-danger    { color: var(--ui-color-danger, #dc2626); }
-

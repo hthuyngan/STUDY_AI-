@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import { MASTER_CURRICULUM_SUBJECTS } from '@/data/curriculum.data'
-import type { CurriculumChapter, CurriculumLesson } from '@/types/curriculum'
 
 /**
  * 1. Danh mục tham chiếu đã xác minh từ Khan Academy (Verified Reference Inventory)
@@ -220,6 +219,7 @@ describe('Math 12 Curriculum & Khan Academy Audit Verification', () => {
     const validVideoLinksCount = chap1?.lessons.filter((l) => l.video?.sourceReferenceUrl?.includes('khanacademy.org')).length || 0
     const videoLinkCoverage = validVideoLinksCount / verifiedVideoItems
 
+    expect(importedLessons).toBeGreaterThan(0)
     expect(chapterCoverage).toBeGreaterThan(0)
     expect(topicCoverage).toBeGreaterThan(0)
     expect(videoLinkCoverage).toBeGreaterThan(0)

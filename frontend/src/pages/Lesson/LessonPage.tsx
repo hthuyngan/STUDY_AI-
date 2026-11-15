@@ -5,6 +5,8 @@ import {
   BookOpen,
   Bot,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   FileText,
   Lightbulb,
   List,
@@ -60,6 +62,7 @@ export function LessonPage() {
     lessonId: string
   }>()
   const [mobileOutlineOpen, setMobileOutlineOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [notesPanelOpen, setNotesPanelOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<'overview' | 'theory' | 'examples' | 'practice' | 'ai_tutor'>('theory')
 
@@ -353,7 +356,7 @@ export function LessonPage() {
     : lesson.title
 
   return (
-    <div className="lesson-page-container">
+    <div className={`lesson-page-container ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       {/* Sidebar with outline and current lesson progress */}
       <LessonSidebar
         subjectId={resolvedSubjectId}
@@ -379,15 +382,39 @@ export function LessonPage() {
             ]}
           />
 
-          <button
-            type="button"
-            className="mobile-outline-toggle mobile-only"
-            onClick={() => setMobileOutlineOpen(true)}
-            aria-label="Mở danh sách bài học"
-          >
-            <List size={16} aria-hidden />
-            <span>Mục lục</span>
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              className="desktop-sidebar-toggle"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              title={sidebarCollapsed ? 'Hiện danh mục giáo trình' : 'Ẩn danh mục (Chế độ đọc tập trung)'}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '5px 10px',
+                borderRadius: '6px',
+                border: '1px solid var(--border-default, #e2e8f0)',
+                background: 'var(--surface-card, #fff)',
+                fontSize: '0.8rem',
+                color: 'var(--text-secondary, #64748b)',
+                cursor: 'pointer',
+              }}
+            >
+              {sidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+              <span>{sidebarCollapsed ? 'Hiện mục lục' : 'Thu gọn'}</span>
+            </button>
+
+            <button
+              type="button"
+              className="mobile-outline-toggle mobile-only"
+              onClick={() => setMobileOutlineOpen(true)}
+              aria-label="Mở danh sách bài học"
+            >
+              <List size={16} aria-hidden />
+              <span>Mục lục</span>
+            </button>
+          </div>
         </div>
 
         {/* Lesson Header Banner with Global Lesson Progress */}
@@ -433,10 +460,11 @@ export function LessonPage() {
           </div>
         </header>
 
-        {/* Do not force a large empty video frame when the lesson has no playable media. */}
-        {lesson.video?.hasVideo && (lesson.video.youtubeId || lesson.video.videoUrl) ? (
+        {/* Video Player Frame with multi-video and fallback support */}
+        {((lesson as any).videos?.length > 0 || (lesson.video?.hasVideo && (lesson.video.youtubeId || lesson.video.videoUrl))) ? (
           <LessonVideoPlayer
             video={lesson.video}
+            videos={(lesson as any).videos}
             lessonTitle={lesson.title}
             sourceReferenceUrl={lesson.sourceReferenceUrl}
             onSwitchToTheoryTab={() => setActiveTab('theory')}
@@ -451,7 +479,7 @@ export function LessonPage() {
               <BookOpen size={16} aria-hidden /> Bắt đầu học lý thuyết
             </button>
           </div>
-        )
+        )}
 
         {/* Lesson Sub-Tabs Navigation (Khan Academy Style) */}
         <div className="lesson-tabs-nav" role="tablist">

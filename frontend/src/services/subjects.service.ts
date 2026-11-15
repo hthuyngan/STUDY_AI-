@@ -1,6 +1,6 @@
 import { curriculumService, type LearnerSubject, type LearnerSubjectWithChapters } from '@/services/curriculum.service'
 import { buildLearningStateSnapshot } from '@/services/learningState.service'
-import type { LessonStatus, SubjectChapter, SubjectDetail, SubjectSummary } from '@/types/subject'
+import type { LessonStatus, SubjectChapter, SubjectDetail, SubjectLessonItem, SubjectSummary } from '@/types/subject'
 
 interface SubjectVisualMeta {
   icon: string
@@ -135,7 +135,15 @@ function mapLearnerSubjectToSummary(
 export async function getSubjects(): Promise<SubjectSummary[]> {
   const data = await curriculumService.getSubjects()
   const snapshot = buildLearningStateSnapshot()
-  return data.map((sub) => mapLearnerSubjectToSummary(sub, snapshot))
+  const summaries = data.map((sub) => mapLearnerSubjectToSummary(sub, snapshot))
+  // Focus exclusively on Toán 12 on student view (as requested), preserving all DB records
+  return summaries.filter(
+    (s) =>
+      s.id === 'sub_math12' ||
+      s.id === 'math' ||
+      s.name.toLowerCase().includes('toán 12') ||
+      s.name.toLowerCase().includes('toán học')
+  )
 }
 
 /**
@@ -154,7 +162,7 @@ export async function getSubjectById(subjectId: string): Promise<SubjectDetail |
     let completedLessonsCount = 0
 
     const chapters: SubjectChapter[] = (rawSubject.chapters || []).map((chap, cIdx) => {
-      const lessons = (chap.lessons || []).map((l) => {
+      const lessons: SubjectLessonItem[] = (chap.lessons || []).map((l) => {
         totalLessonsCount += 1
         const derivedLesson = snapshot.lessons[l.id]
         const hasProgress = derivedLesson && (derivedLesson.overallProgress > 0 || derivedLesson.attemptCount > 0)
@@ -170,25 +178,42 @@ export async function getSubjectById(subjectId: string): Promise<SubjectDetail |
               ? (l.status as LessonStatus)
               : 'available'
 
+        const availability = l.status === 'published' ? 'available' : l.status === 'in-review' ? 'preview' : 'draft'
+
         return {
           id: l.id,
           subjectId: rawSubject.id,
           chapterId: chap.id,
           chapterTitle: chap.title,
+          topicId: l.topicId,
+          topicTitle: l.topicTitle,
           title: l.title,
           durationMinutes: 45,
           status,
           progress: lessonProg,
-          availability: 'available' as const,
+          availability: availability as any,
+          contentType: (l.contentType as any) || 'video',
+          hasVideo: !!l.hasVideo,
         }
       })
 
+      const topics = (chap.topics || []).map((t) => ({
+        id: t.id,
+        chapterId: t.chapterId,
+        title: t.title,
+        order: t.orderIndex,
+        lessons: lessons.filter((l) => l.topicId === t.id),
+      }))
+
+      const chapAvailability = lessons.some((l) => l.availability === 'available') ? 'available' : 'preview'
+
       return {
         id: chap.id,
-        chapterNumber: cIdx + 1,
+        chapterNumber: chap.orderIndex || cIdx + 1,
         title: chap.title,
         description: chap.description,
-        availability: 'available' as const,
+        availability: chapAvailability as any,
+        topics: topics.length > 0 ? topics : undefined,
         lessons,
       }
     })

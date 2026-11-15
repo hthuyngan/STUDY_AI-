@@ -176,9 +176,53 @@
   --bottom-nav-height:       64px;
   --content-max-width:       1340px;
 
-  /* Typography tokens */
+  /* Typography tokens — Inter Design System */
   --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Standard Hierarchy Scale */
+  --text-page-title:    1.625rem;  /* 26px (scale 24-28px) */
+  --text-section-title: 1.1875rem; /* 19px (scale 18-20px) */
+  --text-card-title:    1.0625rem; /* 17px (scale 16-18px) */
+  --text-body:          0.9375rem; /* 15px (scale 14-16px) */
+  --text-secondary:     0.84375rem;/* 13.5px (scale 13-14px) */
+  --text-caption:       0.78125rem;/* 12.5px (scale 12-13px) */
+
+  /* Safe line-heights for Vietnamese tone marks & diacritics */
+  --leading-page-title:    1.3;
+  --leading-section-title: 1.35;
+  --leading-card-title:    1.4;
+  --leading-body:          1.6;
+  --leading-secondary:     1.5;
+  --leading-caption:       1.45;
+
+  /* Component Typography Tokens */
+  --font-button: var(--font-sans);
+  --font-button-size: 0.875rem;
+  --font-button-weight: 500;
+  --font-button-leading: 1.4;
+
+  --font-input: var(--font-sans);
+  --font-input-size: 0.9375rem;
+  --font-input-weight: 400;
+  --font-input-leading: 1.5;
+
+  --font-table: var(--font-sans);
+  --font-table-size: 0.875rem;
+  --font-table-weight: 400;
+  --font-table-header-weight: 600;
+
+  --font-nav: var(--font-sans);
+  --font-nav-size: 0.9375rem;
+  --font-nav-weight: 500;
+  --font-nav-leading: 1.4;
+
+  --font-badge: var(--font-sans);
+  --font-badge-size: 0.75rem;
+  --font-badge-weight: 600;
+
+  --font-modal-title-size: 1.25rem;
+  --font-modal-title-weight: 600;
 
   --text-xs:   0.75rem;   /* 12px */
   --text-sm:   0.875rem;  /* 14px */
@@ -189,10 +233,10 @@
   --text-3xl:  1.875rem;  /* 30px */
   --text-4xl:  2.25rem;   /* 36px */
 
-  --leading-tight:   1.25;
-  --leading-snug:    1.375;
-  --leading-normal:  1.5;
-  --leading-relaxed: 1.625;
+  --leading-tight:   1.3;
+  --leading-snug:    1.4;
+  --leading-normal:  1.55;
+  --leading-relaxed: 1.65;
 
   --font-light:     300;
   --font-normal:    400;

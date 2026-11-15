@@ -1,10 +1,23 @@
-import React from 'react'
-import { ExternalLink, Tv } from 'lucide-react'
+import { useState } from 'react'
+import { ExternalLink, Play, Tv, Video } from 'lucide-react'
 import type { LessonVideoMetadata } from '@/types/lesson'
 import './LessonVideoPlayer.css'
 
+export interface VideoItemOption {
+  id: string
+  title: string
+  description?: string
+  provider: string
+  sourceUrl: string
+  embedUrl?: string
+  youTubeVideoId?: string
+  durationSeconds?: number
+  thumbnailUrl?: string
+}
+
 export interface LessonVideoPlayerProps {
   video?: LessonVideoMetadata
+  videos?: VideoItemOption[]
   lessonTitle: string
   sourceReferenceUrl?: string
   onSwitchToTheoryTab?: () => void
@@ -12,132 +25,172 @@ export interface LessonVideoPlayerProps {
 
 export const LessonVideoPlayer: React.FC<LessonVideoPlayerProps> = ({
   video,
+  videos,
   lessonTitle,
   sourceReferenceUrl,
   onSwitchToTheoryTab,
 }) => {
+  // Combine single video and multiple videos list
+  const videoList: VideoItemOption[] = []
+  if (videos && videos.length > 0) {
+    videoList.push(...videos)
+  } else if (video?.hasVideo && (video?.youtubeId || video?.videoUrl)) {
+    videoList.push({
+      id: 'default',
+      title: video.licenseNotice || lessonTitle,
+      provider: video.provider || 'youtube',
+      sourceUrl: video.sourceReferenceUrl || video.videoUrl || '',
+      embedUrl: video.videoUrl,
+      youTubeVideoId: video.youtubeId,
+      durationSeconds: video.durationSeconds,
+    })
+  }
+
+  const [selectedVideoIndex, setSelectedVideoIndex] = useState(0)
+  const currentVideo = videoList[selectedVideoIndex]
+
   const effectiveRefUrl =
+    currentVideo?.sourceUrl ||
     video?.sourceReferenceUrl ||
-    sourceReferenceUrl ||
-    'https://vi.khanacademy.org/math/toan-lop-12-viet-nam'
+    sourceReferenceUrl
 
   // Format duration into mm:ss
   const formatDuration = (seconds?: number) => {
-    if (!seconds || seconds <= 0) return '00:00'
+    if (!seconds || seconds <= 0) return ''
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }
 
-  // 1. YouTube Embed Mode
-  if (video?.hasVideo && video?.youtubeId) {
+  // CASE 1: Valid Video to play
+  if (currentVideo && (currentVideo.youTubeVideoId || currentVideo.embedUrl)) {
+    const isYouTube = currentVideo.provider === 'youtube' || !!currentVideo.youTubeVideoId
+    const ytId = currentVideo.youTubeVideoId || (currentVideo.embedUrl?.match(/embed\/([\w-]{11})/)?.[1])
+
     return (
       <div className="lesson-video-container">
+        {/* Multi-video selector pills when more than 1 video exists */}
+        {videoList.length > 1 && (
+          <div className="video-playlist-tabs" role="tablist" aria-label="Danh sách video bài giảng">
+            {videoList.map((v, idx) => (
+              <button
+                key={v.id || idx}
+                type="button"
+                className={`video-tab-pill ${selectedVideoIndex === idx ? 'active' : ''}`}
+                onClick={() => setSelectedVideoIndex(idx)}
+                role="tab"
+                aria-selected={selectedVideoIndex === idx}
+              >
+                <Video size={13} aria-hidden />
+                <span>Video {idx + 1}: {v.title.length > 35 ? `${v.title.substring(0, 32)}...` : v.title}</span>
+                {v.durationSeconds ? <span className="video-tab-duration">({formatDuration(v.durationSeconds)})</span> : null}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="video-player-frame">
-          <iframe
-            className="video-iframe"
-            src={`https://www.youtube-nocookie.com/embed/${video.youtubeId}?rel=0&modestbranding=1&enablejsapi=1`}
-            title={`Video bài giảng: ${lessonTitle}`}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-          />
+          {isYouTube && ytId ? (
+            <iframe
+              className="video-iframe"
+              src={`https://www.youtube-nocookie.com/embed/${ytId}?rel=0&modestbranding=1&enablejsapi=1`}
+              title={`Video bài giảng: ${currentVideo.title || lessonTitle}`}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          ) : (
+            <video
+              className="video-element"
+              src={currentVideo.embedUrl || currentVideo.sourceUrl}
+              controls
+              playsInline
+            >
+              Trình duyệt không hỗ trợ phát video HTML5.
+            </video>
+          )}
         </div>
+
         <div className="video-metadata-bar">
           <div className="video-info-left">
-            <span className="video-provider-badge">YouTube · Video nhúng</span>
-            {video.durationSeconds && (
-              <span className="video-duration-text">
-                Thời lượng: {formatDuration(video.durationSeconds)}
+            <span className="video-provider-badge">
+              <Play size={11} aria-hidden style={{ fill: 'currentColor' }} />
+              {isYouTube ? 'YouTube GDPT 2018' : 'Bài giảng STUDY_AI'}
+            </span>
+            {currentVideo.description ? (
+              <span className="video-author-badge" title={currentVideo.description}>
+                {currentVideo.description}
               </span>
-            )}
+            ) : null}
+            {currentVideo.durationSeconds ? (
+              <span className="video-duration-text">
+                Thời lượng: {formatDuration(currentVideo.durationSeconds)}
+              </span>
+            ) : null}
           </div>
-          {video.licenseNotice && (
-            <span className="video-license-note">{video.licenseNotice}</span>
-          )}
+          <div className="video-info-right">
+            <span className="video-license-note">{currentVideo.title || lessonTitle}</span>
+            {isYouTube && ytId ? (
+              <a
+                href={`https://www.youtube.com/watch?v=${ytId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-yt-direct-fallback"
+                title="Mở xem trực tiếp trên YouTube"
+              >
+                <ExternalLink size={12} aria-hidden />
+                <span>Xem trên YouTube</span>
+              </a>
+            ) : null}
+          </div>
         </div>
       </div>
     )
   }
 
-  // 2. Direct HTML5 Video Player Mode (for local/custom licensed videos)
-  if (video?.hasVideo && video?.videoUrl) {
+  // CASE 2: External reference link only (e.g. Khan Academy or official web portal)
+  if (effectiveRefUrl && effectiveRefUrl.startsWith('http')) {
     return (
       <div className="lesson-video-container">
-        <div className="video-player-frame html5-player">
-          <video
-            className="video-element"
-            src={video.videoUrl}
-            controls
-            playsInline
-          >
-            Trình duyệt của bạn không hỗ trợ phát video HTML5.
-          </video>
-        </div>
-        <div className="video-metadata-bar">
-          <div className="video-info-left">
-            <span className="video-provider-badge">Bài giảng trực tiếp STUDY_AI</span>
-            {video.durationSeconds && (
-              <span className="video-duration-text">
-                Thời lượng: {formatDuration(video.durationSeconds)}
-              </span>
-            )}
+        <div className="video-ref-compact-card">
+          <div className="video-ref-left">
+            <div className="video-ref-icon">
+              <Tv size={20} aria-hidden />
+            </div>
+            <div>
+              <h4 className="video-ref-title">Bài giảng tham khảo bên ngoài</h4>
+              <p className="video-ref-desc">
+                Bài học có tài liệu video tham khảo tại nền tảng đối tác. Bạn có thể mở liên kết hoặc học lý thuyết KaTeX bên dưới.
+              </p>
+            </div>
           </div>
-          {video.licenseNotice && (
-            <span className="video-license-note">{video.licenseNotice}</span>
-          )}
-        </div>
-      </div>
-    )
-  }
-
-  // 3. Fallback Mode: Video is not licensed for direct embedding / requires Khan Academy link
-  return (
-    <div className="lesson-video-container">
-      <div className="video-player-frame video-fallback-frame">
-        <div className="fallback-backdrop-grid" aria-hidden="true" />
-        <div className="fallback-content">
-          <div className="fallback-badge">
-            <Tv size={15} aria-hidden />
-            <span>CHƯA CÓ VIDEO PHÁT TRỰC TIẾP</span>
-          </div>
-
-          <h3 className="fallback-title">{lessonTitle}</h3>
-
-          <p className="fallback-description">
-            Bài học hiện chưa có video được xác minh và cấu hình để phát trong STUDY_AI. Bạn có thể mở khóa học tham khảo trên Khan Academy hoặc đọc phần lý thuyết bên dưới.
-          </p>
-
-          <div className="fallback-actions">
+          <div className="video-ref-actions">
             <a
               href={effectiveRefUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="btn-khan-ref"
-              title="Mở nguồn tham khảo Khan Academy (có thể là trang tổng quan khóa học)"
+              title="Mở bài giảng tham khảo"
             >
-              <ExternalLink size={16} aria-hidden />
-              <span>Mở khóa học tham khảo Khan Academy</span>
+              <ExternalLink size={14} aria-hidden />
+              <span>Mở bài giảng tham khảo</span>
             </a>
-
             {onSwitchToTheoryTab && (
               <button
                 type="button"
                 className="btn-read-theory"
                 onClick={onSwitchToTheoryTab}
               >
-                <span>Đọc lý thuyết & Công thức KaTeX</span>
+                <span>Học lý thuyết</span>
               </button>
             )}
           </div>
-
-          <div className="fallback-footer-notice">
-            <span>
-              Lưu ý: Liên kết tham khảo có thể dẫn đến trang tổng quan khóa học, không phải video của bài này. Nội dung STUDY_AI cần được kiểm duyệt chuyên môn trước khi sử dụng.
-            </span>
-          </div>
         </div>
       </div>
-    </div>
-  )
+    )
+  }
+
+  // CASE 3: No video and no reference link -> Smart prioritization of Theory, no large empty frame!
+  return null
 }
+
 export default LessonVideoPlayer

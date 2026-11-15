@@ -1,7 +1,7 @@
 import { curriculumService, type LearnerLessonDetail } from '@/services/curriculum.service'
 import { getLessonProgress, saveLessonProgress, LESSON_PROGRESS_STORAGE_KEY } from '@/services/lessonProgress.service'
 import type { LessonProgressState } from '@/types/assessment'
-import type { CourseOutlineChapter, ExampleItem, ExampleStep, FormulaItem, LessonDetail } from '@/types/lesson'
+import type { CourseOutlineChapter, ExampleItem, ExampleStep, FormulaItem, LessonDetail, LessonOutlineItem } from '@/types/lesson'
 
 const LESSON_BOOKMARKS_STORAGE_KEY = 'study_ai.lesson_bookmarks.v1'
 
@@ -134,6 +134,35 @@ function mapLearnerDetailToLessonDetail(
   isCompleted: boolean,
   isBookmarked: boolean
 ): LessonDetail {
+  const mappedVideos = (detail.videos || []).map((v) => ({
+    id: v.id,
+    title: v.title,
+    description: v.description || '',
+    provider: v.provider || 'youtube',
+    sourceUrl: v.sourceUrl,
+    embedUrl: v.embedUrl || null,
+    youTubeVideoId: v.youTubeVideoId || null,
+    durationSeconds: v.durationSeconds || null,
+    thumbnailUrl: v.thumbnailUrl || null,
+  }))
+
+  const firstVideo = mappedVideos.length > 0 ? mappedVideos[0] : null
+  const videoMeta = firstVideo
+    ? {
+        hasVideo: true,
+        videoUrl: firstVideo.embedUrl || firstVideo.sourceUrl,
+        youtubeId: firstVideo.youTubeVideoId || undefined,
+        durationSeconds: firstVideo.durationSeconds || undefined,
+        provider: (firstVideo.provider as any) || 'youtube',
+        sourceReferenceUrl: firstVideo.sourceUrl,
+        licenseNotice: firstVideo.title,
+      }
+    : {
+        hasVideo: false,
+        sourceReferenceUrl: 'https://vi.khanacademy.org/math/toan-lop-12-viet-nam',
+        licenseNotice: 'Nội dung lý thuyết trọng tâm GDPT 2018',
+      }
+
   return {
     id: detail.id,
     courseId: detail.subjectId || courseOrSubjectId,
@@ -148,15 +177,12 @@ function mapLearnerDetailToLessonDetail(
     xp: 50,
     isCompleted,
     isBookmarked,
-    topicId: (detail as any).topicId,
-    topicTitle: (detail as any).topicTitle,
-    contentType: (detail as any).contentType || 'article',
-    video: (detail as any).video || {
-      hasVideo: false,
-      sourceReferenceUrl: 'https://vi.khanacademy.org/math/toan-lop-12-viet-nam',
-      licenseNotice: 'Tham khảo khung khóa học Khan Academy Tiếng Việt',
-    },
-    sourceReferenceUrl: (detail as any).sourceReferenceUrl || 'https://vi.khanacademy.org/math/toan-lop-12-viet-nam',
+    topicId: detail.topicId,
+    topicTitle: detail.topicTitle,
+    contentType: (detail.contentType as any) || 'video',
+    video: videoMeta,
+    videos: mappedVideos,
+    sourceReferenceUrl: firstVideo?.sourceUrl || 'https://vi.khanacademy.org/math/toan-lop-12-viet-nam',
     content: {
       introduction: detail.introduction || '',
       definitions: parseDefinitions(detail.definitions),
@@ -165,10 +191,13 @@ function mapLearnerDetailToLessonDetail(
       importantNotes: parseStringList(detail.importantNotes),
       summaryPoints: parseStringList(detail.summaryPoints),
     },
-    learningObjectives: [
-      `Hiểu rõ và vận dụng kiến thức lý thuyết của ${detail.title}.`,
-      'Vận dụng công thức và phương pháp giải để làm bài tập trắc nghiệm chuẩn đề thi.',
-    ],
+    learningObjectives:
+      detail.learningObjectives && detail.learningObjectives.length > 0
+        ? parseStringList(detail.learningObjectives)
+        : [
+            `Hiểu rõ và vận dụng kiến thức lý thuyết của ${detail.title}.`,
+            'Vận dụng công thức và phương pháp giải để làm bài tập trắc nghiệm chuẩn đề thi.',
+          ],
     curriculumVersion: 'GDPT 2018',
     textbookAlignment: 'general_standard',
   }
@@ -214,10 +243,8 @@ export async function getCourseOutline(courseOrSubjectId: string): Promise<Cours
     const chapters = await curriculumService.getSubjectChapters(courseOrSubjectId)
     const progressMap = getSavedLessonProgressMap()
 
-    return chapters.map((chap) => ({
-      id: chap.id,
-      title: chap.title,
-      lessons: (chap.lessons || []).map((l, idx) => {
+    return chapters.map((chap) => {
+      const mappedLessons: LessonOutlineItem[] = (chap.lessons || []).map((l, idx) => {
         const saved = progressMap[l.id]
         const status: 'completed' | 'in-progress' | 'available' | 'locked' = saved
           ? saved.overallProgress === 100
@@ -233,13 +260,28 @@ export async function getCourseOutline(courseOrSubjectId: string): Promise<Cours
           title: l.title,
           status,
           durationMinutes: 45,
-          topicId: (l as any).topicId,
-          topicTitle: (l as any).topicTitle,
-          contentType: (l as any).contentType || 'article',
-          hasVideo: !!(l as any).hasVideo,
+          topicId: l.topicId,
+          topicTitle: l.topicTitle,
+          contentType: (l.contentType as any) || 'video',
+          hasVideo: !!l.hasVideo,
         }
-      }),
-    }))
+      })
+
+      const mappedTopics = (chap.topics || []).map((t) => ({
+        id: t.id,
+        title: t.title,
+        order: t.orderIndex,
+        lessons: mappedLessons.filter((l) => l.topicId === t.id),
+      }))
+
+      return {
+        id: chap.id,
+        title: chap.title,
+        chapterNumber: chap.orderIndex,
+        topics: mappedTopics.length > 0 ? mappedTopics : undefined,
+        lessons: mappedLessons,
+      }
+    })
   } catch (err: unknown) {
     const status = (err as { status?: number; response?: { status?: number } })?.status ||
       (err as { response?: { status?: number } })?.response?.status

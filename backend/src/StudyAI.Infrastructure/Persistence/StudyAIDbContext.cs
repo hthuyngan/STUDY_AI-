@@ -41,7 +41,11 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
     public DbSet<ContentChapter> ContentChapters => Set<ContentChapter>();
 
+    public DbSet<ContentTopic> ContentTopics => Set<ContentTopic>();
+
     public DbSet<ContentLesson> ContentLessons => Set<ContentLesson>();
+
+    public DbSet<ContentLessonVideo> ContentLessonVideos => Set<ContentLessonVideo>();
 
     public DbSet<ContentAssessment> ContentAssessments => Set<ContentAssessment>();
 
@@ -393,6 +397,16 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
 
 
+            entity.HasMany(e => e.Topics)
+
+                .WithOne(t => t.Chapter)
+
+                .HasForeignKey(t => t.ChapterId)
+
+                .OnDelete(DeleteBehavior.Cascade);
+
+
+
             entity.HasMany(e => e.Lessons)
 
                 .WithOne(l => l.Chapter)
@@ -400,6 +414,48 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
                 .HasForeignKey(l => l.ChapterId)
 
                 .OnDelete(DeleteBehavior.Cascade);
+
+        });
+
+
+
+        // ContentTopic
+
+        modelBuilder.Entity<ContentTopic>(entity =>
+
+        {
+
+            entity.ToTable("content_topics");
+
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id).HasMaxLength(64);
+
+            entity.Property(e => e.ChapterId).HasMaxLength(64).IsRequired();
+
+            entity.Property(e => e.Title).HasMaxLength(255).IsRequired();
+
+            entity.Property(e => e.OrderIndex).HasDefaultValue(0);
+
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            entity.Property(e => e.UpdatedAt).IsRequired();
+
+
+
+            entity.HasIndex(e => e.ChapterId);
+
+
+
+            entity.HasMany(e => e.Lessons)
+
+                .WithOne(l => l.Topic)
+
+                .HasForeignKey(l => l.TopicId)
+
+                .OnDelete(DeleteBehavior.SetNull);
 
         });
 
@@ -419,6 +475,8 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
             entity.Property(e => e.ChapterId).HasMaxLength(64).IsRequired();
 
+            entity.Property(e => e.TopicId).HasMaxLength(64);
+
             entity.Property(e => e.Title).HasMaxLength(255).IsRequired();
 
             entity.Property(e => e.Slug).HasMaxLength(128).IsRequired();
@@ -435,9 +493,21 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
             entity.HasIndex(e => e.ChapterId);
 
+            entity.HasIndex(e => e.TopicId);
+
             entity.HasIndex(e => e.Slug);
 
             entity.HasIndex(e => e.AuthorId);
+
+
+
+            entity.HasMany(e => e.Videos)
+
+                .WithOne(v => v.Lesson)
+
+                .HasForeignKey(v => v.LessonId)
+
+                .OnDelete(DeleteBehavior.Cascade);
 
 
 
@@ -458,6 +528,56 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
                 .HasForeignKey(q => q.LessonId)
 
                 .OnDelete(DeleteBehavior.NoAction);
+
+        });
+
+
+
+        // ContentLessonVideo
+
+        modelBuilder.Entity<ContentLessonVideo>(entity =>
+
+        {
+
+            entity.ToTable("content_lesson_videos");
+
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id).HasMaxLength(64);
+
+            entity.Property(e => e.LessonId).HasMaxLength(64).IsRequired();
+
+            entity.Property(e => e.Title).HasMaxLength(255).IsRequired();
+
+            entity.Property(e => e.Provider).HasMaxLength(64).HasDefaultValue("youtube");
+
+            entity.Property(e => e.SourceUrl).HasMaxLength(500).IsRequired();
+
+            entity.Property(e => e.EmbedUrl).HasMaxLength(500);
+
+            entity.Property(e => e.YouTubeVideoId).HasMaxLength(64);
+
+            entity.Property(e => e.Language).HasMaxLength(16).HasDefaultValue("vi");
+
+            entity.Property(e => e.DurationSeconds).HasDefaultValue(0);
+
+            entity.Property(e => e.ThumbnailUrl).HasMaxLength(500);
+
+            entity.Property(e => e.SortOrder).HasDefaultValue(1);
+
+            entity.Property(e => e.EmbedAllowed).HasDefaultValue(true);
+
+            entity.Property(e => e.VerificationStatus).HasMaxLength(32).HasDefaultValue("verified");
+
+            entity.Property(e => e.IsPublished).HasDefaultValue(true);
+
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            entity.Property(e => e.UpdatedAt).IsRequired();
+
+
+
+            entity.HasIndex(e => e.LessonId);
 
         });
 

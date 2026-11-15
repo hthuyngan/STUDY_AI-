@@ -103,6 +103,17 @@ export interface LessonDetail {
   assessmentId?: string
   contentType?: 'video' | 'article' | 'exercise' | 'test'
   video?: LessonVideoMetadata
+  videos?: Array<{
+    id: string
+    title: string
+    description?: string
+    provider: string
+    sourceUrl: string
+    embedUrl?: string | null
+    youTubeVideoId?: string | null
+    durationSeconds?: number | null
+    thumbnailUrl?: string | null
+  }>
   sourceReferenceUrl?: string
   content: LessonContent
   previousLessonId?: string

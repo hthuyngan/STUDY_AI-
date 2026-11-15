@@ -100,7 +100,7 @@ function mapBackendDtoToQuestionItem(dto: BackendQuestionDto, index: number): Qu
     explanation: '', // Zero-leak placeholder before submit
     reviewStatus: 'approved',
     options,
-    correctAnswer: '', // Unknown until the server returns the graded result
+    correctAnswer: 'A' as const, // Unknown until the server returns the graded result
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }
@@ -116,13 +116,6 @@ export class PracticeService {
   ) {
     this.practiceRepo = practiceRepo
     this.qbRepo = qbRepo
-  }
-
-  private generateSessionId(): string {
-    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-      return `sess_${crypto.randomUUID()}`
-    }
-    return `sess_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
   }
 
   async getAvailableQuestions(config: PracticeSetupConfig): Promise<QuestionItem[]> {
@@ -181,7 +174,8 @@ export class PracticeService {
         return session
       }
     } catch (error) {
-      throw new Error('Không thể tạo phiên luyện tập từ máy chủ. Vui lòng kiểm tra kết nối và thử lại.', { cause: error })
+      console.error(error)
+      throw new Error('Không thể tạo phiên luyện tập từ máy chủ. Vui lòng kiểm tra kết nối và thử lại.')
     }
 
     // Offline fallback is disabled for production sessions.
@@ -331,7 +325,8 @@ export class PracticeService {
         return result
       }
     } catch (error) {
-      throw new Error('Không thể chấm bài trên máy chủ. Bài làm chưa được xác nhận đã nộp.', { cause: error })
+      console.error(error)
+      throw new Error('Không thể chấm bài trên máy chủ. Bài làm chưa được xác nhận đã nộp.')
     }
 
     throw new Error('Máy chủ không trả về kết quả chấm bài hợp lệ.')
