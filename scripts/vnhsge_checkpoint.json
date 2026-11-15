@@ -1,0 +1,11 @@
+{
+  "lastCompletedBatchIndex": 68,
+  "lastCompletedBatchNumber": 69,
+  "totalBatches": 69,
+  "batchSize": 250,
+  "lastBatchId": "batch_0abbcaa4c334",
+  "sessionNewImported": 3295,
+  "sessionNewDuplicates": 13259,
+  "sessionNewErrors": 0,
+  "updatedAt": "2026-11-15T07:04:44.771Z"
+}

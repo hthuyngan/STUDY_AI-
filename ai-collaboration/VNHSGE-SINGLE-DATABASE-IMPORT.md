@@ -207,3 +207,4 @@ Hệ thống đã dừng lại tại Cổng Phê Duyệt An Toàn. Để tiến 
    - **Lựa chọn C:** Chỉ import môn Toán 12 chính thức (300 câu).
 2. **Xác nhận thực hiện sao lưu và import vào `StudyAIDb`:**
    - Khi bạn gõ lệnh phê duyệt (ví dụ: *"Đồng ý import Lựa chọn A vào StudyAIDb"*), tôi sẽ tiến hành sao lưu và thực thi quy trình theo đúng cam kết an toàn.
+

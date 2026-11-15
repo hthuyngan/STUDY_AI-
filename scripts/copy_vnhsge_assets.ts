@@ -50,3 +50,4 @@ copyAssets().catch(err => {
   console.error('Error copying assets:', err)
   process.exit(1)
 })
+
