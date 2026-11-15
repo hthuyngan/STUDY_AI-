@@ -330,8 +330,17 @@ export const PracticeQuestionCard: React.FC<PracticeQuestionCardProps> = ({
 
               {!hintLoading && !hintError && hintData && (
                 <div className="hint-result-box">
-                  <div className="hint-title-row">
+                  <div className="hint-title-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                     <strong>{hintData.hintLevelName}</strong>
+                    {hintData.isFallback ? (
+                      <span className="hint-fallback-badge" style={{ fontSize: '0.72rem', background: '#f1f5f9', color: '#64748b', padding: '2px 8px', borderRadius: 12, fontWeight: 500 }}>
+                        Quy tắc Socratic Fallback
+                      </span>
+                    ) : (
+                      <span className="hint-live-badge" style={{ fontSize: '0.72rem', background: '#ecfdf5', color: '#059669', padding: '2px 8px', borderRadius: 12, fontWeight: 500 }}>
+                        AI Live: {hintData.provider || 'OpenAI'}
+                      </span>
+                    )}
                   </div>
                   <div className="hint-text-body">
                     <MathView math={hintData.hintText} />

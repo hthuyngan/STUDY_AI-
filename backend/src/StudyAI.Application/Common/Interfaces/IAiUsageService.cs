@@ -29,3 +29,4 @@ public interface IAiUsageService
     AiFeatureConfigDto GetFeatureConfig();
     void SetFeatureToggle(string feature, bool enabled);
 }
+

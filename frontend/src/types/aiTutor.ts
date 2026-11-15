@@ -103,6 +103,8 @@ export interface HintResponse {
   hintText: string
   mathFormulas: string[]
   suggestedNextSteps: string[]
+  provider?: string
+  isFallback?: boolean
 }
 
 export interface QuestionErrorDetail {

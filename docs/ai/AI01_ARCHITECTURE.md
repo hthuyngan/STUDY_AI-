@@ -165,3 +165,4 @@ Lưu vết các đề xuất bài học tiếp theo và bài ôn củng cố:
 - **Module E**: Nâng cấp Frontend (Khay AI Hint trong `PracticeQuestionCard`, AI Error Analysis trong `PracticeResultPage`, Dashboard Mastery & Learning Path, Trang Quản trị AI).
 - **Module F**: Kiểm thử hồi quy và E2E bằng Playwright, xác minh toàn bộ luồng học viên.
 - **Module G**: Commit Git, push nhánh `feature/ai-core-v1` và lập báo cáo `docs/ai/AI01_IMPLEMENTATION_REPORT.md`.
+

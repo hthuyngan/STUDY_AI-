@@ -100,3 +100,4 @@ public class AiLearningRecommendationDto
     public string Status { get; set; } = "pending";
     public DateTimeOffset CreatedAt { get; set; }
 }
+

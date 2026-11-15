@@ -145,10 +145,15 @@ public class LearningRecommendationService : ILearningRecommendationService
 
         var recommendations = await GetRecommendationsAsync(userId, effectiveSubjectId, cancellationToken);
 
+        var masteryResult = await _masteryService.GetStudentMasteryAsync(userId, effectiveSubjectId, cancellationToken);
+        bool hasInsufficientData = masteryResult.Skills.Count == 0 || masteryResult.Skills.All(s => s.Status == "insufficient_data");
+
         var steps = new List<AdaptiveStepDto>();
         int stepNum = 1;
-        string currentStage = "progressing";
-        string stageDesc = "Đang tiến bước trong lộ trình học tập Toán 12 chuẩn GDPT 2018.";
+        string currentStage = hasInsufficientData ? "standard_curriculum" : "progressing";
+        string stageDesc = hasInsufficientData
+            ? "Chưa đủ dữ liệu bài làm để cá nhân hóa chuyên sâu. Hãy hoàn thành các bài học và bài luyện tập tiếp theo theo phân phối chương trình chuẩn GDPT 2018."
+            : "Đang tiến bước trong lộ trình học tập Toán 12 chuẩn GDPT 2018.";
 
         var highPriority = recommendations.Where(r => r.Priority == "high").ToList();
         if (highPriority.Count > 0)
@@ -224,3 +229,4 @@ public class LearningRecommendationService : ILearningRecommendationService
         };
     }
 }
+

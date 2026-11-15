@@ -12,3 +12,4 @@ public interface IAiHintService
         string? mode = null,
         CancellationToken cancellationToken = default);
 }
+

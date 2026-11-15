@@ -78,6 +78,106 @@ public class AiIntelligenceUnitTests
     }
 
     [Fact]
+    public async Task AiHintService_BlocksHints_WhenSessionModeInDbIsExam_EvenIfFrontendSendsPractice()
+    {
+        using var db = CreateInMemoryDb(nameof(AiHintService_BlocksHints_WhenSessionModeInDbIsExam_EvenIfFrontendSendsPractice));
+        var config = new ConfigurationBuilder().Build();
+        var usageService = new AiUsageService(db, new FakeLlmProvider(), config, NullLogger<AiUsageService>.Instance);
+        var hintService = new AiHintService(db, usageService, NullLogger<AiHintService>.Instance);
+
+        db.AssessmentAttempts.Add(new AssessmentAttempt
+        {
+            Id = "sess_exam_123",
+            UserId = "usr_student1",
+            AssessmentId = "asmt_exam",
+            CompletionStatus = "in_progress",
+            SuspendDataJson = "{\"mode\":\"exam\"}"
+        });
+        db.ContentQuestions.Add(new ContentQuestion
+        {
+            Id = "q_exam_1",
+            Prompt = "Tính tích phân $\\int_0^1 x dx$",
+            CorrectAnswer = "A"
+        });
+        await db.SaveChangesAsync();
+
+        // Frontend fraudulently claims mode is "practice", but DB shows it's an exam session
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            hintService.GetHintAsync("usr_student1", "q_exam_1", 1, sessionId: "sess_exam_123", mode: "practice"));
+    }
+
+    [Fact]
+    public async Task AiHintService_EnforcesSessionUserIsolation()
+    {
+        using var db = CreateInMemoryDb(nameof(AiHintService_EnforcesSessionUserIsolation));
+        var config = new ConfigurationBuilder().Build();
+        var usageService = new AiUsageService(db, new FakeLlmProvider(), config, NullLogger<AiUsageService>.Instance);
+        var hintService = new AiHintService(db, usageService, NullLogger<AiHintService>.Instance);
+
+        db.AssessmentAttempts.Add(new AssessmentAttempt
+        {
+            Id = "sess_user_a",
+            UserId = "usr_legit_owner",
+            AssessmentId = "asmt_practice",
+            CompletionStatus = "in_progress"
+        });
+        db.ContentQuestions.Add(new ContentQuestion
+        {
+            Id = "q_calc_isolate",
+            Prompt = "Cho hàm số $y = x^2$",
+            CorrectAnswer = "B"
+        });
+        await db.SaveChangesAsync();
+
+        // Attacker attempts to request hint for another user's session
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            hintService.GetHintAsync("usr_attacker", "q_calc_isolate", 1, sessionId: "sess_user_a"));
+    }
+
+    [Fact]
+    public async Task AiHintService_TopicAdaptedHints_GeneratesFormulasForOxyzAndIntegrals()
+    {
+        using var db = CreateInMemoryDb(nameof(AiHintService_TopicAdaptedHints_GeneratesFormulasForOxyzAndIntegrals));
+        var config = new ConfigurationBuilder().Build();
+        var usageService = new AiUsageService(db, new FakeLlmProvider(), config, NullLogger<AiUsageService>.Instance);
+        var hintService = new AiHintService(db, usageService, NullLogger<AiHintService>.Instance);
+
+        db.ContentQuestions.Add(new ContentQuestion
+        {
+            Id = "q_oxyz_1",
+            Prompt = "Trong không gian $Oxyz$, viết phương trình mặt phẳng $(P)$ đi qua $A(1;0;2)$ có vectơ pháp tuyến $\\vec{n} = (1;2;3)$.",
+            Topic = "Phương trình mặt phẳng Oxyz",
+            Difficulty = "medium",
+            CorrectAnswer = "C",
+            Explanation = "Áp dụng phương trình tổng quát mặt phẳng."
+        });
+
+        db.ContentQuestions.Add(new ContentQuestion
+        {
+            Id = "q_integral_1",
+            Prompt = "Tính nguyên hàm $\\int x e^x dx$.",
+            Topic = "Nguyên hàm và Tích phân",
+            Difficulty = "hard",
+            CorrectAnswer = "A",
+            Explanation = "Dùng phương pháp từng phần: đặt u = x, dv = e^x dx."
+        });
+        await db.SaveChangesAsync();
+
+        // Check Oxyz hints
+        var oxyzHint1 = await hintService.GetHintAsync("usr_student1", "q_oxyz_1", 1);
+        Assert.Contains("không gian", oxyzHint1.HintText);
+        Assert.Contains(oxyzHint1.MathFormulas, f => f.Contains("vec{n}") || f.Contains("vec{u}"));
+
+        var oxyzHint2 = await hintService.GetHintAsync("usr_student1", "q_oxyz_1", 2);
+        Assert.Contains("tích có hướng", oxyzHint2.HintText);
+
+        // Check Integral hints
+        var intHint2 = await hintService.GetHintAsync("usr_student1", "q_integral_1", 2);
+        Assert.Contains("từng phần", intHint2.HintText);
+        Assert.Contains(intHint2.MathFormulas, f => f.Contains("\\int u dv"));
+    }
+
+    [Fact]
     public async Task AiHintService_GeneratesThreeLevels_WithKaTeX_AndNoLeak()
     {
         using var db = CreateInMemoryDb(nameof(AiHintService_GeneratesThreeLevels_WithKaTeX_AndNoLeak));
@@ -113,6 +213,7 @@ public class AiIntelligenceUnitTests
         var h3 = await hintService.GetHintAsync("usr_student1", "q_calc1", 3);
         Assert.Equal(3, h3.HintLevel);
         Assert.Contains("Tính đạo hàm", h3.HintText);
+        Assert.DoesNotContain("Đáp án A", h3.HintText);
 
         // Verify hint usage was logged into db
         var hintLog = await db.AiHintUsages.FirstOrDefaultAsync(h => h.UserId == "usr_student1" && h.QuestionId == "q_calc1");
@@ -139,6 +240,7 @@ public class AiIntelligenceUnitTests
             Id = "att_test123",
             UserId = "usr_real_owner",
             SubjectId = "sub_math12",
+            CompletionStatus = "completed",
             ScoreRaw = 5.0,
             ScoreScaled = 50.0,
             Responses = new List<AssessmentResponse>
@@ -164,6 +266,147 @@ public class AiIntelligenceUnitTests
         Assert.Equal("q_2", analysis.AnalyzedErrors[0].QuestionId);
         Assert.Contains("Cực trị", analysis.KeyConceptsToReview);
         Assert.NotEmpty(analysis.OverallAssessment);
+        Assert.Contains("Khả năng cao do", analysis.AnalyzedErrors[0].LikelyCause);
+    }
+
+    [Fact]
+    public async Task AiAnalysisService_RequiresCompletedAttempt()
+    {
+        using var db = CreateInMemoryDb(nameof(AiAnalysisService_RequiresCompletedAttempt));
+        var config = new ConfigurationBuilder().Build();
+        var usageService = new AiUsageService(db, new FakeLlmProvider(), config, NullLogger<AiUsageService>.Instance);
+        var analysisService = new AiAnalysisService(db, usageService, NullLogger<AiAnalysisService>.Instance);
+
+        db.AssessmentAttempts.Add(new AssessmentAttempt
+        {
+            Id = "att_in_progress",
+            UserId = "usr_student_active",
+            CompletionStatus = "in_progress",
+            Responses = new List<AssessmentResponse>
+            {
+                new() { QuestionId = "q_1", IsCorrect = false }
+            }
+        });
+        await db.SaveChangesAsync();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            analysisService.AnalyzeSessionErrorsAsync("usr_student_active", "att_in_progress"));
+    }
+
+    [Fact]
+    public async Task StudentMasteryService_IsStrictlyIdempotent_DoesNotDoubleCountSameAttempt()
+    {
+        using var db = CreateInMemoryDb(nameof(StudentMasteryService_IsStrictlyIdempotent_DoesNotDoubleCountSameAttempt));
+        var masteryService = new StudentMasteryService(db, NullLogger<StudentMasteryService>.Instance);
+
+        var q1 = new ContentQuestion { Id = "q_idemp_1", Topic = "Hàm số mũ", Difficulty = "medium" };
+        var q2 = new ContentQuestion { Id = "q_idemp_2", Topic = "Hàm số mũ", Difficulty = "medium" };
+        var q3 = new ContentQuestion { Id = "q_idemp_3", Topic = "Hàm số mũ", Difficulty = "medium" };
+        db.ContentQuestions.AddRange(q1, q2, q3);
+
+        var attempt = new AssessmentAttempt
+        {
+            Id = "att_idemp_100",
+            UserId = "usr_student_idemp",
+            SubjectId = "sub_math12",
+            CompletionStatus = "completed",
+            ScoreScaled = 10.0,
+            Responses = new List<AssessmentResponse>
+            {
+                new() { QuestionId = "q_idemp_1", IsCorrect = true },
+                new() { QuestionId = "q_idemp_2", IsCorrect = true },
+                new() { QuestionId = "q_idemp_3", IsCorrect = true }
+            }
+        };
+        db.AssessmentAttempts.Add(attempt);
+        await db.SaveChangesAsync();
+
+        // First call
+        await masteryService.UpdateMasteryFromAttemptAsync("usr_student_idemp", "att_idemp_100");
+
+        var masteryAfterFirst = await db.StudentTopicMasteries
+            .FirstOrDefaultAsync(m => m.UserId == "usr_student_idemp" && m.TopicName == "Hàm số mũ");
+        Assert.NotNull(masteryAfterFirst);
+        Assert.Equal(3, masteryAfterFirst.AttemptCount);
+        Assert.Equal(3, masteryAfterFirst.CorrectCount);
+
+        // Second call with same attempt (e.g. duplicate request)
+        await masteryService.UpdateMasteryFromAttemptAsync("usr_student_idemp", "att_idemp_100");
+
+        var masteryAfterSecond = await db.StudentTopicMasteries
+            .FirstOrDefaultAsync(m => m.UserId == "usr_student_idemp" && m.TopicName == "Hàm số mũ");
+        Assert.NotNull(masteryAfterSecond);
+        // AttemptCount MUST remain 3, not double to 6!
+        Assert.Equal(3, masteryAfterSecond.AttemptCount);
+        Assert.Equal(3, masteryAfterSecond.CorrectCount);
+    }
+
+    [Fact]
+    public async Task StudentMasteryService_ScopesHintsStrictlyToCurrentSession()
+    {
+        using var db = CreateInMemoryDb(nameof(StudentMasteryService_ScopesHintsStrictlyToCurrentSession));
+        var masteryService = new StudentMasteryService(db, NullLogger<StudentMasteryService>.Instance);
+
+        var q = new ContentQuestion { Id = "q_scoped_hint", Topic = "Nguyên hàm", Difficulty = "medium" };
+        db.ContentQuestions.Add(q);
+
+        // Hint was used in past Session A
+        db.AiHintUsages.Add(new AiHintUsage
+        {
+            Id = "h_old",
+            UserId = "usr_student_hints",
+            QuestionId = "q_scoped_hint",
+            SessionId = "sess_old_A",
+            HintLevel = 1
+        });
+
+        // Now student does Session B on the same question, but asks 0 hints in Session B!
+        var attemptB = new AssessmentAttempt
+        {
+            Id = "sess_new_B",
+            UserId = "usr_student_hints",
+            SubjectId = "sub_math12",
+            CompletionStatus = "completed",
+            ScoreScaled = 10.0,
+            Responses = new List<AssessmentResponse>
+            {
+                new() { QuestionId = "q_scoped_hint", IsCorrect = true }
+            }
+        };
+        db.AssessmentAttempts.Add(attemptB);
+        await db.SaveChangesAsync();
+
+        await masteryService.UpdateMasteryFromAttemptAsync("usr_student_hints", "sess_new_B");
+
+        var mastery = await db.StudentTopicMasteries
+            .FirstOrDefaultAsync(m => m.UserId == "usr_student_hints" && m.TopicName == "Nguyên hàm");
+        Assert.NotNull(mastery);
+        // HintCount for this attempt session MUST be 0, not 1!
+        Assert.Equal(0, mastery.HintCount);
+    }
+
+    [Fact]
+    public async Task StudentMasteryService_EnforcesUserIsolation_CannotProcessAnotherUsersAttempt()
+    {
+        using var db = CreateInMemoryDb(nameof(StudentMasteryService_EnforcesUserIsolation_CannotProcessAnotherUsersAttempt));
+        var masteryService = new StudentMasteryService(db, NullLogger<StudentMasteryService>.Instance);
+
+        db.AssessmentAttempts.Add(new AssessmentAttempt
+        {
+            Id = "att_user_x",
+            UserId = "usr_student_X",
+            SubjectId = "sub_math12",
+            CompletionStatus = "completed",
+            ScoreScaled = 8.0,
+            Responses = new List<AssessmentResponse>
+            {
+                new() { QuestionId = "q_1", IsCorrect = true }
+            }
+        });
+        await db.SaveChangesAsync();
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            masteryService.UpdateMasteryFromAttemptAsync("usr_student_Y", "att_user_x"));
     }
 
     [Fact]
@@ -185,6 +428,8 @@ public class AiIntelligenceUnitTests
             Id = "att_mst1",
             UserId = "usr_studentA",
             SubjectId = "sub_math12",
+            CompletionStatus = "completed",
+            ScoreScaled = 10.0,
             Responses = new List<AssessmentResponse>
             {
                 new() { QuestionId = "q_m1", IsCorrect = true },
@@ -247,5 +492,6 @@ public class AiIntelligenceUnitTests
         var path = await recService.GetLearningPathAsync("usr_studentB", "sub_math12");
         Assert.NotNull(path);
         Assert.NotEmpty(path.Steps);
+        Assert.Equal("standard_curriculum", path.CurrentStage);
     }
 }

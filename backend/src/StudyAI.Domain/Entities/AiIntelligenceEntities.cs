@@ -65,3 +65,4 @@ public class AiLearningRecommendation
     public User? User { get; set; }
     public ContentLesson? Lesson { get; set; }
 }
+

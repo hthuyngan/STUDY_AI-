@@ -118,3 +118,4 @@ Toàn bộ mục tiêu của **Phase AI-01** đã hoàn thành đạt chuẩn k�
 2. Không để lộ khóa API trong mã nguồn (sử dụng cấu hình môi trường bảo mật).
 3. Loại bỏ dứt điểm popup đồng bộ tiến độ không mong muốn.
 4. Sẵn sàng tích hợp trực tiếp với OpenAI/Anthropic/DeepSeek thông qua cấu hình `STUDY_AI_LLM_API_KEY` khi triển khai production, đồng thời cung cấp sẵn bộ engine sư phạm mô phỏng hoạt động độc lập không phụ thuộc mạng ngoài.
+

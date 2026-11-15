@@ -77,20 +77,29 @@ public class OpenAiLlmProvider : ILlmProvider
         httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
         httpRequest.Content = jsonContent;
 
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(request.CancellationToken);
+        cts.CancelAfter(TimeSpan.FromSeconds(25));
+
         try
         {
-            using var response = await _httpClient.SendAsync(httpRequest, request.CancellationToken);
+            using var response = await _httpClient.SendAsync(httpRequest, cts.Token);
 
             if (!response.IsSuccessStatusCode)
             {
-                var errorText = await response.Content.ReadAsStringAsync(request.CancellationToken);
+                var errorText = await response.Content.ReadAsStringAsync(cts.Token);
                 var safeErrorText = MaskSensitiveData(errorText);
                 _logger.LogError("LLM Provider returned error HTTP {StatusCode}: {ErrorText}", response.StatusCode, safeErrorText);
+
+                if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+                {
+                    throw new HttpRequestException("Hệ thống LLM đang bị giới hạn tần suất yêu cầu (Rate Limit - 429). Vui lòng thử lại sau.");
+                }
+
                 throw new HttpRequestException($"Lỗi từ nhà cung cấp dịch vụ LLM: HTTP {(int)response.StatusCode} {response.ReasonPhrase}");
             }
 
-            var responseStream = await response.Content.ReadAsStreamAsync(request.CancellationToken);
-            using var doc = await JsonDocument.ParseAsync(responseStream, cancellationToken: request.CancellationToken);
+            var responseStream = await response.Content.ReadAsStreamAsync(cts.Token);
+            using var doc = await JsonDocument.ParseAsync(responseStream, cancellationToken: cts.Token);
 
             var root = doc.RootElement;
             var choice = root.GetProperty("choices")[0];
@@ -111,6 +120,11 @@ public class OpenAiLlmProvider : ILlmProvider
                 CompletionTokens: completionTokens,
                 Provider: ProviderName
             );
+        }
+        catch (OperationCanceledException) when (cts.IsCancellationRequested && !request.CancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning("LLM request timed out after 25 seconds.");
+            throw new TimeoutException("Thời gian phản hồi từ nhà cung cấp dịch vụ LLM đã vượt quá giới hạn cho phép (25s).");
         }
         catch (OperationCanceledException) when (request.CancellationToken.IsCancellationRequested)
         {

@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using StudyAI.Application.Common.Interfaces;
@@ -36,7 +37,7 @@ public class StudentMasteryService : IStudentMasteryService
             };
         }
 
-        // 1. Check existing records in student_topic_mastery
+        // 1. Check existing records in persistent student_topic_mastery table
         var masteriesQuery = _context.StudentTopicMasteries
             .AsNoTracking()
             .Where(m => m.UserId == userId);
@@ -48,7 +49,7 @@ public class StudentMasteryService : IStudentMasteryService
 
         var savedMasteries = await masteriesQuery.ToListAsync(cancellationToken);
 
-        // If no records in persistent table yet, compute from AssessmentResponses
+        // If no records in persistent table yet, compute from completed AssessmentResponses
         if (savedMasteries.Count == 0)
         {
             await ComputeAndPersistAllMasteriesAsync(userId, subjectId, cancellationToken);
@@ -87,12 +88,44 @@ public class StudentMasteryService : IStudentMasteryService
     {
         if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(attemptId)) return;
 
+        // Fetch attempt with tracking to allow atomic idempotency flag update
         var attempt = await _context.AssessmentAttempts
-            .AsNoTracking()
             .Include(a => a.Responses)
             .FirstOrDefaultAsync(a => a.Id == attemptId, cancellationToken);
 
         if (attempt == null || attempt.Responses.Count == 0) return;
+
+        // 1. User Isolation Guard: Prevent updating mastery of the wrong user
+        if (!string.Equals(attempt.UserId, userId, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new UnauthorizedAccessException($"Attempt '{attemptId}' does not belong to user '{userId}'.");
+        }
+
+        // 2. Status & Scoring Guard: Only completed, graded attempts can contribute to student mastery
+        if (attempt.CompletionStatus != "completed" || !attempt.ScoreScaled.HasValue)
+        {
+            _logger.LogWarning("Attempt {AttemptId} is not completed or scored. Status: {Status}", attemptId, attempt.CompletionStatus);
+            return;
+        }
+
+        // 3. Idempotency Guard: Check if this attempt has already been processed for mastery
+        JsonObject suspendNode;
+        try
+        {
+            suspendNode = !string.IsNullOrWhiteSpace(attempt.SuspendDataJson)
+                ? (JsonNode.Parse(attempt.SuspendDataJson) as JsonObject ?? new JsonObject())
+                : new JsonObject();
+        }
+        catch
+        {
+            suspendNode = new JsonObject();
+        }
+
+        if (suspendNode["masteryProcessed"]?.GetValue<bool>() == true)
+        {
+            _logger.LogInformation("Attempt {AttemptId} has already been processed for mastery. Skipping idempotent update.", attemptId);
+            return;
+        }
 
         var questionIds = attempt.Responses.Select(r => r.QuestionId).Distinct().ToList();
         var questions = await _context.ContentQuestions.AsNoTracking()
@@ -112,9 +145,9 @@ public class StudentMasteryService : IStudentMasteryService
             var topicName = group.Key;
             var groupQuestionIds = group.Select(r => r.QuestionId).ToList();
 
-            // Count hint usage for this student & these questions
+            // 4. Scoped Hint Counting: ONLY count hints used in THIS specific attempt session
             int hintCount = await _context.AiHintUsages
-                .CountAsync(h => h.UserId == userId && groupQuestionIds.Contains(h.QuestionId), cancellationToken);
+                .CountAsync(h => h.UserId == userId && h.SessionId == attemptId && groupQuestionIds.Contains(h.QuestionId), cancellationToken);
 
             var existing = await _context.StudentTopicMasteries
                 .FirstOrDefaultAsync(m => m.UserId == userId && m.SubjectId == subjectId && m.TopicName == topicName, cancellationToken);
@@ -155,6 +188,10 @@ public class StudentMasteryService : IStudentMasteryService
             }
         }
 
+        // 5. Mark attempt as processed to guarantee strict idempotency
+        suspendNode["masteryProcessed"] = true;
+        attempt.SuspendDataJson = suspendNode.ToJsonString();
+
         await _context.SaveChangesAsync(cancellationToken);
     }
 
@@ -163,9 +200,10 @@ public class StudentMasteryService : IStudentMasteryService
         string? subjectId,
         CancellationToken cancellationToken)
     {
+        // Only include completed and graded attempts
         var responsesQuery = _context.AssessmentResponses.AsNoTracking()
             .Include(r => r.Attempt)
-            .Where(r => r.Attempt != null && r.Attempt.UserId == userId);
+            .Where(r => r.Attempt != null && r.Attempt.UserId == userId && r.Attempt.CompletionStatus == "completed");
 
         if (!string.IsNullOrWhiteSpace(subjectId) && subjectId != "all")
         {
@@ -181,6 +219,7 @@ public class StudentMasteryService : IStudentMasteryService
             .ToDictionaryAsync(q => q.Id, cancellationToken);
 
         var effectiveSubjectId = subjectId ?? "sub_math12";
+        var completedAttemptIds = responses.Select(r => r.AttemptId).Distinct().ToList();
 
         var groups = responses
             .GroupBy(r => questions.TryGetValue(r.QuestionId, out var q) && !string.IsNullOrWhiteSpace(q.Topic)
@@ -192,8 +231,9 @@ public class StudentMasteryService : IStudentMasteryService
             var topicName = group.Key;
             var groupQuestionIds = group.Select(r => r.QuestionId).ToList();
 
+            // Count hints strictly scoped to these completed attempts
             int hintCount = await _context.AiHintUsages
-                .CountAsync(h => h.UserId == userId && groupQuestionIds.Contains(h.QuestionId), cancellationToken);
+                .CountAsync(h => h.UserId == userId && h.SessionId != null && completedAttemptIds.Contains(h.SessionId) && groupQuestionIds.Contains(h.QuestionId), cancellationToken);
 
             int total = group.Count();
             int correct = group.Count(r => r.IsCorrect == true);
@@ -228,7 +268,7 @@ public class StudentMasteryService : IStudentMasteryService
         }
     }
 
-    private static (double Score, string Status) CalculateScoreAndStatus(int attemptCount, int correctCount, int hintCount)
+    public static (double Score, string Status) CalculateScoreAndStatus(int attemptCount, int correctCount, int hintCount)
     {
         if (attemptCount < 3)
         {

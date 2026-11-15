@@ -15,6 +15,8 @@ public class HintResponseDto
     public string HintText { get; set; } = string.Empty;
     public List<string> MathFormulas { get; set; } = new();
     public List<string> SuggestedNextSteps { get; set; } = new();
+    public string Provider { get; set; } = "RuleBasedSocraticFallback";
+    public bool IsFallback { get; set; } = true;
 }
 
 public class CognitiveBreakdownDto

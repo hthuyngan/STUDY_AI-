@@ -14,3 +14,4 @@ public interface ILearningRecommendationService
         string? subjectId = null,
         CancellationToken cancellationToken = default);
 }
+

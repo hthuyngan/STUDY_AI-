@@ -57,6 +57,12 @@ public class AiAnalysisService : IAiAnalysisService
             throw new UnauthorizedAccessException("Bạn không có quyền xem phân tích bài làm của học sinh khác.");
         }
 
+        // Attempt Completion status validation: prevent leaking answers on in-progress tests
+        if (attempt.CompletionStatus != "completed")
+        {
+            throw new InvalidOperationException("Không thể phân tích lỗi sai khi bài làm chưa được nộp và chấm điểm hoàn tất.");
+        }
+
         var responses = attempt.Responses.ToList();
         var questionIds = responses.Select(r => r.QuestionId).Distinct().ToList();
 
@@ -89,26 +95,26 @@ public class AiAnalysisService : IAiAnalysisService
                 practiceSuggestions.Add($"Ôn lại lý thuyết bài \"{lessonTitle}\"");
             }
 
-            // Deduce likely cause based on difficulty and explanation
+            // Distinguish: verified incorrect answer vs hypothesized likely cause vs pedagogical review advice
             string likelyCause;
-            string classification = "deducible";
+            string classification;
 
             if (string.Equals(q.Difficulty, "easy", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(q.Difficulty, "nhan_biet", StringComparison.OrdinalIgnoreCase))
             {
-                likelyCause = "Nhầm lẫn định nghĩa cơ bản hoặc đọc lướt qua điều kiện giả thiết của đề bài.";
-                classification = "verified";
+                likelyCause = "Khả năng cao do nhầm lẫn định nghĩa cơ bản hoặc đọc lướt qua điều kiện giả thiết của đề bài.";
+                classification = "verified"; // Sai sót nhận thức ở mức cơ bản
             }
             else if (string.Equals(q.Difficulty, "hard", StringComparison.OrdinalIgnoreCase) ||
                      string.Equals(q.Difficulty, "van_dung_cao", StringComparison.OrdinalIgnoreCase))
             {
-                likelyCause = "Chưa nhận diện được phương pháp giải quyết tối ưu hoặc biến đổi đại số phức tạp bị thiếu trường hợp.";
-                classification = "hypothesized";
+                likelyCause = "Khả năng cao do chưa nhận diện được phương pháp giải quyết tối ưu hoặc biến đổi đại số phức tạp bị thiếu trường hợp.";
+                classification = "hypothesized"; // Nguyên nhân giả định dựa trên cấu trúc bài toán vận dụng
             }
             else
             {
-                likelyCause = "Sai sót trong bước thế số hoặc chưa nắm vững công thức biến đổi tương đương.";
-                classification = "deducible";
+                likelyCause = "Khả năng cao do sai sót trong bước thế số hoặc chưa nắm vững công thức biến đổi tương đương.";
+                classification = "deducible"; // Suy luận hợp lý từ dữ liệu trả lời
             }
 
             var correctMethod = !string.IsNullOrWhiteSpace(q.Explanation)
