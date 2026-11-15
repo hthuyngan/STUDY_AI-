@@ -44,7 +44,7 @@ export const LessonVideoPlayer: React.FC<LessonVideoPlayerProps> = ({
         </div>
         <div className="video-metadata-bar">
           <div className="video-info-left">
-            <span className="video-provider-badge">YouTube · Giấy phép mở</span>
+            <span className="video-provider-badge">YouTube · Video nhúng</span>
             {video.durationSeconds && (
               <span className="video-duration-text">
                 Thời lượng: {formatDuration(video.durationSeconds)}
@@ -98,13 +98,13 @@ export const LessonVideoPlayer: React.FC<LessonVideoPlayerProps> = ({
         <div className="fallback-content">
           <div className="fallback-badge">
             <Tv size={15} aria-hidden />
-            <span>VIDEO THAM KHẢO THEO KHÓA HỌC KHAN ACADEMY</span>
+            <span>CHƯA CÓ VIDEO PHÁT TRỰC TIẾP</span>
           </div>
 
           <h3 className="fallback-title">{lessonTitle}</h3>
 
           <p className="fallback-description">
-            Bài giảng này được thiết kế theo cấu trúc khóa học <strong>Toán lớp 12 (Việt Nam)</strong> trên nền tảng Khan Academy. Nhằm tôn trọng bản quyền sở hữu trí tuệ của đơn vị phát hành, video không tải về máy chủ nội bộ.
+            Bài học hiện chưa có video được xác minh và cấu hình để phát trong STUDY_AI. Bạn có thể mở khóa học tham khảo trên Khan Academy hoặc đọc phần lý thuyết bên dưới.
           </p>
 
           <div className="fallback-actions">
@@ -113,10 +113,10 @@ export const LessonVideoPlayer: React.FC<LessonVideoPlayerProps> = ({
               target="_blank"
               rel="noopener noreferrer"
               className="btn-khan-ref"
-              title="Mở bài giảng chính thức trên Khan Academy"
+              title="Mở nguồn tham khảo Khan Academy (có thể là trang tổng quan khóa học)"
             >
               <ExternalLink size={16} aria-hidden />
-              <span>Xem bài giảng tại Khan Academy</span>
+              <span>Mở khóa học tham khảo Khan Academy</span>
             </a>
 
             {onSwitchToTheoryTab && (
@@ -132,7 +132,7 @@ export const LessonVideoPlayer: React.FC<LessonVideoPlayerProps> = ({
 
           <div className="fallback-footer-notice">
             <span>
-              Lưu ý: Học liệu lý thuyết, công thức KaTeX và bài tập trắc nghiệm bên dưới do STUDY_AI tự biên soạn theo chuẩn GDPT 2018.
+              Lưu ý: Liên kết tham khảo có thể dẫn đến trang tổng quan khóa học, không phải video của bài này. Nội dung STUDY_AI cần được kiểm duyệt chuyên môn trước khi sử dụng.
             </span>
           </div>
         </div>
