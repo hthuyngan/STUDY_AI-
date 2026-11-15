@@ -1,7 +1,6 @@
 import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from '@/auth/AuthProvider'
-import { MigrationDialog } from '@/components/auth/MigrationDialog'
 import { RouteLoadingFallback } from '@/components/layout/RouteLoadingFallback'
 import { performBootstrapSyncIfAvailable } from '@/repositories'
 import { LearnerRoutes } from '@/routes/learnerRoutes'
@@ -29,7 +28,6 @@ function App() {
 
   return (
     <AuthProvider>
-      <MigrationDialog />
       <BrowserRouter basename={appBasename}>
         <Routes>
           {/* Authentication Routes */}

@@ -6,13 +6,9 @@ import React, {
 } from 'react'
 import { isRemoteApiConfigured } from '@/config/learner'
 import {
-  performAuthenticatedBootstrapSync,
-} from '@/repositories/bootstrapSync'
-import {
-  getGuestLearningDataBundle,
-  getStorageKey,
-  hasGuestLearningData,
-} from '@/repositories/storageKeys'
+  learningProgressRepository,
+  assessmentAttemptRepository,
+} from '@/repositories'
 import { notifyLearningStateChanged } from '@/services/learningStateEvents'
 import { authService } from './auth.service'
 import type {
@@ -25,11 +21,9 @@ import type {
 import { AuthContext } from './AuthContext'
 import {
   clearAuthSession,
-  getAuthUser,
   setAccessToken,
   setAuthUser,
 } from './authSession'
-
 
 export interface AuthProviderProps {
   children: React.ReactNode
@@ -39,7 +33,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [state, setState] = useState<AuthState>('initializing')
   const [user, setUser] = useState<AuthUser | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [migrationPending, setMigrationPending] = useState<boolean>(false)
 
   // Check initial session via rotating refresh cookie on app startup
   useEffect(() => {
@@ -65,6 +58,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setAuthUser(response.user)
           setUser(response.user)
           setState('authenticated')
+
+          // Fetch user's actual learning progress from SQL Server
+          await learningProgressRepository.fetchRemoteAll().catch(() => {})
+          await assessmentAttemptRepository.fetchRemoteAll().catch(() => {})
           notifyLearningStateChanged()
         } else {
           clearAuthSession()
@@ -87,16 +84,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [])
 
-  const checkAndPromptMigration = useCallback((authenticatedUser: AuthUser) => {
-    if (typeof window === 'undefined') return
-    const decisionKey = getStorageKey('guest_migration_decision', authenticatedUser.id)
-    const existingDecision = localStorage.getItem(decisionKey)
-
-    if (!existingDecision && hasGuestLearningData()) {
-      setMigrationPending(true)
-    }
-  }, [])
-
   const login = useCallback(
     async (credentials: LoginCredentials): Promise<AuthUser> => {
       setError(null)
@@ -106,9 +93,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setAuthUser(response.user)
         setUser(response.user)
         setState('authenticated')
+
+        // Fetch user's actual learning progress from SQL Server upon login
+        await learningProgressRepository.fetchRemoteAll().catch(() => {})
+        await assessmentAttemptRepository.fetchRemoteAll().catch(() => {})
         notifyLearningStateChanged()
 
-        checkAndPromptMigration(response.user)
         return response.user
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : 'Đăng nhập thất bại.'
@@ -116,7 +106,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw err
       }
     },
-    [checkAndPromptMigration]
+    []
   )
 
   const register = useCallback(
@@ -128,9 +118,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setAuthUser(response.user)
         setUser(response.user)
         setState('authenticated')
+
+        // Fresh user: fetch remote progress and notify state
+        await learningProgressRepository.fetchRemoteAll().catch(() => {})
         notifyLearningStateChanged()
 
-        checkAndPromptMigration(response.user)
         return response.user
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : 'Tạo tài khoản thất bại.'
@@ -138,7 +130,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw err
       }
     },
-    [checkAndPromptMigration]
+    []
   )
 
   const logout = useCallback(async (): Promise<void> => {
@@ -148,7 +140,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       clearAuthSession()
       setUser(null)
       setState('guest')
-      setMigrationPending(false)
       notifyLearningStateChanged()
     }
   }, [])
@@ -162,6 +153,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setAuthUser(response.user)
         setUser(response.user)
         setState('authenticated')
+        await learningProgressRepository.fetchRemoteAll().catch(() => {})
+        await assessmentAttemptRepository.fetchRemoteAll().catch(() => {})
+        notifyLearningStateChanged()
         return true
       }
       return false
@@ -170,35 +164,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [])
 
-  const confirmMigration = useCallback(async (): Promise<void> => {
-    const currentUser = getAuthUser()
-    if (!currentUser) {
-      setMigrationPending(false)
-      return
-    }
-
-    try {
-      const bundle = getGuestLearningDataBundle()
-      await performAuthenticatedBootstrapSync(bundle)
-      const decisionKey = getStorageKey('guest_migration_decision', currentUser.id)
-      localStorage.setItem(decisionKey, 'migrated')
-      notifyLearningStateChanged()
-    } catch (err) {
-      console.error('Failed to migrate guest progress to account', err)
-    } finally {
-      setMigrationPending(false)
-    }
-  }, [])
-
-  const declineMigration = useCallback((): void => {
-    const currentUser = getAuthUser()
-    if (currentUser) {
-      const decisionKey = getStorageKey('guest_migration_decision', currentUser.id)
-      localStorage.setItem(decisionKey, 'declined')
-      notifyLearningStateChanged()
-    }
-    setMigrationPending(false)
-  }, [])
+  // Backward-compatible no-ops: Migration popup is permanently disabled
+  const confirmMigration = useCallback(async (): Promise<void> => {}, [])
+  const declineMigration = useCallback((): void => {}, [])
 
   const contextValue = useMemo<AuthContextValue>(
     () => ({
@@ -211,7 +179,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       register,
       logout,
       refreshSession,
-      migrationPending,
+      migrationPending: false,
       confirmMigration,
       declineMigration,
     }),
@@ -223,7 +191,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       register,
       logout,
       refreshSession,
-      migrationPending,
       confirmMigration,
       declineMigration,
     ]
@@ -235,4 +202,3 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     </AuthContext.Provider>
   )
 }
-

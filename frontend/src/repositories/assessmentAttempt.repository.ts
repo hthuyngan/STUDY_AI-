@@ -29,7 +29,7 @@ export class LocalAssessmentAttemptRepository implements IAssessmentAttemptRepos
     try {
       const storageKey = getStorageKey('assessment_attempts')
       let raw = localStorage.getItem(storageKey)
-      if (!raw) {
+      if (!raw && !getAuthUser()) {
         const legacy =
           localStorage.getItem(ASSESSMENT_ATTEMPTS_STORAGE_KEY) ||
           localStorage.getItem(LEGACY_ATTEMPTS_STORAGE_KEY)
