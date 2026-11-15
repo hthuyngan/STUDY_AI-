@@ -205,8 +205,14 @@ export interface AiUsageStats {
   averageLatencyMs: number
   successCount: number
   errorCount: number
+  fallbackCount?: number
+  rateLimitCount?: number
+  timeoutCount?: number
+  budgetWarning?: boolean
+  dailyBudgetUsd?: number
   featureBreakdown: Record<string, number>
   modelBreakdown: Record<string, number>
+  dailyCostBreakdown?: Record<string, number>
 }
 
 export interface AiUsageLogItem {
@@ -231,6 +237,8 @@ export interface AiFeatureConfig {
   enableLearningPath: boolean
   providerName: string
   modelName: string
+  reasoningModelName?: string
+  fallbackModelName?: string
   isConfigured: boolean
   maxDailyTokensPerUser: number
 }

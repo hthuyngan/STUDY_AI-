@@ -14,25 +14,37 @@ public class AiHintService : IAiHintService
     private readonly IApplicationDbContext _context;
     private readonly IAiUsageService _usageService;
     private readonly ILlmProvider _llmProvider;
+    private readonly IAiModelRouter _modelRouter;
     private readonly ILogger<AiHintService> _logger;
 
     public AiHintService(
         IApplicationDbContext context,
         IAiUsageService usageService,
         ILlmProvider llmProvider,
+        IAiModelRouter modelRouter,
         ILogger<AiHintService> logger)
     {
         _context = context;
         _usageService = usageService;
         _llmProvider = llmProvider;
+        _modelRouter = modelRouter;
         _logger = logger;
     }
 
     public AiHintService(
         IApplicationDbContext context,
         IAiUsageService usageService,
+        ILlmProvider llmProvider,
         ILogger<AiHintService> logger)
-        : this(context, usageService, new FakeLlmProvider(), logger)
+        : this(context, usageService, llmProvider, new AiModelRouter(), logger)
+    {
+    }
+
+    public AiHintService(
+        IApplicationDbContext context,
+        IAiUsageService usageService,
+        ILogger<AiHintService> logger)
+        : this(context, usageService, new FakeLlmProvider(), new AiModelRouter(), logger)
     {
     }
 
@@ -175,17 +187,27 @@ public class AiHintService : IAiHintService
                                   level == 2 ? "Cấp độ 2: Hướng dẫn quy trình 2-3 bước phương pháp giải toán tương ứng dạng này." :
                                   "Cấp độ 3: Chỉ ra điểm nút thắt then chốt nhất của phép biến đổi mà không cho ra đáp án cuối.");
 
+                var taskType = level switch
+                {
+                    1 => AiTaskType.HintLevel1,
+                    2 => AiTaskType.HintLevel2,
+                    _ => AiTaskType.HintLevel3
+                };
+                var route = _modelRouter.Route(taskType, question.Difficulty, question.Prompt.Length);
+
                 var llmReq = new LlmCompletionRequest(
                     Messages: new List<LlmChatMessage> { new("user", userPrompt) },
                     SystemPrompt: systemPrompt,
-                    Temperature: 0.2,
-                    MaxTokens: 400,
+                    Temperature: route.Temperature,
+                    MaxTokens: route.MaxTokens,
+                    Model: route.ModelName,
+                    TaskType: route.TaskName,
                     CancellationToken: cancellationToken);
 
                 var llmRes = await _llmProvider.GenerateCompletionAsync(llmReq);
                 if (!string.IsNullOrWhiteSpace(llmRes.Content))
                 {
-                    hintText = SanitizeAntiLeak(llmRes.Content, question.CorrectAnswer);
+                    hintText = AiAnswerLeakDetector.SanitizeText(llmRes.Content, question.CorrectAnswer, level);
                     activeProvider = _llmProvider.ProviderName;
                     isFallback = false;
                     generatedViaLlm = true;
@@ -216,7 +238,7 @@ public class AiHintService : IAiHintService
                 question.Explanation,
                 question.Type);
 
-            hintText = SanitizeAntiLeak(ruleHint, question.CorrectAnswer);
+            hintText = AiAnswerLeakDetector.SanitizeText(ruleHint, question.CorrectAnswer, level);
             nextSteps.AddRange(ruleSteps);
             foreach (var f in ruleFormulas)
             {

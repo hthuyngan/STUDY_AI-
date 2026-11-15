@@ -51,13 +51,29 @@ export const PracticeQuestionCard: React.FC<PracticeQuestionCardProps> = ({
   const [hintData, setHintData] = useState<HintResponse | null>(null)
   const [hintLoading, setHintLoading] = useState<boolean>(false)
   const [hintError, setHintError] = useState<string | null>(null)
+  const abortControllerRef = React.useRef<AbortController | null>(null)
 
   const isExamMode = mode === 'exam' || mode === 'test'
+
+  const cancelHintRequest = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+      setHintLoading(false)
+      setHintError('Đã hủy yêu cầu tải gợi ý.')
+    }
+  }
 
   const fetchHint = async (level: 1 | 2 | 3) => {
     setHintLevel(level)
     setHintLoading(true)
     setHintError(null)
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+    const controller = new AbortController()
+    abortControllerRef.current = controller
 
     try {
       const res = await aiTutorService.getHintLadder(
@@ -67,11 +83,24 @@ export const PracticeQuestionCard: React.FC<PracticeQuestionCardProps> = ({
         sessionId,
         mode
       )
-      setHintData(res)
+      if (!controller.signal.aborted) {
+        setHintData(res)
+      }
     } catch (err: any) {
-      setHintError(err?.message || 'Không thể tải gợi ý vào lúc này.')
+      if (controller.signal.aborted) return
+      const msg = err?.message || ''
+      if (msg.includes('429') || msg.toLowerCase().includes('rate limit')) {
+        setHintError('Hệ thống AI đang bị giới hạn tần suất (Rate Limit - 429). Vui lòng thử lại sau giây lát.')
+      } else if (msg.toLowerCase().includes('timeout') || msg.includes('quá thời gian')) {
+        setHintError('Thời gian phản hồi AI vượt quá giới hạn chờ (Timeout). Vui lòng thử lại.')
+      } else {
+        setHintError(msg || 'Không thể tải gợi ý vào lúc này.')
+      }
     } finally {
-      setHintLoading(false)
+      if (!controller.signal.aborted) {
+        setHintLoading(false)
+        abortControllerRef.current = null
+      }
     }
   }
 
@@ -312,9 +341,18 @@ export const PracticeQuestionCard: React.FC<PracticeQuestionCardProps> = ({
               </div>
 
               {hintLoading && (
-                <div className="hint-loading-state">
-                  <Loader2 className="spinner" size={18} />
-                  <span>AI Tutor đang phân tích bài toán và tạo gợi ý...</span>
+                <div className="hint-loading-state" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Loader2 className="spinner" size={18} />
+                    <span>AI Tutor đang phân tích bài toán và tạo gợi ý...</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={cancelHintRequest}
+                    style={{ fontSize: '0.78rem', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 4, padding: '3px 8px', cursor: 'pointer', color: '#475569' }}
+                  >
+                    Hủy
+                  </button>
                 </div>
               )}
 

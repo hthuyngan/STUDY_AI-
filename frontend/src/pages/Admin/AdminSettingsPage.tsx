@@ -434,24 +434,39 @@ export const AdminSettingsPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Budget Warning Banner */}
+              {aiStats?.budgetWarning && (
+                <div style={{ marginBottom: 14, padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6, color: '#991b1b', fontSize: '0.85rem' }}>
+                  ⚠️ Cảnh báo ngân sách: Chi phí AI hôm nay đã đạt hoặc vượt 80% hạn mức ngày ($5.00 USD). Hệ thống đang kiểm soát token chặt chẽ.
+                </div>
+              )}
+
               {/* Usage Stats Strip */}
               {aiStats && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, padding: '14px', background: '#f8fafc', borderRadius: 6 }}>
-                  <div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Tổng số lượt gọi:</div>
-                    <strong style={{ fontSize: '1.1rem', color: '#0f172a' }}>{aiStats.totalRequests ?? 0}</strong>
+                <div style={{ padding: '14px', background: '#f8fafc', borderRadius: 6 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Tổng số lượt gọi:</div>
+                      <strong style={{ fontSize: '1.1rem', color: '#0f172a' }}>{aiStats.totalRequests ?? 0}</strong>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Tổng Token:</div>
+                      <strong style={{ fontSize: '1.1rem', color: '#2563eb' }}>{((aiStats.totalInputTokens ?? 0) + (aiStats.totalOutputTokens ?? 0)).toLocaleString()}</strong>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Chi phí ước tính:</div>
+                      <strong style={{ fontSize: '1.1rem', color: '#16a34a' }}>${(aiStats.estimatedTotalCostUsd ?? 0).toFixed(4)}</strong>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Độ trễ trung bình:</div>
+                      <strong style={{ fontSize: '1.1rem', color: '#7c3aed' }}>{aiStats.averageLatencyMs ?? 0} ms</strong>
+                    </div>
                   </div>
-                  <div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Tổng Token:</div>
-                    <strong style={{ fontSize: '1.1rem', color: '#2563eb' }}>{((aiStats.totalInputTokens ?? 0) + (aiStats.totalOutputTokens ?? 0)).toLocaleString()}</strong>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Chi phí ước tính:</div>
-                    <strong style={{ fontSize: '1.1rem', color: '#16a34a' }}>${(aiStats.estimatedTotalCostUsd ?? 0).toFixed(4)}</strong>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Độ trễ trung bình:</div>
-                    <strong style={{ fontSize: '1.1rem', color: '#7c3aed' }}>{aiStats.averageLatencyMs ?? 0} ms</strong>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginTop: 12, paddingTop: 10, borderTop: '1px solid #e2e8f0', fontSize: '0.8rem', color: '#64748b' }}>
+                    <div>Số lượt Fallback: <strong style={{ color: '#0f172a' }}>{aiStats.fallbackCount ?? 0}</strong></div>
+                    <div>Lỗi Rate Limit (429): <strong style={{ color: (aiStats.rateLimitCount ?? 0) > 0 ? '#dc2626' : '#0f172a' }}>{aiStats.rateLimitCount ?? 0}</strong></div>
+                    <div>Lỗi Timeout: <strong style={{ color: (aiStats.timeoutCount ?? 0) > 0 ? '#dc2626' : '#0f172a' }}>{aiStats.timeoutCount ?? 0}</strong></div>
                   </div>
                 </div>
               )}

@@ -6,6 +6,9 @@ namespace StudyAI.Infrastructure.Services;
 public class FakeLlmProvider : ILlmProvider
 {
     public string ProviderName => "FakeLlmProvider";
+    public string DefaultModel => "fake-flash-v1";
+    public string? ReasoningModel => "fake-reasoner-v1";
+    public string FallbackModel => "fake-rule-fallback";
     public bool IsConfigured => true;
 
     public Task<LlmCompletionResponse> GenerateCompletionAsync(LlmCompletionRequest request)

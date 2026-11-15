@@ -48,8 +48,14 @@ public class AiUsageStatsDto
     public double AverageLatencyMs { get; set; }
     public int SuccessCount { get; set; }
     public int ErrorCount { get; set; }
+    public int FallbackCount { get; set; }
+    public int RateLimitCount { get; set; }
+    public int TimeoutCount { get; set; }
+    public decimal DailyBudgetUsd { get; set; } = 5.0m;
+    public bool BudgetWarning { get; set; }
     public Dictionary<string, int> FeatureBreakdown { get; set; } = new();
     public Dictionary<string, int> ModelBreakdown { get; set; } = new();
+    public Dictionary<string, decimal> DailyCostBreakdown { get; set; } = new();
 }
 
 public class AiUsageLogItemDto
@@ -76,8 +82,12 @@ public class AiFeatureConfigDto
     public bool EnableLearningPath { get; set; } = true;
     public string ProviderName { get; set; } = "OpenAI";
     public string ModelName { get; set; } = "gpt-4o-mini";
+    public string? ReasoningModelName { get; set; }
+    public string FallbackModelName { get; set; } = "gpt-4o-mini";
     public bool IsConfigured { get; set; }
     public int MaxDailyTokensPerUser { get; set; } = 50000;
+    public int DailyTokensUsedToday { get; set; }
+    public decimal DailyCostToday { get; set; }
 }
 
 public class AiFeatureToggleRequestDto

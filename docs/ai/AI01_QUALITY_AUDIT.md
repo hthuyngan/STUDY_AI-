@@ -149,3 +149,4 @@ Test suite `noSyncPopupAuth.test.tsx` (5/5 tests PASS) đã kiểm tra thực t�
 8. `frontend/src/types/aiTutor.ts` (Bổ sung `provider` và `isFallback` vào `HintResponse`).
 9. `frontend/src/components/practice/PracticeQuestionCard.tsx` (Hiển thị nhãn minh bạch Live AI vs Socratic Fallback).
 10. `docs/ai/AI01_QUALITY_AUDIT.md` (Báo cáo kiểm toán chuyên sâu).
+

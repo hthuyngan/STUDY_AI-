@@ -102,6 +102,26 @@ public class AiUsageService : IAiUsageService
 
         var logs = await query.ToListAsync(cancellationToken);
 
+        int fallbackCount = logs.Count(l =>
+            (l.Provider != null && l.Provider.Contains("Fallback", StringComparison.OrdinalIgnoreCase)) ||
+            (l.Model != null && l.Model.Contains("fallback", StringComparison.OrdinalIgnoreCase)));
+
+        int rateLimitCount = logs.Count(l =>
+            (l.ErrorMessage != null && l.ErrorMessage.Contains("429")) ||
+            l.Status == "rate_limited");
+
+        int timeoutCount = logs.Count(l =>
+            (l.ErrorMessage != null && l.ErrorMessage.Contains("timeout", StringComparison.OrdinalIgnoreCase)) ||
+            l.Status == "timeout");
+
+        var dailyCosts = logs
+            .GroupBy(l => l.CreatedAt.ToString("yyyy-MM-dd"))
+            .ToDictionary(g => g.Key, g => g.Sum(l => l.EstimatedCostUsd));
+
+        var todayStr = DateTimeOffset.UtcNow.ToString("yyyy-MM-dd");
+        decimal costToday = dailyCosts.TryGetValue(todayStr, out var c) ? c : 0.0m;
+        const decimal dailyBudget = 5.0m;
+
         var stats = new AiUsageStatsDto
         {
             TotalRequests = logs.Count,
@@ -111,8 +131,14 @@ public class AiUsageService : IAiUsageService
             AverageLatencyMs = logs.Count > 0 ? Math.Round(logs.Average(l => l.LatencyMs), 1) : 0,
             SuccessCount = logs.Count(l => l.Status == "success"),
             ErrorCount = logs.Count(l => l.Status != "success"),
+            FallbackCount = fallbackCount,
+            RateLimitCount = rateLimitCount,
+            TimeoutCount = timeoutCount,
+            DailyBudgetUsd = dailyBudget,
+            BudgetWarning = costToday >= (dailyBudget * 0.8m),
             FeatureBreakdown = logs.GroupBy(l => l.Feature).ToDictionary(g => g.Key, g => g.Count()),
-            ModelBreakdown = logs.GroupBy(l => l.Model).ToDictionary(g => g.Key, g => g.Count())
+            ModelBreakdown = logs.GroupBy(l => l.Model).ToDictionary(g => g.Key, g => g.Count()),
+            DailyCostBreakdown = dailyCosts
         };
 
         return stats;
@@ -148,7 +174,10 @@ public class AiUsageService : IAiUsageService
 
     public AiFeatureConfigDto GetFeatureConfig()
     {
-        var model = _configuration["Llm:Model"] ?? "gpt-4o-mini";
+        var defaultModel = _llmProvider.DefaultModel;
+        var reasoningModel = _llmProvider.ReasoningModel;
+        var fallbackModel = _llmProvider.FallbackModel;
+
         return new AiFeatureConfigDto
         {
             EnableTutor = FeatureToggles.GetValueOrDefault("tutor", true),
@@ -156,7 +185,9 @@ public class AiUsageService : IAiUsageService
             EnableErrorAnalysis = FeatureToggles.GetValueOrDefault("error_analysis", true),
             EnableLearningPath = FeatureToggles.GetValueOrDefault("learning_path", true),
             ProviderName = _llmProvider.ProviderName,
-            ModelName = model,
+            ModelName = defaultModel,
+            ReasoningModelName = reasoningModel,
+            FallbackModelName = fallbackModel,
             IsConfigured = _llmProvider.IsConfigured
         };
     }

@@ -94,6 +94,7 @@ else
     }
 }
 
+builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IAiModelRouter, StudyAI.Infrastructure.Services.AiModelRouter>();
 builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IAiTutorService, StudyAI.Infrastructure.Services.AiTutorService>();
 builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IAiUsageService, StudyAI.Infrastructure.Services.AiUsageService>();
 builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IAiHintService, StudyAI.Infrastructure.Services.AiHintService>();

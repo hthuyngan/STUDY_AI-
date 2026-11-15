@@ -9,6 +9,7 @@ namespace StudyAI.Infrastructure.Services;
 
 public class StudentMasteryService : IStudentMasteryService
 {
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, SemaphoreSlim> AttemptLocks = new();
     private readonly IApplicationDbContext _context;
     private readonly ILogger<StudentMasteryService> _logger;
 
@@ -88,6 +89,27 @@ public class StudentMasteryService : IStudentMasteryService
     {
         if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(attemptId)) return;
 
+        var attemptLock = AttemptLocks.GetOrAdd(attemptId, _ => new SemaphoreSlim(1, 1));
+        await attemptLock.WaitAsync(cancellationToken);
+        try
+        {
+            await ProcessAttemptMasteryInternalAsync(userId, attemptId, cancellationToken);
+        }
+        finally
+        {
+            attemptLock.Release();
+            if (attemptLock.CurrentCount == 1)
+            {
+                AttemptLocks.TryRemove(attemptId, out _);
+            }
+        }
+    }
+
+    private async Task ProcessAttemptMasteryInternalAsync(
+        string userId,
+        string attemptId,
+        CancellationToken cancellationToken)
+    {
         // Fetch attempt with tracking to allow atomic idempotency flag update
         var attempt = await _context.AssessmentAttempts
             .Include(a => a.Responses)
