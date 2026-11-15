@@ -151,3 +151,4 @@ Dựa trên việc kiểm tra trực tiếp mã nguồn, API route, controller, 
    - Giữ lại mock data chỉ trong thư mục test (`*.mock.ts` cho Vitest unit test).
 2. **Bỏ lưu trữ cục bộ độc lập (P2)**:
    - Dọn dẹp việc lưu ghi chú và tiến độ độc quyền trên `localStorage` mà không có bản sao trên máy chủ.
+

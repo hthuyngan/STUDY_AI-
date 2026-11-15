@@ -38,12 +38,13 @@ public class CurriculumController : ControllerBase
     /// <summary>
     /// GET /api/v1/curriculum/subjects
     /// Returns only active subjects with published content.
+    /// Excludes test fixtures.
     /// </summary>
     [HttpGet("subjects")]
     public async Task<IActionResult> GetSubjects([FromQuery] string? grade = null, [FromQuery] string? search = null)
     {
         var query = _db.ContentSubjects
-            .Where(s => s.IsActive)
+            .Where(s => s.IsActive && !s.Code.StartsWith("TEST_") && !s.Code.StartsWith("SEC_") && !s.Code.StartsWith("PHYS12_"))
             .Include(s => s.Chapters)
                 .ThenInclude(c => c.Lessons)
             .AsNoTracking()
@@ -89,15 +90,79 @@ public class CurriculumController : ControllerBase
     }
 
     /// <summary>
+    /// GET /api/v1/curriculum/subjects/{subjectId}
+    /// Returns single active subject with its active chapters and published lessons.
+    /// Supports lookup by Id or Code.
+    /// </summary>
+    [HttpGet("subjects/{subjectId}")]
+    public async Task<IActionResult> GetSubjectDetail(string subjectId)
+    {
+        var subject = await _db.ContentSubjects
+            .Include(s => s.Chapters)
+                .ThenInclude(c => c.Lessons)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => (s.Id == subjectId || s.Code == subjectId || s.Code.ToLower() == subjectId.ToLower()) && s.IsActive);
+
+        if (subject == null)
+        {
+            return NotFound(new { message = $"Môn học '{subjectId}' không tồn tại hoặc đã ngừng kích hoạt." });
+        }
+
+        var activeChapters = subject.Chapters
+            .Where(c => c.IsActive)
+            .OrderBy(c => c.OrderIndex)
+            .Select(c => new LearnerChapterDto
+            {
+                Id = c.Id,
+                Title = c.Title,
+                Description = c.Description ?? string.Empty,
+                OrderIndex = c.OrderIndex,
+                Lessons = c.Lessons
+                    .Where(l => l.Status == "published")
+                    .OrderBy(l => l.OrderIndex)
+                    .Select(l => new LearnerLessonSummaryDto
+                    {
+                        Id = l.Id,
+                        Title = l.Title,
+                        Slug = l.Slug,
+                        OrderIndex = l.OrderIndex,
+                        Status = l.Status
+                    })
+                    .ToList()
+            })
+            .ToList();
+
+        var publishedLessonCount = activeChapters
+            .SelectMany(c => c.Lessons)
+            .Count();
+
+        var dto = new LearnerSubjectWithChaptersDto
+        {
+            Id = subject.Id,
+            Name = subject.Name,
+            Code = subject.Code,
+            Grade = subject.Grade,
+            Description = subject.Description ?? string.Empty,
+            OrderIndex = subject.OrderIndex,
+            ChapterCount = activeChapters.Count,
+            LessonCount = publishedLessonCount,
+            Chapters = activeChapters
+        };
+
+        return Ok(dto);
+    }
+
+    /// <summary>
     /// GET /api/v1/curriculum/subjects/{subjectId}/chapters
     /// Returns active chapters and their published lessons for a subject.
+    /// Supports lookup by Id or Code.
     /// </summary>
     [HttpGet("subjects/{subjectId}/chapters")]
     public async Task<IActionResult> GetSubjectChapters(string subjectId)
     {
         var subject = await _db.ContentSubjects
             .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Id == subjectId && s.IsActive);
+            .FirstOrDefaultAsync(s => (s.Id == subjectId || s.Code == subjectId || s.Code.ToLower() == subjectId.ToLower()) && s.IsActive);
 
         if (subject == null)
         {
@@ -105,7 +170,7 @@ public class CurriculumController : ControllerBase
         }
 
         var chapters = await _db.ContentChapters
-            .Where(c => c.SubjectId == subjectId && c.IsActive)
+            .Where(c => c.SubjectId == subject.Id && c.IsActive)
             .Include(c => c.Lessons.Where(l => l.Status == "published"))
             .AsNoTracking()
             .OrderBy(c => c.OrderIndex)
@@ -145,7 +210,7 @@ public class CurriculumController : ControllerBase
             .Include(l => l.Chapter)
                 .ThenInclude(c => c!.Subject)
             .AsNoTracking()
-            .FirstOrDefaultAsync(l => l.Id == lessonId);
+            .FirstOrDefaultAsync(l => l.Id == lessonId || l.Slug == lessonId);
 
         if (lesson == null || lesson.Status != "published" || lesson.Chapter == null || !lesson.Chapter.IsActive || lesson.Chapter.Subject == null || !lesson.Chapter.Subject.IsActive)
         {
@@ -185,7 +250,7 @@ public class CurriculumController : ControllerBase
             .Include(l => l.Chapter)
                 .ThenInclude(c => c!.Subject)
             .AsNoTracking()
-            .FirstOrDefaultAsync(l => l.Id == lessonId && l.Status == "published");
+            .FirstOrDefaultAsync(l => (l.Id == lessonId || l.Slug == lessonId) && l.Status == "published");
 
         if (lesson == null || lesson.Chapter == null || !lesson.Chapter.IsActive || lesson.Chapter.Subject == null || !lesson.Chapter.Subject.IsActive)
         {
@@ -193,7 +258,7 @@ public class CurriculumController : ControllerBase
         }
 
         var questions = await _db.ContentQuestions
-            .Where(q => q.LessonId == lessonId && q.Status == "published")
+            .Where(q => q.LessonId == lesson.Id && q.Status == "published")
             .OrderBy(q => q.OrderIndex)
             .AsNoTracking()
             .ToListAsync();
@@ -260,7 +325,7 @@ public class CurriculumController : ControllerBase
             .Include(q => q.Lesson)
                 .ThenInclude(l => l!.Chapter)
                     .ThenInclude(c => c!.Subject)
-            .FirstOrDefaultAsync(q => q.Id == questionId && q.LessonId == lessonId && q.Status == "published");
+            .FirstOrDefaultAsync(q => q.Id == questionId && (q.LessonId == lessonId || (q.Lesson != null && q.Lesson.Slug == lessonId)) && q.Status == "published");
 
         if (question == null || question.Lesson == null || question.Lesson.Status != "published" ||
             question.Lesson.Chapter == null || !question.Lesson.Chapter.IsActive ||

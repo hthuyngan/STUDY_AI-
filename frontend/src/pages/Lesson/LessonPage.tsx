@@ -26,7 +26,7 @@ import { Breadcrumb } from '@/components/ui/Breadcrumb'
 import { Button } from '@/components/ui/Button'
 import { PageErrorState } from '@/components/ui/PageErrorState'
 import { Skeleton } from '@/components/ui/Skeleton'
-import { getMockAssessmentByLessonId } from '@/data/assessments.mock'
+import { curriculumService } from '@/services/curriculum.service'
 import { useLesson } from '@/hooks/useLesson'
 import { useLessonAssessment } from '@/hooks/useLessonAssessment'
 import { useLessonProgress } from '@/hooks/useLessonProgress'
@@ -34,6 +34,7 @@ import { useStudyNotes } from '@/hooks/useStudyNotes'
 import { learningProgressRepository } from '@/repositories/learningProgress.repository'
 import { learningContextService } from '@/services/learningContext.service'
 import { lessonProgressService } from '@/services/lessonProgress.service'
+import type { AssessmentOption, AssessmentQuestion, LessonAssessment } from '@/types/assessment'
 import type { TutorLearningContext } from '@/types/aiTutor'
 import './LessonPage.css'
 
@@ -203,10 +204,65 @@ export function LessonPage() {
     actualSectionIds,
   })
 
-  // Harvest assessment model
-  const assessment = useMemo(() => {
-    if (!lesson) return null
-    return getMockAssessmentByLessonId(lesson.id, resolvedSubjectId, lesson.title)
+  // Fetch real published assessment questions from StudyAIDb via Curriculum API (Zero-Leak)
+  const [assessment, setAssessment] = useState<LessonAssessment | null>(null)
+
+  useEffect(() => {
+    if (!lesson) return
+
+    let isMounted = true
+    curriculumService
+      .getLessonQuestions(lesson.id)
+      .then((rawQuestions) => {
+        if (!isMounted) return
+        if (!rawQuestions || rawQuestions.length === 0) {
+          setAssessment(null)
+          return
+        }
+
+        const questions: AssessmentQuestion[] = rawQuestions.map((q) => {
+          const options: AssessmentOption[] = (q.options || []).map((optStr, optIdx) => {
+            const letter = String.fromCharCode(65 + optIdx)
+            const match = optStr.match(/^[A-D][.:]\s*(.+)$/i)
+            const text = match ? match[1].trim() : optStr.trim()
+            const label = match ? optStr.substring(0, 1).toUpperCase() : letter
+            return {
+              id: `opt_${optIdx}_${label}`,
+              label,
+              text,
+            }
+          })
+
+          return {
+            id: q.id,
+            type: 'single-choice',
+            prompt: q.prompt,
+            options,
+            correctOptionId: '', // Strict zero-leak
+            explanation: '', // Strict zero-leak
+            topic: q.topic || 'Kiểm tra kiến thức bài học',
+          }
+        })
+
+        setAssessment({
+          id: `asmt_${lesson.id}`,
+          lessonId: lesson.id,
+          subjectId: resolvedSubjectId,
+          title: `Bài tập thu hoạch: ${lesson.title}`,
+          description: 'Làm bài trắc nghiệm để đánh giá mức độ hiểu bài và đạt 100% tiến độ học tập.',
+          estimatedMinutes: Math.max(3, questions.length * 2),
+          passingScorePercent: 60,
+          questions,
+        })
+      })
+      .catch(() => {
+        if (!isMounted) return
+        setAssessment(null)
+      })
+
+    return () => {
+      isMounted = false
+    }
   }, [lesson, resolvedSubjectId])
 
   // Assessment hook

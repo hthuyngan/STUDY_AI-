@@ -11,6 +11,10 @@ export interface LearnerSubject {
   lessonCount: number
 }
 
+export interface LearnerSubjectWithChapters extends LearnerSubject {
+  chapters: LearnerChapter[]
+}
+
 export interface LearnerLessonSummary {
   id: string
   title: string
@@ -71,6 +75,10 @@ export const curriculumService = {
     if (search) params.append('search', search)
     const qs = params.toString() ? `?${params.toString()}` : ''
     return apiClient.get<LearnerSubject[]>(`/api/v1/curriculum/subjects${qs}`)
+  },
+
+  async getSubject(subjectId: string): Promise<LearnerSubjectWithChapters> {
+    return apiClient.get<LearnerSubjectWithChapters>(`/api/v1/curriculum/subjects/${subjectId}`)
   },
 
   async getSubjectChapters(subjectId: string): Promise<LearnerChapter[]> {

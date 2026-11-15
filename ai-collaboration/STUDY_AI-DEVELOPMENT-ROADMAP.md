@@ -151,3 +151,4 @@ Zero-leak đáp án         Spaced Repetition (SM-2)   Không giải hộ       
 
 ---
 **KẾT LUẬN**: Lộ trình trên định hình rõ ràng từng bước phát triển của STUDY_AI từ nền tảng quản trị nội dung sẵn có tiến thẳng lên nền tảng học tập thông minh hoàn chỉnh, khai thác triệt để giá trị của kho dữ liệu VNHSGE và hạ tầng CSDL hiện đại.
+

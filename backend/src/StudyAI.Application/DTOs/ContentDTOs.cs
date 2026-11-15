@@ -305,6 +305,11 @@ public class LearnerSubjectDto
     public int LessonCount { get; set; }
 }
 
+public class LearnerSubjectWithChaptersDto : LearnerSubjectDto
+{
+    public List<LearnerChapterDto> Chapters { get; set; } = new();
+}
+
 public class LearnerChapterDto
 {
     public string Id { get; set; } = string.Empty;

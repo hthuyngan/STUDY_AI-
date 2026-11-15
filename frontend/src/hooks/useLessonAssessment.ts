@@ -6,7 +6,7 @@ import {
   recordAnswerSelection,
   resumeAttempt,
   startNewAttempt,
-  submitAttempt,
+  submitAttemptWithServerValidation,
   updateAttempt,
 } from '@/services/assessment.service'
 import { createLearningEvent } from '@/services/learningTracking.service'
@@ -214,11 +214,11 @@ export function useLessonAssessment({
     setIsModalOpen(false)
   }, [activeAttempt])
 
-  // Submit Attempt
-  const confirmSubmit = useCallback(() => {
+  // Submit Attempt with Server-Side Zero-Leak Verification
+  const confirmSubmit = useCallback(async () => {
     if (!activeAttempt) return
     const elapsedSession = Math.max(0, Date.now() - sessionStartTimeRef.current)
-    const { attempt: submitted, scorePercentage } = submitAttempt(
+    const { attempt: submitted, scorePercentage } = await submitAttemptWithServerValidation(
       activeAttempt,
       questions,
       assessment.passingScorePercent,
