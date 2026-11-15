@@ -7,6 +7,9 @@
 
 ---
 
+
+> **CẢNH BÁO KIỂM KÊ (16/11/2026):** Danh sách bên dưới là **bản phác thảo tham chiếu chưa được xác minh ở cấp bài học**. Các URL trong bảng đều dẫn đến trang khóa học tổng quan, không chứng minh rằng từng bài/video tồn tại với đúng tiêu đề. Vì vậy các số 4 chương, 14 chủ đề, 28 bài, 18 video, 14 bài luyện tập và 4 bài kiểm tra **không phải tổng số đã xác minh từ Khan Academy**. Không được dùng tài liệu này để tuyên bố đạt 100% độ phủ hoặc video phát được. Cần đối chiếu thủ công từng mục với URL cụ thể và quyền nhúng trước khi đánh dấu verified.
+
 ## 1. TỔNG QUAN VÀ TÌNH TRẠNG KẾT NỐI KIỂM KÊ NGUỒN
 
 ### 1.1. Hiện trạng truy cập kỹ thuật
@@ -14,11 +17,11 @@ Khi thực hiện kết nối trực tiếp đến URL `https://vi.khanacademy.o
 - Máy chủ Khan Academy trả về trang phòng vệ tự động Fastly / Cloudflare: `<title>Client Challenge</title>` (bot-protection / challenge verification).
 - Subagent trình duyệt Chrome DevTools không thể can thiệp do cổng remote debugging nội bộ của máy trạm chưa mở sẵn.
 - **Tuân thủ quy định đạo đức & bảo mật an toàn:** STUDY_AI **tuyệt đối không** sử dụng botnet, không giải CAPTCHA, không vượt rào cản phòng vệ của Khan Academy.
-- Toàn bộ dữ liệu kiểm kê dưới đây được tổng hợp từ các chỉ mục công khai đã được xác thực (verified search index metadata) của `vi.khanacademy.org` đối chiếu với khung chương trình chuẩn Giáo dục phổ thông (GDPT 2018) Việt Nam.
+- Danh mục dưới đây được biên soạn từ thông tin tham khảo và khung chương trình GDPT 2018; **chưa có bằng chứng nguồn ở cấp từng bài**. Không coi đây là danh mục chính thức của Khan Academy.
 
-### 1.2. Thống kê tổng hợp số lượng xác minh
+### 1.2. Thống kê tạm tính (chưa xác minh từng bài)
 
-| Chỉ số | Số lượng xác minh | Ghi chú |
+| Chỉ số | Số lượng trong bản phác thảo | Ghi chú |
 |---|---|---|
 | **Tổng số chương xác minh được** | **4 chương cốt lõi** | Chương 1 (Đạo hàm), Chương 2 (Vectơ & Tọa độ), Chương 3 (Nguyên hàm & Tích phân), Chương 4 (Xác suất có điều kiện). |
 | **Tổng số chủ đề xác minh được** | **14 chủ đề** | Phân bố trên 4 chương chính và phần thống kê số liệu ghép nhóm. |
@@ -34,34 +37,34 @@ Khi thực hiện kết nối trực tiếp đến URL `https://vi.khanacademy.o
 
 | chapter_order | chapter_title | topic_order | topic_title | lesson_order | lesson_title | content_type | source_url | video_available | license_status | verification_status |
 |:---:|---|:---:|---|:---:|---|:---:|---|:---:|---|:---:|
-| 1 | Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số | 1 | Tính đơn điệu của hàm số | 1 | Khái niệm đồng biến, nghịch biến & dấu đạo hàm | video | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | Yes | Protected | Verified |
-| 1 | Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số | 1 | Tính đơn điệu của hàm số | 2 | Quy tắc xét tính đơn điệu của hàm số | article | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | No | Open-Ref | Verified |
-| 1 | Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số | 1 | Tính đơn điệu của hàm số | 3 | Luyện tập: Xét tính đơn điệu hàm số | exercise | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | No | Khan-Exercise | Verified |
-| 1 | Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số | 2 | Cực trị của hàm số | 4 | Định nghĩa cực đại và cực tiểu | video | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | Yes | Protected | Verified |
-| 1 | Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số | 2 | Cực trị của hàm số | 5 | Điều kiện cần và đủ để hàm số có cực trị | article | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | No | Open-Ref | Verified |
-| 1 | Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số | 2 | Cực trị của hàm số | 6 | Luyện tập: Tìm điểm cực trị của đồ thị hàm số | exercise | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | No | Khan-Exercise | Verified |
-| 1 | Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số | 3 | Giá trị lớn nhất và nhỏ nhất | 7 | Khái niệm GTLN và GTNN của hàm số | video | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | Yes | Protected | Verified |
-| 1 | Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số | 3 | Giá trị lớn nhất và nhỏ nhất | 8 | Phương pháp tìm GTLN, GTNN trên đoạn [a; b] | article | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | No | Open-Ref | Verified |
-| 1 | Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số | 3 | Giá trị lớn nhất và nhỏ nhất | 9 | Luyện tập: Bài toán tối ưu thực tế | exercise | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | No | Khan-Exercise | Verified |
-| 1 | Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số | 4 | Đường tiệm cận của đồ thị hàm số | 10 | Tiệm cận đứng và tiệm cận ngang | video | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | Yes | Protected | Verified |
-| 1 | Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số | 4 | Đường tiệm cận của đồ thị hàm số | 11 | Đường tiệm cận xiên của đồ thị phân thức | article | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | No | Open-Ref | Verified |
-| 1 | Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số | 5 | Khảo sát và vẽ đồ thị hàm số | 12 | Sơ đồ tổng quát khảo sát hàm số | video | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | Yes | Protected | Verified |
-| 1 | Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số | 5 | Khảo sát và vẽ đồ thị hàm số | 13 | Kiểm tra cuối chương 1: Đạo hàm & Đồ thị | test | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | No | Khan-Assessment | Verified |
-| 2 | Vectơ và hệ tọa độ trong không gian | 6 | Vectơ trong không gian | 14 | Định nghĩa vectơ và các phép toán không gian | video | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | Yes | Protected | Verified |
-| 2 | Vectơ và hệ tọa độ trong không gian | 6 | Vectơ trong không gian | 15 | Tích vô hướng của hai vectơ trong không gian | article | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | No | Open-Ref | Verified |
-| 2 | Vectơ và hệ tọa độ trong không gian | 7 | Hệ trục tọa độ Oxyz | 16 | Tọa độ của điểm và tọa độ của vectơ | video | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | Yes | Protected | Verified |
-| 2 | Vectơ và hệ tọa độ trong không gian | 7 | Hệ trục tọa độ Oxyz | 17 | Biểu thức tọa độ của các phép toán vectơ | article | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | No | Open-Ref | Verified |
-| 2 | Vectơ và hệ tọa độ trong không gian | 7 | Hệ trục tọa độ Oxyz | 18 | Kiểm tra cuối chương 2: Không gian Oxyz | test | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | No | Khan-Assessment | Verified |
-| 3 | Nguyên hàm và tích phân | 8 | Nguyên hàm | 19 | Định nghĩa nguyên hàm và bảng nguyên hàm cơ bản | video | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | Yes | Protected | Verified |
-| 3 | Nguyên hàm và tích phân | 8 | Nguyên hàm | 20 | Phương pháp đổi biến số và từng phần | article | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | No | Open-Ref | Verified |
-| 3 | Nguyên hàm và tích phân | 9 | Tích phân | 21 | Định nghĩa và tính chất của tích phân | video | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | Yes | Protected | Verified |
-| 3 | Nguyên hàm và tích phân | 9 | Tích phân | 22 | Ứng dụng tích phân tính diện tích hình phẳng | video | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | Yes | Protected | Verified |
-| 3 | Nguyên hàm và tích phân | 9 | Tích phân | 23 | Ứng dụng tích phân tính thể tích vật thể | article | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | No | Open-Ref | Verified |
-| 3 | Nguyên hàm và tích phân | 9 | Tích phân | 24 | Kiểm tra cuối chương 3: Tích phân | test | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | No | Khan-Assessment | Verified |
-| 4 | Xác suất có điều kiện | 10 | Xác suất có điều kiện | 25 | Định nghĩa xác suất có điều kiện | video | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | Yes | Protected | Verified |
-| 4 | Xác suất có điều kiện | 10 | Xác suất có điều kiện | 26 | Công thức nhân xác suất | article | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | No | Open-Ref | Verified |
-| 4 | Xác suất có điều kiện | 11 | Công thức xác suất toàn phần | 27 | Công thức xác suất toàn phần và công thức Bayes | video | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | Yes | Protected | Verified |
-| 4 | Xác suất có điều kiện | 11 | Công thức xác suất toàn phần | 28 | Kiểm tra cuối chương 4: Xác suất | test | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | No | Khan-Assessment | Verified |
+| 1 | Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số | 1 | Tính đơn điệu của hàm số | 1 | Khái niệm đồng biến, nghịch biến & dấu đạo hàm | video | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | Yes | Protected | Pending manual verification |
+| 1 | Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số | 1 | Tính đơn điệu của hàm số | 2 | Quy tắc xét tính đơn điệu của hàm số | article | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | No | Open-Ref | Pending manual verification |
+| 1 | Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số | 1 | Tính đơn điệu của hàm số | 3 | Luyện tập: Xét tính đơn điệu hàm số | exercise | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | No | Khan-Exercise | Pending manual verification |
+| 1 | Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số | 2 | Cực trị của hàm số | 4 | Định nghĩa cực đại và cực tiểu | video | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | Yes | Protected | Pending manual verification |
+| 1 | Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số | 2 | Cực trị của hàm số | 5 | Điều kiện cần và đủ để hàm số có cực trị | article | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | No | Open-Ref | Pending manual verification |
+| 1 | Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số | 2 | Cực trị của hàm số | 6 | Luyện tập: Tìm điểm cực trị của đồ thị hàm số | exercise | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | No | Khan-Exercise | Pending manual verification |
+| 1 | Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số | 3 | Giá trị lớn nhất và nhỏ nhất | 7 | Khái niệm GTLN và GTNN của hàm số | video | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | Yes | Protected | Pending manual verification |
+| 1 | Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số | 3 | Giá trị lớn nhất và nhỏ nhất | 8 | Phương pháp tìm GTLN, GTNN trên đoạn [a; b] | article | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | No | Open-Ref | Pending manual verification |
+| 1 | Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số | 3 | Giá trị lớn nhất và nhỏ nhất | 9 | Luyện tập: Bài toán tối ưu thực tế | exercise | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | No | Khan-Exercise | Pending manual verification |
+| 1 | Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số | 4 | Đường tiệm cận của đồ thị hàm số | 10 | Tiệm cận đứng và tiệm cận ngang | video | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | Yes | Protected | Pending manual verification |
+| 1 | Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số | 4 | Đường tiệm cận của đồ thị hàm số | 11 | Đường tiệm cận xiên của đồ thị phân thức | article | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | No | Open-Ref | Pending manual verification |
+| 1 | Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số | 5 | Khảo sát và vẽ đồ thị hàm số | 12 | Sơ đồ tổng quát khảo sát hàm số | video | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | Yes | Protected | Pending manual verification |
+| 1 | Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số | 5 | Khảo sát và vẽ đồ thị hàm số | 13 | Kiểm tra cuối chương 1: Đạo hàm & Đồ thị | test | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | No | Khan-Assessment | Pending manual verification |
+| 2 | Vectơ và hệ tọa độ trong không gian | 6 | Vectơ trong không gian | 14 | Định nghĩa vectơ và các phép toán không gian | video | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | Yes | Protected | Pending manual verification |
+| 2 | Vectơ và hệ tọa độ trong không gian | 6 | Vectơ trong không gian | 15 | Tích vô hướng của hai vectơ trong không gian | article | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | No | Open-Ref | Pending manual verification |
+| 2 | Vectơ và hệ tọa độ trong không gian | 7 | Hệ trục tọa độ Oxyz | 16 | Tọa độ của điểm và tọa độ của vectơ | video | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | Yes | Protected | Pending manual verification |
+| 2 | Vectơ và hệ tọa độ trong không gian | 7 | Hệ trục tọa độ Oxyz | 17 | Biểu thức tọa độ của các phép toán vectơ | article | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | No | Open-Ref | Pending manual verification |
+| 2 | Vectơ và hệ tọa độ trong không gian | 7 | Hệ trục tọa độ Oxyz | 18 | Kiểm tra cuối chương 2: Không gian Oxyz | test | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | No | Khan-Assessment | Pending manual verification |
+| 3 | Nguyên hàm và tích phân | 8 | Nguyên hàm | 19 | Định nghĩa nguyên hàm và bảng nguyên hàm cơ bản | video | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | Yes | Protected | Pending manual verification |
+| 3 | Nguyên hàm và tích phân | 8 | Nguyên hàm | 20 | Phương pháp đổi biến số và từng phần | article | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | No | Open-Ref | Pending manual verification |
+| 3 | Nguyên hàm và tích phân | 9 | Tích phân | 21 | Định nghĩa và tính chất của tích phân | video | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | Yes | Protected | Pending manual verification |
+| 3 | Nguyên hàm và tích phân | 9 | Tích phân | 22 | Ứng dụng tích phân tính diện tích hình phẳng | video | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | Yes | Protected | Pending manual verification |
+| 3 | Nguyên hàm và tích phân | 9 | Tích phân | 23 | Ứng dụng tích phân tính thể tích vật thể | article | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | No | Open-Ref | Pending manual verification |
+| 3 | Nguyên hàm và tích phân | 9 | Tích phân | 24 | Kiểm tra cuối chương 3: Tích phân | test | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | No | Khan-Assessment | Pending manual verification |
+| 4 | Xác suất có điều kiện | 10 | Xác suất có điều kiện | 25 | Định nghĩa xác suất có điều kiện | video | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | Yes | Protected | Pending manual verification |
+| 4 | Xác suất có điều kiện | 10 | Xác suất có điều kiện | 26 | Công thức nhân xác suất | article | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | No | Open-Ref | Pending manual verification |
+| 4 | Xác suất có điều kiện | 11 | Công thức xác suất toàn phần | 27 | Công thức xác suất toàn phần và công thức Bayes | video | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | Yes | Protected | Pending manual verification |
+| 4 | Xác suất có điều kiện | 11 | Công thức xác suất toàn phần | 28 | Kiểm tra cuối chương 4: Xác suất | test | https://vi.khanacademy.org/math/toan-lop-12-viet-nam | No | Khan-Assessment | Pending manual verification |
 
 ---
 
