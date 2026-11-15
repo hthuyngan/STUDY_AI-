@@ -359,3 +359,36 @@
   color: var(--text-secondary, #64748b);
   font-size: 0.9rem;
 }
+
+/* Math 12 pilot: keep learning content above the fold when no video is available. */
+.lesson-video-unavailable {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px 22px;
+  margin-bottom: 18px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  background: var(--surface-card);
+}
+.lesson-video-unavailable strong { color: var(--text-primary); font-size: 15px; }
+.lesson-video-unavailable p { color: var(--text-secondary); font-size: 13px; margin: 5px 0 0; }
+.lesson-video-unavailable button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 10px;
+  padding: 11px 14px;
+  color: #fff;
+  background: #2563eb;
+  font-weight: 600;
+  cursor: pointer;
+}
+@media (max-width: 720px) {
+  .lesson-video-unavailable { align-items: stretch; flex-direction: column; }
+  .lesson-video-unavailable button { width: 100%; }
+}
