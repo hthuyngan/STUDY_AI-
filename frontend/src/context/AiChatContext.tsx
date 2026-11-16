@@ -111,6 +111,17 @@ export function AiChatProvider({ children }: AiChatProviderProps) {
     const pathname = location.pathname
 
     if (explicitContextRef.current) {
+      if (explicitContextRef.current.returnUrl && explicitContextRef.current.returnUrl !== pathname) {
+        explicitContextRef.current = null
+      } else if (explicitContextRef.current.lessonId) {
+        const match = pathname.match(/\/subjects\/([^/]+)\/lessons\/([^/]+)/)
+        if (!match || match[2] !== explicitContextRef.current.lessonId) {
+          explicitContextRef.current = null
+        }
+      }
+    }
+
+    if (explicitContextRef.current) {
       setLearningContextState(explicitContextRef.current)
       return
     }

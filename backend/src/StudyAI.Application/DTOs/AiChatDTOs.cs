@@ -94,3 +94,36 @@ public record AiProviderStatusDto(
     bool IsReady,
     string? Model = null
 );
+
+public record ResponseLengthPolicyDto(
+    string ConceptWords = "50-90 từ",
+    string FormulaWords = "40-80 từ",
+    string StepByStepWords = "100-150 từ (tối đa 3 bước)",
+    string OffTopicWords = "1-2 câu",
+    string DetailedWords = "Tối đa khoảng 200 từ"
+);
+
+public record LessonVideoContextDto(
+    string? Title,
+    string? VideoUrl,
+    string? YouTubeId,
+    int? DurationSeconds,
+    bool HasVideo
+);
+
+public record LessonAiContextDto(
+    string LessonId,
+    string LessonTitle,
+    string SubjectName,
+    string Grade,
+    string ChapterTitle,
+    List<string> LearningObjectives,
+    List<string> Definitions,
+    List<string> Formulas,
+    List<string> SummaryPoints,
+    LessonVideoContextDto? Video,
+    bool HasTranscript,
+    string VideoGuidanceNotice,
+    ResponseLengthPolicyDto Policy,
+    bool IsAuthorized
+);

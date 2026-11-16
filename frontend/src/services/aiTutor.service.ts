@@ -618,6 +618,13 @@ ${context.explanation ? `\n> **Giải thích chuẩn:** ${context.explanation}` 
   }
 
   /**
+   * Get backend-validated lesson context for AI Tutor
+   */
+  async getLessonAiContext(lessonId: string): Promise<any> {
+    return await apiClient.get<any>(`/api/v1/ai/context/lesson/${lessonId}`)
+  }
+
+  /**
    * Admin: Get AI feature toggles & provider status
    */
   async getAdminAiStatus(): Promise<AiFeatureConfig> {

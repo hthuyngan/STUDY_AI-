@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { MemoryRouter, Routes } from 'react-router-dom'
+import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { LessonPage } from '@/pages/Lesson/LessonPage'
 import { AiChatProvider, useAiChat } from '@/context/AiChatContext'
 import { Sidebar } from '@/components/layout/Sidebar'
@@ -16,56 +16,44 @@ vi.mock('@/auth/useAuth', () => ({
   }),
 }))
 
-// Mock useLesson to supply a comprehensive Math 12 lesson
+const MOCK_LESSON = {
+  id: 'les_math12_c1_b1',
+  title: 'Tính đơn điệu và cực trị của hàm số',
+  chapterTitle: 'Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị của hàm số',
+  subjectName: 'Toán học',
+  durationMinutes: 45,
+  xp: 50,
+  previousLessonId: 'les_math12_intro',
+  nextLessonId: 'les_math12_c1_b2',
+  learningObjectives: ['Hiểu rõ định lý về tính đơn điệu', 'Biết cách lập bảng biến thiên'],
+  skills: [{ skillCode: 'NL_TOAN_01', skillName: 'Tư duy và lập luận toán học', level: 'core' }],
+  content: {
+    introduction: 'Đạo hàm là công cụ toán học nền tảng để khảo sát sự biến thiên của hàm số.',
+    summaryPoints: ['Hàm số đồng biến khi đạo hàm dương', 'Hàm số nghịch biến khi đạo hàm âm'],
+    definitions: [{ term: 'Hàm số đồng biến', content: 'Hàm số đồng biến trên K nếu với mọi x1 < x2 thì f(x1) < f(x2).' }],
+    formulas: [{ id: 'f1', name: 'Định lý đồng biến', latex: "f'(x) \\ge 0 \\quad \\forall x \\in K" }],
+  },
+  videos: [
+    {
+      id: 'vid1',
+      title: 'Bài giảng Đạo hàm và Tính đơn điệu',
+      provider: 'youtube',
+      sourceUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      youTubeVideoId: 'dQw4w9WgXcQ',
+      durationSeconds: 900,
+    },
+  ],
+  video: {
+    hasVideo: true,
+    youtubeId: 'dQw4w9WgXcQ',
+    durationSeconds: 900,
+  },
+}
+
+// Mock useLesson to supply a Math 12 lesson
 vi.mock('@/hooks/useLesson', () => ({
   useLesson: () => ({
-    lesson: {
-      id: 'les_math12_c1_b1',
-      title: 'Tính đơn điệu và cực trị của hàm số',
-      chapterTitle: 'Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị của hàm số',
-      subjectName: 'Toán học',
-      durationMinutes: 45,
-      xp: 50,
-      learningObjectives: ['Hiểu rõ định lý về tính đơn điệu', 'Biết cách lập bảng biến thiên'],
-      skills: [{ skillCode: 'NL_TOAN_01', skillName: 'Tư duy và lập luận toán học', level: 'core' }],
-      content: {
-        introduction: 'Đạo hàm là công cụ toán học nền tảng để khảo sát sự biến thiên của hàm số.',
-        summaryPoints: ['Hàm số đồng biến khi đạo hàm dương', 'Hàm số nghịch biến khi đạo hàm âm'],
-        definitions: [{ term: 'Hàm số đồng biến', content: 'Hàm số đồng biến trên K nếu với mọi x1 < x2 thì f(x1) < f(x2).' }],
-        formulas: [{ id: 'f1', name: 'Định lý đồng biến', latex: "f'(x) \\ge 0 \\quad \\forall x \\in K" }],
-        variationTables: [
-          {
-            id: 'vt1',
-            title: 'Bảng biến thiên mẫu y = x^3 - 3x',
-            columns: [
-              { x: '-\\infty', yPrime: '+', y: { value: '-\\infty', position: 'bottom', arrow: 'up' } },
-              { x: '-1', yPrime: '0', y: { value: '2', position: 'top', arrow: 'down' } },
-              { x: '1', yPrime: '0', y: { value: '-2', position: 'bottom', arrow: 'up' } },
-              { x: '+\\infty', yPrime: '+', y: { value: '+\\infty', position: 'top', arrow: 'none' } },
-            ],
-          },
-        ],
-        functionGraphs: [{ id: 'fg1', title: 'Đồ thị hàm số bậc ba', functionLatex: 'y = x^3 - 3x' }],
-        importantNotes: ['Chú ý dấu bằng chỉ xảy ra tại hữu hạn điểm.'],
-        commonMistakes: [{ title: 'Quên xét dấu bằng', description: 'Nhiều bạn quên rằng đạo hàm có thể bằng 0 tại hữu hạn điểm mà hàm vẫn đơn điệu.' }],
-        examples: [{ id: 'ex1', title: 'Xét tính đơn điệu hàm số y = 2x^3 - 3x^2', problem: 'Tìm các khoảng đơn điệu của hàm số', solutionSteps: ['Bước 1: TXĐ D = R', 'Bước 2: y\' = 6x^2 - 6x'] }],
-      },
-      videos: [
-        {
-          id: 'vid1',
-          title: 'Bài giảng Đạo hàm và Tính đơn điệu',
-          provider: 'youtube',
-          sourceUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-          youTubeVideoId: 'dQw4w9WgXcQ',
-          durationSeconds: 900,
-        },
-      ],
-      video: {
-        hasVideo: true,
-        youtubeId: 'dQw4w9WgXcQ',
-        durationSeconds: 900,
-      },
-    },
+    lesson: MOCK_LESSON,
     outline: [],
     isLoading: false,
     error: null,
@@ -88,9 +76,50 @@ vi.mock('@/services/curriculum.service', () => ({
   },
 }))
 
-describe('Redesigned Lesson Page & Unified Contextual AI Tutor Suite', () => {
-  it('renders exactly two main content areas: Video and Unified Overview Card', () => {
-    render(
+// Mock aiTutorService to eliminate TCP socket timeouts on /api/v1/ai/status
+vi.mock('@/services/aiTutor.service', () => ({
+  aiTutorService: {
+    getProviderStatus: vi.fn().mockResolvedValue({
+      provider: 'openai',
+      displayName: 'OpenAI GPT-4o-mini',
+      isReady: true,
+      model: 'gpt-4o-mini',
+    }),
+    getLessonAiContext: vi.fn().mockResolvedValue({
+      lessonId: 'les_math12_c1_b1',
+      title: 'Tính đơn điệu và cực trị của hàm số',
+      subjectName: 'Toán học',
+      grade: '12',
+      chapterTitle: 'Chương 1',
+      learningObjectives: ['Hiểu rõ định lý về tính đơn điệu'],
+      keyDefinitions: [],
+      keyFormulas: [],
+      contentSummary: 'Tóm tắt bài học',
+      videoMetadata: [],
+      hasTranscript: true,
+    }),
+  },
+}))
+
+// Mock LessonVideoPlayer to prevent happy-dom iframe network fetch stall
+vi.mock('@/components/lesson/LessonVideoPlayer', () => ({
+  LessonVideoPlayer: ({ lessonTitle, onAskAI }: any) => (
+    <div className="lesson-video-player-mock">
+      <span>Video bài giảng</span>
+      <button
+        type="button"
+        title="Hỏi AI Tutor về nội dung video này"
+        onClick={() => onAskAI?.({ id: 'vid1', title: lessonTitle })}
+      >
+        Hỏi AI Tutor
+      </button>
+    </div>
+  ),
+}))
+
+describe('Redesigned Lesson Page & Context-Aware AI Tutor Suite', () => {
+  it('renders the exact 8-part vertical sequence from top to bottom', () => {
+    const { container } = render(
       <MemoryRouter initialEntries={['/subjects/math/lessons/les_math12_c1_b1']}>
         <AiChatProvider>
           <LessonPage />
@@ -98,26 +127,48 @@ describe('Redesigned Lesson Page & Unified Contextual AI Tutor Suite', () => {
       </MemoryRouter>
     )
 
-    // Area 1: Video Bài Giảng
+    // 1. Breadcrumb nhỏ
+    expect(screen.getByRole('navigation', { name: /đường dẫn điều hướng/i })).toBeInTheDocument()
+    expect(screen.getAllByText('Trang chủ').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Môn học').length).toBeGreaterThan(0)
+    expect(screen.getByText('Toán học')).toBeInTheDocument()
+
+    // 2. Tên bài học
+    expect(screen.getByRole('heading', { level: 1, name: /Tính đơn điệu và cực trị của hàm số/i })).toBeInTheDocument()
+    expect(screen.getByText(/Chương 1: Ứng dụng đạo hàm/i)).toBeInTheDocument()
+
+    // 3. Tiến độ học tập (% tiến độ, XP)
+    expect(screen.getByLabelText(/tiến độ học tập/i)).toBeInTheDocument()
+    expect(screen.getByText(/\+50 XP/i)).toBeInTheDocument()
+
+    // 4. Video bài giảng
     expect(screen.getByRole('region', { name: /video bài giảng/i })).toBeInTheDocument()
     expect(screen.getByText('Video bài giảng')).toBeInTheDocument()
 
-    // Area 2: Tổng Quan Bài Học Card
-    expect(screen.getByRole('region', { name: /tổng quan bài học/i })).toBeInTheDocument()
+    // 6. Công cụ ghi chú và lưu bài (Notes & Save tools)
+    expect(screen.getByRole('region', { name: /công cụ ghi chú và lưu bài/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /mở ghi chú cá nhân/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /lưu bài học/i })).toBeInTheDocument()
 
-    // Accordion Sections inside Unified Overview
-    expect(screen.getByText(/A\. Giới thiệu & Kiến thức trọng tâm/i)).toBeInTheDocument()
-    expect(screen.getByText(/B\. Lý thuyết & Công thức/i)).toBeInTheDocument()
-    expect(screen.getByText(/C\. Ví dụ & Bài tập mẫu/i)).toBeInTheDocument()
-    expect(screen.getByText(/D\. Luyện tập thu hoạch/i)).toBeInTheDocument()
+    // 7. Bài tập thu hoạch (collapsible accordion, default collapsed)
+    expect(screen.getByRole('region', { name: /bài tập thu hoạch/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2, name: /bài tập thu hoạch/i })).toBeInTheDocument()
+    expect(screen.getByText('Đánh giá hiểu bài')).toBeInTheDocument()
 
-    // Strict Check: Legacy Tab Navigation buttons MUST NOT exist
-    expect(screen.queryByRole('tablist', { name: /tab/i })).toBeNull()
-    expect(screen.queryByText('Tổng quan & Video')).toBeNull()
-    expect(screen.queryByText('Lý thuyết & KaTeX')).toBeNull()
+    // 8. Điều hướng bài trước/bài tiếp theo
+    expect(screen.getByRole('navigation', { name: /điều hướng bài trước và bài tiếp theo/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /bài trước/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /bài tiếp theo/i })).toBeInTheDocument()
+
+    // Strict Check: Legacy Sidebar, Tab Navigation, and old Accordions MUST NOT exist
+    expect(container.querySelector('.lesson-sidebar')).toBeNull()
+    expect(screen.queryByRole('tablist')).toBeNull()
+    expect(screen.queryByText(/A\. Giới thiệu & Kiến thức trọng tâm/i)).toBeNull()
+    expect(screen.queryByText(/B\. Lý thuyết & Công thức/i)).toBeNull()
+    expect(screen.queryByText(/C\. Ví dụ & Bài tập mẫu/i)).toBeNull()
   })
 
-  it('provides contextual "Hỏi AI Tutor" button across video and all 4 overview sections', () => {
+  it('toggles "Bài tập thu hoạch" accordion on click without losing attempt state', async () => {
     render(
       <MemoryRouter initialEntries={['/subjects/math/lessons/les_math12_c1_b1']}>
         <AiChatProvider>
@@ -126,16 +177,25 @@ describe('Redesigned Lesson Page & Unified Contextual AI Tutor Suite', () => {
       </MemoryRouter>
     )
 
-    const askAiButtons = screen.getAllByRole('button', { name: /Hỏi AI Tutor/i })
-    // At least 5 contextual Ask AI triggers (1 in Video, 4 in the 4 accordion headers, plus block triggers)
-    expect(askAiButtons.length).toBeGreaterThanOrEqual(5)
+    // Initially collapsed: assessment card questions/buttons are not shown
+    expect(screen.queryByText(/Bắt đầu làm bài|đang được biên soạn/i)).toBeNull()
+
+    // Click accordion header to expand
+    const accordionHeader = screen.getByRole('button', { name: /bài tập thu hoạch/i })
+    fireEvent.click(accordionHeader)
+
+    // Now assessment card is visible
+    expect(await screen.findByText(/Bắt đầu làm bài|đang được biên soạn/i)).toBeInTheDocument()
+
+    // Click again to collapse
+    fireEvent.click(accordionHeader)
+    expect(screen.queryByText(/Bắt đầu làm bài|đang được biên soạn/i)).toBeNull()
   })
 
-  it('triggers FloatingAiChatbot with accurate context and prefilled prompt without auto-sending', () => {
+  it('triggers FloatingAiChatbot with accurate lesson context and prefilled prompt', () => {
     let capturedContext: any = null
     let capturedPrompt: any = null
 
-    // Helper consumer to verify state
     function TestChatConsumer() {
       const { learningContext, injectedPrompt, isOpen } = useAiChat()
       capturedContext = learningContext
@@ -154,46 +214,18 @@ describe('Redesigned Lesson Page & Unified Contextual AI Tutor Suite', () => {
 
     expect(screen.getByTestId('chat-open-state').textContent).toBe('CLOSED')
 
-    // Click "Hỏi AI Tutor" on Video header
+    // Click "Hỏi AI Tutor" on Video
     const videoAskBtn = screen.getByTitle('Hỏi AI Tutor về nội dung video này')
     fireEvent.click(videoAskBtn)
 
     expect(screen.getByTestId('chat-open-state').textContent).toBe('OPEN')
     expect(capturedContext?.source).toBe('lesson-video')
-    expect(capturedContext?.sectionType).toBe('video')
+    expect(capturedContext?.lessonId).toBe('les_math12_c1_b1')
+    expect(capturedContext?.lessonTitle).toBe('Tính đơn điệu và cực trị của hàm số')
     expect(capturedPrompt).toBe('Giải thích nội dung video này')
-
-    // Click "Hỏi AI Tutor" on Theory header
-    const theoryAskBtn = screen.getByTitle('Hỏi AI Tutor giải thích lý thuyết và công thức')
-    fireEvent.click(theoryAskBtn)
-
-    expect(capturedContext?.source).toBe('lesson-theory')
-    expect(capturedContext?.sectionType).toBe('theory')
-    expect(capturedPrompt).toBe('Giải thích công thức này dễ hiểu hơn')
   })
 
-  it('toggles Accordion sections properly without losing content', () => {
-    render(
-      <MemoryRouter initialEntries={['/subjects/math/lessons/les_math12_c1_b1']}>
-        <AiChatProvider>
-          <LessonPage />
-        </AiChatProvider>
-      </MemoryRouter>
-    )
-
-    // Examples section is collapsed by default
-    expect(screen.queryByText('Ví dụ mẫu & Phương pháp giải từng bước')).toBeNull()
-
-    // Click to open Examples section
-    const examplesHeader = screen.getByText(/C\. Ví dụ & Bài tập mẫu/i)
-    fireEvent.click(examplesHeader)
-
-    // Now Examples content is displayed
-    expect(screen.getByText('Ví dụ mẫu & Phương pháp giải từng bước')).toBeInTheDocument()
-    expect(screen.getByText(/Xét tính đơn điệu hàm số y = 2x\^3 - 3x\^2/i)).toBeInTheDocument()
-  })
-
-  it('removes "AI Tutor" item from student Sidebar and MobileBottomNav', () => {
+  it('removes "AI Tutor" link from student Sidebar and MobileBottomNav', () => {
     const { container: sidebarContainer } = render(
       <MemoryRouter>
         <Sidebar collapsed={false} onToggleCollapse={vi.fn()} mobileOpen={false} onCloseMobile={vi.fn()} />
@@ -216,16 +248,16 @@ describe('Redesigned Lesson Page & Unified Contextual AI Tutor Suite', () => {
   })
 
   it('cleanly redirects legacy /ai-tutor route to /subjects without dead links', async () => {
-    const { LearnerRoutes } = await import('@/routes/learnerRoutes')
+    const { LegacyAiTutorRoutes } = await import('@/routes/legacyRedirectRoutes')
     render(
       <MemoryRouter initialEntries={['/ai-tutor']}>
         <Routes>
-          {LearnerRoutes()}
+          {LegacyAiTutorRoutes()}
+          <Route path="/subjects" element={<div data-testid="subjects-page">Trang Môn học</div>} />
         </Routes>
       </MemoryRouter>
     )
 
-    // Should redirect to /subjects and render Subjects page cleanly
-    expect(screen.getAllByText(/Môn học/i).length).toBeGreaterThan(0)
+    expect(screen.getByTestId('subjects-page')).toBeInTheDocument()
   })
 })

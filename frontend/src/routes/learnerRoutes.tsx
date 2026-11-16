@@ -1,4 +1,5 @@
 import { Route, Navigate, useParams } from 'react-router-dom'
+import { LegacyAiTutorRoutes } from './legacyRedirectRoutes'
 import { AppShell } from '@/components/layout/AppShell'
 import DashboardPage from '@/pages/Dashboard/DashboardPage'
 import SubjectsPage from '@/pages/Subjects/SubjectsPage'
@@ -122,14 +123,7 @@ export function LearnerRoutes() {
       />
 
       {/* Legacy AI Tutor Redirects: seamlessly route to /subjects with zero dead links & active Floating AI Chatbot */}
-      <Route
-        path="/ai-tutor"
-        element={<Navigate to="/subjects" replace />}
-      />
-      <Route
-        path="/ai-tutor/:conversationId"
-        element={<Navigate to="/subjects" replace />}
-      />
+      {LegacyAiTutorRoutes()}
 
       {/* Learning Path */}
       <Route

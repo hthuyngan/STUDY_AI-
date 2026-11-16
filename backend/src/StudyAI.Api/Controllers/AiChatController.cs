@@ -275,4 +275,39 @@ public class AiChatController : ControllerBase
             return StatusCode(StatusCodes.Status503ServiceUnavailable, new { detail = ex.Message });
         }
     }
+
+    /// <summary>
+    /// Lấy ngữ cảnh bài học đã được xác thực phía backend cho AI Tutor
+    /// </summary>
+    [HttpGet("context/lesson/{lessonId}")]
+    public async Task<IActionResult> GetLessonAiContext(
+        [FromRoute] string lessonId,
+        CancellationToken cancellationToken)
+    {
+        var userId = CurrentUserId;
+        if (string.IsNullOrWhiteSpace(userId)) return Unauthorized();
+
+        try
+        {
+            var context = await _aiTutorService.GetLessonAiContextAsync(
+                userId,
+                CurrentUserRole,
+                lessonId,
+                cancellationToken);
+
+            return Ok(context);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { detail = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { detail = ex.Message });
+        }
+    }
 }
