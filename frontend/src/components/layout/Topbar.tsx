@@ -19,6 +19,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/auth/useAuth'
 import { Avatar } from '@/components/ui/Avatar'
 import { IconButton } from '@/components/ui/IconButton'
+import { WorkspaceAppLauncher } from './WorkspaceAppLauncher'
 
 
 export interface TopbarProps {
@@ -370,6 +371,11 @@ export function Topbar({ onOpenMobileMenu }: TopbarProps) {
 
       {/* Right: Actions */}
       <div className="topbar-right">
+        {/* Moodle-style 9-dot Workspace App Launcher */}
+        <WorkspaceAppLauncher
+          onOpenNotifications={() => setIsNotificationsOpen(true)}
+        />
+
         {/* Theme toggle */}
         <IconButton
           icon={theme === 'light' ? Moon : Sun}

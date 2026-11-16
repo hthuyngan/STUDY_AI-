@@ -1,18 +1,12 @@
 import {
-  Atom,
   ChevronLeft,
   ChevronRight,
-  ClipboardList,
-  Compass,
-  FlaskConical,
   GraduationCap,
-  Languages,
   Layers,
   LayoutGrid,
   LogIn,
-  Palette,
-  Settings,
   Target,
+  Trophy,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/auth/useAuth'
@@ -78,7 +72,15 @@ export function Sidebar({
 
         {/* Navigation list */}
         <nav className="sidebar-nav scrollbar-clean">
+          {/* Group 1: MENU CHÍNH */}
           <div className="sidebar-nav-group">
+            {!collapsed ? (
+              <div className="sidebar-group-header">
+                <span className="sidebar-group-title">MENU CHÍNH</span>
+              </div>
+            ) : (
+              <div className="sidebar-group-divider" aria-hidden />
+            )}
             <SidebarItem
               to="/dashboard"
               label="Tổng quan"
@@ -94,133 +96,34 @@ export function Sidebar({
               onClick={onCloseMobile}
             />
             <SidebarItem
-              to="/practice"
-              label="Luyện tập & Ôn câu sai"
-              icon={Target}
-              collapsed={collapsed}
-              onClick={onCloseMobile}
-            />
-            <SidebarItem
-              to="/practice?mode=exam"
-              label="Thi thử"
-              icon={ClipboardList}
-              collapsed={collapsed}
-              onClick={onCloseMobile}
-            />
-            <SidebarItem
               to="/assignments"
-              label="Lớp học & Bài tập"
+              label="Lớp học"
               icon={GraduationCap}
               collapsed={collapsed}
               onClick={onCloseMobile}
             />
           </div>
 
-          {/* Group 2: PHÂN MÔN */}
+          {/* Group 2: LUYỆN TẬP */}
           <div className="sidebar-nav-group">
             {!collapsed ? (
               <div className="sidebar-group-header">
-                <span className="sidebar-group-title">PHÂN MÔN</span>
+                <span className="sidebar-group-title">LUYỆN TẬP</span>
               </div>
             ) : (
               <div className="sidebar-group-divider" aria-hidden />
-            )}
-
-            <div className="sidebar-sub-items">
-              <SidebarItem
-                to="/subjects/math"
-                label="Toán học"
-                icon={Compass}
-                collapsed={collapsed}
-                onClick={onCloseMobile}
-              />
-              <SidebarItem
-                to="/subjects/physics"
-                label="Vật lý"
-                icon={Atom}
-                collapsed={collapsed}
-                onClick={onCloseMobile}
-              />
-              <SidebarItem
-                to="/subjects/chemistry"
-                label="Hóa học"
-                icon={FlaskConical}
-                collapsed={collapsed}
-                onClick={onCloseMobile}
-              />
-              <SidebarItem
-                to="/subjects/english"
-                label="Tiếng Anh"
-                icon={Languages}
-                collapsed={collapsed}
-                onClick={onCloseMobile}
-              />
-            </div>
-          </div>
-
-          {/* Group 3: KHÔNG GIAN LÀM VIỆC (Cho Giáo viên / Quản trị viên / Biên tập) */}
-          {user && (user.role === 'teacher' || user.role === 'content' || user.role === 'admin') && (
-            <div className="sidebar-nav-group">
-              {!collapsed ? (
-                <div className="sidebar-group-header">
-                  <span className="sidebar-group-title">QUẢN LÝ</span>
-                </div>
-              ) : (
-                <div className="sidebar-group-divider" aria-hidden />
-              )}
-              {user.role === 'teacher' && (
-                <SidebarItem
-                  to="/teacher"
-                  label="Không gian giáo viên"
-                  icon={GraduationCap}
-                  collapsed={collapsed}
-                  onClick={onCloseMobile}
-                />
-              )}
-              {user.role === 'content' && (
-                <SidebarItem
-                  to="/content"
-                  label="Quản lý nội dung"
-                  icon={Layers}
-                  collapsed={collapsed}
-                  onClick={onCloseMobile}
-                />
-              )}
-              {user.role === 'admin' && (
-                <SidebarItem
-                  to="/admin"
-                  label="Quản trị hệ thống"
-                  icon={Settings}
-                  collapsed={collapsed}
-                  onClick={onCloseMobile}
-                />
-              )}
-            </div>
-          )}
-
-          {/* Group 4: THIẾT LẬP */}
-          <div className="sidebar-nav-group">
-            {!collapsed ? (
-              <div className="sidebar-group-header">
-                <span className="sidebar-group-title">CÀI ĐẶT</span>
-              </div>
-            ) : (
-              <div className="sidebar-group-divider" aria-hidden />
-            )}
-
-            {import.meta.env.DEV && (
-              <SidebarItem
-                to="/design-system"
-                label="Design System"
-                icon={Palette}
-                collapsed={collapsed}
-                onClick={onCloseMobile}
-              />
             )}
             <SidebarItem
-              to="/settings"
-              label="Cài đặt"
-              icon={Settings}
+              to="/exam-preparation"
+              label="Luyện thi"
+              icon={Trophy}
+              collapsed={collapsed}
+              onClick={onCloseMobile}
+            />
+            <SidebarItem
+              to="/practice"
+              label="Bài tập"
+              icon={Target}
               collapsed={collapsed}
               onClick={onCloseMobile}
             />

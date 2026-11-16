@@ -200,11 +200,11 @@ describe('Redesigned Lesson Page & Unified Contextual AI Tutor Suite', () => {
       </MemoryRouter>
     )
 
-    // Sidebar should have Môn học, Luyện tập, Thi thử, Lớp học, but NOT AI Tutor
+    // Sidebar should have Môn học, Lớp học, Luyện thi, Bài tập, but NOT AI Tutor
     expect(screen.getByText('Môn học')).toBeInTheDocument()
-    expect(screen.getByText('Luyện tập & Ôn câu sai')).toBeInTheDocument()
-    expect(screen.getByText('Thi thử')).toBeInTheDocument()
-    expect(screen.getByText('Lớp học & Bài tập')).toBeInTheDocument()
+    expect(screen.getByText('Lớp học')).toBeInTheDocument()
+    expect(screen.getByText('Luyện thi')).toBeInTheDocument()
+    expect(screen.getByText('Bài tập')).toBeInTheDocument()
     expect(sidebarContainer.querySelector('a[href="/ai-tutor"]')).toBeNull()
 
     const { container: mobileNavContainer } = render(

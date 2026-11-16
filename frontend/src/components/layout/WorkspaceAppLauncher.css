@@ -1,0 +1,249 @@
+/* Workspace App Launcher (Moodle-style 9-dot App Launcher) */
+
+.workspace-launcher-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.workspace-launcher-trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary, #475569);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.workspace-launcher-trigger:hover,
+.workspace-launcher-trigger.is-active {
+  background: var(--surface-sunken, #f1f5f9);
+  color: var(--primary-600, #2563eb);
+  border-color: var(--border-subtle, #e2e8f0);
+}
+
+.workspace-launcher-trigger:focus-visible {
+  outline: 2px solid var(--primary-500, #3b82f6);
+  outline-offset: 2px;
+}
+
+/* Popover Panel */
+.workspace-launcher-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 360px;
+  max-width: calc(100vw - 24px);
+  background: var(--surface-elevated, #ffffff);
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  overflow: hidden;
+  animation: launcher-popover-in 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes launcher-popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.workspace-launcher-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px 10px;
+  border-bottom: 1px solid var(--border-subtle, #e2e8f0);
+  background: var(--surface-card, #f8fafc);
+}
+
+.workspace-launcher-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.workspace-launcher-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+  letter-spacing: -0.01em;
+}
+
+.workspace-launcher-subtitle {
+  font-size: 0.75rem;
+  color: var(--text-tertiary, #64748b);
+}
+
+.workspace-launcher-role-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.08);
+  color: var(--primary-600, #2563eb);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+}
+
+/* Grid of App Tiles */
+.workspace-launcher-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 16px;
+  background: var(--surface-elevated, #ffffff);
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.workspace-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 6px;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary, #334155);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  text-align: center;
+  user-select: none;
+}
+
+.workspace-tile:hover,
+.workspace-tile:focus-visible,
+.workspace-tile.is-keyboard-focused {
+  background: var(--surface-sunken, #f1f5f9);
+  border-color: var(--border-subtle, #e2e8f0);
+  color: var(--primary-600, #2563eb);
+  transform: translateY(-2px);
+}
+
+.workspace-tile:focus-visible {
+  outline: 2px solid var(--primary-500, #3b82f6);
+  outline-offset: 1px;
+}
+
+.workspace-tile-icon-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.workspace-tile:hover .workspace-tile-icon-box {
+  transform: scale(1.08);
+}
+
+.workspace-tile-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--text-primary, #0f172a);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-tile-badge {
+  font-size: 0.65rem;
+  color: var(--text-tertiary, #64748b);
+  line-height: 1;
+}
+
+/* Dedicated Role Section */
+.workspace-launcher-section {
+  padding: 0 16px 8px;
+}
+
+.workspace-section-divider {
+  height: 1px;
+  background: var(--border-subtle, #e2e8f0);
+  margin-bottom: 12px;
+}
+
+.workspace-section-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary, #64748b);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Footer / Actions */
+.workspace-launcher-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border-subtle, #e2e8f0);
+  background: var(--surface-card, #f8fafc);
+}
+
+.workspace-launcher-footer-link {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary, #475569);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm, 6px);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.workspace-launcher-footer-link:hover {
+  background: var(--surface-sunken, #e2e8f0);
+  color: var(--text-primary, #0f172a);
+}
+
+.workspace-launcher-logout-btn {
+  color: var(--color-danger, #ef4444);
+}
+
+.workspace-launcher-logout-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .workspace-launcher-popover {
+    position: fixed;
+    top: 60px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
+  }
+}

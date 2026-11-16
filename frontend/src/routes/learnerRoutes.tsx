@@ -21,6 +21,8 @@ import ProfilePage from '@/pages/Profile/ProfilePage'
 import SettingsPage from '@/pages/Settings/SettingsPage'
 import DesignSystemPage from '@/pages/DesignSystem/DesignSystemPage'
 import { LearnerAssignmentsPage } from '@/pages/Assignments/LearnerAssignmentsPage'
+import { ExamPreparationPage } from '@/pages/Exam/ExamPreparationPage'
+import { SchedulePage } from '@/pages/Schedule/SchedulePage'
 
 export function LegacyCoursesRedirect() {
   const { courseId } = useParams<{ courseId?: string }>()
@@ -189,7 +191,23 @@ export function LearnerRoutes() {
           </AppShell>
         }
       />
-      <Route path="/exam" element={<Navigate to="/practice?mode=exam" replace />} />
+      <Route
+        path="/exam-preparation"
+        element={
+          <AppShell>
+            <ExamPreparationPage />
+          </AppShell>
+        }
+      />
+      <Route path="/exam" element={<Navigate to="/exam-preparation" replace />} />
+      <Route
+        path="/schedule"
+        element={
+          <AppShell>
+            <SchedulePage />
+          </AppShell>
+        }
+      />
       <Route
         path="/practice/session/:sessionId"
         element={
