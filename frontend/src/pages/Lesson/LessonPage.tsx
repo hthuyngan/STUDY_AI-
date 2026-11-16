@@ -1,23 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Award,
-  Bookmark,
-  BookmarkCheck,
-  Bot,
   CheckCircle2,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  FileText,
-  Play,
   Sparkles,
 } from 'lucide-react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { AssessmentModal } from '@/components/assessment/AssessmentModal'
 import { LessonAssessmentCard } from '@/components/assessment/LessonAssessmentCard'
-import { LessonNotesPanel } from '@/components/lesson/LessonNotesPanel'
 import { LessonProgressBar } from '@/components/lesson/LessonProgressBar'
-import { LessonVideoPlayer, type VideoItemOption } from '@/components/lesson/LessonVideoPlayer'
+import { LessonVideoPlayer } from '@/components/lesson/LessonVideoPlayer'
 import { Breadcrumb } from '@/components/ui/Breadcrumb'
 import { Button } from '@/components/ui/Button'
 import { PageErrorState } from '@/components/ui/PageErrorState'
@@ -27,7 +21,6 @@ import { curriculumService } from '@/services/curriculum.service'
 import { useLesson } from '@/hooks/useLesson'
 import { useLessonAssessment } from '@/hooks/useLessonAssessment'
 import { useLessonProgress } from '@/hooks/useLessonProgress'
-import { useStudyNotes } from '@/hooks/useStudyNotes'
 import { learningContextService } from '@/services/learningContext.service'
 import type { AssessmentOption, AssessmentQuestion, LessonAssessment } from '@/types/assessment'
 import type { TutorLearningContext } from '@/types/aiTutor'
@@ -35,17 +28,17 @@ import './LessonPage.css'
 
 export function LessonPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { subjectId: paramSubjectId, courseId: paramCourseId, lessonId } = useParams<{
     subjectId?: string
     courseId?: string
     lessonId: string
   }>()
 
-  // State
-  const [notesPanelOpen, setNotesPanelOpen] = useState(false)
-  const [isHarvestOpen, setIsHarvestOpen] = useState(false) // Accordion Bài tập thu hoạch: mặc định thu gọn
+  // Accordion Bài tập thu hoạch: mặc định thu gọn
+  const [isHarvestOpen, setIsHarvestOpen] = useState(false)
 
-  const { openChat, setLearningContext } = useAiChat()
+  const { setLearningContext } = useAiChat()
 
   const resolvedSubjectId =
     paramSubjectId ||
@@ -61,66 +54,11 @@ export function LessonPage() {
     lesson,
     isLoading,
     error,
-    isBookmarked,
-    toggleBookmark,
     reload,
   } = useLesson(resolvedSubjectId, lessonId)
 
-  // Identify valid learning sections in redesigned layout for progress tracking
+  // Identify valid learning sections for 70% video + 30% assessment progress tracking
   const actualSectionIds: string[] = useMemo(() => ['video-lecture'], [])
-
-  const sectionsList = useMemo(() => {
-    return [
-      { id: 'video-lecture', title: 'Video bài giảng' },
-      { id: 'harvest-accordion', title: 'Bài tập thu hoạch' },
-    ]
-  }, [])
-
-  // Contextual AI Tutor Trigger for Video
-  const handleAskAIVideo = useCallback(
-    (videoItem?: VideoItemOption) => {
-      if (!lesson) return
-      const vTitle = videoItem?.title || lesson.title
-      const context: TutorLearningContext = {
-        source: 'lesson-video',
-        sectionType: 'video',
-        lessonId: lesson.id,
-        subjectId: resolvedSubjectId,
-        lessonTitle: lesson.title,
-        subjectName: lesson.subjectName || 'Toán học',
-        chapterTitle: lesson.chapterTitle,
-        videoId: videoItem?.id,
-        videoTitle: vTitle,
-        title: `Video: ${vTitle}`,
-        excerpt: videoItem?.description || `Video bài giảng của bài học: ${lesson.title}`,
-        returnUrl: window.location.pathname,
-      }
-      setLearningContext(context)
-      learningContextService.setContext(context)
-      openChat(context, 'Giải thích nội dung video này')
-    },
-    [lesson, resolvedSubjectId, openChat, setLearningContext]
-  )
-
-  // Contextual AI Tutor Trigger for Harvest Assessment
-  const handleAskAIPractice = useCallback(() => {
-    if (!lesson) return
-    const context: TutorLearningContext = {
-      source: 'lesson-practice',
-      sectionType: 'practice',
-      lessonId: lesson.id,
-      subjectId: resolvedSubjectId,
-      lessonTitle: lesson.title,
-      subjectName: lesson.subjectName || 'Toán học',
-      chapterTitle: lesson.chapterTitle,
-      title: `Bài tập thu hoạch · ${lesson.title}`,
-      excerpt: 'Hướng dẫn em cách tư duy làm bài tập thu hoạch của bài học này',
-      returnUrl: window.location.pathname,
-    }
-    setLearningContext(context)
-    learningContextService.setContext(context)
-    openChat(context, 'Gợi ý cho em phương pháp giải các bài tập của bài này')
-  }, [lesson, resolvedSubjectId, openChat, setLearningContext])
 
   // Sync active lesson context on mount/lesson change
   useEffect(() => {
@@ -135,24 +73,24 @@ export function LessonPage() {
       chapterTitle: lesson.chapterTitle,
       title: lesson.title,
       excerpt: lesson.learningObjectives?.join(', ') || `Bài học: ${lesson.title}`,
-      returnUrl: window.location.pathname,
+      returnUrl: location.pathname,
     }
     setLearningContext(context)
     learningContextService.setContext(context)
-  }, [lesson?.id, lesson?.title, lesson?.chapterTitle, resolvedSubjectId, setLearningContext])
+  }, [lesson?.id, lesson?.title, lesson?.chapterTitle, resolvedSubjectId, location.pathname, setLearningContext])
 
-  const { notes } = useStudyNotes(lesson?.id)
-
-  // Track progress
+  // Track progress (70% video + 30% assessment)
   const {
     overallProgress,
     isAssessmentCompleted,
     registerSection,
+    markVideoCompleted,
     reloadProgress,
   } = useLessonProgress({
     lessonId: lesson?.id || '',
     subjectId: resolvedSubjectId,
     actualSectionIds,
+    hasAssessment: true,
   })
 
   // Fetch real published assessment questions from StudyAIDb via Curriculum API (Zero-Leak)
@@ -262,31 +200,36 @@ export function LessonPage() {
     },
   })
 
-  // Multi-videos extraction
-  const multiVideos: any[] = useMemo(() => {
-    if (!lesson) return []
-    const vList = (lesson as any).videos
-    if (Array.isArray(vList) && vList.length > 0) return vList
+  // Select strictly one primary lecture video
+  const primaryVideo = useMemo(() => {
+    if (!lesson) return null
+    if (lesson.videos && lesson.videos.length > 0) {
+      const v = lesson.videos[0]
+      return {
+        id: v.id,
+        title: v.title,
+        description: v.description,
+        provider: v.provider || 'youtube',
+        sourceUrl: v.sourceUrl,
+        embedUrl: v.embedUrl || undefined,
+        youTubeVideoId: v.youTubeVideoId || undefined,
+        durationSeconds: v.durationSeconds || undefined,
+        thumbnailUrl: v.thumbnailUrl || undefined,
+      }
+    }
     if (lesson.video?.hasVideo && (lesson.video.youtubeId || lesson.video.videoUrl)) {
-      return [
-        {
-          id: 'vid_main',
-          title: lesson.title,
-          youTubeVideoId: lesson.video.youtubeId,
-          videoUrl: lesson.video.videoUrl,
-          durationSeconds: lesson.video.durationSeconds,
-        },
-      ]
+      return {
+        id: 'vid_main',
+        title: lesson.title,
+        provider: lesson.video.provider || 'youtube',
+        sourceUrl: lesson.video.sourceReferenceUrl || lesson.video.videoUrl || '',
+        embedUrl: lesson.video.videoUrl || undefined,
+        youTubeVideoId: lesson.video.youtubeId || undefined,
+        durationSeconds: lesson.video.durationSeconds,
+      }
     }
-    return []
+    return null
   }, [lesson])
-
-  const handleScrollToSection = useCallback((sectionId: string) => {
-    const el = document.querySelector(`[data-section-id="${sectionId}"]`) || document.getElementById(sectionId)
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
-  }, [])
 
   if (isLoading) {
     return (
@@ -312,10 +255,6 @@ export function LessonPage() {
   const chapterShortLabel = lesson.chapterTitle
     ? lesson.chapterTitle.split(/[:·]/)[0].trim()
     : 'Chương 1'
-
-  const hasVideoContent =
-    multiVideos.length > 0 ||
-    (lesson.video?.hasVideo && (lesson.video.youtubeId || lesson.video.videoUrl))
 
   return (
     <div className="lesson-page-root">
@@ -367,7 +306,7 @@ export function LessonPage() {
         </div>
 
         {/* ============================================================ */}
-        {/* 4. VIDEO BÀI GIẢNG (16:9, responsive, fullscreen, no-autoplay) */}
+        {/* 4. VIDEO BÀI GIẢNG DUY NHẤT (16:9, responsive, fullscreen, no-autoplay) */}
         {/* ============================================================ */}
         <section
           className="lesson-video-section"
@@ -376,110 +315,25 @@ export function LessonPage() {
           id="video-lecture"
           ref={(el) => registerSection('video-lecture', el)}
         >
-          {hasVideoContent ? (
+          {primaryVideo ? (
             <LessonVideoPlayer
-              video={lesson.video}
-              videos={(lesson as any).videos}
+              video={primaryVideo}
               lessonTitle={lesson.title}
               sourceReferenceUrl={lesson.sourceReferenceUrl}
-              onAskAI={(v) => handleAskAIVideo(v)}
+              onVideoCompleted={markVideoCompleted}
             />
           ) : (
             <div className="lesson-video-unavailable" role="status">
               <div>
                 <strong>Bài học chưa có video phát trực tiếp</strong>
-                <p>Video bài giảng sẽ được cập nhật sớm. Bạn có thể hỏi AI Tutor về kiến thức bài học.</p>
+                <p>Video bài giảng sẽ được cập nhật sớm. Bạn có thể sử dụng AI Tutor ở góc màn hình để được hỗ trợ kiến thức.</p>
               </div>
-              <button
-                type="button"
-                className="btn-ask-ai-contextual"
-                onClick={() => handleAskAIVideo()}
-                title="Hỏi AI Tutor về bài học này"
-              >
-                <Bot size={14} aria-hidden />
-                <span>Hỏi AI Tutor về bài học</span>
-              </button>
             </div>
           )}
         </section>
 
         {/* ============================================================ */}
-        {/* 5. DANH SÁCH VIDEO NẾU BÀI CÓ NHIỀU VIDEO */}
-        {/* ============================================================ */}
-        {multiVideos.length > 1 && (
-          <section className="lesson-multi-video-list" aria-label="Danh sách video bài giảng">
-            <h3 className="multi-video-heading">
-              <Play size={15} aria-hidden /> Danh sách video bài giảng ({multiVideos.length} phần)
-            </h3>
-            <div className="multi-video-grid">
-              {multiVideos.map((v: any, idx: number) => (
-                <div key={v.id || idx} className="multi-video-item">
-                  <span className="video-index-badge">{idx + 1}</span>
-                  <div className="video-item-info">
-                    <strong className="video-item-title">{v.title || `Video phần ${idx + 1}`}</strong>
-                    {v.durationSeconds && (
-                      <span className="video-item-duration">
-                        {Math.max(1, Math.round(v.durationSeconds / 60))} phút
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    className="btn-ask-ai-contextual"
-                    onClick={() => handleAskAIVideo(v)}
-                    title={`Hỏi AI Tutor về ${v.title || 'video'}`}
-                  >
-                    <Bot size={12} aria-hidden />
-                    <span>Hỏi AI</span>
-                  </button>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* ============================================================ */}
-        {/* 6. CÔNG CỤ GHI CHÚ VÀ LƯU BÀI */}
-        {/* ============================================================ */}
-        <section className="lesson-tools-toolbar" aria-label="Công cụ ghi chú và lưu bài">
-          <div className="lesson-tools-left">
-            <Button
-              variant="outline"
-              size="md"
-              icon={FileText}
-              onClick={() => setNotesPanelOpen((prev) => !prev)}
-              aria-label="Mở ghi chú cá nhân"
-            >
-              Ghi chú {notes.length > 0 ? `(${notes.length})` : ''}
-            </Button>
-
-            <Button
-              variant={isBookmarked ? 'outline' : 'ghost'}
-              size="md"
-              icon={isBookmarked ? BookmarkCheck : Bookmark}
-              onClick={toggleBookmark}
-              aria-label={isBookmarked ? 'Bỏ lưu bài học' : 'Lưu bài học'}
-            >
-              {isBookmarked ? 'Đã lưu bài' : 'Lưu bài'}
-            </Button>
-          </div>
-
-          <div className="lesson-tools-right">
-            <Button
-              variant="ghost"
-              size="md"
-              icon={Bot}
-              onClick={() => handleAskAIVideo()}
-              className="btn-toolbar-ai"
-              title="Hỏi AI Tutor về bài học này"
-            >
-              Hỏi AI Tutor
-            </Button>
-          </div>
-        </section>
-
-        {/* ============================================================ */}
-        {/* 7. BÀI TẬP THU HOẠCH (Collapsible Accordion, Mặc định thu gọn) */}
+        {/* 5. BÀI TẬP THU HOẠCH (Collapsible Accordion, Mặc định thu gọn) */}
         {/* ============================================================ */}
         <section
           className="lesson-harvest-accordion"
@@ -517,18 +371,6 @@ export function LessonPage() {
             </div>
 
             <div className="harvest-header-right">
-              <button
-                type="button"
-                className="btn-ask-ai-contextual"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleAskAIPractice()
-                }}
-                title="Hỏi AI Tutor gợi ý cách làm bài tập thu hoạch"
-              >
-                <Bot size={13} aria-hidden />
-                <span>Hỏi AI Tutor</span>
-              </button>
               <ChevronDown
                 size={18}
                 className={`harvest-chevron ${isHarvestOpen ? 'is-open' : ''}`}
@@ -557,7 +399,7 @@ export function LessonPage() {
         </section>
 
         {/* ============================================================ */}
-        {/* 8. ĐIỀU HƯỚNG BÀI TRƯỚC / BÀI TIẾP THEO (Navigation ở cuối trang) */}
+        {/* 6. ĐIỀU HƯỚNG BÀI TRƯỚC / BÀI TIẾP THEO (Navigation ở cuối trang) */}
         {/* ============================================================ */}
         <nav className="lesson-navigation-footer" aria-label="Điều hướng bài trước và bài tiếp theo">
           <div className="nav-footer-prev">
@@ -589,18 +431,6 @@ export function LessonPage() {
           </div>
         </nav>
       </div>
-
-      {/* Lesson Notes & Bookmarks Right Panel Drawer */}
-      <LessonNotesPanel
-        isOpen={notesPanelOpen}
-        onClose={() => setNotesPanelOpen(false)}
-        lessonId={lesson.id}
-        subjectId={resolvedSubjectId}
-        lessonTitle={lesson.title}
-        subjectName={lesson.subjectName || 'Môn học'}
-        sections={sectionsList}
-        onScrollToSection={handleScrollToSection}
-      />
 
       {/* Full-screen Assessment Modal */}
       {assessment && (

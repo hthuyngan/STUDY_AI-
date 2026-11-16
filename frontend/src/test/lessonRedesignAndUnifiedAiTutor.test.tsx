@@ -103,22 +103,15 @@ vi.mock('@/services/aiTutor.service', () => ({
 
 // Mock LessonVideoPlayer to prevent happy-dom iframe network fetch stall
 vi.mock('@/components/lesson/LessonVideoPlayer', () => ({
-  LessonVideoPlayer: ({ lessonTitle, onAskAI }: any) => (
+  LessonVideoPlayer: () => (
     <div className="lesson-video-player-mock">
       <span>Video bài giảng</span>
-      <button
-        type="button"
-        title="Hỏi AI Tutor về nội dung video này"
-        onClick={() => onAskAI?.({ id: 'vid1', title: lessonTitle })}
-      >
-        Hỏi AI Tutor
-      </button>
     </div>
   ),
 }))
 
 describe('Redesigned Lesson Page & Context-Aware AI Tutor Suite', () => {
-  it('renders the exact 8-part vertical sequence from top to bottom', () => {
+  it('renders the clean vertical sequence without notes toolbar or duplicate AI buttons', () => {
     const { container } = render(
       <MemoryRouter initialEntries={['/subjects/math/lessons/les_math12_c1_b1']}>
         <AiChatProvider>
@@ -141,24 +134,29 @@ describe('Redesigned Lesson Page & Context-Aware AI Tutor Suite', () => {
     expect(screen.getByLabelText(/tiến độ học tập/i)).toBeInTheDocument()
     expect(screen.getByText(/\+50 XP/i)).toBeInTheDocument()
 
-    // 4. Video bài giảng
+    // 4. Video bài giảng duy nhất
     expect(screen.getByRole('region', { name: /video bài giảng/i })).toBeInTheDocument()
     expect(screen.getByText('Video bài giảng')).toBeInTheDocument()
 
-    // 6. Công cụ ghi chú và lưu bài (Notes & Save tools)
-    expect(screen.getByRole('region', { name: /công cụ ghi chú và lưu bài/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /mở ghi chú cá nhân/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /lưu bài học/i })).toBeInTheDocument()
-
-    // 7. Bài tập thu hoạch (collapsible accordion, default collapsed)
+    // 5. Bài tập thu hoạch (collapsible accordion, default collapsed)
     expect(screen.getByRole('region', { name: /bài tập thu hoạch/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 2, name: /bài tập thu hoạch/i })).toBeInTheDocument()
     expect(screen.getByText('Đánh giá hiểu bài')).toBeInTheDocument()
 
-    // 8. Điều hướng bài trước/bài tiếp theo
+    // 6. Điều hướng bài trước/bài tiếp theo
     expect(screen.getByRole('navigation', { name: /điều hướng bài trước và bài tiếp theo/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /bài trước/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /bài tiếp theo/i })).toBeInTheDocument()
+
+    // Strict Verification: Notes toolbar & panel MUST be completely removed from Lesson Page
+    expect(screen.queryByRole('region', { name: /công cụ ghi chú và lưu bài/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /mở ghi chú cá nhân/i })).toBeNull()
+    expect(container.querySelector('.lesson-tools-toolbar')).toBeNull()
+    expect(container.querySelector('.lesson-notes-panel')).toBeNull()
+
+    // Strict Verification: Multi-video list grid & duplicate inline "Hỏi AI" buttons MUST NOT exist
+    expect(container.querySelector('.lesson-multi-video-list')).toBeNull()
+    expect(container.querySelector('.btn-ask-ai-contextual')).toBeNull()
 
     // Strict Check: Legacy Sidebar, Tab Navigation, and old Accordions MUST NOT exist
     expect(container.querySelector('.lesson-sidebar')).toBeNull()
@@ -192,15 +190,20 @@ describe('Redesigned Lesson Page & Context-Aware AI Tutor Suite', () => {
     expect(screen.queryByText(/Bắt đầu làm bài|đang được biên soạn/i)).toBeNull()
   })
 
-  it('triggers FloatingAiChatbot with accurate lesson context and prefilled prompt', () => {
+  it('synchronizes LessonId context into AI Tutor and supports opening floating chat', async () => {
     let capturedContext: any = null
-    let capturedPrompt: any = null
 
     function TestChatConsumer() {
-      const { learningContext, injectedPrompt, isOpen } = useAiChat()
+      const { learningContext, isOpen, openChat } = useAiChat()
       capturedContext = learningContext
-      capturedPrompt = injectedPrompt
-      return <div data-testid="chat-open-state">{isOpen ? 'OPEN' : 'CLOSED'}</div>
+      return (
+        <div>
+          <div data-testid="chat-open-state">{isOpen ? 'OPEN' : 'CLOSED'}</div>
+          <button type="button" data-testid="open-chat-btn" onClick={() => openChat()}>
+            Mở AI Tutor
+          </button>
+        </div>
+      )
     }
 
     render(
@@ -212,17 +215,18 @@ describe('Redesigned Lesson Page & Context-Aware AI Tutor Suite', () => {
       </MemoryRouter>
     )
 
+    const { waitFor } = await import('@testing-library/react')
+
+    // Context is synchronized asynchronously from current active lesson
+    await waitFor(() => {
+      expect(capturedContext?.lessonId).toBe('les_math12_c1_b1')
+      expect(capturedContext?.lessonTitle).toBe('Tính đơn điệu và cực trị của hàm số')
+    })
     expect(screen.getByTestId('chat-open-state').textContent).toBe('CLOSED')
 
-    // Click "Hỏi AI Tutor" on Video
-    const videoAskBtn = screen.getByTitle('Hỏi AI Tutor về nội dung video này')
-    fireEvent.click(videoAskBtn)
-
+    // Open chat
+    fireEvent.click(screen.getByTestId('open-chat-btn'))
     expect(screen.getByTestId('chat-open-state').textContent).toBe('OPEN')
-    expect(capturedContext?.source).toBe('lesson-video')
-    expect(capturedContext?.lessonId).toBe('les_math12_c1_b1')
-    expect(capturedContext?.lessonTitle).toBe('Tính đơn điệu và cực trị của hàm số')
-    expect(capturedPrompt).toBe('Giải thích nội dung video này')
   })
 
   it('removes "AI Tutor" link from student Sidebar and MobileBottomNav', () => {

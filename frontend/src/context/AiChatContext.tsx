@@ -84,6 +84,17 @@ export function AiChatProvider({ children }: AiChatProviderProps) {
 
   const abortControllerRef = useRef<AbortController | null>(null)
   const explicitContextRef = useRef<TutorLearningContext | null>(null)
+  const activeLessonIdRef = useRef<string | undefined>(undefined)
+
+  const handleLessonContextSwitch = useCallback((newLessonId?: string) => {
+    if (newLessonId && newLessonId !== activeLessonIdRef.current) {
+      activeLessonIdRef.current = newLessonId
+      // Fresh context for new lesson: clear previous conversation and messages
+      setActiveConversation(null)
+      setMessages([])
+      setError(null)
+    }
+  }, [])
 
   // 1. Fetch provider status on mount and window focus
   const checkStatus = useCallback(async () => {
@@ -129,6 +140,7 @@ export function AiChatProvider({ children }: AiChatProviderProps) {
     if (pathname.includes('/lessons/')) {
       const match = pathname.match(/\/subjects\/([^/]+)\/lessons\/([^/]+)/)
       if (match) {
+        handleLessonContextSwitch(match[2])
         setLearningContextState({
           source: 'lesson-section',
           subjectId: match[1],
@@ -177,7 +189,10 @@ export function AiChatProvider({ children }: AiChatProviderProps) {
   const setLearningContext = useCallback((ctx: TutorLearningContext | null) => {
     explicitContextRef.current = ctx
     setLearningContextState(ctx)
-  }, [])
+    if (ctx?.lessonId) {
+      handleLessonContextSwitch(ctx.lessonId)
+    }
+  }, [handleLessonContextSwitch])
 
   const clearInjectedPrompt = useCallback(() => {
     setInjectedPrompt(undefined)
@@ -261,6 +276,22 @@ export function AiChatProvider({ children }: AiChatProviderProps) {
       }
 
       setMessages((prev) => [...prev, userMsg])
+
+      // If user is not authenticated, show clear warning without silent failure
+      if (!aiTutorService.isAuthenticated()) {
+        const unauthNotice: ChatMessage = {
+          id: `unauth_${Date.now()}`,
+          role: 'assistant',
+          content: '⚠️ **Bạn chưa đăng nhập.** Vui lòng [đăng nhập vào hệ thống](/login) để sử dụng AI Tutor và lưu trữ lịch sử trao đổi.',
+          createdAt: now,
+          status: 'error',
+          assistanceMode: mode,
+        }
+        setMessages((prev) => [...prev, unauthNotice])
+        setError('Vui lòng đăng nhập để sử dụng AI Tutor.')
+        setIsStreaming(false)
+        return
+      }
 
       // Placeholder for streaming assistant response
       const assistantMsgPlaceholder: ChatMessage = {

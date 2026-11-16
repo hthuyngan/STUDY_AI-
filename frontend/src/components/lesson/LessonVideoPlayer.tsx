@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { Bot, ExternalLink, Play, Tv, Video } from 'lucide-react'
+import { ExternalLink, Play, Tv } from 'lucide-react'
 import type { LessonVideoMetadata } from '@/types/lesson'
 import './LessonVideoPlayer.css'
 
@@ -16,12 +15,12 @@ export interface VideoItemOption {
 }
 
 export interface LessonVideoPlayerProps {
-  video?: LessonVideoMetadata
+  video?: LessonVideoMetadata | VideoItemOption
   videos?: VideoItemOption[]
   lessonTitle: string
   sourceReferenceUrl?: string
   onSwitchToTheoryTab?: () => void
-  onAskAI?: (video: VideoItemOption) => void
+  onVideoCompleted?: () => void
 }
 
 export const LessonVideoPlayer: React.FC<LessonVideoPlayerProps> = ({
@@ -30,30 +29,35 @@ export const LessonVideoPlayer: React.FC<LessonVideoPlayerProps> = ({
   lessonTitle,
   sourceReferenceUrl,
   onSwitchToTheoryTab,
-  onAskAI,
+  onVideoCompleted,
 }) => {
-  // Combine single video and multiple videos list
-  const videoList: VideoItemOption[] = []
-  if (videos && videos.length > 0) {
-    videoList.push(...videos)
-  } else if (video?.hasVideo && (video?.youtubeId || video?.videoUrl)) {
-    videoList.push({
-      id: 'default',
-      title: video.licenseNotice || lessonTitle,
-      provider: video.provider || 'youtube',
-      sourceUrl: video.sourceReferenceUrl || video.videoUrl || '',
-      embedUrl: video.videoUrl,
-      youTubeVideoId: video.youtubeId,
-      durationSeconds: video.durationSeconds,
-    })
-  }
+  // Select strictly one primary video (first valid video)
+  let currentVideo: VideoItemOption | null = null
 
-  const [selectedVideoIndex, setSelectedVideoIndex] = useState(0)
-  const currentVideo = videoList[selectedVideoIndex]
+  if (videos && videos.length > 0) {
+    currentVideo = videos[0]
+  } else if (video) {
+    if ('youTubeVideoId' in video || 'embedUrl' in video) {
+      currentVideo = video as VideoItemOption
+    } else {
+      const vMeta = video as LessonVideoMetadata
+      if (vMeta.hasVideo && (vMeta.youtubeId || vMeta.videoUrl)) {
+        currentVideo = {
+          id: 'default',
+          title: vMeta.licenseNotice || lessonTitle,
+          provider: vMeta.provider || 'youtube',
+          sourceUrl: vMeta.sourceReferenceUrl || vMeta.videoUrl || '',
+          embedUrl: vMeta.videoUrl,
+          youTubeVideoId: vMeta.youtubeId,
+          durationSeconds: vMeta.durationSeconds,
+        }
+      }
+    }
+  }
 
   const effectiveRefUrl =
     currentVideo?.sourceUrl ||
-    video?.sourceReferenceUrl ||
+    (video && 'sourceReferenceUrl' in video ? video.sourceReferenceUrl : undefined) ||
     sourceReferenceUrl
 
   // Format duration into mm:ss
@@ -76,9 +80,6 @@ export const LessonVideoPlayer: React.FC<LessonVideoPlayerProps> = ({
           <div className="video-card-header-left">
             <Tv size={17} className="video-header-icon" aria-hidden />
             <h2 className="video-card-title">Video bài giảng</h2>
-            {videoList.length > 1 && (
-              <span className="video-count-badge">{videoList.length} video</span>
-            )}
           </div>
           <div className="video-card-header-right">
             {currentVideo.durationSeconds ? (
@@ -86,39 +87,8 @@ export const LessonVideoPlayer: React.FC<LessonVideoPlayerProps> = ({
                 {formatDuration(currentVideo.durationSeconds)}
               </span>
             ) : null}
-            {onAskAI && (
-              <button
-                type="button"
-                className="btn-ask-ai-contextual"
-                onClick={() => onAskAI(currentVideo)}
-                title="Hỏi AI Tutor về nội dung video này"
-              >
-                <Bot size={13} aria-hidden />
-                <span>Hỏi AI Tutor</span>
-              </button>
-            )}
           </div>
         </div>
-
-        {/* Multi-video selector pills when more than 1 video exists */}
-        {videoList.length > 1 && (
-          <div className="video-playlist-tabs" role="tablist" aria-label="Danh sách video bài giảng">
-            {videoList.map((v, idx) => (
-              <button
-                key={v.id || idx}
-                type="button"
-                className={`video-tab-pill ${selectedVideoIndex === idx ? 'active' : ''}`}
-                onClick={() => setSelectedVideoIndex(idx)}
-                role="tab"
-                aria-selected={selectedVideoIndex === idx}
-              >
-                <Video size={13} aria-hidden />
-                <span>Video {idx + 1}: {v.title.length > 35 ? `${v.title.substring(0, 32)}...` : v.title}</span>
-                {v.durationSeconds ? <span className="video-tab-duration">({formatDuration(v.durationSeconds)})</span> : null}
-              </button>
-            ))}
-          </div>
-        )}
 
         <div className="video-player-frame">
           {isYouTube && ytId ? (
@@ -135,6 +105,7 @@ export const LessonVideoPlayer: React.FC<LessonVideoPlayerProps> = ({
               src={currentVideo.embedUrl || currentVideo.sourceUrl}
               controls
               playsInline
+              onEnded={onVideoCompleted}
             >
               Trình duyệt không hỗ trợ phát video HTML5.
             </video>

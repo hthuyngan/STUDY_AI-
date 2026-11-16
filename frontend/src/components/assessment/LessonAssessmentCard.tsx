@@ -126,8 +126,8 @@ export function LessonAssessmentCard({
               </p>
             </div>
           </div>
-          <div className="assessment-completion-badge is-pending" aria-label="Tiến độ tối đa phần lý thuyết: 80%">
-            <span>80%</span>
+          <div className="assessment-completion-badge is-pending" aria-label="Bài tập thu hoạch: chưa hoàn thành">
+            <span>Chưa làm</span>
           </div>
         </div>
       </section>
@@ -177,7 +177,7 @@ export function LessonAssessmentCard({
               ? 'Tiến độ sau bài tập thu hoạch: 100% đã hoàn thành'
               : hasUnfinishedAttempt
                 ? 'Đang làm dở bài tập thu hoạch'
-                : 'Tiến độ hiện tại: 80%'
+                : 'Bài tập thu hoạch: +30% tiến độ'
           }
         >
           {isCompleted ? (
@@ -188,7 +188,7 @@ export function LessonAssessmentCard({
           ) : hasUnfinishedAttempt ? (
             <span>Đang làm dở</span>
           ) : (
-            <span>80%</span>
+            <span>+30%</span>
           )}
         </div>
       </div>

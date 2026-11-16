@@ -462,8 +462,8 @@ public class AiTutorService : IAiTutorService
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Lỗi kết nối hoặc quota từ nhà cung cấp LLM: {Message}. Kích hoạt chế độ Gia sư Sư phạm thích ứng cục bộ.", ex.Message);
-                completionResponse = GenerateAdaptiveCoachingFallback(rawMessage, profile, lesson, mode);
+                _logger.LogError(ex, "Lỗi kết nối hoặc xử lý từ nhà cung cấp LLM: {Message}", ex.Message);
+                throw new InvalidOperationException($"Không thể tạo phản hồi từ mô hình AI (Gemini error): {ex.Message}", ex);
             }
         }
 

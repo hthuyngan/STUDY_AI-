@@ -7,6 +7,34 @@ import {
 } from '@/services/lesson.service'
 import type { CourseOutlineChapter, LessonDetail } from '@/types/lesson'
 
+function enrichLessonNavigation(lesson: LessonDetail, outline: CourseOutlineChapter[]): LessonDetail {
+  if (lesson.previousLessonId && lesson.nextLessonId) {
+    return lesson
+  }
+
+  // Flatten all published lessons in order from curriculum outline
+  const allLessons = outline.flatMap((ch) => ch.lessons || [])
+  const currentIndex = allLessons.findIndex((l) => l.id === lesson.id)
+
+  let prevId = lesson.previousLessonId
+  let nextId = lesson.nextLessonId
+
+  if (currentIndex !== -1) {
+    if (!prevId && currentIndex > 0) {
+      prevId = allLessons[currentIndex - 1].id
+    }
+    if (!nextId && currentIndex < allLessons.length - 1) {
+      nextId = allLessons[currentIndex + 1].id
+    }
+  }
+
+  return {
+    ...lesson,
+    previousLessonId: prevId,
+    nextLessonId: nextId,
+  }
+}
+
 export function useLesson(courseId: string | undefined, lessonId: string | undefined) {
   const [lesson, setLesson] = useState<LessonDetail | null>(null)
   const [outline, setOutline] = useState<CourseOutlineChapter[]>([])
@@ -30,9 +58,10 @@ export function useLesson(courseId: string | undefined, lessonId: string | undef
       if (!lessonData) {
         setError('Không tìm thấy bài học.')
       } else {
-        setLesson(lessonData)
-        setIsCompleted(lessonData.isCompleted)
-        setIsBookmarked(!!lessonData.isBookmarked)
+        const enriched = enrichLessonNavigation(lessonData, outlineData)
+        setLesson(enriched)
+        setIsCompleted(enriched.isCompleted)
+        setIsBookmarked(!!enriched.isBookmarked)
         setOutline(outlineData)
       }
     } catch {
@@ -58,9 +87,10 @@ export function useLesson(courseId: string | undefined, lessonId: string | undef
         if (!lessonData) {
           setError('Không tìm thấy bài học.')
         } else {
-          setLesson(lessonData)
-          setIsCompleted(lessonData.isCompleted)
-          setIsBookmarked(!!lessonData.isBookmarked)
+          const enriched = enrichLessonNavigation(lessonData, outlineData)
+          setLesson(enriched)
+          setIsCompleted(enriched.isCompleted)
+          setIsBookmarked(!!enriched.isBookmarked)
           setOutline(outlineData)
         }
         setIsLoading(false)

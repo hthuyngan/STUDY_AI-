@@ -20,30 +20,47 @@ export function saveLessonProgress(progress: LessonProgressState): void {
 export function computeProgressValues(
   completedSectionCount: number,
   totalActualSections: number,
-  isAssessmentCompleted: boolean
+  isAssessmentCompleted: boolean,
+  hasAssessment: boolean = true
 ): { contentProgress: number; overallProgress: number } {
-  if (totalActualSections <= 0) {
-    return {
-      contentProgress: isAssessmentCompleted ? 80 : 0,
-      overallProgress: isAssessmentCompleted ? 100 : 0,
-    }
-  }
+  const hasVideo = totalActualSections > 0
 
-  const fraction = Math.min(1, Math.max(0, completedSectionCount / totalActualSections))
-  const contentProgress = Math.round(fraction * 80)
-
-  if (isAssessmentCompleted) {
-    // When assessment is completed, guarantee EXACT 100%
+  // Case 1: Neither video nor assessment
+  if (!hasVideo && !hasAssessment) {
     return {
-      contentProgress: 80,
+      contentProgress: 100,
       overallProgress: 100,
     }
   }
 
-  const overallProgress = Math.min(80, contentProgress)
+  // Case 2: Only video, no assessment
+  if (hasVideo && !hasAssessment) {
+    const fraction = Math.min(1, Math.max(0, completedSectionCount / totalActualSections))
+    const val = Math.round(fraction * 100)
+    return {
+      contentProgress: val,
+      overallProgress: val,
+    }
+  }
+
+  // Case 3: Only assessment, no video
+  if (!hasVideo && hasAssessment) {
+    const val = isAssessmentCompleted ? 100 : 0
+    return {
+      contentProgress: 0,
+      overallProgress: val,
+    }
+  }
+
+  // Case 4: Both Video (70%) and Harvest Assessment (30%)
+  const fraction = Math.min(1, Math.max(0, completedSectionCount / totalActualSections))
+  const videoShare = Math.round(fraction * 70)
+  const assessmentShare = isAssessmentCompleted ? 30 : 0
+  const overall = fraction >= 1 && isAssessmentCompleted ? 100 : videoShare + assessmentShare
+
   return {
-    contentProgress,
-    overallProgress,
+    contentProgress: videoShare,
+    overallProgress: overall,
   }
 }
 
