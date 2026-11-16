@@ -6,7 +6,6 @@ import SubjectDetailPage from '@/pages/Subjects/SubjectDetailPage'
 import LessonPage from '@/pages/Lesson/LessonPage'
 import QuizPage from '@/pages/Quiz/QuizPage'
 import QuizResultPage from '@/pages/Quiz/QuizResultPage'
-import AITutorPage from '@/pages/AITutor/AITutorPage'
 import LearningPathPage from '@/pages/LearningPath/LearningPathPage'
 import MyNotesPage from '@/pages/MyNotes/MyNotesPage'
 import KnowledgeGapsPage from '@/pages/KnowledgeGaps/KnowledgeGapsPage'
@@ -120,22 +119,14 @@ export function LearnerRoutes() {
         }
       />
 
-      {/* AI Tutor */}
+      {/* Legacy AI Tutor Redirects: seamlessly route to /subjects with zero dead links & active Floating AI Chatbot */}
       <Route
         path="/ai-tutor"
-        element={
-          <AppShell>
-            <AITutorPage />
-          </AppShell>
-        }
+        element={<Navigate to="/subjects" replace />}
       />
       <Route
         path="/ai-tutor/:conversationId"
-        element={
-          <AppShell>
-            <AITutorPage />
-          </AppShell>
-        }
+        element={<Navigate to="/subjects" replace />}
       />
 
       {/* Learning Path */}

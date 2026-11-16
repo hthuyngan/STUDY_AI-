@@ -20,6 +20,7 @@ import { Breadcrumb } from '@/components/ui/Breadcrumb'
 import { Button } from '@/components/ui/Button'
 import { PageErrorState } from '@/components/ui/PageErrorState'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { ExamReviewAnalyticsModal } from '@/components/exam/ExamReviewAnalyticsModal'
 import { aiTutorService } from '@/services/aiTutor.service'
 import { learningContextService } from '@/services/learningContext.service'
 import { practiceService } from '@/services/practice.service'
@@ -44,6 +45,7 @@ export const PracticeResultPage: React.FC = () => {
   const [analysisLoading, setAnalysisLoading] = useState<boolean>(false)
   const [analysisError, setAnalysisError] = useState<string | null>(null)
   const [showAnalysis, setShowAnalysis] = useState<boolean>(false)
+  const [showExamReviewModal, setShowExamReviewModal] = useState<boolean>(false)
 
   const handleRunAiAnalysis = async () => {
     if (!result) return
@@ -296,14 +298,23 @@ export const PracticeResultPage: React.FC = () => {
               </p>
             </div>
           </div>
-          <Button
-            variant={showAnalysis ? 'outline' : 'primary'}
-            icon={showAnalysis ? ChevronUp : Sparkles}
-            onClick={showAnalysis ? () => setShowAnalysis(false) : handleRunAiAnalysis}
-            disabled={analysisLoading}
-          >
-            {analysisLoading ? 'Đang phân tích...' : showAnalysis ? 'Thu gọn phân tích' : 'Chẩn đoán bài làm với AI'}
-          </Button>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <Button
+              variant="outline"
+              icon={Award}
+              onClick={() => setShowExamReviewModal(true)}
+            >
+              Phân tích đề thi chi tiết
+            </Button>
+            <Button
+              variant={showAnalysis ? 'outline' : 'primary'}
+              icon={showAnalysis ? ChevronUp : Sparkles}
+              onClick={showAnalysis ? () => setShowAnalysis(false) : handleRunAiAnalysis}
+              disabled={analysisLoading}
+            >
+              {analysisLoading ? 'Đang phân tích...' : showAnalysis ? 'Thu gọn phân tích' : 'Chẩn đoán bài làm với AI'}
+            </Button>
+          </div>
         </div>
 
         {showAnalysis && (
@@ -579,6 +590,13 @@ export const PracticeResultPage: React.FC = () => {
           Làm bài luyện tập mới
         </Button>
       </div>
+      {result && (
+        <ExamReviewAnalyticsModal
+          sessionId={result.sessionId}
+          isOpen={showExamReviewModal}
+          onClose={() => setShowExamReviewModal(false)}
+        />
+      )}
     </div>
   )
 }

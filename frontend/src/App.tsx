@@ -8,6 +8,8 @@ import { AdminRoutes } from '@/routes/adminRoutes'
 import { TeacherRoutes } from '@/routes/teacherRoutes'
 import { ContentRoutes } from '@/routes/contentRoutes'
 import { SupportRoutes } from '@/routes/supportRoutes'
+import { AiChatProvider } from '@/context/AiChatContext'
+import { FloatingAiChatbot } from '@/components/chat/FloatingAiChatbot'
 
 const LoginPage = lazy(() =>
   import('@/pages/Auth/LoginPage').then((m) => ({ default: m.LoginPage }))
@@ -29,41 +31,44 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter basename={appBasename}>
-        <Routes>
-          {/* Authentication Routes */}
-          <Route
-            path="/login"
-            element={
-              <Suspense fallback={<RouteLoadingFallback />}>
-                <LoginPage />
-              </Suspense>
-            }
-          />
-          <Route
-            path="/register"
-            element={
-              <Suspense fallback={<RouteLoadingFallback />}>
-                <RegisterPage />
-              </Suspense>
-            }
-          />
+        <AiChatProvider>
+          <Routes>
+            {/* Authentication Routes */}
+            <Route
+              path="/login"
+              element={
+                <Suspense fallback={<RouteLoadingFallback />}>
+                  <LoginPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/register"
+              element={
+                <Suspense fallback={<RouteLoadingFallback />}>
+                  <RegisterPage />
+                </Suspense>
+              }
+            />
 
-          {/* 403 Forbidden / Access Denied */}
-          <Route path="/unauthorized" element={<UnauthorizedPage />} />
+            {/* 403 Forbidden / Access Denied */}
+            <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-          {/* Role-based Staff Workspaces */}
-          {AdminRoutes()}
-          {TeacherRoutes()}
-          {ContentRoutes()}
-          {SupportRoutes()}
+            {/* Role-based Staff Workspaces */}
+            {AdminRoutes()}
+            {TeacherRoutes()}
+            {ContentRoutes()}
+            {SupportRoutes()}
 
-          {/* Learner Workspace (Existing AppShell) */}
-          {LearnerRoutes()}
+            {/* Learner Workspace (Existing AppShell) */}
+            {LearnerRoutes()}
 
-          {/* Root redirect to Dashboard */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
+            {/* Root redirect to Dashboard */}
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+          <FloatingAiChatbot />
+        </AiChatProvider>
       </BrowserRouter>
     </AuthProvider>
   )

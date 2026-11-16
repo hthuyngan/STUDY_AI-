@@ -30,9 +30,11 @@ export const VariationTable: React.FC<VariationTableProps> = ({
   note,
   onAskAI,
 }) => {
+  const cols = columns || []
+
   const handleAskAI = () => {
     if (onAskAI) {
-      const summary = `Bảng biến thiên ${title}: ${functionMath ? `Hàm số ${functionMath}. ` : ''}Các mốc x: ${columns.map((c) => c.x).join(', ')}.`
+      const summary = `Bảng biến thiên ${title}: ${functionMath ? `Hàm số ${functionMath}. ` : ''}Các mốc x: ${cols.map((c) => c.x).join(', ')}.`
       onAskAI(title, summary)
     }
   }
@@ -75,7 +77,7 @@ export const VariationTable: React.FC<VariationTableProps> = ({
               <th scope="row" className="bbt-header-cell">
                 <MathView math="x" />
               </th>
-              {columns.map((col, idx) => (
+              {cols.map((col, idx) => (
                 <td key={`x-${idx}`} className="bbt-cell bbt-cell-x">
                   <MathView math={col.x} />
                 </td>
@@ -87,7 +89,7 @@ export const VariationTable: React.FC<VariationTableProps> = ({
               <th scope="row" className="bbt-header-cell">
                 <MathView math="y'" />
               </th>
-              {columns.map((col, idx) => (
+              {cols.map((col, idx) => (
                 <td key={`yp-${idx}`} className={`bbt-cell bbt-cell-yprime ${col.yPrime === '||' ? 'discontinuous' : ''}`}>
                   {col.yPrime === '||' ? <span className="double-bar">||</span> : <MathView math={col.yPrime} />}
                 </td>
@@ -99,16 +101,16 @@ export const VariationTable: React.FC<VariationTableProps> = ({
               <th scope="row" className="bbt-header-cell">
                 <MathView math="y" />
               </th>
-              {columns.map((col, idx) => {
-                const pos = col.y.position || 'middle'
-                const arrow = col.y.arrow || 'none'
+              {cols.map((col, idx) => {
+                const pos = col.y?.position || 'middle'
+                const arrow = col.y?.arrow || 'none'
                 return (
                   <td key={`y-${idx}`} className={`bbt-cell bbt-cell-y pos-${pos}`}>
                     <div className="bbt-y-content">
                       {arrow === 'up' && <span className="bbt-arrow up" aria-hidden>↗</span>}
                       {arrow === 'down' && <span className="bbt-arrow down" aria-hidden>↘</span>}
                       <span className="bbt-val">
-                        <MathView math={col.y.value} />
+                        <MathView math={col.y?.value || ''} />
                       </span>
                     </div>
                   </td>

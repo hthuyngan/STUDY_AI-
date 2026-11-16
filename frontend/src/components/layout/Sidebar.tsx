@@ -1,6 +1,5 @@
 import {
   Atom,
-  Bot,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
@@ -98,13 +97,6 @@ export function Sidebar({
               to="/practice"
               label="Luyện tập & Ôn câu sai"
               icon={Target}
-              collapsed={collapsed}
-              onClick={onCloseMobile}
-            />
-            <SidebarItem
-              to="/ai-tutor"
-              label="AI Tutor"
-              icon={Bot}
               collapsed={collapsed}
               onClick={onCloseMobile}
             />

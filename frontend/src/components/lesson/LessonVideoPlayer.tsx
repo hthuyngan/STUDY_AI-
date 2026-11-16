@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ExternalLink, Play, Tv, Video } from 'lucide-react'
+import { Bot, ExternalLink, Play, Tv, Video } from 'lucide-react'
 import type { LessonVideoMetadata } from '@/types/lesson'
 import './LessonVideoPlayer.css'
 
@@ -21,6 +21,7 @@ export interface LessonVideoPlayerProps {
   lessonTitle: string
   sourceReferenceUrl?: string
   onSwitchToTheoryTab?: () => void
+  onAskAI?: (video: VideoItemOption) => void
 }
 
 export const LessonVideoPlayer: React.FC<LessonVideoPlayerProps> = ({
@@ -29,6 +30,7 @@ export const LessonVideoPlayer: React.FC<LessonVideoPlayerProps> = ({
   lessonTitle,
   sourceReferenceUrl,
   onSwitchToTheoryTab,
+  onAskAI,
 }) => {
   // Combine single video and multiple videos list
   const videoList: VideoItemOption[] = []
@@ -68,7 +70,36 @@ export const LessonVideoPlayer: React.FC<LessonVideoPlayerProps> = ({
     const ytId = currentVideo.youTubeVideoId || (currentVideo.embedUrl?.match(/embed\/([\w-]{11})/)?.[1])
 
     return (
-      <div className="lesson-video-container">
+      <section className="lesson-video-container" aria-label="Video bài giảng">
+        {/* Simple & Clean Video Card Header */}
+        <div className="video-card-header">
+          <div className="video-card-header-left">
+            <Tv size={17} className="video-header-icon" aria-hidden />
+            <h2 className="video-card-title">Video bài giảng</h2>
+            {videoList.length > 1 && (
+              <span className="video-count-badge">{videoList.length} video</span>
+            )}
+          </div>
+          <div className="video-card-header-right">
+            {currentVideo.durationSeconds ? (
+              <span className="video-duration-badge">
+                {formatDuration(currentVideo.durationSeconds)}
+              </span>
+            ) : null}
+            {onAskAI && (
+              <button
+                type="button"
+                className="btn-ask-ai-contextual"
+                onClick={() => onAskAI(currentVideo)}
+                title="Hỏi AI Tutor về nội dung video này"
+              >
+                <Bot size={13} aria-hidden />
+                <span>Hỏi AI Tutor</span>
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* Multi-video selector pills when more than 1 video exists */}
         {videoList.length > 1 && (
           <div className="video-playlist-tabs" role="tablist" aria-label="Danh sách video bài giảng">
@@ -116,19 +147,9 @@ export const LessonVideoPlayer: React.FC<LessonVideoPlayerProps> = ({
               <Play size={11} aria-hidden style={{ fill: 'currentColor' }} />
               {isYouTube ? 'YouTube GDPT 2018' : 'Bài giảng STUDY_AI'}
             </span>
-            {currentVideo.description ? (
-              <span className="video-author-badge" title={currentVideo.description}>
-                {currentVideo.description}
-              </span>
-            ) : null}
-            {currentVideo.durationSeconds ? (
-              <span className="video-duration-text">
-                Thời lượng: {formatDuration(currentVideo.durationSeconds)}
-              </span>
-            ) : null}
+            <span className="video-license-note">{currentVideo.title || lessonTitle}</span>
           </div>
           <div className="video-info-right">
-            <span className="video-license-note">{currentVideo.title || lessonTitle}</span>
             {isYouTube && ytId ? (
               <a
                 href={`https://www.youtube.com/watch?v=${ytId}`}
@@ -143,7 +164,7 @@ export const LessonVideoPlayer: React.FC<LessonVideoPlayerProps> = ({
             ) : null}
           </div>
         </div>
-      </div>
+      </section>
     )
   }
 

@@ -123,6 +123,15 @@ public class AdaptiveLearningController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("knowledge-profile")]
+    public async Task<IActionResult> GetKnowledgeProfile(
+        [FromQuery] string? subjectId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _masteryService.GetStudentKnowledgeProfileAsync(CurrentUserId, subjectId, cancellationToken);
+        return Ok(result);
+    }
+
     // ─────────────────────────────────────────────────────────────────────────────
     // 4. ADAPTIVE LEARNING PATH (LỘ TRÌNH HỌC THÍCH ỨNG)
     // ─────────────────────────────────────────────────────────────────────────────
@@ -146,6 +155,19 @@ public class AdaptiveLearningController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var result = await _recommendationService.GetRecommendationsAsync(CurrentUserId, subjectId, cancellationToken);
+        return Ok(result);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // 6. KNOWLEDGE GAPS DETECTION (PHÁT HIỆN LỖ HỔNG KIẾN THỨC BẰNG BẰNG CHỨNG)
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    [HttpGet("knowledge-gaps")]
+    public async Task<IActionResult> GetKnowledgeGaps(
+        [FromQuery] string? subjectId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _recommendationService.GetKnowledgeGapsAsync(CurrentUserId, subjectId, cancellationToken);
         return Ok(result);
     }
 }

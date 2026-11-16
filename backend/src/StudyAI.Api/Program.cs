@@ -39,18 +39,18 @@ builder.Services.AddScoped<ICurriculumImportConfirmService, CurriculumImportConf
 
 // 2.1 LLM Provider & AI Tutor Service
 builder.Services.AddHttpClient();
-var llmProviderConfig = configuration["Llm:Provider"]?.Trim().ToLowerInvariant();
+var llmProviderConfig = (configuration["Llm:Provider"] ?? configuration["Llm:ProviderName"])?.Trim().ToLowerInvariant();
 var llmApiKey = configuration["Llm:ApiKey"] ?? Environment.GetEnvironmentVariable("STUDY_AI_LLM_API_KEY");
 var allowDemoInProduction = configuration.GetValue<bool>("Llm:AllowDemoInProduction", false);
 
 if (builder.Environment.IsProduction())
 {
-    if (llmProviderConfig == "openai")
+    if (llmProviderConfig is "openai" or "gemini" or "custom")
     {
         if (string.IsNullOrWhiteSpace(llmApiKey))
         {
             throw new InvalidOperationException(
-                "FATAL: LLM provider is explicitly configured as 'openai' in production but 'Llm:ApiKey' (or STUDY_AI_LLM_API_KEY) is missing or empty.");
+                $"FATAL: LLM provider is explicitly configured as '{llmProviderConfig}' in production but 'Llm:ApiKey' (or STUDY_AI_LLM_API_KEY) is missing or empty.");
         }
         builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILlmProvider, StudyAI.Infrastructure.Services.OpenAiLlmProvider>();
     }
@@ -72,7 +72,7 @@ if (builder.Environment.IsProduction())
 else
 {
     // Development / Test / Demo environments
-    if (llmProviderConfig == "openai")
+    if (llmProviderConfig is "openai" or "gemini" or "custom" || (!string.IsNullOrWhiteSpace(llmApiKey) && llmProviderConfig != "fake" && llmProviderConfig != "none"))
     {
         if (string.IsNullOrWhiteSpace(llmApiKey))
         {
@@ -101,6 +101,22 @@ builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IAiHintService,
 builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IAiAnalysisService, StudyAI.Infrastructure.Services.AiAnalysisService>();
 builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IStudentMasteryService, StudyAI.Infrastructure.Services.StudentMasteryService>();
 builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILearningRecommendationService, StudyAI.Infrastructure.Services.LearningRecommendationService>();
+builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILearningAnalyticsService, StudyAI.Infrastructure.Services.LearningAnalyticsService>();
+builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IExamBlueprintService, StudyAI.Infrastructure.Services.ExamBlueprintService>();
+builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IIntelligentExamService, StudyAI.Infrastructure.Services.IntelligentExamService>();
+builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IQuestionQualityService, StudyAI.Infrastructure.Services.QuestionQualityService>();
+builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ISpacedRepetitionService, StudyAI.Infrastructure.Services.SpacedRepetitionService>();
+builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IRevisionPlannerService, StudyAI.Infrastructure.Services.RevisionPlannerService>();
+builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IExamReadinessService, StudyAI.Infrastructure.Services.ExamReadinessService>();
+builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ITeacherManagementService, StudyAI.Infrastructure.Services.TeacherManagementService>();
+builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ITeachingRecommendationService, StudyAI.Infrastructure.Services.TeachingRecommendationService>();
+builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IContentGovernanceService, StudyAI.Infrastructure.Services.ContentGovernanceService>();
+builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IAiLessonAuthoringService, StudyAI.Infrastructure.Services.AiLessonAuthoringService>();
+builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ISystemHealthService, StudyAI.Infrastructure.Services.SystemHealthService>();
+builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IAiQualityEvaluationService, StudyAI.Infrastructure.Services.AiQualityEvaluationService>();
+builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IAiCostOptimizationService, StudyAI.Infrastructure.Services.AiCostOptimizationService>();
+builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IContentQualityMonitoringService, StudyAI.Infrastructure.Services.ContentQualityMonitoringService>();
+builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILearningDataConsistencyService, StudyAI.Infrastructure.Services.LearningDataConsistencyService>();
 
 // 3. JWT Secret Validation & Authentication
 var jwtSecret = configuration["Jwt:SecretKey"];

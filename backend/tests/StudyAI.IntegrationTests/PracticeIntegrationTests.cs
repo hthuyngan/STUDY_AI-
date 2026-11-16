@@ -196,6 +196,18 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
 
         var checkResp = await _client.SendAsync(checkMsg);
         Assert.Equal(HttpStatusCode.Forbidden, checkResp.StatusCode);
+
+        // 3. Clean up by submitting the session so it doesn't block other integration tests
+        var submitMsg = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/practice/sessions/{session.SessionId}/submit")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new SubmitPracticeSessionRequest
+            {
+                Answers = new Dictionary<string, string>(),
+                SessionTimeMs = 1000
+            }), Encoding.UTF8, "application/json")
+        };
+        submitMsg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        await _client.SendAsync(submitMsg);
     }
 }
 

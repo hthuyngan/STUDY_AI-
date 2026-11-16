@@ -4,15 +4,17 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { useKnowledgeGaps } from '@/hooks/useKnowledgeGaps'
+import { useAiChat } from '@/context/AiChatContext'
 import { learningContextService } from '@/services/learningContext.service'
 
 export const KnowledgeGapsWidget: React.FC = () => {
   const navigate = useNavigate()
+  const { openChat } = useAiChat()
   const { gaps, summary } = useKnowledgeGaps()
 
   const handleAskAI = (gap: any) => {
-    learningContextService.setContext({
-      source: 'knowledge-gap',
+    const context = {
+      source: 'knowledge-gap' as const,
       knowledgeGapId: gap.id,
       subjectId: gap.subjectId,
       subjectName: gap.subjectName,
@@ -23,8 +25,9 @@ export const KnowledgeGapsWidget: React.FC = () => {
       title: gap.title,
       excerpt: gap.questionPrompt || gap.explanation,
       returnUrl: '/dashboard',
-    })
-    navigate('/ai-tutor')
+    }
+    learningContextService.setContext(context)
+    openChat(context, `Em đang yếu phần "${gap.title}". Xin AI Tutor hướng dẫn giải và các bước ôn tập.`)
   }
 
   const handlePracticeWeakSkills = () => {

@@ -6,18 +6,27 @@ public record CreateAiConversationRequestDto(
     string? LessonId = null,
     string? AssistanceMode = null,
     string? LearningContextJson = null
-);
+)
+{
+    public CreateAiConversationRequestDto() : this(null, null, null, null, null) { }
+}
 
 public record UpdateAiConversationRequestDto(
-    string Title
-);
+    string Title = ""
+)
+{
+    public UpdateAiConversationRequestDto() : this("") { }
+}
 
 public record SendAiMessageRequestDto(
-    string Message,
+    string Message = "",
     string? LessonId = null,
     string? AssistanceMode = null,
     string? LearningContextJson = null
-);
+)
+{
+    public SendAiMessageRequestDto() : this("", null, null, null) { }
+}
 
 public record AiMessageDto(
     string Id,
@@ -68,13 +77,16 @@ public record SendAiMessageResponseDto(
 );
 
 public record QuickChatRequestDto(
-    string? ConversationId,
-    string Message,
+    string? ConversationId = null,
+    string Message = "",
     string? Subject = null,
     string? LessonId = null,
     string? Mode = null,
     object? LearningContext = null
-);
+)
+{
+    public QuickChatRequestDto() : this(null, "", null, null, null, null) { }
+};
 
 public record AiProviderStatusDto(
     string Provider,

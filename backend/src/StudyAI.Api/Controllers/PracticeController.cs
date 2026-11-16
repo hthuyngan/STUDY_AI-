@@ -19,11 +19,16 @@ public class PracticeController : ControllerBase
 {
     private readonly StudyAIDbContext _db;
     private readonly IStudentMasteryService? _masteryService;
+    private readonly IRevisionPlannerService? _revisionPlannerService;
 
-    public PracticeController(StudyAIDbContext db, IStudentMasteryService? masteryService = null)
+    public PracticeController(
+        StudyAIDbContext db,
+        IStudentMasteryService? masteryService = null,
+        IRevisionPlannerService? revisionPlannerService = null)
     {
         _db = db;
         _masteryService = masteryService;
+        _revisionPlannerService = revisionPlannerService;
     }
 
     private string CurrentUserId =>
@@ -84,11 +89,23 @@ public class PracticeController : ControllerBase
 
         var limit = Math.Clamp(request.QuestionCount > 0 ? request.QuestionCount : 10, 1, 50);
 
-        // Randomly sample questions using Guid.NewGuid() (translates to NEWID() in SQL Server)
-        var selectedQuestions = await query
-            .OrderBy(q => Guid.NewGuid())
-            .Take(limit)
-            .ToListAsync();
+        List<ContentQuestion> selectedQuestions;
+        if (request.Mode == "adaptive")
+        {
+            selectedQuestions = await SelectAdaptiveQuestionsAsync(request, limit, CurrentUserId);
+            if (selectedQuestions.Count == 0)
+            {
+                selectedQuestions = await query.OrderBy(q => Guid.NewGuid()).Take(limit).ToListAsync();
+            }
+        }
+        else
+        {
+            // Randomly sample questions using Guid.NewGuid() (translates to NEWID() in SQL Server)
+            selectedQuestions = await query
+                .OrderBy(q => Guid.NewGuid())
+                .Take(limit)
+                .ToListAsync();
+        }
 
         var sessionId = $"sess_{Guid.NewGuid():N}";
         var now = DateTimeOffset.UtcNow;
@@ -281,6 +298,23 @@ public class PracticeController : ControllerBase
             return BadRequest(new { detail = $"Phiên làm bài đã ở trạng thái '{attempt.CompletionStatus}', không thể sửa câu trả lời." });
         }
 
+        // Time Expiration Guard (Allow 2 minutes grace period for network jitter)
+        if (!string.IsNullOrEmpty(attempt.SuspendDataJson))
+        {
+            try
+            {
+                var doc = JsonDocument.Parse(attempt.SuspendDataJson);
+                if (doc.RootElement.TryGetProperty("expiresAt", out var expElem) &&
+                    expElem.ValueKind == JsonValueKind.String &&
+                    DateTimeOffset.TryParse(expElem.GetString(), out var expParsed) &&
+                    DateTimeOffset.UtcNow > expParsed.AddMinutes(2))
+                {
+                    return BadRequest(new { detail = "Thời gian làm bài thi đã hết. Vui lòng nộp bài để hoàn tất phiên thi." });
+                }
+            }
+            catch { }
+        }
+
         JsonObject suspendObj;
         try
         {
@@ -332,6 +366,11 @@ public class PracticeController : ControllerBase
         if (attempt.AssessmentId == "asmt_exam")
         {
             return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Không được phép xem đáp án trong chế độ thi thử trước khi nộp bài." });
+        }
+
+        if (attempt.CompletionStatus != "in_progress")
+        {
+            return BadRequest(new { detail = $"Phiên làm bài ở trạng thái '{attempt.CompletionStatus}', không thể kiểm tra câu hỏi." });
         }
 
         // Validate question belongs to this session
@@ -526,6 +565,18 @@ public class PracticeController : ControllerBase
             catch
             {
                 // Non-blocking mastery update
+            }
+        }
+
+        if (_revisionPlannerService != null && (mode == "exam" || attempt.AssessmentId == "asmt_exam"))
+        {
+            try
+            {
+                await _revisionPlannerService.AutoAdjustPlanAfterExamAsync(attempt.UserId, attempt.SubjectId, attempt.Id);
+            }
+            catch
+            {
+                // Non-blocking revision plan auto adjustment
             }
         }
 
@@ -968,5 +1019,94 @@ public class PracticeController : ControllerBase
         t = Regex.Replace(t, @"\s+", " ");
         t = t.TrimEnd('.', ';', ',');
         return t;
+    }
+
+    private async Task<List<ContentQuestion>> SelectAdaptiveQuestionsAsync(
+        CreatePracticeSessionRequest request,
+        int limit,
+        string currentUserId)
+    {
+        StudentKnowledgeProfileDto? profile = null;
+        if (_masteryService != null)
+        {
+            try
+            {
+                profile = await _masteryService.GetStudentKnowledgeProfileAsync(currentUserId, request.SubjectId);
+            }
+            catch { }
+        }
+
+        // Anti-repetition: fetch questions answered in recent 3 days
+        var recentCutoff = DateTimeOffset.UtcNow.AddDays(-3);
+        var recentAnsweredIds = await _db.AssessmentResponses.AsNoTracking()
+            .Where(r => r.Attempt != null && r.Attempt.UserId == currentUserId && r.Attempt.LastActivityAt >= recentCutoff)
+            .Select(r => r.QuestionId)
+            .Distinct()
+            .ToListAsync();
+
+        var baseQuery = _db.ContentQuestions.AsNoTracking()
+            .Where(q => !q.IsDeleted && q.Status == "published" && !string.IsNullOrWhiteSpace(q.CorrectAnswer) && q.SubjectId == request.SubjectId);
+
+        if (!string.IsNullOrWhiteSpace(request.ChapterId))
+        {
+            baseQuery = baseQuery.Where(q => q.ChapterId == request.ChapterId);
+        }
+        if (!string.IsNullOrWhiteSpace(request.LessonId))
+        {
+            baseQuery = baseQuery.Where(q => q.LessonId == request.LessonId);
+        }
+
+        var allAvailable = await baseQuery.ToListAsync();
+        if (allAvailable.Count == 0) return new List<ContentQuestion>();
+
+        var status = profile?.OverallStatus ?? "insufficient_data";
+        var weakTopicNames = profile?.WeakTopics.Select(w => w.TopicName.ToLowerInvariant()).ToList() ?? new List<string>();
+
+        var rng = new Random();
+        var scoredList = allAvailable.Select(q =>
+        {
+            double score = rng.NextDouble() * 5.0; // Random jitter for diversity
+            var qDiff = q.Difficulty?.ToLowerInvariant() ?? "thong_hieu";
+
+            if (status == "needs_reinforcement" || (status == "progressing" && (profile?.OverallMasteryScore ?? 0) < 60))
+            {
+                if (qDiff == "nhan_biet" || qDiff == "easy") score += 35;
+                else if (qDiff == "thong_hieu" || qDiff == "medium") score += 20;
+                else score -= 20;
+            }
+            else if (status == "mastered" || (status == "proficient" && (profile?.OverallMasteryScore ?? 0) >= 80))
+            {
+                if (qDiff == "van_dung" || qDiff == "hard") score += 35;
+                else if (qDiff == "van_dung_cao" || qDiff == "very-hard" || qDiff == "very_hard") score += 25;
+                else if (qDiff == "thong_hieu" || qDiff == "medium") score += 15;
+                else score += 5;
+            }
+            else
+            {
+                if (qDiff == "thong_hieu" || qDiff == "medium") score += 35;
+                else if (qDiff == "van_dung" || qDiff == "hard") score += 20;
+                else if (qDiff == "nhan_biet" || qDiff == "easy") score += 15;
+            }
+
+            // Weak topic prioritization
+            if (!string.IsNullOrWhiteSpace(q.Topic) && weakTopicNames.Any(w => q.Topic.ToLowerInvariant().Contains(w)))
+            {
+                score += 25;
+            }
+
+            // Anti-repetition penalty
+            if (recentAnsweredIds.Contains(q.Id))
+            {
+                score -= 40;
+            }
+
+            return new { Question = q, Score = score };
+        })
+        .OrderByDescending(x => x.Score)
+        .Take(limit)
+        .Select(x => x.Question)
+        .ToList();
+
+        return scoredList;
     }
 }

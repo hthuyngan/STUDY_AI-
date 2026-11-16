@@ -159,3 +159,60 @@ export interface LearnerAnalyticsSummary {
   firstSessionAt: string | null
   lastSessionAt: string | null
 }
+
+export interface DifficultyBreakdownItem {
+  levelKey: string
+  levelName: string
+  totalQuestions: number
+  correctCount: number
+  accuracyPercent: number
+}
+
+export interface TopicMasteryDetail {
+  topicId: string
+  topicName: string
+  subjectId: string
+  attemptCount: number
+  correctCount: number
+  incorrectCount: number
+  hintCount: number
+  masteryScore: number
+  status: 'needs_reinforcement' | 'progressing' | 'proficient' | 'mastered' | 'insufficient_data'
+  statusLabel: string
+  lastAttemptAt?: string | null
+  recommendedLessonIds: string[]
+}
+
+export interface RecentSessionSummary {
+  sessionId: string
+  mode: string
+  completedAt?: string | null
+  totalQuestions: number
+  correctCount: number
+  scoreScaled: number
+  timeSpentSeconds: number
+}
+
+export interface StudentKnowledgeProfile {
+  userId: string
+  subjectId: string
+  subjectName: string
+  overallMasteryScore: number
+  overallStatus: 'needs_reinforcement' | 'progressing' | 'proficient' | 'mastered' | 'insufficient_data'
+  overallStatusLabel: string
+  totalQuestionsAttempted: number
+  totalCorrect: number
+  totalIncorrect: number
+  overallAccuracyPercent: number
+  totalTimeSpentSeconds: number
+  totalSessionsCompleted: number
+  lessonsCompletedCount: number
+  totalLessonsCount: number
+  curriculumProgressPercent: number
+  difficultyBreakdown: Record<string, DifficultyBreakdownItem>
+  topicMasteries: TopicMasteryDetail[]
+  weakTopics: TopicMasteryDetail[]
+  masteredTopics: TopicMasteryDetail[]
+  recentSessions: RecentSessionSummary[]
+  scoringExplanation: string
+}

@@ -13,5 +13,10 @@ public interface ILearningRecommendationService
         string userId,
         string? subjectId = null,
         CancellationToken cancellationToken = default);
+
+    Task<List<KnowledgeGapDto>> GetKnowledgeGapsAsync(
+        string userId,
+        string? subjectId = null,
+        CancellationToken cancellationToken = default);
 }
 

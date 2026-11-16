@@ -494,4 +494,174 @@ public class AiIntelligenceUnitTests
         Assert.NotEmpty(path.Steps);
         Assert.Equal("standard_curriculum", path.CurrentStage);
     }
+
+    [Fact]
+    public async Task StudentMasteryService_GetStudentKnowledgeProfileAsync_ReturnsComprehensiveMetricsAnd4TierClassification()
+    {
+        using var db = CreateInMemoryDb(nameof(StudentMasteryService_GetStudentKnowledgeProfileAsync_ReturnsComprehensiveMetricsAnd4TierClassification));
+        var masteryService = new StudentMasteryService(db, NullLogger<StudentMasteryService>.Instance);
+
+        var chap = new ContentChapter { Id = "c1", SubjectId = "sub_math12", Title = "Chương 1", OrderIndex = 1 };
+        db.ContentChapters.Add(chap);
+
+        var les1 = new ContentLesson { Id = "les_prof_1", ChapterId = "c1", Title = "Tính đơn điệu của hàm số", OrderIndex = 1, Status = "published" };
+        var les2 = new ContentLesson { Id = "les_prof_2", ChapterId = "c1", Title = "Cực trị của hàm số", OrderIndex = 2, Status = "published" };
+        db.ContentLessons.AddRange(les1, les2);
+
+        // Lesson progress: 1 of 2 completed
+        db.LessonProgresses.Add(new LessonProgress
+        {
+            Id = 1,
+            UserId = "usr_profile_test",
+            LessonId = "les_prof_1",
+            SubjectId = "sub_math12",
+            OverallProgress = 100,
+            ContentProgress = 100
+        });
+
+        // Questions with varying difficulties
+        var qEasy = new ContentQuestion { Id = "q_easy_1", Topic = "Tính đơn điệu", Difficulty = "nhan_biet" };
+        var qMed = new ContentQuestion { Id = "q_med_1", Topic = "Cực trị", Difficulty = "thong_hieu" };
+        var qHard = new ContentQuestion { Id = "q_hard_1", Topic = "Cực trị", Difficulty = "van_dung" };
+        db.ContentQuestions.AddRange(qEasy, qMed, qHard);
+
+        // Completed Attempt with responses
+        var attempt = new AssessmentAttempt
+        {
+            Id = "att_profile_1",
+            UserId = "usr_profile_test",
+            SubjectId = "sub_math12",
+            CompletionStatus = "completed",
+            ScoreScaled = 6.67,
+            SessionTimeMs = 120000,
+            Responses = new List<AssessmentResponse>
+            {
+                new() { QuestionId = "q_easy_1", IsCorrect = true, TimeSpentMs = 30000 },
+                new() { QuestionId = "q_med_1", IsCorrect = true, TimeSpentMs = 40000 },
+                new() { QuestionId = "q_hard_1", IsCorrect = false, TimeSpentMs = 50000 }
+            }
+        };
+        db.AssessmentAttempts.Add(attempt);
+        await db.SaveChangesAsync();
+
+        // Call GetStudentKnowledgeProfileAsync
+        var profile = await masteryService.GetStudentKnowledgeProfileAsync("usr_profile_test", "sub_math12");
+
+        Assert.NotNull(profile);
+        Assert.Equal("usr_profile_test", profile.UserId);
+        Assert.Equal("sub_math12", profile.SubjectId);
+        Assert.Equal(3, profile.TotalQuestionsAttempted);
+        Assert.Equal(2, profile.TotalCorrect);
+        Assert.Equal(1, profile.TotalIncorrect);
+        Assert.Equal(66.7, profile.OverallAccuracyPercent);
+        Assert.Equal(120, profile.TotalTimeSpentSeconds);
+        Assert.Equal(1, profile.TotalSessionsCompleted);
+        Assert.Equal(1, profile.LessonsCompletedCount);
+        Assert.Equal(2, profile.TotalLessonsCount);
+        Assert.Equal(50.0, profile.CurriculumProgressPercent);
+
+        // Verify Difficulty Breakdown
+        Assert.True(profile.DifficultyBreakdown.ContainsKey("nhan_biet"));
+        Assert.True(profile.DifficultyBreakdown.ContainsKey("thong_hieu"));
+        Assert.True(profile.DifficultyBreakdown.ContainsKey("van_dung"));
+        Assert.Equal(1, profile.DifficultyBreakdown["nhan_biet"].CorrectCount);
+        Assert.Equal(1, profile.DifficultyBreakdown["thong_hieu"].CorrectCount);
+        Assert.Equal(0, profile.DifficultyBreakdown["van_dung"].CorrectCount);
+
+        // Verify 4-tier labeling & explanation
+        Assert.False(string.IsNullOrWhiteSpace(profile.OverallStatusLabel));
+        Assert.False(string.IsNullOrWhiteSpace(profile.ScoringExplanation));
+        Assert.Contains("Mastery Score", profile.ScoringExplanation);
+    }
+
+    [Fact]
+    public async Task AiTutorService_CoachingIntents_AnswersWeakTopicsWithVerifiedData()
+    {
+        using var db = CreateInMemoryDb(nameof(AiTutorService_CoachingIntents_AnswersWeakTopicsWithVerifiedData));
+        var masteryService = new StudentMasteryService(db, NullLogger<StudentMasteryService>.Instance);
+
+        // Prepopulate a weak topic
+        db.StudentTopicMasteries.Add(new StudentTopicMastery
+        {
+            Id = "mst_weak_1",
+            UserId = "usr_student_coach",
+            SubjectId = "sub_math12",
+            TopicName = "Cực trị của hàm số",
+            AttemptCount = 5,
+            CorrectCount = 1,
+            HintCount = 0,
+            MasteryScore = 20.0,
+            Status = "needs_reinforcement"
+        });
+
+        var conv = new AiConversation
+        {
+            Id = "conv_coach_1",
+            UserId = "usr_student_coach",
+            Title = "Hỏi AI Coach",
+            Subject = "math",
+            AssistanceMode = "explain"
+        };
+        db.AiConversations.Add(conv);
+        await db.SaveChangesAsync();
+
+        var tutorService = new AiTutorService(
+            db,
+            new FakeLlmProvider(),
+            NullLogger<AiTutorService>.Instance,
+            null,
+            masteryService);
+
+        var request = new SendAiMessageRequestDto(
+            Message: "Em đang yếu phần nào vậy thầy?",
+            AssistanceMode: "explain"
+        );
+
+        var response = await tutorService.SendMessageAsync("usr_student_coach", "learner", "conv_coach_1", request);
+
+        Assert.NotNull(response);
+        Assert.NotNull(response.AssistantMessage);
+        Assert.Contains("Cực trị của hàm số", response.AssistantMessage.Content);
+        Assert.Contains("Chưa nắm vững", response.AssistantMessage.Content);
+        Assert.Contains("20%", response.AssistantMessage.Content);
+    }
+
+    [Fact]
+    public async Task LearningRecommendationService_GetKnowledgeGaps_DetectsWeakTopicsAccurately()
+    {
+        using var db = CreateInMemoryDb(nameof(LearningRecommendationService_GetKnowledgeGaps_DetectsWeakTopicsAccurately));
+        var config = new ConfigurationBuilder().Build();
+        var usageService = new AiUsageService(db, new FakeLlmProvider(), config, NullLogger<AiUsageService>.Instance);
+        var masteryService = new StudentMasteryService(db, NullLogger<StudentMasteryService>.Instance);
+        var recService = new LearningRecommendationService(db, masteryService, usageService, NullLogger<LearningRecommendationService>.Instance);
+
+        var chap = new ContentChapter { Id = "c_gap_1", SubjectId = "sub_math12", Title = "Chương 1" };
+        db.ContentChapters.Add(chap);
+
+        var les = new ContentLesson { Id = "les_gap_1", ChapterId = "c_gap_1", Title = "Tính đơn điệu của hàm số", Status = "published" };
+        db.ContentLessons.Add(les);
+
+        db.StudentTopicMasteries.Add(new StudentTopicMastery
+        {
+            Id = "mst_gap_test",
+            UserId = "usr_gap_student",
+            SubjectId = "sub_math12",
+            TopicName = "Tính đơn điệu của hàm số",
+            AttemptCount = 4,
+            CorrectCount = 1,
+            MasteryScore = 25.0,
+            Status = "needs_reinforcement"
+        });
+        await db.SaveChangesAsync();
+
+        var gaps = await recService.GetKnowledgeGapsAsync("usr_gap_student", "sub_math12");
+
+        Assert.NotEmpty(gaps);
+        var firstGap = gaps.First();
+        Assert.Equal("Tính đơn điệu của hàm số", firstGap.SkillName);
+        Assert.Equal("critical", firstGap.Severity);
+        Assert.Equal("les_gap_1", firstGap.RecommendedLessonId);
+        Assert.NotEmpty(firstGap.PrerequisiteConcepts);
+        Assert.NotEmpty(firstGap.ActionSteps);
+    }
 }

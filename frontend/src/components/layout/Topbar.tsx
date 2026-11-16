@@ -63,11 +63,11 @@ const MOCK_SEARCH_ITEMS: SearchResult[] = [
     url: '/subjects/math',
   },
   {
-    category: 'AI Tutor',
+    category: 'Môn học',
     icon: Bot,
     title: 'Hỏi AI về phương pháp giải tiệm cận đứng',
-    subtitle: 'Trợ lý AI giải thích từng bước',
-    url: '/ai-tutor?prompt=giai-thich-tiem-can',
+    subtitle: 'Toán 12 · Hỗ trợ bởi Floating AI Tutor',
+    url: '/subjects/math',
   },
 ]
 

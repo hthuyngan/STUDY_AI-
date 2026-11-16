@@ -20,6 +20,15 @@ import {
   selectLearningHistory,
   normalizeSubjectId,
 } from '@/selectors/learningAnalytics.selectors'
+import { apiClient } from '@/lib/apiClient'
+import type {
+  AiLearningReport,
+  ExamMatrixRequest,
+  ExamReviewAnalytics,
+  LearningAnalyticsOverview,
+  LearningRisk,
+} from '@/types/learningAnalytics'
+import type { PracticeSession } from '@/types/practice'
 import type {
   StudentLearningAnalyticsData,
   StudentAnalyticsSummary,
@@ -188,6 +197,130 @@ export const learningAnalyticsService = {
       assessmentTrends: data.assessmentTrends,
       recommendedInterventions,
     }
+  },
+
+  /**
+   * Retrieves student learning analytics overview (GDPT 2018 metrics).
+   */
+  async getAnalyticsOverview(
+    subjectId = 'sub_math12',
+    timeframe: '7d' | '30d' | 'all' = 'all'
+  ): Promise<LearningAnalyticsOverview> {
+    try {
+      const response = await apiClient.get<LearningAnalyticsOverview>(
+        `/api/v1/ai/analytics/overview?subjectId=${encodeURIComponent(subjectId)}&timeframe=${encodeURIComponent(timeframe)}`
+      )
+      if (response) return response
+    } catch {
+      // Fallback to local default analytics state
+    }
+
+    return {
+      userId: 'local_learner',
+      subjectId,
+      subjectName: 'Toán 12',
+      timeframe,
+      totalQuestionsAttempted: 0,
+      totalCorrect: 0,
+      totalIncorrect: 0,
+      overallAccuracyPercent: 0,
+      totalTimeSpentSeconds: 0,
+      totalSessionsCompleted: 0,
+      curriculumProgressPercent: 0,
+      currentMasteryTier: 'insufficient_data',
+      currentMasteryLabel: 'Chưa đủ dữ liệu',
+      overallMasteryScore: 0,
+      difficultyAccuracy: {},
+      chapterMasteries: [],
+      topStrengths: [],
+      topWeaknesses: [],
+      progressionTimeline: [],
+      reviewFrequency: {
+        sessionsLast7Days: 0,
+        sessionsLast30Days: 0,
+        activeStreakDays: 0,
+      },
+      examSummary: {
+        examsCompletedCount: 0,
+        averageExamScoreScaled: 0,
+        highestExamScoreScaled: 0,
+        latestExamScoreScaled: 0,
+      },
+    }
+  },
+
+  /**
+   * Retrieves active learning risks and knowledge gap traps.
+   */
+  async getLearningRisks(subjectId = 'sub_math12'): Promise<LearningRisk[]> {
+    try {
+      const response = await apiClient.get<LearningRisk[]>(
+        `/api/v1/ai/analytics/risks?subjectId=${encodeURIComponent(subjectId)}`
+      )
+      if (response) return response
+    } catch {
+      // Return empty list on failure
+    }
+    return []
+  },
+
+  /**
+   * Retrieves holistic AI learning report.
+   */
+  async getAiLearningReport(subjectId = 'sub_math12'): Promise<AiLearningReport> {
+    try {
+      const response = await apiClient.get<AiLearningReport>(
+        `/api/v1/ai/analytics/report?subjectId=${encodeURIComponent(subjectId)}`
+      )
+      if (response) return response
+    } catch {
+      // Local fallback report
+    }
+
+    return {
+      reportId: 'rep_local_fallback',
+      userId: 'local_learner',
+      subjectId,
+      subjectName: 'Toán 12',
+      generatedAt: new Date().toISOString(),
+      overallMasteryScore: 0,
+      currentCompetencyTier: 'Chưa đủ dữ liệu',
+      accuracyPercent: 0,
+      totalQuestionsAttempted: 0,
+      curriculumProgressPercent: 0,
+      overallEvaluation: 'Hệ thống đang theo dõi và tổng hợp tiến trình học tập của bạn.',
+      keyStrengths: [],
+      criticalGaps: [],
+      recentProgressSummary: 'Chưa có hoạt động học tập ghi nhận.',
+      commonMistakePatterns: [],
+      recommendedGoals: [
+        'Hoàn thành bài học đầu tiên trong chương 1',
+        'Làm 10 câu hỏi luyện tập nhận biết',
+      ],
+      shortTermStudyPlan: [
+        'Học lý thuyết và xem video bài giảng Bài 1',
+        'Làm bài tập thích ứng',
+      ],
+      pedagogicalNarrative: 'Hãy bắt đầu bằng việc xem bài giảng và luyện tập các câu hỏi cơ bản để hình thành nền tảng kiến thức vững chắc.',
+      provider: 'LocalPedagogicalEngine',
+      isFallbackNarrative: true,
+    }
+  },
+
+  /**
+   * Generates a matrix-based practice/exam session.
+   */
+  async generateMatrixExam(request: ExamMatrixRequest): Promise<PracticeSession> {
+    return await apiClient.post<PracticeSession>('/api/v1/ai/exams/matrix', request)
+  },
+
+  /**
+   * Retrieves deep analytical review for a completed exam session.
+   */
+  async getExamReviewAnalytics(sessionId: string): Promise<ExamReviewAnalytics> {
+    return await apiClient.get<ExamReviewAnalytics>(
+      `/api/v1/ai/exams/${encodeURIComponent(sessionId)}/review-analytics`
+    )
   },
 }
 

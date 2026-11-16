@@ -82,6 +82,240 @@ public class StudentMasteryService : IStudentMasteryService
         };
     }
 
+    public async Task<StudentKnowledgeProfileDto> GetStudentKnowledgeProfileAsync(
+        string userId,
+        string? subjectId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var effectiveSubjectId = string.IsNullOrWhiteSpace(subjectId) || subjectId == "all"
+            ? "sub_math12"
+            : subjectId;
+
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return new StudentKnowledgeProfileDto
+            {
+                UserId = "guest",
+                SubjectId = effectiveSubjectId,
+                SubjectName = "Toán học 12",
+                ScoringExplanation = GetScoringExplanation()
+            };
+        }
+
+        // 1. Ensure masteries are persisted or calculated
+        var masteriesQuery = _context.StudentTopicMasteries
+            .AsNoTracking()
+            .Where(m => m.UserId == userId && m.SubjectId == effectiveSubjectId);
+
+        var savedMasteries = await masteriesQuery.ToListAsync(cancellationToken);
+        if (savedMasteries.Count == 0)
+        {
+            await ComputeAndPersistAllMasteriesAsync(userId, effectiveSubjectId, cancellationToken);
+            savedMasteries = await masteriesQuery.ToListAsync(cancellationToken);
+        }
+
+        // 2. Fetch completed attempts and responses for verified statistics
+        var completedAttempts = await _context.AssessmentAttempts
+            .AsNoTracking()
+            .Include(a => a.Responses)
+            .Where(a => a.UserId == userId &&
+                        (a.SubjectId == effectiveSubjectId || a.SubjectId == null) &&
+                        a.CompletionStatus == "completed")
+            .OrderByDescending(a => a.CompletedAt ?? a.LastActivityAt)
+            .ToListAsync(cancellationToken);
+
+        int totalSessions = completedAttempts.Count;
+        int totalQuestions = completedAttempts.Sum(a => a.Responses.Count);
+        int totalCorrect = completedAttempts.Sum(a => a.Responses.Count(r => r.IsCorrect == true));
+        int totalIncorrect = Math.Max(0, totalQuestions - totalCorrect);
+        int totalTimeSpent = completedAttempts.Sum(a => a.SessionTimeMs) / 1000;
+        double overallAccuracy = totalQuestions > 0
+            ? Math.Round((double)totalCorrect / totalQuestions * 100.0, 1)
+            : 0.0;
+
+        // 3. Difficulty Breakdown from verified responses
+        var questionIds = completedAttempts.SelectMany(a => a.Responses.Select(r => r.QuestionId)).Distinct().ToList();
+        var questionsMap = await _context.ContentQuestions.AsNoTracking()
+            .Where(q => questionIds.Contains(q.Id))
+            .ToDictionaryAsync(q => q.Id, cancellationToken);
+
+        var difficultyStats = InitializeDifficultyBreakdown();
+        foreach (var attempt in completedAttempts)
+        {
+            foreach (var resp in attempt.Responses)
+            {
+                if (!questionsMap.TryGetValue(resp.QuestionId, out var q)) continue;
+                var rawDiff = q.Difficulty?.ToLowerInvariant() ?? "thong_hieu";
+                var key = NormalizeDifficultyKey(rawDiff);
+                if (difficultyStats.TryGetValue(key, out var stat))
+                {
+                    stat.TotalQuestions++;
+                    if (resp.IsCorrect == true) stat.CorrectCount++;
+                }
+            }
+        }
+        foreach (var stat in difficultyStats.Values)
+        {
+            stat.AccuracyPercent = stat.TotalQuestions > 0
+                ? Math.Round((double)stat.CorrectCount / stat.TotalQuestions * 100.0, 1)
+                : 0.0;
+        }
+
+        // 4. Curriculum / Lesson Progress
+        var allLessons = await _context.ContentLessons.AsNoTracking()
+            .Include(l => l.Chapter)
+            .Where(l => l.Chapter != null && l.Chapter.SubjectId == effectiveSubjectId && l.Status == "published")
+            .ToListAsync(cancellationToken);
+
+        var lessonProgresses = await _context.LessonProgresses.AsNoTracking()
+            .Where(p => p.UserId == userId && p.SubjectId == effectiveSubjectId)
+            .ToListAsync(cancellationToken);
+
+        int totalLessonsCount = allLessons.Count;
+        int completedLessonsCount = lessonProgresses.Count(p => p.OverallProgress >= 100 || p.ContentProgress >= 100);
+        double curriculumProgress = totalLessonsCount > 0
+            ? Math.Round((double)completedLessonsCount / totalLessonsCount * 100.0, 1)
+            : 0.0;
+
+        // 5. Map Topic Masteries
+        var topicDetails = savedMasteries.Select(m =>
+        {
+            var matchedLessons = allLessons
+                .Where(l => l.Title.Contains(m.TopicName, StringComparison.OrdinalIgnoreCase) ||
+                            (l.Topic != null && l.Topic.Title.Contains(m.TopicName, StringComparison.OrdinalIgnoreCase)))
+                .Select(l => l.Id)
+                .ToList();
+
+            return new TopicMasteryDetailDto
+            {
+                TopicId = m.Id,
+                TopicName = m.TopicName,
+                SubjectId = m.SubjectId,
+                AttemptCount = m.AttemptCount,
+                CorrectCount = m.CorrectCount,
+                HintCount = m.HintCount,
+                MasteryScore = m.MasteryScore,
+                Status = m.Status,
+                StatusLabel = GetStatusVietnameseLabel(m.Status),
+                LastAttemptAt = m.LastAttemptAt,
+                RecommendedLessonIds = matchedLessons
+            };
+        }).OrderBy(t => t.MasteryScore).ToList();
+
+        var weakTopics = topicDetails
+            .Where(t => t.Status == "needs_reinforcement" || (t.Status == "progressing" && t.MasteryScore < 60))
+            .ToList();
+
+        var masteredTopics = topicDetails
+            .Where(t => t.Status == "mastered" || (t.Status == "proficient" && t.MasteryScore >= 80))
+            .ToList();
+
+        // 6. Overall Score and Status
+        double overallScore = topicDetails.Count > 0
+            ? Math.Round(topicDetails.Average(t => t.MasteryScore), 1)
+            : overallAccuracy;
+
+        string overallStatus;
+        if (totalQuestions < 5)
+        {
+            overallStatus = "insufficient_data";
+        }
+        else if (overallScore >= 90.0)
+        {
+            overallStatus = "mastered";
+        }
+        else if (overallScore >= 70.0)
+        {
+            overallStatus = "proficient";
+        }
+        else if (overallScore >= 50.0)
+        {
+            overallStatus = "progressing";
+        }
+        else
+        {
+            overallStatus = "needs_reinforcement";
+        }
+
+        // 7. Recent Sessions (last 5)
+        var recentSessions = completedAttempts.Take(5).Select(a => new RecentSessionSummaryDto
+        {
+            SessionId = a.Id,
+            Mode = a.AssessmentId == "asmt_exam" ? "Thi thử THPT" : "Luyện tập",
+            CompletedAt = a.CompletedAt ?? a.LastActivityAt,
+            TotalQuestions = a.Responses.Count,
+            CorrectCount = a.Responses.Count(r => r.IsCorrect == true),
+            ScoreScaled = a.ScoreScaled ?? 0.0,
+            TimeSpentSeconds = a.SessionTimeMs / 1000
+        }).ToList();
+
+        return new StudentKnowledgeProfileDto
+        {
+            UserId = userId,
+            SubjectId = effectiveSubjectId,
+            SubjectName = "Toán học 12",
+            OverallMasteryScore = overallScore,
+            OverallStatus = overallStatus,
+            OverallStatusLabel = GetStatusVietnameseLabel(overallStatus),
+            TotalQuestionsAttempted = totalQuestions,
+            TotalCorrect = totalCorrect,
+            TotalIncorrect = totalIncorrect,
+            OverallAccuracyPercent = overallAccuracy,
+            TotalTimeSpentSeconds = totalTimeSpent,
+            TotalSessionsCompleted = totalSessions,
+            LessonsCompletedCount = completedLessonsCount,
+            TotalLessonsCount = totalLessonsCount,
+            CurriculumProgressPercent = curriculumProgress,
+            DifficultyBreakdown = difficultyStats,
+            TopicMasteries = topicDetails,
+            WeakTopics = weakTopics,
+            MasteredTopics = masteredTopics,
+            RecentSessions = recentSessions,
+            ScoringExplanation = GetScoringExplanation()
+        };
+    }
+
+    private static Dictionary<string, DifficultyBreakdownDto> InitializeDifficultyBreakdown()
+    {
+        return new Dictionary<string, DifficultyBreakdownDto>
+        {
+            ["nhan_biet"] = new() { LevelKey = "nhan_biet", LevelName = "Nhận biết", TotalQuestions = 0, CorrectCount = 0, AccuracyPercent = 0.0 },
+            ["thong_hieu"] = new() { LevelKey = "thong_hieu", LevelName = "Thông hiểu", TotalQuestions = 0, CorrectCount = 0, AccuracyPercent = 0.0 },
+            ["van_dung"] = new() { LevelKey = "van_dung", LevelName = "Vận dụng", TotalQuestions = 0, CorrectCount = 0, AccuracyPercent = 0.0 },
+            ["van_dung_cao"] = new() { LevelKey = "van_dung_cao", LevelName = "Vận dụng cao", TotalQuestions = 0, CorrectCount = 0, AccuracyPercent = 0.0 }
+        };
+    }
+
+    private static string NormalizeDifficultyKey(string raw)
+    {
+        return raw switch
+        {
+            "easy" or "nhan_biet" => "nhan_biet",
+            "medium" or "thong_hieu" => "thong_hieu",
+            "hard" or "van_dung" => "van_dung",
+            "very_hard" or "very-hard" or "van_dung_cao" => "van_dung_cao",
+            _ => "thong_hieu"
+        };
+    }
+
+    public static string GetStatusVietnameseLabel(string status)
+    {
+        return status switch
+        {
+            "mastered" => "Thành thạo",
+            "proficient" => "Đạt yêu cầu",
+            "progressing" => "Cần củng cố",
+            "needs_reinforcement" => "Chưa nắm vững",
+            "insufficient_data" => "Chưa đủ dữ liệu",
+            _ => "Chưa đủ dữ liệu"
+        };
+    }
+
+    public static string GetScoringExplanation()
+    {
+        return "Điểm năng lực (Mastery Score) được tính dựa trên tỷ lệ làm đúng trên số lượt câu hỏi thực tế của từng dạng bài, có tính toán hệ số giảm nhẹ khi sử dụng gợi ý (tối đa 15%) và yêu cầu tối thiểu 3 câu để xác định mức độ tin cậy. Phân loại 4 cấp độ: Chưa nắm vững (<50%), Cần củng cố (50-69%), Đạt yêu cầu (70-89%) và Thành thạo (≥90% với ≥5 câu).";
+    }
+
     public async Task UpdateMasteryFromAttemptAsync(
         string userId,
         string attemptId,

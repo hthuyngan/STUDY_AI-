@@ -123,6 +123,12 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
         title: 'VẬN HÀNH HỆ THỐNG',
         items: [
           {
+            id: 'admin-operations',
+            label: 'Trung tâm Vận hành AI & QA',
+            path: '/admin/operations',
+            icon: Activity,
+          },
+          {
             id: 'admin-announcements',
             label: 'Thông báo hệ thống',
             path: '/admin/announcements',

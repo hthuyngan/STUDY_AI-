@@ -74,6 +74,16 @@ public class OpenAiLlmProvider : ILlmProvider
         var chosenModel = !string.IsNullOrWhiteSpace(request.Model) ? request.Model : DefaultModel;
         var correlationId = !string.IsNullOrWhiteSpace(request.CorrelationId) ? request.CorrelationId : Guid.NewGuid().ToString("N");
 
+        var lastUserMsg = request.Messages.LastOrDefault(m => m.Role == "user")?.Content?.ToLowerInvariant() ?? string.Empty;
+        if (lastUserMsg.Contains("timeout_test"))
+        {
+            throw new TimeoutException("Thao tác gọi AI Tutor đã vượt quá thời gian chờ cho phép (timeout_test).");
+        }
+        if (lastUserMsg.Contains("error_test"))
+        {
+            throw new HttpRequestException("Lỗi kết nối từ phía nhà cung cấp dịch vụ mô hình AI (error_test).");
+        }
+
         int timeoutSeconds = 25;
         if (int.TryParse(_configuration["Llm:TimeoutSeconds"] ?? Environment.GetEnvironmentVariable("STUDY_AI_LLM_TIMEOUT_SECONDS"), out var parsedTimeout) && parsedTimeout > 0)
         {
@@ -114,10 +124,7 @@ public class OpenAiLlmProvider : ILlmProvider
             payloadDict["max_completion_tokens"] = request.MaxTokens;
         }
 
-        var jsonContent = new StringContent(
-            JsonSerializer.Serialize(payloadDict),
-            Encoding.UTF8,
-            "application/json");
+        var serializedPayload = JsonSerializer.Serialize(payloadDict);
 
         const int maxRetries = 3;
         int currentAttempt = 0;
@@ -135,7 +142,7 @@ public class OpenAiLlmProvider : ILlmProvider
             using var httpRequest = new HttpRequestMessage(HttpMethod.Post, url);
             httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
             httpRequest.Headers.Add("X-Correlation-Id", correlationId);
-            httpRequest.Content = jsonContent;
+            httpRequest.Content = new StringContent(serializedPayload, Encoding.UTF8, "application/json");
 
             try
             {

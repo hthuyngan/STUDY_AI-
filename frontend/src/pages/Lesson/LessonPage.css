@@ -360,6 +360,131 @@
   font-size: 0.9rem;
 }
 
+/* Unified Overview Card & Contextual Accordion Styling */
+.lesson-unified-card {
+  background: var(--surface-card, #ffffff);
+  border: 1px solid var(--border-default, #e2e8f0);
+  border-radius: var(--radius-xl, 16px);
+  margin-bottom: var(--space-6, 24px);
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+}
+
+.accordion-section {
+  border-bottom: 1px solid var(--border-default, #e2e8f0);
+}
+
+.accordion-section:last-child {
+  border-bottom: none;
+}
+
+.accordion-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--surface-card, #ffffff);
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s ease;
+}
+
+.accordion-header:hover {
+  background-color: var(--surface-sunken, #f8fafc);
+}
+
+.accordion-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.accordion-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background-color: #eff6ff;
+  color: #2563eb;
+  flex-shrink: 0;
+}
+
+.accordion-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-primary, #0f172a);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.accordion-badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.accordion-badge.is-success {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.accordion-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.accordion-chevron {
+  color: var(--text-tertiary, #94a3b8);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.accordion-chevron.is-open {
+  transform: rotate(180deg);
+}
+
+.accordion-body {
+  padding: 24px;
+  background-color: var(--surface-card, #ffffff);
+  border-top: 1px solid var(--border-subtle, #f1f5f9);
+}
+
+.btn-ask-ai-contextual {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid #bfdbfe;
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-ask-ai-contextual:hover {
+  background-color: #dbeafe;
+  border-color: #93c5fd;
+  color: #1e40af;
+  transform: translateY(-1px);
+}
+
+.btn-ask-ai-contextual:active {
+  transform: translateY(0);
+}
+
 /* Math 12 pilot: keep learning content above the fold when no video is available. */
 .lesson-video-unavailable {
   display: flex;

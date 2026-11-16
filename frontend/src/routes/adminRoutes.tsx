@@ -13,6 +13,7 @@ import { AdminSystemPage } from '@/pages/Admin/AdminSystemPage'
 import { AdminSettingsPage } from '@/pages/Admin/AdminSettingsPage'
 import { AdminContentMonitorPage } from '@/pages/Admin/AdminContentMonitorPage'
 import { AdminSupportMonitorPage } from '@/pages/Admin/AdminSupportMonitorPage'
+import { AdminOperationsDashboard } from '@/pages/Admin/AdminOperationsDashboard'
 
 // Helper component to preserve URL params on legacy redirect
 function RedirectWithParam({ basePath, paramName }: { basePath: string; paramName: string }) {
@@ -42,6 +43,7 @@ export function AdminRoutes() {
       <Route path="announcements" element={<AdminAnnouncementsPage />} />
       <Route path="audit-logs" element={<AdminAuditLogsPage />} />
       <Route path="system" element={<AdminSystemPage />} />
+      <Route path="operations" element={<AdminOperationsDashboard />} />
       <Route path="settings" element={<AdminSettingsPage />} />
 
       {/* 2. Cross-Workspace Oversight & Performance Monitoring (V6) */}

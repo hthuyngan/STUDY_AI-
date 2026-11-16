@@ -9,13 +9,24 @@ export type MessageStatus = 'sending' | 'streaming' | 'done' | 'error'
 export type TutorContextSource =
   | 'lesson'
   | 'lesson-section'
+  | 'lesson-video'
+  | 'lesson-overview'
+  | 'lesson-theory'
+  | 'lesson-example'
+  | 'lesson-practice'
   | 'assessment-question'
   | 'knowledge-gap'
   | 'study-note'
   | 'smart-review'
+  | 'curriculum'
+  | 'practice'
+  | 'review_wrong'
 
 export interface TutorLearningContext {
   source: TutorContextSource
+  pageType?: string
+  grade?: string
+  textbook?: string
   subjectId?: string
   subjectName?: string
   chapterId?: string
@@ -24,6 +35,12 @@ export interface TutorLearningContext {
   lessonTitle?: string
   sectionId?: string
   sectionTitle?: string
+  sectionType?: 'video' | 'overview' | 'theory' | 'example' | 'practice'
+  videoId?: string
+  videoTitle?: string
+  videoTimestamp?: number
+  exampleId?: string
+  exampleTitle?: string
   questionId?: string
   questionPrompt?: string
   selectedAnswer?: string

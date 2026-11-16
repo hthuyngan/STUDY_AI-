@@ -1,4 +1,5 @@
 import { apiClient } from '@/lib/apiClient'
+import { calculateSkillBreakdown } from './scoringEngine'
 import {
   practiceRepository,
   type IPracticeRepository,
@@ -275,31 +276,33 @@ export class PracticeService {
         const totalQ = Math.max(1, backendResult.totalQuestions)
         const scorePerQ = 10 / totalQ
 
+        const questionResults = backendResult.questions.map((q: any) => ({
+          questionId: q.questionId,
+          questionType: 'multiple_choice' as const,
+          difficulty: 'medium' as const,
+          cognitiveLevel: 'comprehension' as const,
+          skillIds: q.skillIds || ['SKILL-GENERAL'],
+          stem: q.prompt,
+          explanation: q.explanation || '',
+          studentAnswer: {
+            questionType: 'multiple_choice' as const,
+            selectedOption: (q.studentAnswer as any) || null,
+          },
+          correctAnswerDisplay: q.correctAnswer,
+          isFullyCorrect: q.isCorrect,
+          isPartiallyCorrect: false,
+          isUnanswered: !q.studentAnswer,
+          earnedPoints: q.isCorrect ? scorePerQ : 0,
+          maxPoints: scorePerQ,
+        }))
+
         const result: PracticeResult = {
           id: backendResult.resultId,
           sessionId: backendResult.sessionId,
           subjectId: backendResult.subjectId,
           chapterId: session.chapterId,
           lessonId: session.lessonId,
-          questionResults: backendResult.questions.map((q) => ({
-            questionId: q.questionId,
-            questionType: 'multiple_choice' as const,
-            difficulty: 'medium' as const,
-            cognitiveLevel: 'comprehension' as const,
-            skillIds: ['SKILL-GENERAL'],
-            stem: q.prompt,
-            explanation: q.explanation || '',
-            studentAnswer: {
-              questionType: 'multiple_choice' as const,
-              selectedOption: (q.studentAnswer as any) || null,
-            },
-            correctAnswerDisplay: q.correctAnswer,
-            isFullyCorrect: q.isCorrect,
-            isPartiallyCorrect: false,
-            isUnanswered: !q.studentAnswer,
-            earnedPoints: q.isCorrect ? scorePerQ : 0,
-            maxPoints: scorePerQ,
-          })),
+          questionResults,
           totalQuestions: totalQ,
           correctCount: backendResult.correctCount,
           partialCount: 0,
@@ -311,7 +314,7 @@ export class PracticeService {
           startedAt: session.startedAt,
           submittedAt: backendResult.completedAt,
           durationSeconds: backendResult.timeSpentSeconds,
-          skillBreakdown: [],
+          skillBreakdown: calculateSkillBreakdown(questionResults),
           scoringVersion: 'GDPT_2018_V1',
         }
 

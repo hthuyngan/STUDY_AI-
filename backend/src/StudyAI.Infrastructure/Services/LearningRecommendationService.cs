@@ -217,6 +217,21 @@ public class LearningRecommendationService : ILearningRecommendationService
             IsCompleted = false
         });
 
+        // Short term learning goals
+        var shortTermGoals = new List<string>();
+        if (highPriority.Count > 0)
+        {
+            shortTermGoals.Add($"Khắc phục dứt điểm {highPriority.Count} chủ đề yếu: {string.Join(", ", highPriority.Take(2).Select(h => h.TopicName ?? h.LessonTitle))}.");
+            shortTermGoals.Add("Nâng tỷ lệ làm đúng dạng bài nhận biết & thông hiểu lên trên 80%.");
+            shortTermGoals.Add("Hoàn thành bài đánh giá thu hoạch để cập nhật trạng thái thành Đạt yêu cầu.");
+        }
+        else
+        {
+            shortTermGoals.Add("Nắm vững lý thuyết và các bài toán mẫu của bài học tiếp theo.");
+            shortTermGoals.Add("Chinh phục các câu hỏi vận dụng và vận dụng cao để nâng band điểm lên 8.5+.");
+            shortTermGoals.Add("Duy trì tốc độ làm bài trung bình dưới 1.5 phút/câu trắc nghiệm.");
+        }
+
         return new AdaptiveLearningPathDto
         {
             Id = $"alp_{userId}_{effectiveSubjectId}",
@@ -224,9 +239,141 @@ public class LearningRecommendationService : ILearningRecommendationService
             SubjectId = effectiveSubjectId,
             CurrentStage = currentStage,
             StageDescription = stageDesc,
+            ShortTermGoals = shortTermGoals,
             Steps = steps,
             GeneratedAt = DateTimeOffset.UtcNow
         };
+    }
+
+    public async Task<List<KnowledgeGapDto>> GetKnowledgeGapsAsync(
+        string userId,
+        string? subjectId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var effectiveSubjectId = string.IsNullOrWhiteSpace(subjectId) || subjectId == "all"
+            ? "sub_math12"
+            : subjectId;
+
+        if (string.IsNullOrWhiteSpace(userId) || userId == "guest")
+        {
+            return new List<KnowledgeGapDto>();
+        }
+
+        // 1. Fetch persistent topic masteries
+        var masteries = await _context.StudentTopicMasteries.AsNoTracking()
+            .Where(m => m.UserId == userId && m.SubjectId == effectiveSubjectId)
+            .ToListAsync(cancellationToken);
+
+        if (masteries.Count == 0)
+        {
+            var masteryResult = await _masteryService.GetStudentMasteryAsync(userId, effectiveSubjectId, cancellationToken);
+            masteries = await _context.StudentTopicMasteries.AsNoTracking()
+                .Where(m => m.UserId == userId && m.SubjectId == effectiveSubjectId)
+                .ToListAsync(cancellationToken);
+        }
+
+        // 2. Fetch all published lessons to map prerequisite knowledge and lesson IDs
+        var allLessons = await _context.ContentLessons.AsNoTracking()
+            .Include(l => l.Chapter)
+            .Include(l => l.Topic)
+            .Where(l => l.Chapter != null && l.Chapter.SubjectId == effectiveSubjectId && l.Status == "published")
+            .ToListAsync(cancellationToken);
+
+        // 3. Filter weak topics with authentic practice evidence
+        var weakMasteries = masteries
+            .Where(m => m.AttemptCount > 0 && (m.Status == "needs_reinforcement" || (m.Status == "progressing" && m.MasteryScore < 60.0) || (m.AttemptCount >= 2 && m.CorrectCount < m.AttemptCount)))
+            .OrderBy(m => m.MasteryScore)
+            .ToList();
+
+        var gaps = new List<KnowledgeGapDto>();
+
+        foreach (var wm in weakMasteries)
+        {
+            int mistakes = Math.Max(0, wm.AttemptCount - wm.CorrectCount);
+            if (mistakes == 0 && wm.MasteryScore >= 70.0) continue;
+
+            string severity = wm.MasteryScore >= 70.0
+                ? "minor"
+                : (wm.MasteryScore < 35.0 || (mistakes >= 3 && wm.MasteryScore < 50.0))
+                    ? "critical"
+                    : wm.MasteryScore < 55.0
+                        ? "moderate"
+                        : "minor";
+
+            var matchedLesson = allLessons.FirstOrDefault(l =>
+                l.Title.Contains(wm.TopicName, StringComparison.OrdinalIgnoreCase) ||
+                (l.Topic != null && l.Topic.Title.Contains(wm.TopicName, StringComparison.OrdinalIgnoreCase)));
+
+            var prerequisites = DerivePrerequisitesForTopic(wm.TopicName);
+            var actionSteps = new List<string>
+            {
+                matchedLesson != null
+                    ? $"Xem lại phần lý thuyết và ví dụ mẫu trong bài \"{matchedLesson.Title}\"."
+                    : "Xem lại lý thuyết và ghi nhớ các công thức trọng tâm.",
+                "Củng cố kiến thức nền: " + string.Join(", ", prerequisites),
+                "Luyện tập bộ 5 câu hỏi thích ứng (Nhận biết & Thông hiểu) để phục hồi kỹ năng.",
+                "Làm bài kiểm tra thu hoạch để xác nhận lấp đầy lỗ hổng."
+            };
+
+            string status = wm.MasteryScore >= 70.0 ? "resolved" : wm.AttemptCount >= 3 ? "reviewing" : "open";
+
+            gaps.Add(new KnowledgeGapDto
+            {
+                Id = $"gap_{wm.Id}",
+                SkillId = wm.Id,
+                SkillName = wm.TopicName,
+                SubjectId = effectiveSubjectId,
+                Severity = severity,
+                AccuracyPercent = wm.AttemptCount > 0 ? Math.Round((double)wm.CorrectCount / wm.AttemptCount * 100.0, 1) : 0.0,
+                MistakeCount = mistakes,
+                EvidenceSummary = $"Làm chưa chính xác {mistakes}/{wm.AttemptCount} lượt câu hỏi liên quan đến \"{wm.TopicName}\" (Điểm năng lực: {wm.MasteryScore}%).",
+                RecommendedLessonId = matchedLesson?.Id,
+                RecommendedLessonTitle = matchedLesson?.Title,
+                PrerequisiteConcepts = prerequisites,
+                ActionSteps = actionSteps,
+                RecommendedPracticeCount = 5,
+                Status = status,
+                PostReviewAccuracyPercent = status == "resolved" ? wm.MasteryScore : null,
+                DetectedAt = wm.LastAttemptAt ?? wm.UpdatedAt
+            });
+        }
+
+        return gaps;
+    }
+
+    private static List<string> DerivePrerequisitesForTopic(string topicName)
+    {
+        var lower = topicName.ToLowerInvariant();
+        if (lower.Contains("đơn điệu") || lower.Contains("xét dấu"))
+        {
+            return new List<string> { "Đạo hàm của hàm đa thức", "Định lý về dấu của tam thức bậc hai $ax^2 + bx + c$" };
+        }
+        if (lower.Contains("cực trị"))
+        {
+            return new List<string> { "Điều kiện cần và đủ để hàm số đạt cực trị", "Giải phương trình đạo hàm $y' = 0$" };
+        }
+        if (lower.Contains("lớn nhất") || lower.Contains("nhỏ nhất") || lower.Contains("glnn") || lower.Contains("gtln"))
+        {
+            return new List<string> { "Tìm nghiệm đạo hàm thuộc đoạn $[a; b]$", "So sánh giá trị tại các điểm tới hạn và 2 đầu mút" };
+        }
+        if (lower.Contains("tiệm cận"))
+        {
+            return new List<string> { "Giới hạn tại vô cực $\\lim_{x \\to \\pm\\infty} f(x)$", "Giới hạn một bên tại điểm gián đoạn $\\lim_{x \\to x_0^\\pm} f(x)$" };
+        }
+        if (lower.Contains("đồ thị") || lower.Contains("biến thiên"))
+        {
+            return new List<string> { "Xác định dấu hệ số $a$", "Giao điểm với trục tung và trục hoành" };
+        }
+        if (lower.Contains("tích phân") || lower.Contains("nguyên hàm"))
+        {
+            return new List<string> { "Bảng nguyên hàm cơ bản", "Phương pháp từng phần $\\int u dv = uv - \\int v du$" };
+        }
+        if (lower.Contains("oxyz") || lower.Contains("vectơ") || lower.Contains("mặt phẳng"))
+        {
+            return new List<string> { "Toạ độ vectơ $\\vec{u}$, tích vô hướng và tích có hướng", "Phương trình mặt phẳng đi qua 1 điểm có VTPT" };
+        }
+
+        return new List<string> { "Khái niệm và định nghĩa cơ bản", "Các công thức và phương pháp giải chuẩn SGK" };
     }
 }
 

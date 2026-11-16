@@ -485,6 +485,11 @@ public class AssignmentsController : ControllerBase
             return Forbid();
         }
 
+        if (assignment.Status == "archived" || assignment.Status == "closed")
+        {
+            return BadRequest(new { message = "Bài tập đã đóng hoặc được lưu trữ, không thể chấm điểm." });
+        }
+
         if (dto.Score < 0 || dto.Score > assignment.MaxScore)
         {
             return BadRequest(new { message = $"Điểm số phải nằm trong khoảng từ 0 đến {assignment.MaxScore}" });
@@ -499,11 +504,94 @@ public class AssignmentsController : ControllerBase
             return NotFound(new { message = "Không tìm thấy bài nộp" });
         }
 
+        bool isRegrade = submission.Status == "graded" && submission.Score.HasValue;
+        double? previousScore = submission.Score;
+        string? previousFeedback = submission.Feedback;
+
         submission.Score = dto.Score;
         submission.Feedback = dto.Feedback?.Trim();
         submission.Status = "graded";
         submission.GradedAt = DateTimeOffset.UtcNow;
         submission.GradedByTeacherId = userId;
+
+        // Auto-update student topic mastery upon grading
+        var rawTopic = assignment.Title.Replace("[Can thiệp bổ trợ]", "").Trim();
+        if (!string.IsNullOrWhiteSpace(rawTopic))
+        {
+            var mastery = await _db.StudentTopicMasteries
+                .FirstOrDefaultAsync(m => m.UserId == submission.StudentId && (m.TopicName.Contains(rawTopic) || rawTopic.Contains(m.TopicName)), cancellationToken);
+
+            double scorePercentage = assignment.MaxScore > 0 ? (dto.Score / assignment.MaxScore) * 100.0 : 100.0;
+            double oldPercentage = (isRegrade && previousScore.HasValue && assignment.MaxScore > 0)
+                ? (previousScore.Value / assignment.MaxScore) * 100.0
+                : 0.0;
+
+            if (mastery != null)
+            {
+                if (!isRegrade)
+                {
+                    mastery.AttemptCount += 1;
+                    if (scorePercentage >= 70.0) mastery.CorrectCount += 1;
+                    // Weighted rolling average: 60% new graded score + 40% previous mastery
+                    mastery.MasteryScore = Math.Round((mastery.MasteryScore * 0.4) + (scorePercentage * 0.6), 1);
+                }
+                else
+                {
+                    // Regrade: do not increment AttemptCount
+                    if (oldPercentage < 70.0 && scorePercentage >= 70.0)
+                    {
+                        mastery.CorrectCount += 1;
+                    }
+                    else if (oldPercentage >= 70.0 && scorePercentage < 70.0)
+                    {
+                        mastery.CorrectCount = Math.Max(0, mastery.CorrectCount - 1);
+                    }
+                    // Adjusted mastery score
+                    mastery.MasteryScore = Math.Round((mastery.MasteryScore * 0.5) + (scorePercentage * 0.5), 1);
+                }
+
+                mastery.Status = mastery.MasteryScore >= 85.0 ? "mastered"
+                    : mastery.MasteryScore >= 70.0 ? "proficient"
+                    : mastery.MasteryScore >= 50.0 ? "progressing" : "needs_reinforcement";
+                mastery.LastAttemptAt = DateTimeOffset.UtcNow;
+                mastery.UpdatedAt = DateTimeOffset.UtcNow;
+            }
+            else
+            {
+                _db.StudentTopicMasteries.Add(new StudentTopicMastery
+                {
+                    Id = $"stm_{Guid.NewGuid():N}"[..12],
+                    UserId = submission.StudentId,
+                    SubjectId = "sub_math12",
+                    TopicName = rawTopic,
+                    AttemptCount = 1,
+                    CorrectCount = scorePercentage >= 70.0 ? 1 : 0,
+                    MasteryScore = Math.Round(scorePercentage, 1),
+                    Status = scorePercentage >= 70.0 ? "proficient" : "needs_reinforcement",
+                    LastAttemptAt = DateTimeOffset.UtcNow,
+                    UpdatedAt = DateTimeOffset.UtcNow
+                });
+            }
+        }
+
+        // Audit Trail for grading or regrading
+        _db.StaffAuditLogs.Add(new StaffAuditLog
+        {
+            Id = $"log_{Guid.NewGuid():N}"[..12],
+            ActorUserId = userId,
+            Action = isRegrade ? "regrade_submission" : "grade_submission",
+            TargetType = "submission",
+            TargetId = submission.Id,
+            Payload = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                assignmentId = id,
+                studentId = submission.StudentId,
+                score = dto.Score,
+                previousScore = isRegrade ? previousScore : null,
+                isRegrade = isRegrade
+            }),
+            CreatedAt = DateTimeOffset.UtcNow
+        });
 
         await _db.SaveChangesAsync(cancellationToken);
 

@@ -196,7 +196,65 @@ export const PracticeHubPage: React.FC = () => {
         {loading ? (
           <Skeleton variant="rect" width="100%" height={320} />
         ) : activeTab === 'setup' ? (
-          <PracticeSetup onStartSession={handleStartSession} />
+          <div>
+            {!isExamMode && (
+              <div
+                className="adaptive-practice-promo-card"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(37,99,235,0.08) 0%, rgba(99,102,241,0.06) 100%)',
+                  border: '1px solid rgba(37,99,235,0.2)',
+                  borderRadius: '12px',
+                  padding: '16px 20px',
+                  marginBottom: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '16px',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div
+                    style={{
+                      width: '42px',
+                      height: '42px',
+                      borderRadius: '10px',
+                      background: 'var(--color-primary, #2563EB)',
+                      color: '#fff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Sparkles size={22} aria-hidden />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: '0 0 4px', fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                      Luyện tập thích ứng thông minh (AI Adaptive Practice)
+                    </h3>
+                    <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                      Tự động đo lường năng lực thực tế, ưu tiên câu hỏi nhận biết / thông hiểu nếu còn yếu và nâng dần câu vận dụng khi tiến bộ.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="primary"
+                  icon={Play}
+                  onClick={() =>
+                    handleStartSession({
+                      subjectId: 'sub_math12',
+                      mode: 'adaptive',
+                      limit: 10,
+                    })
+                  }
+                >
+                  Bắt đầu luyện tập thích ứng (10 câu)
+                </Button>
+              </div>
+            )}
+            <PracticeSetup onStartSession={handleStartSession} />
+          </div>
         ) : activeTab === 'mistakes' ? (
           /* Mistakes & Spaced Repetition View */
           <div className="practice-mistakes-container" style={{ padding: '8px 0' }}>
