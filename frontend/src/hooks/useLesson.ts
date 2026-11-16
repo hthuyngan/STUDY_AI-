@@ -22,7 +22,10 @@ export function useLesson(courseId: string | undefined, lessonId: string | undef
     try {
       const [lessonData, outlineData] = await Promise.all([
         getLesson(courseId, lessonId),
-        getCourseOutline(courseId),
+        getCourseOutline(courseId).catch((outlineErr) => {
+          console.warn('Could not load course outline, continuing with empty outline:', outlineErr)
+          return []
+        }),
       ])
       if (!lessonData) {
         setError('Không tìm thấy bài học.')
@@ -45,7 +48,10 @@ export function useLesson(courseId: string | undefined, lessonId: string | undef
 
     Promise.all([
       getLesson(courseId, lessonId),
-      getCourseOutline(courseId),
+      getCourseOutline(courseId).catch((outlineErr) => {
+        console.warn('Could not load course outline, continuing with empty outline:', outlineErr)
+        return []
+      }),
     ])
       .then(([lessonData, outlineData]) => {
         if (!isMounted) return

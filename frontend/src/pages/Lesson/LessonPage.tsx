@@ -66,50 +66,15 @@ export function LessonPage() {
     reload,
   } = useLesson(resolvedSubjectId, lessonId)
 
-  // Identify all valid learning sections from current lesson content for progress tracking
-  const actualSectionIds: string[] = useMemo(() => {
-    const ids: string[] = []
-    if (lesson?.content?.introduction) ids.push('introduction')
-    if ((lesson?.content?.definitions?.length ?? 0) > 0) ids.push('definitions')
-    if ((lesson?.content?.formulas?.length ?? 0) > 0) ids.push('formulas')
-    if ((lesson?.content?.variationTables?.length ?? 0) > 0) ids.push('variation-tables')
-    if ((lesson?.content?.examples?.length ?? 0) > 0) ids.push('examples')
-    if ((lesson?.content?.functionGraphs?.length ?? 0) > 0) ids.push('function-graphs')
-    if ((lesson?.content?.commonMistakes?.length ?? 0) > 0 || (lesson?.content?.importantNotes?.length ?? 0) > 0) {
-      ids.push('important-notes')
-    }
-    if ((lesson?.content?.summaryPoints?.length ?? 0) > 0) ids.push('summary')
-    return ids
-  }, [lesson])
+  // Identify valid learning sections in redesigned layout for progress tracking
+  const actualSectionIds: string[] = useMemo(() => ['video-lecture'], [])
 
   const sectionsList = useMemo(() => {
-    const list: Array<{ id: string; title: string }> = []
-    if (lesson?.content?.introduction) {
-      list.push({ id: 'introduction', title: 'Mở đầu bài học' })
-    }
-    if ((lesson?.content?.definitions?.length ?? 0) > 0) {
-      list.push({ id: 'definitions', title: 'Khái niệm & Định nghĩa cơ bản' })
-    }
-    if ((lesson?.content?.formulas?.length ?? 0) > 0) {
-      list.push({ id: 'formulas', title: 'Công thức trọng tâm' })
-    }
-    if ((lesson?.content?.variationTables?.length ?? 0) > 0) {
-      list.push({ id: 'variation-tables', title: 'Bảng biến thiên sư phạm' })
-    }
-    if ((lesson?.content?.examples?.length ?? 0) > 0) {
-      list.push({ id: 'examples', title: 'Ví dụ mẫu & Phương pháp giải' })
-    }
-    if ((lesson?.content?.functionGraphs?.length ?? 0) > 0) {
-      list.push({ id: 'function-graphs', title: 'Đồ thị hình học toán học' })
-    }
-    if ((lesson?.content?.commonMistakes?.length ?? 0) > 0 || (lesson?.content?.importantNotes?.length ?? 0) > 0) {
-      list.push({ id: 'important-notes', title: 'Bẫy đề thi & Lưu ý cần nhớ' })
-    }
-    if ((lesson?.content?.summaryPoints?.length ?? 0) > 0) {
-      list.push({ id: 'summary', title: 'Tổng kết kiến thức bài học' })
-    }
-    return list
-  }, [lesson])
+    return [
+      { id: 'video-lecture', title: 'Video bài giảng' },
+      { id: 'harvest-accordion', title: 'Bài tập thu hoạch' },
+    ]
+  }, [])
 
   // Contextual AI Tutor Trigger for Video
   const handleAskAIVideo = useCallback(
@@ -182,6 +147,7 @@ export function LessonPage() {
   const {
     overallProgress,
     isAssessmentCompleted,
+    registerSection,
     reloadProgress,
   } = useLessonProgress({
     lessonId: lesson?.id || '',
@@ -191,64 +157,66 @@ export function LessonPage() {
 
   // Fetch real published assessment questions from StudyAIDb via Curriculum API (Zero-Leak)
   const [assessment, setAssessment] = useState<LessonAssessment | null>(null)
+  const [isAssessmentLoading, setIsAssessmentLoading] = useState(true)
+  const [assessmentError, setAssessmentError] = useState<string | null>(null)
 
-  useEffect(() => {
+  const loadAssessmentQuestions = useCallback(async () => {
     if (!lesson) return
+    setIsAssessmentLoading(true)
+    setAssessmentError(null)
 
-    let isMounted = true
-    curriculumService
-      .getLessonQuestions(lesson.id)
-      .then((rawQuestions) => {
-        if (!isMounted) return
-        if (!rawQuestions || rawQuestions.length === 0) {
-          setAssessment(null)
-          return
-        }
+    try {
+      const rawQuestions = await curriculumService.getLessonQuestions(lesson.id)
+      if (!rawQuestions || rawQuestions.length === 0) {
+        setAssessment(null)
+        return
+      }
 
-        const questions: AssessmentQuestion[] = rawQuestions.map((q) => {
-          const options: AssessmentOption[] = (q.options || []).map((optStr, optIdx) => {
-            const letter = String.fromCharCode(65 + optIdx)
-            const match = optStr.match(/^[A-D][.:]\s*(.+)$/i)
-            const text = match ? match[1].trim() : optStr.trim()
-            const label = match ? optStr.substring(0, 1).toUpperCase() : letter
-            return {
-              id: `opt_${optIdx}_${label}`,
-              label,
-              text,
-            }
-          })
-
+      const questions: AssessmentQuestion[] = rawQuestions.map((q) => {
+        const options: AssessmentOption[] = (q.options || []).map((optStr, optIdx) => {
+          const letter = String.fromCharCode(65 + optIdx)
+          const match = optStr.match(/^[A-D][.:]\s*(.+)$/i)
+          const text = match ? match[1].trim() : optStr.trim()
+          const label = match ? optStr.substring(0, 1).toUpperCase() : letter
           return {
-            id: q.id,
-            type: 'single-choice',
-            prompt: q.prompt,
-            options,
-            correctOptionId: '', // Strict zero-leak
-            explanation: '', // Strict zero-leak
-            topic: q.topic || 'Kiểm tra kiến thức bài học',
+            id: `opt_${optIdx}_${label}`,
+            label,
+            text,
           }
         })
 
-        setAssessment({
-          id: `asmt_${lesson.id}`,
-          lessonId: lesson.id,
-          subjectId: resolvedSubjectId,
-          title: `Bài tập thu hoạch: ${lesson.title}`,
-          description: 'Làm bài trắc nghiệm để đánh giá mức độ hiểu bài và đạt 100% tiến độ học tập.',
-          estimatedMinutes: Math.max(3, questions.length * 2),
-          passingScorePercent: 60,
-          questions,
-        })
-      })
-      .catch(() => {
-        if (!isMounted) return
-        setAssessment(null)
+        return {
+          id: q.id,
+          type: 'single-choice',
+          prompt: q.prompt,
+          options,
+          correctOptionId: '', // Strict zero-leak
+          explanation: '', // Strict zero-leak
+          topic: q.topic || 'Kiểm tra kiến thức bài học',
+        }
       })
 
-    return () => {
-      isMounted = false
+      setAssessment({
+        id: `asmt_${lesson.id}`,
+        lessonId: lesson.id,
+        subjectId: resolvedSubjectId,
+        title: `Bài tập thu hoạch: ${lesson.title}`,
+        description: 'Làm bài trắc nghiệm để đánh giá mức độ hiểu bài và đạt 100% tiến độ học tập.',
+        estimatedMinutes: Math.max(3, questions.length * 2),
+        passingScorePercent: 60,
+        questions,
+      })
+    } catch {
+      setAssessment(null)
+      setAssessmentError('Không thể tải bài tập thu hoạch do lỗi kết nối máy chủ.')
+    } finally {
+      setIsAssessmentLoading(false)
     }
   }, [lesson, resolvedSubjectId])
+
+  useEffect(() => {
+    loadAssessmentQuestions()
+  }, [loadAssessmentQuestions])
 
   // Assessment hook
   const {
@@ -401,7 +369,13 @@ export function LessonPage() {
         {/* ============================================================ */}
         {/* 4. VIDEO BÀI GIẢNG (16:9, responsive, fullscreen, no-autoplay) */}
         {/* ============================================================ */}
-        <section className="lesson-video-section" aria-label="Video bài giảng">
+        <section
+          className="lesson-video-section"
+          aria-label="Video bài giảng"
+          data-section-id="video-lecture"
+          id="video-lecture"
+          ref={(el) => registerSection('video-lecture', el)}
+        >
           {hasVideoContent ? (
             <LessonVideoPlayer
               video={lesson.video}
@@ -507,7 +481,12 @@ export function LessonPage() {
         {/* ============================================================ */}
         {/* 7. BÀI TẬP THU HOẠCH (Collapsible Accordion, Mặc định thu gọn) */}
         {/* ============================================================ */}
-        <section className="lesson-harvest-accordion" aria-label="Bài tập thu hoạch">
+        <section
+          className="lesson-harvest-accordion"
+          aria-label="Bài tập thu hoạch"
+          data-section-id="harvest-accordion"
+          id="harvest-accordion"
+        >
           <div
             className="harvest-accordion-header"
             onClick={() => setIsHarvestOpen((prev) => !prev)}
@@ -562,6 +541,9 @@ export function LessonPage() {
             <div className="harvest-accordion-body">
               <LessonAssessmentCard
                 assessment={assessment}
+                isLoading={isAssessmentLoading}
+                error={assessmentError}
+                onRetryLoad={loadAssessmentQuestions}
                 isCompleted={isAssessmentCompleted}
                 hasUnfinishedAttempt={hasUnfinishedAttempt}
                 activeAttempt={activeAttempt}

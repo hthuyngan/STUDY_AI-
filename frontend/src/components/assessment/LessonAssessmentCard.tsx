@@ -14,6 +14,9 @@ import './LessonAssessmentCard.css'
 
 export interface LessonAssessmentCardProps {
   assessment?: LessonAssessment | null
+  isLoading?: boolean
+  error?: string | null
+  onRetryLoad?: () => void
   isCompleted: boolean
   hasUnfinishedAttempt: boolean
   activeAttempt?: LearningAttempt | null
@@ -32,6 +35,9 @@ function formatSessionTime(ms: number): string {
 
 export function LessonAssessmentCard({
   assessment,
+  isLoading,
+  error,
+  onRetryLoad,
   isCompleted,
   hasUnfinishedAttempt,
   activeAttempt,
@@ -42,8 +48,65 @@ export function LessonAssessmentCard({
 }: LessonAssessmentCardProps) {
   const [showRestartConfirm, setShowRestartConfirm] = useState(false)
 
-  // Fallback state if lesson has no assessment configured yet
-  if (!assessment) {
+  // Loading state when fetching assessment questions
+  if (isLoading) {
+    return (
+      <section
+        className="lesson-assessment-card is-pending"
+        aria-labelledby="harvest-assessment-heading"
+      >
+        <div className="assessment-card-header">
+          <div className="assessment-card-title-group">
+            <div className="assessment-badge-icon" aria-hidden>
+              <Award size={18} />
+            </div>
+            <div>
+              <h2 id="harvest-assessment-heading" className="assessment-card-title">
+                Bài tập thu hoạch
+              </h2>
+              <p className="assessment-card-subtitle">
+                Đang tải danh sách câu hỏi thu hoạch từ máy chủ...
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  // Error state when fetching assessment questions fails
+  if (error) {
+    return (
+      <section
+        className="lesson-assessment-card is-pending"
+        aria-labelledby="harvest-assessment-heading"
+      >
+        <div className="assessment-card-header">
+          <div className="assessment-card-title-group">
+            <div className="assessment-badge-icon" aria-hidden style={{ color: 'var(--color-danger, #ef4444)' }}>
+              <AlertCircle size={18} />
+            </div>
+            <div>
+              <h2 id="harvest-assessment-heading" className="assessment-card-title">
+                Bài tập thu hoạch
+              </h2>
+              <p className="assessment-card-subtitle" style={{ color: 'var(--color-danger, #ef4444)' }}>
+                {error}
+              </p>
+            </div>
+          </div>
+          {onRetryLoad && (
+            <Button variant="outline" size="sm" onClick={onRetryLoad}>
+              Thử lại
+            </Button>
+          )}
+        </div>
+      </section>
+    )
+  }
+
+  // Fallback state if lesson has no assessment configured yet or empty questions
+  if (!assessment || assessment.questions.length === 0) {
     return (
       <section
         className="lesson-assessment-card is-pending"
