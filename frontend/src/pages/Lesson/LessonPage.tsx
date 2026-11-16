@@ -281,6 +281,13 @@ export function LessonPage() {
     return []
   }, [lesson])
 
+  const handleScrollToSection = useCallback((sectionId: string) => {
+    const el = document.querySelector(`[data-section-id="${sectionId}"]`) || document.getElementById(sectionId)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [])
+
   if (isLoading) {
     return (
       <div className="lesson-page-root">
@@ -309,13 +316,6 @@ export function LessonPage() {
   const hasVideoContent =
     multiVideos.length > 0 ||
     (lesson.video?.hasVideo && (lesson.video.youtubeId || lesson.video.videoUrl))
-
-  const handleScrollToSection = useCallback((sectionId: string) => {
-    const el = document.querySelector(`[data-section-id="${sectionId}"]`) || document.getElementById(sectionId)
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
-  }, [])
 
   return (
     <div className="lesson-page-root">
