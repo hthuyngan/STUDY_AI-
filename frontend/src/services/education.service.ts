@@ -12,6 +12,7 @@ import type {
 import type { ContentStatus } from '@/types/content'
 import { apiClient } from '@/lib/apiClient'
 import { getAccessToken } from '@/auth/authSession'
+import { resolveSubjectIcon } from '@/components/subjects/SubjectIconSvg'
 
 const STORAGE_KEYS = {
   SUBJECTS: 'study_ai_education_subjects',
@@ -456,40 +457,80 @@ export const educationService = {
   async getSubjects(): Promise<CurriculumSubjectItem[]> {
     if (getAccessToken()) {
       const res = await apiClient.get<{
-          items: Array<{
-            id: string
-            name: string
-            code: string
-            grade: string
-            description?: string
-            isActive: boolean
-            chapterCount: number
-            lessonCount: number
-            updatedAt: string
-          }>
-        }>('/api/v1/content/subjects')
-        if (res?.items && Array.isArray(res.items)) {
-          return res.items.map((s) => ({
-            id: s.id,
-            name: s.name,
-            code: s.code,
-            grade: s.grade ? `Lớp ${s.grade}` : 'Lớp 12',
-            icon: s.code.includes('MATH') ? '∑' : s.code.includes('PHYS') ? '⚛' : s.code.includes('CHEM') ? '⚗' : '📚',
-            description: s.description || '',
-            chapterCount: s.chapterCount,
-            lessonCount: s.lessonCount,
-            assessmentCount: 0,
-            publishedPercent: s.isActive ? 100 : 0,
-            status: s.isActive ? 'published' : 'draft',
-            updatedAt: s.updatedAt,
-          }))
-        }
+        items: Array<{
+          id: string
+          name: string
+          code: string
+          grade: string
+          description?: string
+          isActive: boolean
+          chapterCount: number
+          lessonCount: number
+          updatedAt: string
+        }>
+        total: number
+      }>('/api/v1/content/subjects')
+
+      if (res?.items && Array.isArray(res.items)) {
+        return res.items.map((s) => ({
+          id: s.id,
+          name: s.name,
+          code: s.code,
+          grade: s.grade ? (s.grade.startsWith('Lớp') ? s.grade : `Lớp ${s.grade}`) : 'Lớp 12',
+          icon: resolveSubjectIcon(s.code, s.name, undefined, s.description),
+          description: s.description || '',
+          chapterCount: s.chapterCount || 0,
+          lessonCount: s.lessonCount || 0,
+          assessmentCount: 0,
+          publishedPercent: s.isActive ? 100 : 0,
+          status: s.isActive ? 'published' : 'draft',
+          updatedAt: s.updatedAt,
+        }))
+      }
       throw new Error('API môn học trả dữ liệu không hợp lệ')
     }
     return readStorage<CurriculumSubjectItem[]>(STORAGE_KEYS.SUBJECTS, INITIAL_SUBJECTS)
   },
 
   async getSubjectById(id: string): Promise<CurriculumSubjectItem | undefined> {
+    if (getAccessToken()) {
+      try {
+        const s = await apiClient.get<{
+          id: string
+          name: string
+          code: string
+          grade: string
+          description?: string
+          isActive: boolean
+          updatedAt: string
+          chapters?: Array<{
+            id: string
+            lessons?: Array<{ id: string }>
+          }>
+        }>(`/api/v1/content/subjects/${id}`)
+
+        if (s && s.id) {
+          const chapterCount = s.chapters?.length || 0
+          const lessonCount = s.chapters?.reduce((sum, ch) => sum + (ch.lessons?.length || 0), 0) || 0
+          return {
+            id: s.id,
+            name: s.name,
+            code: s.code,
+            grade: s.grade ? (s.grade.startsWith('Lớp') ? s.grade : `Lớp ${s.grade}`) : 'Lớp 12',
+            icon: resolveSubjectIcon(s.code, s.name, undefined, s.description),
+            description: s.description || '',
+            chapterCount,
+            lessonCount,
+            assessmentCount: 0,
+            publishedPercent: s.isActive ? 100 : 0,
+            status: s.isActive ? 'published' : 'draft',
+            updatedAt: s.updatedAt,
+          }
+        }
+      } catch {
+        return undefined
+      }
+    }
     const subjects = await this.getSubjects()
     return subjects.find((s) => s.id === id)
   },
@@ -498,16 +539,39 @@ export const educationService = {
     input: Omit<CurriculumSubjectItem, 'id' | 'chapterCount' | 'lessonCount' | 'assessmentCount' | 'publishedPercent' | 'updatedAt'>
   ): Promise<CurriculumSubjectItem> {
     if (getAccessToken()) {
-      try {
-        await apiClient.post('/api/v1/content/subjects', {
-          name: input.name,
-          code: input.code,
-          grade: input.grade ? input.grade.replace(/[^0-9]/g, '') || '12' : '12',
-          description: input.description,
-          isActive: input.status === 'published',
-        })
-      } catch {
-        // Fallback to local storage
+      const gradeNum = input.grade ? input.grade.replace(/[^0-9]/g, '') || '12' : '12'
+      const created = await apiClient.post<{
+        id: string
+        name: string
+        code: string
+        grade: string
+        description?: string
+        isActive: boolean
+        chapterCount: number
+        lessonCount: number
+        updatedAt: string
+      }>('/api/v1/content/subjects', {
+        name: input.name.trim(),
+        code: input.code.trim().toUpperCase(),
+        grade: gradeNum,
+        description: input.description?.trim(),
+        isActive: input.status === 'published',
+      })
+
+      window.dispatchEvent(new CustomEvent('study_ai_education_change'))
+      return {
+        id: created.id,
+        name: created.name,
+        code: created.code,
+        grade: created.grade ? (created.grade.startsWith('Lớp') ? created.grade : `Lớp ${created.grade}`) : 'Lớp 12',
+        icon: resolveSubjectIcon(created.code, created.name, input.icon, created.description),
+        description: created.description || '',
+        chapterCount: created.chapterCount || 0,
+        lessonCount: created.lessonCount || 0,
+        assessmentCount: 0,
+        publishedPercent: created.isActive ? 100 : 0,
+        status: created.isActive ? 'published' : 'draft',
+        updatedAt: created.updatedAt,
       }
     }
 
@@ -531,6 +595,43 @@ export const educationService = {
     id: string,
     updates: Partial<CurriculumSubjectItem>
   ): Promise<CurriculumSubjectItem | undefined> {
+    if (getAccessToken()) {
+      const body: Record<string, any> = {}
+      if (updates.name !== undefined) body.name = updates.name.trim()
+      if (updates.code !== undefined) body.code = updates.code.trim().toUpperCase()
+      if (updates.grade !== undefined) body.grade = updates.grade.replace(/[^0-9]/g, '') || '12'
+      if (updates.description !== undefined) body.description = updates.description.trim()
+      if (updates.status !== undefined) body.isActive = updates.status === 'published'
+
+      const updated = await apiClient.patch<{
+        id: string
+        name: string
+        code: string
+        grade: string
+        description?: string
+        isActive: boolean
+        chapterCount: number
+        lessonCount: number
+        updatedAt: string
+      }>(`/api/v1/content/subjects/${id}`, body)
+
+      window.dispatchEvent(new CustomEvent('study_ai_education_change'))
+      return {
+        id: updated.id,
+        name: updated.name,
+        code: updated.code,
+        grade: updated.grade ? (updated.grade.startsWith('Lớp') ? updated.grade : `Lớp ${updated.grade}`) : 'Lớp 12',
+        icon: resolveSubjectIcon(updated.code, updated.name, updates.icon, updated.description),
+        description: updated.description || '',
+        chapterCount: updated.chapterCount || 0,
+        lessonCount: updated.lessonCount || 0,
+        assessmentCount: 0,
+        publishedPercent: updated.isActive ? 100 : 0,
+        status: updated.isActive ? 'published' : 'draft',
+        updatedAt: updated.updatedAt,
+      }
+    }
+
     const subjects = await this.getSubjects()
     let found: CurriculumSubjectItem | undefined
     const updated = subjects.map((s) => {
@@ -549,6 +650,12 @@ export const educationService = {
   },
 
   async deleteSubject(id: string): Promise<boolean> {
+    if (getAccessToken()) {
+      await apiClient.delete(`/api/v1/content/subjects/${id}`)
+      window.dispatchEvent(new CustomEvent('study_ai_education_change'))
+      return true
+    }
+
     const subjects = await this.getSubjects()
     const filtered = subjects.filter((s) => s.id !== id)
     if (filtered.length !== subjects.length) {

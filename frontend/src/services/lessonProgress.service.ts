@@ -17,51 +17,67 @@ export function saveLessonProgress(progress: LessonProgressState): void {
 }
 
 
+/**
+ * Compute progress based strictly on required questions answered.
+ * Formula: Progress = (AnsweredRequiredQuestions / TotalRequiredQuestions) * 100
+ *
+ * NOTE: Progress (0-100%) measures questions answered.
+ * Lesson Completion is only true when the student submits a valid attempt and passes.
+ */
 export function computeProgressValues(
-  completedSectionCount: number,
-  totalActualSections: number,
-  isAssessmentCompleted: boolean,
-  hasAssessment: boolean = true
-): { contentProgress: number; overallProgress: number } {
-  const hasVideo = totalActualSections > 0
-
-  // Case 1: Neither video nor assessment
-  if (!hasVideo && !hasAssessment) {
+  answeredCount: number,
+  totalQuestions: number,
+  isAssessmentCompleted: boolean = false,
+  _hasAssessment?: boolean
+): { answerProgress: number; overallProgress: number; isCompleted: boolean; contentProgress: number } {
+  if (totalQuestions <= 0) {
     return {
-      contentProgress: 100,
-      overallProgress: 100,
-    }
-  }
-
-  // Case 2: Only video, no assessment
-  if (hasVideo && !hasAssessment) {
-    const fraction = Math.min(1, Math.max(0, completedSectionCount / totalActualSections))
-    const val = Math.round(fraction * 100)
-    return {
-      contentProgress: val,
-      overallProgress: val,
-    }
-  }
-
-  // Case 3: Only assessment, no video
-  if (!hasVideo && hasAssessment) {
-    const val = isAssessmentCompleted ? 100 : 0
-    return {
+      answerProgress: 0,
+      overallProgress: 0,
       contentProgress: 0,
-      overallProgress: val,
+      isCompleted: isAssessmentCompleted,
     }
   }
 
-  // Case 4: Both Video (70%) and Harvest Assessment (30%)
-  const fraction = Math.min(1, Math.max(0, completedSectionCount / totalActualSections))
-  const videoShare = Math.round(fraction * 70)
-  const assessmentShare = isAssessmentCompleted ? 30 : 0
-  const overall = fraction >= 1 && isAssessmentCompleted ? 100 : videoShare + assessmentShare
+  const fraction = Math.min(1, Math.max(0, answeredCount / totalQuestions))
+  const answerProgress = Math.round(fraction * 100)
 
   return {
-    contentProgress: videoShare,
-    overallProgress: overall,
+    answerProgress,
+    overallProgress: answerProgress,
+    contentProgress: answerProgress,
+    isCompleted: isAssessmentCompleted,
   }
+}
+
+export function markQuestionsProgress(
+  lessonId: string,
+  subjectId: string,
+  answeredCount: number,
+  totalQuestions: number
+): LessonProgressState {
+  const existing = getLessonProgress(lessonId)
+  const isDone = existing?.assessmentStatus === 'completed'
+  const { overallProgress } = computeProgressValues(
+    answeredCount,
+    totalQuestions,
+    isDone
+  )
+
+  const updated: LessonProgressState = {
+    lessonId,
+    subjectId,
+    completedSectionIds: existing?.completedSectionIds || [],
+    contentProgress: overallProgress,
+    assessmentStatus: isDone ? 'completed' : answeredCount > 0 ? 'incomplete' : 'not-attempted',
+    assessmentAttemptId: existing?.assessmentAttemptId,
+    assessmentScore: existing?.assessmentScore,
+    overallProgress,
+    updatedAt: new Date().toISOString(),
+  }
+
+  saveLessonProgress(updated)
+  return updated
 }
 
 export function markSectionCompleted(
@@ -78,7 +94,7 @@ export function markSectionCompleted(
   }
 
   const isAssessmentDone = existing?.assessmentStatus === 'completed'
-  const { contentProgress, overallProgress } = computeProgressValues(
+  const { overallProgress } = computeProgressValues(
     currentSections.length,
     totalActualSections,
     isAssessmentDone
@@ -88,7 +104,7 @@ export function markSectionCompleted(
     lessonId,
     subjectId,
     completedSectionIds: currentSections,
-    contentProgress,
+    contentProgress: overallProgress,
     assessmentStatus: existing?.assessmentStatus || 'not-attempted',
     assessmentAttemptId: existing?.assessmentAttemptId,
     assessmentScore: existing?.assessmentScore,

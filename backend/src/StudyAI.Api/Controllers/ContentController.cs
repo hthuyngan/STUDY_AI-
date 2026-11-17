@@ -10,7 +10,7 @@ using StudyAI.Infrastructure.Persistence;
 
 namespace StudyAI.Api.Controllers;
 
-[Authorize(Roles = "content,admin")]
+[Authorize(Roles = "content,admin,content_admin")]
 [ApiController]
 [Route("api/v1/content")]
 public class ContentController : ControllerBase
@@ -185,6 +185,7 @@ public class ContentController : ControllerBase
         });
     }
 
+    [HttpPut("subjects/{subjectId}")]
     [HttpPatch("subjects/{subjectId}")]
     public async Task<IActionResult> UpdateSubject(string subjectId, [FromBody] UpdateSubjectRequestDto req)
     {

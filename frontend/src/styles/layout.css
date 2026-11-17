@@ -59,6 +59,28 @@
   margin: 0;
 }
 
+.app-content-inner.app-content-inner-lesson {
+  max-width: 1600px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.app-content-container.app-content-lesson {
+  padding: 16px 20px 40px;
+}
+
+@media (min-width: 1024px) {
+  .app-content-container.app-content-lesson {
+    padding: 20px 28px 48px;
+  }
+}
+
+@media (min-width: 1400px) {
+  .app-content-container.app-content-lesson {
+    padding: 24px 32px 48px;
+  }
+}
+
 /* ── SIDEBAR STYLES ────────────────────────────────────────── */
 .sidebar {
   width: var(--sidebar-width, 240px);
