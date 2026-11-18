@@ -155,3 +155,28 @@ Toàn bộ 7 ảnh chụp thực tế từ môi trường Production Live đã �
 - **Production URL**: https://hthuyngan.github.io/STUDY_AI-/
 - **Không có vấn đề tồn đọng**. Toàn bộ hệ thống STUDY_AI từ Frontend đến Backend và nội dung khung chương trình chuẩn GDPT 2018 đang hoạt động ổn định và sẵn sàng phục vụ người học.
 
+---
+
+## 11. ĐỒNG BỘ TOÀN DIỆN MÃ NGUỒN CHO CODE REVIEW (CHORE: FULL SOURCE CODE SYNC)
+
+> **Thời gian thực hiện**: 18/11/2026  
+> **Nhánh đích**: `feature/ai-core-v1`  
+> **Mục đích**: Đồng bộ toàn bộ source code sạch lên GitHub để ChatGPT tiến hành review toàn diện trước khi phát triển các phase tiếp theo.
+
+### 11.1. Phạm vi đồng bộ
+1. **Frontend (React 19 + TypeScript + Vite)**:
+   - Module Quản lý Môn học (CONTENT-01): Evondev Card Grid, SVG Icon Picker, real API CRUD.
+   - Module Quản lý Chương học (CONTENT-02): Evondev Vertical Ordered Card Stack, batch reorder, toggle ẩn/hiện, dialog bảo vệ toàn vẹn bài học.
+   - Module Bài học & AI Tutor: Đồng bộ route, context lessonId, single video player, tính toán tiến độ 70/30.
+2. **Backend (ASP.NET Core .NET 10 + Entity Framework Core + SQL Server)**:
+   - `ContentController.cs`: Đầy đủ RESTful endpoints cho Môn học, Chương học (`GET /chapters`, `POST /chapters`, `PUT/PATCH /chapters/{id}`, `DELETE /chapters/{id}`, `POST /chapters/reorder`), Bài học, Câu hỏi và Video.
+   - `ContentDTOs.cs`: Đồng bộ DTOs toàn hệ thống bao gồm `ReorderChaptersRequestDto`.
+   - Cơ sở dữ liệu: DbContext và mapping thực thể chuẩn SQL Server.
+3. **Kiểm thử (Automated Tests)**:
+   - Backend Unit Tests: 156/156 passed (`StudyAI.UnitTests.dll`).
+   - Backend Integration Tests: 140/140 passed (`StudyAI.IntegrationTests.dll`).
+   - Frontend Unit Tests: 8/8 passed (`ContentChaptersPage.test.tsx`), 5/5 passed (`ContentSubjectsPage.test.tsx`).
+4. **Bảo mật & Loại trừ (Safety Check)**:
+   - Đã loại trừ hoàn toàn `.env`, credentials, connection string mật khẩu, thư mục `node_modules/`, `bin/`, `obj/`, `dist/`, logs và database backups.
+
+
