@@ -696,6 +696,7 @@ export const educationService = {
             subjectId: c.subjectId,
             subjectName: c.subjectName,
             title: c.title,
+            description: c.description || '',
             order: c.orderIndex,
             lessonsCount: c.lessonCount,
             status: c.isActive ? 'published' : 'draft',
@@ -718,39 +719,37 @@ export const educationService = {
     input: Omit<CurriculumChapterItem, 'id' | 'lessonsCount' | 'updatedAt'>
   ): Promise<CurriculumChapterItem> {
     if (getAccessToken()) {
-      try {
-        const res = await apiClient.post<{
-          id: string
-          subjectId: string
-          subjectName: string
-          title: string
-          description?: string
-          orderIndex: number
-          isActive: boolean
-          lessonCount: number
-          createdAt: string
-          updatedAt: string
-        }>('/api/v1/content/chapters', {
-          subjectId: input.subjectId,
-          title: input.title,
-          description: '',
-          orderIndex: input.order || 1,
-          isActive: input.status === 'published',
-        })
-        if (res?.id) {
-          return {
-            id: res.id,
-            subjectId: res.subjectId,
-            subjectName: res.subjectName,
-            title: res.title,
-            order: res.orderIndex,
-            lessonsCount: res.lessonCount,
-            status: res.isActive ? 'published' : 'draft',
-            updatedAt: res.updatedAt,
-          }
+      const res = await apiClient.post<{
+        id: string
+        subjectId: string
+        subjectName: string
+        title: string
+        description?: string
+        orderIndex: number
+        isActive: boolean
+        lessonCount: number
+        createdAt: string
+        updatedAt: string
+      }>('/api/v1/content/chapters', {
+        subjectId: input.subjectId,
+        title: input.title,
+        description: input.description ?? '',
+        orderIndex: input.order || 1,
+        isActive: input.status === 'published',
+      })
+      if (res?.id) {
+        window.dispatchEvent(new CustomEvent('study_ai_education_change'))
+        return {
+          id: res.id,
+          subjectId: res.subjectId,
+          subjectName: res.subjectName,
+          title: res.title,
+          description: res.description ?? '',
+          order: res.orderIndex,
+          lessonsCount: res.lessonCount,
+          status: res.isActive ? 'published' : 'draft',
+          updatedAt: res.updatedAt,
         }
-      } catch {
-        // Fallback to local storage
       }
     }
 
@@ -780,37 +779,37 @@ export const educationService = {
     updates: Partial<CurriculumChapterItem>
   ): Promise<CurriculumChapterItem | undefined> {
     if (getAccessToken()) {
-      try {
-        const res = await apiClient.patch<{
-          id: string
-          subjectId: string
-          subjectName: string
-          title: string
-          description?: string
-          orderIndex: number
-          isActive: boolean
-          lessonCount: number
-          createdAt: string
-          updatedAt: string
-        }>(`/api/v1/content/chapters/${id}`, {
-          title: updates.title,
-          orderIndex: updates.order,
-          isActive: updates.status ? updates.status === 'published' : undefined,
-        })
-        if (res?.id) {
-          return {
-            id: res.id,
-            subjectId: res.subjectId,
-            subjectName: res.subjectName,
-            title: res.title,
-            order: res.orderIndex,
-            lessonsCount: res.lessonCount,
-            status: res.isActive ? 'published' : 'draft',
-            updatedAt: res.updatedAt,
-          }
+      const payload: Record<string, any> = {}
+      if (updates.title !== undefined) payload.title = updates.title
+      if (updates.description !== undefined) payload.description = updates.description
+      if (updates.order !== undefined) payload.orderIndex = updates.order
+      if (updates.status !== undefined) payload.isActive = updates.status === 'published'
+
+      const res = await apiClient.patch<{
+        id: string
+        subjectId: string
+        subjectName: string
+        title: string
+        description?: string
+        orderIndex: number
+        isActive: boolean
+        lessonCount: number
+        createdAt: string
+        updatedAt: string
+      }>(`/api/v1/content/chapters/${id}`, payload)
+      if (res?.id) {
+        window.dispatchEvent(new CustomEvent('study_ai_education_change'))
+        return {
+          id: res.id,
+          subjectId: res.subjectId,
+          subjectName: res.subjectName,
+          title: res.title,
+          description: res.description ?? '',
+          order: res.orderIndex,
+          lessonsCount: res.lessonCount,
+          status: res.isActive ? 'published' : 'draft',
+          updatedAt: res.updatedAt,
         }
-      } catch {
-        // Fallback to local storage
       }
     }
 
@@ -833,12 +832,9 @@ export const educationService = {
 
   async deleteChapter(id: string): Promise<boolean> {
     if (getAccessToken()) {
-      try {
-        await apiClient.delete(`/api/v1/content/chapters/${id}`)
-        return true
-      } catch {
-        // Fallback to local storage
-      }
+      await apiClient.delete(`/api/v1/content/chapters/${id}`)
+      window.dispatchEvent(new CustomEvent('study_ai_education_change'))
+      return true
     }
 
     const chapters = await this.getChapters()
@@ -861,15 +857,17 @@ export const educationService = {
   async reorderChapters(subjectId: string, orderedIds: string[]): Promise<CurriculumChapterItem[]> {
     if (getAccessToken()) {
       try {
+        await apiClient.post('/api/v1/content/chapters/reorder', { chapterIds: orderedIds })
+      } catch {
+        // Fallback sequential patch if reorder endpoint is unavailable
         for (let i = 0; i < orderedIds.length; i++) {
           await apiClient.patch(`/api/v1/content/chapters/${orderedIds[i]}`, {
             orderIndex: i + 1,
           })
         }
-        return this.getChapters(subjectId)
-      } catch {
-        // Fallback to local storage
       }
+      window.dispatchEvent(new CustomEvent('study_ai_education_change'))
+      return this.getChapters(subjectId)
     }
 
     const allChapters = await this.getChapters()

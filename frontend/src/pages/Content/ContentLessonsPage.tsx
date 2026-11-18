@@ -18,7 +18,7 @@ import {
   Eye,
   EyeOff,
 } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { educationService } from '@/services/education.service'
 import type {
   CurriculumLessonItem,
@@ -39,6 +39,10 @@ import '../Admin/AdminPages.css'
 import '@/components/admin/AdminComponents.css'
 
 export const ContentLessonsPage: React.FC = () => {
+  const [searchParams] = useSearchParams()
+  const initialSubject = searchParams.get('subjectId') || searchParams.get('subject') || 'all'
+  const initialChapter = searchParams.get('chapterId') || searchParams.get('chapter') || 'all'
+
   const [lessons, setLessons] = useState<CurriculumLessonItem[]>([])
   const [subjects, setSubjects] = useState<CurriculumSubjectItem[]>([])
   const [chapters, setChapters] = useState<CurriculumChapterItem[]>([])
@@ -46,8 +50,8 @@ export const ContentLessonsPage: React.FC = () => {
 
   // Filters & Pagination
   const [search, setSearch] = useState('')
-  const [subjectFilter, setSubjectFilter] = useState('all')
-  const [chapterFilter, setChapterFilter] = useState('all')
+  const [subjectFilter, setSubjectFilter] = useState(initialSubject)
+  const [chapterFilter, setChapterFilter] = useState(initialChapter)
   const [statusFilter, setStatusFilter] = useState<'all' | ContentStatus>('all')
   const [videoFilter, setVideoFilter] = useState<'all' | 'missing_video' | 'has_video' | 'pending' | 'verified'>('all')
   const [page, setPage] = useState(1)

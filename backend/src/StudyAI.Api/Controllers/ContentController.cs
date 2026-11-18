@@ -407,6 +407,7 @@ public class ContentController : ControllerBase
         });
     }
 
+    [HttpPut("chapters/{chapterId}")]
     [HttpPatch("chapters/{chapterId}")]
     public async Task<IActionResult> UpdateChapter(string chapterId, [FromBody] UpdateChapterRequestDto req)
     {
@@ -449,6 +450,38 @@ public class ContentController : ControllerBase
             CreatedAt = chapter.CreatedAt.ToString("o"),
             UpdatedAt = chapter.UpdatedAt.ToString("o")
         });
+    }
+
+    [HttpPost("chapters/reorder")]
+    public async Task<IActionResult> ReorderChapters([FromBody] ReorderChaptersRequestDto req)
+    {
+        if (req.ChapterIds == null || req.ChapterIds.Count == 0)
+            return BadRequest(new { detail = "Danh sách chapterIds không được rỗng." });
+
+        for (int i = 0; i < req.ChapterIds.Count; i++)
+        {
+            var id = req.ChapterIds[i];
+            var ch = await _db.ContentChapters.FindAsync(id);
+            if (ch != null)
+            {
+                ch.OrderIndex = i + 1;
+                ch.UpdatedAt = DateTimeOffset.UtcNow;
+            }
+        }
+
+        _db.StaffAuditLogs.Add(new StaffAuditLog
+        {
+            Id = $"log_{Guid.NewGuid():N}",
+            ActorUserId = CurrentUserId,
+            Action = "chapters_reordered",
+            TargetType = "content_chapter",
+            TargetId = "batch",
+            Payload = JsonSerializer.Serialize(new { count = req.ChapterIds.Count }),
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+        return Ok(new { success = true, message = "Đã cập nhật thứ tự chương thành công." });
     }
 
     [HttpDelete("chapters/{chapterId}")]

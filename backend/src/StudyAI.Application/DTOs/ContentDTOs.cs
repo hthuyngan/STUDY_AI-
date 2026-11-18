@@ -80,6 +80,11 @@ public class ContentChapterItemDto
     public string UpdatedAt { get; set; } = string.Empty;
 }
 
+public class ReorderChaptersRequestDto
+{
+    public List<string> ChapterIds { get; set; } = new();
+}
+
 #endregion
 
 #region Topic DTOs

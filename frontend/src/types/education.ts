@@ -22,6 +22,7 @@ export interface CurriculumChapterItem {
   subjectId: string
   subjectName?: string
   title: string
+  description?: string
   order: number
   lessonsCount: number
   status: ContentStatus
