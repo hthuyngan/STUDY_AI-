@@ -39,6 +39,11 @@ builder.Services.AddScoped<ICurriculumImportConfirmService, CurriculumImportConf
 
 // 2.1 LLM Provider & AI Tutor Service
 builder.Services.AddHttpClient();
+builder.Services.AddHttpClient<StudyAI.Infrastructure.Services.OpenAiLlmProvider>(client =>
+{
+    // The per-request CancellationTokenSource with CancelAfter manages timeouts explicitly
+    client.Timeout = Timeout.InfiniteTimeSpan;
+});
 var llmProviderConfig = (configuration["Llm:Provider"] ?? configuration["Llm:ProviderName"])?.Trim().ToLowerInvariant();
 var llmApiKey = configuration["Llm:ApiKey"] ?? Environment.GetEnvironmentVariable("STUDY_AI_LLM_API_KEY");
 var allowDemoInProduction = configuration.GetValue<bool>("Llm:AllowDemoInProduction", false);
@@ -52,7 +57,7 @@ if (builder.Environment.IsProduction())
             throw new InvalidOperationException(
                 $"FATAL: LLM provider is explicitly configured as '{llmProviderConfig}' in production but 'Llm:ApiKey' (or STUDY_AI_LLM_API_KEY) is missing or empty.");
         }
-        builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILlmProvider, StudyAI.Infrastructure.Services.OpenAiLlmProvider>();
+        builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILlmProvider>(sp => sp.GetRequiredService<StudyAI.Infrastructure.Services.OpenAiLlmProvider>());
     }
     else if (llmProviderConfig == "fake")
     {
@@ -80,7 +85,7 @@ else
         }
         else
         {
-            builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILlmProvider, StudyAI.Infrastructure.Services.OpenAiLlmProvider>();
+            builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILlmProvider>(sp => sp.GetRequiredService<StudyAI.Infrastructure.Services.OpenAiLlmProvider>());
         }
     }
     else if (llmProviderConfig is "none" or "unconfigured")

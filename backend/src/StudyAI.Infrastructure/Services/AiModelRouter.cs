@@ -12,10 +12,24 @@ public class AiModelRouter : IAiModelRouter
         _configuration = configuration;
     }
 
-    public string DefaultModel =>
-        _configuration?["Llm:Model"] ??
-        Environment.GetEnvironmentVariable("STUDY_AI_LLM_DEFAULT_MODEL") ??
-        "gpt-4o-mini";
+    public string DefaultModel
+    {
+        get
+        {
+            var configured = _configuration?["Llm:Model"] ?? Environment.GetEnvironmentVariable("STUDY_AI_LLM_DEFAULT_MODEL");
+            if (!string.IsNullOrWhiteSpace(configured)) return configured.Trim();
+
+            var baseUrl = _configuration?["Llm:BaseUrl"] ?? Environment.GetEnvironmentVariable("STUDY_AI_LLM_BASE_URL") ?? string.Empty;
+            var provider = (_configuration?["Llm:Provider"] ?? _configuration?["Llm:ProviderName"] ?? string.Empty).ToLowerInvariant();
+
+            if (provider == "gemini" || baseUrl.Contains("generativelanguage.googleapis.com", StringComparison.OrdinalIgnoreCase))
+            {
+                return "gemini-1.5-flash";
+            }
+
+            return "gpt-4o-mini";
+        }
+    }
 
     public string? ReasoningModel
     {

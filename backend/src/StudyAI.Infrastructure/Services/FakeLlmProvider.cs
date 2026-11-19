@@ -29,6 +29,16 @@ public class FakeLlmProvider : ILlmProvider
             throw new TimeoutException("Thao tác gọi AI Tutor đã vượt quá thời gian chờ cho phép (timeout).");
         }
 
+        if (lower.Contains("rate_limit_test"))
+        {
+            throw new HttpRequestException("Hệ thống LLM đang bị giới hạn tần suất yêu cầu (Rate Limit - 429). Vui lòng thử lại sau giây lát.", null, System.Net.HttpStatusCode.TooManyRequests);
+        }
+
+        if (lower.Contains("server_error_test"))
+        {
+            throw new HttpRequestException("Lỗi máy chủ từ nhà cung cấp LLM: HTTP 503 Service Unavailable", null, System.Net.HttpStatusCode.ServiceUnavailable);
+        }
+
         if (lower.Contains("error_test"))
         {
             throw new HttpRequestException("Lỗi kết nối từ phía nhà cung cấp dịch vụ mô hình AI (Provider error).");

@@ -349,6 +349,85 @@ public class AiChatIntegrationTests : IClassFixture<StudyAIApiFixture>
     }
 
     [Fact]
+    public async Task SendMessage_RateLimitKeyword_Returns429TooManyRequests()
+    {
+        var token = await GetLearnerTokenAsync();
+
+        string convId;
+        using (var createReq = new HttpRequestMessage(HttpMethod.Post, "/api/v1/ai/conversations"))
+        {
+            createReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            createReq.Content = JsonContent.Create(new CreateAiConversationRequestDto(Title: "Test Rate Limit"));
+            var res = await _client.SendAsync(createReq);
+            var created = await res.Content.ReadFromJsonAsync<AiConversationDetailDto>();
+            convId = created!.Id;
+        }
+
+        using (var sendReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/ai/conversations/{convId}/messages"))
+        {
+            sendReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            sendReq.Content = JsonContent.Create(new SendAiMessageRequestDto(
+                Message: "trigger rate_limit_test please"
+            ));
+            var res = await _client.SendAsync(sendReq);
+            Assert.Equal(HttpStatusCode.TooManyRequests, res.StatusCode);
+        }
+    }
+
+    [Fact]
+    public async Task SendMessage_ServerErrorKeyword_Returns502BadGateway()
+    {
+        var token = await GetLearnerTokenAsync();
+
+        string convId;
+        using (var createReq = new HttpRequestMessage(HttpMethod.Post, "/api/v1/ai/conversations"))
+        {
+            createReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            createReq.Content = JsonContent.Create(new CreateAiConversationRequestDto(Title: "Test 503 Server Error"));
+            var res = await _client.SendAsync(createReq);
+            var created = await res.Content.ReadFromJsonAsync<AiConversationDetailDto>();
+            convId = created!.Id;
+        }
+
+        using (var sendReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/ai/conversations/{convId}/messages"))
+        {
+            sendReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            sendReq.Content = JsonContent.Create(new SendAiMessageRequestDto(
+                Message: "trigger server_error_test please"
+            ));
+            var res = await _client.SendAsync(sendReq);
+            Assert.Equal(HttpStatusCode.BadGateway, res.StatusCode);
+        }
+    }
+
+    [Fact]
+    public async Task SendMessage_ClientCancellation_AbortsWithoutServerCrash()
+    {
+        var token = await GetLearnerTokenAsync();
+
+        string convId;
+        using (var createReq = new HttpRequestMessage(HttpMethod.Post, "/api/v1/ai/conversations"))
+        {
+            createReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            createReq.Content = JsonContent.Create(new CreateAiConversationRequestDto(Title: "Test Cancellation"));
+            var res = await _client.SendAsync(createReq);
+            var created = await res.Content.ReadFromJsonAsync<AiConversationDetailDto>();
+            convId = created!.Id;
+        }
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        using var sendReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/ai/conversations/{convId}/messages");
+        sendReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        sendReq.Content = JsonContent.Create(new SendAiMessageRequestDto(
+            Message: "câu hỏi bị hủy"
+        ));
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => _client.SendAsync(sendReq, cts.Token));
+    }
+
+    [Fact]
     public async Task QuickChat_CreatesConversationAndReplies_Returns200()
     {
         var token = await GetLearnerTokenAsync();

@@ -176,15 +176,25 @@ public class AiChatController : ControllerBase
         {
             return BadRequest(new { detail = ex.Message });
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogInformation("AI Tutor request canceled by caller or client disconnected (UserId={UserId})", userId);
+            return StatusCode(499, new { detail = "Yêu cầu đã bị hủy bởi người dùng hoặc kết nối đã đóng." });
+        }
         catch (TimeoutException ex)
         {
-            _logger.LogWarning("AI Tutor request timed out for user {UserId}", userId);
+            _logger.LogWarning("AI Tutor request timed out for user {UserId}: {Message}", userId, ex.Message);
             return StatusCode(StatusCodes.Status504GatewayTimeout, new { detail = ex.Message });
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+        {
+            _logger.LogWarning("AI Provider rate limited (429) for user {UserId}: {Message}", userId, ex.Message);
+            return StatusCode(StatusCodes.Status429TooManyRequests, new { detail = ex.Message });
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "AI Provider network error for user {UserId}", userId);
-            return StatusCode(StatusCodes.Status502BadGateway, new { detail = "Không thể kết nối tới nhà cung cấp mô hình AI." });
+            _logger.LogError(ex, "AI Provider network error for user {UserId}: StatusCode={StatusCode}, Message={Message}", userId, ex.StatusCode, ex.Message);
+            return StatusCode(StatusCodes.Status502BadGateway, new { detail = ex.Message });
         }
         catch (InvalidOperationException ex)
         {
@@ -262,16 +272,29 @@ public class AiChatController : ControllerBase
         {
             return BadRequest(new { detail = ex.Message });
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogInformation("AI Tutor quick chat request canceled by caller or client disconnected (UserId={UserId})", userId);
+            return StatusCode(499, new { detail = "Yêu cầu đã bị hủy bởi người dùng hoặc kết nối đã đóng." });
+        }
         catch (TimeoutException ex)
         {
+            _logger.LogWarning("AI Tutor quick chat request timed out for user {UserId}: {Message}", userId, ex.Message);
             return StatusCode(StatusCodes.Status504GatewayTimeout, new { detail = ex.Message });
         }
-        catch (HttpRequestException)
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
         {
-            return StatusCode(StatusCodes.Status502BadGateway, new { detail = "Không thể kết nối tới nhà cung cấp mô hình AI." });
+            _logger.LogWarning("AI Provider rate limited (429) for quick chat user {UserId}: {Message}", userId, ex.Message);
+            return StatusCode(StatusCodes.Status429TooManyRequests, new { detail = ex.Message });
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "AI Provider network error for quick chat user {UserId}: StatusCode={StatusCode}, Message={Message}", userId, ex.StatusCode, ex.Message);
+            return StatusCode(StatusCodes.Status502BadGateway, new { detail = ex.Message });
         }
         catch (InvalidOperationException ex)
         {
+            _logger.LogWarning("AI Tutor invalid operation: {Message}", ex.Message);
             return StatusCode(StatusCodes.Status503ServiceUnavailable, new { detail = ex.Message });
         }
     }
