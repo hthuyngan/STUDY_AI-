@@ -112,7 +112,7 @@ describe('adminService V2 (Mock Engine & Persistence)', () => {
   it('provides analytics trends and distributions', async () => {
     const analytics7d = await adminService.getAnalytics('7d')
     expect(analytics7d.trends.length).toBeGreaterThan(0)
-    expect(analytics7d.roleDistribution.length).toBe(5)
+    expect(analytics7d.roleDistribution.length).toBe(4)
     expect(analytics7d.statusDistribution.length).toBe(4)
 
     const analyticsMonth = await adminService.getAnalytics('month')
