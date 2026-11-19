@@ -69,7 +69,6 @@ export interface AdminSystemMetrics {
   totalUsers: number
   activeLearners: number
   staffAccounts: number
-  openSupportTickets?: number
   completedLessonsTotal?: number
   systemStatus: 'healthy' | 'degraded' | 'maintenance'
   apiLatencyMs: number
