@@ -15,6 +15,31 @@ import { supportService } from '@/services/support.service'
 import { WorkspaceShell } from '@/components/layout/WorkspaceShell'
 import * as useAuthModule from '@/auth/useAuth'
 
+vi.mock('@/services/aiTutor.service', () => ({
+  aiTutorService: {
+    getAdminAiStatus: vi.fn().mockResolvedValue({
+      isConfigured: false,
+      activeProvider: 'fake',
+      enabledFeatures: {
+        chat: true,
+        hints: true,
+        stepAnalysis: true,
+      },
+    }),
+    getAdminAiStats: vi.fn().mockResolvedValue({
+      totalTokens: 0,
+      totalPrompts: 0,
+      totalCompletions: 0,
+      activeSessions: 0,
+    }),
+    toggleAdminAiFeature: vi.fn().mockResolvedValue({
+      success: true,
+      message: 'Updated',
+      config: { isConfigured: false },
+    }),
+  },
+}))
+
 vi.mock('@/auth/useAuth', () => ({
   useAuth: vi.fn(),
 }))

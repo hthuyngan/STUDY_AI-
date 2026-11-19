@@ -409,11 +409,13 @@ export const adminService = {
   async updateUserRole(userId: string, newRole: string): Promise<boolean> {
     const token = getAccessToken()
     if (token) {
-      try {
-        await apiClient.patch(`/api/v1/admin/users/${userId}/role`, { role: newRole })
-      } catch {
-        // Continue to sync local mock
+      await apiClient.patch(`/api/v1/admin/users/${userId}/role`, { role: newRole })
+      const user = mockUsers.find((u) => u.id === userId)
+      if (user) {
+        user.role = newRole as UserRole
+        persistAll()
       }
+      return true
     }
 
     const user = mockUsers.find((u) => u.id === userId)
@@ -444,11 +446,13 @@ export const adminService = {
   async updateUserStatus(userId: string, newStatus: AccountStatus): Promise<boolean> {
     const token = getAccessToken()
     if (token) {
-      try {
-        await apiClient.patch(`/api/v1/admin/users/${userId}/status`, { status: newStatus })
-      } catch {
-        // Fallback
+      await apiClient.patch(`/api/v1/admin/users/${userId}/status`, { status: newStatus })
+      const user = mockUsers.find((u) => u.id === userId)
+      if (user) {
+        user.status = newStatus
+        persistAll()
       }
+      return true
     }
 
     const user = mockUsers.find((u) => u.id === userId)
@@ -472,11 +476,18 @@ export const adminService = {
   async revokeUserSessions(userId: string): Promise<boolean> {
     const token = getAccessToken()
     if (token) {
-      try {
-        await apiClient.post(`/api/v1/admin/users/${userId}/revoke-sessions`)
-      } catch {
-        // Fallback
+      await apiClient.post(`/api/v1/admin/users/${userId}/revoke-sessions`)
+      const user = mockUsers.find((u) => u.id === userId)
+      if (user) {
+        if (!user.activities) user.activities = []
+        user.activities.unshift({
+          id: `uact-${Date.now()}`,
+          action: 'Thu hồi toàn bộ phiên đăng nhập của tài khoản',
+          timestamp: new Date().toISOString(),
+        })
+        persistAll()
       }
+      return true
     }
 
     const user = mockUsers.find((u) => u.id === userId)

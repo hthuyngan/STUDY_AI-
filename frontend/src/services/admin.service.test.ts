@@ -131,4 +131,25 @@ describe('adminService V2 (Mock Engine & Persistence)', () => {
     const reset = await adminService.resetRolePermissionsSimulation()
     expect(reset.learner).not.toContain('view_classes')
   })
+
+  it('fails closed when authenticated and API rejects with 401/403/500', async () => {
+    const authSession = await import('@/auth/authSession')
+    const { apiClient } = await import('@/lib/apiClient')
+    const { vi } = await import('vitest')
+
+    vi.spyOn(authSession, 'getAccessToken').mockReturnValue('mock-admin-token')
+    vi.spyOn(apiClient, 'patch').mockRejectedValue(new Error('API 403 Forbidden'))
+
+    const users = await adminService.getUsers()
+    const target = users[0]
+    const originalRole = target.role
+
+    await expect(adminService.updateUserRole(target.id, 'admin')).rejects.toThrow('API 403 Forbidden')
+
+    // Verify local mock state was NOT mutated
+    const checkUser = await adminService.getUserById(target.id)
+    expect(checkUser?.role).toBe(originalRole)
+
+    vi.restoreAllMocks()
+  })
 })

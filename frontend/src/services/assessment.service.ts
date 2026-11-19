@@ -4,6 +4,7 @@ import {
   LEGACY_ATTEMPTS_STORAGE_KEY,
 } from '@/repositories/assessmentAttempt.repository'
 import { apiClient } from '@/lib/apiClient'
+import { getAccessToken } from '@/auth/authSession'
 import { curriculumService } from './curriculum.service'
 import { createLearningEvent } from './learningTracking.service'
 import { markAssessmentCompleted } from './lessonProgress.service'
@@ -387,7 +388,10 @@ export async function submitAttemptWithServerValidation(
           )
           q.correctOptionId = matchOpt ? matchOpt.id : checkResult.correctAnswer
         }
-      } catch {
+      } catch (err) {
+        if (getAccessToken()) {
+          throw new Error(`Không thể xác thực đáp án với máy chủ: ${(err as Error)?.message || 'Lỗi kết nối'}`)
+        }
         // Fallback to local evaluation if question has correctOptionId
         isCorrect = resp?.selectedOptionIds?.includes(q.correctOptionId) || false
       }
@@ -456,7 +460,7 @@ export async function submitAttemptWithServerValidation(
   updateAttempt(finalAttempt)
 
   // Persist attempt to backend API
-  try {
+  if (getAccessToken()) {
     await apiClient.post('/api/v1/me/assessment-attempts', {
       id: finalAttempt.id,
       lessonId: finalAttempt.lessonId,
@@ -474,8 +478,6 @@ export async function submitAttemptWithServerValidation(
         timeSpentMs: r.timeSpentMs,
       })),
     })
-  } catch {
-    // Non-blocking: Attempt is safely stored in local repository
   }
 
   markAssessmentCompleted(

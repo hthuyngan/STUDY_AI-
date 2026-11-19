@@ -615,7 +615,7 @@ export const classroomService = {
 
   async saveClass(classData: Partial<AdminClassItem>): Promise<AdminClassItem> {
     if (getAccessToken()) {
-      if (classData.id && !classData.id.startsWith('cls-temp') && !classData.id.startsWith('cls-12')) {
+      if (classData.id && !classData.id.startsWith('cls-temp')) {
         const updated = await apiClient.put<ClassroomDto>(`/api/v1/classrooms/${classData.id}`, {
           name: classData.name,
           code: classData.code,
@@ -726,6 +726,12 @@ export const classroomService = {
   },
 
   async deleteClass(classId: string): Promise<void> {
+    if (getAccessToken()) {
+      await apiClient.delete(`/api/v1/classrooms/${classId}`)
+      const classes = loadFromStorage<AdminClassItem[]>(STORAGE_KEYS.CLASSES, [])
+      saveToStorage(STORAGE_KEYS.CLASSES, classes.filter((c) => c.id !== classId))
+      return
+    }
     const students = await this.getStudentsByClass(classId)
     if (students.length > 0) {
       throw new Error(`Không thể xóa lớp đang có ${students.length} học viên. Vui lòng chuyển học viên sang lớp khác trước.`)
@@ -737,6 +743,22 @@ export const classroomService = {
 
   // ==================== STUDENTS ====================
   async getStudents(): Promise<AdminStudentItem[]> {
+    if (getAccessToken()) {
+      const classes = await this.getClasses()
+      const studentPromises = classes.map((c) => this.getStudentsByClass(c.id))
+      const nested = await Promise.all(studentPromises)
+      const flat = nested.flat()
+      const seen = new Set<string>()
+      const unique: AdminStudentItem[] = []
+      for (const s of flat) {
+        const key = s.code || s.id
+        if (!seen.has(key)) {
+          seen.add(key)
+          unique.push(s)
+        }
+      }
+      return unique
+    }
     return loadFromStorage<AdminStudentItem[]>(STORAGE_KEYS.STUDENTS, INITIAL_STUDENTS)
   },
 
@@ -988,6 +1010,13 @@ export const classroomService = {
   },
 
   async deleteAssignment(assignmentId: string): Promise<void> {
+    if (getAccessToken()) {
+      await apiClient.delete(`/api/v1/assignments/${assignmentId}`)
+      const assignments = loadFromStorage<AdminAssignmentItem[]>(STORAGE_KEYS.ASSIGNMENTS, [])
+      saveToStorage(STORAGE_KEYS.ASSIGNMENTS, assignments.filter((a) => a.id !== assignmentId))
+      await this._syncClassCounts()
+      return
+    }
     const assignments = await this.getAssignments()
     const filtered = assignments.filter((a) => a.id !== assignmentId)
     saveToStorage(STORAGE_KEYS.ASSIGNMENTS, filtered)

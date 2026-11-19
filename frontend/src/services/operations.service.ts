@@ -583,13 +583,18 @@ export const operationsService = {
     if (idx === -1) throw new Error('Không tìm thấy nội dung để xuất bản')
 
     const item = list[idx]
-    if (item.status !== 'approved' && item.status !== 'pending') {
+    if (item.status !== 'approved') {
       throw new Error('Nội dung phải được phê duyệt trước khi xuất bản')
     }
 
     const now = new Date().toISOString()
 
-    // 1. Mark approval as published
+    // 1. Update education service lesson status (must succeed before marking published)
+    if (item.contentType === 'lesson' || item.contentId) {
+      await educationService.changeLessonStatus(item.contentId, 'published')
+    }
+
+    // 2. Mark approval as published
     const updatedApproval: ApprovalItem = {
       ...item,
       status: 'published',
@@ -607,7 +612,7 @@ export const operationsService = {
     list[idx] = updatedApproval
     saveToStorage(STORAGE_KEYS.APPROVALS, list)
 
-    // 2. Add to Publications
+    // 3. Add to Publications
     const pubs = await this.getPublications()
     const newPub: PublicationRecord = {
       id: `pub-${Date.now()}`,
@@ -622,13 +627,6 @@ export const operationsService = {
       changelog: changelog || 'Nội dung chính thức được phê duyệt và phát hành.',
     }
     saveToStorage(STORAGE_KEYS.PUBLICATIONS, [newPub, ...pubs])
-
-    // 3. Update education service lesson status
-    try {
-      await educationService.changeLessonStatus(item.contentId, 'published')
-    } catch {
-      // safe fallback
-    }
 
     // 4. Audit log
     await this.recordAuditLog({

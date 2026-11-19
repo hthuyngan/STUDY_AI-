@@ -13,6 +13,7 @@ import {
 import type { LearningAttempt, LearningEvent, LessonProgressState } from '@/types/assessment'
 import * as apiClientModule from '@/lib/apiClient'
 import * as learnerConfigModule from '@/config/learner'
+import * as authSessionModule from '@/auth/authSession'
 
 describe('Local Repositories', () => {
   beforeEach(() => {
@@ -107,6 +108,11 @@ describe('SyncQueue and Offline Safety', () => {
     localStorage.clear()
     vi.clearAllMocks()
     vi.spyOn(learnerConfigModule, 'isRemoteApiConfigured').mockReturnValue(true)
+    vi.spyOn(authSessionModule, 'getAuthUser').mockReturnValue({
+      id: 'test-user-01',
+      email: 'test@example.com',
+      role: 'learner',
+    } as any)
   })
 
   it('enqueues items and persists to localStorage', () => {
