@@ -161,13 +161,12 @@ describe('STUDY_AI Workspace Restructuring V6 Suite', () => {
         <MemoryRouter initialEntries={['/admin/tickets']}>
           <Routes>
             {AdminRoutes()}
-            <Route path="/admin" element={<div>Destination Admin Home</div>} />
           </Routes>
         </MemoryRouter>
       )
 
       await waitFor(() => {
-        expect(screen.getByText('Destination Admin Home')).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: /tổng quan hệ thống/i })).toBeInTheDocument()
       })
     })
 
