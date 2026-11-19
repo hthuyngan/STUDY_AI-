@@ -61,13 +61,14 @@ export const ContentLessonsPage: React.FC = () => {
   // Create Dialog State
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [formTitle, setFormTitle] = useState('')
-  const [formSubjectId, setFormSubjectId] = useState('sub_math12')
-  const [formChapterId, setFormChapterId] = useState('chp_math12_c1')
+  const [formSubjectId, setFormSubjectId] = useState('')
+  const [formChapterId, setFormChapterId] = useState('')
   const [formTopicId, setFormTopicId] = useState<string>('')
   const [availableTopics, setAvailableTopics] = useState<CurriculumTopicItem[]>([])
   const [formAuthor, setFormAuthor] = useState('Quản trị viên')
   const [formStatus, setFormStatus] = useState<ContentStatus>('draft')
   const [formError, setFormError] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   // Video Management State
   const [videoModalLesson, setVideoModalLesson] = useState<CurriculumLessonItem | null>(null)
@@ -214,27 +215,35 @@ export const ContentLessonsPage: React.FC = () => {
     setTimeout(() => setToastMessage(null), 3000)
   }
 
-  const loadData = useCallback(() => {
+  const loadData = useCallback(async () => {
     setLoading(true)
-    Promise.all([
-      educationService.getSubjects(),
-      educationService.getChapters(),
-      educationService.getLessons({
-        subjectId: subjectFilter,
-        chapterId: chapterFilter,
-        status: statusFilter,
-        search,
-      }),
-    ]).then(([subjList, chList, lList]) => {
+    setLoadError(null)
+    try {
+      const [subjList, chList, lList] = await Promise.all([
+        educationService.getSubjects(),
+        educationService.getChapters(),
+        educationService.getLessons({
+          subjectId: subjectFilter,
+          chapterId: chapterFilter,
+          status: statusFilter,
+          search,
+        }),
+      ])
       setSubjects(subjList)
       setChapters(chList)
       setLessons(lList)
+    } catch (err: any) {
+      setLoadError(err?.message || 'Không thể tải danh sách bài học.')
+    } finally {
       setLoading(false)
-    })
+    }
   }, [subjectFilter, chapterFilter, statusFilter, search])
 
   useEffect(() => {
     let active = true
+    setLoading(true)
+    setLoadError(null)
+
     Promise.all([
       educationService.getSubjects(),
       educationService.getChapters(),
@@ -244,14 +253,21 @@ export const ContentLessonsPage: React.FC = () => {
         status: statusFilter,
         search,
       }),
-    ]).then(([subjList, chList, lList]) => {
-      if (active) {
+    ])
+      .then(([subjList, chList, lList]) => {
+        if (!active) return
         setSubjects(subjList)
         setChapters(chList)
         setLessons(lList)
-        setLoading(false)
-      }
-    })
+      })
+      .catch((err: any) => {
+        if (!active) return
+        setLoadError(err?.message || 'Không thể tải danh sách bài học.')
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+
     return () => {
       active = false
     }
@@ -280,10 +296,34 @@ export const ContentLessonsPage: React.FC = () => {
   const totalPages = Math.ceil(totalCount / pageSize) || 1
   const paginatedLessons = filteredLessons.slice((page - 1) * pageSize, page * pageSize)
 
+  // Open Create Dialog with dynamic defaults
+  const openCreateModal = () => {
+    const effectiveSubj = (subjectFilter !== 'all' ? subjectFilter : subjects[0]?.id) || ''
+    setFormSubjectId(effectiveSubj)
+    const validChs = chapters.filter((c) => !effectiveSubj || c.subjectId === effectiveSubj)
+    const effectiveCh = (chapterFilter !== 'all' && validChs.some((c) => c.id === chapterFilter))
+      ? chapterFilter
+      : (validChs[0]?.id || '')
+    setFormChapterId(effectiveCh)
+    setFormTitle('')
+    setFormAuthor('Quản trị viên')
+    setFormStatus('draft')
+    setFormError(null)
+    setIsCreateOpen(true)
+  }
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formTitle.trim()) {
       setFormError('Vui lòng nhập tên bài học.')
+      return
+    }
+    if (!formSubjectId) {
+      setFormError('Vui lòng chọn môn học.')
+      return
+    }
+    if (!formChapterId) {
+      setFormError('Vui lòng chọn chương học.')
       return
     }
 
@@ -291,36 +331,44 @@ export const ContentLessonsPage: React.FC = () => {
     const ch = chapters.find((c) => c.id === formChapterId)
     const top = availableTopics.find((t) => t.id === formTopicId)
 
-    await educationService.createLesson({
-      title: formTitle.trim(),
-      subjectId: formSubjectId,
-      subjectName: subj ? subj.name : 'Toán học 12',
-      chapterId: formChapterId,
-      chapterName: ch ? ch.title : 'Chương 1',
-      topicId: formTopicId || undefined,
-      topicTitle: top ? top.title : undefined,
-      authorName: formAuthor.trim() || 'Quản trị viên',
-      status: formStatus,
-      hasAssessment: false,
-    })
+    try {
+      await educationService.createLesson({
+        title: formTitle.trim(),
+        subjectId: formSubjectId,
+        subjectName: subj ? subj.name : 'Môn học',
+        chapterId: formChapterId,
+        chapterName: ch ? ch.title : 'Chương học',
+        topicId: formTopicId || undefined,
+        topicTitle: top ? top.title : undefined,
+        authorName: formAuthor.trim() || 'Quản trị viên',
+        status: formStatus,
+        hasAssessment: false,
+      })
 
-    showToast(`Đã tạo thành công bài học: ${formTitle}`)
-    setIsCreateOpen(false)
-    setFormTitle('')
-    setFormError(null)
-    loadData()
+      showToast(`Đã tạo thành công bài học: ${formTitle}`)
+      setIsCreateOpen(false)
+      setFormTitle('')
+      setFormError(null)
+      await loadData()
+    } catch (err: any) {
+      setFormError(err?.message || 'Có lỗi xảy ra khi tạo bài học.')
+    }
   }
 
   const handleStatusChange = async (id: string, newStatus: ContentStatus, title: string) => {
-    await educationService.changeLessonStatus(id, newStatus)
-    const statusLabels: Record<ContentStatus, string> = {
-      draft: 'Bản nháp',
-      'in-review': 'Gửi kiểm duyệt',
-      published: 'Đã xuất bản',
-      archived: 'Lưu trữ',
+    try {
+      await educationService.changeLessonStatus(id, newStatus)
+      const statusLabels: Record<ContentStatus, string> = {
+        draft: 'Bản nháp',
+        'in-review': 'Gửi kiểm duyệt',
+        published: 'Đã xuất bản',
+        archived: 'Lưu trữ',
+      }
+      showToast(`Đã chuyển bài "${title}" sang trạng thái: ${statusLabels[newStatus]}`)
+      await loadData()
+    } catch (err: any) {
+      showToast(err?.message || 'Không thể cập nhật trạng thái bài học.')
     }
-    showToast(`Đã chuyển bài "${title}" sang trạng thái: ${statusLabels[newStatus]}`)
-    loadData()
   }
 
   const handleDelete = (id: string, title: string) => {
@@ -330,11 +378,15 @@ export const ContentLessonsPage: React.FC = () => {
 
   const handleDeleteConfirm = async () => {
     if (!deletingLesson) return
-    await educationService.deleteLesson(deletingLesson.id)
-    showToast(`Đã xóa bài học: ${deletingLesson.title}`)
-    setDeleteConfirmOpen(false)
-    setDeletingLesson(null)
-    loadData()
+    try {
+      await educationService.deleteLesson(deletingLesson.id)
+      showToast(`Đã xóa bài học: ${deletingLesson.title}`)
+      setDeleteConfirmOpen(false)
+      setDeletingLesson(null)
+      await loadData()
+    } catch (err: any) {
+      showToast(err?.message || 'Không thể xóa bài học.')
+    }
   }
 
   const lessonKPIs = [
@@ -367,11 +419,7 @@ export const ContentLessonsPage: React.FC = () => {
             <button
               type="button"
               className="btn btn-primary"
-              onClick={() => {
-                setFormSubjectId(subjects[0]?.id || 'math')
-                setFormChapterId(chapters[0]?.id || 'ch-01')
-                setIsCreateOpen(true)
-              }}
+              onClick={openCreateModal}
               aria-label="Tạo bài học mới"
             >
               <Plus size={16} />
@@ -487,6 +535,35 @@ export const ContentLessonsPage: React.FC = () => {
           </select>
         </div>
       </div>
+
+      {/* Error Alert */}
+      {loadError && (
+        <div
+          role="alert"
+          style={{
+            margin: '0 0 16px',
+            padding: '12px 16px',
+            borderRadius: '8px',
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            color: '#b91c1c',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: '14px',
+          }}
+        >
+          <span>{loadError}</span>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => loadData()}
+            style={{ fontSize: '12px', padding: '4px 10px' }}
+          >
+            Thử lại
+          </button>
+        </div>
+      )}
 
       {/* Lessons Table */}
       {loading ? (

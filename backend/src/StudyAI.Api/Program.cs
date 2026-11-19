@@ -343,13 +343,18 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
-        if (builder.Configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup", true))
+        var applyMigrationsDefault = !app.Environment.IsProduction();
+        if (builder.Configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup", applyMigrationsDefault))
         {
             await db.Database.MigrateAsync();
         }
 
-        // Seed curriculum reference data
-        await DbInitializer.SeedReferenceDataAsync(db);
+        // Only seed reference data in Development/Testing, or when explicitly enabled via configuration
+        var seedReferenceDefault = !app.Environment.IsProduction();
+        if (builder.Configuration.GetValue<bool>("Database:SeedReferenceData", seedReferenceDefault))
+        {
+            await DbInitializer.SeedReferenceDataAsync(db);
+        }
         if (app.Environment.IsDevelopment())
         {
             var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();

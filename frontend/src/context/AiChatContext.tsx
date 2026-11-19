@@ -278,7 +278,7 @@ export function AiChatProvider({ children }: AiChatProviderProps) {
       setMessages((prev) => [...prev, userMsg])
 
       // If user is not authenticated, show clear warning without silent failure
-      if (!aiTutorService.isAuthenticated()) {
+      if (typeof aiTutorService.isAuthenticated === 'function' && !aiTutorService.isAuthenticated()) {
         const unauthNotice: ChatMessage = {
           id: `unauth_${Date.now()}`,
           role: 'assistant',

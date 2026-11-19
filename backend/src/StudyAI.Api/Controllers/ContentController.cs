@@ -455,33 +455,79 @@ public class ContentController : ControllerBase
     [HttpPost("chapters/reorder")]
     public async Task<IActionResult> ReorderChapters([FromBody] ReorderChaptersRequestDto req)
     {
+        if (string.IsNullOrWhiteSpace(req.SubjectId))
+            return BadRequest(new { detail = "SubjectId không được để trống khi sắp xếp chương học." });
+
         if (req.ChapterIds == null || req.ChapterIds.Count == 0)
             return BadRequest(new { detail = "Danh sách chapterIds không được rỗng." });
 
-        for (int i = 0; i < req.ChapterIds.Count; i++)
+        // 1. Kiểm tra ID trùng lặp
+        if (req.ChapterIds.Distinct().Count() != req.ChapterIds.Count)
+            return BadRequest(new { detail = "Danh sách chapterIds chứa mã chương trùng lặp." });
+
+        // 2. Kiểm tra môn học tồn tại
+        var subject = await _db.ContentSubjects.FindAsync(req.SubjectId);
+        if (subject == null)
+            return BadRequest(new { detail = "Môn học đã chỉ định không tồn tại." });
+
+        // 3. Lấy tất cả chương thuộc môn học này
+        var subjectChapters = await _db.ContentChapters
+            .Where(c => c.SubjectId == req.SubjectId)
+            .ToListAsync();
+
+        if (subjectChapters.Count != req.ChapterIds.Count)
         {
-            var id = req.ChapterIds[i];
-            var ch = await _db.ContentChapters.FindAsync(id);
-            if (ch != null)
+            return BadRequest(new
             {
-                ch.OrderIndex = i + 1;
-                ch.UpdatedAt = DateTimeOffset.UtcNow;
+                detail = $"Số lượng chương gửi lên ({req.ChapterIds.Count}) không khớp với tổng số chương của môn học ({subjectChapters.Count}). Phải sắp xếp toàn bộ chương trong môn."
+            });
+        }
+
+        var existingChapterMap = subjectChapters.ToDictionary(c => c.Id);
+        foreach (var id in req.ChapterIds)
+        {
+            if (!existingChapterMap.ContainsKey(id))
+            {
+                return BadRequest(new
+                {
+                    detail = $"Mã chương '{id}' không tồn tại hoặc không thuộc môn học '{subject.Name}'."
+                });
             }
         }
 
-        _db.StaffAuditLogs.Add(new StaffAuditLog
+        // 4. Cập nhật thứ tự trong transaction nguyên tử
+        using var tx = await _db.Database.BeginTransactionAsync();
+        try
         {
-            Id = $"log_{Guid.NewGuid():N}",
-            ActorUserId = CurrentUserId,
-            Action = "chapters_reordered",
-            TargetType = "content_chapter",
-            TargetId = "batch",
-            Payload = JsonSerializer.Serialize(new { count = req.ChapterIds.Count }),
-            CreatedAt = DateTimeOffset.UtcNow
-        });
+            for (int i = 0; i < req.ChapterIds.Count; i++)
+            {
+                var id = req.ChapterIds[i];
+                var ch = existingChapterMap[id];
+                ch.OrderIndex = i + 1;
+                ch.UpdatedAt = DateTimeOffset.UtcNow;
+            }
 
-        await _db.SaveChangesAsync();
-        return Ok(new { success = true, message = "Đã cập nhật thứ tự chương thành công." });
+            _db.StaffAuditLogs.Add(new StaffAuditLog
+            {
+                Id = $"log_{Guid.NewGuid():N}",
+                ActorUserId = CurrentUserId,
+                Action = "chapters_reordered",
+                TargetType = "content_chapter",
+                TargetId = req.SubjectId,
+                Payload = JsonSerializer.Serialize(new { subjectId = req.SubjectId, count = req.ChapterIds.Count }),
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+
+            await _db.SaveChangesAsync();
+            await tx.CommitAsync();
+
+            return Ok(new { success = true, message = $"Đã cập nhật thứ tự {req.ChapterIds.Count} chương thành công." });
+        }
+        catch
+        {
+            await tx.RollbackAsync();
+            throw;
+        }
     }
 
     [HttpDelete("chapters/{chapterId}")]
@@ -776,6 +822,11 @@ public class ContentController : ControllerBase
             ? req.ThumbnailUrl
             : (finalYtId != null ? $"https://i.ytimg.com/vi/{finalYtId}/hqdefault.jpg" : null);
 
+        var vStatus = !string.IsNullOrWhiteSpace(req.VerificationStatus)
+            ? req.VerificationStatus.Trim().ToLowerInvariant()
+            : "pending";
+        DateTimeOffset? vAt = (vStatus == "verified") ? DateTimeOffset.UtcNow : null;
+
         var video = new ContentLessonVideo
         {
             Id = $"vid_{Guid.NewGuid():N}",
@@ -791,8 +842,8 @@ public class ContentController : ControllerBase
             ThumbnailUrl = thumb,
             SortOrder = req.SortOrder,
             EmbedAllowed = req.EmbedAllowed,
-            VerificationStatus = req.VerificationStatus ?? "verified",
-            VerifiedAt = DateTimeOffset.UtcNow,
+            VerificationStatus = vStatus,
+            VerifiedAt = vAt,
             IsPublished = req.IsPublished,
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
@@ -861,7 +912,12 @@ public class ContentController : ControllerBase
         if (req.ThumbnailUrl != null) video.ThumbnailUrl = req.ThumbnailUrl;
         if (req.SortOrder.HasValue) video.SortOrder = req.SortOrder.Value;
         if (req.EmbedAllowed.HasValue) video.EmbedAllowed = req.EmbedAllowed.Value;
-        if (req.VerificationStatus != null) video.VerificationStatus = req.VerificationStatus;
+        if (!string.IsNullOrWhiteSpace(req.VerificationStatus))
+        {
+            var st = req.VerificationStatus.Trim().ToLowerInvariant();
+            video.VerificationStatus = st;
+            video.VerifiedAt = (st == "verified") ? DateTimeOffset.UtcNow : null;
+        }
         if (req.IsPublished.HasValue) video.IsPublished = req.IsPublished.Value;
 
         video.UpdatedAt = DateTimeOffset.UtcNow;

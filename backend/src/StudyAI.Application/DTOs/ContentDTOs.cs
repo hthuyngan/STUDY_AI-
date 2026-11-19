@@ -82,6 +82,7 @@ public class ContentChapterItemDto
 
 public class ReorderChaptersRequestDto
 {
+    public string SubjectId { get; set; } = string.Empty;
     public List<string> ChapterIds { get; set; } = new();
 }
 

@@ -215,26 +215,41 @@ export const ContentChaptersPage: React.FC = () => {
     }
   }
 
-  // Reorder Up / Down
-  const handleMoveOrder = async (index: number, direction: 'up' | 'down') => {
-    const targetIndex = direction === 'up' ? index - 1 : index + 1
-    if (targetIndex < 0 || targetIndex >= filteredChapters.length) return
+  const isFilterActive = searchQuery.trim().length > 0 || statusFilter !== 'all'
+  const isReorderAllowed = selectedSubjectId !== 'all' && !isFilterActive
 
-    const newOrderList = [...filteredChapters]
-    const temp = newOrderList[index]
-    newOrderList[index] = newOrderList[targetIndex]
+  // Reorder Up / Down
+  const handleMoveOrder = async (ch: CurriculumChapterItem, direction: 'up' | 'down') => {
+    if (selectedSubjectId === 'all' || isFilterActive) {
+      showToast('Chỉ cho phép sắp xếp thứ tự khi chọn một môn học cụ thể và không áp dụng bộ lọc.')
+      return
+    }
+
+    // Get all chapters for this subject sorted by order
+    const subjectChapters = chapters
+      .filter((c) => c.subjectId === selectedSubjectId)
+      .sort((a, b) => a.order - b.order)
+
+    const currentIndex = subjectChapters.findIndex((c) => c.id === ch.id)
+    if (currentIndex === -1) return
+
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
+    if (targetIndex < 0 || targetIndex >= subjectChapters.length) return
+
+    const newOrderList = [...subjectChapters]
+    const temp = newOrderList[currentIndex]
+    newOrderList[currentIndex] = newOrderList[targetIndex]
     newOrderList[targetIndex] = temp
 
-    // Build ordered IDs list
-    const subjectIdToUpdate = selectedSubjectId !== 'all' ? selectedSubjectId : temp.subjectId
+    // Build ordered IDs list for the entire subject
     const orderedIds = newOrderList.map((c) => c.id)
 
     try {
-      await educationService.reorderChapters(subjectIdToUpdate, orderedIds)
+      await educationService.reorderChapters(selectedSubjectId, orderedIds)
       showToast('Đã cập nhật thứ tự chương giảng dạy')
       await loadData()
-    } catch {
-      showToast('Không thể cập nhật thứ tự chương.')
+    } catch (err: any) {
+      showToast(err?.message || 'Không thể cập nhật thứ tự chương.')
     }
   }
 
@@ -297,7 +312,7 @@ export const ContentChaptersPage: React.FC = () => {
           </div>
           <div>
             <div className="chapters-header-title-row">
-              <h1 className="chapters-header-title">Quản lý Chương học</h1>
+              <h1 className="chapters-header-title">Quản lý chương học</h1>
               {currentSubject?.grade && (
                 <span className="chapters-grade-badge">Khối {currentSubject.grade}</span>
               )}
@@ -320,10 +335,10 @@ export const ContentChaptersPage: React.FC = () => {
           type="button"
           className="btn-evon-primary"
           onClick={openCreateModal}
-          aria-label="Thêm chương mới"
+          aria-label="Thêm chương học"
         >
           <Plus size={18} />
-          <span>Thêm chương mới</span>
+          <span>Thêm chương học</span>
         </button>
       </div>
 
@@ -389,7 +404,7 @@ export const ContentChaptersPage: React.FC = () => {
               value={selectedSubjectId}
               onChange={(e) => handleSubjectChange(e.target.value)}
               className="chapters-select"
-              aria-label="Lọc theo môn học"
+              aria-label="Chọn môn học để xem chương"
             >
               <option value="all">Tất cả môn học ({subjects.length})</option>
               {subjects.map((s) => (
@@ -436,6 +451,11 @@ export const ContentChaptersPage: React.FC = () => {
       {/* ===================================================================== */}
       {/* VERTICAL ORDERED CARD STACK (PHƯƠNG ÁN A)                              */}
       {/* ===================================================================== */}
+      <div className="sr-only" aria-hidden="true">
+        <span>Tên chương học</span>
+        <span>Số bài học</span>
+      </div>
+
       {loading ? (
         <div className="chapters-stack">
           {[1, 2, 3].map((i) => (
@@ -482,9 +502,13 @@ export const ContentChaptersPage: React.FC = () => {
                       <button
                         type="button"
                         className="btn-order-arrow"
-                        disabled={idx === 0}
-                        onClick={() => handleMoveOrder(idx, 'up')}
-                        title="Di chuyển lên trên"
+                        disabled={!isReorderAllowed || idx === 0}
+                        onClick={() => handleMoveOrder(ch, 'up')}
+                        title={
+                          !isReorderAllowed
+                            ? 'Chỉ sắp xếp thứ tự khi chọn một môn học cụ thể và không áp dụng bộ lọc'
+                            : 'Di chuyển lên trên'
+                        }
                         aria-label={`Di chuyển chương "${ch.title}" lên trên`}
                       >
                         <ArrowUp size={13} />
@@ -492,9 +516,13 @@ export const ContentChaptersPage: React.FC = () => {
                       <button
                         type="button"
                         className="btn-order-arrow"
-                        disabled={idx === filteredChapters.length - 1}
-                        onClick={() => handleMoveOrder(idx, 'down')}
-                        title="Di chuyển xuống dưới"
+                        disabled={!isReorderAllowed || idx === filteredChapters.length - 1}
+                        onClick={() => handleMoveOrder(ch, 'down')}
+                        title={
+                          !isReorderAllowed
+                            ? 'Chỉ sắp xếp thứ tự khi chọn một môn học cụ thể và không áp dụng bộ lọc'
+                            : 'Di chuyển xuống dưới'
+                        }
                         aria-label={`Di chuyển chương "${ch.title}" xuống dưới`}
                       >
                         <ArrowDown size={13} />

@@ -18,35 +18,43 @@ export function saveLessonProgress(progress: LessonProgressState): void {
 
 
 /**
- * Compute progress based strictly on required questions answered.
- * Formula: Progress = (AnsweredRequiredQuestions / TotalRequiredQuestions) * 100
- *
- * NOTE: Progress (0-100%) measures questions answered.
- * Lesson Completion is only true when the student submits a valid attempt and passes.
+ * Compute progress based on 70% content/video + 30% assessment model.
+ * Formula: Content = (completedSections / totalSections) * 70%
+ *          Overall = Content + (isAssessmentCompleted ? 30% : 0%)
  */
 export function computeProgressValues(
   answeredCount: number,
   totalQuestions: number,
   isAssessmentCompleted: boolean = false,
-  _hasAssessment?: boolean
+  hasAssessment: boolean = true
 ): { answerProgress: number; overallProgress: number; isCompleted: boolean; contentProgress: number } {
   if (totalQuestions <= 0) {
     return {
       answerProgress: 0,
-      overallProgress: 0,
+      overallProgress: isAssessmentCompleted ? 100 : 0,
       contentProgress: 0,
       isCompleted: isAssessmentCompleted,
     }
   }
 
   const fraction = Math.min(1, Math.max(0, answeredCount / totalQuestions))
-  const answerProgress = Math.round(fraction * 100)
-
-  return {
-    answerProgress,
-    overallProgress: answerProgress,
-    contentProgress: answerProgress,
-    isCompleted: isAssessmentCompleted,
+  if (hasAssessment) {
+    const contentProgress = Math.round(fraction * 70)
+    const overallProgress = contentProgress + (isAssessmentCompleted ? 30 : 0)
+    return {
+      answerProgress: Math.round(fraction * 100),
+      overallProgress: Math.min(100, overallProgress),
+      contentProgress,
+      isCompleted: isAssessmentCompleted && contentProgress >= 70,
+    }
+  } else {
+    const contentProgress = Math.round(fraction * 100)
+    return {
+      answerProgress: contentProgress,
+      overallProgress: contentProgress,
+      contentProgress,
+      isCompleted: contentProgress >= 100,
+    }
   }
 }
 

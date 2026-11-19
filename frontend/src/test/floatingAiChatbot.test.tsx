@@ -6,6 +6,7 @@ import { FloatingAiChatbot, shouldShowFloatingChat } from '@/components/chat/Flo
 
 vi.mock('@/services/aiTutor.service', () => ({
   aiTutorService: {
+    isAuthenticated: vi.fn().mockReturnValue(true),
     getProviderStatus: vi.fn().mockResolvedValue({
       provider: 'gemini',
       displayName: 'AI thật (Gemini)',
