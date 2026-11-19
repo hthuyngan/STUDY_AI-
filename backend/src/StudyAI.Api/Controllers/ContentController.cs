@@ -10,7 +10,7 @@ using StudyAI.Infrastructure.Persistence;
 
 namespace StudyAI.Api.Controllers;
 
-[Authorize(Roles = "content,admin,content_admin")]
+[Authorize(Roles = "content,admin,content_admin,content_creator,author")]
 [ApiController]
 [Route("api/v1/content")]
 public class ContentController : ControllerBase
@@ -25,11 +25,13 @@ public class ContentController : ControllerBase
     private string CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub") ?? string.Empty;
 
     private bool IsAuthorizedReviewer =>
-        User.IsInRole("content") ||
-        User.IsInRole("admin") ||
-        User.IsInRole("reviewer") ||
-        User.HasClaim("permission", "content.approve") ||
-        User.HasClaim("reviewer", "true");
+        !User.HasClaim("reviewer", "false") &&
+        (User.IsInRole("content") ||
+         User.IsInRole("admin") ||
+         User.IsInRole("content_admin") ||
+         User.IsInRole("reviewer") ||
+         User.HasClaim("permission", "content.approve") ||
+         User.HasClaim("reviewer", "true"));
 
     #region Subject Endpoints
 
@@ -765,24 +767,13 @@ public class ContentController : ControllerBase
 
     #region Lesson Video Endpoints
 
-    [HttpGet("lessons/{lessonId}/videos")]
-    public async Task<IActionResult> ListLessonVideos(string lessonId)
+    private static ContentLessonVideoItemDto MapToVideoDto(ContentLessonVideo v, string lessonTitle)
     {
-        var les = await _db.ContentLessons.FindAsync(lessonId);
-        if (les == null)
-            return NotFound(new { detail = "Bài học không tồn tại." });
-
-        var videos = await _db.ContentLessonVideos
-            .Where(v => v.LessonId == lessonId)
-            .OrderBy(v => v.SortOrder)
-            .ThenBy(v => v.CreatedAt)
-            .ToListAsync();
-
-        var result = videos.Select(v => new ContentLessonVideoItemDto
+        return new ContentLessonVideoItemDto
         {
             Id = v.Id,
             LessonId = v.LessonId,
-            LessonTitle = les.Title,
+            LessonTitle = lessonTitle,
             Title = v.Title,
             Description = v.Description ?? "",
             Provider = v.Provider,
@@ -799,8 +790,23 @@ public class ContentController : ControllerBase
             IsPublished = v.IsPublished,
             CreatedAt = v.CreatedAt.ToString("o"),
             UpdatedAt = v.UpdatedAt.ToString("o")
-        }).ToList();
+        };
+    }
 
+    [HttpGet("lessons/{lessonId}/videos")]
+    public async Task<IActionResult> ListLessonVideos(string lessonId)
+    {
+        var les = await _db.ContentLessons.FindAsync(lessonId);
+        if (les == null)
+            return NotFound(new { detail = "Bài học không tồn tại." });
+
+        var videos = await _db.ContentLessonVideos
+            .Where(v => v.LessonId == lessonId)
+            .OrderBy(v => v.SortOrder)
+            .ThenBy(v => v.CreatedAt)
+            .ToListAsync();
+
+        var result = videos.Select(v => MapToVideoDto(v, les.Title)).ToList();
         return Ok(new { items = result, total = result.Count });
     }
 
@@ -814,6 +820,34 @@ public class ContentController : ControllerBase
         if (string.IsNullOrWhiteSpace(req.SourceUrl) || string.IsNullOrWhiteSpace(req.Title))
             return BadRequest(new { detail = "Tiêu đề và Đường dẫn URL video không được để trống." });
 
+        var vStatus = !string.IsNullOrWhiteSpace(req.VerificationStatus)
+            ? req.VerificationStatus.Trim().ToLowerInvariant()
+            : "pending";
+
+        if (vStatus != "pending" && vStatus != "verified" && vStatus != "rejected")
+        {
+            return BadRequest(new { detail = "Trạng thái xác minh không hợp lệ. Chỉ chấp nhận: pending, verified, rejected." });
+        }
+
+        // Independent review gate: only authorized reviewers can mark video verified
+        if (vStatus == "verified" && !IsAuthorizedReviewer)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Chỉ người kiểm duyệt có thẩm quyền mới có quyền xác minh video." });
+        }
+
+        // Publishing invariant: only verified video can be published, and must be authorized reviewer
+        if (req.IsPublished)
+        {
+            if (!IsAuthorizedReviewer)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Chỉ người kiểm duyệt có thẩm quyền mới có quyền xuất bản video." });
+            }
+            if (vStatus != "verified")
+            {
+                return BadRequest(new { detail = "Không thể xuất bản video chưa được xác minh (VerificationStatus phải là 'verified')." });
+            }
+        }
+
         var (detectedProvider, ytId, embedUrl) = ParseVideoUrl(req.SourceUrl);
         var provider = !string.IsNullOrWhiteSpace(req.Provider) ? req.Provider : detectedProvider;
         var finalEmbedUrl = !string.IsNullOrWhiteSpace(req.EmbedUrl) ? req.EmbedUrl : embedUrl;
@@ -822,9 +856,6 @@ public class ContentController : ControllerBase
             ? req.ThumbnailUrl
             : (finalYtId != null ? $"https://i.ytimg.com/vi/{finalYtId}/hqdefault.jpg" : null);
 
-        var vStatus = !string.IsNullOrWhiteSpace(req.VerificationStatus)
-            ? req.VerificationStatus.Trim().ToLowerInvariant()
-            : "pending";
         DateTimeOffset? vAt = (vStatus == "verified") ? DateTimeOffset.UtcNow : null;
 
         var video = new ContentLessonVideo
@@ -858,34 +889,41 @@ public class ContentController : ControllerBase
             Action = "lesson_video_added",
             TargetType = "content_lesson_video",
             TargetId = video.Id,
-            Payload = JsonSerializer.Serialize(new { title = video.Title, lessonId = video.LessonId, provider = video.Provider }),
+            Payload = JsonSerializer.Serialize(new { title = video.Title, lessonId = video.LessonId, provider = video.Provider, status = video.VerificationStatus }),
             CreatedAt = DateTimeOffset.UtcNow
         });
 
+        if (video.VerificationStatus == "verified")
+        {
+            _db.StaffAuditLogs.Add(new StaffAuditLog
+            {
+                Id = $"log_{Guid.NewGuid():N}",
+                ActorUserId = CurrentUserId,
+                Action = "lesson_video_verified",
+                TargetType = "content_lesson_video",
+                TargetId = video.Id,
+                Payload = JsonSerializer.Serialize(new { title = video.Title, lessonId = video.LessonId, verifiedBy = CurrentUserId }),
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+        }
+
+        if (video.IsPublished)
+        {
+            _db.StaffAuditLogs.Add(new StaffAuditLog
+            {
+                Id = $"log_{Guid.NewGuid():N}",
+                ActorUserId = CurrentUserId,
+                Action = "lesson_video_published",
+                TargetType = "content_lesson_video",
+                TargetId = video.Id,
+                Payload = JsonSerializer.Serialize(new { title = video.Title, lessonId = video.LessonId, publishedBy = CurrentUserId }),
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+        }
+
         await _db.SaveChangesAsync();
 
-        return StatusCode(201, new ContentLessonVideoItemDto
-        {
-            Id = video.Id,
-            LessonId = video.LessonId,
-            LessonTitle = les.Title,
-            Title = video.Title,
-            Description = video.Description ?? "",
-            Provider = video.Provider,
-            SourceUrl = video.SourceUrl,
-            EmbedUrl = video.EmbedUrl,
-            YouTubeVideoId = video.YouTubeVideoId,
-            Language = video.Language,
-            DurationSeconds = video.DurationSeconds,
-            ThumbnailUrl = video.ThumbnailUrl,
-            SortOrder = video.SortOrder,
-            EmbedAllowed = video.EmbedAllowed,
-            VerificationStatus = video.VerificationStatus,
-            VerifiedAt = video.VerifiedAt?.ToString("o"),
-            IsPublished = video.IsPublished,
-            CreatedAt = video.CreatedAt.ToString("o"),
-            UpdatedAt = video.UpdatedAt.ToString("o")
-        });
+        return StatusCode(201, MapToVideoDto(video, les.Title));
     }
 
     [HttpPatch("videos/{videoId}")]
@@ -894,6 +932,51 @@ public class ContentController : ControllerBase
         var video = await _db.ContentLessonVideos.Include(v => v.Lesson).FirstOrDefaultAsync(v => v.Id == videoId);
         if (video == null)
             return NotFound(new { detail = "Video không tồn tại." });
+
+        string previousVerificationStatus = video.VerificationStatus;
+        bool previousIsPublished = video.IsPublished;
+
+        // VerificationStatus validation & authorization
+        if (!string.IsNullOrWhiteSpace(req.VerificationStatus))
+        {
+            var st = req.VerificationStatus.Trim().ToLowerInvariant();
+            if (st != "pending" && st != "verified" && st != "rejected")
+            {
+                return BadRequest(new { detail = "Trạng thái xác minh không hợp lệ. Chỉ chấp nhận: pending, verified, rejected." });
+            }
+
+            if (st != video.VerificationStatus)
+            {
+                if (!IsAuthorizedReviewer)
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Chỉ người kiểm duyệt có thẩm quyền mới có quyền thay đổi trạng thái xác minh video." });
+                }
+                video.VerificationStatus = st;
+                video.VerifiedAt = (st == "verified") ? DateTimeOffset.UtcNow : null;
+            }
+        }
+
+        // IsPublished authorization
+        if (req.IsPublished.HasValue && req.IsPublished.Value != video.IsPublished)
+        {
+            if (!IsAuthorizedReviewer)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Chỉ người kiểm duyệt có thẩm quyền mới có quyền thay đổi trạng thái xuất bản video." });
+            }
+            video.IsPublished = req.IsPublished.Value;
+        }
+
+        // Invariant: cannot publish unverified video
+        if (video.IsPublished && video.VerificationStatus != "verified")
+        {
+            return BadRequest(new { detail = "Không thể xuất bản video chưa được xác minh (VerificationStatus phải là 'verified')." });
+        }
+
+        // If status moved away from verified, unpublish automatically
+        if (video.VerificationStatus != "verified" && video.IsPublished)
+        {
+            video.IsPublished = false;
+        }
 
         if (!string.IsNullOrWhiteSpace(req.Title)) video.Title = req.Title.Trim();
         if (req.Description != null) video.Description = req.Description.Trim();
@@ -912,13 +995,6 @@ public class ContentController : ControllerBase
         if (req.ThumbnailUrl != null) video.ThumbnailUrl = req.ThumbnailUrl;
         if (req.SortOrder.HasValue) video.SortOrder = req.SortOrder.Value;
         if (req.EmbedAllowed.HasValue) video.EmbedAllowed = req.EmbedAllowed.Value;
-        if (!string.IsNullOrWhiteSpace(req.VerificationStatus))
-        {
-            var st = req.VerificationStatus.Trim().ToLowerInvariant();
-            video.VerificationStatus = st;
-            video.VerifiedAt = (st == "verified") ? DateTimeOffset.UtcNow : null;
-        }
-        if (req.IsPublished.HasValue) video.IsPublished = req.IsPublished.Value;
 
         video.UpdatedAt = DateTimeOffset.UtcNow;
 
@@ -929,34 +1005,211 @@ public class ContentController : ControllerBase
             Action = "lesson_video_updated",
             TargetType = "content_lesson_video",
             TargetId = video.Id,
-            Payload = JsonSerializer.Serialize(new { title = video.Title }),
+            Payload = JsonSerializer.Serialize(new { title = video.Title, previousStatus = previousVerificationStatus, currentStatus = video.VerificationStatus }),
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        // Dedicated audit logs for state transitions
+        if (previousVerificationStatus != "verified" && video.VerificationStatus == "verified")
+        {
+            _db.StaffAuditLogs.Add(new StaffAuditLog
+            {
+                Id = $"log_{Guid.NewGuid():N}",
+                ActorUserId = CurrentUserId,
+                Action = "lesson_video_verified",
+                TargetType = "content_lesson_video",
+                TargetId = video.Id,
+                Payload = JsonSerializer.Serialize(new { title = video.Title, lessonId = video.LessonId, verifiedBy = CurrentUserId }),
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+        }
+        else if (previousVerificationStatus != "rejected" && video.VerificationStatus == "rejected")
+        {
+            _db.StaffAuditLogs.Add(new StaffAuditLog
+            {
+                Id = $"log_{Guid.NewGuid():N}",
+                ActorUserId = CurrentUserId,
+                Action = "lesson_video_rejected",
+                TargetType = "content_lesson_video",
+                TargetId = video.Id,
+                Payload = JsonSerializer.Serialize(new { title = video.Title, lessonId = video.LessonId, rejectedBy = CurrentUserId }),
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+        }
+
+        if (!previousIsPublished && video.IsPublished)
+        {
+            _db.StaffAuditLogs.Add(new StaffAuditLog
+            {
+                Id = $"log_{Guid.NewGuid():N}",
+                ActorUserId = CurrentUserId,
+                Action = "lesson_video_published",
+                TargetType = "content_lesson_video",
+                TargetId = video.Id,
+                Payload = JsonSerializer.Serialize(new { title = video.Title, lessonId = video.LessonId, publishedBy = CurrentUserId }),
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+        }
+        else if (previousIsPublished && !video.IsPublished)
+        {
+            _db.StaffAuditLogs.Add(new StaffAuditLog
+            {
+                Id = $"log_{Guid.NewGuid():N}",
+                ActorUserId = CurrentUserId,
+                Action = "lesson_video_unpublished",
+                TargetType = "content_lesson_video",
+                TargetId = video.Id,
+                Payload = JsonSerializer.Serialize(new { title = video.Title, lessonId = video.LessonId, unpublishedBy = CurrentUserId }),
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+        }
+
+        await _db.SaveChangesAsync();
+
+        return Ok(MapToVideoDto(video, video.Lesson?.Title ?? ""));
+    }
+
+    [HttpPost("videos/{videoId}/verify")]
+    public async Task<IActionResult> VerifyLessonVideo(string videoId)
+    {
+        if (!IsAuthorizedReviewer)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Chỉ người kiểm duyệt có thẩm quyền mới có quyền xác minh video." });
+        }
+
+        var video = await _db.ContentLessonVideos.Include(v => v.Lesson).FirstOrDefaultAsync(v => v.Id == videoId);
+        if (video == null)
+            return NotFound(new { detail = "Video không tồn tại." });
+
+        video.VerificationStatus = "verified";
+        video.VerifiedAt = DateTimeOffset.UtcNow;
+        video.UpdatedAt = DateTimeOffset.UtcNow;
+
+        _db.StaffAuditLogs.Add(new StaffAuditLog
+        {
+            Id = $"log_{Guid.NewGuid():N}",
+            ActorUserId = CurrentUserId,
+            Action = "lesson_video_verified",
+            TargetType = "content_lesson_video",
+            TargetId = video.Id,
+            Payload = JsonSerializer.Serialize(new { title = video.Title, lessonId = video.LessonId, verifiedBy = CurrentUserId }),
             CreatedAt = DateTimeOffset.UtcNow
         });
 
         await _db.SaveChangesAsync();
+        return Ok(MapToVideoDto(video, video.Lesson?.Title ?? ""));
+    }
 
-        return Ok(new ContentLessonVideoItemDto
+    [HttpPost("videos/{videoId}/reject")]
+    public async Task<IActionResult> RejectLessonVideo(string videoId)
+    {
+        if (!IsAuthorizedReviewer)
         {
-            Id = video.Id,
-            LessonId = video.LessonId,
-            LessonTitle = video.Lesson?.Title ?? "",
-            Title = video.Title,
-            Description = video.Description ?? "",
-            Provider = video.Provider,
-            SourceUrl = video.SourceUrl,
-            EmbedUrl = video.EmbedUrl,
-            YouTubeVideoId = video.YouTubeVideoId,
-            Language = video.Language,
-            DurationSeconds = video.DurationSeconds,
-            ThumbnailUrl = video.ThumbnailUrl,
-            SortOrder = video.SortOrder,
-            EmbedAllowed = video.EmbedAllowed,
-            VerificationStatus = video.VerificationStatus,
-            VerifiedAt = video.VerifiedAt?.ToString("o"),
-            IsPublished = video.IsPublished,
-            CreatedAt = video.CreatedAt.ToString("o"),
-            UpdatedAt = video.UpdatedAt.ToString("o")
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Chỉ người kiểm duyệt có thẩm quyền mới có quyền từ chối video." });
+        }
+
+        var video = await _db.ContentLessonVideos.Include(v => v.Lesson).FirstOrDefaultAsync(v => v.Id == videoId);
+        if (video == null)
+            return NotFound(new { detail = "Video không tồn tại." });
+
+        bool wasPublished = video.IsPublished;
+        video.VerificationStatus = "rejected";
+        video.VerifiedAt = null;
+        video.IsPublished = false;
+        video.UpdatedAt = DateTimeOffset.UtcNow;
+
+        _db.StaffAuditLogs.Add(new StaffAuditLog
+        {
+            Id = $"log_{Guid.NewGuid():N}",
+            ActorUserId = CurrentUserId,
+            Action = "lesson_video_rejected",
+            TargetType = "content_lesson_video",
+            TargetId = video.Id,
+            Payload = JsonSerializer.Serialize(new { title = video.Title, lessonId = video.LessonId, rejectedBy = CurrentUserId }),
+            CreatedAt = DateTimeOffset.UtcNow
         });
+
+        if (wasPublished)
+        {
+            _db.StaffAuditLogs.Add(new StaffAuditLog
+            {
+                Id = $"log_{Guid.NewGuid():N}",
+                ActorUserId = CurrentUserId,
+                Action = "lesson_video_unpublished",
+                TargetType = "content_lesson_video",
+                TargetId = video.Id,
+                Payload = JsonSerializer.Serialize(new { title = video.Title, lessonId = video.LessonId, reason = "rejected" }),
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+        }
+
+        await _db.SaveChangesAsync();
+        return Ok(MapToVideoDto(video, video.Lesson?.Title ?? ""));
+    }
+
+    [HttpPost("videos/{videoId}/publish")]
+    public async Task<IActionResult> PublishLessonVideo(string videoId)
+    {
+        if (!IsAuthorizedReviewer)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Chỉ người kiểm duyệt có thẩm quyền mới có quyền xuất bản video." });
+        }
+
+        var video = await _db.ContentLessonVideos.Include(v => v.Lesson).FirstOrDefaultAsync(v => v.Id == videoId);
+        if (video == null)
+            return NotFound(new { detail = "Video không tồn tại." });
+
+        if (video.VerificationStatus != "verified")
+        {
+            return BadRequest(new { detail = "Không thể xuất bản video chưa được xác minh (VerificationStatus phải là 'verified')." });
+        }
+
+        video.IsPublished = true;
+        video.UpdatedAt = DateTimeOffset.UtcNow;
+
+        _db.StaffAuditLogs.Add(new StaffAuditLog
+        {
+            Id = $"log_{Guid.NewGuid():N}",
+            ActorUserId = CurrentUserId,
+            Action = "lesson_video_published",
+            TargetType = "content_lesson_video",
+            TargetId = video.Id,
+            Payload = JsonSerializer.Serialize(new { title = video.Title, lessonId = video.LessonId, publishedBy = CurrentUserId }),
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+        return Ok(MapToVideoDto(video, video.Lesson?.Title ?? ""));
+    }
+
+    [HttpPost("videos/{videoId}/unpublish")]
+    public async Task<IActionResult> UnpublishLessonVideo(string videoId)
+    {
+        if (!IsAuthorizedReviewer)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Chỉ người kiểm duyệt có thẩm quyền mới có quyền gỡ xuất bản video." });
+        }
+
+        var video = await _db.ContentLessonVideos.Include(v => v.Lesson).FirstOrDefaultAsync(v => v.Id == videoId);
+        if (video == null)
+            return NotFound(new { detail = "Video không tồn tại." });
+
+        video.IsPublished = false;
+        video.UpdatedAt = DateTimeOffset.UtcNow;
+
+        _db.StaffAuditLogs.Add(new StaffAuditLog
+        {
+            Id = $"log_{Guid.NewGuid():N}",
+            ActorUserId = CurrentUserId,
+            Action = "lesson_video_unpublished",
+            TargetType = "content_lesson_video",
+            TargetId = video.Id,
+            Payload = JsonSerializer.Serialize(new { title = video.Title, lessonId = video.LessonId, unpublishedBy = CurrentUserId }),
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+        return Ok(MapToVideoDto(video, video.Lesson?.Title ?? ""));
     }
 
     [HttpDelete("videos/{videoId}")]

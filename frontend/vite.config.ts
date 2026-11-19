@@ -29,6 +29,11 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: false,
         },
+        '/uploads': {
+          target: backendTarget,
+          changeOrigin: true,
+          secure: false,
+        },
       },
     },
     preview: {
@@ -40,6 +45,11 @@ export default defineConfig(({ mode }) => {
           secure: false,
         },
         '/health': {
+          target: backendTarget,
+          changeOrigin: true,
+          secure: false,
+        },
+        '/uploads': {
           target: backendTarget,
           changeOrigin: true,
           secure: false,

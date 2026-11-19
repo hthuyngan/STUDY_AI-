@@ -3,53 +3,41 @@
 [![CI](https://github.com/hthuyngan/STUDY_AI-/actions/workflows/ci.yml/badge.svg)](https://github.com/hthuyngan/STUDY_AI-/actions/workflows/ci.yml)
 [![Deploy to GitHub Pages](https://github.com/hthuyngan/STUDY_AI-/actions/workflows/deploy.yml/badge.svg)](https://github.com/hthuyngan/STUDY_AI-/actions/workflows/deploy.yml)
 
-🌐 **Production Website**: [https://hthuyngan.github.io/STUDY_AI-/](https://hthuyngan.github.io/STUDY_AI-/)
+🌐 **Production Website (Frontend Demo)**: [https://hthuyngan.github.io/STUDY_AI-/](https://hthuyngan.github.io/STUDY_AI-/)
 
-STUDY_AI- là nền tảng gia sư & trợ lý học tập thông minh sử dụng AI, cung cấp giao diện hiện đại, hệ thống phân tích học tập thực tế và kiến trúc dữ liệu ngoại tuyến (Offline-First) kết hợp đồng bộ máy chủ backend.
+STUDY_AI- là nền tảng gia sư & trợ lý học tập thông minh sử dụng AI, cung cấp hệ thống chương trình học chuẩn hóa (Curriculum), ngân hàng câu hỏi THPT Quốc gia (VNHSGE dataset), lộ trình học tập thích ứng (Adaptive Learning), cùng hệ thống quản trị chuyên môn (Content Governance & Staff Workflows).
 
 ---
 
-## 🏗 Kiến trúc Hệ thống (Architecture Summary)
+## 🏗 Kiến trúc Hệ thống (System Architecture)
 
 ```
-Browser UI (React 19 + TypeScript)
-      │
-      ├── Auth Layer (AuthProvider + in-memory JWT + HttpOnly refresh cookie)
-      │
-      ▼
-Learning State Engine (Pure Aggregation & Derived Snapshot)
-      │
-      ▼
-Repository Layer Abstraction (Identity-Aware Scoped Namespaces)
-   ├── Local Persistence (study_ai.<identity>.*.v2 - Zero UI Latency & Multi-user isolation)
-   ├── Remote Sync Queue (study_ai.<identity>.sync_queue.v2 - Resilient Background Dispatch)
-   └── Protected Remote API (FastAPI + JWT Bearer + /api/v1/me/* canonical routes)
-             │
-             ▼
-       Database (Argon2id hashes, refresh_sessions, SQLite Local / PostgreSQL-ready)
+┌────────────────────────────────────────────────────────────────────────┐
+│                        Frontend (Client Layer)                         │
+│  React 19 + TypeScript + Vite + Bun                                    │
+│  • Workspaces: Learner, Teacher, Content, Admin, Operations            │
+│  • Auth: JWT Bearer (in-memory access token + session persistence)     │
+│  • Storage: Hybrid (SQL Server API client + Offline Demo Fallback)     │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ HTTP / REST (/api/v1/*)
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                     Backend API (Application Layer)                    │
+│  ASP.NET Core (.NET 10) Web API                                        │
+│  • Clean Architecture: Api ➔ Application ➔ Infrastructure ➔ Domain     │
+│  • Auth: JWT Bearer (Argon2 Password Hashing, RBAC, Claims)           │
+│  • AI Engine: Router (OpenAI / Gemini / Deterministic Fake Provider)   │
+│  • Security: Fail-closed production guards, DatabaseSafetyGuard        │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ Entity Framework Core 10
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                          Database (Data Layer)                         │
+│  Microsoft SQL Server (LocalSQLEXPRESS / StudyAIDb / StudyAIDb_E2E)    │
+│  • Tables: Users, ContentSubjects, ContentChapters, ContentLessons,    │
+│    ContentLessonVideos, Questions, ExamBlueprints, StaffAuditLogs,...  │
+└────────────────────────────────────────────────────────────────────────┘
 ```
-
-### Identity & Persistence Modes (Chế độ danh tính & lưu trữ)
-
-1. **Guest Mode (Mặc định trên GitHub Pages & người dùng chưa đăng nhập)**:
-   - Danh tính cục bộ ổn định (`guest_<random>_<timestamp>`).
-   - Lưu trữ dữ liệu học tập vào namespace riêng `study_ai.<guest_id>.*.v2`.
-   - Di chuyển tự động từ schema cũ `v1` sang guest namespace mà không gây gián đoạn hay mất mát dữ liệu.
-   - Khi không có `VITE_API_BASE_URL`: hoạt động hoàn toàn offline, 0ms latency, không lỗi mạng console spam.
-
-2. **Authenticated Mode (Đăng nhập bảo mật & Đồng bộ đám mây)**:
-   - **Xác thực Backend-Native**: FastAPI + SQLAlchemy + Argon2id hash mật khẩu.
-   - **Mô hình Token kép**:
-     - *Access Token*: JWT ngắn hạn (15 phút), lưu **in-memory** duy nhất (không bao giờ lưu vào localStorage/sessionStorage/IndexedDB).
-     - *Refresh Token*: Chuỗi ngẫu nhiên opaque (`secrets.token_urlsafe`), băm SHA-256 lưu trong bảng `refresh_sessions`. Client nhận qua **HttpOnly cookie** (`SameSite`, `Secure` tại production).
-     - *Cơ chế quay vòng (Rotation)*: Mỗi lần gọi `POST /api/v1/auth/refresh`, refresh token cũ lập tức bị thu hồi và cấp token mới.
-   - **API học tập bảo vệ**: Toàn bộ dữ liệu gắn với token (`/api/v1/me/lesson-progress`, `/api/v1/me/assessment-attempts`, `/api/v1/me/learning-events`, `/api/v1/me/sync/bootstrap`). Client không thể tự truyền `userId` để giả mạo danh tính.
-   - **Cô lập nhiều người dùng**: User A và User B trên cùng máy tính lưu trữ ở các namespace `study_ai.<user_id>.*.v2` độc lập. Đăng xuất ẩn cache tài khoản, không để rò rỉ dữ liệu chéo.
-
-3. **Guest → Account Data Migration**:
-   - Khi khách có tiến độ trên thiết bị đăng nhập/đăng ký tài khoản, hệ thống hiển thị hộp thoại xác nhận rõ ràng:
-     - `[ Đồng bộ vào tài khoản ]`: Hợp nhất tiến độ bài học, bài thu hoạch, lịch sử học tập lên `/api/v1/me/sync/bootstrap` theo quy tắc server newer-wins và không hạ cấp trạng thái đã hoàn thành.
-     - `[ Giữ riêng trên thiết bị ]`: Không tải dữ liệu khách lên đám mây; tài khoản bắt đầu từ dữ liệu của chính tài khoản đó.
 
 ---
 
@@ -57,83 +45,120 @@ Repository Layer Abstraction (Identity-Aware Scoped Namespaces)
 
 ### Frontend
 - **Framework**: [React 19](https://react.dev/) + [Vite](https://vite.dev/)
-- **Language**: [TypeScript](https://www.typescriptlang.org/)
-- **State & Data**: AuthProvider (in-memory access token), Repository Pattern, Identity-Aware Sync Queue, Unified Learning State Engine
-- **Styling**: Vanilla CSS tokens & Design System (Navy Notebook theme, dark mode support)
-- **Testing & Quality**: Vitest (67 unit/integration tests), Oxlint (0 warnings)
+- **Ngôn ngữ**: [TypeScript](https://www.typescriptlang.org/)
 - **Package Manager**: [Bun](https://bun.sh/)
+- **Giao diện & Token**: CSS Tokens (Design System Navy Notebook, hỗ trợ dark mode)
+- **Math & Markdown**: KaTeX / MathJax rendering qua `MathView`
+- **Chất lượng mã nguồn**: Oxlint, ESLint, TypeScript Strict Mode
+- **Kiểm thử**: Vitest + React Testing Library
 
 ### Backend
-- **Framework**: [FastAPI](https://fastapi.tiangolo.com/) (Python 3.12+)
-- **Security & Auth**: Argon2id password hashing (`argon2-cffi`), PyJWT short-lived access tokens, opaque rotating refresh sessions in HttpOnly cookies
-- **ORM & Database**: [SQLAlchemy 2.x](https://www.sqlalchemy.org/) + [Alembic](https://alembic.sqlalchemy.org/) (Migrations 001 + 002)
-- **Schemas & Config**: [Pydantic v2](https://docs.pydantic.dev/) + `pydantic-settings`
-- **Testing**: Pytest + HTTPX TestClient (19 API integration tests across auth, isolation, and learning)
-- **Database Engine**: SQLite cục bộ (`data/study_ai.db`), kiến trúc sẵn sàng kết nối PostgreSQL
+- **Framework**: [ASP.NET Core (.NET 10)](https://dotnet.microsoft.com/)
+- **Kiến trúc**: Clean Architecture (Domain, Application, Infrastructure, Api)
+- **ORM**: Entity Framework Core 10
+- **Cơ sở dữ liệu**: Microsoft SQL Server (LocalSQLEXPRESS)
+- **Bảo mật & Xác thực**: JWT Bearer, Argon2id (`Isopoh.Cryptography.Argon2`), Fail-closed production config
+- **Tài liệu API**: OpenAPI 3.0 / Swagger UI (`/swagger`)
+- **Kiểm thử**: xUnit, Microsoft.AspNetCore.Mvc.Testing (`WebApplicationFactory`), Entity Framework InMemory/SQL Server E2E fixtures
 
 ---
 
-## 🚀 Cài đặt & Chạy cục bộ (Local Full-stack Setup)
+## 🚀 Hướng dẫn Cài đặt & Chạy cục bộ trên Windows
 
-### 1. Khởi động Backend (FastAPI)
+### Yêu cầu hệ thống
+- Windows 10/11
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
+- [Microsoft SQL Server](https://www.microsoft.com/sql-server/) (SQL Server Express hoặc Developer Edition)
+- [Bun](https://bun.sh/) (hoặc Node.js 20+)
 
-```bash
+### 1. Khởi động Backend (.NET 10)
+
+```powershell
 # Di chuyển vào thư mục backend
 cd backend
 
-# Cài đặt dependencies (yêu cầu Python 3.12+)
-python -m pip install -e ".[dev]"
+# Build solution
+dotnet build StudyAI.sln
 
-# Chạy migration database (tạo bảng SQLite)
-alembic upgrade head
-
-# Khởi động máy chủ backend tại cổng 8000
-uvicorn app.main:app --reload --port 8000
+# Khởi chạy API server (mặc định lắng nghe tại http://localhost:8000 hoặc https://localhost:7000)
+dotnet run --project src/StudyAI.Api/StudyAI.Api.csproj
 ```
-- API Health: `http://localhost:8000/api/v1/health`
-- Swagger UI Documentation: `http://localhost:8000/docs`
 
-### 2. Khởi động Frontend (React)
+- **Swagger UI**: Truy cập `http://localhost:8000/swagger` (hoặc `http://localhost:5000/swagger`) để xem danh sách API và thử nghiệm tương tác.
+- **Health Check**: `GET http://localhost:8000/health` trả về trạng thái hoạt động của cơ sở dữ liệu và hệ thống.
 
-```bash
+### 2. Xác thực trên Swagger / API
+
+Hệ thống sử dụng xác thực JWT Bearer:
+1. Gửi request `POST /api/v1/auth/login` với tài khoản quản trị hoặc chuyên viên:
+   ```json
+   {
+     "email": "admin@gmail.com",
+     "password": "<admin_password>"
+   }
+   ```
+2. Nhận `accessToken` từ phản hồi JSON.
+3. Trên giao diện Swagger UI, nhấn nút **Authorize** ở góc phải trên, nhập:
+   ```
+   Bearer <accessToken>
+   ```
+4. Toàn bộ các request tiếp theo sẽ được tự động đính kèm token xác thực.
+
+### 3. Khởi động Frontend (React + Vite)
+
+```powershell
 # Di chuyển vào thư mục frontend
 cd frontend
 
-# Cài đặt dependencies
+# Cài đặt dependencies bằng Bun
 bun install --frozen-lockfile
 
-# (Tùy chọn) Bật chế độ Hybrid kết nối backend:
-# Thêm vào file frontend/.env:
-# VITE_API_BASE_URL=http://localhost:8000/api/v1
-
-# Khởi chạy frontend server
+# Khởi chạy môi trường dev (tự động proxy /api, /health, /uploads sang backend)
 bun run dev
 ```
-- Ứng dụng chạy tại: `http://localhost:5173/`
 
-### 3. Chạy kiểm thử chất lượng
+- Ứng dụng web mở tại: `http://localhost:5174/` (hoặc cổng được Vite phân bổ).
 
-```bash
-# Kiểm thử Frontend
+---
+
+## 🧪 Hướng dẫn Chạy Kiểm thử (Testing)
+
+### 1. Kiểm thử Frontend
+
+```powershell
 cd frontend
-bun run lint
-bun run test
-bun run build
 
-# Kiểm thử Backend
+# Chạy linter
+bun run lint
+
+# Chạy unit & integration tests
+bun run test
+
+# Kiểm tra build production
+bun run build
+```
+
+### 2. Kiểm thử Backend
+
+```powershell
 cd backend
-pytest -v
-alembic current
+
+# Chạy Unit Tests
+dotnet test tests/StudyAI.UnitTests/StudyAI.UnitTests.csproj
+
+# Chạy Integration Tests (yêu cầu SQL Server cục bộ hoạt động cho StudyAIDb_E2E)
+dotnet test tests/StudyAI.IntegrationTests/StudyAI.IntegrationTests.csproj
 ```
 
 ---
 
-## 🔄 Luồng CI/CD Tự Động (GitHub Actions)
+## 🌐 Hiện trạng Triển khai (Deployment Status)
 
-1. **Pull Request (`feature/* -> main`)**:
-   - Chạy job Frontend: Lint (`oxlint`), Test (`vitest`), Typecheck & Build.
-   - Chạy job Backend: Setup Python 3.12, cài đặt dependencies, chạy migration `alembic upgrade head`, chạy toàn bộ `pytest`.
-2. **Push vào `main`**:
-   - CI kiểm tra hợp lệ toàn bộ Frontend + Backend.
-   - Deploy tự động frontend production lên [GitHub Pages](https://hthuyngan.github.io/STUDY_AI-/).
-   - *Lưu ý*: GitHub Pages là static hosting nên backend production chưa deploy (`Backend production deployment: NOT CONFIGURED`). Frontend trên GitHub Pages tự động vận hành ở chế độ Local Offline Fallback mượt mà 100%.
+1. **Frontend (GitHub Pages)**:
+   - Tự động đóng gói và triển khai qua workflow GitHub Actions `.github/workflows/deploy.yml` mỗi khi có commit trên `main`.
+   - **Giới hạn môi trường tĩnh**: GitHub Pages là máy chủ tĩnh (static hosting), không chạy máy chủ .NET backend trực tiếp. Khi người dùng truy cập trực tiếp trên GitHub Pages chưa kết nối backend, ứng dụng tự động kích hoạt **Offline / Demo Mode** (lưu dữ liệu cục bộ an toàn, không làm gián đoạn trải nghiệm người dùng).
+
+2. **Backend**:
+   - Hiện được cấu hình để chạy trong môi trường phát triển cục bộ (Local Development) và môi trường kiểm thử tự động (CI/CD GitHub Actions).
+   - Chưa triển khai chính thức lên môi trường production đám mây (Cloud Production: NOT CONFIGURED).
+   - Cấu hình sản xuất tuân thủ nguyên tắc **Fail-closed**: từ chối khởi động nếu thiếu `Jwt:SecretKey` mạnh hoặc sử dụng cấu hình khóa mặc định.

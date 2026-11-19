@@ -15,7 +15,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Configuration
 var configuration = builder.Configuration;
 var connectionString = configuration.GetConnectionString("DefaultConnection") 
-    ?? "Server=.\\SQLEXPRESS;Database=StudyAIDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
+    ?? "Server=.\\SQLEXPRESS;Database=StudyAIDb;Trusted_Connection=True;TrustServerCertificate=True";
 
 // 1. Database Context
 builder.Services.AddDbContext<StudyAIDbContext>(options =>
@@ -119,16 +119,32 @@ builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IContentQuality
 builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILearningDataConsistencyService, StudyAI.Infrastructure.Services.LearningDataConsistencyService>();
 
 // 3. JWT Secret Validation & Authentication
-var jwtSecret = configuration["Jwt:SecretKey"];
-if (string.IsNullOrWhiteSpace(jwtSecret) || jwtSecret.Length < 32)
+var jwtSecret = configuration["Jwt:SecretKey"]
+    ?? Environment.GetEnvironmentVariable("JWT_SECRET_KEY")
+    ?? Environment.GetEnvironmentVariable("Jwt__SecretKey");
+
+if (builder.Environment.IsProduction())
 {
-    throw new InvalidOperationException("FATAL: Jwt:SecretKey must be configured with at least 32 characters.");
+    if (string.IsNullOrWhiteSpace(jwtSecret) || jwtSecret.Length < 32)
+    {
+        throw new InvalidOperationException("FATAL: In production, Jwt:SecretKey must be securely configured via environment variable (JWT_SECRET_KEY) or secret manager with at least 32 characters.");
+    }
+
+    var weakPatterns = new[] { "development", "change_in_production", "test", "demo", "placeholder", "secret_key_minimum_32_characters", "study_ai_development", "123456" };
+    if (weakPatterns.Any(p => jwtSecret.Contains(p, StringComparison.OrdinalIgnoreCase)))
+    {
+        throw new InvalidOperationException("FATAL: Insecure default or placeholder Jwt:SecretKey cannot be used in a production environment!");
+    }
+}
+else
+{
+    if (string.IsNullOrWhiteSpace(jwtSecret) || jwtSecret.Length < 32)
+    {
+        throw new InvalidOperationException("FATAL: Jwt:SecretKey must be configured with at least 32 characters.");
+    }
 }
 
-if (builder.Environment.IsProduction() && (jwtSecret.Contains("development", StringComparison.OrdinalIgnoreCase) || jwtSecret.Contains("change_in_production", StringComparison.OrdinalIgnoreCase)))
-{
-    throw new InvalidOperationException("FATAL: Insecure default Jwt:SecretKey cannot be used in a production environment!");
-}
+builder.Configuration["Jwt:SecretKey"] = jwtSecret;
 
 var key = Encoding.UTF8.GetBytes(jwtSecret);
 var issuer = configuration["Jwt:Issuer"] ?? JwtTokenService.DefaultIssuer;

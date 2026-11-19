@@ -251,7 +251,11 @@ export const AdminTeachersPage: React.FC = () => {
   }) => {
     const created = await educationService.saveTeacher(data)
     setTeachers((prev) => [created, ...prev])
-    showToast(`Đã thêm thành công giáo viên mới "${created.name}"`)
+    if (created._persistedLocally) {
+      showToast(`[Chế độ Demo] Đã lưu thông tin giáo viên "${created.name}" vào bộ nhớ tạm trình duyệt`)
+    } else {
+      showToast(`Đã thêm thành công giáo viên mới "${created.name}" vào hệ thống`)
+    }
     loadData()
   }
 

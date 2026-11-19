@@ -162,8 +162,8 @@ public class CreateLessonVideoRequestDto
     public string? ThumbnailUrl { get; set; }
     public int SortOrder { get; set; } = 1;
     public bool EmbedAllowed { get; set; } = true;
-    public string VerificationStatus { get; set; } = "verified";
-    public bool IsPublished { get; set; } = true;
+    public string VerificationStatus { get; set; } = "pending";
+    public bool IsPublished { get; set; } = false;
 }
 
 public class UpdateLessonVideoRequestDto
