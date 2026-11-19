@@ -284,10 +284,12 @@ public class AssignmentsController : ControllerBase
             return NotFound(new { message = "Không tìm thấy bài tập" });
         }
 
-        // Kiểm tra trạng thái bài tập: không cho nộp khi bài đã đóng hoặc lưu trữ
-        if (assignment.Status == "closed" || assignment.Status == "archived")
+        // Kiểm tra trạng thái bài tập: không cho nộp khi bài ở trạng thái draft, closed hoặc archived
+        if (assignment.Status == "draft" || assignment.Status == "closed" || assignment.Status == "archived")
         {
-            return BadRequest(new { message = "Bài tập đã đóng hoặc được lưu trữ, không nhận thêm bài nộp" });
+            return BadRequest(new { message = assignment.Status == "draft"
+                ? "Bài tập đang ở trạng thái bản nháp, chưa được phát hành"
+                : "Bài tập đã đóng hoặc được lưu trữ, không nhận thêm bài nộp" });
         }
 
         // Kiểm tra hạn nộp bài tập
@@ -355,7 +357,14 @@ public class AssignmentsController : ControllerBase
         };
 
         _db.AssignmentSubmissions.Add(submission);
-        await _db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            return Conflict(new { message = "Bài nộp đã tồn tại hoặc xảy ra xung đột khi lưu" });
+        }
 
         var result = new SubmissionDto
         {
@@ -485,9 +494,9 @@ public class AssignmentsController : ControllerBase
             return Forbid();
         }
 
-        if (assignment.Status == "archived" || assignment.Status == "closed")
+        if (assignment.Status == "archived")
         {
-            return BadRequest(new { message = "Bài tập đã đóng hoặc được lưu trữ, không thể chấm điểm." });
+            return BadRequest(new { message = "Bài tập đã được lưu trữ, không thể chấm điểm." });
         }
 
         if (dto.Score < 0 || dto.Score > assignment.MaxScore)
@@ -613,5 +622,45 @@ public class AssignmentsController : ControllerBase
         };
 
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Xóa hoặc lưu trữ bài tập (Giáo viên phụ trách hoặc Admin)
+    /// </summary>
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "teacher,admin")]
+    public async Task<IActionResult> DeleteAssignment(string id, CancellationToken cancellationToken)
+    {
+        var userId = CurrentUserId;
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+        var assignment = await _db.Assignments
+            .Include(a => a.Classroom)
+            .Include(a => a.Submissions)
+            .FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
+
+        if (assignment == null)
+        {
+            return NotFound(new { message = "Không tìm thấy bài tập" });
+        }
+
+        if (!IsAdmin && assignment.CreatedByTeacherId != userId && assignment.Classroom?.TeacherId != userId)
+        {
+            return Forbid();
+        }
+
+        // Nếu đã có bài nộp của học sinh, chuyển sang trạng thái archived để bảo toàn học bạ
+        if (assignment.Submissions.Count > 0)
+        {
+            assignment.Status = "archived";
+            assignment.UpdatedAt = DateTimeOffset.UtcNow;
+            await _db.SaveChangesAsync(cancellationToken);
+            return Ok(new { message = "Bài tập đã có bài làm của học sinh nên được chuyển sang trạng thái lưu trữ", archived = true });
+        }
+
+        _db.Assignments.Remove(assignment);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return NoContent();
     }
 }
