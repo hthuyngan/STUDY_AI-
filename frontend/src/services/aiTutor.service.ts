@@ -56,6 +56,24 @@ function mapConversationDetailToChatConversation(dto: any): ChatConversation {
   }
 }
 
+function abortableDelay(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    if (signal?.aborted) {
+      return reject(new DOMException('Aborted by user', 'AbortError'))
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort)
+      resolve()
+    }, ms)
+    const onAbort = () => {
+      clearTimeout(timer)
+      signal?.removeEventListener('abort', onAbort)
+      reject(new DOMException('Aborted by user', 'AbortError'))
+    }
+    signal?.addEventListener('abort', onAbort)
+  })
+}
+
 class AITutorService {
   private inMemoryCache: ChatConversation[] | null = null
 
@@ -424,7 +442,7 @@ ${context.explanation ? `\n> **Giải thích chuẩn:** ${context.explanation}` 
     signal?: AbortSignal
   ): Promise<ChatMessage> {
     if (payload.message.trim() === 'error_test') {
-      await new Promise((resolve) => setTimeout(resolve, 80))
+      await abortableDelay(80, signal)
       throw new Error('Lỗi kết nối tới AI Tutor. Vui lòng thử lại.')
     }
 
@@ -481,7 +499,7 @@ ${context.explanation ? `\n> **Giải thích chuẩn:** ${context.explanation}` 
         accumulated += (i === 0 ? words[i] : ' ' + words[i])
         onChunk(accumulated)
         if (words.length > 1) {
-          await new Promise((resolve) => setTimeout(resolve, 6))
+          await abortableDelay(6, signal)
         }
       }
 
@@ -510,7 +528,7 @@ ${context.explanation ? `\n> **Giải thích chuẩn:** ${context.explanation}` 
       accumulated += wordWithSpace
       onChunk(accumulated)
       const delay = Math.floor(Math.random() * 8) + 4
-      await new Promise((resolve) => setTimeout(resolve, delay))
+      await abortableDelay(delay, signal)
     }
 
     const completedMessage: ChatMessage = {
