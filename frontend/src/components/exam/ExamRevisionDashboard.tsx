@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   AlertTriangle,
   Award,
@@ -38,11 +38,7 @@ export const ExamRevisionDashboard: React.FC<ExamRevisionDashboardProps> = ({
   const [loading, setLoading] = useState(true);
   const [reviewMessage, setReviewMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadDashboardData();
-  }, [subjectId]);
-
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     setLoading(true);
     try {
       const [readinessData, blueprintsData, queueData, planData] = await Promise.allSettled([
@@ -59,7 +55,11 @@ export const ExamRevisionDashboard: React.FC<ExamRevisionDashboardProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [subjectId]);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
 
   const handleReviewItem = async (item: SpacedRepetitionItemDto, qualityScore: number) => {
     try {

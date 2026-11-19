@@ -1,7 +1,5 @@
 import React, {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useRef,
   useState,
@@ -14,57 +12,9 @@ import type {
   TutorLearningContext,
   LearningAssistanceMode,
 } from '@/types/aiTutor'
+import { AiChatContext, type AiChatContextValue } from './aiChatContextDef'
 
-export interface AiChatContextValue {
-  isOpen: boolean
-  isMinimized: boolean
-  openChat: (customContext?: TutorLearningContext, suggestedPrompt?: string) => void
-  closeChat: () => void
-  toggleChat: () => void
-  toggleMinimize: () => void
-  activeConversation: ChatConversation | null
-  messages: ChatMessage[]
-  isStreaming: boolean
-  error: string | null
-  learningContext: TutorLearningContext | null
-  setLearningContext: (context: TutorLearningContext | null) => void
-  providerStatus: AiProviderStatus | null
-  sendMessage: (text: string, mode?: LearningAssistanceMode) => Promise<void>
-  cancelProcessing: () => void
-  startNewConversation: () => Promise<void>
-  clearError: () => void
-  injectedPrompt?: string
-  clearInjectedPrompt: () => void
-}
-
-const AiChatContext = createContext<AiChatContextValue | null>(null)
-
-export function useAiChat(): AiChatContextValue {
-  const context = useContext(AiChatContext)
-  if (!context) {
-    return {
-      isOpen: false,
-      isMinimized: false,
-      openChat: () => {},
-      closeChat: () => {},
-      toggleChat: () => {},
-      toggleMinimize: () => {},
-      activeConversation: null,
-      messages: [],
-      isStreaming: false,
-      error: null,
-      learningContext: null,
-      setLearningContext: () => {},
-      providerStatus: null,
-      sendMessage: async () => {},
-      cancelProcessing: () => {},
-      startNewConversation: async () => {},
-      clearError: () => {},
-      clearInjectedPrompt: () => {},
-    }
-  }
-  return context
-}
+export type { AiChatContextValue }
 
 export interface AiChatProviderProps {
   children: React.ReactNode
@@ -184,7 +134,7 @@ export function AiChatProvider({ children }: AiChatProviderProps) {
 
     // Default general context
     setLearningContextState(null)
-  }, [location.pathname])
+  }, [location.pathname, handleLessonContextSwitch])
 
   const setLearningContext = useCallback((ctx: TutorLearningContext | null) => {
     explicitContextRef.current = ctx

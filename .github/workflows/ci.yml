@@ -111,7 +111,7 @@ jobs:
       - name: Run .NET Integration Tests (Real SQL Server)
         run: dotnet test --no-build --configuration Release tests/StudyAI.IntegrationTests/StudyAI.IntegrationTests.csproj --verbosity normal
         env:
-          ConnectionStrings__DefaultConnection: "Server=127.0.0.1,1433;Database=StudyAIDb_E2E;User Id=sa;Password=${{ env.MSSQL_SA_PASSWORD }};TrustServerCertificate=True;MultipleActiveResultSets=true;"
+          ConnectionStrings__DefaultConnection: "Server=127.0.0.1,1433;Database=StudyAIDb_E2E;User Id=sa;Password=${{ env.MSSQL_SA_PASSWORD }};TrustServerCertificate=True;"
           Jwt__SecretKey: ${{ env.CI_JWT_KEY }}
 
       - name: Teardown SQL Server Container

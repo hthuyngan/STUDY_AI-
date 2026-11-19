@@ -12,7 +12,7 @@ import type {
 import type { ContentStatus } from '@/types/content'
 import { apiClient } from '@/lib/apiClient'
 import { getAccessToken } from '@/auth/authSession'
-import { resolveSubjectIcon } from '@/components/subjects/SubjectIconSvg'
+import { resolveSubjectIcon } from '@/components/subjects/subjectIconUtils'
 
 const STORAGE_KEYS = {
   SUBJECTS: 'study_ai_education_subjects',

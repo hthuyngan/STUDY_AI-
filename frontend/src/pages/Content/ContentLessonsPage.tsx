@@ -83,14 +83,20 @@ export const ContentLessonsPage: React.FC = () => {
 
   // Load available topics when chapter changes
   useEffect(() => {
+    let active = true
     if (formChapterId) {
       educationService.getTopics(formChapterId).then((tops) => {
-        setAvailableTopics(tops)
-        setFormTopicId(tops[0]?.id || '')
+        if (active) {
+          setAvailableTopics(tops)
+          setFormTopicId(tops[0]?.id || '')
+        }
       })
     } else {
       setAvailableTopics([])
       setFormTopicId('')
+    }
+    return () => {
+      active = false
     }
   }, [formChapterId])
 
@@ -215,9 +221,15 @@ export const ContentLessonsPage: React.FC = () => {
     setTimeout(() => setToastMessage(null), 3000)
   }
 
-  const loadData = useCallback(async () => {
+  // Unified Request ID reference to protect against race conditions and stale responses
+  const requestIdRef = React.useRef(0)
+
+  // Single consistent data loading mechanism
+  const loadData = useCallback(async (isCancelled?: () => boolean) => {
+    const currentRequestId = ++requestIdRef.current
     setLoading(true)
     setLoadError(null)
+
     try {
       const [subjList, chList, lList] = await Promise.all([
         educationService.getSubjects(),
@@ -229,49 +241,31 @@ export const ContentLessonsPage: React.FC = () => {
           search,
         }),
       ])
+
+      // Ignore stale response if another fetch was initiated or effect cleaned up
+      if (currentRequestId !== requestIdRef.current || isCancelled?.()) return
+
       setSubjects(subjList)
       setChapters(chList)
       setLessons(lList)
     } catch (err: any) {
+      if (currentRequestId !== requestIdRef.current || isCancelled?.()) return
       setLoadError(err?.message || 'Không thể tải danh sách bài học.')
     } finally {
-      setLoading(false)
+      if (currentRequestId === requestIdRef.current && !isCancelled?.()) {
+        setLoading(false)
+      }
     }
   }, [subjectFilter, chapterFilter, statusFilter, search])
 
+  // Synchronize loading on filter/search changes
   useEffect(() => {
-    let active = true
-    setLoading(true)
-    setLoadError(null)
-
-    Promise.all([
-      educationService.getSubjects(),
-      educationService.getChapters(),
-      educationService.getLessons({
-        subjectId: subjectFilter,
-        chapterId: chapterFilter,
-        status: statusFilter,
-        search,
-      }),
-    ])
-      .then(([subjList, chList, lList]) => {
-        if (!active) return
-        setSubjects(subjList)
-        setChapters(chList)
-        setLessons(lList)
-      })
-      .catch((err: any) => {
-        if (!active) return
-        setLoadError(err?.message || 'Không thể tải danh sách bài học.')
-      })
-      .finally(() => {
-        if (active) setLoading(false)
-      })
-
+    let cancelled = false
+    loadData(() => cancelled)
     return () => {
-      active = false
+      cancelled = true
     }
-  }, [subjectFilter, chapterFilter, statusFilter, search])
+  }, [loadData])
 
   // Filter available chapters when form subject changes
   const availableChapters = chapters.filter(

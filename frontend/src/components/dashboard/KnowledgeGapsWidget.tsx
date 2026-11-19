@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { useKnowledgeGaps } from '@/hooks/useKnowledgeGaps'
-import { useAiChat } from '@/context/AiChatContext'
+import { useAiChat } from '@/context/useAiChat'
 import { learningContextService } from '@/services/learningContext.service'
 
 export const KnowledgeGapsWidget: React.FC = () => {

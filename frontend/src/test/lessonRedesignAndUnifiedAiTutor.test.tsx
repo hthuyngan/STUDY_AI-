@@ -1,8 +1,10 @@
+import { useEffect } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { LessonPage } from '@/pages/Lesson/LessonPage'
-import { AiChatProvider, useAiChat } from '@/context/AiChatContext'
+import { AiChatProvider } from '@/context/AiChatContext'
+import { useAiChat } from '@/context/useAiChat'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { MobileBottomNav } from '@/components/layout/MobileBottomNav'
 
@@ -195,7 +197,9 @@ describe('Redesigned Lesson Page & Context-Aware AI Tutor Suite', () => {
 
     function TestChatConsumer() {
       const { learningContext, isOpen, openChat } = useAiChat()
-      capturedContext = learningContext
+      useEffect(() => {
+        capturedContext = learningContext
+      }, [learningContext])
       return (
         <div>
           <div data-testid="chat-open-state">{isOpen ? 'OPEN' : 'CLOSED'}</div>

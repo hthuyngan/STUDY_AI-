@@ -48,6 +48,15 @@ public class FakeLlmProvider : ILlmProvider
             sb.AppendLine();
             sb.AppendLine("> *Ghi chú:* Thông tin trên được tổng hợp trực tiếp từ tài liệu bài học chính khóa.");
         }
+        else if (lower.Contains("cực trị") || lower.Contains("cuc tri"))
+        {
+            sb.AppendLine("### 📐 Hướng dẫn tìm cực trị:");
+            sb.AppendLine();
+            sb.AppendLine("Để tìm cực trị của hàm số, em thực hiện 3 bước trọng tâm:");
+            sb.AppendLine("1. Tìm tập xác định và tính đạo hàm $y' = f'(x)$.");
+            sb.AppendLine("2. Giải phương trình $y' = 0$ để tìm các điểm tới hạn.");
+            sb.AppendLine("3. Lập bảng biến thiên hoặc xét dấu đạo hàm để kết luận điểm cực đại, cực tiểu (cực trị).");
+        }
         else if (lower.Contains("đạo hàm") || lower.Contains("dao ham"))
         {
             sb.AppendLine("### 📐 Hướng dẫn tính Đạo hàm:");

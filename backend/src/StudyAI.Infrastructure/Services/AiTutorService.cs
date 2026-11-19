@@ -842,6 +842,16 @@ public class AiTutorService : IAiTutorService
         // SCENARIO 6: Hỏi cách giải từng bước (100-150 từ, tối đa 3 bước)
         if (lower.Contains("từng bước") || lower.Contains("cách giải") || lower.Contains("phương pháp giải") || lower.Contains("làm thế nào") || mode == "step-by-step")
         {
+            if (lower.Contains("cực trị"))
+            {
+                sb.AppendLine("Dưới đây là 3 bước trọng tâm để tìm cực trị của hàm số:");
+                sb.AppendLine("- Bước 1: Tìm tập xác định $D$ của hàm số.");
+                sb.AppendLine("- Bước 2: Tính đạo hàm $y' = f'(x)$, giải phương trình $y' = 0$ để tìm các nghiệm hoặc điểm tới hạn.");
+                sb.AppendLine("- Bước 3: Lập bảng biến thiên hoặc xét dấu $y''$ để kết luận điểm cực trị (cực đại, cực tiểu) của hàm số.");
+                sb.AppendLine("Em đã tính xong đạo hàm $y'$ chưa?");
+                return new LlmCompletionResponse(sb.ToString().Trim(), 120, 145);
+            }
+
             sb.AppendLine("Dưới đây là 3 bước trọng tâm để giải bài toán xét tính đơn điệu:");
             sb.AppendLine("- Bước 1: Tìm tập xác định $D$ của hàm số (chú ý mẫu số khác 0 hoặc biểu thức trong căn không âm).");
             sb.AppendLine("- Bước 2: Tính đạo hàm $y' = f'(x)$, giải phương trình $y' = 0$ để tìm các nghiệm thuộc $D$ hoặc các điểm làm $y'$ không xác định.");

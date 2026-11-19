@@ -1,6 +1,6 @@
 import React from 'react'
 import { Bot, Sparkles, X } from 'lucide-react'
-import { useAiChat } from '@/context/AiChatContext'
+import { useAiChat } from '@/context/useAiChat'
 
 export interface AiChatLauncherProps {
   className?: string

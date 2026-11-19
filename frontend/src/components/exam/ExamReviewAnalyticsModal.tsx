@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
-import { useAiChat } from '@/context/AiChatContext'
+import { useAiChat } from '@/context/useAiChat'
 import { learningAnalyticsService } from '@/services/learningAnalytics.service'
 import type { ExamReviewAnalytics } from '@/types/learningAnalytics'
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Activity,
   AlertTriangle,
@@ -48,36 +48,39 @@ export const AdminOperationsDashboard: React.FC = () => {
   const [contentSeverityFilter, setContentSeverityFilter] = useState<string>('all');
   const [costPeriodDays, setCostPeriodDays] = useState<number>(30);
 
-  const loadTabData = async (tab: TabKey) => {
-    try {
-      if (tab === 'health') {
-        const res = await adminOperationsService.getSystemHealth();
-        setHealthData(res);
-      } else if (tab === 'cost') {
-        const res = await adminOperationsService.getAiCostOptimization(costPeriodDays);
-        setCostData(res);
-      } else if (tab === 'content') {
-        const res = await adminOperationsService.getContentQualityAudit();
-        setContentData(res);
-      } else if (tab === 'consistency') {
-        const res = await adminOperationsService.getDataConsistencyReport();
-        setConsistencyData(res);
-      } else if (tab === 'benchmark') {
-        const res = await adminOperationsService.getLatestBenchmarkReport();
-        setBenchmarkData(res);
-      } else if (tab === 'logs') {
-        const res = await adminOperationsService.getStaffAuditLogs(undefined, undefined, 1, 25);
-        setAuditLogsData(res);
+  const loadTabData = useCallback(
+    async (tab: TabKey) => {
+      try {
+        if (tab === 'health') {
+          const res = await adminOperationsService.getSystemHealth();
+          setHealthData(res);
+        } else if (tab === 'cost') {
+          const res = await adminOperationsService.getAiCostOptimization(costPeriodDays);
+          setCostData(res);
+        } else if (tab === 'content') {
+          const res = await adminOperationsService.getContentQualityAudit();
+          setContentData(res);
+        } else if (tab === 'consistency') {
+          const res = await adminOperationsService.getDataConsistencyReport();
+          setConsistencyData(res);
+        } else if (tab === 'benchmark') {
+          const res = await adminOperationsService.getLatestBenchmarkReport();
+          setBenchmarkData(res);
+        } else if (tab === 'logs') {
+          const res = await adminOperationsService.getStaffAuditLogs(undefined, undefined, 1, 25);
+          setAuditLogsData(res);
+        }
+      } catch (err) {
+        console.error(`Error loading tab ${tab}:`, err);
       }
-    } catch (err) {
-      console.error(`Error loading tab ${tab}:`, err);
-    }
-  };
+    },
+    [costPeriodDays]
+  );
 
   useEffect(() => {
     setLoading(true);
     loadTabData(activeTab).finally(() => setLoading(false));
-  }, [activeTab]);
+  }, [activeTab, loadTabData]);
 
   const handleRefresh = async () => {
     setRefreshing(true);

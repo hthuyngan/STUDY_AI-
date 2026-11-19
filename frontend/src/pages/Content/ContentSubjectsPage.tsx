@@ -22,14 +22,13 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { PageErrorState } from '@/components/ui/PageErrorState'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { SubjectIconSvg, type SubjectIconType } from '@/components/subjects/SubjectIconSvg'
 import {
-  SubjectIconSvg,
   SUBJECT_ICON_OPTIONS,
   resolveSubjectIcon,
   extractDescriptionText,
   packDescriptionWithIcon,
-  type SubjectIconType,
-} from '@/components/subjects/SubjectIconSvg'
+} from '@/components/subjects/subjectIconUtils'
 import './ContentSubjectsPage.css'
 
 export const ContentSubjectsPage: React.FC = () => {

@@ -14,7 +14,7 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
-import { useAiChat } from '@/context/AiChatContext'
+import { useAiChat } from '@/context/useAiChat'
 import { learningAnalyticsService } from '@/services/learningAnalytics.service'
 import type {
   AiLearningReport,
@@ -39,22 +39,29 @@ export const IntelligentAnalyticsDashboard: React.FC<IntelligentAnalyticsDashboa
   const [loading, setLoading] = useState(true)
   const [timeframe, setTimeframe] = useState<'7d' | '30d' | 'all'>('all')
 
-  const fetchData = async () => {
-    setLoading(true)
-    try {
-      const [ovData, riskData] = await Promise.all([
-        learningAnalyticsService.getAnalyticsOverview(subjectId, timeframe),
-        learningAnalyticsService.getLearningRisks(subjectId),
-      ])
-      setOverview(ovData)
-      setRisks(riskData)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   useEffect(() => {
+    let active = true
+    const fetchData = async () => {
+      setLoading(true)
+      try {
+        const [ovData, riskData] = await Promise.all([
+          learningAnalyticsService.getAnalyticsOverview(subjectId, timeframe),
+          learningAnalyticsService.getLearningRisks(subjectId),
+        ])
+        if (active) {
+          setOverview(ovData)
+          setRisks(riskData)
+        }
+      } finally {
+        if (active) {
+          setLoading(false)
+        }
+      }
+    }
     fetchData()
+    return () => {
+      active = false
+    }
   }, [subjectId, timeframe])
 
   const handleOpenAiReport = async () => {

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { ArrowUp, Square } from 'lucide-react'
-import { useAiChat } from '@/context/AiChatContext'
+import { useAiChat } from '@/context/useAiChat'
 
 export interface AiChatInputProps {
   externalPrompt?: string

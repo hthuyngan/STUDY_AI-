@@ -2,7 +2,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { AiChatProvider } from '@/context/AiChatContext'
-import { FloatingAiChatbot, shouldShowFloatingChat } from '@/components/chat/FloatingAiChatbot'
+import { FloatingAiChatbot } from '@/components/chat/FloatingAiChatbot'
+import { shouldShowFloatingChat } from '@/components/chat/floatingChatUtils'
 
 vi.mock('@/services/aiTutor.service', () => ({
   aiTutorService: {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   ArrowRight,
   BookOpen,
@@ -36,11 +36,7 @@ export const SchedulePage: React.FC = () => {
   const [events, setEvents] = useState<UnifiedScheduleEvent[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    loadScheduleEvents()
-  }, [])
-
-  const loadScheduleEvents = async () => {
+  const loadScheduleEvents = useCallback(async () => {
     setLoading(true)
     try {
       const [assignments, reviewSummary] = await Promise.allSettled([
@@ -102,7 +98,11 @@ export const SchedulePage: React.FC = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    loadScheduleEvents()
+  }, [loadScheduleEvents])
 
   const filteredEvents = events.filter((e) => {
     if (activeTab === 'assignments') return e.type === 'assignment'

@@ -21,7 +21,7 @@ namespace StudyAI.IntegrationTests;
 public class StudyAIApiFixture : WebApplicationFactory<Program>
 {
     public const string DefaultTestConnectionString =
-        "Server=.\\SQLEXPRESS;Database=StudyAIDb_E2E;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True";
+        "Server=.\\SQLEXPRESS;Database=StudyAIDb_E2E;Trusted_Connection=True;TrustServerCertificate=True";
 
     /// <summary>
     /// Explicit override for testing the database safety guard.
@@ -77,6 +77,14 @@ public class StudyAIApiFixture : WebApplicationFactory<Program>
                 options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
                 options.AddInterceptors(new TestDatabaseSafetySaveChangesInterceptor());
             });
+
+            // Force deterministic FakeLlmProvider for all integration tests
+            var llmDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(ILlmProvider));
+            if (llmDescriptor != null)
+            {
+                services.Remove(llmDescriptor);
+            }
+            services.AddScoped<ILlmProvider, StudyAI.Infrastructure.Services.FakeLlmProvider>();
 
             // 3. Register SaveChanges Interceptor for defense-in-depth on all write operations
             services.AddSingleton<ISaveChangesInterceptor, TestDatabaseSafetySaveChangesInterceptor>();

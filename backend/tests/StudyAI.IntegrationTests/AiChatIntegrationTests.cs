@@ -226,7 +226,9 @@ public class AiChatIntegrationTests : IClassFixture<StudyAIApiFixture>
             Assert.NotNull(reply);
             Assert.Equal("user", reply.UserMessage.Role);
             Assert.Equal("assistant", reply.AssistantMessage.Role);
-            Assert.Contains("cực trị", reply.AssistantMessage.Content.ToLower());
+            Assert.False(string.IsNullOrWhiteSpace(reply.AssistantMessage.Content));
+            Assert.Contains("cực trị", reply.AssistantMessage.Content, StringComparison.OrdinalIgnoreCase);
+            Assert.NotEmpty(reply.SuggestedActions);
             Assert.NotEmpty(reply.SuggestedActions);
         }
 

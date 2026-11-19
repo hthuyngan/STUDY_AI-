@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Bot,
   HelpCircle,
@@ -37,16 +37,19 @@ export const LessonAITutorTab: React.FC<LessonAITutorTabProps> = ({
   const [isStreaming, setIsStreaming] = useState(false)
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
 
-  const learningContext: TutorLearningContext = {
-    source: 'lesson-section',
-    title: `Bài học: ${lessonTitle}`,
-    lessonId,
-    subjectId,
-    lessonTitle,
-    subjectName,
-    sectionTitle: chapterTitle,
-    returnUrl: `/subjects/${subjectId}/lessons/${lessonId}`,
-  }
+  const learningContext: TutorLearningContext = useMemo(
+    () => ({
+      source: 'lesson-section',
+      title: `Bài học: ${lessonTitle}`,
+      lessonId,
+      subjectId,
+      lessonTitle,
+      subjectName,
+      sectionTitle: chapterTitle,
+      returnUrl: `/subjects/${subjectId}/lessons/${lessonId}`,
+    }),
+    [lessonId, subjectId, lessonTitle, subjectName, chapterTitle]
+  )
 
   // Pre-configured pedagogical Socratic prompts for this lesson
   const quickPrompts = [
@@ -116,68 +119,71 @@ export const LessonAITutorTab: React.FC<LessonAITutorTabProps> = ({
     return () => {
       isMounted = false
     }
-  }, [lessonId])
+  }, [lessonId, subjectId, lessonTitle, subjectName, learningContext])
 
-  const handleSendMessage = async (textToSend?: string) => {
-    const text = (textToSend || inputValue).trim()
-    if (!text || isStreaming || !activeConversationId) return
+  const handleSendMessage = useCallback(
+    async (textToSend?: string) => {
+      const text = (textToSend || inputValue).trim()
+      if (!text || isStreaming || !activeConversationId) return
 
-    setInputValue('')
-    const userMsg: ChatMessage = {
-      id: `usr-${Date.now()}`,
-      role: 'user',
-      content: text,
-      createdAt: new Date().toISOString(),
-    }
+      setInputValue('')
+      const userMsg: ChatMessage = {
+        id: `usr-${Date.now()}`,
+        role: 'user',
+        content: text,
+        createdAt: new Date().toISOString(),
+      }
 
-    setMessages((prev) => [...prev, userMsg])
-    setIsStreaming(true)
+      setMessages((prev) => [...prev, userMsg])
+      setIsStreaming(true)
 
-    const assistantMsgId = `asst-${Date.now()}`
-    let streamedContent = ''
+      const assistantMsgId = `asst-${Date.now()}`
+      let streamedContent = ''
 
-    try {
-      await aiTutorService.sendMessageStream(
-        {
-          conversationId: activeConversationId,
-          message: text,
-          subject: subjectId,
-          learningContext,
-          mode: 'step-by-step',
-        },
-        (chunk: string) => {
-          streamedContent += chunk
-          setMessages((prev) => {
-            const last = prev[prev.length - 1]
-            if (last && last.id === assistantMsgId) {
-              return prev.map((m) => (m.id === assistantMsgId ? { ...m, content: streamedContent } : m))
-            }
-            return [
-              ...prev,
-              {
-                id: assistantMsgId,
-                role: 'assistant',
-                content: streamedContent,
-                createdAt: new Date().toISOString(),
-              },
-            ]
-          })
-        }
-      )
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: assistantMsgId,
-          role: 'assistant',
-          content: 'Xin lỗi, đã có lỗi kết nối với AI Tutor. Vui lòng thử lại sau ít giây.',
-          createdAt: new Date().toISOString(),
-        },
-      ])
-    } finally {
-      setIsStreaming(false)
-    }
-  }
+      try {
+        await aiTutorService.sendMessageStream(
+          {
+            conversationId: activeConversationId,
+            message: text,
+            subject: subjectId,
+            learningContext,
+            mode: 'step-by-step',
+          },
+          (chunk: string) => {
+            streamedContent += chunk
+            setMessages((prev) => {
+              const last = prev[prev.length - 1]
+              if (last && last.id === assistantMsgId) {
+                return prev.map((m) => (m.id === assistantMsgId ? { ...m, content: streamedContent } : m))
+              }
+              return [
+                ...prev,
+                {
+                  id: assistantMsgId,
+                  role: 'assistant',
+                  content: streamedContent,
+                  createdAt: new Date().toISOString(),
+                },
+              ]
+            })
+          }
+        )
+      } catch {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: assistantMsgId,
+            role: 'assistant',
+            content: 'Xin lỗi, đã có lỗi kết nối với AI Tutor. Vui lòng thử lại sau ít giây.',
+            createdAt: new Date().toISOString(),
+          },
+        ])
+      } finally {
+        setIsStreaming(false)
+      }
+    },
+    [inputValue, isStreaming, activeConversationId, subjectId, learningContext]
+  )
 
   const handleOpenFullscreenChat = () => {
     learningContextService.setContext(learningContext)

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { ContentChaptersPage } from './ContentChaptersPage'
 import { educationService } from '@/services/education.service'
@@ -135,8 +135,10 @@ describe('ContentChaptersPage — Evondev Vertical Card Stack & Management Suite
     fireEvent.change(statusSelect, { target: { value: 'inactive' } })
 
     // Only Chapter 2 (draft) should be displayed
-    expect(screen.getByText(/Chương 2: Hàm số lũy thừa/i)).toBeInTheDocument()
-    expect(screen.queryByText(/Chương 1: Ứng dụng đạo hàm/i)).not.toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText(/Chương 2: Hàm số lũy thừa/i)).toBeInTheDocument()
+      expect(screen.queryByText(/Chương 1: Ứng dụng đạo hàm/i)).not.toBeInTheDocument()
+    })
   })
 
   it('4. Opens Create Modal, validates title and creates new chapter', async () => {
@@ -149,19 +151,20 @@ describe('ContentChaptersPage — Evondev Vertical Card Stack & Management Suite
     )
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Thêm chương mới/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Thêm chương học' })).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /Thêm chương mới/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Thêm chương học' }))
 
-    expect(screen.getByRole('heading', { level: 2, name: /Thêm chương học mới/i })).toBeInTheDocument()
+    const modal = await screen.findByRole('dialog')
+    expect(within(modal).getByRole('heading', { level: 2, name: /Thêm chương học mới/i })).toBeInTheDocument()
 
     // Fill Title
-    const titleInput = screen.getByPlaceholderText(/Ví dụ: Chương 1: Ứng dụng đạo hàm/i)
+    const titleInput = within(modal).getByPlaceholderText(/Ví dụ: Chương 1: Ứng dụng đạo hàm/i)
     fireEvent.change(titleInput, { target: { value: 'Chương 3: Nguyên hàm và Tích phân' } })
 
     // Submit
-    const submitBtn = screen.getByRole('button', { name: /Thêm chương học/i })
+    const submitBtn = within(modal).getByRole('button', { name: /Thêm chương học/i })
     fireEvent.click(submitBtn)
 
     await waitFor(() => {

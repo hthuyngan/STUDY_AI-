@@ -16,7 +16,7 @@ import { Breadcrumb } from '@/components/ui/Breadcrumb'
 import { Button } from '@/components/ui/Button'
 import { PageErrorState } from '@/components/ui/PageErrorState'
 import { Skeleton } from '@/components/ui/Skeleton'
-import { useAiChat } from '@/context/AiChatContext'
+import { useAiChat } from '@/context/useAiChat'
 import { curriculumService } from '@/services/curriculum.service'
 import { useLesson } from '@/hooks/useLesson'
 import { useLessonAssessment } from '@/hooks/useLessonAssessment'
@@ -77,7 +77,7 @@ export function LessonPage() {
     }
     setLearningContext(context)
     learningContextService.setContext(context)
-  }, [lesson?.id, lesson?.title, lesson?.chapterTitle, resolvedSubjectId, location.pathname, setLearningContext])
+  }, [lesson, resolvedSubjectId, location.pathname, setLearningContext])
 
   // Track progress (70% video + 30% assessment)
   const {

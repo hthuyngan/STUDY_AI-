@@ -1,6 +1,6 @@
 import React from 'react'
 import { Bot, Minimize2, Plus, Sparkles, X } from 'lucide-react'
-import { useAiChat } from '@/context/AiChatContext'
+import { useAiChat } from '@/context/useAiChat'
 
 export interface AiChatHeaderProps {
   onClose: () => void

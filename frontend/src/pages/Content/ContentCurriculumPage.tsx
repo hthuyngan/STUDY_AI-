@@ -26,35 +26,54 @@ export function ContentCurriculumPage() {
     async function loadSubjectAndChapters() {
       try {
         let currentSubject: CurriculumSubjectItem | undefined
-        let targetSubjectId = routeSubjectId
+        const targetSubjectId = routeSubjectId
 
         if (targetSubjectId) {
-          currentSubject = await educationService.getSubjectById(targetSubjectId)
-        }
+          try {
+            currentSubject = await educationService.getSubjectById(targetSubjectId)
+          } catch {
+            currentSubject = undefined
+          }
 
-        if (!currentSubject) {
+          if (!currentSubject) {
+            const allSubjects = await educationService.getSubjects()
+            currentSubject = allSubjects.find(
+              (s) => s.id === targetSubjectId || s.code.toLowerCase() === targetSubjectId.toLowerCase()
+            )
+          }
+
+          if (!active) return
+
+          // If a specific targetSubjectId was requested but not found, DO NOT fallback to allSubjects[0]!
+          if (!currentSubject) {
+            setSubject(null)
+            setChapters([])
+            setSelectedChapterId(null)
+            setLessons([])
+            setError(`Không tìm thấy môn học với mã hoặc ID "${targetSubjectId}".`)
+            return
+          }
+        } else {
+          // If no routeSubjectId at all was provided, load all subjects and select first
           const allSubjects = await educationService.getSubjects()
+          if (!active) return
           if (allSubjects.length > 0) {
-            const queryId = targetSubjectId
-            currentSubject = queryId
-              ? allSubjects.find((s) => s.id === queryId || s.code.toLowerCase() === queryId.toLowerCase())
-              : allSubjects[0]
-            if (!currentSubject) currentSubject = allSubjects[0]
-            targetSubjectId = currentSubject.id
+            currentSubject = allSubjects[0]
+          } else {
+            setSubject(null)
+            setChapters([])
+            setSelectedChapterId(null)
+            setLessons([])
+            setError('Chưa có môn học nào trong hệ thống.')
+            return
           }
         }
 
         if (!active) return
 
-        if (!currentSubject || !targetSubjectId) {
-          setError('Không tìm thấy thông tin môn học.')
-          setLoading(false)
-          return
-        }
-
         setSubject(currentSubject)
 
-        const chs = await educationService.getChapters(targetSubjectId)
+        const chs = await educationService.getChapters(currentSubject.id)
         if (!active) return
 
         setChapters(chs)
@@ -66,6 +85,10 @@ export function ContentCurriculumPage() {
         }
       } catch (err: any) {
         if (!active) return
+        setSubject(null)
+        setChapters([])
+        setSelectedChapterId(null)
+        setLessons([])
         setError(err?.message || 'Không thể tải cấu trúc giáo trình môn học.')
       } finally {
         if (active) setLoading(false)
@@ -113,7 +136,7 @@ export function ContentCurriculumPage() {
   }, [selectedChapterId, subject?.id, routeSubjectId])
 
   const selectedChapter = chapters.find((c) => c.id === selectedChapterId)
-  const effectiveSubjectId = subject?.id || routeSubjectId || 'math'
+  const effectiveSubjectId = subject?.id || routeSubjectId || ''
 
   return (
     <div className="staff-page" role="main" aria-label="Cấu trúc giáo trình môn học">
@@ -146,10 +169,16 @@ export function ContentCurriculumPage() {
             </p>
           </div>
           <div className="staff-page-actions" style={{ display: 'flex', gap: '8px' }}>
-            <Link to={`/content/chapters?subjectId=${effectiveSubjectId}`} className="staff-btn staff-btn-secondary">
+            <Link
+              to={effectiveSubjectId ? `/content/chapters?subjectId=${effectiveSubjectId}` : '/content/chapters'}
+              className="staff-btn staff-btn-secondary"
+            >
               Quản lý chương học
             </Link>
-            <Link to={`/content/lessons?subjectId=${effectiveSubjectId}`} className="staff-btn staff-btn-primary">
+            <Link
+              to={effectiveSubjectId ? `/content/lessons?subjectId=${effectiveSubjectId}` : '/content/lessons'}
+              className="staff-btn staff-btn-primary"
+            >
               Xem tất cả bài học
             </Link>
           </div>
@@ -159,17 +188,22 @@ export function ContentCurriculumPage() {
       {error ? (
         <div className="staff-card" style={{ padding: '32px', textAlign: 'center', border: '1px solid #fee2e2', background: '#fff5f5' }}>
           <AlertCircle size={36} color="#ef4444" style={{ margin: '0 auto 12px' }} />
-          <h3 style={{ color: '#991b1b', marginBottom: '8px' }}>Lỗi tải dữ liệu giáo trình</h3>
+          <h3 style={{ color: '#991b1b', marginBottom: '8px' }}>Không tìm thấy môn học</h3>
           <p style={{ color: '#7f1d1d', fontSize: '14px', marginBottom: '16px' }}>{error}</p>
-          <button
-            type="button"
-            className="staff-btn staff-btn-primary"
-            onClick={() => window.location.reload()}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-          >
-            <RefreshCw size={14} />
-            <span>Thử lại</span>
-          </button>
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+            <Link to="/content/subjects" className="staff-btn staff-btn-primary">
+              Quay lại danh sách môn học
+            </Link>
+            <button
+              type="button"
+              className="staff-btn staff-btn-secondary"
+              onClick={() => window.location.reload()}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              <RefreshCw size={14} />
+              <span>Thử lại</span>
+            </button>
+          </div>
         </div>
       ) : loading ? (
         <div className="content-two-column">
@@ -193,7 +227,7 @@ export function ContentCurriculumPage() {
                 Các chương ({chapters.length})
               </h2>
               <Link
-                to={`/content/chapters?subjectId=${effectiveSubjectId}`}
+                to={effectiveSubjectId ? `/content/chapters?subjectId=${effectiveSubjectId}` : '/content/chapters'}
                 className="staff-btn staff-btn-secondary"
                 style={{ fontSize: '12px', padding: '4px 8px' }}
               >
@@ -205,7 +239,7 @@ export function ContentCurriculumPage() {
               <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', fontSize: '14px' }}>
                 <p>Môn học này chưa có chương nào.</p>
                 <Link
-                  to={`/content/chapters?subjectId=${effectiveSubjectId}`}
+                  to={effectiveSubjectId ? `/content/chapters?subjectId=${effectiveSubjectId}` : '/content/chapters'}
                   className="staff-btn staff-btn-primary"
                   style={{ display: 'inline-block', marginTop: '8px', fontSize: '13px' }}
                 >
@@ -249,7 +283,11 @@ export function ContentCurriculumPage() {
                 </span>
               </div>
               <Link
-                to={`/content/lessons?subjectId=${effectiveSubjectId}&chapterId=${selectedChapterId || ''}`}
+                to={
+                  effectiveSubjectId
+                    ? `/content/lessons?subjectId=${effectiveSubjectId}&chapterId=${selectedChapterId || ''}`
+                    : '/content/lessons'
+                }
                 className="staff-btn staff-btn-primary"
                 style={{ fontSize: '13px', padding: '6px 12px' }}
               >
@@ -269,7 +307,11 @@ export function ContentCurriculumPage() {
                 <p>Chưa có bài học nào trong chương này.</p>
                 {selectedChapter && (
                   <Link
-                    to={`/content/lessons?subjectId=${effectiveSubjectId}&chapterId=${selectedChapter.id}`}
+                    to={
+                      effectiveSubjectId
+                        ? `/content/lessons?subjectId=${effectiveSubjectId}&chapterId=${selectedChapter.id}`
+                        : '/content/lessons'
+                    }
                     className="staff-btn staff-btn-secondary"
                     style={{ display: 'inline-block', marginTop: '8px', fontSize: '12px' }}
                   >
@@ -321,7 +363,11 @@ export function ContentCurriculumPage() {
                         </td>
                         <td>
                           <Link
-                            to={`/content/lessons?subjectId=${effectiveSubjectId}&chapterId=${l.chapterId}&search=${encodeURIComponent(l.title)}`}
+                            to={
+                              effectiveSubjectId
+                                ? `/content/lessons?subjectId=${effectiveSubjectId}&chapterId=${l.chapterId}&search=${encodeURIComponent(l.title)}`
+                                : `/content/lessons?chapterId=${l.chapterId}&search=${encodeURIComponent(l.title)}`
+                            }
                             className="staff-btn staff-btn-secondary"
                             style={{ fontSize: '12px', padding: '4px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                           >

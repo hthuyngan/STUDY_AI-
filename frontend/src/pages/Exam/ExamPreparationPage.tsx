@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   Calendar,
   Clock,
@@ -40,6 +40,20 @@ export const ExamPreparationPage: React.FC = () => {
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [selectedAnalyticsSessionId, setSelectedAnalyticsSessionId] = useState<string | null>(null)
 
+  const loadExamHistory = useCallback(async () => {
+    setLoadingHistory(true)
+    try {
+      const allHistory = await practiceService.getHistory()
+      // Filter for exam sessions or recent submissions
+      const exams = allHistory.filter((item) => (item as any).mode === 'exam' || item.maxPoints >= 10)
+      setExamHistory(exams.length > 0 ? exams : allHistory)
+    } catch {
+      setExamHistory([])
+    } finally {
+      setLoadingHistory(false)
+    }
+  }, [])
+
   useEffect(() => {
     const tabParam = searchParams.get('tab')
     if (tabParam === 'history') {
@@ -53,21 +67,7 @@ export const ExamPreparationPage: React.FC = () => {
     if (activeTab === 'history') {
       loadExamHistory()
     }
-  }, [activeTab, selectedSubject])
-
-  const loadExamHistory = async () => {
-    setLoadingHistory(true)
-    try {
-      const allHistory = await practiceService.getHistory()
-      // Filter for exam sessions or recent submissions
-      const exams = allHistory.filter((item) => (item as any).mode === 'exam' || item.maxPoints >= 10)
-      setExamHistory(exams.length > 0 ? exams : allHistory)
-    } catch {
-      setExamHistory([])
-    } finally {
-      setLoadingHistory(false)
-    }
-  }
+  }, [activeTab, selectedSubject, loadExamHistory])
 
   const handleStartExam = async (blueprintId: string) => {
     try {

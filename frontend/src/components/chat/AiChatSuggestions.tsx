@@ -1,6 +1,6 @@
 import React from 'react'
 import { BookOpen, HelpCircle, Lightbulb, Play, Sparkles, Target } from 'lucide-react'
-import { useAiChat } from '@/context/AiChatContext'
+import { useAiChat } from '@/context/useAiChat'
 
 export interface AiChatSuggestionsProps {
   onSelectPrompt: (prompt: string) => void

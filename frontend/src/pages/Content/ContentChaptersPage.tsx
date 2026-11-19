@@ -74,15 +74,15 @@ export const ContentChaptersPage: React.FC = () => {
       setChapters(chList)
 
       // Sync form subject ID
-      if (subjList.length > 0 && !formSubjectId) {
-        setFormSubjectId(selectedSubjectId !== 'all' ? selectedSubjectId : subjList[0].id)
+      if (subjList.length > 0) {
+        setFormSubjectId((prev) => prev || (selectedSubjectId !== 'all' ? selectedSubjectId : subjList[0].id))
       }
     } catch {
       showToast('Lỗi khi tải danh sách chương học.')
     } finally {
       setLoading(false)
     }
-  }, [selectedSubjectId, formSubjectId])
+  }, [selectedSubjectId])
 
   useEffect(() => {
     loadData()

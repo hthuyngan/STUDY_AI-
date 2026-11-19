@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
-import { useAiChat } from '@/context/AiChatContext'
+import { useAiChat } from '@/context/useAiChat'
 import { learningContextService } from '@/services/learningContext.service'
 import type { PersonalizationOverview } from '@/services/personalization.service'
 import type {

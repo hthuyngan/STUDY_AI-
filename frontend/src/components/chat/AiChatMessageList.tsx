@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react'
 import { AlertCircle } from 'lucide-react'
-import { useAiChat } from '@/context/AiChatContext'
+import { useAiChat } from '@/context/useAiChat'
 import { AiChatMessageItem } from './AiChatMessageItem'
 import { AiChatSuggestions } from './AiChatSuggestions'
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Bot, Maximize2, Sparkles, X } from 'lucide-react'
-import { useAiChat } from '@/context/AiChatContext'
+import { useAiChat } from '@/context/useAiChat'
 import { AiChatHeader } from './AiChatHeader'
 import { AiChatMessageList } from './AiChatMessageList'
 import { AiChatInput } from './AiChatInput'
