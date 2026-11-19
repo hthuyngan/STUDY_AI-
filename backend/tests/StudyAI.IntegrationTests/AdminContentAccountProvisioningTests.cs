@@ -137,38 +137,82 @@ public class AdminContentAccountProvisioningTests : IClassFixture<StudyAIApiFixt
         Assert.Equal(HttpStatusCode.OK, contentResp.StatusCode);
     }
 
+    private async Task<(ContentSubject Subject, ContentChapter Chapter, ContentLesson Lesson)> CreateIsolatedLessonFixtureAsync(
+        string lessonPrefix,
+        string lessonTitle,
+        string lessonIntroduction,
+        string lessonStatus = "draft")
+    {
+        await EnsureProvisionedAccountsExistAsync();
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+        var contentUser = await db.Users.FirstAsync(u => u.EmailNormalized == "CONTENT@GMAIL.COM");
+
+        string uniqueSuffix = Guid.NewGuid().ToString("N");
+        string subjectId = $"sub_fix_{uniqueSuffix}"[..32];
+        string subjectCode = $"S_{uniqueSuffix}"[..20];
+        string chapterId = $"chp_fix_{uniqueSuffix}"[..32];
+        string lessonId = $"{lessonPrefix}_{uniqueSuffix}"[..32];
+        string lessonSlug = $"slug-{uniqueSuffix}"[..32];
+
+        var subject = new ContentSubject
+        {
+            Id = subjectId,
+            Name = $"Môn học thử nghiệm {uniqueSuffix[..8]}",
+            Code = subjectCode,
+            Grade = "12",
+            OrderIndex = 1,
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        var chapter = new ContentChapter
+        {
+            Id = chapterId,
+            SubjectId = subjectId,
+            Title = $"Chương học thử nghiệm {uniqueSuffix[..8]}",
+            OrderIndex = 1,
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        var lesson = new ContentLesson
+        {
+            Id = lessonId,
+            ChapterId = chapterId,
+            Title = lessonTitle,
+            Slug = lessonSlug,
+            Status = lessonStatus,
+            AuthorId = contentUser.Id,
+            Introduction = lessonIntroduction,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        db.ContentSubjects.Add(subject);
+        db.ContentChapters.Add(chapter);
+        db.ContentLessons.Add(lesson);
+        await db.SaveChangesAsync();
+
+        return (subject, chapter, lesson);
+    }
+
     [Fact]
     public async Task ContentRole_IsFinalApprover_CanApprovePublishUnpublishWithoutAdminApproval()
     {
         await EnsureProvisionedAccountsExistAsync();
         var contentToken = await LoginAsync("content@gmail.com", _contentPassword);
 
-        // Seed a test lesson in draft status
-        string lessonId = $"les_test_{Guid.NewGuid():N}";
-        using (var scope = _factory.Services.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
-            var contentUser = await db.Users.FirstAsync(u => u.EmailNormalized == "CONTENT@GMAIL.COM");
-            var sub = await db.ContentSubjects.Include(s => s.Chapters).FirstOrDefaultAsync();
-            Assert.NotNull(sub);
-            var ch = sub.Chapters.FirstOrDefault();
-            Assert.NotNull(ch);
-
-            var lesson = new ContentLesson
-            {
-                Id = lessonId,
-                ChapterId = ch.Id,
-                Title = "Bài học thử nghiệm phân quyền Content",
-                Slug = $"bai-hoc-thu-nghiem-{Guid.NewGuid():N}",
-                Status = "draft",
-                AuthorId = contentUser.Id,
-                Introduction = "Giới thiệu bài học kiểm thử quyền Content",
-                CreatedAt = DateTimeOffset.UtcNow,
-                UpdatedAt = DateTimeOffset.UtcNow
-            };
-            db.ContentLessons.Add(lesson);
-            await db.SaveChangesAsync();
-        }
+        // Seed an isolated test lesson in draft status
+        var (_, _, lesson) = await CreateIsolatedLessonFixtureAsync(
+            lessonPrefix: "les_test",
+            lessonTitle: "Bài học thử nghiệm phân quyền Content",
+            lessonIntroduction: "Giới thiệu bài học kiểm thử quyền Content",
+            lessonStatus: "draft");
+        string lessonId = lesson.Id;
 
         // Content role can directly approve and publish the lesson
         using var approveReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lessonId}/approve");
@@ -273,6 +317,41 @@ public class AdminContentAccountProvisioningTests : IClassFixture<StudyAIApiFixt
         importReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
         var importResp = await _client.SendAsync(importReq);
         Assert.Equal(HttpStatusCode.Forbidden, importResp.StatusCode);
+
+        // 2. Create learner account
+        string learnerEmail = $"learner_{Guid.NewGuid():N}@studyai.internal";
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+            db.Users.Add(new User
+            {
+                Id = $"usr_lrn_{Guid.NewGuid():N}"[..16],
+                Email = learnerEmail,
+                EmailNormalized = learnerEmail.ToUpperInvariant(),
+                PasswordHash = passwordHasher.HashPassword("Learner@123"),
+                DisplayName = "Học sinh",
+                Role = "learner",
+                Status = "active",
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            });
+            await db.SaveChangesAsync();
+        }
+
+        var learnerToken = await LoginAsync(learnerEmail, "Learner@123");
+
+        // Learner cannot approve content
+        using var learnerApproveReq = new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/lessons/any-id/approve");
+        learnerApproveReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", learnerToken);
+        var learnerApproveResp = await _client.SendAsync(learnerApproveReq);
+        Assert.Equal(HttpStatusCode.Forbidden, learnerApproveResp.StatusCode);
+
+        // Learner cannot access curriculum import
+        using var learnerImportReq = new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/import/preview");
+        learnerImportReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", learnerToken);
+        var learnerImportResp = await _client.SendAsync(learnerImportReq);
+        Assert.Equal(HttpStatusCode.Forbidden, learnerImportResp.StatusCode);
     }
 
     [Fact]
@@ -281,30 +360,13 @@ public class AdminContentAccountProvisioningTests : IClassFixture<StudyAIApiFixt
         await EnsureProvisionedAccountsExistAsync();
         var contentToken = await LoginAsync("content@gmail.com", _contentPassword);
 
-        // Seed a VNHSGE lesson
-        string lessonId = $"les_vnh_{Guid.NewGuid():N}";
-        using (var scope = _factory.Services.CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
-            var contentUser = await db.Users.FirstAsync(u => u.EmailNormalized == "CONTENT@GMAIL.COM");
-            var sub = await db.ContentSubjects.Include(s => s.Chapters).FirstOrDefaultAsync();
-            var ch = sub!.Chapters.First();
-
-            var lesson = new ContentLesson
-            {
-                Id = lessonId,
-                ChapterId = ch.Id,
-                Title = "Đề thi thử tốt nghiệp THPT VNHSGE 2023",
-                Slug = $"vnhsge-exam-{Guid.NewGuid():N}",
-                Status = "draft",
-                AuthorId = contentUser.Id,
-                Introduction = "Dữ liệu khảo cứu VNHSGE (arXiv:2305.12199)",
-                CreatedAt = DateTimeOffset.UtcNow,
-                UpdatedAt = DateTimeOffset.UtcNow
-            };
-            db.ContentLessons.Add(lesson);
-            await db.SaveChangesAsync();
-        }
+        // Seed an isolated VNHSGE lesson
+        var (_, _, lesson) = await CreateIsolatedLessonFixtureAsync(
+            lessonPrefix: "les_vnh",
+            lessonTitle: "Đề thi thử tốt nghiệp THPT VNHSGE 2023",
+            lessonIntroduction: "Dữ liệu khảo cứu VNHSGE (arXiv:2305.12199)",
+            lessonStatus: "draft");
+        string lessonId = lesson.Id;
 
         // Attempting to publish VNHSGE content without rights must be rejected by backend
         using var publishReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lessonId}/publish");
