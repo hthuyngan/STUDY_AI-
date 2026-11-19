@@ -208,7 +208,7 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("admin"));
-    options.AddPolicy("StaffOnly", policy => policy.RequireRole("admin", "teacher", "content", "support"));
+    options.AddPolicy("StaffOnly", policy => policy.RequireRole("admin", "teacher", "content"));
     options.AddPolicy("ContentStaff", policy => policy.RequireRole("admin", "content"));
 });
 
@@ -272,7 +272,7 @@ builder.Services.AddOpenApi("v1", options =>
             Contact = new OpenApiContact
             {
                 Name = "STUDY_AI Engineering Team",
-                Email = "support@studyai.internal"
+                Email = "engineering@studyai.internal"
             }
         };
 

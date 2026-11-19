@@ -99,7 +99,7 @@ export const AdminSettingsPage: React.FC = () => {
   const handleResetAllData = () => {
     if (
       window.confirm(
-        'CẢNH BÁO: Thao tác này sẽ xóa toàn bộ dữ liệu demo (phê duyệt, bài nộp, ticket, thông báo) đã lưu trong localStorage và đưa hệ thống về trạng thái ban đầu. Bạn có chắc chắn?'
+        'CẢNH BÁO: Thao tác này sẽ xóa toàn bộ dữ liệu demo (phê duyệt, bài nộp, thông báo) đã lưu trong localStorage và đưa hệ thống về trạng thái ban đầu. Bạn có chắc chắn?'
       )
     ) {
       operationsService.resetAllDemoData()
@@ -335,7 +335,7 @@ export const AdminSettingsPage: React.FC = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#f8fafc', borderRadius: 6, marginBottom: 14 }}>
             <div>
               <div style={{ fontWeight: 600, color: '#102a43', fontSize: '0.9rem' }}>Dung lượng dữ liệu demo hiện tại:</div>
-              <div style={{ fontSize: '0.8rem', color: '#627d98' }}>Lưu trữ các lớp học, học viên, bài tập, ticket và phê duyệt</div>
+              <div style={{ fontSize: '0.8rem', color: '#627d98' }}>Lưu trữ các lớp học, học viên, bài tập và phê duyệt</div>
             </div>
             <strong style={{ fontSize: '1.1rem', color: '#0284c7' }}>{storageUsage}</strong>
           </div>

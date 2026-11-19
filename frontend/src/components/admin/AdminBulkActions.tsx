@@ -153,21 +153,6 @@ export const AdminBulkActions: React.FC<AdminBulkActionsProps> = ({
                 >
                   Nội dung (Content)
                 </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    setShowRoleMenu(false)
-                    setConfirmDialog({
-                      isOpen: true,
-                      title: `Đổi vai trò sang Hỗ trợ cho ${selectedCount} tài khoản?`,
-                      description: 'Phân quyền giải quyết ticket hỗ trợ sẽ được áp dụng.',
-                      action: async () => onBulkRoleChange('support'),
-                    })
-                  }}
-                >
-                  Hỗ trợ (Support)
-                </button>
               </div>
             )}
           </div>

@@ -56,7 +56,6 @@ describe('Admin Workspace V2 UI Tests', () => {
       expect(screen.getByRole('link', { name: /Truy cập Quản lý người dùng/i })).toHaveAttribute('href', '/admin/users')
       expect(screen.getByRole('link', { name: /Truy cập Quản lý giáo trình/i })).toHaveAttribute('href', '/content')
       expect(screen.getByRole('link', { name: /Truy cập Không gian giáo viên/i })).toHaveAttribute('href', '/teacher')
-      expect(screen.getByRole('link', { name: /Truy cập Trung tâm hỗ trợ/i })).toHaveAttribute('href', '/support')
     })
 
     it('opens and closes the report modal when clicking "Xem báo cáo"', async () => {

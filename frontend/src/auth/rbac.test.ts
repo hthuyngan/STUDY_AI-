@@ -15,7 +15,6 @@ describe('RBAC Foundation & Permissions', () => {
     expect(getDefaultRouteForRole('learner')).toBe('/dashboard')
     expect(getDefaultRouteForRole('teacher')).toBe('/teacher')
     expect(getDefaultRouteForRole('content')).toBe('/content')
-    expect(getDefaultRouteForRole('support')).toBe('/support')
     expect(getDefaultRouteForRole('admin')).toBe('/admin')
   })
 
@@ -62,7 +61,6 @@ describe('RBAC Foundation & Permissions', () => {
     expect(hasPermission('teacher', 'view_student_progress')).toBe(true)
     expect(hasPermission('teacher', 'manage_users')).toBe(false)
     expect(hasPermission('teacher', 'publish_content')).toBe(false)
-    expect(hasPermission('teacher', 'manage_support_tickets')).toBe(false)
 
     // Content has editorial permissions
     expect(hasPermission('content', 'manage_content')).toBe(true)
@@ -70,12 +68,6 @@ describe('RBAC Foundation & Permissions', () => {
     expect(hasPermission('content', 'publish_content')).toBe(true)
     expect(hasPermission('content', 'manage_users')).toBe(false)
     expect(hasPermission('content', 'manage_assignments')).toBe(false)
-
-    // Support has ticket and user support profile permissions
-    expect(hasPermission('support', 'manage_support_tickets')).toBe(true)
-    expect(hasPermission('support', 'view_user_support_profile')).toBe(true)
-    expect(hasPermission('support', 'manage_roles')).toBe(false)
-    expect(hasPermission('support', 'publish_content')).toBe(false)
 
     // Admin has system and management permissions
     expect(hasPermission('admin', 'manage_users')).toBe(true)
@@ -87,8 +79,8 @@ describe('RBAC Foundation & Permissions', () => {
   it('verifies hasAnyPermission utility', () => {
     expect(hasAnyPermission('teacher', ['manage_users', 'view_classes'])).toBe(true)
     expect(hasAnyPermission('teacher', ['manage_users', 'manage_roles'])).toBe(false)
-    expect(hasAnyPermission('support', ['manage_support_tickets'])).toBe(true)
-    expect(hasAnyPermission('learner', ['manage_support_tickets', 'view_classes'])).toBe(false)
+    expect(hasAnyPermission('content', ['manage_content'])).toBe(true)
+    expect(hasAnyPermission('learner', ['manage_content', 'view_classes'])).toBe(false)
   })
 
   it('verifies hasRole utility', () => {
@@ -98,7 +90,7 @@ describe('RBAC Foundation & Permissions', () => {
   })
 
   it('generates isolated navigation per workspace without mixing learner curriculum', () => {
-    const roles: UserRole[] = ['admin', 'teacher', 'content', 'support']
+    const roles: UserRole[] = ['admin', 'teacher', 'content']
 
     for (const r of roles) {
       const nav = getWorkspaceNavigation(r)
@@ -123,11 +115,6 @@ describe('RBAC Foundation & Permissions', () => {
     const contentNav = getWorkspaceNavigation('content')
     expect(contentNav[0].items[0].path).toBe('/content')
     expect(contentNav.some((g) => g.items.some((i) => i.path === '/content/subjects'))).toBe(true)
-
-    // Support nav paths start with /support
-    const supportNav = getWorkspaceNavigation('support')
-    expect(supportNav[0].items[0].path).toBe('/support')
-    expect(supportNav.some((g) => g.items.some((i) => i.path === '/support/tickets'))).toBe(true)
   })
 })
 

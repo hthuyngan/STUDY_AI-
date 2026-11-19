@@ -48,12 +48,6 @@ export const AdminSystemPage: React.FC = () => {
       features: ['Biên soạn bài học', 'Công thức LaTeX', 'Hàng đợi duyệt'],
     },
     {
-      name: 'Trung tâm hỗ trợ (Support Workspace)',
-      route: '/support',
-      status: 'Sẵn sàng trải nghiệm',
-      features: ['Ticket khiếu nại', 'Tra cứu người dùng', 'Trạng thái sync'],
-    },
-    {
       name: 'Quản trị hệ thống (Admin Workspace V2)',
       route: '/admin',
       status: 'Đã hoàn thiện V2',

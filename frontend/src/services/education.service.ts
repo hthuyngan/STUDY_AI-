@@ -1087,43 +1087,16 @@ export const educationService = {
     if (getAccessToken()) {
       try {
         const queryParams = new URLSearchParams()
-        queryParams.set('role', 'teacher')
         if (filter?.search?.trim()) queryParams.set('search', filter.search.trim())
         if (filter?.status && filter.status !== 'all') queryParams.set('status', filter.status)
+        if (filter?.subject && filter.subject !== 'all') queryParams.set('subject', filter.subject)
 
-        const res = await apiClient.get<{
-          items: Array<{
-            id: string
-            displayName?: string
-            email: string
-            role: string
-            status: string
-            createdAt: string
-            grade?: string
-            phoneNumber?: string
-          }>
-          total: number
-        }>(`/api/v1/admin/users?${queryParams.toString()}`)
-
-        if (res?.items && Array.isArray(res.items)) {
-          return res.items.map((u) => ({
-            id: u.id,
-            name: u.displayName || u.email.split('@')[0],
-            email: u.email,
-            phone: u.phoneNumber || '0901 234 567',
-            subject: u.grade ? `Toán học ${u.grade}` : 'Toán học 12',
-            classes: ['12A1'],
-            studentCount: 35,
-            status: (u.status === 'active' ? 'active' : u.status === 'disabled' ? 'inactive' : 'pending') as 'active' | 'pending' | 'inactive',
-            joinedAt: u.createdAt,
-            rating: 5.0,
-            qualifications: 'Cử nhân Sư phạm',
-            experienceYears: 3,
-            bio: 'Giáo viên bộ môn tâm huyết với học sinh.',
-            accountStatus: (u.status === 'active' ? 'ACTIVE' : u.status === 'disabled' ? 'LOCKED' : 'PENDING') as 'ACTIVE' | 'PENDING' | 'LOCKED',
-          }))
+        const res = await apiClient.get<AdminTeacherItem[]>(`/api/v1/admin/teachers?${queryParams.toString()}`)
+        if (Array.isArray(res)) {
+          return res
         }
-      } catch {
+      } catch (err: any) {
+        if (err?.status === 401 || err?.status === 403) throw err
         // Fallback to storage in demo mode or if user has insufficient permissions
       }
     }
@@ -1164,44 +1137,12 @@ export const educationService = {
   }): Promise<AdminTeacherItem & { _persistedLocally?: boolean }> {
     if (getAccessToken()) {
       try {
-        const created = await apiClient.post<{
-          user: {
-            id: string
-            displayName?: string
-            email: string
-            role: string
-            status: string
-            createdAt: string
-          }
-        }>('/api/v1/admin/users', {
-          email: data.email.trim(),
-          displayName: data.name.trim(),
-          role: 'teacher',
-          grade: data.subject.replace(/[^0-9]/g, '') || '12',
-        })
-
-        if (created?.user) {
-          const u = created.user
-          return {
-            id: u.id,
-            name: u.displayName || data.name,
-            email: u.email,
-            phone: data.phone || '0901 234 567',
-            subject: data.subject,
-            classes: data.classes || ['12A1'],
-            studentCount: 35,
-            status: data.status || 'active',
-            joinedAt: u.createdAt || new Date().toISOString(),
-            rating: 5.0,
-            qualifications: data.qualifications || 'Cử nhân Sư phạm',
-            experienceYears: data.experienceYears || 3,
-            bio: data.bio || 'Giáo viên bộ môn tâm huyết với học sinh.',
-            accountStatus: 'ACTIVE',
-            _persistedLocally: false,
-          }
+        const res = await apiClient.post<AdminTeacherItem>('/api/v1/admin/teachers', data)
+        if (res?.id) {
+          return { ...res, _persistedLocally: false }
         }
-      } catch {
-        // Fall back to local storage
+      } catch (err: any) {
+        if (err?.status === 401 || err?.status === 403) throw err
       }
     }
 
@@ -1229,6 +1170,17 @@ export const educationService = {
   },
 
   async updateTeacher(id: string, updates: Partial<AdminTeacherItem>): Promise<AdminTeacherItem> {
+    if (getAccessToken()) {
+      try {
+        const res = await apiClient.patch<AdminTeacherItem>(`/api/v1/admin/teachers/${id}`, updates)
+        if (res?.id) {
+          return res
+        }
+      } catch (err: any) {
+        if (err?.status === 401 || err?.status === 403) throw err
+      }
+    }
+
     const teachers = readStorage<AdminTeacherItem[]>(STORAGE_KEYS.TEACHERS, INITIAL_TEACHERS)
     const idx = teachers.findIndex((t) => t.id === id)
     if (idx === -1) throw new Error(`Teacher with id ${id} not found`)
@@ -1250,6 +1202,15 @@ export const educationService = {
   },
 
   async deleteTeacher(id: string): Promise<boolean> {
+    if (getAccessToken()) {
+      try {
+        await apiClient.delete(`/api/v1/admin/teachers/${id}`)
+        return true
+      } catch (err: any) {
+        if (err?.status === 401 || err?.status === 403) throw err
+      }
+    }
+
     const teachers = readStorage<AdminTeacherItem[]>(STORAGE_KEYS.TEACHERS, INITIAL_TEACHERS)
     const filtered = teachers.filter((t) => t.id !== id)
     writeStorage(STORAGE_KEYS.TEACHERS, filtered)
@@ -1262,6 +1223,20 @@ export const educationService = {
     pendingOrLeave: number
     newTeachers: number
   }> {
+    if (getAccessToken()) {
+      try {
+        const res = await apiClient.get<{
+          totalTeachers: number
+          activeTeaching: number
+          pendingOrLeave: number
+          newTeachers: number
+        }>('/api/v1/admin/teachers/kpis')
+        if (res) return res
+      } catch (err: any) {
+        if (err?.status === 401 || err?.status === 403) throw err
+      }
+    }
+
     const teachers = readStorage<AdminTeacherItem[]>(STORAGE_KEYS.TEACHERS, INITIAL_TEACHERS)
     const totalTeachers = teachers.length
     const activeTeaching = teachers.filter((t) => t.status === 'active').length
@@ -1282,6 +1257,22 @@ export const educationService = {
     subjectId?: string
     classId?: string
   }): Promise<LearningReportsData> {
+    if (getAccessToken()) {
+      try {
+        const queryParams = new URLSearchParams()
+        if (filter?.timeframe) queryParams.set('timeframe', filter.timeframe)
+        if (filter?.subjectId) queryParams.set('subjectId', filter.subjectId)
+        if (filter?.classId) queryParams.set('classId', filter.classId)
+
+        const res = await apiClient.get<LearningReportsData>(`/api/v1/admin/reports?${queryParams.toString()}`)
+        if (res && res.totalLearners !== undefined) {
+          return res
+        }
+      } catch (err: any) {
+        if (err?.status === 401 || err?.status === 403) throw err
+      }
+    }
+
     // Return realistic analytics with filters applied
     const tf = filter?.timeframe || '30d'
     const days = tf === '7d' ? 7 : tf === 'term' ? 90 : 30

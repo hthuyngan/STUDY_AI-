@@ -6,7 +6,6 @@ import { AdminRoutes } from '@/routes/adminRoutes'
 import { classroomService } from '@/services/classroom.service'
 import { educationService } from '@/services/education.service'
 import { operationsService } from '@/services/operations.service'
-import { supportService } from '@/services/support.service'
 
 // Mock useAuth
 vi.mock('@/auth/useAuth', () => ({
@@ -30,11 +29,10 @@ describe('STUDY_AI Workspace Restructuring V6 Suite', () => {
   })
 
   describe('1. Workspace Navigation Configuration & Role Boundaries', () => {
-    it('defines distinct role configurations for admin, teacher, content, and support', () => {
+    it('defines distinct role configurations for admin, teacher, and content', () => {
       expect(WORKSPACE_CONFIGS.admin.basePath).toBe('/admin')
       expect(WORKSPACE_CONFIGS.teacher.basePath).toBe('/teacher')
       expect(WORKSPACE_CONFIGS.content.basePath).toBe('/content')
-      expect(WORKSPACE_CONFIGS.support.basePath).toBe('/support')
     })
 
     it('ensures Admin navigation has zero direct teaching or curriculum operational items', () => {
@@ -52,7 +50,7 @@ describe('STUDY_AI Workspace Restructuring V6 Suite', () => {
 
       // Admin has monitoring instead
       expect(allAdminPaths).toContain('/admin/content-monitor')
-      expect(allAdminPaths).toContain('/admin/support-monitor')
+      expect(allAdminPaths).not.toContain('/admin/support-monitor')
       expect(allAdminPaths).toContain('/admin/users')
       expect(allAdminPaths).toContain('/admin/roles')
       expect(allAdminPaths).toContain('/admin/teachers')
@@ -79,14 +77,6 @@ describe('STUDY_AI Workspace Restructuring V6 Suite', () => {
       expect(allTeacherPaths).toContain('/teacher/assignments')
       expect(allTeacherPaths).toContain('/teacher/grades')
       expect(allTeacherPaths).toContain('/teacher/alerts')
-    })
-
-    it('ensures Support navigation owns user support tickets', () => {
-      const supportGroups = WORKSPACE_CONFIGS.support.groups
-      const allSupportPaths = supportGroups.flatMap((g) => g.items.map((i) => i.path))
-
-      expect(allSupportPaths).toContain('/support/tickets')
-      expect(allSupportPaths).toContain('/support/users')
     })
   })
 
@@ -166,18 +156,18 @@ describe('STUDY_AI Workspace Restructuring V6 Suite', () => {
       })
     })
 
-    it('redirects /admin/tickets to /support/tickets', async () => {
+    it('redirects /admin/tickets to /admin', async () => {
       render(
         <MemoryRouter initialEntries={['/admin/tickets']}>
           <Routes>
             {AdminRoutes()}
-            <Route path="/support/tickets" element={<div>Destination Support Tickets</div>} />
+            <Route path="/admin" element={<div>Destination Admin Home</div>} />
           </Routes>
         </MemoryRouter>
       )
 
       await waitFor(() => {
-        expect(screen.getByText('Destination Support Tickets')).toBeInTheDocument()
+        expect(screen.getByText('Destination Admin Home')).toBeInTheDocument()
       })
     })
 
@@ -304,35 +294,6 @@ describe('STUDY_AI Workspace Restructuring V6 Suite', () => {
       })
       expect(screen.getByText(/tỷ lệ duyệt thành công/i)).toBeInTheDocument()
       expect(screen.getByRole('link', { name: /mở content workspace/i })).toHaveAttribute('href', '/content/review')
-    })
-
-    it('renders Admin Support Monitor with SLA metrics and workspace link', async () => {
-      render(
-        <MemoryRouter initialEntries={['/admin/support-monitor']}>
-          <Routes>
-            {AdminRoutes()}
-          </Routes>
-        </MemoryRouter>
-      )
-
-      expect(screen.getByRole('heading', { name: /giám sát & báo cáo vận hành hỗ trợ/i })).toBeInTheDocument()
-      await waitFor(() => {
-        expect(screen.getByText(/tổng số yêu cầu tiếp nhận/i)).toBeInTheDocument()
-      })
-      expect(screen.getByText(/tuân thủ cam kết sla/i)).toBeInTheDocument()
-      expect(screen.getByRole('link', { name: /mở support workspace/i })).toHaveAttribute('href', '/support/tickets')
-    })
-  })
-
-  describe('6. Support Workspace Operations', () => {
-    it('retrieves tickets and user details through supportService', async () => {
-      const tickets = await supportService.getTickets()
-      expect(tickets.length).toBeGreaterThan(0)
-
-      const firstTicket = tickets[0]
-      const detail = await supportService.getTicketDetail(firstTicket.id)
-      expect(detail?.ticket?.id).toBe(firstTicket.id)
-      expect(detail?.messages?.length).toBeGreaterThan(0)
     })
   })
 })

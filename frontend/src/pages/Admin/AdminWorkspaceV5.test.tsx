@@ -5,13 +5,10 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { AdminApprovalsPage } from './AdminApprovalsPage'
 import { AdminApprovalDetailPage } from './AdminApprovalDetailPage'
 import { AdminPublicationsPage } from './AdminPublicationsPage'
-import { AdminTicketsPage } from './AdminTicketsPage'
-import { AdminTicketDetailPage } from './AdminTicketDetailPage'
 import { AdminAnnouncementsPage } from './AdminAnnouncementsPage'
 import { AdminAuditLogsPage } from './AdminAuditLogsPage'
 import { AdminSettingsPage } from './AdminSettingsPage'
 import { operationsService } from '@/services/operations.service'
-import { supportService } from '@/services/support.service'
 import { WorkspaceShell } from '@/components/layout/WorkspaceShell'
 import * as useAuthModule from '@/auth/useAuth'
 
@@ -49,7 +46,6 @@ describe('Admin Workspace V5 — Operations, Content Approval & Quality Control 
     vi.clearAllMocks()
     localStorage.clear()
     operationsService._resetMockState()
-    supportService._resetMockState()
     window.confirm = () => true
     window.alert = vi.fn()
     window.prompt = () => 'v1.0'
@@ -71,7 +67,7 @@ describe('Admin Workspace V5 — Operations, Content Approval & Quality Control 
   })
 
   describe('1. Navigation V5 Expansion & V6 Role Re-alignment', () => {
-    it('renders all navigation items in Admin, Content, and Support according to V6 responsibilities', () => {
+    it('renders all navigation items in Admin and Content according to V6 responsibilities', () => {
       const { unmount: unmountAdmin } = render(
         <MemoryRouter initialEntries={['/admin']}>
           <WorkspaceShell role="admin">
@@ -82,14 +78,13 @@ describe('Admin Workspace V5 — Operations, Content Approval & Quality Control 
 
       // Admin V6 oversight & operations
       expect(screen.getByRole('link', { name: /^giám sát nội dung$/i })).toHaveAttribute('href', '/admin/content-monitor')
-      expect(screen.getByRole('link', { name: /^giám sát hỗ trợ$/i })).toHaveAttribute('href', '/admin/support-monitor')
       expect(screen.getByRole('link', { name: /^thông báo hệ thống$/i })).toHaveAttribute('href', '/admin/announcements')
       expect(screen.getByRole('link', { name: /^nhật ký quản trị$/i })).toHaveAttribute('href', '/admin/audit-logs')
       expect(screen.getByRole('link', { name: /^thiết lập vận hành$/i })).toHaveAttribute('href', '/admin/settings')
       unmountAdmin()
 
       // Content Workspace editorial navigation
-      const { unmount: unmountContent } = render(
+      render(
         <MemoryRouter initialEntries={['/content']}>
           <WorkspaceShell role="content">
             <div>Content Content</div>
@@ -98,17 +93,6 @@ describe('Admin Workspace V5 — Operations, Content Approval & Quality Control 
       )
       expect(screen.getByRole('link', { name: /^hàng đợi duyệt$/i })).toHaveAttribute('href', '/content/review')
       expect(screen.getByRole('link', { name: /^lịch sử xuất bản$/i })).toHaveAttribute('href', '/content/publications')
-      unmountContent()
-
-      // Support Workspace ticket navigation
-      render(
-        <MemoryRouter initialEntries={['/support']}>
-          <WorkspaceShell role="support">
-            <div>Support Content</div>
-          </WorkspaceShell>
-        </MemoryRouter>
-      )
-      expect(screen.getByRole('link', { name: /^tất cả tickets$/i })).toHaveAttribute('href', '/support/tickets')
     })
   })
 
@@ -216,63 +200,6 @@ describe('Admin Workspace V5 — Operations, Content Approval & Quality Control 
       // Confirm toast notification is shown
       await waitFor(() => {
         expect(screen.getByText(/đã khôi phục/i)).toBeInTheDocument()
-      })
-    })
-  })
-
-  describe('4. Yêu cầu hỗ trợ (AdminTicketsPage & Detail)', () => {
-    it('renders tickets list, KPI summary cards and filters', async () => {
-      render(
-        <MemoryRouter initialEntries={['/admin/tickets']}>
-          <AdminTicketsPage />
-        </MemoryRouter>
-      )
-
-      expect(screen.getByRole('heading', { name: /yêu cầu hỗ trợ/i })).toBeInTheDocument()
-      await waitFor(() => {
-        expect(screen.getByText('Tổng yêu cầu')).toBeInTheDocument()
-        expect(screen.getByText('Chưa xử lý (Mới)')).toBeInTheDocument()
-        expect(screen.getByText('Đang giải quyết')).toBeInTheDocument()
-        expect(screen.getAllByText('Đã giải quyết').length).toBeGreaterThan(0)
-      })
-
-      // Verify tickets from supportService are listed
-      await waitFor(() => {
-        expect(screen.getByText(/Tiến độ làm bài thu hoạch không đồng bộ sau khi mở máy tính khác/i)).toBeInTheDocument()
-      })
-    })
-
-    it('navigates to ticket detail, sends a staff reply and assigns staff member', async () => {
-      const user = userEvent.setup()
-      render(
-        <MemoryRouter initialEntries={['/admin/tickets/TK-4821']}>
-          <Routes>
-            <Route path="/admin/tickets/:ticketId" element={<AdminTicketDetailPage />} />
-          </Routes>
-        </MemoryRouter>
-      )
-
-      await waitFor(() => {
-        expect(screen.getByText(/Tiến độ làm bài thu hoạch không đồng bộ sau khi mở máy tính khác/i)).toBeInTheDocument()
-      })
-
-      // Send a reply
-      const replyInput = screen.getByPlaceholderText(/nhập nội dung phản hồi hoặc hướng dẫn xử lý sự cố/i)
-      await user.type(replyInput, 'Chào bạn, kỹ thuật viên đã kiểm tra và xử lý lỗi đồng bộ.')
-
-      const sendBtn = screen.getByRole('button', { name: /gửi phản hồi/i })
-      await user.click(sendBtn)
-
-      await waitFor(() => {
-        expect(screen.getByText('Chào bạn, kỹ thuật viên đã kiểm tra và xử lý lỗi đồng bộ.')).toBeInTheDocument()
-      })
-
-      // Change staff assignment
-      const assigneeSelect = screen.getByLabelText(/nhân viên phụ trách/i)
-      await user.selectOptions(assigneeSelect, 'Lê Hữu Phước')
-
-      await waitFor(() => {
-        expect(assigneeSelect).toHaveValue('Lê Hữu Phước')
       })
     })
   })

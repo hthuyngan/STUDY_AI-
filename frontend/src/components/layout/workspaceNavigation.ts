@@ -104,13 +104,6 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
             badge: 2,
           },
           {
-            id: 'admin-support-monitor',
-            label: 'Giám sát hỗ trợ',
-            path: '/admin/support-monitor',
-            icon: LifeBuoy,
-            badge: 3,
-          },
-          {
             id: 'admin-reports',
             label: 'Báo cáo tổng hợp',
             path: '/admin/reports',
@@ -304,53 +297,6 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
       },
     ],
   },
-
-  support: {
-    role: 'support',
-    name: 'Trung tâm hỗ trợ',
-    subLabel: 'SUPPORT',
-    badgeText: 'Hỗ trợ',
-    basePath: '/support',
-    groups: [
-      {
-        id: 'overview',
-        title: 'TỔNG QUAN',
-        items: [
-          {
-            id: 'support-dashboard',
-            label: 'Hàng chờ hỗ trợ',
-            path: '/support',
-            icon: LayoutDashboard,
-          },
-        ],
-      },
-      {
-        id: 'tickets',
-        title: 'HỖ TRỢ',
-        items: [
-          {
-            id: 'support-tickets',
-            label: 'Tất cả tickets',
-            path: '/support/tickets',
-            icon: MessageSquare,
-            badge: 3,
-          },
-        ],
-      },
-      {
-        id: 'users',
-        title: 'NGƯỜI DÙNG',
-        items: [
-          {
-            id: 'support-users',
-            label: 'Tra cứu tài khoản',
-            path: '/support/users',
-            icon: Search,
-          },
-        ],
-      },
-    ],
-  },
 }
 
 export function getWorkspaceConfig(role?: UserRole): WorkspaceConfig {
@@ -368,6 +314,5 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   learner: 'Học viên',
   teacher: 'Giáo viên',
   content: 'Biên tập viên',
-  support: 'Hỗ trợ viên',
   admin: 'Quản trị viên',
 }

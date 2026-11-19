@@ -7,7 +7,6 @@ import { LearnerRoutes } from '@/routes/learnerRoutes'
 import { AdminRoutes } from '@/routes/adminRoutes'
 import { TeacherRoutes } from '@/routes/teacherRoutes'
 import { ContentRoutes } from '@/routes/contentRoutes'
-import { SupportRoutes } from '@/routes/supportRoutes'
 import { AiChatProvider } from '@/context/AiChatContext'
 import { FloatingAiChatbot } from '@/components/chat/FloatingAiChatbot'
 
@@ -58,7 +57,10 @@ function App() {
             {AdminRoutes()}
             {TeacherRoutes()}
             {ContentRoutes()}
-            {SupportRoutes()}
+
+            {/* Legacy Support Workspace Redirects */}
+            <Route path="/support/*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/support" element={<Navigate to="/dashboard" replace />} />
 
             {/* Learner Workspace (Existing AppShell) */}
             {LearnerRoutes()}

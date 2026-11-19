@@ -252,7 +252,7 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
         {
             DisplayName = "Tên Đã Cập Nhật",
             Grade = "12",
-            Role = "support",
+            Role = "content",
             Status = "active"
         };
         var reqUpdate = new HttpRequestMessage(HttpMethod.Patch, $"/api/v1/admin/users/{created.User.Id}")
@@ -267,7 +267,7 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
         Assert.NotNull(updated);
         Assert.Equal("Tên Đã Cập Nhật", updated.DisplayName);
         Assert.Equal("12", updated.Grade);
-        Assert.Equal("support", updated.Role);
+        Assert.Equal("content", updated.Role);
     }
 
     [Fact]
