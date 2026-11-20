@@ -273,24 +273,30 @@ async function browserPracticeFlowGrades10_11_12(browser: Browser) {
     await page.goto(`${baseUrl}/practice`)
     await page.locator('.practice-setup-card').waitFor({ state: 'visible', timeout: 30000 })
 
-    // Wait for initial question count to settle
-    const countBox = page.locator('.available-count-box')
-    await countBox.filter({ hasText: 'câu hỏi' }).waitFor({ state: 'visible', timeout: 20000 })
+    // Wait for initial question count to settle (2 questions in sub_math10)
+    await page.locator('.available-count-box').filter({ hasText: '2 câu hỏi' }).waitFor({ state: 'visible', timeout: 20000 })
+    const startBtn = page.locator('button[data-testid="practice-start-btn"]')
+    await startBtn.waitFor({ state: 'visible', timeout: 15000 })
+    assert.ok(await startBtn.isEnabled(), 'Start button must be enabled initially when questions exist')
 
     // 1. Verify zero-match filter disables start button
     // Select short_answer type (0 questions exist in sub_math10)
     const typeSelect = page.locator('select[data-testid="question-type-select"]')
     await typeSelect.selectOption('short_answer')
     await page.locator('.no-question-alert').waitFor({ state: 'visible', timeout: 20000 })
-    const startBtn = page.locator('button[data-testid="practice-start-btn"]')
-    await startBtn.waitFor({ state: 'visible', timeout: 15000 })
-    await page.locator('button[data-testid="practice-start-btn"]:disabled').waitFor({ state: 'attached', timeout: 15000 })
+    await page.waitForFunction(() => {
+      const btn = document.querySelector('button[data-testid="practice-start-btn"]') as HTMLButtonElement | null
+      return btn !== null && btn.disabled === true
+    }, null, { timeout: 15000 })
     assert.ok(await startBtn.isDisabled(), 'Start button must be disabled when 0 questions match filter')
 
     // 2. Select valid filters: all types, Grade 10
     await typeSelect.selectOption('')
-    await countBox.filter({ hasText: '2 câu hỏi' }).waitFor({ state: 'visible', timeout: 20000 })
-    await page.locator('button[data-testid="practice-start-btn"]:not(:disabled)').waitFor({ state: 'attached', timeout: 15000 })
+    await page.locator('.available-count-box').filter({ hasText: '2 câu hỏi' }).waitFor({ state: 'visible', timeout: 20000 })
+    await page.waitForFunction(() => {
+      const btn = document.querySelector('button[data-testid="practice-start-btn"]') as HTMLButtonElement | null
+      return btn !== null && btn.disabled === false
+    }, null, { timeout: 15000 })
     assert.ok(await startBtn.isEnabled(), 'Start button must be enabled when matching questions exist')
 
     // 3. Start practice session
