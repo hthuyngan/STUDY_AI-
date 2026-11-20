@@ -293,11 +293,13 @@ async function browserAssessmentFailAndRetry(browser: Browser) {
       }
     })
     await page.getByRole('button', { name: 'Nộp bài', exact: true }).click()
-    const dialogPromise = page.waitForEvent('dialog', { timeout: 20000 })
+    // Handle alert concurrently with click; otherwise Chromium can block the click awaiting dialog dismissal.
+    const dialogPromise = page.waitForEvent('dialog', { timeout: 20000 }).then(async dialog => {
+      assert.match(dialog.message(), /Nộp bài không thành công/, 'Browser must show failed submission warning')
+      await dialog.accept()
+    })
     await page.getByRole('alertdialog').getByRole('button', { name: 'Xác nhận nộp bài' }).click()
-    const dialog = await dialogPromise
-    assert.match(dialog.message(), /Nộp bài không thành công/, 'Browser must show failed submission warning')
-    await dialog.accept()
+    await dialogPromise
     assert.equal(blocked, 1, 'Real assessment POST must be attempted and interrupted exactly once')
 
     await page.reload()
