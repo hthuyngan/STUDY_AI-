@@ -349,7 +349,7 @@ public class LiveE2ERemediationScenariosTests : IClassFixture<StudyAIApiFixture>
     // SCENARIO 4: Nộp bài Assessment khi server lỗi, xác minh phiên không bị completed
     // ─────────────────────────────────────────────────────────────────────────────
     [Fact]
-    public async Task LiveE2E_AssessmentSubmissionFailure_PreservesInProgressStateInSql_FailClosed()
+    public async Task LiveE2E_AssessmentRejectedPayload_PreservesStateAndAllowsRetry()
     {
         var (studentToken, studentId) = await CreateAndLoginUserAsync("learner", "Học Sinh Làm Bài E2E");
 
@@ -394,19 +394,16 @@ public class LiveE2ERemediationScenariosTests : IClassFixture<StudyAIApiFixture>
             Assert.Equal("incomplete", initialDbAttempt.CompletionStatus);
         }
 
-        // 3. Gửi yêu cầu nộp bài/kết thúc không hợp lệ (SessionId không tồn tại để mô phỏng thất bại phía máy chủ)
-        var invalidSubmitReq = new HttpRequestMessage(HttpMethod.Post, "/api/v1/practice/sessions/non_existent_session_id/submit")
+        // 3. Gửi payload JSON lỗi đến ĐÚNG endpoint AssessmentAttempt đang làm.
+        // Đây là kiểm thử HTTP 400 + khả năng retry ở BE; lỗi mạng 500 ở FE được kiểm thử riêng.
+        var rejectedSubmitReq = new HttpRequestMessage(
+            HttpMethod.Put, $"/api/v1/me/assessment-attempts/{createdAttempt.Id}")
         {
-            Content = new StringContent(JsonSerializer.Serialize(new SubmitPracticeSessionRequest
-            {
-                Answers = new Dictionary<string, string> { ["q1"] = "A" }
-            }), Encoding.UTF8, "application/json"),
+            Content = new StringContent("{ \"completionStatus\": ", Encoding.UTF8, "application/json"),
             Headers = { Authorization = new AuthenticationHeaderValue("Bearer", studentToken) }
         };
-        var invalidResp = await _client.SendAsync(invalidSubmitReq);
-
-        // Máy chủ từ chối với mã lỗi 400 hoặc 404 (Fail-closed)
-        Assert.True(invalidResp.StatusCode == HttpStatusCode.NotFound || invalidResp.StatusCode == HttpStatusCode.BadRequest);
+        var rejectedResp = await _client.SendAsync(rejectedSubmitReq);
+        Assert.Equal(HttpStatusCode.BadRequest, rejectedResp.StatusCode);
 
         // 4. Xác minh trong SQL Server StudyAIDb_E2E: Phiên làm bài của học sinh KHÔNG bị chuyển thành "completed"
         using (var scope = _factory.Services.CreateScope())
@@ -422,6 +419,100 @@ public class LiveE2ERemediationScenariosTests : IClassFixture<StudyAIApiFixture>
                 .FirstOrDefaultAsync(lp => lp.UserId == studentId && lp.LessonId == "les_math10_01");
             Assert.True(progress == null || progress.OverallProgress < 100,
                 "Không được ghi nhận hoàn thành bài học khi nộp bài thi gặp lỗi");
+        }
+
+        // 5. Nộp lại cùng assessment sau khi sửa payload: phải lưu được và trả về kết quả thật.
+        var retryReq = new HttpRequestMessage(
+            HttpMethod.Put, $"/api/v1/me/assessment-attempts/{createdAttempt.Id}")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new AssessmentAttemptCreateDto
+            {
+                Id = createdAttempt.Id,
+                AssessmentId = "asmt_test_fail_closed",
+                LessonId = "les_math10_01",
+                SubjectId = "sub_math10",
+                CompletionStatus = "completed",
+                SuccessStatus = "passed",
+                ProgressMeasure = 1.0,
+                ScoreRaw = 1,
+                ScoreMax = 1,
+                ScoreScaled = 10,
+                CompletedAt = DateTimeOffset.UtcNow,
+                Responses = new Dictionary<string, AssessmentResponseItemDto>
+                {
+                    ["q_sample_01"] = new()
+                    {
+                        QuestionId = "q_sample_01",
+                        SelectedOptionIds = new List<string> { "opt_a" },
+                        IsCorrect = true
+                    }
+                }
+            }), Encoding.UTF8, "application/json"),
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", studentToken) }
+        };
+        var retryResp = await _client.SendAsync(retryReq);
+        Assert.Equal(HttpStatusCode.OK, retryResp.StatusCode);
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            var persisted = await db.AssessmentAttempts.AsNoTracking()
+                .FirstOrDefaultAsync(a => a.Id == createdAttempt.Id);
+            Assert.NotNull(persisted);
+            Assert.Equal("completed", persisted.CompletionStatus);
+        }
+    }
+
+    // Hai lần PUT được gửi song song cùng một phiên bản; không chỉ thử stale-version tuần tự.
+    [Fact]
+    public async Task LiveE2E_SettingsConcurrentPuts_OnlyOneWriteCanWin()
+    {
+        var adminToken = await GetAdminTokenAsync();
+        using var client1 = _factory.CreateClient();
+        using var client2 = _factory.CreateClient();
+
+        using var get = new HttpRequestMessage(HttpMethod.Get, "/api/v1/admin/settings");
+        get.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var initialResponse = await client1.SendAsync(get);
+        Assert.Equal(HttpStatusCode.OK, initialResponse.StatusCode);
+        var initial = JsonSerializer.Deserialize<OperationalSettingsDto>(
+            await initialResponse.Content.ReadAsStringAsync(), JsonOpts)!;
+        var unique = Guid.NewGuid().ToString("N");
+
+        HttpRequestMessage BuildRequest(string suffix)
+        {
+            var request = new HttpRequestMessage(HttpMethod.Put, "/api/v1/admin/settings")
+            {
+                Content = new StringContent(JsonSerializer.Serialize(new OperationalSettingsDto
+                {
+                    SystemName = $"Concurrent-{unique}-{suffix}",
+                    SystemDescription = "Concurrent E2E guard test",
+                    Language = "vi-VN",
+                    Version = initial.Version
+                }), Encoding.UTF8, "application/json")
+            };
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+            return request;
+        }
+
+        using var put1 = BuildRequest("A");
+        using var put2 = BuildRequest("B");
+        var responses = await Task.WhenAll(client1.SendAsync(put1), client2.SendAsync(put2));
+        try
+        {
+            Assert.Equal(1, responses.Count(r => r.StatusCode == HttpStatusCode.OK));
+            Assert.Equal(1, responses.Count(r => r.StatusCode == HttpStatusCode.Conflict));
+
+            using var verifyGet = new HttpRequestMessage(HttpMethod.Get, "/api/v1/admin/settings");
+            verifyGet.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+            var verifyResponse = await client1.SendAsync(verifyGet);
+            Assert.Equal(HttpStatusCode.OK, verifyResponse.StatusCode);
+            var actual = JsonSerializer.Deserialize<OperationalSettingsDto>(
+                await verifyResponse.Content.ReadAsStringAsync(), JsonOpts)!;
+            Assert.Contains(actual.SystemName, new[] { $"Concurrent-{unique}-A", $"Concurrent-{unique}-B" });
+        }
+        finally
+        {
+            foreach (var response in responses) response.Dispose();
         }
     }
 }
