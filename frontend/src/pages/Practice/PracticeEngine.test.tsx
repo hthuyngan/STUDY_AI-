@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import * as learnerConfig from '@/config/learner'
 import {
   calculateSkillBreakdown,
   roundPoints,
@@ -21,8 +22,85 @@ import type {
   TrueFalseGroupAnswer,
 } from '@/types/practice'
 
+vi.mock('@/lib/apiClient', () => ({
+  apiClient: {
+    post: vi.fn((endpoint: string, payload: any) => {
+      if (endpoint === '/api/v1/practice/sessions') {
+        const count = payload?.questionCount || payload?.limit || 5
+        const questions = Array.from({ length: count }, (_, idx) => ({
+          id: `qb-math-12-mcq-0${idx + 1}`,
+          subjectId: payload?.subjectId || 'math',
+          chapterId: payload?.chapterId || 'chap-1',
+          lessonId: payload?.lessonId,
+          difficulty: 'medium',
+          skillIds: ['SKILL-MATH-12-MONOTONICITY'],
+          type: 'multiple_choice',
+          prompt: `Câu hỏi trắc nghiệm ${idx + 1}`,
+          options: ['A. Đáp án A', 'B. Đáp án B'],
+          correctOption: 'A',
+          explanation: 'Giải thích',
+          status: 'approved',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }))
+
+        return Promise.resolve({
+          sessionId: `sess_${Date.now()}_${Math.random()}`,
+          subjectId: payload?.subjectId || 'math',
+          chapterId: payload?.chapterId || 'chap-1',
+          lessonId: payload?.lessonId,
+          startedAt: new Date().toISOString(),
+          questions,
+        })
+      }
+      if (endpoint.includes('/answer')) {
+        return Promise.resolve({ success: true })
+      }
+      if (endpoint.includes('/submit')) {
+        const parts = endpoint.split('/')
+        const sessId = parts[5] || parts[4] || 'sess_1'
+        return Promise.resolve({
+          resultId: `res_${Date.now()}`,
+          sessionId: sessId,
+          subjectId: 'math',
+          completedAt: new Date().toISOString(),
+          totalQuestions: 2,
+          correctCount: 2,
+          incorrectCount: 0,
+          unansweredCount: 0,
+          scoreScaled: 10,
+          timeSpentSeconds: 60,
+          questions: [
+            {
+              questionId: 'qb-math-12-mcq-01',
+              prompt: 'test prompt',
+              studentAnswer: 'A',
+              correctAnswer: 'A',
+              isCorrect: true,
+              explanation: '',
+              skillIds: ['SKILL-MATH-12-MONOTONICITY'],
+            },
+            {
+              questionId: 'qb-math-12-mcq-02',
+              prompt: 'test prompt 2',
+              studentAnswer: 'A',
+              correctAnswer: 'A',
+              isCorrect: true,
+              explanation: '',
+              skillIds: ['SKILL-MATH-12-MONOTONICITY'],
+            },
+          ],
+        })
+      }
+      return Promise.resolve({})
+    }),
+    get: vi.fn().mockResolvedValue([]),
+  },
+}))
+
 describe('Phase 12 — Practice & Assessment Engine Suite', () => {
   beforeEach(async () => {
+    vi.spyOn(learnerConfig, 'isRemoteApiConfigured').mockReturnValue(false)
     await practiceRepository.clearAll()
     await questionBankRepository.resetToDefaults()
   })

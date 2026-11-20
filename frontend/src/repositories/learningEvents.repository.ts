@@ -28,7 +28,7 @@ export class LocalLearningEventsRepository implements ILearningEventsRepository 
     try {
       const storageKey = getStorageKey('learning_events')
       let raw = localStorage.getItem(storageKey)
-      if (!raw) {
+      if (!raw && !getAuthUser()) {
         const legacy = localStorage.getItem(LEARNING_EVENTS_STORAGE_KEY)
         if (legacy) {
           raw = legacy

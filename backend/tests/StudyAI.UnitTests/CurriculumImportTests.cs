@@ -275,6 +275,112 @@ public class CurriculumImportParserTests
     }
 
     #endregion
+
+    #region VNHSGE Benchmark Dataset Parser Tests
+
+    [Fact]
+    public async Task ParseJson_VnhsgeMathFormat_ExtractsOptionsPromptAndLatexSuccessfully()
+    {
+        var jsonPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "TestData", "vnhsge_math_sample.json");
+        var json = await File.ReadAllTextAsync(jsonPath);
+
+        using var ms = new MemoryStream(Encoding.UTF8.GetBytes(json));
+        var batch = await _parser.ParseAsync(ms, "MET_Math_IE_2023.json");
+
+        Assert.Equal(ImportFileFormat.Json, batch.SourceFormat);
+        Assert.Single(batch.Subjects);
+        Assert.Equal("MATH12", batch.Subjects[0].Code);
+        Assert.Equal(2, batch.FlatQuestions.Count);
+
+        // First question: MCQ with LaTeX
+        var q1 = batch.FlatQuestions[0];
+        Assert.Equal("MATH12", q1.SubjectCode);
+        Assert.Equal("multiple-choice", q1.Type);
+        Assert.Equal("A", q1.CorrectAnswer);
+        Assert.Contains("Điểm cực đại của hàm số là:", q1.Prompt);
+        Assert.Equal(4, q1.Options.Count);
+        Assert.Equal("$x = 1$", q1.Options[0]);
+        Assert.Equal("$x = 3$", q1.Options[1]);
+        Assert.Equal("$x = -1$", q1.Options[2]);
+        Assert.Equal("$x = -3$", q1.Options[3]);
+        Assert.Contains("CC-BY-NC-SA-4.0", q1.LicenseType);
+
+        // Second question: with Image reference
+        var q2 = batch.FlatQuestions[1];
+        Assert.Equal("B", q2.CorrectAnswer);
+        Assert.Contains("[Hình ảnh đề bài: images/math_q2.png]", q2.Prompt);
+        Assert.Contains("[Hình ảnh lời giải: images/math_ans2.png]", q2.Explanation);
+    }
+
+    [Fact]
+    public async Task ParseJson_VnhsgeLiteratureFormat_IdentifiesEssayQuestion()
+    {
+        var jsonPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "TestData", "vnhsge_literature_sample.json");
+        var json = await File.ReadAllTextAsync(jsonPath);
+
+        using var ms = new MemoryStream(Encoding.UTF8.GetBytes(json));
+        var batch = await _parser.ParseAsync(ms, "MET_Literature_IE_2023.json");
+
+        Assert.Single(batch.Subjects);
+        Assert.Equal("LIT12", batch.Subjects[0].Code);
+        Assert.Single(batch.FlatQuestions);
+
+        var q = batch.FlatQuestions[0];
+        Assert.Equal("LIT12", q.SubjectCode);
+        Assert.Equal("essay", q.Type);
+        Assert.Empty(q.Options);
+        Assert.Contains("khoảng 200 chữ", q.Prompt);
+        Assert.Contains("lòng kiên trì", q.Prompt);
+    }
+
+    [Fact]
+    public async Task ParseJson_VnhsgePhysicsFormat_WithImageQuestionReference()
+    {
+        var jsonPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "TestData", "vnhsge_physics_sample.json");
+        var json = await File.ReadAllTextAsync(jsonPath);
+
+        using var ms = new MemoryStream(Encoding.UTF8.GetBytes(json));
+        var batch = await _parser.ParseAsync(ms, "MET_Physics_IE_2023.json");
+
+        Assert.Single(batch.Subjects);
+        Assert.Equal("PHYS12", batch.Subjects[0].Code);
+        Assert.Single(batch.FlatQuestions);
+
+        var q = batch.FlatQuestions[0];
+        Assert.Equal("PHYS12", q.SubjectCode);
+        Assert.Equal("multiple-choice", q.Type);
+        Assert.Equal("A", q.CorrectAnswer);
+        Assert.Contains("[Hình ảnh đề bài: images/phys_circuit.png]", q.Prompt);
+        Assert.Equal(4, q.Options.Count);
+        Assert.Equal(@"$0{,}314\text{ s}$", q.Options[0]);
+    }
+
+    [Theory]
+    [InlineData("vnhsge_math_train.json", "train")]
+    [InlineData("MET_Physics_test_2023.json", "test")]
+    [InlineData("eval_chemistry_vnhsge.json", "eval")]
+    public async Task ParseJson_VnhsgeSplits_DistinguishesTrainTestEval(string fileName, string expectedSplit)
+    {
+        var sampleJson = """
+        [
+          {
+            "ID": "101",
+            "Question": "Câu hỏi khảo sát?\\nA. Đáp án A\\nB. Đáp án B\\nC. Đáp án C\\nD. Đáp án D",
+            "Choice": "A"
+          }
+        ]
+        """;
+        using var ms = new MemoryStream(Encoding.UTF8.GetBytes(sampleJson));
+        var batch = await _parser.ParseAsync(ms, fileName);
+
+        Assert.Single(batch.FlatQuestions);
+        var q = batch.FlatQuestions[0];
+        Assert.Contains(expectedSplit, q.Topic);
+        Assert.Contains(expectedSplit, q.SourceCitation);
+        Assert.Contains(expectedSplit, q.Code ?? "");
+    }
+
+    #endregion
 }
 
 public class CurriculumImportValidatorTests
@@ -683,4 +789,52 @@ public class CurriculumImportValidatorTests
         var item = Assert.Single(result.Previews);
         Assert.Equal(ImportActionType.Insert, item.Action);
     }
+
+    #region VNHSGE Validation & Subject Alias Tests
+
+    [Theory]
+    [InlineData("MATH", "MATH12")]
+    [InlineData("toan", "MATH12")]
+    [InlineData("PHYS", "PHYS12")]
+    [InlineData("vat_ly", "PHYS12")]
+    [InlineData("CHEM", "CHEM12")]
+    [InlineData("hoa_hoc", "CHEM12")]
+    [InlineData("BIO", "BIO12")]
+    [InlineData("sinh_hoc", "BIO12")]
+    [InlineData("LIT", "LIT12")]
+    [InlineData("ngu_van", "LIT12")]
+    [InlineData("ENG", "ENG12")]
+    [InlineData("tieng_anh", "ENG12")]
+    [InlineData("HIST", "HIST12")]
+    [InlineData("lich_su", "HIST12")]
+    [InlineData("GEO", "GEO12")]
+    [InlineData("dia_ly", "GEO12")]
+    [InlineData("GDCD", "GDCD12")]
+    public void ResolveSubjectAlias_StandardAliases_ResolvesCorrectly(string input, string expected)
+    {
+        var resolved = CurriculumImportValidator.ResolveSubjectAlias(input);
+        Assert.Equal(expected, resolved);
+    }
+
+    [Fact]
+    public async Task ValidateBatchAsync_VnhsgeBatch_ValidatesCleanlyWithInferredSubjects()
+    {
+        var jsonPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "TestData", "vnhsge_math_sample.json");
+        var json = await File.ReadAllTextAsync(jsonPath);
+
+        var parser = new CurriculumImportParser();
+        using var ms = new MemoryStream(Encoding.UTF8.GetBytes(json));
+        var batch = await parser.ParseAsync(ms, "MET_Math_IE_2023.json");
+
+        var validator = CreateValidator(new ExistingContentLookup());
+        var result = await validator.ValidateBatchAsync(batch);
+
+        Assert.True(result.IsValid);
+        Assert.Empty(result.Errors);
+        Assert.Equal(3, result.Previews.Count); // 1 subject + 2 questions
+        Assert.Contains(result.Previews, p => p.EntityType == "subject" && p.Identifier == "MATH12");
+        Assert.Contains(result.Previews, p => p.EntityType == "question" && p.Action == ImportActionType.Insert);
+    }
+
+    #endregion
 }

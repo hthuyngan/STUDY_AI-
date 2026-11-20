@@ -1,14 +1,14 @@
 import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from '@/auth/AuthProvider'
-import { MigrationDialog } from '@/components/auth/MigrationDialog'
 import { RouteLoadingFallback } from '@/components/layout/RouteLoadingFallback'
 import { performBootstrapSyncIfAvailable } from '@/repositories'
 import { LearnerRoutes } from '@/routes/learnerRoutes'
 import { AdminRoutes } from '@/routes/adminRoutes'
 import { TeacherRoutes } from '@/routes/teacherRoutes'
 import { ContentRoutes } from '@/routes/contentRoutes'
-import { SupportRoutes } from '@/routes/supportRoutes'
+import { AiChatProvider } from '@/context/AiChatContext'
+import { FloatingAiChatbot } from '@/components/chat/FloatingAiChatbot'
 
 const LoginPage = lazy(() =>
   import('@/pages/Auth/LoginPage').then((m) => ({ default: m.LoginPage }))
@@ -29,43 +29,48 @@ function App() {
 
   return (
     <AuthProvider>
-      <MigrationDialog />
       <BrowserRouter basename={appBasename}>
-        <Routes>
-          {/* Authentication Routes */}
-          <Route
-            path="/login"
-            element={
-              <Suspense fallback={<RouteLoadingFallback />}>
-                <LoginPage />
-              </Suspense>
-            }
-          />
-          <Route
-            path="/register"
-            element={
-              <Suspense fallback={<RouteLoadingFallback />}>
-                <RegisterPage />
-              </Suspense>
-            }
-          />
+        <AiChatProvider>
+          <Routes>
+            {/* Authentication Routes */}
+            <Route
+              path="/login"
+              element={
+                <Suspense fallback={<RouteLoadingFallback />}>
+                  <LoginPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/register"
+              element={
+                <Suspense fallback={<RouteLoadingFallback />}>
+                  <RegisterPage />
+                </Suspense>
+              }
+            />
 
-          {/* 403 Forbidden / Access Denied */}
-          <Route path="/unauthorized" element={<UnauthorizedPage />} />
+            {/* 403 Forbidden / Access Denied */}
+            <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-          {/* Role-based Staff Workspaces */}
-          {AdminRoutes()}
-          {TeacherRoutes()}
-          {ContentRoutes()}
-          {SupportRoutes()}
+            {/* Role-based Staff Workspaces */}
+            {AdminRoutes()}
+            {TeacherRoutes()}
+            {ContentRoutes()}
 
-          {/* Learner Workspace (Existing AppShell) */}
-          {LearnerRoutes()}
+            {/* Legacy Support Workspace Redirects */}
+            <Route path="/support/*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/support" element={<Navigate to="/dashboard" replace />} />
 
-          {/* Root redirect to Dashboard */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
+            {/* Learner Workspace (Existing AppShell) */}
+            {LearnerRoutes()}
+
+            {/* Root redirect to Dashboard */}
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+          <FloatingAiChatbot />
+        </AiChatProvider>
       </BrowserRouter>
     </AuthProvider>
   )

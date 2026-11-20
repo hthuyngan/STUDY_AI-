@@ -61,7 +61,6 @@ export const AdminUserTableToolbar: React.FC<AdminUserTableToolbarProps> = ({
               <option value="learner">Học viên</option>
               <option value="teacher">Giáo viên</option>
               <option value="content">Nội dung</option>
-              <option value="support">Hỗ trợ</option>
               <option value="admin">Quản trị viên</option>
             </select>
           </div>

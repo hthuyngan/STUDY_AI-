@@ -240,6 +240,8 @@ export const PracticeSessionPage: React.FC = () => {
           totalCount={questions.length}
           answer={session.answers[currentQuestion.id] || null}
           onAnswerChange={handleAnswerChange}
+          sessionId={session.id}
+          mode={session.mode}
         />
       )}
 

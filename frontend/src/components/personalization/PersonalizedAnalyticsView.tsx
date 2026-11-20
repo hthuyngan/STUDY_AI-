@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
+import { useAiChat } from '@/context/useAiChat'
 import { learningContextService } from '@/services/learningContext.service'
 import type { PersonalizationOverview } from '@/services/personalization.service'
 import type {
@@ -32,21 +33,23 @@ interface Props {
 
 export const PersonalizedAnalyticsView: React.FC<Props> = ({ data, onRefresh }) => {
   const navigate = useNavigate()
+  const { openChat } = useAiChat()
   const { summary, performances, gaps, recommendations, learningPath, hasData } = data
 
   const handleAskAITutor = (gap: KnowledgeGapItem) => {
-    learningContextService.setContext({
-      source: 'knowledge-gap',
+    const context = {
+      source: 'knowledge-gap' as const,
       knowledgeGapId: gap.id,
       subjectId: 'math',
       subjectName: 'Toán học 12',
-      lessonId: gap.relatedLessonIds[0] || 'lesson-math-12-01',
+      lessonId: gap.relatedLessonIds[0] || 'les_math12_c1_b1',
       lessonTitle: gap.skillName,
       title: `Hỗ trợ kỹ năng: ${gap.skillName}`,
       excerpt: gap.evidenceSummary,
       returnUrl: '/learning-analytics',
-    })
-    navigate('/ai-tutor')
+    }
+    learningContextService.setContext(context)
+    openChat(context, `Em đang gặp khó khăn ở kỹ năng "${gap.skillName}", xin thầy/cô hướng dẫn phương pháp giải và củng cố kiến thức.`)
   }
 
   // 1. Empty State when no practice results exist

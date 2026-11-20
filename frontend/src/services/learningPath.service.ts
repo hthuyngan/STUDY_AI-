@@ -3,6 +3,7 @@
  * Personalized sequential learning path, chapter progress, and rule-based next lesson recommendation.
  */
 
+import { apiClient } from '@/lib/apiClient'
 import { mockLearningPath } from '@/data/learningPath.mock'
 import { mockSubjectDetails, mockSubjectsSummary } from '@/data/subjects.mock'
 import { learningProgressRepository } from '@/repositories/learningProgress.repository'
@@ -213,5 +214,18 @@ export function getContinueLearningTarget(): ContinueLearningTarget | null {
     }
   }
 
+  return null
+}
+
+/**
+ * Fetch real personalized adaptive learning path from backend
+ */
+export async function fetchAdaptiveLearningPath(subjectId: string = 'sub_math12'): Promise<any> {
+  try {
+    const res = await apiClient.get<any>(`/api/v1/ai/learning-path?subjectId=${subjectId}`)
+    if (res) return res
+  } catch {
+    // Graceful fallback
+  }
   return null
 }

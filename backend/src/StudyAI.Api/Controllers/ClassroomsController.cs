@@ -340,6 +340,12 @@ public class ClassroomsController : ControllerBase
             return NotFound(new { message = "Không tìm thấy học sinh với thông tin cung cấp" });
         }
 
+        // Đảm bảo đối tượng được ghi danh là học sinh (learner)
+        if (student.Role != "learner" && student.Role != "student")
+        {
+            return BadRequest(new { message = "Chỉ có thể ghi danh người dùng có vai trò học sinh (learner) vào lớp học" });
+        }
+
         // Kiểm tra xem đã tham gia lớp chưa
         var alreadyEnrolled = await _db.ClassroomStudents.AnyAsync(
             cs => cs.ClassroomId == id && cs.StudentId == student.Id,
@@ -360,7 +366,14 @@ public class ClassroomsController : ControllerBase
 
         _db.ClassroomStudents.Add(enrollment);
         classroom.UpdatedAt = DateTimeOffset.UtcNow;
-        await _db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            return Conflict(new { message = "Học sinh này đã tham gia lớp học từ trước" });
+        }
 
         var result = new ClassroomStudentDto
         {
@@ -550,6 +563,50 @@ public class ClassroomsController : ControllerBase
         };
 
         return CreatedAtAction("GetAssignment", "Assignments", new { id = assignment.Id }, result);
+    }
+
+    /// <summary>
+    /// Xóa hoặc lưu trữ lớp học (Giáo viên phụ trách hoặc Admin)
+    /// </summary>
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "teacher,admin")]
+    public async Task<IActionResult> DeleteClassroom(string id, CancellationToken cancellationToken)
+    {
+        var userId = CurrentUserId;
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+        var classroom = await _db.Classrooms
+            .Include(c => c.Students)
+            .Include(c => c.Assignments)
+            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+
+        if (classroom == null)
+        {
+            return NotFound(new { message = "Không tìm thấy lớp học" });
+        }
+
+        if (!IsAdmin && classroom.TeacherId != userId)
+        {
+            return Forbid();
+        }
+
+        if (classroom.Students.Count > 0)
+        {
+            return BadRequest(new { message = $"Không thể xóa lớp đang có {classroom.Students.Count} học viên. Vui lòng chuyển hoặc xóa học viên trước." });
+        }
+
+        if (classroom.Assignments.Count > 0)
+        {
+            classroom.Status = "archived";
+            classroom.UpdatedAt = DateTimeOffset.UtcNow;
+            await _db.SaveChangesAsync(cancellationToken);
+            return Ok(new { message = "Lớp học đã có bài tập nên được chuyển sang trạng thái lưu trữ", archived = true });
+        }
+
+        _db.Classrooms.Remove(classroom);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return NoContent();
     }
 }
 

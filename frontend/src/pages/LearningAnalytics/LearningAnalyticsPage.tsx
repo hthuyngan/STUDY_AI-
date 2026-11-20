@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   BarChart3,
   Award,
@@ -13,16 +14,20 @@ import { Button } from '@/components/ui/Button'
 import { useLearningAnalytics } from '@/hooks/useLearningAnalytics'
 import { usePersonalization } from '@/hooks/usePersonalization'
 import { PersonalizedAnalyticsView } from '@/components/personalization/PersonalizedAnalyticsView'
+import { IntelligentAnalyticsDashboard } from '@/components/dashboard/IntelligentAnalyticsDashboard'
+import { ExamRevisionDashboard } from '@/components/exam/ExamRevisionDashboard'
 import { OverviewTab } from './components/OverviewTab'
 import { CompetencyProfileTab } from './components/CompetencyProfileTab'
 import { SubjectAnalyticsTab } from './components/SubjectAnalyticsTab'
 import { LearningHistoryTab } from './components/LearningHistoryTab'
 import './LearningAnalyticsPage.css'
 
-type AnalyticsTab = 'personalization' | 'overview' | 'competency' | 'subjects' | 'history'
+type AnalyticsTab = 'intelligent' | 'exam_prep' | 'personalization' | 'overview' | 'competency' | 'subjects' | 'history'
 
 const LearningAnalyticsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<AnalyticsTab>('overview')
+  const [searchParams] = useSearchParams()
+  const initialTab = (searchParams.get('tab') as AnalyticsTab) || 'overview'
+  const [activeTab, setActiveTab] = useState<AnalyticsTab>(initialTab)
   const {
     data,
     loading,
@@ -75,6 +80,28 @@ const LearningAnalyticsPage: React.FC = () => {
 
       {/* 3. Main Navigation Tabs */}
       <nav className="analytics-nav-tabs" role="tablist" aria-label="Các mục phân tích học tập">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'intelligent'}
+          className={`nav-tab-btn ${activeTab === 'intelligent' ? 'active' : ''}`}
+          onClick={() => setActiveTab('intelligent')}
+        >
+          <Sparkles size={16} aria-hidden />
+          <span>Đánh giá thông minh (Toán 12)</span>
+        </button>
+
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'exam_prep'}
+          className={`nav-tab-btn ${activeTab === 'exam_prep' ? 'active' : ''}`}
+          onClick={() => setActiveTab('exam_prep')}
+        >
+          <Award size={16} aria-hidden />
+          <span>Luyện thi & Ôn tập (THPT 2025)</span>
+        </button>
+
         <button
           type="button"
           role="tab"
@@ -133,6 +160,14 @@ const LearningAnalyticsPage: React.FC = () => {
 
       {/* 4. Tab Content Area */}
       <main className="analytics-tab-body">
+        {activeTab === 'intelligent' && (
+          <IntelligentAnalyticsDashboard subjectId={selectedSubject || 'sub_math12'} />
+        )}
+
+        {activeTab === 'exam_prep' && (
+          <ExamRevisionDashboard subjectId={selectedSubject || 'sub_math12'} />
+        )}
+
         {activeTab === 'personalization' && personalizationData && (
           <PersonalizedAnalyticsView
             data={personalizationData}

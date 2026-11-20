@@ -7,7 +7,6 @@ import {
   GraduationCap,
   Briefcase,
   BookOpen,
-  Headphones,
   SlidersHorizontal,
   Info,
 } from 'lucide-react'
@@ -83,21 +82,9 @@ const PERMISSION_ROWS: PermissionRow[] = [
     description: 'Phát hành chính thức bài học lên chương trình của học viên.',
     category: 'Nội dung & Giáo trình',
   },
-  {
-    key: 'manage_support_tickets',
-    label: 'Xử lý ticket hỗ trợ',
-    description: 'Tiếp nhận, phản hồi và cập nhật trạng thái yêu cầu người dùng.',
-    category: 'Hỗ trợ khách hàng',
-  },
-  {
-    key: 'view_user_support_profile',
-    label: 'Tra cứu hồ sơ hỗ trợ',
-    description: 'Tra cứu tài khoản và trạng thái đồng bộ khi giải quyết khiếu nại.',
-    category: 'Hỗ trợ khách hàng',
-  },
 ]
 
-const ROLES: UserRole[] = ['learner', 'teacher', 'content', 'support', 'admin']
+const ROLES: UserRole[] = ['learner', 'teacher', 'content', 'admin']
 
 interface RoleDetailInfo {
   role: UserRole
@@ -132,14 +119,6 @@ const ROLE_DETAILS: RoleDetailInfo[] = [
     scope: 'Không gian giáo trình',
     accessRoutes: '/content, /content/curriculum, /content/review',
     description: 'Biên soạn giáo án, nội dung đa phương tiện, công thức toán LaTeX và gửi kiểm duyệt xuất bản.',
-  },
-  {
-    role: 'support',
-    icon: Headphones,
-    title: 'Hỗ trợ kỹ thuật (Support)',
-    scope: 'Trung tâm hỗ trợ',
-    accessRoutes: '/support, /support/tickets, /support/users',
-    description: 'Tiếp nhận ticket từ học sinh/phụ huynh, tra cứu trạng thái đồng bộ ngoại tuyến và xử lý sự cố tài khoản.',
   },
   {
     role: 'admin',
@@ -230,7 +209,7 @@ export const AdminRolesPage: React.FC = () => {
                     </div>
                   </td>
                   {ROLES.map((r) => {
-                    const allowed = ROLE_PERMISSIONS[r].includes(row.key)
+                    const allowed = (ROLE_PERMISSIONS[r] || []).includes(row.key)
                     return (
                       <td key={r} style={{ textAlign: 'center' }}>
                         {allowed ? (

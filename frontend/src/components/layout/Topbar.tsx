@@ -19,6 +19,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/auth/useAuth'
 import { Avatar } from '@/components/ui/Avatar'
 import { IconButton } from '@/components/ui/IconButton'
+import { WorkspaceAppLauncher } from './WorkspaceAppLauncher'
 
 
 export interface TopbarProps {
@@ -56,18 +57,18 @@ const MOCK_SEARCH_ITEMS: SearchResult[] = [
     url: '/subjects/math',
   },
   {
-    category: 'Tài liệu',
+    category: 'Bài học',
     icon: FileText,
     title: 'Sổ tay Công thức Đạo hàm & Bảng biến thiên',
-    subtitle: 'Thư viện tài liệu 12',
-    url: '/library',
+    subtitle: 'Toán học 12 · Tóm tắt lý thuyết',
+    url: '/subjects/math',
   },
   {
-    category: 'AI Tutor',
+    category: 'Môn học',
     icon: Bot,
     title: 'Hỏi AI về phương pháp giải tiệm cận đứng',
-    subtitle: 'Trợ lý AI giải thích từng bước',
-    url: '/ai-tutor?prompt=giai-thich-tiem-can',
+    subtitle: 'Toán 12 · Hỗ trợ bởi Floating AI Tutor',
+    url: '/subjects/math',
   },
 ]
 
@@ -99,11 +100,11 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
   },
   {
     id: 'notif-3',
-    title: 'Thành tích mới mở khóa',
-    subtitle: 'Chúc mừng bạn đạt mốc 2,450 XP học tập!',
+    title: 'Kỷ lục điểm số bài luyện tập mới',
+    subtitle: 'Chúc mừng bạn đạt điểm tối đa phần Tính đơn điệu!',
     time: '1 ngày trước',
     unread: false,
-    url: '/achievements',
+    url: '/practice',
   },
 ]
 
@@ -370,6 +371,11 @@ export function Topbar({ onOpenMobileMenu }: TopbarProps) {
 
       {/* Right: Actions */}
       <div className="topbar-right">
+        {/* Moodle-style 9-dot Workspace App Launcher */}
+        <WorkspaceAppLauncher
+          onOpenNotifications={() => setIsNotificationsOpen(true)}
+        />
+
         {/* Theme toggle */}
         <IconButton
           icon={theme === 'light' ? Moon : Sun}
@@ -466,9 +472,7 @@ export function Topbar({ onOpenMobileMenu }: TopbarProps) {
                         ? 'Giáo viên'
                         : user.role === 'content'
                           ? 'Biên tập nội dung'
-                          : user.role === 'support'
-                            ? 'Hỗ trợ viên'
-                            : 'Học viên'}
+                          : 'Học viên'}
                   </span>
                 </div>
 
@@ -506,18 +510,6 @@ export function Topbar({ onOpenMobileMenu }: TopbarProps) {
                   >
                     <Shield size={15} />
                     <span>Quản lý nội dung</span>
-                  </Link>
-                )}
-
-                {user.role === 'support' && (
-                  <Link
-                    to="/support"
-                    className="topbar-user-dropdown-item"
-                    role="menuitem"
-                    onClick={() => setIsUserMenuOpen(false)}
-                  >
-                    <Shield size={15} />
-                    <span>Hỗ trợ khách hàng</span>
                   </Link>
                 )}
 

@@ -1,4 +1,4 @@
-import { Award, Bot, ChevronLeft, ChevronRight, FileText } from 'lucide-react'
+import { Award, ChevronLeft, ChevronRight, FileText } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import './LessonBottomBar.css'
@@ -20,8 +20,8 @@ export interface LessonBottomBarProps {
 export function LessonBottomBar({
   courseId,
   subjectId,
-  lessonId,
-  lessonTitle,
+  lessonId: _lessonId,
+  lessonTitle: _lessonTitle,
   previousLessonId,
   nextLessonId,
   isAssessmentCompleted,
@@ -41,10 +41,6 @@ export function LessonBottomBar({
           ? 'english'
           : 'math')
 
-  const handleAskAI = () => {
-    navigate(`/ai-tutor?lesson=${lessonId}&topic=${encodeURIComponent(lessonTitle)}`)
-  }
-
   return (
     <div className="lesson-bottom-bar" role="toolbar" aria-label="Điều hướng bài học">
       {/* LEFT: Bài trước */}
@@ -62,7 +58,7 @@ export function LessonBottomBar({
         )}
       </div>
 
-      {/* CENTER: Ghi chú & Hỏi AI về bài này */}
+      {/* CENTER: Ghi chú */}
       <div className="bottom-bar-center">
         {onOpenNotes && (
           <Button
@@ -74,14 +70,6 @@ export function LessonBottomBar({
             Ghi chú {notesCount > 0 ? `(${notesCount})` : ''}
           </Button>
         )}
-        <Button
-          variant="outline"
-          icon={Bot}
-          onClick={handleAskAI}
-          className="ask-ai-btn"
-        >
-          Hỏi AI
-        </Button>
       </div>
 
       {/* RIGHT: Primary CTA (Làm bài tập thu hoạch) & Bài tiếp */}

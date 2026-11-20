@@ -181,7 +181,7 @@ export const AdminAuditLogsPage: React.FC = () => {
       >
         <Shield size={20} color="#0284c7" style={{ flexShrink: 0 }} />
         <div style={{ fontSize: '0.85rem', color: '#0369a1', lineHeight: 1.45 }}>
-          <strong>Nhật ký demo:</strong> Toàn bộ thao tác mutation (phê duyệt, giao bài, phân công ticket, đổi cài đặt) được lưu vết trên trình duyệt để kiểm tra quy trình vận hành và kiểm soát chất lượng, không phải hệ thống audit bảo mật production.
+          <strong>Nhật ký demo:</strong> Toàn bộ thao tác mutation (phê duyệt, giao bài, đổi cài đặt) được lưu vết trên trình duyệt để kiểm tra quy trình vận hành và kiểm soát chất lượng, không phải hệ thống audit bảo mật production.
         </div>
       </div>
 
@@ -208,7 +208,6 @@ export const AdminAuditLogsPage: React.FC = () => {
           <option value="admin">Quản trị (Admin)</option>
           <option value="content">Nội dung (Content)</option>
           <option value="teacher">Giáo viên (Teacher)</option>
-          <option value="support">Hỗ trợ (Support)</option>
         </select>
 
         {(search || workspaceFilter !== 'all' || actionFilter !== 'all') && (

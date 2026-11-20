@@ -1,0 +1,82 @@
+{
+  "timestamp": "2026-11-12T13:37:45.030Z",
+  "durationSeconds": 54,
+  "databaseTarget": "StudyAIDb_E2E",
+  "productionDatabase": "StudyAIDb (100% UNTOUCHED, 120 users preserved)",
+  "totalScenarios": 7,
+  "passedScenarios": 7,
+  "failedScenarios": 0,
+  "reports": [
+    {
+      "id": 1,
+      "name": "Admin Login & Dashboard Access (admin@gmail.com)",
+      "status": "PASS",
+      "durationMs": 7270,
+      "screenshots": [
+        "data001_01_admin_dashboard_login.png"
+      ],
+      "notes": "admin@gmail.com authenticated successfully with role=admin; dashboard KPIs rendered."
+    },
+    {
+      "id": 2,
+      "name": "Content Specialist Login & Workspace Access (content@gmail.com)",
+      "status": "PASS",
+      "durationMs": 4145,
+      "screenshots": [
+        "data001_02_content_workspace_login.png"
+      ],
+      "notes": "content@gmail.com authenticated successfully with role=content; subjects workspace rendered."
+    },
+    {
+      "id": 3,
+      "name": "Content Specialist Lesson & Review Queue Workflow",
+      "status": "PASS",
+      "durationMs": 3713,
+      "screenshots": [
+        "data001_03_content_lessons_list.png",
+        "data001_04_content_review_queue.png"
+      ],
+      "notes": "Content specialist accesses lesson repository and review queue directly without admin redirection."
+    },
+    {
+      "id": 4,
+      "name": "Negative RBAC — Content Forbidden from Admin User Management",
+      "status": "PASS",
+      "durationMs": 1764,
+      "screenshots": [
+        "data001_05_content_rbac_blocked_from_admin.png"
+      ],
+      "notes": "Content specialist attempting to navigate to /admin/users is stopped with 403 Access Denied."
+    },
+    {
+      "id": 5,
+      "name": "VNHSGE Ingestion Interface & Copyright Notice",
+      "status": "PASS",
+      "durationMs": 1725,
+      "screenshots": [
+        "data001_06_vnhsge_import_interface.png"
+      ],
+      "notes": "Attribution banner, arXiv:2305.12199 citation, and Dry-Run safety option rendered cleanly."
+    },
+    {
+      "id": 6,
+      "name": "Negative RBAC — Learner Forbidden from Content Review Workspace",
+      "status": "PASS",
+      "durationMs": 4197,
+      "screenshots": [
+        "data001_07_learner_blocked_from_content_review.png"
+      ],
+      "notes": "Learner attempting to access /content/review receives 403 Forbidden screen."
+    },
+    {
+      "id": 7,
+      "name": "Authenticated Learner Assignments Live Rendering",
+      "status": "PASS",
+      "durationMs": 1868,
+      "screenshots": [
+        "data001_08_authenticated_learner_assignments.png"
+      ],
+      "notes": "Authenticated assignment workspace queries backend API fail-closed without silent local mock substitution."
+    }
+  ]
+}

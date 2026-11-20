@@ -191,7 +191,6 @@ export const AdminUserFormDialog: React.FC<AdminUserFormDialogProps> = ({
                   <option value="learner">Học viên (Learner)</option>
                   <option value="teacher">Giáo viên (Teacher)</option>
                   <option value="content">Biên soạn nội dung (Content)</option>
-                  <option value="support">Nhân viên hỗ trợ (Support)</option>
                   <option value="admin">Quản trị viên (Admin)</option>
                 </select>
               </div>

@@ -212,7 +212,6 @@ export const WorkspaceSidebar: React.FC<WorkspaceSidebarProps> = ({
                   { role: 'admin', label: 'Admin', path: '/admin' },
                   { role: 'teacher', label: 'Teacher', path: '/teacher' },
                   { role: 'content', label: 'Content', path: '/content' },
-                  { role: 'support', label: 'Support', path: '/support' },
                 ].map((ws) => {
                   const isCurrent = config.role === ws.role
                   return (

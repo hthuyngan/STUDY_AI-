@@ -6,6 +6,9 @@ namespace StudyAI.Infrastructure.Services;
 public class FakeLlmProvider : ILlmProvider
 {
     public string ProviderName => "FakeLlmProvider";
+    public string DefaultModel => "fake-flash-v1";
+    public string? ReasoningModel => "fake-reasoner-v1";
+    public string FallbackModel => "fake-rule-fallback";
     public bool IsConfigured => true;
 
     public Task<LlmCompletionResponse> GenerateCompletionAsync(LlmCompletionRequest request)
@@ -26,6 +29,16 @@ public class FakeLlmProvider : ILlmProvider
             throw new TimeoutException("Thao tác gọi AI Tutor đã vượt quá thời gian chờ cho phép (timeout).");
         }
 
+        if (lower.Contains("rate_limit_test"))
+        {
+            throw new HttpRequestException("Hệ thống LLM đang bị giới hạn tần suất yêu cầu (Rate Limit - 429). Vui lòng thử lại sau giây lát.", null, System.Net.HttpStatusCode.TooManyRequests);
+        }
+
+        if (lower.Contains("server_error_test"))
+        {
+            throw new HttpRequestException("Lỗi máy chủ từ nhà cung cấp LLM: HTTP 503 Service Unavailable", null, System.Net.HttpStatusCode.ServiceUnavailable);
+        }
+
         if (lower.Contains("error_test"))
         {
             throw new HttpRequestException("Lỗi kết nối từ phía nhà cung cấp dịch vụ mô hình AI (Provider error).");
@@ -44,6 +57,15 @@ public class FakeLlmProvider : ILlmProvider
             sb.AppendLine("3. **Lưu ý sư phạm:** Nếu câu hỏi này mở rộng ra ngoài phạm vi bài giảng trên lớp, bạn nên ghi nhớ rằng hệ thống ưu tiên bám sát khung kiến thức sách giáo khoa.");
             sb.AppendLine();
             sb.AppendLine("> *Ghi chú:* Thông tin trên được tổng hợp trực tiếp từ tài liệu bài học chính khóa.");
+        }
+        else if (lower.Contains("cực trị") || lower.Contains("cuc tri"))
+        {
+            sb.AppendLine("### 📐 Hướng dẫn tìm cực trị:");
+            sb.AppendLine();
+            sb.AppendLine("Để tìm cực trị của hàm số, em thực hiện 3 bước trọng tâm:");
+            sb.AppendLine("1. Tìm tập xác định và tính đạo hàm $y' = f'(x)$.");
+            sb.AppendLine("2. Giải phương trình $y' = 0$ để tìm các điểm tới hạn.");
+            sb.AppendLine("3. Lập bảng biến thiên hoặc xét dấu đạo hàm để kết luận điểm cực đại, cực tiểu (cực trị).");
         }
         else if (lower.Contains("đạo hàm") || lower.Contains("dao ham"))
         {

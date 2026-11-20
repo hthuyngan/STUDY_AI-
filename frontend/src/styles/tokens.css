@@ -1,0 +1,320 @@
+/* ============================================================
+   DESIGN TOKENS — STUDY_AI DESIGN SYSTEM
+   Standard semantic CSS variables for theme, color, spacing, radius, shadow, z-index
+   ============================================================ */
+
+:root {
+  /* ── Core Brand Palette (Blue, White, Slate) ──────────────── */
+  --brand-50:  #eff6ff;
+  --brand-100: #dbeafe;
+  --brand-200: #bfdbfe;
+  --brand-300: #93c5fd;
+  --brand-400: #60a5fa;
+  --brand-500: #3b82f6;
+  --brand-600: #2563eb;
+  --brand-700: #1d4ed8;
+  --brand-800: #1e40af;
+  --brand-900: #1e3a8a;
+  --brand-navy: #183b69;
+
+  /* ── UI Foundation Tokens (Semantic Aliases) ──────────────── */
+  --ui-color-primary:        #1d4ed8;
+  --ui-color-primary-hover:  #1e40af;
+  --ui-color-primary-subtle: #eff6ff;
+  --ui-color-navy:           #183b69;
+  --ui-color-navy-hover:     #0f2644;
+  --ui-color-canvas:         #f8fafc;
+  --ui-color-surface:        #ffffff;
+  --ui-color-text:           #0f172a;
+  --ui-color-text-muted:     #64748b;
+  --ui-color-border:         #e2e8f0;
+  --ui-color-border-hover:   #cbd5e1;
+
+  /* Semantic Feedback Status */
+  --ui-color-success:        #16a34a;
+  --ui-color-success-subtle: #f0fdf4;
+  --ui-color-warning:        #d97706;
+  --ui-color-warning-subtle: #fffbeb;
+  --ui-color-danger:         #dc2626;
+  --ui-color-danger-subtle:  #fef2f2;
+  --ui-color-info:           #0284c7;
+  --ui-color-info-subtle:    #f0f9ff;
+
+  /* Backward Compatibility Semantic Tokens */
+  --color-primary:       var(--brand-600);
+  --color-primary-hover: var(--brand-700);
+  --color-primary-light: var(--brand-50);
+  --color-primary-bg:    var(--brand-100);
+
+  --color-success:       #16a34a;
+  --color-success-light: #f0fdf4;
+  --color-success-bg:    #dcfce7;
+
+  --color-warning:       #d97706;
+  --color-warning-light: #fffbeb;
+  --color-warning-bg:    #fef3c7;
+
+  --color-danger:        #dc2626;
+  --color-danger-light:  #fef2f2;
+  --color-danger-bg:     #fee2e2;
+
+  --color-info:          #0891b2;
+  --color-info-light:    #f0f9ff;
+  --color-info-bg:       #cffafe;
+
+  /* Neutrals */
+  --neutral-0:   #ffffff;
+  --neutral-50:  #f8fafc;
+  --neutral-100: #f1f5f9;
+  --neutral-200: #e2e8f0;
+  --neutral-300: #cbd5e1;
+  --neutral-400: #94a3b8;
+  --neutral-500: #64748b;
+  --neutral-600: #475569;
+  --neutral-700: #334155;
+  --neutral-800: #1e293b;
+  --neutral-900: #0f172a;
+  --neutral-950: #020617;
+
+  /* Surface */
+  --surface-page:    var(--neutral-50);
+  --surface-card:    var(--neutral-0);
+  --surface-raised:  var(--neutral-0);
+  --surface-sunken:  var(--neutral-100);
+  --surface-overlay: rgba(255, 255, 255, 0.95);
+
+  /* Text */
+  --text-primary:   var(--neutral-900);
+  --text-secondary: var(--neutral-600);
+  --text-tertiary:  var(--neutral-400);
+  --text-disabled:  var(--neutral-300);
+  --text-inverse:   var(--neutral-0);
+  --text-on-brand:  var(--neutral-0);
+
+  /* Border */
+  --border-subtle:   var(--neutral-100);
+  --border-default:  var(--neutral-200);
+  --border-strong:   var(--neutral-300);
+  --border-focus:    var(--brand-500);
+
+  /* Radius */
+  --ui-radius-sm:  6px;
+  --ui-radius-md:  8px;
+  --ui-radius-lg:  12px;
+  --ui-radius-xl:  16px;
+  --ui-radius-full: 9999px;
+
+  --radius-xs:   4px;
+  --radius-sm:   6px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
+  --radius-2xl:  20px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --ui-shadow-xs: 0 1px 2px rgb(15 23 42 / 4%);
+  --ui-shadow-sm: 0 1px 3px rgb(15 23 42 / 6%), 0 1px 2px -1px rgb(15 23 42 / 6%);
+  --ui-shadow-md: 0 4px 6px -1px rgb(15 23 42 / 7%), 0 2px 4px -2px rgb(15 23 42 / 7%);
+  --ui-shadow-lg: 0 10px 15px -3px rgb(15 23 42 / 8%), 0 4px 6px -4px rgb(15 23 42 / 8%);
+  --ui-shadow-xl: 0 20px 25px -5px rgb(15 23 42 / 10%), 0 8px 10px -6px rgb(15 23 42 / 10%);
+
+  --shadow-xs: var(--ui-shadow-xs);
+  --shadow-sm: var(--ui-shadow-sm);
+  --shadow-md: var(--ui-shadow-md);
+  --shadow-lg: var(--ui-shadow-lg);
+  --shadow-xl: var(--ui-shadow-xl);
+  --shadow-focus: 0 0 0 3px var(--brand-200);
+  --ui-focus-ring: 0 0 0 3px rgb(59 130 246 / 20%);
+
+  /* Spacing (4px / 8px scale) */
+  --ui-space-1: 4px;
+  --ui-space-2: 8px;
+  --ui-space-3: 12px;
+  --ui-space-4: 16px;
+  --ui-space-5: 20px;
+  --ui-space-6: 24px;
+  --ui-space-8: 32px;
+  --ui-space-10: 40px;
+  --ui-space-12: 48px;
+
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  /* Layers & Z-Index */
+  --ui-layer-base:     0;
+  --ui-layer-raised:   10;
+  --ui-layer-header:   50;
+  --ui-layer-sidebar:  100;
+  --ui-layer-dropdown: 200;
+  --ui-layer-sticky:   250;
+  --ui-layer-overlay:  300;
+  --ui-layer-dialog:   500;
+  --ui-layer-toast:    1000;
+
+  --z-base:     var(--ui-layer-base);
+  --z-raised:   var(--ui-layer-raised);
+  --z-dropdown: var(--ui-layer-dropdown);
+  --z-sticky:   var(--ui-layer-sticky);
+  --z-overlay:  var(--ui-layer-overlay);
+  --z-modal:    var(--ui-layer-dialog);
+  --z-toast:    var(--ui-layer-toast);
+
+  /* Layout dimensions */
+  --sidebar-width:           240px;
+  --sidebar-collapsed-width: 64px;
+  --topbar-height:           60px;
+  --bottom-nav-height:       64px;
+  --content-max-width:       1340px;
+
+  /* Typography tokens — Inter Design System */
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Standard Hierarchy Scale */
+  --text-page-title:    1.625rem;  /* 26px (scale 24-28px) */
+  --text-section-title: 1.1875rem; /* 19px (scale 18-20px) */
+  --text-card-title:    1.0625rem; /* 17px (scale 16-18px) */
+  --text-body:          0.9375rem; /* 15px (scale 14-16px) */
+  --text-secondary:     0.84375rem;/* 13.5px (scale 13-14px) */
+  --text-caption:       0.78125rem;/* 12.5px (scale 12-13px) */
+
+  /* Safe line-heights for Vietnamese tone marks & diacritics */
+  --leading-page-title:    1.3;
+  --leading-section-title: 1.35;
+  --leading-card-title:    1.4;
+  --leading-body:          1.6;
+  --leading-secondary:     1.5;
+  --leading-caption:       1.45;
+
+  /* Component Typography Tokens */
+  --font-button: var(--font-sans);
+  --font-button-size: 0.875rem;
+  --font-button-weight: 500;
+  --font-button-leading: 1.4;
+
+  --font-input: var(--font-sans);
+  --font-input-size: 0.9375rem;
+  --font-input-weight: 400;
+  --font-input-leading: 1.5;
+
+  --font-table: var(--font-sans);
+  --font-table-size: 0.875rem;
+  --font-table-weight: 400;
+  --font-table-header-weight: 600;
+
+  --font-nav: var(--font-sans);
+  --font-nav-size: 0.9375rem;
+  --font-nav-weight: 500;
+  --font-nav-leading: 1.4;
+
+  --font-badge: var(--font-sans);
+  --font-badge-size: 0.75rem;
+  --font-badge-weight: 600;
+
+  --font-modal-title-size: 1.25rem;
+  --font-modal-title-weight: 600;
+
+  --text-xs:   0.75rem;   /* 12px */
+  --text-sm:   0.875rem;  /* 14px */
+  --text-base: 1rem;      /* 16px */
+  --text-lg:   1.125rem;  /* 18px */
+  --text-xl:   1.25rem;   /* 20px */
+  --text-2xl:  1.5rem;    /* 24px */
+  --text-3xl:  1.875rem;  /* 30px */
+  --text-4xl:  2.25rem;   /* 36px */
+
+  --leading-tight:   1.3;
+  --leading-snug:    1.4;
+  --leading-normal:  1.55;
+  --leading-relaxed: 1.65;
+
+  --font-light:     300;
+  --font-normal:    400;
+  --font-medium:    500;
+  --font-semibold:  600;
+  --font-bold:      700;
+  --font-extrabold: 800;
+
+  /* Transition speeds */
+  --duration-fast: 100ms;
+  --duration-base: 150ms;
+  --duration-slow: 300ms;
+  --ease-default:  cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-in:       cubic-bezier(0.4, 0, 1, 1);
+  --ease-out:      cubic-bezier(0, 0, 0.2, 1);
+  --ease-bounce:   cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Subject colors */
+  --subject-math-color:         #6366f1;
+  --subject-math-bg:            #eef2ff;
+  --subject-literature-color:   #ec4899;
+  --subject-literature-bg:      #fdf2f8;
+  --subject-english-color:      #0ea5e9;
+  --subject-english-bg:         #f0f9ff;
+  --subject-physics-color:      #f59e0b;
+  --subject-physics-bg:         #fffbeb;
+  --subject-chemistry-color:    #10b981;
+  --subject-chemistry-bg:       #ecfdf5;
+  --subject-biology-color:      #8b5cf6;
+  --subject-biology-bg:         #f5f3ff;
+  --subject-history-color:      #d97706;
+  --subject-history-bg:         #fef3c7;
+  --subject-geography-color:    #059669;
+  --subject-geography-bg:       #d1fae5;
+  --subject-economic-law-color: #4338ca;
+  --subject-economic-law-bg:    #e0e7ff;
+}
+
+/* ── Dark Mode Token Support ──────────────────────────────── */
+[data-theme="dark"] {
+  --ui-color-canvas:   #0f172a;
+  --ui-color-surface:  #1e293b;
+  --ui-color-text:     #f8fafc;
+  --ui-color-text-muted: #94a3b8;
+  --ui-color-border:   #334155;
+  --ui-color-border-hover: #475569;
+
+  --surface-page:    #0f172a;
+  --surface-card:    #1e293b;
+  --surface-raised:  #1e293b;
+  --surface-sunken:  #0f172a;
+  --surface-overlay: rgba(15, 23, 42, 0.96);
+
+  --text-primary:   #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-tertiary:  #64748b;
+  --text-disabled:  #334155;
+  --text-inverse:   #0f172a;
+  --text-on-brand:  #ffffff;
+
+  --border-subtle:  #1e293b;
+  --border-default: #334155;
+  --border-strong:  #475569;
+
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.5);
+  --shadow-focus: 0 0 0 3px rgba(59, 130, 246, 0.35);
+
+  --subject-math-bg:        rgba(99, 102, 241, 0.12);
+  --subject-literature-bg:  rgba(236, 72, 153, 0.12);
+  --subject-english-bg:     rgba(14, 165, 233, 0.12);
+  --subject-physics-bg:     rgba(245, 158, 11, 0.12);
+  --subject-chemistry-bg:   rgba(16, 185, 129, 0.12);
+  --subject-biology-bg:     rgba(139, 92, 246, 0.12);
+  --subject-history-bg:     rgba(217, 119, 6, 0.14);
+  --subject-geography-bg:   rgba(5, 150, 105, 0.14);
+  --subject-economic-law-bg: rgba(67, 56, 202, 0.14);
+}

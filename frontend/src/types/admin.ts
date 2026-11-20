@@ -69,7 +69,6 @@ export interface AdminSystemMetrics {
   totalUsers: number
   activeLearners: number
   staffAccounts: number
-  openSupportTickets: number
   completedLessonsTotal?: number
   systemStatus: 'healthy' | 'degraded' | 'maintenance'
   apiLatencyMs: number
@@ -82,7 +81,7 @@ export interface AdminSystemMetrics {
 
 export interface AdminAttentionItem {
   id: string
-  type: 'staff_pending' | 'content_review' | 'support_escalated' | 'system_warning'
+  type: 'staff_pending' | 'content_review' | 'system_warning'
   title: string
   description: string
   timestamp: string

@@ -1,3 +1,4 @@
+import { apiClient } from '@/lib/apiClient'
 import { mockDashboardData } from '@/data/dashboard.mock'
 import { buildLearningStateSnapshot } from '@/services/learningState.service'
 import type { DailyGoalItem, DashboardData, SubjectProgressItemData } from '@/types/dashboard'
@@ -8,10 +9,38 @@ export interface DashboardFetchOptions {
   delayMs?: number
 }
 
+interface ServerDashboardStats {
+  completedLessons: number
+  totalQuestionsPracticed: number
+  totalCorrectAnswers: number
+  accuracyRate: number
+  streakDays: number
+  totalMistakes: number
+  dueReviewsCount: number
+  subjectProgress: Array<{
+    subjectId: string
+    subjectName: string
+    completedLessons: number
+    totalLessons: number
+    questionsPracticed: number
+    accuracyRate: number
+    progressPercent: number
+  }>
+  recentAttempts: Array<{
+    attemptId: string
+    subjectId: string
+    mode: string
+    scoreScaled: number
+    totalQuestions: number
+    correctCount: number
+    completedAt: string
+  }>
+}
+
 export async function fetchDashboardData(
   options: DashboardFetchOptions = {}
 ): Promise<DashboardData | null> {
-  const { simulateEmpty = false, simulateError = false, delayMs = 300 } = options
+  const { simulateEmpty = false, simulateError = false, delayMs = 0 } = options
 
   if (delayMs > 0) {
     await new Promise((resolve) => setTimeout(resolve, delayMs))
@@ -28,9 +57,29 @@ export async function fetchDashboardData(
   const base = mockDashboardData
   const learning = buildLearningStateSnapshot()
 
-  // Map subjects with real derived learning progress
+  let serverStats: ServerDashboardStats | null = null
+  try {
+    serverStats = await apiClient.get<ServerDashboardStats>('/api/v1/practice/dashboard-stats')
+  } catch {
+    // Graceful fallback to client-derived state when offline
+    serverStats = null
+  }
+
+  // Map subjects with real derived learning progress or server stats
   const subjects: SubjectProgressItemData[] = (base.subjects || []).map(
     (baseSubj: SubjectProgressItemData) => {
+      if (serverStats?.subjectProgress) {
+        const serverSubj = serverStats.subjectProgress.find((s) => s.subjectId === baseSubj.id)
+        if (serverSubj) {
+          return {
+            ...baseSubj,
+            progress: Math.round(serverSubj.progressPercent),
+            completedLessons: serverSubj.completedLessons,
+            totalLessons: serverSubj.totalLessons || baseSubj.totalLessons,
+          }
+        }
+      }
+
       const derived = learning.subjects[baseSubj.id]
       if (!derived) return baseSubj
       return {
@@ -43,9 +92,8 @@ export async function fetchDashboardData(
   )
 
   // Dynamic daily goal: "Học một bài học mới"
-  // Check if today has completed any lesson
   const lastPoint = learning.weeklyActivity.points[learning.weeklyActivity.points.length - 1]
-  const todayLessons = lastPoint?.lessons || 0
+  const todayLessons = (serverStats ? serverStats.completedLessons : (lastPoint?.lessons || 0))
   const dailyGoals = {
     ...base.dailyGoals,
     items: base.dailyGoals.items.map((g: DailyGoalItem) => {
@@ -61,15 +109,18 @@ export async function fetchDashboardData(
     }),
   }
 
-  // Merge static demo base with real derived learner state
+  const streakDays = serverStats ? serverStats.streakDays : learning.streak.current
+  const completedLessonsCount = serverStats ? serverStats.completedLessons : learning.summary.completedLessons
+
+  // Merge static demo base with real learner state
   return {
     ...base,
     stats: {
       ...base.stats,
-      streakDays: learning.streak.current,
-      longestStreak: learning.streak.longest,
+      streakDays,
+      longestStreak: Math.max(streakDays, learning.streak.longest),
       weeklyMinutes: learning.weeklyActivity.totalMinutes,
-      completedLessonsCount: learning.summary.completedLessons,
+      completedLessonsCount,
     },
     activity: {
       ...base.activity,

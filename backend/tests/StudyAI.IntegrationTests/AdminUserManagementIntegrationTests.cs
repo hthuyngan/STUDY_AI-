@@ -25,6 +25,18 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
 
     private async Task<string> GetAdminTokenAsync()
     {
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            var adminUser = await db.Users.FirstOrDefaultAsync(u => u.EmailNormalized == "ADMIN@STUDYAI.INTERNAL" || u.EmailNormalized == "admin@studyai.internal");
+            if (adminUser != null && (adminUser.Role != "admin" || adminUser.Status != "active"))
+            {
+                adminUser.Role = "admin";
+                adminUser.Status = "active";
+                await db.SaveChangesAsync();
+            }
+        }
+
         var loginResp = await _client.PostAsync("/api/v1/auth/login", new StringContent(
             JsonSerializer.Serialize(new UserLoginRequestDto
             {
@@ -240,7 +252,7 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
         {
             DisplayName = "Tên Đã Cập Nhật",
             Grade = "12",
-            Role = "support",
+            Role = "content",
             Status = "active"
         };
         var reqUpdate = new HttpRequestMessage(HttpMethod.Patch, $"/api/v1/admin/users/{created.User.Id}")
@@ -255,7 +267,7 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
         Assert.NotNull(updated);
         Assert.Equal("Tên Đã Cập Nhật", updated.DisplayName);
         Assert.Equal("12", updated.Grade);
-        Assert.Equal("support", updated.Role);
+        Assert.Equal("content", updated.Role);
     }
 
     [Fact]
@@ -267,17 +279,38 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
         var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
         var admin = await db.Users.FirstAsync(u => u.EmailNormalized == "admin@studyai.internal");
 
-        // Attempt to demote sole active admin to learner
-        var req = new HttpRequestMessage(HttpMethod.Patch, $"/api/v1/admin/users/{admin.Id}/role")
+        // Temporarily disable any other active admins so admin@studyai.internal is the sole active admin
+        var otherAdmins = await db.Users.Where(u => u.Role == "admin" && u.Id != admin.Id && u.Status == "active").ToListAsync();
+        foreach (var oa in otherAdmins)
         {
-            Content = new StringContent(JsonSerializer.Serialize(new UpdateRoleRequestDto { Role = "learner" }), Encoding.UTF8, "application/json")
-        };
-        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            oa.Status = "disabled";
+        }
+        await db.SaveChangesAsync();
 
-        var resp = await _client.SendAsync(req);
-        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
-        var body = await resp.Content.ReadAsStringAsync();
-        Assert.Contains("Không thể hủy quyền quản trị viên hoạt động duy nhất", body);
+        try
+        {
+            // Attempt to demote sole active admin to learner
+            var req = new HttpRequestMessage(HttpMethod.Patch, $"/api/v1/admin/users/{admin.Id}/role")
+            {
+                Content = new StringContent(JsonSerializer.Serialize(new UpdateRoleRequestDto { Role = "learner" }), Encoding.UTF8, "application/json")
+            };
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var resp = await _client.SendAsync(req);
+            Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+            var body = await resp.Content.ReadAsStringAsync();
+            Assert.Contains("Không thể hủy quyền quản trị viên hoạt động duy nhất", body);
+        }
+        finally
+        {
+            foreach (var oa in otherAdmins)
+            {
+                oa.Status = "active";
+            }
+            admin.Role = "admin";
+            admin.Status = "active";
+            await db.SaveChangesAsync();
+        }
     }
 
     [Fact]
@@ -289,17 +322,38 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
         var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
         var admin = await db.Users.FirstAsync(u => u.EmailNormalized == "admin@studyai.internal");
 
-        // Attempt to suspend sole active admin
-        var req = new HttpRequestMessage(HttpMethod.Patch, $"/api/v1/admin/users/{admin.Id}/status")
+        // Temporarily disable any other active admins so admin@studyai.internal is the sole active admin
+        var otherAdmins = await db.Users.Where(u => u.Role == "admin" && u.Id != admin.Id && u.Status == "active").ToListAsync();
+        foreach (var oa in otherAdmins)
         {
-            Content = new StringContent(JsonSerializer.Serialize(new UpdateStatusRequestDto { Status = "suspended" }), Encoding.UTF8, "application/json")
-        };
-        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            oa.Status = "disabled";
+        }
+        await db.SaveChangesAsync();
 
-        var resp = await _client.SendAsync(req);
-        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
-        var body = await resp.Content.ReadAsStringAsync();
-        Assert.Contains("Không thể tạm khóa hoặc vô hiệu hóa quản trị viên", body);
+        try
+        {
+            // Attempt to suspend sole active admin
+            var req = new HttpRequestMessage(HttpMethod.Patch, $"/api/v1/admin/users/{admin.Id}/status")
+            {
+                Content = new StringContent(JsonSerializer.Serialize(new UpdateStatusRequestDto { Status = "suspended" }), Encoding.UTF8, "application/json")
+            };
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var resp = await _client.SendAsync(req);
+            Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+            var body = await resp.Content.ReadAsStringAsync();
+            Assert.Contains("Không thể tạm khóa hoặc vô hiệu hóa quản trị viên", body);
+        }
+        finally
+        {
+            foreach (var oa in otherAdmins)
+            {
+                oa.Status = "active";
+            }
+            admin.Role = "admin";
+            admin.Status = "active";
+            await db.SaveChangesAsync();
+        }
     }
 
     [Fact]
@@ -484,13 +538,34 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
         var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
         var admin = await db.Users.FirstAsync(u => u.EmailNormalized == "admin@studyai.internal");
 
-        var req = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/admin/users/{admin.Id}");
-        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        // Temporarily disable any other active admins so admin@studyai.internal is the sole active admin
+        var otherAdmins = await db.Users.Where(u => u.Role == "admin" && u.Id != admin.Id && u.Status == "active").ToListAsync();
+        foreach (var oa in otherAdmins)
+        {
+            oa.Status = "disabled";
+        }
+        await db.SaveChangesAsync();
 
-        var resp = await _client.SendAsync(req);
-        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
-        var body = await resp.Content.ReadAsStringAsync();
-        Assert.Contains("Không thể xóa quản trị viên hoạt động duy nhất", body);
+        try
+        {
+            var req = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/admin/users/{admin.Id}");
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var resp = await _client.SendAsync(req);
+            Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+            var body = await resp.Content.ReadAsStringAsync();
+            Assert.Contains("Không thể xóa quản trị viên hoạt động duy nhất", body);
+        }
+        finally
+        {
+            foreach (var oa in otherAdmins)
+            {
+                oa.Status = "active";
+            }
+            admin.Role = "admin";
+            admin.Status = "active";
+            await db.SaveChangesAsync();
+        }
     }
 
     [Fact]
@@ -561,5 +636,259 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
         reqLogs.Headers.Authorization = new AuthenticationHeaderValue("Bearer", learnerToken);
         var respLogs = await _client.SendAsync(reqLogs);
         Assert.Equal(HttpStatusCode.Forbidden, respLogs.StatusCode);
+    }
+
+    [Fact]
+    public async Task Admin_UpdateSettings_PersistsAndReadsFromSecondSession_ReturnsEffectiveSettings()
+    {
+        var tokenSession1 = await GetAdminTokenAsync();
+
+        // Session 1: Admin updates operational settings
+        var updatedSettings = new OperationalSettingsDto
+        {
+            SystemName = "STUDY_AI Enterprise Production",
+            SystemDescription = "Hệ thống học tập thông minh chuẩn hóa dữ liệu",
+            Language = "vi-VN",
+            PassingScoreThreshold = 7.5,
+            LowScoreAlertThreshold = 6.0,
+            AttentionProgressThreshold = 70,
+            RequireApprovalBeforePublish = true,
+            AllowRevisionRequests = true,
+            ShowArchivedContent = false,
+            NotificationDisplayDays = 14,
+            EnableDemoAlerts = false
+        };
+
+        var reqPut = new HttpRequestMessage(HttpMethod.Put, "/api/v1/admin/settings")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(updatedSettings), Encoding.UTF8, "application/json")
+        };
+        reqPut.Headers.Authorization = new AuthenticationHeaderValue("Bearer", tokenSession1);
+
+        var respPut = await _client.SendAsync(reqPut);
+        Assert.Equal(HttpStatusCode.OK, respPut.StatusCode);
+
+        // Verify directly in database StudyAIDb_E2E
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            var auditLog = await db.StaffAuditLogs
+                .Where(l => l.TargetType == "system_settings" && l.Action == "system_settings_updated")
+                .OrderByDescending(l => l.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            Assert.NotNull(auditLog);
+            Assert.Contains("STUDY_AI Enterprise Production", auditLog.Payload);
+            Assert.Contains("7.5", auditLog.Payload);
+        }
+
+        // Session 2: Second browser session retrieves settings from server
+        var clientSession2 = _factory.CreateClient();
+        var tokenSession2 = await GetAdminTokenAsync();
+
+        var reqGet = new HttpRequestMessage(HttpMethod.Get, "/api/v1/admin/settings");
+        reqGet.Headers.Authorization = new AuthenticationHeaderValue("Bearer", tokenSession2);
+
+        var respGet = await clientSession2.SendAsync(reqGet);
+        Assert.Equal(HttpStatusCode.OK, respGet.StatusCode);
+
+        var bodyGet = await respGet.Content.ReadAsStringAsync();
+        var retrievedSettings = JsonSerializer.Deserialize<OperationalSettingsDto>(bodyGet, JsonOpts);
+
+        Assert.NotNull(retrievedSettings);
+        Assert.Equal("STUDY_AI Enterprise Production", retrievedSettings.SystemName);
+        Assert.Equal(7.5, retrievedSettings.PassingScoreThreshold);
+        Assert.Equal(14, retrievedSettings.NotificationDisplayDays);
+        Assert.Equal("vi-VN", retrievedSettings.Language);
+    }
+
+    [Fact]
+    public async Task Admin_CreateAnnouncement_TargetedToRecipients_PersistsAndDeliversCorrectly()
+    {
+        var token = await GetAdminTokenAsync();
+
+        var announcementReq = new SaveAnnouncementRequestDto
+        {
+            Title = "Lịch thi khảo sát học kỳ II năm học 2026",
+            Content = "Toàn bộ học viên khối 12 tham gia thi thử tốt nghiệp THPT Quốc gia môn Toán.",
+            Audience = "learner",
+            Severity = "warning",
+            Status = "published"
+        };
+
+        // 1. Admin creates announcement
+        var reqPost = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/announcements")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(announcementReq), Encoding.UTF8, "application/json")
+        };
+        reqPost.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var respPost = await _client.SendAsync(reqPost);
+        Assert.Equal(HttpStatusCode.Created, respPost.StatusCode);
+
+        var bodyPost = await respPost.Content.ReadAsStringAsync();
+        var created = JsonSerializer.Deserialize<AnnouncementDto>(bodyPost, JsonOpts);
+        Assert.NotNull(created);
+        Assert.False(string.IsNullOrWhiteSpace(created.Id));
+        Assert.Equal("Lịch thi khảo sát học kỳ II năm học 2026", created.Title);
+        Assert.Equal("learner", created.Audience);
+        Assert.Equal("warning", created.Severity);
+
+        // 2. Verify persistence in StudyAIDb_E2E
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            var log = await db.StaffAuditLogs.FirstOrDefaultAsync(l => l.TargetType == "announcement" && l.TargetId == created.Id);
+            Assert.NotNull(log);
+            Assert.Equal(created.Id, log.TargetId);
+
+            var persisted = JsonSerializer.Deserialize<AnnouncementDto>(log.Payload, JsonOpts);
+            Assert.NotNull(persisted);
+            Assert.Equal(created.Title, persisted.Title);
+            Assert.Equal("learner", persisted.Audience);
+        }
+
+        // 3. Second browser session queries announcement list and verifies targeted audience
+        var clientSession2 = _factory.CreateClient();
+        var reqList = new HttpRequestMessage(HttpMethod.Get, "/api/v1/admin/announcements");
+        reqList.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var respList = await clientSession2.SendAsync(reqList);
+        Assert.Equal(HttpStatusCode.OK, respList.StatusCode);
+
+        var bodyList = await respList.Content.ReadAsStringAsync();
+        var list = JsonSerializer.Deserialize<List<AnnouncementDto>>(bodyList, JsonOpts);
+        Assert.NotNull(list);
+
+        var match = list.FirstOrDefault(a => a.Id == created.Id);
+        Assert.NotNull(match);
+        Assert.Equal("learner", match.Audience);
+        Assert.Equal("warning", match.Severity);
+    }
+
+    [Fact]
+    public async Task Admin_Endpoints_ErrorHandling_Returns401_403_404_400_Evidence()
+    {
+        // 1. 401 Unauthorized: Calling protected endpoints without token
+        var req401 = new HttpRequestMessage(HttpMethod.Get, "/api/v1/admin/settings");
+        var resp401 = await _client.SendAsync(req401);
+        Assert.Equal(HttpStatusCode.Unauthorized, resp401.StatusCode);
+
+        var req401Invalid = new HttpRequestMessage(HttpMethod.Get, "/api/v1/admin/users");
+        req401Invalid.Headers.Authorization = new AuthenticationHeaderValue("Bearer", "invalid-token-xyz");
+        var resp401Invalid = await _client.SendAsync(req401Invalid);
+        Assert.Equal(HttpStatusCode.Unauthorized, resp401Invalid.StatusCode);
+
+        // 2. 403 Forbidden: Learner attempting admin actions
+        var learnerToken = await GetLearnerTokenAsync();
+
+        var req403Settings = new HttpRequestMessage(HttpMethod.Put, "/api/v1/admin/settings")
+        {
+            Content = new StringContent("{}", Encoding.UTF8, "application/json")
+        };
+        req403Settings.Headers.Authorization = new AuthenticationHeaderValue("Bearer", learnerToken);
+        var resp403Settings = await _client.SendAsync(req403Settings);
+        Assert.Equal(HttpStatusCode.Forbidden, resp403Settings.StatusCode);
+
+        var req403Announce = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/announcements")
+        {
+            Content = new StringContent("{}", Encoding.UTF8, "application/json")
+        };
+        req403Announce.Headers.Authorization = new AuthenticationHeaderValue("Bearer", learnerToken);
+        var resp403Announce = await _client.SendAsync(req403Announce);
+        Assert.Equal(HttpStatusCode.Forbidden, resp403Announce.StatusCode);
+
+        // 3. 404 Not Found: Admin querying non-existent user ID
+        var adminToken = await GetAdminTokenAsync();
+        var req404 = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/admin/users/{Guid.NewGuid():D}");
+        req404.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var resp404 = await _client.SendAsync(req404);
+        Assert.Equal(HttpStatusCode.NotFound, resp404.StatusCode);
+
+        // 4. 400 Bad Request: Admin creating user with invalid input
+        var req400 = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/users")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateUserRequestDto
+            {
+                Email = "",
+                DisplayName = "No Email User",
+                Role = "learner"
+            }), Encoding.UTF8, "application/json")
+        };
+        req400.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var resp400 = await _client.SendAsync(req400);
+        Assert.Equal(HttpStatusCode.BadRequest, resp400.StatusCode);
+    }
+
+    [Fact]
+    public async Task Admin_MultiSession_Browser1UpdatesUser_Browser2ReadsIdenticalData_StudyAIDb_E2E()
+    {
+        var tokenSession1 = await GetAdminTokenAsync();
+
+        // 1. Session 1 creates a test user
+        var uniqueEmail = $"multisession.{Guid.NewGuid():N}@studyai.test";
+        var createReq = new CreateUserRequestDto
+        {
+            Email = uniqueEmail,
+            DisplayName = "Đồng Bộ Phiên Trình Duyệt",
+            Role = "teacher",
+            Grade = "Lớp 12",
+            Status = "active"
+        };
+
+        var reqCreate = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/users")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(createReq), Encoding.UTF8, "application/json")
+        };
+        reqCreate.Headers.Authorization = new AuthenticationHeaderValue("Bearer", tokenSession1);
+
+        var respCreate = await _client.SendAsync(reqCreate);
+        Assert.Equal(HttpStatusCode.Created, respCreate.StatusCode);
+
+        var bodyCreate = await respCreate.Content.ReadAsStringAsync();
+        var created = JsonSerializer.Deserialize<CreateUserResponseDto>(bodyCreate, JsonOpts);
+        Assert.NotNull(created);
+        Assert.NotNull(created.User);
+        var userId = created.User.Id;
+
+        // 2. Session 1 updates role to 'content' and changes display name
+        var updateReq = new UpdateUserRequestDto
+        {
+            DisplayName = "Đồng Bộ Phiên Trình Duyệt - Đã Cập Nhật",
+            Role = "content",
+            Status = "active"
+        };
+        var reqPut = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/admin/users/{userId}")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(updateReq), Encoding.UTF8, "application/json")
+        };
+        reqPut.Headers.Authorization = new AuthenticationHeaderValue("Bearer", tokenSession1);
+
+        var respPut = await _client.SendAsync(reqPut);
+        Assert.Equal(HttpStatusCode.OK, respPut.StatusCode);
+
+        // 3. Browser Session 2 (distinct HttpClient & separate auth query) reads user details
+        var clientSession2 = _factory.CreateClient();
+        var tokenSession2 = await GetAdminTokenAsync();
+
+        var reqGet = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/admin/users/{userId}");
+        reqGet.Headers.Authorization = new AuthenticationHeaderValue("Bearer", tokenSession2);
+
+        var respGet = await clientSession2.SendAsync(reqGet);
+        Assert.Equal(HttpStatusCode.OK, respGet.StatusCode);
+
+        var bodyGet = await respGet.Content.ReadAsStringAsync();
+        var userInSession2 = JsonSerializer.Deserialize<AdminUserDetailDto>(bodyGet, JsonOpts);
+
+        Assert.NotNull(userInSession2);
+        Assert.Equal(userId, userInSession2.Id);
+        Assert.Equal("Đồng Bộ Phiên Trình Duyệt - Đã Cập Nhật", userInSession2.DisplayName);
+        Assert.Equal("content", userInSession2.Role);
+        Assert.Equal("active", userInSession2.Status);
+
+        // Clean up test account
+        var reqDel = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/admin/users/{userId}");
+        reqDel.Headers.Authorization = new AuthenticationHeaderValue("Bearer", tokenSession1);
+        await _client.SendAsync(reqDel);
     }
 }

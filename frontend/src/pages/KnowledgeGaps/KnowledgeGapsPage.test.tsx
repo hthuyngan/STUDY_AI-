@@ -3,7 +3,18 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import KnowledgeGapsPage from './KnowledgeGapsPage';
 import { knowledgeGapsService } from '../../services/knowledgeGaps.service';
+import { AiChatProvider } from '@/context/AiChatContext';
 import type { KnowledgeGap } from '../../types/knowledgeGaps';
+
+const renderWithProviders = (ui: React.ReactElement) => {
+  return render(
+    <MemoryRouter>
+      <AiChatProvider>
+        {ui}
+      </AiChatProvider>
+    </MemoryRouter>
+  );
+};
 
 describe('KnowledgeGapsPage', () => {
   beforeEach(() => {
@@ -33,11 +44,7 @@ describe('KnowledgeGapsPage', () => {
   };
 
   it('renders empty state when no gaps exist', () => {
-    render(
-      <MemoryRouter>
-        <KnowledgeGapsPage />
-      </MemoryRouter>
-    );
+    renderWithProviders(<KnowledgeGapsPage />);
 
     expect(screen.getByText('Chưa phát hiện kiến thức cần củng cố!')).toBeInTheDocument();
   });
@@ -45,11 +52,7 @@ describe('KnowledgeGapsPage', () => {
   it('renders gaps and statistics when data exists', () => {
     knowledgeGapsService.saveGap(sampleGap);
 
-    render(
-      <MemoryRouter>
-        <KnowledgeGapsPage />
-      </MemoryRouter>
-    );
+    renderWithProviders(<KnowledgeGapsPage />);
 
     expect(screen.getByText('Thể tích lăng trụ tam giác')).toBeInTheDocument();
     expect(screen.getAllByText('Toán học').length).toBeGreaterThan(0);
@@ -60,11 +63,7 @@ describe('KnowledgeGapsPage', () => {
   it('filters by search keyword', () => {
     knowledgeGapsService.saveGap(sampleGap);
 
-    render(
-      <MemoryRouter>
-        <KnowledgeGapsPage />
-      </MemoryRouter>
-    );
+    renderWithProviders(<KnowledgeGapsPage />);
 
     const searchInput = screen.getByPlaceholderText(/Tìm theo tên kiến thức/i);
     fireEvent.change(searchInput, { target: { value: 'Hóa học' } });

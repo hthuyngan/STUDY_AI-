@@ -122,6 +122,25 @@ export interface CurriculumLessonContent {
   summaryPoints: string[]
 }
 
+export interface CurriculumLessonVideo {
+  videoUrl?: string
+  youtubeId?: string
+  durationSeconds?: number
+  provider?: 'youtube' | 'local' | 'khan_ref' | 'none'
+  hasVideo: boolean
+  sourceReferenceUrl?: string
+  licenseNotice?: string
+}
+
+export interface CurriculumTopic {
+  id: string
+  chapterId: string
+  order: number
+  title: string
+  description?: string
+  lessons: CurriculumLesson[]
+}
+
 export interface CurriculumLesson {
   id: string
   chapterId: string
@@ -129,6 +148,10 @@ export interface CurriculumLesson {
   grade: GradeLevel
   lessonNumber: number
   title: string
+  topicId?: string
+  topicTitle?: string
+  contentType?: 'video' | 'article' | 'exercise' | 'test'
+  video?: CurriculumLessonVideo
   description?: string
   durationMinutes: number
   xp: number
@@ -153,6 +176,7 @@ export interface CurriculumChapter {
   availability: ContentAvailability
   estimatedHours: number
   totalLessons: number
+  topics?: CurriculumTopic[]
   lessons: CurriculumLesson[]
 }
 

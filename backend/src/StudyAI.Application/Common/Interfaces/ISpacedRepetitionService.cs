@@ -1,0 +1,22 @@
+using StudyAI.Application.DTOs;
+
+namespace StudyAI.Application.Common.Interfaces;
+
+public interface ISpacedRepetitionService
+{
+    Task<SpacedRepetitionQueueDto> GetUserSpacedRepetitionQueueAsync(
+        string userId,
+        string subjectId = "sub_math12",
+        CancellationToken cancellationToken = default);
+
+    Task<SpacedRepetitionReviewResultDto> RecordReviewOutcomeAsync(
+        string userId,
+        SpacedRepetitionReviewRequestDto request,
+        CancellationToken cancellationToken = default);
+
+    (double newEasinessFactor, int newIntervalDays) CalculateSm2NextInterval(
+        int repetitionNumber,
+        double currentEasinessFactor,
+        int qualityScore);
+}
+

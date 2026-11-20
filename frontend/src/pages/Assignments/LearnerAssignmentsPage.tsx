@@ -22,6 +22,7 @@ export const LearnerAssignmentsPage: React.FC = () => {
   const { state: authState } = useAuth()
   const [assignments, setAssignments] = useState<AssignmentDto[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'submitted' | 'graded'>('all')
   const [search, setSearch] = useState('')
 
@@ -38,34 +39,40 @@ export const LearnerAssignmentsPage: React.FC = () => {
 
   const loadAssignments = async (showSpinner = false) => {
     if (showSpinner) setLoading(true)
+    setError(null)
     try {
       const data = await apiClient.get<AssignmentDto[]>('/api/v1/assignments')
       setAssignments(Array.isArray(data) ? data : [])
     } catch (err) {
-      console.warn('Failed to fetch assignments via API, attempting service fallback:', err)
-      try {
-        const fallback = await classroomService.getAssignments()
-        setAssignments(
-          fallback.map((f) => ({
-            id: f.id,
-            classroomId: f.classId,
-            classroomName: f.className,
-            title: f.title,
-            description: f.description,
-            instructions: f.instructions,
-            dueDate: f.dueDate,
-            maxScore: f.maxScore,
-            status: f.status,
-            createdByTeacherId: 'tch-01',
-            createdByTeacherName: 'Giáo viên',
-            submissionsCount: f.submissionsCount,
-            totalStudents: f.totalStudents,
-            createdAt: f.createdAt,
-            updatedAt: f.createdAt,
-          }))
-        )
-      } catch {
+      if (authState === 'authenticated') {
+        const msg = err instanceof Error ? err.message : 'Không thể kết nối máy chủ để tải bài tập.'
+        setError(msg)
         setAssignments([])
+      } else {
+        try {
+          const fallback = await classroomService.getAssignments()
+          setAssignments(
+            fallback.map((f) => ({
+              id: f.id,
+              classroomId: f.classId,
+              classroomName: f.className,
+              title: f.title,
+              description: f.description,
+              instructions: f.instructions,
+              dueDate: f.dueDate,
+              maxScore: f.maxScore,
+              status: f.status,
+              createdByTeacherId: 'tch-01',
+              createdByTeacherName: 'Giáo viên',
+              submissionsCount: f.submissionsCount,
+              totalStudents: f.totalStudents,
+              createdAt: f.createdAt,
+              updatedAt: f.createdAt,
+            }))
+          )
+        } catch {
+          setAssignments([])
+        }
       }
     } finally {
       setLoading(false)
@@ -84,40 +91,46 @@ export const LearnerAssignmentsPage: React.FC = () => {
           setLoading(false)
         }
       })
-      .catch(() => {
+      .catch((err) => {
         if (!active) return
-        classroomService
-          .getAssignments()
-          .then((fallback) => {
-            if (active) {
-              setAssignments(
-                fallback.map((f) => ({
-                  id: f.id,
-                  classroomId: f.classId,
-                  classroomName: f.className,
-                  title: f.title,
-                  description: f.description,
-                  instructions: f.instructions,
-                  dueDate: f.dueDate,
-                  maxScore: f.maxScore,
-                  status: f.status,
-                  createdByTeacherId: 'tch-01',
-                  createdByTeacherName: 'Giáo viên',
-                  submissionsCount: f.submissionsCount,
-                  totalStudents: f.totalStudents,
-                  createdAt: f.createdAt,
-                  updatedAt: f.createdAt,
-                }))
-              )
-              setLoading(false)
-            }
-          })
-          .catch(() => {
-            if (active) {
-              setAssignments([])
-              setLoading(false)
-            }
-          })
+        if (authState === 'authenticated') {
+          setError(err instanceof Error ? err.message : 'Không thể kết nối máy chủ.')
+          setAssignments([])
+          setLoading(false)
+        } else {
+          classroomService
+            .getAssignments()
+            .then((fallback) => {
+              if (active) {
+                setAssignments(
+                  fallback.map((f) => ({
+                    id: f.id,
+                    classroomId: f.classId,
+                    classroomName: f.className,
+                    title: f.title,
+                    description: f.description,
+                    instructions: f.instructions,
+                    dueDate: f.dueDate,
+                    maxScore: f.maxScore,
+                    status: f.status,
+                    createdByTeacherId: 'tch-01',
+                    createdByTeacherName: 'Giáo viên',
+                    submissionsCount: f.submissionsCount,
+                    totalStudents: f.totalStudents,
+                    createdAt: f.createdAt,
+                    updatedAt: f.createdAt,
+                  }))
+                )
+                setLoading(false)
+              }
+            })
+            .catch(() => {
+              if (active) {
+                setAssignments([])
+                setLoading(false)
+              }
+            })
+        }
       })
 
     return () => {
@@ -203,6 +216,24 @@ export const LearnerAssignmentsPage: React.FC = () => {
           <span>Làm mới</span>
         </button>
       </div>
+
+      {/* Error Alert */}
+      {error && (
+        <div className="learner-assignments-error-banner" data-testid="assignments-error-banner" style={{
+          backgroundColor: '#fee2e2',
+          border: '1px solid #ef4444',
+          color: '#b91c1c',
+          padding: '12px 16px',
+          borderRadius: 8,
+          marginBottom: 16,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+        }}>
+          <AlertCircle size={18} />
+          <span>{error}</span>
+        </div>
+      )}
 
       {/* Filter and Search Bar */}
       <div className="learner-assignments-toolbar">

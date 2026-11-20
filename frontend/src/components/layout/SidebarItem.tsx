@@ -19,7 +19,10 @@ export function SidebarItem({
   onClick,
 }: SidebarItemProps) {
   const location = useLocation()
-  const isActive = location.pathname === to
+  const [toPath, toQuery] = to.split('?')
+  const isActive = toQuery
+    ? location.pathname === toPath && location.search.includes(toQuery)
+    : location.pathname === toPath && !location.search.includes('mode=')
 
   return (
     <Link

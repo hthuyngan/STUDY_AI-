@@ -132,13 +132,13 @@ export const INITIAL_MOCK_USERS: AdminUserItem[] = [
     id: 'usr-105',
     email: 'hoang.yen@example.com',
     displayName: 'Vũ Hoàng Yến',
-    role: 'support',
+    role: 'content',
     status: 'active',
     createdAt: '2026-09-10T10:00:00Z',
     lastLoginAt: '2026-10-27T11:00:00Z',
     activities: [
-      { id: 'uact-12', action: 'Đóng ticket hỗ trợ kỹ thuật #TK-4821', timestamp: '2026-10-26T17:30:00Z' },
-      { id: 'uact-13', action: 'Phản hồi khiếu nại đồng bộ điểm bài thi', timestamp: '2026-10-26T14:10:00Z' },
+      { id: 'uact-12', action: 'Biên tập bài tập trắc nghiệm Toán 12', timestamp: '2026-10-26T17:30:00Z' },
+      { id: 'uact-13', action: 'Gửi yêu cầu duyệt nội dung chương Hàm số', timestamp: '2026-10-26T14:10:00Z' },
     ],
   },
   {
@@ -354,15 +354,6 @@ export const INITIAL_MOCK_ATTENTION_ITEMS: AdminAttentionItem[] = [
     severity: 'medium',
     actionUrl: '/content',
   },
-  {
-    id: 'att-3',
-    type: 'support_escalated',
-    title: 'Ticket hỗ trợ đồng bộ dữ liệu cần giải quyết',
-    description: 'Học viên báo tiến độ làm bài thu hoạch môn Toán chưa đồng bộ sau khi đổi máy.',
-    timestamp: '2026-10-26T22:15:00Z',
-    severity: 'high',
-    actionUrl: '/support',
-  },
 ]
 
 export const INITIAL_MOCK_ACTIVITIES: AdminActivityItem[] = [
@@ -382,9 +373,9 @@ export const INITIAL_MOCK_ACTIVITIES: AdminActivityItem[] = [
   },
   {
     id: 'act-3',
-    actorName: 'Vũ Hoàng Yến (Hỗ trợ)',
-    action: 'đóng ticket hỗ trợ kỹ thuật',
-    target: '#TK-4821',
+    actorName: 'Vũ Hoàng Yến (Biên tập viên)',
+    action: 'biên tập nội dung câu hỏi trắc nghiệm',
+    target: '#Q-4821',
     timestamp: '2026-10-26T17:30:00Z',
   },
   {
@@ -407,7 +398,6 @@ export const INITIAL_MOCK_METRICS: AdminSystemMetrics = {
   totalUsers: 1420,
   activeLearners: 1180,
   staffAccounts: 48,
-  openSupportTickets: 7,
   completedLessonsTotal: 8642,
   systemStatus: 'healthy',
   apiLatencyMs: 42,

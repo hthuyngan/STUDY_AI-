@@ -3,6 +3,9 @@ import {
   ASSESSMENT_ATTEMPTS_STORAGE_KEY,
   LEGACY_ATTEMPTS_STORAGE_KEY,
 } from '@/repositories/assessmentAttempt.repository'
+import { apiClient } from '@/lib/apiClient'
+import { getAccessToken } from '@/auth/authSession'
+import { curriculumService } from './curriculum.service'
 import { createLearningEvent } from './learningTracking.service'
 import { markAssessmentCompleted } from './lessonProgress.service'
 import type {
@@ -328,6 +331,155 @@ export function submitAttempt(
   updateAttempt(finalAttempt)
 
   // Mark lesson progress to EXACT 100%
+  markAssessmentCompleted(
+    attempt.lessonId,
+    attempt.subjectId,
+    attempt.id,
+    scoreScaled,
+    totalActualSections
+  )
+
+  return {
+    attempt: finalAttempt,
+    scorePercentage,
+    isPassed,
+  }
+}
+
+/**
+ * Submit attempt with Zero-Leak Server-Side Validation.
+ * Answers are evaluated on the backend via CurriculumController,
+ * and attempt is persisted to both local storage and StudyAIDb.
+ */
+export async function submitAttemptWithServerValidation(
+  attempt: LearningAttempt,
+  questions: AssessmentQuestion[],
+  passingScorePercent = 60,
+  additionalSessionTimeMs = 0,
+  totalActualSections = 5
+): Promise<{ attempt: LearningAttempt; scorePercentage: number; isPassed: boolean }> {
+  const now = new Date().toISOString()
+  let correctCount = 0
+  const verifiedResponses: Record<string, AssessmentResponse> = {}
+
+  for (const q of questions) {
+    const resp = attempt.responses[q.id]
+    const selectedOptionId = resp?.selectedOptionIds?.[0] || ''
+    const selectedOptionObj = q.options.find((o) => o.id === selectedOptionId)
+    const selectedTextOrLetter = selectedOptionObj?.label || selectedOptionObj?.text || selectedOptionId
+
+    let isCorrect = false
+    if (selectedTextOrLetter) {
+      try {
+        const checkResult = await curriculumService.checkQuestionAnswer(
+          attempt.lessonId,
+          q.id,
+          selectedTextOrLetter
+        )
+        isCorrect = checkResult.isCorrect
+        if (checkResult.explanation) {
+          q.explanation = checkResult.explanation
+        }
+        if (checkResult.correctAnswer) {
+          const matchOpt = q.options.find(
+            (o) =>
+              o.label?.trim().toUpperCase() === checkResult.correctAnswer?.trim().toUpperCase() ||
+              o.text?.trim().toLowerCase() === checkResult.correctAnswer?.trim().toLowerCase()
+          )
+          q.correctOptionId = matchOpt ? matchOpt.id : checkResult.correctAnswer
+        }
+      } catch (err) {
+        if (getAccessToken()) {
+          throw new Error(`Không thể xác thực đáp án với máy chủ: ${(err as Error)?.message || 'Lỗi kết nối'}`)
+        }
+        // Fallback to local evaluation if question has correctOptionId
+        isCorrect = resp?.selectedOptionIds?.includes(q.correctOptionId) || false
+      }
+    } else {
+      isCorrect = false
+    }
+
+    if (isCorrect) correctCount += 1
+
+    if (resp) {
+      verifiedResponses[q.id] = {
+        ...resp,
+        isCorrect,
+      }
+    } else {
+      verifiedResponses[q.id] = {
+        questionId: q.id,
+        selectedOptionIds: [],
+        firstAnsweredAt: now,
+        lastAnsweredAt: now,
+        changeCount: 0,
+        timeSpentMs: 0,
+        isCorrect: false,
+      }
+    }
+  }
+
+  const scoreRaw = correctCount
+  const scoreMax = questions.length
+  const scoreScaled = scoreMax > 0 ? Number((scoreRaw / scoreMax).toFixed(2)) : 0
+  const scorePercentage = Math.round(scoreScaled * 100)
+  const isPassed = scorePercentage >= passingScorePercent
+
+  const submitEvent = createLearningEvent({
+    attemptId: attempt.id,
+    lessonId: attempt.lessonId,
+    subjectId: attempt.subjectId,
+    type: 'assessment_submitted',
+    payload: { scoreRaw, scoreMax, scorePercentage },
+  })
+
+  const completeEvent = createLearningEvent({
+    attemptId: attempt.id,
+    lessonId: attempt.lessonId,
+    subjectId: attempt.subjectId,
+    type: 'assessment_completed',
+    payload: { scoreRaw, scoreMax, isPassed },
+  })
+
+  const finalAttempt: LearningAttempt = {
+    ...attempt,
+    completedAt: now,
+    status: 'completed',
+    completionStatus: 'completed',
+    successStatus: isPassed ? 'passed' : 'failed',
+    scoreRaw,
+    scoreMax,
+    scoreScaled,
+    progressMeasure: 1,
+    sessionTimeMs: attempt.sessionTimeMs + additionalSessionTimeMs,
+    responses: verifiedResponses,
+    events: [...attempt.events, submitEvent, completeEvent],
+    lastActivityAt: now,
+  }
+
+  updateAttempt(finalAttempt)
+
+  // Persist attempt to backend API
+  if (getAccessToken()) {
+    await apiClient.post('/api/v1/me/assessment-attempts', {
+      id: finalAttempt.id,
+      lessonId: finalAttempt.lessonId,
+      subjectId: finalAttempt.subjectId,
+      chapterId: finalAttempt.chapterId,
+      scoreRaw: finalAttempt.scoreRaw,
+      scoreMax: finalAttempt.scoreMax,
+      scoreScaled: finalAttempt.scoreScaled,
+      isPassed,
+      sessionTimeMs: finalAttempt.sessionTimeMs,
+      responses: Object.values(finalAttempt.responses).map((r) => ({
+        questionId: r.questionId,
+        selectedOptions: r.selectedOptionIds,
+        isCorrect: r.isCorrect,
+        timeSpentMs: r.timeSpentMs,
+      })),
+    })
+  }
+
   markAssessmentCompleted(
     attempt.lessonId,
     attempt.subjectId,

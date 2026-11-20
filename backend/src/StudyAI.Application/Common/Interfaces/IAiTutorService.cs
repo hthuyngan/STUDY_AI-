@@ -37,5 +37,11 @@ public interface IAiTutorService
         SendAiMessageRequestDto request,
         CancellationToken cancellationToken = default);
 
+    Task<LessonAiContextDto?> GetLessonAiContextAsync(
+        string userId,
+        string userRole,
+        string lessonId,
+        CancellationToken cancellationToken = default);
+
     AiProviderStatusDto GetProviderStatus();
 }
