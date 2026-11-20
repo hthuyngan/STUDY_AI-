@@ -31,6 +31,20 @@ public class AdminController : ControllerBase
         "active", "suspended", "disabled"
     };
 
+    private static bool TryMapTeacherStatus(string rawStatus, out string userStatus)
+    {
+        userStatus = rawStatus.Trim().ToLowerInvariant() switch
+        {
+            "active" => "active",
+            "inactive" => "disabled",
+            "pending" => "suspended",
+            "suspended" => "suspended",
+            "disabled" => "disabled",
+            _ => string.Empty
+        };
+        return !string.IsNullOrEmpty(userStatus);
+    }
+
     public AdminController(StudyAIDbContext db, IConfiguration configuration, IPasswordHasher passwordHasher)
     {
         _db = db;
@@ -238,7 +252,8 @@ public class AdminController : ControllerBase
             return NotFound(new { detail = "Người dùng không tồn tại." });
 
         var baseDto = FormatUser(user);
-        var completedCount = await _db.LessonProgresses.CountAsync(lp => lp.UserId == userId && lp.OverallProgress >= 100);
+        var userProgresses = await _db.LessonProgresses.Where(lp => lp.UserId == userId).ToListAsync();
+        var completedCount = userProgresses.Count(lp => lp.OverallProgress >= 100);
         var attempts = await _db.AssessmentAttempts
             .Where(a => a.UserId == userId)
             .OrderByDescending(a => a.StartedAt)
@@ -291,6 +306,71 @@ public class AdminController : ControllerBase
             Timestamp = l.CreatedAt.ToString("o")
         }).ToList();
 
+        int streakDays = 0;
+        var recentSubjects = new List<UserRecentSubjectDto>();
+
+        if (user.Role == "learner")
+        {
+            var activeDates = new HashSet<DateTime>();
+            foreach (var p in userProgresses)
+            {
+                activeDates.Add(p.UpdatedAt.UtcDateTime.Date);
+            }
+            foreach (var a in attempts)
+            {
+                if (a.CompletedAt.HasValue) activeDates.Add(a.CompletedAt.Value.UtcDateTime.Date);
+                else activeDates.Add(a.StartedAt.UtcDateTime.Date);
+            }
+            var recentEventTimestamps = await _db.LearningEvents
+                .Where(e => e.UserId == userId)
+                .OrderByDescending(e => e.Timestamp)
+                .Select(e => e.Timestamp)
+                .Take(50)
+                .ToListAsync();
+            foreach (var t in recentEventTimestamps)
+            {
+                activeDates.Add(t.UtcDateTime.Date);
+            }
+
+            var today = DateTimeOffset.UtcNow.UtcDateTime.Date;
+            var checkDate = activeDates.Contains(today) ? today : today.AddDays(-1);
+            while (activeDates.Contains(checkDate))
+            {
+                streakDays++;
+                checkDate = checkDate.AddDays(-1);
+            }
+
+            var userSubjectIds = userProgresses
+                .Where(lp => !string.IsNullOrWhiteSpace(lp.SubjectId))
+                .Select(lp => lp.SubjectId!)
+                .Distinct()
+                .ToList();
+
+            var contentSubjects = await _db.ContentSubjects.ToListAsync();
+            foreach (var sId in userSubjectIds)
+            {
+                var subj = contentSubjects.FirstOrDefault(s => s.Id == sId);
+                var subjName = subj?.Name ?? (sId == "sub_math10" ? "Toán học 10" : sId == "sub_math11" ? "Toán học 11" : sId == "sub_math12" ? "Toán học 12" : sId);
+
+                var totalSubjLessons = await _db.ContentLessons.CountAsync(l => l.Chapter!.SubjectId == sId && l.Status == "published");
+                var completedInSubj = userProgresses.Count(lp => lp.SubjectId == sId && lp.OverallProgress >= 100);
+                double progress = totalSubjLessons > 0
+                    ? Math.Min(100.0, Math.Round((double)completedInSubj * 100.0 / totalSubjLessons, 1))
+                    : (completedInSubj > 0 ? 100.0 : 0.0);
+
+                var lastStudiedDate = userProgresses
+                    .Where(lp => lp.SubjectId == sId)
+                    .Max(lp => lp.UpdatedAt);
+
+                recentSubjects.Add(new UserRecentSubjectDto
+                {
+                    Name = subjName,
+                    Progress = progress,
+                    LastStudied = lastStudiedDate.ToString("o")
+                });
+            }
+        }
+
         var totalLessonsPublished = await _db.ContentLessons.CountAsync(l => l.Status == "published");
         var detailDto = new AdminUserDetailDto
         {
@@ -309,12 +389,9 @@ public class AdminController : ControllerBase
             LearningProgress = user.Role == "learner" ? new UserLearningProgressDto
             {
                 CompletedLessons = completedCount,
-                TotalLessons = totalLessonsPublished > 0 ? totalLessonsPublished : 32,
-                StreakDays = completedCount > 0 ? 3 : 0,
-                RecentSubjects = new List<UserRecentSubjectDto>
-                {
-                    new() { Name = "Toán học 12", Progress = completedCount > 0 ? Math.Min(100, completedCount * 10) : 0, LastStudied = user.UpdatedAt.ToString("o") }
-                }
+                TotalLessons = totalLessonsPublished > 0 ? totalLessonsPublished : 0,
+                StreakDays = streakDays,
+                RecentSubjects = recentSubjects
             } : null,
             Assessments = assessments,
             Activities = activities
@@ -1056,9 +1133,12 @@ public class AdminController : ControllerBase
         {
             initialStatus = "suspended";
         }
-        else if (!string.IsNullOrWhiteSpace(req.Status) && AllowedStatuses.Contains(req.Status.Trim().ToLowerInvariant()))
+        else if (!string.IsNullOrWhiteSpace(req.Status))
         {
-            initialStatus = req.Status.Trim().ToLowerInvariant();
+            if (!TryMapTeacherStatus(req.Status, out initialStatus))
+            {
+                return BadRequest(new { detail = $"Trạng thái giáo viên không hợp lệ: '{req.Status}'. Cho phép: active, pending, inactive, suspended, disabled." });
+            }
         }
 
         var newTeacher = new User
@@ -1160,14 +1240,18 @@ public class AdminController : ControllerBase
             {
                 teacher.Status = "active";
             }
+            else
+            {
+                return BadRequest(new { detail = $"AccountStatus không hợp lệ: '{req.AccountStatus}'. Cho phép: ACTIVE, LOCKED." });
+            }
         }
         else if (!string.IsNullOrWhiteSpace(req.Status))
         {
-            var st = req.Status.Trim().ToLowerInvariant();
-            if (AllowedStatuses.Contains(st))
+            if (!TryMapTeacherStatus(req.Status, out var mappedStatus))
             {
-                teacher.Status = st;
+                return BadRequest(new { detail = $"Trạng thái giảng dạy không hợp lệ: '{req.Status}'. Cho phép: active, pending, inactive, suspended, disabled." });
             }
+            teacher.Status = mappedStatus;
         }
 
         if (!string.IsNullOrWhiteSpace(req.Name)) teacher.DisplayName = req.Name.Trim();
@@ -1315,17 +1399,59 @@ public class AdminController : ControllerBase
         };
         var startDate = DateTimeOffset.UtcNow.Date.AddDays(-days + 1);
 
-        var totalLearners = await _db.Users.CountAsync(u => u.Role == "learner" && !u.IsDeleted);
-        var activeLearners = await _db.Users.CountAsync(u => u.Role == "learner" && u.Status == "active" && !u.IsDeleted);
-        var completedLessons = await _db.LessonProgresses.CountAsync(lp => lp.OverallProgress >= 100);
-        var totalPublishedLessons = await _db.ContentLessons.CountAsync(l => l.Status == "published");
+        List<string>? classLearnerIds = null;
+        if (!string.IsNullOrWhiteSpace(classId) && classId != "all")
+        {
+            classLearnerIds = await _db.ClassroomStudents
+                .Where(cs => cs.ClassroomId == classId)
+                .Select(cs => cs.StudentId)
+                .ToListAsync();
+        }
+
+        var learnersQuery = _db.Users.Where(u => u.Role == "learner" && !u.IsDeleted);
+        if (classLearnerIds != null)
+        {
+            learnersQuery = learnersQuery.Where(u => classLearnerIds.Contains(u.Id));
+        }
+
+        var totalLearners = await learnersQuery.CountAsync();
+        var activeLearners = await learnersQuery.CountAsync(u => u.Status == "active");
+
+        var lessonProgressQuery = _db.LessonProgresses.AsQueryable();
+        if (classLearnerIds != null)
+        {
+            lessonProgressQuery = lessonProgressQuery.Where(lp => classLearnerIds.Contains(lp.UserId));
+        }
+        if (!string.IsNullOrWhiteSpace(subjectId) && subjectId != "all")
+        {
+            lessonProgressQuery = lessonProgressQuery.Where(lp => lp.SubjectId == subjectId || (lp.SubjectId != null && lp.SubjectId.ToLower().Contains(subjectId.ToLower())));
+        }
+
+        var completedLessons = await lessonProgressQuery.CountAsync(lp => lp.OverallProgress >= 100);
+
+        var lessonsQuery = _db.ContentLessons.Where(l => l.Status == "published");
+        if (!string.IsNullOrWhiteSpace(subjectId) && subjectId != "all")
+        {
+            lessonsQuery = lessonsQuery.Where(l => l.Chapter!.SubjectId == subjectId || (l.Chapter!.Subject != null && l.Chapter.Subject.Name.ToLower().Contains(subjectId.ToLower())));
+        }
+        var totalPublishedLessons = await lessonsQuery.CountAsync();
         var completionRatePercent = totalPublishedLessons > 0 && totalLearners > 0
             ? Math.Round((double)completedLessons * 100 / (totalPublishedLessons * totalLearners), 1)
             : 0.0;
 
-        var attempts = await _db.AssessmentAttempts
-            .Where(a => a.CompletedAt.HasValue && (a.ScoreScaled.HasValue || a.ScoreRaw.HasValue))
-            .ToListAsync();
+        var attemptsQuery = _db.AssessmentAttempts
+            .Where(a => a.CompletedAt.HasValue && a.CompletedAt.Value >= startDate && (a.ScoreScaled.HasValue || a.ScoreRaw.HasValue));
+
+        if (classLearnerIds != null)
+        {
+            attemptsQuery = attemptsQuery.Where(a => classLearnerIds.Contains(a.UserId));
+        }
+        if (!string.IsNullOrWhiteSpace(subjectId) && subjectId != "all")
+        {
+            attemptsQuery = attemptsQuery.Where(a => a.SubjectId == subjectId || (a.SubjectId != null && a.SubjectId.ToLower().Contains(subjectId.ToLower())));
+        }
+
+        var attempts = await attemptsQuery.ToListAsync();
 
         var normalizedScores = attempts
             .Select(GetNormalizedScore)
@@ -1356,8 +1482,16 @@ public class AdminController : ControllerBase
         {
             var day = startDate.AddDays(i);
             var nextDay = day.AddDays(1);
-            var active = await _db.Users.CountAsync(u => !u.IsDeleted && u.LastLoginAt.HasValue && u.LastLoginAt.Value >= day && u.LastLoginAt.Value < nextDay);
-            var completed = await _db.LessonProgresses.CountAsync(lp => lp.OverallProgress >= 100 && lp.UpdatedAt >= day && lp.UpdatedAt < nextDay);
+
+            var activeUsersQuery = _db.Users.Where(u => !u.IsDeleted && u.Role == "learner" && u.LastLoginAt.HasValue && u.LastLoginAt.Value >= day && u.LastLoginAt.Value < nextDay);
+            if (classLearnerIds != null)
+            {
+                activeUsersQuery = activeUsersQuery.Where(u => classLearnerIds.Contains(u.Id));
+            }
+            var active = await activeUsersQuery.CountAsync();
+
+            var completedDayQuery = lessonProgressQuery.Where(lp => lp.OverallProgress >= 100 && lp.UpdatedAt >= day && lp.UpdatedAt < nextDay);
+            var completed = await completedDayQuery.CountAsync();
 
             activityTrend.Add(new AnalyticsTrendPointDto
             {
@@ -1369,11 +1503,22 @@ public class AdminController : ControllerBase
         }
 
         var subjects = await _db.ContentSubjects.Where(s => s.IsActive).ToListAsync();
+        if (!string.IsNullOrWhiteSpace(subjectId) && subjectId != "all")
+        {
+            subjects = subjects.Where(s => s.Id == subjectId || s.Name.ToLower().Contains(subjectId.ToLower())).ToList();
+        }
+
         var subjectProgress = new List<SubjectProgressReportDto>();
         foreach (var s in subjects)
         {
             var subjectLessons = await _db.ContentLessons.CountAsync(l => l.Chapter!.SubjectId == s.Id && l.Status == "published");
-            var subjectCompleted = await _db.LessonProgresses.CountAsync(lp => lp.SubjectId == s.Id && lp.OverallProgress >= 100);
+            var subjectCompletedQuery = _db.LessonProgresses.Where(lp => lp.SubjectId == s.Id && lp.OverallProgress >= 100);
+            if (classLearnerIds != null)
+            {
+                subjectCompletedQuery = subjectCompletedQuery.Where(lp => classLearnerIds.Contains(lp.UserId));
+            }
+            var subjectCompleted = await subjectCompletedQuery.CountAsync();
+
             var prog = subjectLessons > 0 && totalLearners > 0
                 ? Math.Round((double)subjectCompleted * 100 / (subjectLessons * totalLearners), 1)
                 : 0.0;
@@ -1384,11 +1529,6 @@ public class AdminController : ControllerBase
                 Progress = prog,
                 LearnersCount = totalLearners
             });
-        }
-
-        if (!string.IsNullOrWhiteSpace(subjectId) && subjectId != "all")
-        {
-            subjectProgress = subjectProgress.Where(sp => sp.Subject.ToLower().Contains(subjectId.ToLower())).ToList();
         }
 
         return Ok(new LearningReportsResponseDto
@@ -1572,9 +1712,15 @@ public class AdminController : ControllerBase
             .FirstOrDefaultAsync();
 
         // Cơ chế chống ghi đè khi nhiều Admin cùng chỉnh sửa (Concurrency Token)
-        if (latestLog != null && !string.IsNullOrWhiteSpace(req.Version) && req.Version != "initial")
+        if (latestLog == null)
         {
-            if (req.Version != latestLog.Id)
+            // Bản ghi đầu tiên trong hệ thống: chấp nhận "initial" hoặc rỗng
+        }
+        else
+        {
+            // Đã tồn tại cấu hình: bắt buộc req.Version phải khớp chính xác version hiện tại (latestLog.Id)
+            // Phiên bản "initial", null/rỗng hoặc bất kỳ version cũ nào đều bị từ chối 409 Conflict
+            if (string.IsNullOrWhiteSpace(req.Version) || req.Version != latestLog.Id)
             {
                 return Conflict(new { detail = "Cấu hình hệ thống đã được cập nhật bởi một phiên quản trị khác. Vui lòng tải lại trang để xem dữ liệu mới nhất trước khi chỉnh sửa." });
             }

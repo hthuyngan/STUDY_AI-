@@ -840,10 +840,28 @@ export const classroomService = {
     explicitSourceClassId?: string
   ): Promise<AdminStudentItem> {
     if (getAccessToken()) {
-      const students = await this.getStudents()
-      const existing = students.find((s) => s.id === studentId || s.code === studentId)
-      const studentCode = existing?.code || studentId
-      const sourceClassId = explicitSourceClassId || existing?.classId
+      let sourceClassId = explicitSourceClassId
+      let studentCode = studentId
+      let existing: AdminStudentItem | undefined
+
+      if (sourceClassId) {
+        const classStudents = await this.getStudentsByClass(sourceClassId)
+        existing = classStudents.find((s) => s.id === studentId || s.code === studentId)
+        if (existing?.code) {
+          studentCode = existing.code
+        }
+      }
+
+      if (!existing) {
+        const students = await this.getStudents()
+        existing = students.find((s) => s.id === studentId || s.code === studentId)
+        if (existing?.code) {
+          studentCode = existing.code
+        }
+        if (!sourceClassId) {
+          sourceClassId = existing?.classId
+        }
+      }
 
       if (!sourceClassId) {
         throw new Error('Không thể xác định lớp học nguồn của học sinh để chuyển lớp.')

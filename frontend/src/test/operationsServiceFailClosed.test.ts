@@ -89,4 +89,52 @@ describe('Fail-Closed Operations Service (Announcements & Settings)', () => {
     expect(result.id).toBe('anc_be_999')
     expect(result.title).toBe('Thông báo thành công từ BE')
   })
+
+  it('getAuditLogs paginates through all server pages to return complete audit trail', async () => {
+    vi.spyOn(authSession, 'getAccessToken').mockReturnValue('mock_access_token')
+    const page1Items = Array.from({ length: 25 }, (_, i) => ({
+      id: `log-${i + 1}`,
+      action: 'user_created',
+      actor: 'Admin A',
+      targetType: 'user',
+      targetId: `usr-${i + 1}`,
+      payload: '{}',
+      timestamp: new Date().toISOString(),
+    }))
+    const page2Items = Array.from({ length: 15 }, (_, i) => ({
+      id: `log-${i + 26}`,
+      action: 'user_updated',
+      actor: 'Admin B',
+      targetType: 'user',
+      targetId: `usr-${i + 26}`,
+      payload: '{}',
+      timestamp: new Date().toISOString(),
+    }))
+
+    vi.spyOn(apiClient, 'get')
+      .mockResolvedValueOnce({
+        items: page1Items,
+        total: 40,
+        page: 1,
+        pageSize: 100,
+      })
+      .mockResolvedValueOnce({
+        items: page2Items,
+        total: 40,
+        page: 2,
+        pageSize: 100,
+      })
+
+    const allLogs = await operationsService.getAuditLogs()
+    expect(allLogs.length).toBe(40)
+    expect(allLogs[0].id).toBe('log-1')
+    expect(allLogs[39].id).toBe('log-40')
+  })
+
+  it('getAuditLogs throws and fails closed when authenticated and API fails', async () => {
+    vi.spyOn(authSession, 'getAccessToken').mockReturnValue('mock_access_token')
+    vi.spyOn(apiClient, 'get').mockRejectedValue(new Error('500 Internal Server Error'))
+
+    await expect(operationsService.getAuditLogs()).rejects.toThrow('500 Internal Server Error')
+  })
 })

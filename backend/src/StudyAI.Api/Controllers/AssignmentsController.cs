@@ -727,18 +727,31 @@ public class AssignmentsController : ControllerBase
             return Forbid();
         }
 
-        // Nếu đã có bài nộp của học sinh, chuyển sang trạng thái archived để bảo toàn học bạ
-        if (assignment.Submissions.Count > 0)
+        var strategy = _db.Database.CreateExecutionStrategy();
+        IActionResult result = NoContent();
+
+        await strategy.ExecuteAsync(async () =>
         {
-            assignment.Status = "archived";
-            assignment.UpdatedAt = DateTimeOffset.UtcNow;
+            await using var transaction = await _db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, cancellationToken);
+
+            // Kiểm tra nguyên tử (atomic check) xem đã có bài nộp nào của học sinh chưa để chống race condition cascade delete
+            var hasSubmissions = await _db.AssignmentSubmissions.AnyAsync(s => s.AssignmentId == id, cancellationToken);
+            if (hasSubmissions)
+            {
+                assignment.Status = "archived";
+                assignment.UpdatedAt = DateTimeOffset.UtcNow;
+                await _db.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+                result = Ok(new { message = "Bài tập đã có bài làm của học sinh nên được chuyển sang trạng thái lưu trữ", archived = true });
+                return;
+            }
+
+            _db.Assignments.Remove(assignment);
             await _db.SaveChangesAsync(cancellationToken);
-            return Ok(new { message = "Bài tập đã có bài làm của học sinh nên được chuyển sang trạng thái lưu trữ", archived = true });
-        }
+            await transaction.CommitAsync(cancellationToken);
+            result = NoContent();
+        });
 
-        _db.Assignments.Remove(assignment);
-        await _db.SaveChangesAsync(cancellationToken);
-
-        return NoContent();
+        return result;
     }
 }

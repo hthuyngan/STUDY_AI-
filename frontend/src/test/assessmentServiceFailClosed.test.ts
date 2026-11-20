@@ -118,6 +118,26 @@ describe('Assessment Service Fail-Closed Session Finalization (Codex Review Issu
     expect(result.attempt.status).toBe('completed')
     expect(result.attempt.completionStatus).toBe('completed')
 
+    // Verify backend received Dictionary-shaped responses and completion metadata
+    expect(apiClient.post).toHaveBeenCalledWith(
+      '/api/v1/me/assessment-attempts',
+      expect.objectContaining({
+        id: initialAttempt.id,
+        lessonId: 'les-math10-01',
+        subjectId: 'sub_math10',
+        completionStatus: 'completed',
+        successStatus: 'passed',
+        progressMeasure: 1.0,
+        responses: expect.objectContaining({
+          q1: expect.objectContaining({
+            questionId: 'q1',
+            selectedOptionIds: ['opt-a'],
+            isCorrect: true,
+          }),
+        }),
+      })
+    )
+
     // Verify latest completed attempt exists
     const completedAttempt = getLatestCompletedAttempt('les-math10-01')
     expect(completedAttempt).not.toBeNull()

@@ -460,22 +460,46 @@ export async function submitAttemptWithServerValidation(
   // Persist attempt to backend API FIRST if authenticated
   if (getAccessToken()) {
     try {
+      const responsesDict: Record<string, {
+        questionId: string
+        selectedOptionIds: string[]
+        firstAnsweredAt?: string
+        lastAnsweredAt?: string
+        changeCount: number
+        timeSpentMs: number
+        isCorrect?: boolean
+      }> = {}
+
+      for (const [qId, r] of Object.entries(finalAttempt.responses)) {
+        responsesDict[qId] = {
+          questionId: r.questionId,
+          selectedOptionIds: r.selectedOptionIds || [],
+          firstAnsweredAt: r.firstAnsweredAt ? new Date(r.firstAnsweredAt).toISOString() : undefined,
+          lastAnsweredAt: r.lastAnsweredAt ? new Date(r.lastAnsweredAt).toISOString() : undefined,
+          changeCount: r.changeCount || 0,
+          timeSpentMs: r.timeSpentMs || 0,
+          isCorrect: r.isCorrect,
+        }
+      }
+
       await apiClient.post('/api/v1/me/assessment-attempts', {
         id: finalAttempt.id,
+        assessmentId: finalAttempt.assessmentId || `asm_${finalAttempt.lessonId}`,
         lessonId: finalAttempt.lessonId,
         subjectId: finalAttempt.subjectId,
-        chapterId: finalAttempt.chapterId,
+        attemptNumber: finalAttempt.attemptNumber || 1,
+        startedAt: new Date(finalAttempt.startedAt).toISOString(),
+        lastActivityAt: new Date(finalAttempt.lastActivityAt).toISOString(),
+        completedAt: new Date(now).toISOString(),
+        completionStatus: finalAttempt.completionStatus,
+        successStatus: isPassed ? 'passed' : 'failed',
+        progressMeasure: 1.0,
         scoreRaw: finalAttempt.scoreRaw,
-        scoreMax: finalAttempt.scoreMax,
+        scoreMin: finalAttempt.scoreMin ?? 0.0,
+        scoreMax: finalAttempt.scoreMax ?? 1.0,
         scoreScaled: finalAttempt.scoreScaled,
-        isPassed,
         sessionTimeMs: finalAttempt.sessionTimeMs,
-        responses: Object.values(finalAttempt.responses).map((r) => ({
-          questionId: r.questionId,
-          selectedOptions: r.selectedOptionIds,
-          isCorrect: r.isCorrect,
-          timeSpentMs: r.timeSpentMs,
-        })),
+        responses: responsesDict,
       })
     } catch (err) {
       // Giữ phiên làm bài ở trạng thái đang làm (in-progress), lưu câu trả lời để học sinh có thể tiếp tục hoặc nộp lại

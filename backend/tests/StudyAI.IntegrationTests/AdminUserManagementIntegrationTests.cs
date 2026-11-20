@@ -643,6 +643,12 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
     {
         var tokenSession1 = await GetAdminTokenAsync();
 
+        // Session 1: Admin fetches current settings to get version token
+        var reqGetInitial = new HttpRequestMessage(HttpMethod.Get, "/api/v1/admin/settings");
+        reqGetInitial.Headers.Authorization = new AuthenticationHeaderValue("Bearer", tokenSession1);
+        var respGetInitial = await _client.SendAsync(reqGetInitial);
+        var current = JsonSerializer.Deserialize<OperationalSettingsDto>(await respGetInitial.Content.ReadAsStringAsync(), JsonOpts)!;
+
         // Session 1: Admin updates operational settings
         var updatedSettings = new OperationalSettingsDto
         {
@@ -656,7 +662,8 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
             AllowRevisionRequests = true,
             ShowArchivedContent = false,
             NotificationDisplayDays = 14,
-            EnableDemoAlerts = false
+            EnableDemoAlerts = false,
+            Version = current.Version
         };
 
         var reqPut = new HttpRequestMessage(HttpMethod.Put, "/api/v1/admin/settings")
@@ -1471,5 +1478,148 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
         Assert.True(root.TryGetProperty("storageStats", out var storageProp));
         Assert.True(storageProp.TryGetProperty("usersCount", out var usersProp));
         Assert.True(usersProp.GetInt32() >= 1, "Users count from database must be at least 1 (admin)");
+    }
+
+    [Fact]
+    public async Task Admin_UpdateTeacher_TeachingStatus_MapsCorrectly_And_RejectsInvalid()
+    {
+        var adminToken = await GetAdminTokenAsync();
+
+        // 1. Create a teacher
+        var uniqueEmail = $"teacher.status.{Guid.NewGuid():N}@studyai.test";
+        var createReq = new SaveTeacherRequestDto
+        {
+            Name = "Thầy Lê Văn Hùng",
+            Email = uniqueEmail,
+            Subject = "Toán học 11",
+            Status = "active"
+        };
+        var createHttp = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/teachers")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(createReq), Encoding.UTF8, "application/json")
+        };
+        createHttp.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var createResp = await _client.SendAsync(createHttp);
+        Assert.Equal(HttpStatusCode.Created, createResp.StatusCode);
+        var created = JsonSerializer.Deserialize<AdminTeacherDto>(await createResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        // 2. Update teaching status to "inactive" -> maps to disabled, returns 200
+        var updateInactive = new SaveTeacherRequestDto
+        {
+            Status = "inactive"
+        };
+        var updateHttp1 = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/admin/teachers/{created.Id}")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(updateInactive), Encoding.UTF8, "application/json")
+        };
+        updateHttp1.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var resp1 = await _client.SendAsync(updateHttp1);
+        Assert.Equal(HttpStatusCode.OK, resp1.StatusCode);
+        var updated1 = JsonSerializer.Deserialize<AdminTeacherDto>(await resp1.Content.ReadAsStringAsync(), JsonOpts)!;
+        Assert.Equal("inactive", updated1.Status);
+        Assert.Equal("LOCKED", updated1.AccountStatus);
+
+        // 3. Update with invalid status -> returns 400 Bad Request
+        var updateInvalid = new SaveTeacherRequestDto
+        {
+            Status = "unsupported_teaching_status"
+        };
+        var updateHttp2 = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/admin/teachers/{created.Id}")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(updateInvalid), Encoding.UTF8, "application/json")
+        };
+        updateHttp2.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var resp2 = await _client.SendAsync(updateHttp2);
+        Assert.Equal(HttpStatusCode.BadRequest, resp2.StatusCode);
+    }
+
+    [Fact]
+    public async Task Admin_UpdateSettings_StaleInitialVersion_WhenSettingsExist_Returns409()
+    {
+        var adminToken = await GetAdminTokenAsync();
+
+        // 1. Ensure at least one settings record exists
+        var getReq = new HttpRequestMessage(HttpMethod.Get, "/api/v1/admin/settings");
+        getReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var getResp = await _client.SendAsync(getReq);
+        var currentSettings = JsonSerializer.Deserialize<OperationalSettingsDto>(await getResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        var saveReq = new OperationalSettingsDto
+        {
+            SystemName = "STUDY_AI Existing Setup",
+            Version = currentSettings.Version
+        };
+        var saveHttp = new HttpRequestMessage(HttpMethod.Put, "/api/v1/admin/settings")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(saveReq), Encoding.UTF8, "application/json")
+        };
+        saveHttp.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var saveResp = await _client.SendAsync(saveHttp);
+        Assert.Equal(HttpStatusCode.OK, saveResp.StatusCode);
+
+        // 2. Try saving with version "initial" when settings record exists -> must return 409
+        var staleInitialReq = new OperationalSettingsDto
+        {
+            SystemName = "STUDY_AI Overwrite Attempt",
+            Version = "initial"
+        };
+        var staleHttp = new HttpRequestMessage(HttpMethod.Put, "/api/v1/admin/settings")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(staleInitialReq), Encoding.UTF8, "application/json")
+        };
+        staleHttp.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var staleResp = await _client.SendAsync(staleHttp);
+        Assert.Equal(HttpStatusCode.Conflict, staleResp.StatusCode);
+
+        // 3. Try saving with empty version -> must also return 409
+        var emptyVersionReq = new OperationalSettingsDto
+        {
+            SystemName = "STUDY_AI Empty Version Overwrite Attempt",
+            Version = ""
+        };
+        var emptyHttp = new HttpRequestMessage(HttpMethod.Put, "/api/v1/admin/settings")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(emptyVersionReq), Encoding.UTF8, "application/json")
+        };
+        emptyHttp.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var emptyResp = await _client.SendAsync(emptyHttp);
+        Assert.Equal(HttpStatusCode.Conflict, emptyResp.StatusCode);
+    }
+
+    [Fact]
+    public async Task Admin_GetUserDetail_CalculatesRealStreakAndSubjectProgress_NoFabricatedStats()
+    {
+        var adminToken = await GetAdminTokenAsync();
+
+        // Create a learner with no activity
+        var uniqueEmail = $"learner.noact.{Guid.NewGuid():N}@studyai.test";
+        var createReq = new CreateUserRequestDto
+        {
+            DisplayName = "Nguyễn Thị Mới",
+            Email = uniqueEmail,
+            Role = "learner",
+            Grade = "10"
+        };
+        var createHttp = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/users")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(createReq), Encoding.UTF8, "application/json")
+        };
+        createHttp.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var createResp = await _client.SendAsync(createHttp);
+        Assert.Equal(HttpStatusCode.Created, createResp.StatusCode);
+        var createdRes = JsonSerializer.Deserialize<CreateUserResponseDto>(await createResp.Content.ReadAsStringAsync(), JsonOpts)!;
+        var created = createdRes.User;
+
+        // Fetch detail
+        var getReq = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/admin/users/{created.Id}");
+        getReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var getResp = await _client.SendAsync(getReq);
+        Assert.Equal(HttpStatusCode.OK, getResp.StatusCode);
+        var detail = JsonSerializer.Deserialize<AdminUserDetailDto>(await getResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        // Streak must be 0 (no activity), and recent subjects must be empty (not fabricated 3-day streak or hardcoded Math 12)
+        Assert.NotNull(detail.LearningProgress);
+        Assert.Equal(0, detail.LearningProgress!.StreakDays);
+        Assert.Empty(detail.LearningProgress.RecentSubjects);
     }
 }

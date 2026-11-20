@@ -294,8 +294,8 @@ Dựa trên các nhận xét chuyên sâu mới nhất của Codex Review tại 
 - **Unit Tests:** `dotnet test backend/tests/StudyAI.UnitTests/StudyAI.UnitTests.csproj`
   - **167 / 167 Tests Passed (100%)**, 0 failed, 0 skipped.
 - **Integration Tests:** `dotnet test backend/tests/StudyAI.IntegrationTests/StudyAI.IntegrationTests.csproj`
-  - **182 / 182 Tests Passed (100%)**, 0 failed, 0 skipped.
-  - Bao gồm 7 integration tests mới:
+  - **185 / 185 Tests Passed (100%)**, 0 failed, 0 skipped.
+  - Bao gồm 10 integration tests mới:
     1. `Classroom_TransferStudent_WhenTeacherDoesNotOwnSourceClassroom_ReturnsForbidden` (PASS)
     2. `Classroom_TransferStudent_WhenSourceClassroomIdOmitted_ReturnsBadRequest` (PASS)
     3. `Classroom_TransferStudent_DoesNotRemoveUnrelatedClassEnrollments` (PASS)
@@ -303,32 +303,36 @@ Dựa trên các nhận xét chuyên sâu mới nhất của Codex Review tại 
     5. `Admin_UpdateTeacher_PartialUpdate_PreservesExistingProfileFields` (PASS)
     6. `Admin_UpdateSettings_ConcurrencyConflict_Returns409` (PASS)
     7. `Admin_GetSystemHealth_ReturnsRealStorageStatsFromDatabase` (PASS)
-- **Tổng cộng Backend:** **349 / 349 Tests Passed (100%)**.
+    8. `Admin_UpdateTeacher_TeachingStatus_MapsCorrectly_And_RejectsInvalid` (PASS)
+    9. `Admin_UpdateSettings_StaleInitialVersion_WhenSettingsExist_Returns409` (PASS)
+    10. `Admin_GetUserDetail_CalculatesRealStreakAndSubjectProgress_NoFabricatedStats` (PASS)
+- **Tổng cộng Backend:** **352 / 352 Tests Passed (100%)**.
 
 ### 12.2. Frontend (React 19 / TypeScript / Bun)
 - **Linting:** `cd frontend; bun run lint`
-  - **0 warnings, 0 errors** trên 474 files (`oxlint --deny-warnings`).
+  - **0 warnings, 0 errors** trên 477 files (`oxlint --deny-warnings`).
 - **Unit & Service Tests:** `cd frontend; bun run test`
-  - **494 / 494 Tests Passed (72 test files, 100%)**, 0 failed.
-  - Bao gồm 7 frontend regression tests mới:
+  - **496 / 496 Tests Passed (72 test files, 100%)**, 0 failed.
+  - Bao gồm 9 frontend regression tests:
     1. `src/test/adminReportsFailClosed.test.ts` (3 tests PASS)
     2. `src/test/adminHealthFailClosed.test.ts` (2 tests PASS)
-    3. `src/test/assessmentServiceFailClosed.test.ts` (2 tests PASS)
+    3. `src/test/assessmentServiceFailClosed.test.ts` (2 tests PASS - Dictionary responses & completion metadata)
+    4. `src/test/operationsServiceFailClosed.test.ts` (6 tests PASS - Audit logs server pagination & fail-closed error)
 - **Production Build:** `cd frontend; bun run build`
-  - **0 errors, built in 2.18s**.
+  - **0 errors, built in 2.00s**.
 
 ### 12.3. Playwright E2E (`scripts/e2e_p00_p01_remediation_playwright.ts`)
 - **Trạng thái:** **4 / 4 Scenarios Passed (100%)**, xuất 4 ảnh chụp kiểm chứng trực quan vào `docs/visual-qa/p00-remediation/`:
-  - `[PASS] Scenario 1`: Chuyển lớp học sinh có phân quyền & kiểm tra lớp nguồn (1517ms)
+  - `[PASS] Scenario 1`: Chuyển lớp học sinh có phân quyền & kiểm tra lớp nguồn (1788ms)
     - Chi tiết: Route `/admin/classes` tải thành công, bắt buộc `sourceClassroomId` khi chuyển lớp.
     - Ảnh chụp: `docs/visual-qa/p00-remediation/01_classroom_transfer_auth.png`
-  - `[PASS] Scenario 2`: Khóa tài khoản giáo viên & đồng bộ trạng thái SQL Server (882ms)
+  - `[PASS] Scenario 2`: Khóa tài khoản giáo viên & đồng bộ trạng thái SQL Server (884ms)
     - Chi tiết: Giao diện quản lý giáo viên hiển thị chính xác trạng thái ACTIVE/LOCKED từ API và SQL Server.
     - Ảnh chụp: `docs/visual-qa/p00-remediation/02_teacher_lock_toggle.png`
   - `[PASS] Scenario 3`: Cấu hình vận hành GET dữ liệu thật và kiểm soát xung đột ghi đè (889ms)
     - Chi tiết: Tải thành công cấu hình từ máy chủ (systemName="STUDY_AI Hệ Thống Giáo Dục Thực"), bảo vệ bằng token version chống ghi đè concurrency.
     - Ảnh chụp: `docs/visual-qa/p00-remediation/03_admin_settings_concurrency.png`
-  - `[PASS] Scenario 4`: Xử lý lỗi mạng khi nộp bài kiểm tra fail-closed (985ms)
+  - `[PASS] Scenario 4`: Xử lý lỗi mạng khi nộp bài kiểm tra fail-closed (973ms)
     - Chi tiết: Khi API nộp bài thất bại, phiên làm việc không bị đánh dấu giả mạo là đã hoàn thành.
     - Ảnh chụp: `docs/visual-qa/p00-remediation/04_assessment_fail_closed.png`
 
@@ -344,5 +348,21 @@ Dựa trên các nhận xét chuyên sâu mới nhất của Codex Review tại 
   2. Chuẩn hóa toàn bộ fixture trong `assessmentServiceFailClosed.test.ts` tuân thủ đúng định nghĩa `AssessmentQuestion` (`type: 'single-choice'`, `prompt`) và đầy đủ 6 trường của `CheckAnswerResult`.
   3. Thêm fallback phòng vệ `(tch.rating ?? 5.0).toFixed(1)` trong các component UI giáo viên.
   4. Chạy `tsc -b` độc lập xác minh: **0 errors**.
-  5. Đóng gói production `bun run build` thành công trong 1.90s.
+  5. Đóng gói production `bun run build` thành công trong 1.90s - 2.00s.
+  6. GitHub Actions Run `44673413759` đã vượt qua 100% (Frontend Lint, Test & Build: SUCCESS; .NET 10 Backend Build & Tests: SUCCESS).
+
+---
+
+## 14. Khắc Phục Toàn Diện 8 Lỗi P1/P2 Mới Từ Codex Review Ngày 20/11/2026 (Commit `8045e91`)
+
+| # | File & Vị Trí | Vấn Đề (Finding) | Nguyên Nhân Gốc | Giải Pháp Đã Áp Dụng | Kiểm Chứng & Regression Test |
+|---|---|---|---|---|---|
+| **1** | `frontend/src/services/assessment.service.ts` | **Serialize submissions using server DTO** *(P1)* | Gửi `responses` dạng Array trong khi backend `MeController.CreateMyAssessmentAttempt` ràng buộc `Dictionary<string, AssessmentResponseItemDto>`, gây lỗi 400. | Chuyển `responses` sang dictionary keyed by question ID, truyền đầy đủ `selectedOptionIds`, `firstAnsweredAt`, `lastAnsweredAt`, `changeCount`, `timeSpentMs`, `isCorrect` cùng siêu dữ liệu `completionStatus`, `successStatus`, `progressMeasure`, `scoreRaw`, `scoreScaled`. | `assessmentServiceFailClosed.test.ts` (PASS: kiểm tra structure payload gửi lên API) |
+| **2** | `frontend/src/services/classroom.service.ts`<br>`AdminClassDetailPage.tsx` | **Resolve transfer identities from explicit source classroom** *(P1)* | Học sinh tham gia nhiều lớp có enrollment ID khác user ID; `getStudents()` lọc trùng có thể gửi nhầm enrollment ID thay vì `code` (UserId), gây lỗi 404. | `moveStudentClass` tra cứu học sinh trực tiếp trong `explicitSourceClassId` trước khi fallback; `AdminClassDetailPage` gửi `selectedStudent.code \|\| selectedStudent.id`. | `classroom.service.test.ts` & Playwright Scenario 1 (PASS) |
+| **3** | `backend/src/StudyAI.Api/Controllers/AdminController.cs` | **Map teaching statuses before persisting teacher updates** *(P1)* | Frontend gửi teaching status `active`, `pending`, `inactive` nhưng `AllowedStatuses` chỉ chứa `active`, `suspended`, `disabled`, khiến update bị bỏ qua mà vẫn trả về 200. | Thêm hàm `TryMapTeacherStatus`: ánh xạ `active` → `active`, `inactive` → `disabled`, `pending` → `suspended`; từ chối các giá trị không hợp lệ với 400 Bad Request ở cả `CreateTeacher` và `UpdateTeacher`. | `Admin_UpdateTeacher_TeachingStatus_MapsCorrectly_And_RejectsInvalid` (PASS) |
+| **4** | `backend/src/StudyAI.Api/Controllers/AdminController.cs` | **Apply report filters to underlying queries** *(P1)* | `GetReports` không áp dụng `classId`, `subjectId`, và `startDate` vào các câu truy vấn nền tảng (`attempts`, `completedLessons`, `activityTrend`), khiến số liệu báo cáo không phản ánh đúng phạm vi đã chọn. | Áp dụng đầy đủ bộ lọc: `classId` giới hạn tập học sinh lớp học; `subjectId` lọc môn học tương ứng; `timeframe/startDate` lọc thời gian làm bài; mọi chỉ số KPIs, điểm trung bình và biểu đồ đều được tính toán nhất quán theo phạm vi đã lọc. | `AdminController` & `adminReportsFailClosed.test.ts` (PASS) |
+| **5** | `backend/src/StudyAI.Api/Controllers/AdminController.cs` | **Reject stale initial settings versions** *(P2)* | Khi cấu hình đã tồn tại, yêu cầu gửi `Version = "initial"` hoặc rỗng vượt qua kiểm tra concurrency và ghi đè cấu hình hiện tại. | Khi đã có cấu hình trong CSDL (`latestLog != null`), bắt buộc `req.Version == latestLog.Id`; phiên bản `"initial"`, null hoặc rỗng đều bị trả về `409 Conflict`. | `Admin_UpdateSettings_StaleInitialVersion_WhenSettingsExist_Returns409` (PASS) |
+| **6** | `backend/src/StudyAI.Api/Controllers/AdminController.cs` | **Derive learner profile statistics from actual learning evidence** *(P1)* | `GetUserDetail` gán cứng chuỗi học 3 ngày (`StreakDays = 3`) và gán 100% tiến độ cho "Toán học 12" bất kể lớp hay môn học thật của học sinh. | Tính toán `StreakDays` dựa trên chuỗi ngày liên tiếp thực tế có dữ liệu từ `LessonProgresses`, `AssessmentAttempts`, và `LearningEvents`. `RecentSubjects` được tính từ các môn học thực tế mà học sinh đã học. Nếu chưa có hoạt động, trả về 0 ngày và mảng rỗng (không bịa số liệu). | `Admin_GetUserDetail_CalculatesRealStreakAndSubjectProgress_NoFabricatedStats` (PASS) |
+| **7** | `frontend/src/services/operations.service.ts` | **Handle pagination before treating audit results as complete** *(P1)* | `getAuditLogs` chỉ lấy trang đầu tiên (mặc định 20 bản ghi), khiến trang quản trị và export CSV thiếu các sự kiện cũ hơn. | Bổ sung vòng lặp phân trang (`page`, `pageSize = 100`) tự động tải toàn bộ danh sách audit logs từ máy chủ cho đến khi đủ `total`, bảo đảm danh sách sự kiện đầy đủ 100% và fail-closed khi API lỗi. | `operationsServiceFailClosed.test.ts` (PASS: kiểm tra phân trang 40 items qua 2 trang) |
+| **8** | `backend/src/StudyAI.Api/Controllers/AssignmentsController.cs` | **Atomic assignment deletion with submission check** *(P1)* | Khi xóa bài tập, kiểm tra bài nộp và lệnh DELETE không cùng một giao dịch nguyên tử, có thể cascade xóa mất bài nộp của học sinh nộp đồng thời. | Đặt kiểm tra và thao tác xóa trong khối giao dịch nguyên tử `Serializable` thông qua `CreateExecutionStrategy()` của EF Core. Nếu có bài nộp đồng thời, tự động chuyển sang lưu trữ (archive), không cascade delete. | `ClassroomAssignmentIntegrationTests.Delete_Assignment_Hard_Deletes_When_Empty_And_Archives_When_Submissions_Exist` (PASS) |
 

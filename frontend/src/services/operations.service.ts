@@ -352,10 +352,25 @@ export const operationsService = {
   // ==================== AUDIT LOGS ====================
   async getAuditLogs(filterAction = 'all', filterWorkspace = 'all', search = ''): Promise<AuditLogEntry[]> {
     if (getAccessToken()) {
-      try {
+      const allItems: Array<{
+        id: string
+        action: string
+        actor: string
+        targetType: string
+        targetId: string
+        payload?: string
+        timestamp: string
+      }> = []
+
+      let currentPage = 1
+      let hasMore = true
+
+      while (hasMore) {
         const queryParams = new URLSearchParams()
         if (filterAction && filterAction !== 'all') queryParams.set('action', filterAction)
         if (search.trim()) queryParams.set('search', search.trim())
+        queryParams.set('page', String(currentPage))
+        queryParams.set('pageSize', '100')
 
         const res = await apiClient.get<{
           items: Array<{
@@ -367,24 +382,34 @@ export const operationsService = {
             payload?: string
             timestamp: string
           }>
+          total: number
+          page: number
+          pageSize: number
         }>(`/api/v1/admin/audit-logs?${queryParams.toString()}`)
 
         if (res?.items && Array.isArray(res.items)) {
-          return res.items.map((log) => ({
-            id: log.id,
-            timestamp: log.timestamp,
-            actor: log.actor || 'Quản trị viên',
-            workspace: (filterWorkspace !== 'all' ? filterWorkspace : 'admin') as 'admin' | 'teacher' | 'content',
-            action: log.action,
-            target: `${log.targetType || ''} ${log.targetId || ''}`.trim() || 'Hệ thống',
-            targetId: log.targetId,
-            result: 'success',
-            details: log.payload,
-          }))
+          allItems.push(...res.items)
+          if (allItems.length >= res.total || res.items.length === 0 || currentPage >= 50) {
+            hasMore = false
+          } else {
+            currentPage++
+          }
+        } else {
+          hasMore = false
         }
-      } catch (err: any) {
-        if (err?.status === 401 || err?.status === 403) throw err
       }
+
+      return allItems.map((log) => ({
+        id: log.id,
+        timestamp: log.timestamp,
+        actor: log.actor || 'Quản trị viên',
+        workspace: (filterWorkspace !== 'all' ? filterWorkspace : 'admin') as 'admin' | 'teacher' | 'content',
+        action: log.action,
+        target: `${log.targetType || ''} ${log.targetId || ''}`.trim() || 'Hệ thống',
+        targetId: log.targetId,
+        result: 'success',
+        details: log.payload,
+      }))
     }
 
     let logs = loadFromStorage<AuditLogEntry[]>(STORAGE_KEYS.AUDIT_LOGS, INITIAL_AUDIT_LOGS)
