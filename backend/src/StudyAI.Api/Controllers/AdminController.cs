@@ -960,12 +960,24 @@ public class AdminController : ControllerBase
         if (existing)
             return Conflict(new { detail = "Email đã được sử dụng." });
 
+        string rawPassword;
+        if (!string.IsNullOrWhiteSpace(req.Password))
+        {
+            if (req.Password.Trim().Length < 8 || req.Password.Length > 128)
+                return BadRequest(new { detail = "Mật khẩu phải chứa ít nhất 8 ký tự và không vượt quá 128 ký tự." });
+            rawPassword = req.Password.Trim();
+        }
+        else
+        {
+            rawPassword = GenerateSecurePassword();
+        }
+
         var newTeacher = new User
         {
             Id = $"tch_{Guid.NewGuid():N}",
             Email = req.Email.Trim(),
             EmailNormalized = normalizedEmail,
-            PasswordHash = _passwordHasher.HashPassword("Teacher@123456"),
+            PasswordHash = _passwordHasher.HashPassword(rawPassword),
             DisplayName = req.Name.Trim(),
             Role = "teacher",
             Grade = req.Subject.Replace("Toán học", "").Trim(),
@@ -1004,7 +1016,8 @@ public class AdminController : ControllerBase
             Qualifications = req.Qualifications ?? "Cử nhân Sư phạm",
             ExperienceYears = req.ExperienceYears ?? 3,
             Bio = req.Bio ?? "Giáo viên bộ môn tâm huyết với học sinh.",
-            AccountStatus = "ACTIVE"
+            AccountStatus = "ACTIVE",
+            TemporaryPassword = rawPassword
         });
     }
 

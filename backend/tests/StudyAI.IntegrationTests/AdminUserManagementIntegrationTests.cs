@@ -891,4 +891,67 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
         reqDel.Headers.Authorization = new AuthenticationHeaderValue("Bearer", tokenSession1);
         await _client.SendAsync(reqDel);
     }
+
+    [Fact]
+    public async Task Admin_CreateTeacher_GeneratesUniqueSecurePassword_RejectsHardcodedPassword()
+    {
+        var adminToken = await GetAdminTokenAsync();
+
+        // 1. Create a new teacher via admin endpoint without supplying password
+        var uniqueEmail = $"teacher.secure.{Guid.NewGuid():N}@studyai.test";
+        var createReq = new SaveTeacherRequestDto
+        {
+            Name = "Thầy Giáo Bảo Mật Cao",
+            Email = uniqueEmail,
+            Subject = "Toán 12",
+            Status = "active"
+        };
+
+        var reqCreate = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/teachers")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(createReq), Encoding.UTF8, "application/json")
+        };
+        reqCreate.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+
+        var respCreate = await _client.SendAsync(reqCreate);
+        Assert.Equal(HttpStatusCode.Created, respCreate.StatusCode);
+
+        var bodyCreate = await respCreate.Content.ReadAsStringAsync();
+        var teacherDto = JsonSerializer.Deserialize<AdminTeacherDto>(bodyCreate, JsonOpts);
+
+        Assert.NotNull(teacherDto);
+        Assert.NotNull(teacherDto.TemporaryPassword);
+        // Must NOT be the legacy insecure hardcoded password
+        Assert.NotEqual("Teacher@123456", teacherDto.TemporaryPassword);
+        Assert.True(teacherDto.TemporaryPassword.Length >= 12, "Temporary password must be at least 12 characters long.");
+
+        // 2. Attempt login with the legacy shared password "Teacher@123456" -> MUST FAIL (401)
+        var loginInsecureReq = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/login")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new
+            {
+                email = uniqueEmail,
+                password = "Teacher@123456"
+            }), Encoding.UTF8, "application/json")
+        };
+        var respInsecure = await _client.SendAsync(loginInsecureReq);
+        Assert.Equal(HttpStatusCode.Unauthorized, respInsecure.StatusCode);
+
+        // 3. Attempt login with the securely generated TemporaryPassword -> MUST SUCCEED (200)
+        var loginSecureReq = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/login")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new
+            {
+                email = uniqueEmail,
+                password = teacherDto.TemporaryPassword
+            }), Encoding.UTF8, "application/json")
+        };
+        var respSecure = await _client.SendAsync(loginSecureReq);
+        Assert.Equal(HttpStatusCode.OK, respSecure.StatusCode);
+
+        // Clean up test teacher account
+        var reqDel = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/admin/users/{teacherDto.Id}");
+        reqDel.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        await _client.SendAsync(reqDel);
+    }
 }

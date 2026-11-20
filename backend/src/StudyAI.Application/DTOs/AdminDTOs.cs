@@ -164,6 +164,7 @@ public class AdminTeacherDto
     public int ExperienceYears { get; set; } = 0;
     public string Bio { get; set; } = string.Empty;
     public string AccountStatus { get; set; } = "ACTIVE";
+    public string? TemporaryPassword { get; set; }
 }
 
 public class TeacherKpisDto
@@ -178,6 +179,7 @@ public class SaveTeacherRequestDto
 {
     public string Name { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
+    public string? Password { get; set; }
     public string? Phone { get; set; }
     public string Subject { get; set; } = string.Empty;
     public List<string>? Classes { get; set; }

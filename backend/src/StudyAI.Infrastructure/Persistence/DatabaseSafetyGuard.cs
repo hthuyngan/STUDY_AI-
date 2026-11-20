@@ -97,6 +97,67 @@ public static class DatabaseSafetyGuard
     }
 
     /// <summary>
+    /// Validates database target for development server startups, migrations, reference data seeding, and import scripts.
+    /// In non-production environments (Development, Testing, Staging) or during migration/seed/import operations,
+    /// any attempt to connect to or modify the protected primary database "StudyAIDb" is strictly blocked.
+    /// </summary>
+    public static string EnsureSafeDatabaseForDevelopmentOrMigration(
+        string? connectionString,
+        string environmentName,
+        string callerContext = "DevelopmentOrMigration")
+    {
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new InvalidOperationException(
+                $"CRITICAL DATABASE SAFETY GUARD TRIGGERED [{callerContext}]: " +
+                "Connection string is null, empty, or unconfigured.");
+        }
+
+        SqlConnectionStringBuilder builder;
+        try
+        {
+            builder = new SqlConnectionStringBuilder(connectionString);
+        }
+        catch
+        {
+            throw new InvalidOperationException(
+                $"CRITICAL DATABASE SAFETY GUARD TRIGGERED [{callerContext}]: " +
+                "Malformed or unparseable connection string syntax. Execution is blocked for security reasons.");
+        }
+
+        var rawDbName = builder.InitialCatalog;
+        if (string.IsNullOrWhiteSpace(rawDbName))
+        {
+            throw new InvalidOperationException(
+                $"CRITICAL DATABASE SAFETY GUARD TRIGGERED [{callerContext}]: " +
+                "No database name (Initial Catalog) was specified in the connection string. Execution is blocked.");
+        }
+
+        var normalizedDb = rawDbName.Trim().Trim('[', ']');
+
+        // Explicit Fail-Closed Block: "StudyAIDb" in any casing or format is blocked for Development, Testing, or automated migration/seed/import
+        bool isNonProd = string.Equals(environmentName, "Development", StringComparison.OrdinalIgnoreCase) ||
+                         string.Equals(environmentName, "Testing", StringComparison.OrdinalIgnoreCase) ||
+                         string.Equals(environmentName, "Staging", StringComparison.OrdinalIgnoreCase);
+
+        bool isMigrationOrImport = callerContext.Contains("Migration", StringComparison.OrdinalIgnoreCase) ||
+                                   callerContext.Contains("Seed", StringComparison.OrdinalIgnoreCase) ||
+                                   callerContext.Contains("Import", StringComparison.OrdinalIgnoreCase) ||
+                                   callerContext.Contains("Startup", StringComparison.OrdinalIgnoreCase);
+
+        if (string.Equals(normalizedDb, "StudyAIDb", StringComparison.OrdinalIgnoreCase) && (isNonProd || isMigrationOrImport))
+        {
+            throw new InvalidOperationException(
+                $"CRITICAL DATABASE SAFETY GUARD TRIGGERED [{callerContext}]: " +
+                $"Operation BLOCKED! Target database resolved to protected production database '{normalizedDb}'. " +
+                "Development servers, automated migrations, reference seeding, and import scripts are strictly FORBIDDEN " +
+                "from targeting 'StudyAIDb'. Please target 'StudyAIDb_E2E' or an isolated authorized disposable database.");
+        }
+
+        return normalizedDb;
+    }
+
+    /// <summary>
     /// Validates that a connection string points strictly to an authorized isolated test database
     /// and never to the production/primary database "StudyAIDb".
     /// Throws InvalidOperationException immediately if any violation or ambiguity is detected.

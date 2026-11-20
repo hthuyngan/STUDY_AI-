@@ -134,4 +134,6 @@ export interface PracticeSetupConfig {
   difficulty?: QuestionDifficulty
   limit: number // e.g. 5, 10
   mode?: 'practice' | 'exam' | 'adaptive'
+  timeLimitMinutes?: number
+  blueprintId?: string
 }

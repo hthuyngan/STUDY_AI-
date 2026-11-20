@@ -11,6 +11,7 @@ public class CreatePracticeSessionRequest
     public int QuestionCount { get; set; } = 10;
     public string Mode { get; set; } = "practice"; // "practice", "exam", "lesson", "smart_review"
     public int? TimeLimitMinutes { get; set; } // e.g. 50, 60, 90
+    public string? BlueprintId { get; set; }
 }
 
 public class PracticeQuestionDto

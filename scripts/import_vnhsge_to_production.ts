@@ -3,10 +3,20 @@ import path from 'path'
 import { spawn, execSync, ChildProcess } from 'child_process'
 
 const ROOT_DIR = 'D:\\TN\\temp_vnhsge\\Dataset'
-const BACKUP_PATH = 'D:\\TN\\backups\\StudyAIDb_PreProduction_Snapshot.bak'
+const TARGET_DB = process.env.IMPORT_TARGET_DB || 'StudyAIDb_E2E'
+
+// Fail-closed database guard: Block any run targeting the protected production database StudyAIDb
+if (TARGET_DB.trim().toLowerCase() === 'studyaidb') {
+  throw new Error(
+    "CRITICAL DATABASE SAFETY GUARD TRIGGERED: Targeting 'StudyAIDb' is strictly forbidden by AGENTS.md. " +
+    "All import scripts, migrations, and rehearsals must strictly target 'StudyAIDb_E2E' or an isolated disposable database."
+  )
+}
+
+const BACKUP_PATH = `D:\\TN\\backups\\${TARGET_DB}_PreProduction_Snapshot.bak`
 const BACKEND_PORT = 5025
 const BACKEND_URL = `http://localhost:${BACKEND_PORT}`
-const PROD_DB_CONN = 'Server=localhost\\SQLEXPRESS;Database=StudyAIDb;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true'
+const PROD_DB_CONN = `Server=localhost\\SQLEXPRESS;Database=${TARGET_DB};Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true`
 const CHECKPOINT_FILE = path.join(__dirname, 'vnhsge_prod_checkpoint.json')
 
 interface ParsedItem {
@@ -105,22 +115,22 @@ export async function runProductionImport() {
     console.log('=================================================================')
 
     // STEP 1: Verify Baseline 14 questions
-    console.log('\n[1/7] Auditing StudyAIDb baseline questions...')
+    console.log(`\n[1/7] Auditing ${TARGET_DB} baseline questions...`)
     const baselineAudit = execSync(
-      'sqlcmd -S "localhost\\SQLEXPRESS" -E -C -h -1 -W -Q "SET NOCOUNT ON; SELECT COUNT(*) FROM StudyAIDb.dbo.content_questions;"',
+      `sqlcmd -S "localhost\\SQLEXPRESS" -E -C -h -1 -W -Q "SET NOCOUNT ON; SELECT COUNT(*) FROM ${TARGET_DB}.dbo.content_questions;"`,
       { encoding: 'utf8' }
     )
     const baselineCount = parseInt(baselineAudit.trim(), 10)
-    console.log(`StudyAIDb Baseline Question Count: ${baselineCount}`)
+    console.log(`${TARGET_DB} Baseline Question Count: ${baselineCount}`)
     if (baselineCount !== 14) {
-      throw new Error(`CRITICAL PRECONDITION FAILED: StudyAIDb does not have 14 baseline questions (got ${baselineCount})`)
+      throw new Error(`CRITICAL PRECONDITION FAILED: ${TARGET_DB} does not have 14 baseline questions (got ${baselineCount})`)
     }
 
     // STEP 2: Backup with Checksum & Verify
     console.log('\n[2/7] Creating pre-import snapshot backup with CHECKSUM...')
     if (!fs.existsSync('D:\\TN\\backups')) fs.mkdirSync('D:\\TN\\backups', { recursive: true })
     execSync(
-      `sqlcmd -S "localhost\\SQLEXPRESS" -E -C -Q "BACKUP DATABASE StudyAIDb TO DISK = '${BACKUP_PATH}' WITH FORMAT, INIT, CHECKSUM, STATS = 25;"`,
+      `sqlcmd -S "localhost\\SQLEXPRESS" -E -C -Q "BACKUP DATABASE ${TARGET_DB} TO DISK = '${BACKUP_PATH}' WITH FORMAT, INIT, CHECKSUM, STATS = 25;"`,
       { stdio: 'inherit' }
     )
     console.log('Verifying backup checksum integrity...')
@@ -233,8 +243,8 @@ export async function runProductionImport() {
     const totalBatches = Math.ceil(allParsedItems.length / BATCH_SIZE)
     console.log(`Parsed total: ${allParsedItems.length} items (${totalBatches} batches)`)
 
-    // STEP 4: Start Backend targeting StudyAIDb
-    console.log('\n[4/7] Starting backend API on port ' + BACKEND_PORT + ' targeting StudyAIDb...')
+    // STEP 4: Start Backend targeting isolated database
+    console.log(`\n[4/7] Starting backend API on port ${BACKEND_PORT} targeting ${TARGET_DB}...`)
     backendProc = spawn('dotnet', ['run', '--project', 'backend/src/StudyAI.Api/StudyAI.Api.csproj', '--no-build', '--urls', BACKEND_URL], {
       cwd: process.cwd(),
       env: {
@@ -246,7 +256,7 @@ export async function runProductionImport() {
     })
 
     const isUp = await waitForBackend(BACKEND_URL)
-    if (!isUp) throw new Error('Backend failed to start targeting StudyAIDb')
+    if (!isUp) throw new Error(`Backend failed to start targeting ${TARGET_DB}`)
     console.log('Backend listening at ' + BACKEND_URL)
 
     // Authenticate
@@ -259,7 +269,7 @@ export async function runProductionImport() {
     const { accessToken } = await loginRes.json()
 
     // STEP 5: Execute batches
-    console.log(`\n[5/7] Executing ${totalBatches} batches into StudyAIDb...`)
+    console.log(`\n[5/7] Executing ${totalBatches} batches into ${TARGET_DB}...`)
     const startTime = Date.now()
     let totalImported = 0
     let totalDuplicates = 0
@@ -316,9 +326,9 @@ export async function runProductionImport() {
     console.log(`Total Imported: ${totalImported} | Total Duplicates: ${totalDuplicates} | Total Errors: ${totalErrors}`)
 
     // STEP 6: Dual Audit
-    console.log('\n[6/7] Auditing StudyAIDb final state...')
+    console.log(`\n[6/7] Auditing ${TARGET_DB} final state...`)
     const sqlFinal = execSync(
-      'sqlcmd -S "localhost\\SQLEXPRESS" -E -C -Q "SELECT SourceType, Status, COUNT(*) AS Cnt FROM StudyAIDb.dbo.content_questions GROUP BY SourceType, Status; SELECT COUNT(*) AS TotalCount FROM StudyAIDb.dbo.content_questions;"',
+      `sqlcmd -S "localhost\\SQLEXPRESS" -E -C -Q "SELECT SourceType, Status, COUNT(*) AS Cnt FROM ${TARGET_DB}.dbo.content_questions GROUP BY SourceType, Status; SELECT COUNT(*) AS TotalCount FROM ${TARGET_DB}.dbo.content_questions;"`,
       { encoding: 'utf8' }
     )
     console.log(sqlFinal.trim())
@@ -326,7 +336,7 @@ export async function runProductionImport() {
     // STEP 7: Verify baseline intact
     console.log('\n[7/7] Verifying 14 baseline questions are 100% intact...')
     const sqlBaselineCheck = execSync(
-      'sqlcmd -S "localhost\\SQLEXPRESS" -E -C -h -1 -W -Q "SET NOCOUNT ON; SELECT COUNT(*) FROM StudyAIDb.dbo.content_questions WHERE SourceType = \'manual\';"',
+      `sqlcmd -S "localhost\\SQLEXPRESS" -E -C -h -1 -W -Q "SET NOCOUNT ON; SELECT COUNT(*) FROM ${TARGET_DB}.dbo.content_questions WHERE SourceType = 'manual';"`,
       { encoding: 'utf8' }
     )
     const manualCount = parseInt(sqlBaselineCheck.trim(), 10)

@@ -15,7 +15,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Configuration
 var configuration = builder.Configuration;
 var connectionString = configuration.GetConnectionString("DefaultConnection") 
-    ?? "Server=.\\SQLEXPRESS;Database=StudyAIDb;Trusted_Connection=True;TrustServerCertificate=True";
+    ?? "Server=.\\SQLEXPRESS;Database=StudyAIDb_E2E;Trusted_Connection=True;TrustServerCertificate=True";
 
 // 1. Database Context
 builder.Services.AddDbContext<StudyAIDbContext>(options =>
@@ -363,16 +363,31 @@ using (var scope = app.Services.CreateScope())
 {
     try
     {
-        var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+        var resolvedConfiguration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+        var activeConn = resolvedConfiguration.GetConnectionString("DefaultConnection") ?? connectionString;
+
         var applyMigrationsDefault = !app.Environment.IsProduction();
-        if (builder.Configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup", applyMigrationsDefault))
+        var shouldMigrate = resolvedConfiguration.GetValue<bool>("Database:ApplyMigrationsOnStartup", applyMigrationsDefault);
+        var shouldSeed = resolvedConfiguration.GetValue<bool>("Database:SeedReferenceData", applyMigrationsDefault);
+
+        // Security Guard: Prevent any non-production process, development server, or migration/seed from targeting StudyAIDb
+        if (app.Environment.IsDevelopment() || shouldMigrate || shouldSeed || DatabaseSafetyGuard.IsTestExecutionContext)
+        {
+            DatabaseSafetyGuard.EnsureSafeDatabaseForDevelopmentOrMigration(
+                activeConn,
+                app.Environment.EnvironmentName,
+                "Program.cs Startup Migration/Seed Guard");
+        }
+
+        var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+        if (shouldMigrate)
         {
             await db.Database.MigrateAsync();
         }
 
         // Only seed reference data in Development/Testing, or when explicitly enabled via configuration
         var seedReferenceDefault = !app.Environment.IsProduction();
-        if (builder.Configuration.GetValue<bool>("Database:SeedReferenceData", seedReferenceDefault))
+        if (shouldSeed)
         {
             await DbInitializer.SeedReferenceDataAsync(db);
         }

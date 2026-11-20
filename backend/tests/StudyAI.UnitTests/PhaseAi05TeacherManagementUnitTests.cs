@@ -505,4 +505,81 @@ public class PhaseAi05TeacherManagementUnitTests
         Assert.NotEmpty(outline.WorkedExamples);
         Assert.Contains(outline.CoreFormulasKaTeX, f => f.Contains("\\int"));
     }
+
+    [Fact]
+    public async Task LessonAuthoring_02_GenerateCheckpointQuestions_UsesLlm_And_DoesNotReturnFabricatedFixtures()
+    {
+        var db = CreateInMemoryDb(nameof(LessonAuthoring_02_GenerateCheckpointQuestions_UsesLlm_And_DoesNotReturnFabricatedFixtures));
+        bool llmWasCalled = false;
+        string capturedUserPrompt = string.Empty;
+
+        var mockLlm = new TestLlmProvider
+        {
+            ResponseGenerator = req =>
+            {
+                llmWasCalled = true;
+                capturedUserPrompt = req.Messages.Last().Content;
+                return @"[
+  {
+    ""prompt"": ""Cho hình chóp $S.ABCD$ có đáy là hình vuông cạnh $a$. Chiều cao $h = a\\sqrt{3}$. Thể tích khối chóp bằng bao nhiêu?"",
+    ""options"": [""A. $\\frac{a^3\\sqrt{3}}{3}$"", ""B. $a^3\\sqrt{3}$"", ""C. $\\frac{a^3}{3}$"", ""D. $2a^3$""],
+    ""correctAnswer"": ""A"",
+    ""explanation"": ""$V = \\frac{1}{3} B \\cdot h = \\frac{1}{3} a^2 \\cdot a\\sqrt{3} = \\frac{a^3\\sqrt{3}}{3}$."",
+    ""cognitiveLevel"": ""thong_hieu""
+  }
+]";
+            }
+        };
+
+        var service = new AiLessonAuthoringService(db, mockLlm, NullLogger<AiLessonAuthoringService>.Instance);
+
+        var request = new GenerateCheckpointQuestionsRequestDto
+        {
+            SubjectId = "sub_math12",
+            TopicName = "Thể tích khối đa diện",
+            QuestionCount = 1,
+            TargetDifficulty = "thong_hieu"
+        };
+
+        var result = await service.GenerateCheckpointQuestionsAsync("usr_teacher_01", request);
+
+        // 1. LLM must be called with topic in prompt
+        Assert.True(llmWasCalled);
+        Assert.Contains("Thể tích khối đa diện", capturedUserPrompt);
+
+        // 2. Must return verified LLM response
+        Assert.NotNull(result);
+        Assert.Single(result);
+        Assert.Equal("A", result[0].CorrectAnswer);
+        Assert.Contains("S.ABCD", result[0].Prompt);
+
+        // 3. Must NEVER contain the legacy fabricated fixture
+        Assert.DoesNotContain("có bảng xét dấu đạo hàm như hình vẽ", result[0].Prompt);
+    }
+
+    [Fact]
+    public async Task LessonAuthoring_03_GenerateCheckpointQuestions_WhenLlmFails_ThrowsFailClosedException()
+    {
+        var db = CreateInMemoryDb(nameof(LessonAuthoring_03_GenerateCheckpointQuestions_WhenLlmFails_ThrowsFailClosedException));
+        var mockLlm = new TestLlmProvider
+        {
+            ResponseGenerator = _ => throw new HttpRequestException("503 Service Unavailable")
+        };
+
+        var service = new AiLessonAuthoringService(db, mockLlm, NullLogger<AiLessonAuthoringService>.Instance);
+
+        var request = new GenerateCheckpointQuestionsRequestDto
+        {
+            SubjectId = "sub_math12",
+            TopicName = "Khảo sát hàm số",
+            QuestionCount = 2,
+            TargetDifficulty = "thong_hieu"
+        };
+
+        // Must throw fail-closed InvalidOperationException rather than returning fake questions
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.GenerateCheckpointQuestionsAsync("usr_teacher_01", request));
+
+        Assert.Contains("không khả dụng", ex.Message);
+    }
 }

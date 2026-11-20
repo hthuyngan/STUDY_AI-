@@ -775,5 +775,87 @@ public class ClassroomAssignmentIntegrationTests : IClassFixture<StudyAIApiFixtu
         var deleteEmptyResp = await _client.SendAsync(deleteEmptyReq);
         Assert.Equal(HttpStatusCode.NoContent, deleteEmptyResp.StatusCode);
     }
+
+    [Fact]
+    public async Task GradeSubmission_DerivesMastery_From_Classroom_Grade_And_Subject()
+    {
+        var (teacherToken, _, _) = await CreateAndLoginUserAsync("teacher", "Thầy Giáo Toán 10");
+        var (learnerToken, learnerId, learnerEmail) = await CreateAndLoginUserAsync("learner", "Học sinh Lớp 10");
+
+        // 1. Create a Grade 10 Math classroom
+        var classReq = new HttpRequestMessage(HttpMethod.Post, "/api/v1/classrooms")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateClassroomRequestDto
+            {
+                Name = "Lớp 10A1 Chuyên Toán",
+                Grade = "10",
+                Subject = "Toán học"
+            }), Encoding.UTF8, "application/json")
+        };
+        classReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        var classResp = await _client.SendAsync(classReq);
+        var classDto = JsonSerializer.Deserialize<ClassroomDto>(await classResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        // Enroll learner
+        var enrollReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/classrooms/{classDto.Id}/students")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new EnrollStudentRequestDto { StudentEmail = learnerEmail }), Encoding.UTF8, "application/json")
+        };
+        enrollReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        await _client.SendAsync(enrollReq);
+
+        // 2. Create Grade 10 assignment
+        var asgReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/classrooms/{classDto.Id}/assignments")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateAssignmentRequestDto
+            {
+                Title = "Bài tập Hàm số bậc hai",
+                DueDate = DateTimeOffset.UtcNow.AddDays(3),
+                MaxScore = 10.0
+            }), Encoding.UTF8, "application/json")
+        };
+        asgReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        var asgResp = await _client.SendAsync(asgReq);
+        var asgDto = JsonSerializer.Deserialize<AssignmentDto>(await asgResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        // 3. Learner submits assignment
+        var submitReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/assignments/{asgDto.Id}/submissions")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateSubmissionRequestDto
+            {
+                Content = "Em nộp bài tập hàm số bậc hai đầy đủ các bước"
+            }), Encoding.UTF8, "application/json")
+        };
+        submitReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", learnerToken);
+        var submitResp = await _client.SendAsync(submitReq);
+        var subDto = JsonSerializer.Deserialize<SubmissionDto>(await submitResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        // 4. Teacher grades assignment with 9.0
+        var gradeReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/assignments/{asgDto.Id}/submissions/{subDto.Id}/grade")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new GradeSubmissionRequestDto
+            {
+                Score = 9.0,
+                Feedback = "Lời giải mạch lạc, vẽ bảng biến thiên chính xác."
+            }), Encoding.UTF8, "application/json")
+        };
+        gradeReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        var gradeResp = await _client.SendAsync(gradeReq);
+        Assert.Equal(HttpStatusCode.OK, gradeResp.StatusCode);
+
+        // 5. Verify mastery record in database: MUST be attributed to sub_math10, NOT sub_math12!
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            var mastery = await db.StudentTopicMasteries
+                .FirstOrDefaultAsync(m => m.UserId == learnerId && m.TopicName.Contains("Hàm số bậc hai"));
+
+            Assert.NotNull(mastery);
+            Assert.Equal("sub_math10", mastery.SubjectId);
+            Assert.NotEqual("sub_math12", mastery.SubjectId);
+            Assert.Equal(90.0, mastery.MasteryScore);
+            Assert.True(mastery.Status == "proficient" || mastery.Status == "mastered");
+        }
+    }
 }
 

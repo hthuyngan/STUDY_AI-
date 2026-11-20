@@ -37,17 +37,22 @@ Bạn là Senior Full-stack Engineer, Educational AI Architect, SQL Data Enginee
 
 ### C. NGHIỆP VỤ PHẢI HOÀN THIỆN THEO CÁC PHASE
 
-**P00 — Audit + P0 stabilization**:
-- Tái đánh giá audit PR #12 và status các PR hiện có; tránh sửa lỗi đã fix trên nhánh khác.
-- Ưu tiên false success trong Admin/user/content/assessment, fake analytics, local fallback có thể làm sai lệch dữ liệu. Khi API lỗi không biến thành dữ liệu demo hoặc thông báo lưu thành công.
-- Kiểm tra và khóa chặt DB safeguard, CI, migration safety; kịch bản 401/403/404/500/network fail.
+**P00 — Baseline/audit & an toàn**:
+- So sánh HEAD và PR #12/#13/#6/#9; kiểm kê toàn bộ inventory API, UI, DB; lập danh sách P0/P1.
+- Kiểm tra và thiết lập chốt chặn an toàn `DatabaseSafetyGuard`, fail-closed connection strings, bảo vệ tuyệt đối production `StudyAIDb`.
+- Thiết lập kịch bản kiểm thử trên `StudyAIDb_E2E`, xác nhận baseline CI.
 
-**P01 — Curriculum Toán 10–12 + quản trị CRUD**:
+**P01 — Sửa P0 và loại bỏ false-success**:
+- Sửa triệt để các lỗi P0/P1 đã audit: Admin, content, assessment không nuốt lỗi, không giả lập thành công khi API fail.
+- Xóa bỏ mock runtime, fake stats, module state và localStorage thay thế database.
+- Bổ sung negative tests (401/403/404/500/network failure), security tests và Playwright pass.
+
+**P02 — Curriculum Toán 10–12 + quản trị CRUD**:
 - CRUD Admin/Content: Môn Toán grade 10/11/12, mạch kiến thức, chương, chủ đề, lesson, learning objective, skill, prerequisite, bài tập và câu hỏi; search/filter/page, create/edit/archive/reorder/approve/publish. Reuse hiện có; chỉ mở rộng schema/contract nếu thiếu.
 - `MATH10`, `MATH11`, `MATH12` là mã nghiệp vụ minh họa; IDs thực do DB trả về, FE không gắn cứng.
 - Test tạo → cập nhật → đọc → refresh → archive → RBAC → audit; không xóa nội dung đã gắn attempts, chặn duplicate.
 
-**P02 — Data pipeline thật, nạp đầy đủ theo chương trình**:
+**P03 — Data pipeline thật, nạp đầy đủ theo chương trình**:
 - Tự tìm bản chương trình Toán THPT công khai chính thức và văn bản cập nhật; lưu catalogue nguồn: URL, tổ chức, ban hành, phiên bản, license.
 - Build curriculum matrix 10/11/12: mạch → chương/chủ đề → kiến thức/yêu cầu cần đạt → bài học → kỹ năng → prereq → câu hỏi.
 - Tái sử dụng import preview/confirm JSON/CSV/XLSX, thêm validators provenance, LaTeX, answer, duplicate, FK, grade/skill và `dry-run` + batch rollback; Admin duyệt trước publish.
@@ -55,40 +60,44 @@ Bạn là Senior Full-stack Engineer, Educational AI Architect, SQL Data Enginee
 - Kiểm kê và chỉ nhập lại câu hỏi có nguồn/quyền sử dụng phù hợp. Lập báo cáo coverage chi tiết từng lớp; nếu nội dung còn thiếu phải hiện thiếu, không ngụy tạo “100%”.
 - Nạp DB_E2E trước, xuất report; không tự import DB production. Tài liệu SGK không sao chép nguyên văn vô phép.
 
-**P03 — Học tập thật + Luyện tập**:
+**P04 — Học bài & luyện tập live**:
 - FE trang Toán 10/11/12 gọi API thật: chương, bài, giải thích, ví dụ, KaTeX, bài tập; bài chưa published không hiển thị cho học sinh.
 - Practice sessions lấy câu từ DB, server-side answer check, không trả đáp án trước khi làm; save/resume; grading persisted & atomic; ngắt kết nối không hiển thị kết quả ảo.
 - Khắc phục quiz/practice hoặc service khác còn mock trong đường đi học sinh; UI empty/error/skeleton.
 
-**P04 — Đánh giá đầu vào + Student Mastery**:
+**P05 — Đánh giá đầu vào + Student Mastery**:
 - Tạo bài kiểm tra định vị theo lớp và prerequisite; lưu attempt/answer/skill evidence thật.
 - Tính mức thành thạo theo kỹ năng, độ khó, tính mới của kết quả, số lần thử độc lập, mức phụ thuộc vào hint. Mới ít dữ liệu phải nói “Chưa đủ dữ liệu” thay vì gán % giả.
 - Cho phép xem vì sao điểm mastery thay đổi và xem lại câu hỏi; tránh vòng lặp đánh giá thiên lệch.
 
-**P05 — MENU “HỌC TẬP THÍCH ỨNG”**:
+**P06 — Học tập thích ứng + menu**:
 - Menu riêng dễ thấy, link route không duplicate; luồng: chọn lớp/mục tiêu → đánh giá → bài hôm nay → luyện theo điểm yếu → xem cập nhật năng lực.
 - Backend khuyến nghị bài tiếp theo dựa prereq, mastery, khó/dễ, mục tiêu và time budget; trả reason & evidence; không hardcode Math12 hoặc route `/subjects/math` nếu ID là `sub_math12`.
 - UI 1 action chính “Tiếp tục học”, cards gọn, trạng thái chưa có dữ liệu.
 
-**P06 — PHÂN TÍCH LỖI SAI**:
+**P07 — Phân tích lỗi sai**:
 - Bài sai phải liên kết `questionId, attemptedAnswer, correctVerifiedAnswer, topic/skill, attemptId, timestamp, evidence` trong DB.
 - Taxonomy: sai khái niệm, phép biến đổi, dấu, điều kiện/xác định, tính toán, đọc đề, lập luận, chưa đủ cơ sở. AI giải thích dựa bài làm, chỉ nói chắc khi có bằng chứng; cho học sinh báo “AI phân tích sai”.
 - Đề xuất 1–3 bài chữa lỗi, có theo dõi sau ôn; không sinh lời giải sai hay tự tin vô căn cứ.
 
-**P07 — LỘ TRÌNH HỌC TẬP TỰ ĐỘNG**:
+**P08 — Lộ trình tự động**:
 - Tạo plan theo grade, mục tiêu/điểm đích, thời lượng/tuần, deadline hợp lệ, mastery, kiến thức tiên quyết.
 - Lưu ở SQL, update sau nộp bài/trả lời quiz/đổi goal, có lịch sử cập nhật và reason, bảo đảm idempotency.
 - Giao diện timeline tuần/thứ tự học, trạng thái thực tế; cho đổi mục tiêu, tạm hoãn, làm lại; không bịa streak hay ngày hoàn tất.
 
-**P08 — HỌC TỪ TÀI LIỆU**:
+**P09 — Học từ tài liệu**:
 - Admin hoặc học sinh tải PDF/DOCX, ảnh (nếu hỗ trợ) → validate magic bytes/MIME/kích thước/ownership → virus scan strategy → parser, OCR chỉ khi không có text → chunk với trang → retrieval có phân quyền (user/document scope).
 - Viewer 2 cột hoặc mobile single column: danh sách tài liệu, xem trang, đặt câu hỏi, AI trả lời có link/citation đến trang và cảnh báo khi không tìm thấy; học từ tài liệu do người dùng tải, không dùng để tự động publish curriculum.
 - Có trạng thái queued/processing/ready/failed, retry/quota, xóa tài liệu gỡ index/chunks; chống prompt injection trong file.
 
-**P09 — Gia sư AI hợp nhất + UI polishing**:
+**P10 — Gia sư AI hợp nhất + UI polishing**:
 - AI Tutor lấy `subject, grade, lesson, skill/mastery, question context, document citation` có quyền; mô hình Socratic hints 3 mức (gợi công thức, dẫn bước đầu, hướng dẫn đầy đủ khi phù hợp).
 - Structured response với LaTeX, nguồn/citation và trạng thái AI; server guard chống lộ đáp án trong thi có giám sát, không sử dụng fake provider trong production.
 - Dùng Evondev UI skill để làm đồng bộ menu, các trang, form Admin; đơn giản, đúng dữ liệu, không quá AI/màu mè; không redesign toàn diện.
+
+**P11 — End-to-end release readiness**:
+- Regression toàn hệ thống, phân quyền đa tài khoản, tải/dữ liệu lớn, bảo mật & privacy, performance, coverage & đánh giá độ chính xác AI, CI toàn diện xanh.
+- Hoàn tất hướng dẫn vận hành, kế hoạch rollout, quy trình rollback và phê duyệt từ người quản trị trước release.
 
 ### D. CÁCH THỰC THI MỖI PHASE — BẮT BUỘC LẶP LẠI
 

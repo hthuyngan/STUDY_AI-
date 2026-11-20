@@ -4,11 +4,21 @@ import { spawn, execSync, ChildProcess } from 'child_process'
 
 const ROOT_DIR = 'D:\\TN\\temp_vnhsge\\Dataset'
 const BACKUP_DIR = 'D:\\TN\\backups'
-const BACKUP_FILE = path.join(BACKUP_DIR, 'StudyAIDb_Production_PreImport_Snapshot.bak')
+const TARGET_DB = process.env.IMPORT_TARGET_DB || 'StudyAIDb_E2E'
+
+// Fail-closed database guard: Block any run targeting the protected production database StudyAIDb
+if (TARGET_DB.trim().toLowerCase() === 'studyaidb') {
+  throw new Error(
+    "CRITICAL DATABASE SAFETY GUARD TRIGGERED: Targeting 'StudyAIDb' is strictly forbidden by AGENTS.md. " +
+    "All import scripts, migrations, and rehearsals must strictly target 'StudyAIDb_E2E' or an isolated disposable database."
+  )
+}
+
+const BACKUP_FILE = path.join(BACKUP_DIR, `${TARGET_DB}_PreImport_Snapshot.bak`)
 const PROD_CHECKPOINT_FILE = path.join(__dirname, 'vnhsge_prod_checkpoint.json')
 const BACKEND_PORT = 5025
 const BACKEND_URL = `http://localhost:${BACKEND_PORT}`
-const PROD_CONN_STR = 'Server=localhost\\SQLEXPRESS;Database=StudyAIDb;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true'
+const TARGET_CONN_STR = `Server=localhost\\SQLEXPRESS;Database=${TARGET_DB};Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true`
 
 interface ParsedItem {
   code: string
@@ -104,28 +114,28 @@ async function main() {
     // -------------------------------------------------------------------------
     // STEP 1: PREFLIGHT & CONNECTION STRING VERIFICATION
     // -------------------------------------------------------------------------
-    console.log('\n[PHASE 1] Preflight & Connection String Verification...')
+    console.log(`\n[PHASE 1] Preflight & Connection String Verification for ${TARGET_DB}...`)
     const dbTargetCheck = execSync(
       'sqlcmd -S "localhost\\SQLEXPRESS" -E -C -h -1 -W -Q "SET NOCOUNT ON; SELECT DB_NAME();"',
       { encoding: 'utf8' }
     )
     console.log(`Connected to SQL Server: localhost\\SQLEXPRESS | Current Default: ${dbTargetCheck.trim()}`)
 
-    const studyAiDbExists = execSync(
-      'sqlcmd -S "localhost\\SQLEXPRESS" -E -C -h -1 -W -Q "SET NOCOUNT ON; SELECT name FROM sys.databases WHERE name = \'StudyAIDb\';"',
+    const targetDbExists = execSync(
+      `sqlcmd -S "localhost\\SQLEXPRESS" -E -C -h -1 -W -Q "SET NOCOUNT ON; SELECT name FROM sys.databases WHERE name = '${TARGET_DB}';"`,
       { encoding: 'utf8' }
     ).trim()
-    if (studyAiDbExists !== 'StudyAIDb') {
-      throw new Error("Target database 'StudyAIDb' does NOT exist on SQLEXPRESS!")
+    if (targetDbExists !== TARGET_DB) {
+      throw new Error(`Target database '${TARGET_DB}' does NOT exist on SQLEXPRESS!`)
     }
-    console.log("Verified target database 'StudyAIDb' exists and is online.")
+    console.log(`Verified target database '${TARGET_DB}' exists and is online.`)
 
     // -------------------------------------------------------------------------
-    // STEP 2: RECORD BASELINE 14 QUESTIONS
+    // STEP 2: RECORD BASELINE QUESTIONS
     // -------------------------------------------------------------------------
-    console.log('\n[PHASE 2] Inspecting and Recording Baseline Questions in StudyAIDb...')
+    console.log(`\n[PHASE 2] Inspecting and Recording Baseline Questions in ${TARGET_DB}...`)
     const rawBaseline = execSync(
-      'sqlcmd -S "localhost\\SQLEXPRESS" -E -C -h -1 -W -s "|" -Q "SET NOCOUNT ON; SELECT Id, SourceType, Status, LEFT(Prompt, 60) FROM StudyAIDb.dbo.content_questions;"',
+      `sqlcmd -S "localhost\\SQLEXPRESS" -E -C -h -1 -W -s "|" -Q "SET NOCOUNT ON; SELECT Id, SourceType, Status, LEFT(Prompt, 60) FROM ${TARGET_DB}.dbo.content_questions;"`,
       { encoding: 'utf8' }
     )
     const baselineQuestions: Array<{ id: string; sourceType: string; status: string; prompt: string }> = []
@@ -150,11 +160,11 @@ async function main() {
     // -------------------------------------------------------------------------
     // STEP 3: BACKUP WITH CHECKSUM & RESTORE VERIFICATION
     // -------------------------------------------------------------------------
-    console.log('\n[PHASE 3] Generating Production Pre-Import Backup with CHECKSUM...')
+    console.log(`\n[PHASE 3] Generating Pre-Import Backup for ${TARGET_DB} with CHECKSUM...`)
     if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true })
     
     execSync(
-      `sqlcmd -S "localhost\\SQLEXPRESS" -E -C -Q "BACKUP DATABASE StudyAIDb TO DISK = '${BACKUP_FILE}' WITH FORMAT, INIT, CHECKSUM, STATS = 20;"`,
+      `sqlcmd -S "localhost\\SQLEXPRESS" -E -C -Q "BACKUP DATABASE ${TARGET_DB} TO DISK = '${BACKUP_FILE}' WITH FORMAT, INIT, CHECKSUM, STATS = 20;"`,
       { stdio: 'inherit' }
     )
     console.log('Verifying backup checksum integrity with RESTORE VERIFYONLY...')
@@ -164,9 +174,9 @@ async function main() {
     )
 
     console.log('Testing physical restore to temporary verification database...')
-    const restoreTestDb = 'StudyAIDb_PreflightVerifyRestore'
+    const restoreTestDb = `${TARGET_DB}_PreflightVerifyRestore`
     execSync(
-      `sqlcmd -S "localhost\\SQLEXPRESS" -E -C -Q "IF DB_ID('${restoreTestDb}') IS NOT NULL DROP DATABASE ${restoreTestDb}; RESTORE DATABASE ${restoreTestDb} FROM DISK = '${BACKUP_FILE}' WITH MOVE 'StudyAIDb' TO 'C:\\Program Files\\Microsoft SQL Server\\MSSQL17.SQLEXPRESS\\MSSQL\\DATA\\${restoreTestDb}.mdf', MOVE 'StudyAIDb_log' TO 'C:\\Program Files\\Microsoft SQL Server\\MSSQL17.SQLEXPRESS\\MSSQL\\DATA\\${restoreTestDb}_log.ldf'; SELECT COUNT(*) AS RestoredBaselineCount FROM ${restoreTestDb}.dbo.content_questions; DROP DATABASE ${restoreTestDb};"`,
+      `sqlcmd -S "localhost\\SQLEXPRESS" -E -C -Q "IF DB_ID('${restoreTestDb}') IS NOT NULL DROP DATABASE ${restoreTestDb}; RESTORE DATABASE ${restoreTestDb} FROM DISK = '${BACKUP_FILE}' WITH MOVE '${TARGET_DB}' TO 'C:\\Program Files\\Microsoft SQL Server\\MSSQL17.SQLEXPRESS\\MSSQL\\DATA\\${restoreTestDb}.mdf', MOVE '${TARGET_DB}_log' TO 'C:\\Program Files\\Microsoft SQL Server\\MSSQL17.SQLEXPRESS\\MSSQL\\DATA\\${restoreTestDb}_log.ldf'; SELECT COUNT(*) AS RestoredBaselineCount FROM ${restoreTestDb}.dbo.content_questions; DROP DATABASE ${restoreTestDb};"`,
       { stdio: 'inherit' }
     )
     console.log('>>> BACKUP CREATED, VERIFIED AND RESTORE TEST PASSED! <<<')
@@ -293,21 +303,21 @@ async function main() {
     console.log(`Parsed total raw questions: ${allParsedItems.length} across ${totalBatches} batches (batch size = ${BATCH_SIZE}).`)
 
     // -------------------------------------------------------------------------
-    // STEP 6: START BACKEND TARGETING StudyAIDb
+    // STEP 6: START BACKEND TARGETING ISOLATED DATABASE
     // -------------------------------------------------------------------------
-    console.log('\n[PHASE 6] Starting Backend API targeting PRODUCTION StudyAIDb on port ' + BACKEND_PORT + '...')
+    console.log(`\n[PHASE 6] Starting Backend API targeting isolated database ${TARGET_DB} on port ${BACKEND_PORT}...`)
     backendProc = spawn('dotnet', ['run', '--project', 'backend/src/StudyAI.Api/StudyAI.Api.csproj', '--no-build', '--urls', BACKEND_URL], {
       cwd: process.cwd(),
       env: {
         ...process.env,
         ASPNETCORE_ENVIRONMENT: 'Development',
-        ConnectionStrings__DefaultConnection: PROD_CONN_STR,
+        ConnectionStrings__DefaultConnection: TARGET_CONN_STR,
       },
       stdio: ['ignore', 'pipe', 'pipe'],
     })
 
     const isUp = await waitForBackend(BACKEND_URL)
-    if (!isUp) throw new Error('Backend failed to start targeting StudyAIDb within timeout')
+    if (!isUp) throw new Error(`Backend failed to start targeting ${TARGET_DB} within timeout`)
     console.log('Backend listening and responsive at ' + BACKEND_URL)
 
     // Authenticate
@@ -450,16 +460,16 @@ async function main() {
     // -------------------------------------------------------------------------
     // STEP 11: SQL SERVER AUDIT & BASELINE INTEGRITY
     // -------------------------------------------------------------------------
-    console.log('\n[PHASE 11] Auditing SQL Server StudyAIDb directly...')
+    console.log(`\n[PHASE 11] Auditing SQL Server ${TARGET_DB} directly...`)
     const sqlAudit = execSync(
-      'sqlcmd -S "localhost\\SQLEXPRESS" -E -C -Q "SELECT SourceType, Status, COUNT(*) AS Cnt FROM StudyAIDb.dbo.content_questions GROUP BY SourceType, Status; SELECT COUNT(*) AS TotalCount FROM StudyAIDb.dbo.content_questions;"',
+      `sqlcmd -S "localhost\\SQLEXPRESS" -E -C -Q "SELECT SourceType, Status, COUNT(*) AS Cnt FROM ${TARGET_DB}.dbo.content_questions GROUP BY SourceType, Status; SELECT COUNT(*) AS TotalCount FROM ${TARGET_DB}.dbo.content_questions;"`,
       { encoding: 'utf8' }
     )
     console.log(sqlAudit.trim())
 
     // Verify baseline 14 questions remain untouched
     const baselineCheck = execSync(
-      'sqlcmd -S "localhost\\SQLEXPRESS" -E -C -h -1 -W -Q "SET NOCOUNT ON; SELECT COUNT(*) FROM StudyAIDb.dbo.content_questions WHERE SourceType = \'manual\';"',
+      `sqlcmd -S "localhost\\SQLEXPRESS" -E -C -h -1 -W -Q "SET NOCOUNT ON; SELECT COUNT(*) FROM ${TARGET_DB}.dbo.content_questions WHERE SourceType = 'manual';"`,
       { encoding: 'utf8' }
     )
     const currentManual = parseInt(baselineCheck.trim(), 10)
@@ -471,18 +481,18 @@ async function main() {
 
     // Query per-subject breakdown from SQL
     const sqlSubjectBreakdown = execSync(
-      'sqlcmd -S "localhost\\SQLEXPRESS" -E -C -Q "SELECT ISNULL(s.Name, q.SubjectId) AS SubjectName, q.SourceType, q.Status, COUNT(*) AS QuestionCount FROM StudyAIDb.dbo.content_questions q LEFT JOIN StudyAIDb.dbo.content_subjects s ON q.SubjectId = s.Id GROUP BY ISNULL(s.Name, q.SubjectId), q.SourceType, q.Status ORDER BY QuestionCount DESC;"',
+      `sqlcmd -S "localhost\\SQLEXPRESS" -E -C -Q "SELECT ISNULL(s.Name, q.SubjectId) AS SubjectName, q.SourceType, q.Status, COUNT(*) AS QuestionCount FROM ${TARGET_DB}.dbo.content_questions q LEFT JOIN ${TARGET_DB}.dbo.content_subjects s ON q.SubjectId = s.Id GROUP BY ISNULL(s.Name, q.SubjectId), q.SourceType, q.Status ORDER BY QuestionCount DESC;"`,
       { encoding: 'utf8' }
     )
-    console.log('\nStudyAIDb Detailed Subject Breakdown:')
+    console.log(`\n${TARGET_DB} Detailed Subject Breakdown:`)
     console.log(sqlSubjectBreakdown.trim())
 
     // Image reference audit
     const sqlImageCount = execSync(
-      'sqlcmd -S "localhost\\SQLEXPRESS" -E -C -h -1 -W -Q "SET NOCOUNT ON; SELECT COUNT(*) FROM StudyAIDb.dbo.content_questions WHERE SourceType = \'vnhsge\' AND ImageUrl IS NOT NULL AND ImageUrl != \'\';",',
+      `sqlcmd -S "localhost\\SQLEXPRESS" -E -C -h -1 -W -Q "SET NOCOUNT ON; SELECT COUNT(*) FROM ${TARGET_DB}.dbo.content_questions WHERE SourceType = 'vnhsge' AND ImageUrl IS NOT NULL AND ImageUrl != '';"`,
       { encoding: 'utf8' }
     )
-    console.log(`VNHSGE Image Questions in StudyAIDb: ${sqlImageCount.trim()}`)
+    console.log(`VNHSGE Image Questions in ${TARGET_DB}: ${sqlImageCount.trim()}`)
 
     const endTime = new Date()
     console.log(`\nImport Pipeline Finished: ${endTime.toISOString()}`)

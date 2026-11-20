@@ -83,7 +83,6 @@ export function LessonPage() {
   const {
     overallProgress,
     isAssessmentCompleted,
-    registerSection,
     markVideoCompleted,
     reloadProgress,
   } = useLessonProgress({
@@ -313,7 +312,6 @@ export function LessonPage() {
           aria-label="Video bài giảng"
           data-section-id="video-lecture"
           id="video-lecture"
-          ref={(el) => registerSection('video-lecture', el)}
         >
           {primaryVideo ? (
             <LessonVideoPlayer
