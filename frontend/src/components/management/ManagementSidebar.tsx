@@ -136,12 +136,11 @@ export const ManagementSidebar: React.FC<ManagementSidebarProps> = ({
       <div className="mgmt-sidebar-footer">
         {/* Workspace Quick Switcher */}
         {!collapsed && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px', marginBottom: '4px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px', marginBottom: '4px' }}>
             {[
               { role: 'admin', label: 'Admin', path: '/admin' },
               { role: 'teacher', label: 'GV', path: '/teacher' },
               { role: 'content', label: 'Nội dung', path: '/content' },
-              { role: 'support', label: 'Hỗ trợ', path: '/support' },
             ].map((ws) => (
               <Link
                 key={ws.role}

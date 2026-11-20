@@ -71,6 +71,8 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
     public DbSet<AiLearningRecommendation> AiLearningRecommendations => Set<AiLearningRecommendation>();
 
+    public DbSet<TeacherProfile> TeacherProfiles => Set<TeacherProfile>();
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         base.OnConfiguring(optionsBuilder);
@@ -1002,6 +1004,19 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
+        modelBuilder.Entity<TeacherProfile>(entity =>
+        {
+            entity.ToTable("TeacherProfiles");
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.TeacherId).IsUnique();
+            entity.Property(e => e.Phone).HasMaxLength(32);
+            entity.Property(e => e.Qualifications).HasMaxLength(256);
+            entity.Property(e => e.Bio).HasMaxLength(2000);
+            entity.HasOne(e => e.Teacher)
+                .WithMany()
+                .HasForeignKey(e => e.TeacherId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
     }
 
     public override int SaveChanges()

@@ -12,7 +12,7 @@ using Xunit;
 namespace StudyAI.IntegrationTests;
 
 [Collection("SequentialTests")]
-public class AiChatIntegrationTests : IClassFixture<StudyAIApiFixture>
+public class AiChatIntegrationTests : IClassFixture<StudyAIApiFixture>, IAsyncLifetime
 {
     private readonly HttpClient _client;
     private readonly StudyAIApiFixture _fixture;
@@ -22,6 +22,26 @@ public class AiChatIntegrationTests : IClassFixture<StudyAIApiFixture>
         _fixture = fixture;
         _client = fixture.CreateClient();
     }
+
+    public async Task InitializeAsync()
+    {
+        using var scope = _fixture.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+        var learner = await db.Users.FirstOrDefaultAsync(u => u.EmailNormalized == "LEARNER@STUDYAI.INTERNAL" || u.EmailNormalized == "learner@studyai.internal");
+        if (learner != null)
+        {
+            var staleAttempts = await db.AssessmentAttempts
+                .Where(a => a.UserId == learner.Id && a.CompletionStatus == "in_progress" && (a.AssessmentId == "asmt_exam" || (a.SuspendDataJson != null && a.SuspendDataJson.Contains("\"mode\":\"exam\""))))
+                .ToListAsync();
+            if (staleAttempts.Count > 0)
+            {
+                db.AssessmentAttempts.RemoveRange(staleAttempts);
+                await db.SaveChangesAsync();
+            }
+        }
+    }
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     private async Task<string> GetLearnerTokenAsync()
     {
@@ -346,6 +366,85 @@ public class AiChatIntegrationTests : IClassFixture<StudyAIApiFixture>
             var res = await _client.SendAsync(sendReq);
             Assert.Equal(HttpStatusCode.BadGateway, res.StatusCode);
         }
+    }
+
+    [Fact]
+    public async Task SendMessage_RateLimitKeyword_Returns429TooManyRequests()
+    {
+        var token = await GetLearnerTokenAsync();
+
+        string convId;
+        using (var createReq = new HttpRequestMessage(HttpMethod.Post, "/api/v1/ai/conversations"))
+        {
+            createReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            createReq.Content = JsonContent.Create(new CreateAiConversationRequestDto(Title: "Test Rate Limit"));
+            var res = await _client.SendAsync(createReq);
+            var created = await res.Content.ReadFromJsonAsync<AiConversationDetailDto>();
+            convId = created!.Id;
+        }
+
+        using (var sendReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/ai/conversations/{convId}/messages"))
+        {
+            sendReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            sendReq.Content = JsonContent.Create(new SendAiMessageRequestDto(
+                Message: "trigger rate_limit_test please"
+            ));
+            var res = await _client.SendAsync(sendReq);
+            Assert.Equal(HttpStatusCode.TooManyRequests, res.StatusCode);
+        }
+    }
+
+    [Fact]
+    public async Task SendMessage_ServerErrorKeyword_Returns502BadGateway()
+    {
+        var token = await GetLearnerTokenAsync();
+
+        string convId;
+        using (var createReq = new HttpRequestMessage(HttpMethod.Post, "/api/v1/ai/conversations"))
+        {
+            createReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            createReq.Content = JsonContent.Create(new CreateAiConversationRequestDto(Title: "Test 503 Server Error"));
+            var res = await _client.SendAsync(createReq);
+            var created = await res.Content.ReadFromJsonAsync<AiConversationDetailDto>();
+            convId = created!.Id;
+        }
+
+        using (var sendReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/ai/conversations/{convId}/messages"))
+        {
+            sendReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            sendReq.Content = JsonContent.Create(new SendAiMessageRequestDto(
+                Message: "trigger server_error_test please"
+            ));
+            var res = await _client.SendAsync(sendReq);
+            Assert.Equal(HttpStatusCode.BadGateway, res.StatusCode);
+        }
+    }
+
+    [Fact]
+    public async Task SendMessage_ClientCancellation_AbortsWithoutServerCrash()
+    {
+        var token = await GetLearnerTokenAsync();
+
+        string convId;
+        using (var createReq = new HttpRequestMessage(HttpMethod.Post, "/api/v1/ai/conversations"))
+        {
+            createReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            createReq.Content = JsonContent.Create(new CreateAiConversationRequestDto(Title: "Test Cancellation"));
+            var res = await _client.SendAsync(createReq);
+            var created = await res.Content.ReadFromJsonAsync<AiConversationDetailDto>();
+            convId = created!.Id;
+        }
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        using var sendReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/ai/conversations/{convId}/messages");
+        sendReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        sendReq.Content = JsonContent.Create(new SendAiMessageRequestDto(
+            Message: "câu hỏi bị hủy"
+        ));
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => _client.SendAsync(sendReq, cts.Token));
     }
 
     [Fact]

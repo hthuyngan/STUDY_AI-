@@ -15,7 +15,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Configuration
 var configuration = builder.Configuration;
 var connectionString = configuration.GetConnectionString("DefaultConnection") 
-    ?? "Server=.\\SQLEXPRESS;Database=StudyAIDb;Trusted_Connection=True;TrustServerCertificate=True";
+    ?? "Server=.\\SQLEXPRESS;Database=StudyAIDb_E2E;Trusted_Connection=True;TrustServerCertificate=True";
 
 // 1. Database Context
 builder.Services.AddDbContext<StudyAIDbContext>(options =>
@@ -39,6 +39,11 @@ builder.Services.AddScoped<ICurriculumImportConfirmService, CurriculumImportConf
 
 // 2.1 LLM Provider & AI Tutor Service
 builder.Services.AddHttpClient();
+builder.Services.AddHttpClient<StudyAI.Infrastructure.Services.OpenAiLlmProvider>(client =>
+{
+    // The per-request CancellationTokenSource with CancelAfter manages timeouts explicitly
+    client.Timeout = Timeout.InfiniteTimeSpan;
+});
 var llmProviderConfig = (configuration["Llm:Provider"] ?? configuration["Llm:ProviderName"])?.Trim().ToLowerInvariant();
 var llmApiKey = configuration["Llm:ApiKey"] ?? Environment.GetEnvironmentVariable("STUDY_AI_LLM_API_KEY");
 var allowDemoInProduction = configuration.GetValue<bool>("Llm:AllowDemoInProduction", false);
@@ -52,7 +57,7 @@ if (builder.Environment.IsProduction())
             throw new InvalidOperationException(
                 $"FATAL: LLM provider is explicitly configured as '{llmProviderConfig}' in production but 'Llm:ApiKey' (or STUDY_AI_LLM_API_KEY) is missing or empty.");
         }
-        builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILlmProvider, StudyAI.Infrastructure.Services.OpenAiLlmProvider>();
+        builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILlmProvider>(sp => sp.GetRequiredService<StudyAI.Infrastructure.Services.OpenAiLlmProvider>());
     }
     else if (llmProviderConfig == "fake")
     {
@@ -80,7 +85,7 @@ else
         }
         else
         {
-            builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILlmProvider, StudyAI.Infrastructure.Services.OpenAiLlmProvider>();
+            builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILlmProvider>(sp => sp.GetRequiredService<StudyAI.Infrastructure.Services.OpenAiLlmProvider>());
         }
     }
     else if (llmProviderConfig is "none" or "unconfigured")
@@ -203,7 +208,7 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("admin"));
-    options.AddPolicy("StaffOnly", policy => policy.RequireRole("admin", "teacher", "content", "support"));
+    options.AddPolicy("StaffOnly", policy => policy.RequireRole("admin", "teacher", "content"));
     options.AddPolicy("ContentStaff", policy => policy.RequireRole("admin", "content"));
 });
 
@@ -267,7 +272,7 @@ builder.Services.AddOpenApi("v1", options =>
             Contact = new OpenApiContact
             {
                 Name = "STUDY_AI Engineering Team",
-                Email = "support@studyai.internal"
+                Email = "engineering@studyai.internal"
             }
         };
 
@@ -358,16 +363,31 @@ using (var scope = app.Services.CreateScope())
 {
     try
     {
-        var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+        var resolvedConfiguration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+        var activeConn = resolvedConfiguration.GetConnectionString("DefaultConnection") ?? connectionString;
+
         var applyMigrationsDefault = !app.Environment.IsProduction();
-        if (builder.Configuration.GetValue<bool>("Database:ApplyMigrationsOnStartup", applyMigrationsDefault))
+        var shouldMigrate = resolvedConfiguration.GetValue<bool>("Database:ApplyMigrationsOnStartup", applyMigrationsDefault);
+        var shouldSeed = resolvedConfiguration.GetValue<bool>("Database:SeedReferenceData", applyMigrationsDefault);
+
+        // Security Guard: Prevent any non-production process, development server, or migration/seed from targeting StudyAIDb
+        if (app.Environment.IsDevelopment() || shouldMigrate || shouldSeed || DatabaseSafetyGuard.IsTestExecutionContext)
+        {
+            DatabaseSafetyGuard.EnsureSafeDatabaseForDevelopmentOrMigration(
+                activeConn,
+                app.Environment.EnvironmentName,
+                "Program.cs Startup Migration/Seed Guard");
+        }
+
+        var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+        if (shouldMigrate)
         {
             await db.Database.MigrateAsync();
         }
 
         // Only seed reference data in Development/Testing, or when explicitly enabled via configuration
         var seedReferenceDefault = !app.Environment.IsProduction();
-        if (builder.Configuration.GetValue<bool>("Database:SeedReferenceData", seedReferenceDefault))
+        if (shouldSeed)
         {
             await DbInitializer.SeedReferenceDataAsync(db);
         }

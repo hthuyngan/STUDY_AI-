@@ -15,10 +15,13 @@ import { Breadcrumb } from '@/components/ui/Breadcrumb'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { practiceService } from '@/services/practice.service'
+import { examPrepService } from '@/services/examPrep.service'
 import type { PracticeResult } from '@/types/practice'
 import './ExamPreparationPage.css'
 
 const SUBJECT_OPTIONS = [
+  { id: 'sub_math10', label: 'Toán học 10' },
+  { id: 'sub_math11', label: 'Toán học 11' },
   { id: 'sub_math12', label: 'Toán học 12' },
   { id: 'sub_physics12', label: 'Vật lý 12' },
   { id: 'sub_chemistry12', label: 'Hóa học 12' },
@@ -71,10 +74,28 @@ export const ExamPreparationPage: React.FC = () => {
 
   const handleStartExam = async (blueprintId: string) => {
     try {
+      // 1. Fetch blueprint configuration to honor specific duration and question count
+      let durationMinutes = 90
+      let totalQuestions = 40
+      let subjectId = selectedSubject
+
+      try {
+        const bp = await examPrepService.getBlueprintById(blueprintId)
+        if (bp) {
+          durationMinutes = bp.durationMinutes || durationMinutes
+          totalQuestions = bp.totalQuestions || totalQuestions
+          subjectId = bp.subjectId || subjectId
+        }
+      } catch {
+        // Fallback to defaults if blueprint metadata cannot be preloaded
+      }
+
       const session = await practiceService.startSession({
         mode: 'exam',
-        subjectId: selectedSubject,
-        limit: 40,
+        subjectId,
+        limit: totalQuestions,
+        timeLimitMinutes: durationMinutes,
+        blueprintId,
       })
       navigate(`/practice/session/${session.id}`)
     } catch {

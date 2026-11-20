@@ -69,7 +69,7 @@ export const AdminDashboardPage: React.FC = () => {
       `Thời điểm xuất: ${new Date().toLocaleString('vi-VN')}`,
       `Tổng người dùng: ${metrics?.totalUsers ?? 0}`,
       `Học viên hoạt động: ${metrics?.activeLearners ?? 0}`,
-      `Bài học hoàn thành: ${metrics?.completedLessonsTotal ?? 8642}`,
+      `Bài học hoàn thành: ${metrics?.completedLessonsTotal ?? 0}`,
       `Yêu cầu cần xử lý: ${attentionItems.length}`,
       `Trạng thái hạ tầng: ${metrics?.systemStatus ?? 'healthy'}`,
     ].join('\r\n')
@@ -165,7 +165,7 @@ export const AdminDashboardPage: React.FC = () => {
             />
             <AdminStatCard
               title="Bài học đã hoàn thành"
-              value={(metrics?.completedLessonsTotal || 8642).toLocaleString('vi-VN')}
+              value={(metrics?.completedLessonsTotal ?? 0).toLocaleString('vi-VN')}
               icon={<BookCheck size={18} />}
               variant="primary"
               change={{ value: '+18.5%', isPositive: true }}

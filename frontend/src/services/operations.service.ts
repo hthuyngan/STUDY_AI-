@@ -6,6 +6,8 @@ import type {
   PublicationRecord,
 } from '@/types/operations'
 import { educationService } from './education.service'
+import { apiClient } from '@/lib/apiClient'
+import { getAccessToken } from '@/auth/authSession'
 
 const STORAGE_KEYS = {
   APPROVALS: 'study_ai_approvals_v5',
@@ -312,12 +314,12 @@ export const INITIAL_AUDIT_LOGS: AuditLogEntry[] = [
     id: 'log-5',
     timestamp: '2026-10-25T11:00:00Z',
     actor: 'Demo Admin',
-    workspace: 'support',
-    action: 'Phân công ticket hỗ trợ',
-    target: 'Ticket tkt-102 (Lỗi hiển thị bài tập)',
-    targetId: 'tkt-102',
+    workspace: 'admin',
+    action: 'Cập nhật vai trò người dùng',
+    target: 'Tài khoản Vũ Hoàng Yến',
+    targetId: 'usr-105',
     result: 'success',
-    details: 'Phân công cho nhân viên Lê Hữu Phước',
+    details: 'Cập nhật vai trò sang Biên soạn nội dung',
   },
 ]
 
@@ -349,6 +351,67 @@ function saveToStorage<T>(key: string, data: T): void {
 export const operationsService = {
   // ==================== AUDIT LOGS ====================
   async getAuditLogs(filterAction = 'all', filterWorkspace = 'all', search = ''): Promise<AuditLogEntry[]> {
+    if (getAccessToken()) {
+      const allItems: Array<{
+        id: string
+        action: string
+        actor: string
+        targetType: string
+        targetId: string
+        payload?: string
+        timestamp: string
+      }> = []
+
+      let currentPage = 1
+      let hasMore = true
+
+      while (hasMore) {
+        const queryParams = new URLSearchParams()
+        if (filterAction && filterAction !== 'all') queryParams.set('action', filterAction)
+        if (search.trim()) queryParams.set('search', search.trim())
+        queryParams.set('page', String(currentPage))
+        queryParams.set('pageSize', '100')
+
+        const res = await apiClient.get<{
+          items: Array<{
+            id: string
+            action: string
+            actor: string
+            targetType: string
+            targetId: string
+            payload?: string
+            timestamp: string
+          }>
+          total: number
+          page: number
+          pageSize: number
+        }>(`/api/v1/admin/audit-logs?${queryParams.toString()}`)
+
+        if (res?.items && Array.isArray(res.items)) {
+          allItems.push(...res.items)
+          if (allItems.length >= res.total || res.items.length === 0 || currentPage >= 50) {
+            hasMore = false
+          } else {
+            currentPage++
+          }
+        } else {
+          hasMore = false
+        }
+      }
+
+      return allItems.map((log) => ({
+        id: log.id,
+        timestamp: log.timestamp,
+        actor: log.actor || 'Quản trị viên',
+        workspace: (filterWorkspace !== 'all' ? filterWorkspace : 'admin') as 'admin' | 'teacher' | 'content',
+        action: log.action,
+        target: `${log.targetType || ''} ${log.targetId || ''}`.trim() || 'Hệ thống',
+        targetId: log.targetId,
+        result: 'success',
+        details: log.payload,
+      }))
+    }
+
     let logs = loadFromStorage<AuditLogEntry[]>(STORAGE_KEYS.AUDIT_LOGS, INITIAL_AUDIT_LOGS)
     if (filterAction !== 'all') {
       logs = logs.filter((l) => l.action.toLowerCase().includes(filterAction.toLowerCase()))
@@ -583,13 +646,18 @@ export const operationsService = {
     if (idx === -1) throw new Error('Không tìm thấy nội dung để xuất bản')
 
     const item = list[idx]
-    if (item.status !== 'approved' && item.status !== 'pending') {
+    if (item.status !== 'approved') {
       throw new Error('Nội dung phải được phê duyệt trước khi xuất bản')
     }
 
     const now = new Date().toISOString()
 
-    // 1. Mark approval as published
+    // 1. Update education service lesson status (must succeed before marking published)
+    if (item.contentType === 'lesson' || item.contentId) {
+      await educationService.changeLessonStatus(item.contentId, 'published')
+    }
+
+    // 2. Mark approval as published
     const updatedApproval: ApprovalItem = {
       ...item,
       status: 'published',
@@ -607,7 +675,7 @@ export const operationsService = {
     list[idx] = updatedApproval
     saveToStorage(STORAGE_KEYS.APPROVALS, list)
 
-    // 2. Add to Publications
+    // 3. Add to Publications
     const pubs = await this.getPublications()
     const newPub: PublicationRecord = {
       id: `pub-${Date.now()}`,
@@ -622,13 +690,6 @@ export const operationsService = {
       changelog: changelog || 'Nội dung chính thức được phê duyệt và phát hành.',
     }
     saveToStorage(STORAGE_KEYS.PUBLICATIONS, [newPub, ...pubs])
-
-    // 3. Update education service lesson status
-    try {
-      await educationService.changeLessonStatus(item.contentId, 'published')
-    } catch {
-      // safe fallback
-    }
 
     // 4. Audit log
     await this.recordAuditLog({
@@ -698,6 +759,23 @@ export const operationsService = {
 
   // ==================== ANNOUNCEMENTS ====================
   async getAnnouncements(statusFilter = 'all', audienceFilter = 'all', search = ''): Promise<AnnouncementItem[]> {
+    if (getAccessToken()) {
+      try {
+        const queryParams = new URLSearchParams()
+        if (statusFilter && statusFilter !== 'all') queryParams.set('status', statusFilter)
+        if (audienceFilter && audienceFilter !== 'all') queryParams.set('audience', audienceFilter)
+        if (search.trim()) queryParams.set('search', search.trim())
+
+        const res = await apiClient.get<AnnouncementItem[]>(`/api/v1/admin/announcements?${queryParams.toString()}`)
+        if (Array.isArray(res)) {
+          return res
+        }
+      } catch (err: any) {
+        if (err?.status === 401 || err?.status === 403) throw err
+        // Fallback for tests/offline
+      }
+    }
+
     let list = loadFromStorage<AnnouncementItem[]>(STORAGE_KEYS.ANNOUNCEMENTS, INITIAL_ANNOUNCEMENTS)
     if (statusFilter !== 'all') {
       list = list.filter((a) => a.status === statusFilter)
@@ -718,6 +796,14 @@ export const operationsService = {
   },
 
   async saveAnnouncement(data: Partial<AnnouncementItem>, actor = 'Demo Admin'): Promise<AnnouncementItem> {
+    if (getAccessToken()) {
+      if (data.id) {
+        return await apiClient.put<AnnouncementItem>(`/api/v1/admin/announcements/${data.id}`, data)
+      } else {
+        return await apiClient.post<AnnouncementItem>('/api/v1/admin/announcements', data)
+      }
+    }
+
     const list = await this.getAnnouncements()
     const now = new Date().toISOString()
 
@@ -773,6 +859,11 @@ export const operationsService = {
   },
 
   async deleteAnnouncement(id: string, actor = 'Demo Admin'): Promise<void> {
+    if (getAccessToken()) {
+      await apiClient.delete(`/api/v1/admin/announcements/${id}`)
+      return
+    }
+
     const list = await this.getAnnouncements()
     const item = list.find((a) => a.id === id)
     const filtered = list.filter((a) => a.id !== id)
@@ -795,8 +886,20 @@ export const operationsService = {
     return loadFromStorage<OperationalSettings>(STORAGE_KEYS.SETTINGS, INITIAL_SETTINGS)
   },
 
-  saveSettings(data: Partial<OperationalSettings>, actor = 'Demo Admin'): OperationalSettings {
-    const current = this.getSettings()
+  async getSettingsAsync(): Promise<OperationalSettings> {
+    if (getAccessToken()) {
+      const res = await apiClient.get<OperationalSettings>('/api/v1/admin/settings')
+      if (res && res.systemName) {
+        saveToStorage(STORAGE_KEYS.SETTINGS, res)
+        return res
+      }
+      throw new Error('Không thể tải cấu hình hệ thống từ máy chủ.')
+    }
+    return loadFromStorage<OperationalSettings>(STORAGE_KEYS.SETTINGS, INITIAL_SETTINGS)
+  },
+
+  async saveSettings(data: Partial<OperationalSettings>, actor = 'Demo Admin'): Promise<OperationalSettings> {
+    const current = loadFromStorage<OperationalSettings>(STORAGE_KEYS.SETTINGS, INITIAL_SETTINGS)
     const now = new Date().toISOString()
     const updated: OperationalSettings = {
       ...current,
@@ -804,6 +907,15 @@ export const operationsService = {
       updatedAt: now,
       updatedBy: actor,
     }
+
+    if (getAccessToken()) {
+      const serverRes = await apiClient.put<OperationalSettings>('/api/v1/admin/settings', updated)
+      if (serverRes) {
+        saveToStorage(STORAGE_KEYS.SETTINGS, serverRes)
+        return serverRes
+      }
+    }
+
     saveToStorage(STORAGE_KEYS.SETTINGS, updated)
 
     this.recordAuditLog({

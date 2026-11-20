@@ -280,8 +280,12 @@ public class TeacherManagementService : ITeacherManagementService
         var targetStudentId = request.TargetStudentIds.First();
         var student = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == targetStudentId, cancellationToken);
 
+        string resolvedSubject = !string.IsNullOrWhiteSpace(request.SubjectId)
+            ? request.SubjectId
+            : (classroom?.Grade?.Trim() == "10" ? "sub_math10" : classroom?.Grade?.Trim() == "11" ? "sub_math11" : "sub_math12");
+
         var mastery = await _context.StudentTopicMasteries.AsNoTracking()
-            .FirstOrDefaultAsync(m => m.UserId == targetStudentId && m.TopicName.Contains(request.TargetTopic), cancellationToken);
+            .FirstOrDefaultAsync(m => m.UserId == targetStudentId && (m.SubjectId == resolvedSubject || m.SubjectId == "sub_math") && m.TopicName.Contains(request.TargetTopic), cancellationToken);
 
         double initialScore = mastery?.MasteryScore ?? 35.0;
 
@@ -299,7 +303,7 @@ public class TeacherManagementService : ITeacherManagementService
         {
             Id = $"ev_intervention_{Guid.NewGuid():N}",
             UserId = targetStudentId,
-            SubjectId = "sub_math12",
+            SubjectId = resolvedSubject,
             LessonId = string.Empty,
             Timestamp = DateTimeOffset.UtcNow,
             Type = "teacher_intervention",

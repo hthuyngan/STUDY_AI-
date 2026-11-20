@@ -234,4 +234,128 @@ public class AiTutorUnitTests
             }
         });
     }
+
+    [Fact]
+    public async Task OpenAiLlmProvider_ClientCancellation_AbortsImmediatelyWithoutDelay()
+    {
+        var inMemorySettings = new Dictionary<string, string?>
+        {
+            {"Llm:Provider", "gemini"},
+            {"Llm:ApiKey", "AIzaSyTest1234567890abcdef"},
+            {"Llm:BaseUrl", "https://generativelanguage.googleapis.com/v1beta/openai"}
+        };
+        IConfiguration config = new ConfigurationBuilder()
+            .AddInMemoryCollection(inMemorySettings)
+            .Build();
+
+        var provider = new OpenAiLlmProvider(new HttpClient(), config, NullLogger<OpenAiLlmProvider>.Instance);
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        var request = new LlmCompletionRequest(
+            Messages: new List<LlmChatMessage> { new("user", "Hello Gemini") },
+            CancellationToken: cts.Token
+        );
+
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => provider.GenerateCompletionAsync(request));
+        sw.Stop();
+
+        Assert.True(sw.ElapsedMilliseconds < 500, $"Expected immediate abort, took {sw.ElapsedMilliseconds}ms");
+    }
+
+    [Fact]
+    public async Task OpenAiLlmProvider_Timeout_ThrowsTimeoutException()
+    {
+        var inMemorySettings = new Dictionary<string, string?>
+        {
+            {"Llm:Provider", "gemini"},
+            {"Llm:ApiKey", "AIzaSyTest1234567890abcdef"},
+            {"Llm:BaseUrl", "https://generativelanguage.googleapis.com/v1beta/openai"}
+        };
+        IConfiguration config = new ConfigurationBuilder()
+            .AddInMemoryCollection(inMemorySettings)
+            .Build();
+
+        var provider = new OpenAiLlmProvider(new HttpClient(), config, NullLogger<OpenAiLlmProvider>.Instance);
+        var request = new LlmCompletionRequest(
+            Messages: new List<LlmChatMessage> { new("user", "trigger timeout_test please") }
+        );
+
+        var ex = await Assert.ThrowsAsync<TimeoutException>(() => provider.GenerateCompletionAsync(request));
+        Assert.Contains("vượt quá thời gian chờ", ex.Message);
+    }
+
+    [Fact]
+    public async Task OpenAiLlmProvider_RateLimit429_ThrowsHttpRequestExceptionWith429()
+    {
+        var inMemorySettings = new Dictionary<string, string?>
+        {
+            {"Llm:Provider", "gemini"},
+            {"Llm:ApiKey", "AIzaSyTest1234567890abcdef"},
+            {"Llm:BaseUrl", "https://generativelanguage.googleapis.com/v1beta/openai"}
+        };
+        IConfiguration config = new ConfigurationBuilder()
+            .AddInMemoryCollection(inMemorySettings)
+            .Build();
+
+        var provider = new OpenAiLlmProvider(new HttpClient(), config, NullLogger<OpenAiLlmProvider>.Instance);
+        var request = new LlmCompletionRequest(
+            Messages: new List<LlmChatMessage> { new("user", "trigger rate_limit_test please") }
+        );
+
+        var ex = await Assert.ThrowsAsync<HttpRequestException>(() => provider.GenerateCompletionAsync(request));
+        Assert.Equal(System.Net.HttpStatusCode.TooManyRequests, ex.StatusCode);
+    }
+
+    [Fact]
+    public async Task OpenAiLlmProvider_ServerError5xx_ThrowsHttpRequestExceptionWith5xx()
+    {
+        var inMemorySettings = new Dictionary<string, string?>
+        {
+            {"Llm:Provider", "gemini"},
+            {"Llm:ApiKey", "AIzaSyTest1234567890abcdef"},
+            {"Llm:BaseUrl", "https://generativelanguage.googleapis.com/v1beta/openai"}
+        };
+        IConfiguration config = new ConfigurationBuilder()
+            .AddInMemoryCollection(inMemorySettings)
+            .Build();
+
+        var provider = new OpenAiLlmProvider(new HttpClient(), config, NullLogger<OpenAiLlmProvider>.Instance);
+        var request = new LlmCompletionRequest(
+            Messages: new List<LlmChatMessage> { new("user", "trigger server_error_test please") }
+        );
+
+        var ex = await Assert.ThrowsAsync<HttpRequestException>(() => provider.GenerateCompletionAsync(request));
+        Assert.Equal(System.Net.HttpStatusCode.ServiceUnavailable, ex.StatusCode);
+    }
+
+    [Fact]
+    public void OpenAiLlmProvider_GeminiBaseUrl_DefaultsToGeminiModel()
+    {
+        var inMemorySettings = new Dictionary<string, string?>
+        {
+            {"Llm:Provider", "gemini"},
+            {"Llm:ApiKey", "AIzaSyTest1234567890abcdef"},
+            {"Llm:BaseUrl", "https://generativelanguage.googleapis.com/v1beta/openai"}
+        };
+        IConfiguration config = new ConfigurationBuilder()
+            .AddInMemoryCollection(inMemorySettings)
+            .Build();
+
+        var provider = new OpenAiLlmProvider(new HttpClient(), config, NullLogger<OpenAiLlmProvider>.Instance);
+        Assert.Equal("gemini-1.5-flash", provider.DefaultModel);
+    }
+
+    [Fact]
+    public void OpenAiLlmProvider_MaskSensitiveData_MasksGeminiApiKey()
+    {
+        var log = "Calling Gemini API with key AIzaSyD3x9L7m4K1Qp8V2wZ6-test and Authorization: Bearer AIzaSySecretKey12345678";
+        var masked = OpenAiLlmProvider.MaskSensitiveData(log);
+
+        Assert.DoesNotContain("AIzaSyD3x9L7m4K1Qp8V2wZ6-test", masked);
+        Assert.DoesNotContain("AIzaSySecretKey12345678", masked);
+        Assert.Contains("AIzaSy***REDACTED***", masked);
+    }
 }

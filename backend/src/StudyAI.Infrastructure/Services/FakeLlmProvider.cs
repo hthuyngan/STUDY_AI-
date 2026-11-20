@@ -29,12 +29,52 @@ public class FakeLlmProvider : ILlmProvider
             throw new TimeoutException("Thao tác gọi AI Tutor đã vượt quá thời gian chờ cho phép (timeout).");
         }
 
+        if (lower.Contains("rate_limit_test"))
+        {
+            throw new HttpRequestException("Hệ thống LLM đang bị giới hạn tần suất yêu cầu (Rate Limit - 429). Vui lòng thử lại sau giây lát.", null, System.Net.HttpStatusCode.TooManyRequests);
+        }
+
+        if (lower.Contains("server_error_test"))
+        {
+            throw new HttpRequestException("Lỗi máy chủ từ nhà cung cấp LLM: HTTP 503 Service Unavailable", null, System.Net.HttpStatusCode.ServiceUnavailable);
+        }
+
         if (lower.Contains("error_test"))
         {
             throw new HttpRequestException("Lỗi kết nối từ phía nhà cung cấp dịch vụ mô hình AI (Provider error).");
         }
 
-        if (hasLessonContext)
+        if (lower.Contains("checkpoint") || lower.Contains("câu hỏi kiểm tra") || lower.Contains("checkpoint questions"))
+        {
+            var fakeJson = @"[
+  {
+    ""prompt"": ""Cho hàm số $y = x^3 - 3x^2 + 2$. Tìm khoảng đồng biến của hàm số."",
+    ""options"": [
+      ""A. $(-\\infty; 0)$ và $(2; +\\infty)$"",
+      ""B. $(0; 2)$"",
+      ""C. $(-\\infty; 2)$"",
+      ""D. $(0; +\\infty)$""
+    ],
+    ""correctAnswer"": ""A"",
+    ""explanation"": ""Ta có $y' = 3x^2 - 6x = 3x(x - 2)$. Cho $y' > 0 \\Leftrightarrow x < 0$ hoặc $x > 2$. Do đó hàm số đồng biến trên $(-\\infty; 0)$ và $(2; +\\infty)$."",
+    ""cognitiveLevel"": ""thong_hieu""
+  },
+  {
+    ""prompt"": ""Giá trị cực đại của hàm số $y = -x^3 + 3x - 1$ bằng bao nhiêu?"",
+    ""options"": [
+      ""A. $1$"",
+      ""B. $-3$"",
+      ""C. $2$"",
+      ""D. $0$""
+    ],
+    ""correctAnswer"": ""A"",
+    ""explanation"": ""$y' = -3x^2 + 3 = 0 \\Leftrightarrow x = \\pm 1$. Tại $x = 1$, $y'' = -6 < 0$ nên $x = 1$ là điểm cực đại, giá trị cực đại là $y(1) = 1$."",
+    ""cognitiveLevel"": ""thong_hieu""
+  }
+]";
+            sb.Append(fakeJson);
+        }
+        else if (hasLessonContext)
         {
             sb.AppendLine("### 📖 Trả lời có ngữ cảnh bài học (AI Tutor)");
             sb.AppendLine();

@@ -99,9 +99,11 @@ interface BackendDashboardResponse {
     learnersCount: number
     teachersCount: number
     contentCount: number
-    supportCount: number
+    supportCount?: number
     adminsCount: number
+    staffAccounts?: number
     recentNewUsersCount: number
+    completedLessonsTotal?: number
     systemStatus: string
   }
   recentActivities: Array<{
@@ -113,9 +115,34 @@ interface BackendDashboardResponse {
     payload?: string
     timestamp: string
   }>
+  attentionItems?: AdminAttentionItem[]
 }
 
-function mapBackendUser(u: BackendUserDto): AdminUserItem {
+interface BackendUserDetailDto extends BackendUserDto {
+  totalCompletedLessons?: number
+  averageScore?: number
+  learningProgress?: {
+    completedLessons: number
+    totalLessons: number
+    streakDays: number
+    recentSubjects: Array<{ name: string; progress: number; lastStudied: string }>
+  }
+  assessments?: Array<{
+    id: string
+    subject: string
+    title: string
+    score: number
+    maxScore: number
+    completedAt: string
+  }>
+  activities?: Array<{
+    id: string
+    action: string
+    timestamp: string
+  }>
+}
+
+function mapBackendUser(u: BackendUserDetailDto): AdminUserItem {
   return {
     id: u.id,
     email: u.email || '',
@@ -128,14 +155,23 @@ function mapBackendUser(u: BackendUserDto): AdminUserItem {
     deletedAt: u.deletedAt,
     createdAt: u.createdAt,
     lastLoginAt: u.lastLoginAt,
-    totalCompletedLessons: u.role === 'learner' ? 0 : undefined,
-    averageScore: u.role === 'learner' ? 0 : undefined,
-    learningProgress: u.role === 'learner' ? {
+    totalCompletedLessons: u.totalCompletedLessons ?? (u.role === 'learner' ? 0 : undefined),
+    averageScore: u.averageScore ?? (u.role === 'learner' ? 0 : undefined),
+    learningProgress: u.learningProgress ?? (u.role === 'learner' ? {
       completedLessons: 0,
       totalLessons: 32,
       streakDays: 0,
       recentSubjects: [{ name: 'Toán học 12', progress: 0, lastStudied: u.createdAt }]
-    } : undefined
+    } : undefined),
+    assessments: (u.assessments || []).map((a) => ({
+      id: a.id,
+      title: a.title,
+      score: a.score,
+      maxScore: a.maxScore,
+      submittedAt: a.completedAt,
+      status: (a.score >= a.maxScore * 0.5 ? 'passed' : 'failed') as 'passed' | 'failed',
+    })),
+    activities: u.activities || [],
   }
 }
 
@@ -143,26 +179,21 @@ export const adminService = {
   async getMetrics(): Promise<AdminSystemMetrics> {
     const token = getAccessToken()
     if (token) {
-      try {
-        const data = await apiClient.get<BackendDashboardResponse>('/api/v1/admin/dashboard')
-        if (data?.metrics) {
-          return {
-            totalUsers: data.metrics.totalUsers,
-            activeLearners: data.metrics.learnersCount,
-            staffAccounts: data.metrics.totalUsers - data.metrics.learnersCount,
-            openSupportTickets: 4,
-            completedLessonsTotal: 8642,
-            systemStatus: 'healthy',
-            apiLatencyMs: 14,
-            databaseStatus: 'connected',
-            frontendVersion: '1.4.0',
-            backendVersion: '1.0.0 (ASP.NET Core 10 + SQL Server)',
-            environment: 'development',
-            isPrototypeMode: false,
-          }
+      const data = await apiClient.get<BackendDashboardResponse>('/api/v1/admin/dashboard')
+      if (data?.metrics) {
+        return {
+          totalUsers: data.metrics.totalUsers,
+          activeLearners: data.metrics.learnersCount,
+          staffAccounts: data.metrics.staffAccounts ?? (data.metrics.totalUsers - data.metrics.learnersCount),
+          completedLessonsTotal: data.metrics.completedLessonsTotal ?? 0,
+          systemStatus: (data.metrics.systemStatus as 'healthy' | 'degraded' | 'maintenance') || 'healthy',
+          apiLatencyMs: 14,
+          databaseStatus: 'connected',
+          frontendVersion: '1.4.0',
+          backendVersion: '1.0.0 (ASP.NET Core 10 + SQL Server)',
+          environment: 'development',
+          isPrototypeMode: false,
         }
-      } catch {
-        // Fallback to mock calculation
       }
     }
 
@@ -180,26 +211,31 @@ export const adminService = {
   },
 
   async getAttentionItems(): Promise<AdminAttentionItem[]> {
+    const token = getAccessToken()
+    if (token) {
+      const data = await apiClient.get<BackendDashboardResponse>('/api/v1/admin/dashboard')
+      if (data?.attentionItems && data.attentionItems.length > 0) {
+        return data.attentionItems
+      }
+      return []
+    }
     return [...mockAttentionItems]
   },
 
   async getRecentActivities(): Promise<AdminActivityItem[]> {
     const token = getAccessToken()
     if (token) {
-      try {
-        const data = await apiClient.get<BackendDashboardResponse>('/api/v1/admin/dashboard')
-        if (data?.recentActivities && data.recentActivities.length > 0) {
-          return data.recentActivities.map((a) => ({
-            id: a.id,
-            actorName: a.actor || 'Quản trị viên',
-            action: a.action,
-            target: `${a.targetType} ${a.targetId}`,
-            timestamp: a.timestamp,
-          }))
-        }
-      } catch {
-        // Fallback to mock
+      const data = await apiClient.get<BackendDashboardResponse>('/api/v1/admin/dashboard')
+      if (data?.recentActivities) {
+        return data.recentActivities.map((a) => ({
+          id: a.id,
+          actorName: a.actor || 'Quản trị viên',
+          action: a.action,
+          target: `${a.targetType} ${a.targetId}`,
+          timestamp: a.timestamp,
+        }))
       }
+      return []
     }
     return [...mockActivities]
   },
@@ -301,12 +337,15 @@ export const adminService = {
     const token = getAccessToken()
     if (token) {
       try {
-        const u = await apiClient.get<BackendUserDto>(`/api/v1/admin/users/${userId}`)
+        const u = await apiClient.get<BackendUserDetailDto>(`/api/v1/admin/users/${userId}`)
         if (u) {
           return mapBackendUser(u)
         }
-      } catch {
-        // Fallback to mock
+      } catch (err: any) {
+        if (err?.status === 404 || err?.response?.status === 404) {
+          return null
+        }
+        // Fallback to mock for test / offline
       }
     }
 
@@ -409,11 +448,13 @@ export const adminService = {
   async updateUserRole(userId: string, newRole: string): Promise<boolean> {
     const token = getAccessToken()
     if (token) {
-      try {
-        await apiClient.patch(`/api/v1/admin/users/${userId}/role`, { role: newRole })
-      } catch {
-        // Continue to sync local mock
+      await apiClient.patch(`/api/v1/admin/users/${userId}/role`, { role: newRole })
+      const user = mockUsers.find((u) => u.id === userId)
+      if (user) {
+        user.role = newRole as UserRole
+        persistAll()
       }
+      return true
     }
 
     const user = mockUsers.find((u) => u.id === userId)
@@ -444,11 +485,13 @@ export const adminService = {
   async updateUserStatus(userId: string, newStatus: AccountStatus): Promise<boolean> {
     const token = getAccessToken()
     if (token) {
-      try {
-        await apiClient.patch(`/api/v1/admin/users/${userId}/status`, { status: newStatus })
-      } catch {
-        // Fallback
+      await apiClient.patch(`/api/v1/admin/users/${userId}/status`, { status: newStatus })
+      const user = mockUsers.find((u) => u.id === userId)
+      if (user) {
+        user.status = newStatus
+        persistAll()
       }
+      return true
     }
 
     const user = mockUsers.find((u) => u.id === userId)
@@ -472,11 +515,18 @@ export const adminService = {
   async revokeUserSessions(userId: string): Promise<boolean> {
     const token = getAccessToken()
     if (token) {
-      try {
-        await apiClient.post(`/api/v1/admin/users/${userId}/revoke-sessions`)
-      } catch {
-        // Fallback
+      await apiClient.post(`/api/v1/admin/users/${userId}/revoke-sessions`)
+      const user = mockUsers.find((u) => u.id === userId)
+      if (user) {
+        if (!user.activities) user.activities = []
+        user.activities.unshift({
+          id: `uact-${Date.now()}`,
+          action: 'Thu hồi toàn bộ phiên đăng nhập của tài khoản',
+          timestamp: new Date().toISOString(),
+        })
+        persistAll()
       }
+      return true
     }
 
     const user = mockUsers.find((u) => u.id === userId)
@@ -566,6 +616,18 @@ export const adminService = {
     roleDistribution: UserDistributionItem[]
     statusDistribution: UserDistributionItem[]
   }> {
+    const token = getAccessToken()
+    if (token) {
+      const data = await apiClient.get<{
+        trends: AnalyticsTrendPoint[]
+        roleDistribution: UserDistributionItem[]
+        statusDistribution: UserDistributionItem[]
+      }>(`/api/v1/admin/analytics?range=${range}`)
+      if (data?.trends && data?.roleDistribution && data?.statusDistribution) {
+        return data
+      }
+    }
+
     let trends = MOCK_TRENDS_7D
     if (range === '30d') trends = MOCK_TRENDS_30D
     else if (range === 'month') trends = MOCK_TRENDS_MONTH
@@ -574,14 +636,12 @@ export const adminService = {
     const learnerCount = mockUsers.filter((u) => u.role === 'learner').length
     const teacherCount = mockUsers.filter((u) => u.role === 'teacher').length
     const contentCount = mockUsers.filter((u) => u.role === 'content').length
-    const supportCount = mockUsers.filter((u) => u.role === 'support').length
     const adminCount = mockUsers.filter((u) => u.role === 'admin').length
 
     const roleDistribution: UserDistributionItem[] = [
       { name: 'Học viên (Learner)', key: 'learner', count: learnerCount, percentage: Math.round((learnerCount / total) * 100), color: '#0284c7' },
       { name: 'Giáo viên (Teacher)', key: 'teacher', count: teacherCount, percentage: Math.round((teacherCount / total) * 100), color: '#8b5cf6' },
       { name: 'Nội dung (Content)', key: 'content', count: contentCount, percentage: Math.round((contentCount / total) * 100), color: '#f59e0b' },
-      { name: 'Hỗ trợ (Support)', key: 'support', count: supportCount, percentage: Math.round((supportCount / total) * 100), color: '#10b981' },
       { name: 'Quản trị (Admin)', key: 'admin', count: adminCount, percentage: Math.round((adminCount / total) * 100), color: '#ef4444' },
     ]
 
@@ -662,6 +722,30 @@ export const adminService = {
       isLocalStoragePersisted: boolean
     }
   }> {
+    const token = getAccessToken()
+    if (token) {
+      const res = await apiClient.get<any>('/api/v1/admin/system/health')
+      if (res) {
+        return {
+          apiStatus: res.apiStatus === 'operational' ? 'ASP.NET Core 10 Web API (Operational)' : res.apiStatus || 'Operational',
+          database: {
+            status: res.database?.status === 'connected' ? 'Microsoft SQL Server (Connected)' : 'Microsoft SQL Server (Disconnected)',
+            latencyMs: res.database?.latencyMs ?? -1,
+          },
+          environment: res.environment || 'development',
+          backendVersion: res.backendVersion ? `v${res.backendVersion} (ASP.NET Core 10)` : 'v1.0.0 (ASP.NET Core 10)',
+          checkedAt: res.checkedAt || new Date().toISOString(),
+          prototypeMode: false,
+          storageStats: {
+            usersCount: res.storageStats?.usersCount ?? 0,
+            activitiesCount: res.storageStats?.activitiesCount ?? 0,
+            attentionCount: res.storageStats?.attentionCount ?? 0,
+            isLocalStoragePersisted: false,
+          },
+        }
+      }
+      throw new Error('Dữ liệu trạng thái hệ thống từ máy chủ không hợp lệ.')
+    }
     const isPersisted = typeof window !== 'undefined' && !!window.localStorage?.getItem(STORAGE_KEY_USERS)
     return {
       apiStatus: 'ASP.NET Core 10 Web API (Operational)',

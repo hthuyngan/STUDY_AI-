@@ -10,6 +10,7 @@
     "test": "vitest run",
     "test:run": "vitest run",
     "test:watch": "vitest",
+    "test:e2e:p00": "bun ../scripts/e2e_p00_p01_remediation_playwright.ts",
     "preview": "vite preview"
   },
   "dependencies": {

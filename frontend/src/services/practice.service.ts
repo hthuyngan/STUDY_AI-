@@ -149,6 +149,8 @@ export class PracticeService {
           difficulty: config.difficulty,
           questionCount: config.limit || 10,
           mode: config.mode || (config.lessonId ? 'lesson' : 'practice'),
+          timeLimitMinutes: config.timeLimitMinutes,
+          blueprintId: config.blueprintId,
         }
       )
 

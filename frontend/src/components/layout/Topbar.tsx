@@ -472,9 +472,7 @@ export function Topbar({ onOpenMobileMenu }: TopbarProps) {
                         ? 'Giáo viên'
                         : user.role === 'content'
                           ? 'Biên tập nội dung'
-                          : user.role === 'support'
-                            ? 'Hỗ trợ viên'
-                            : 'Học viên'}
+                          : 'Học viên'}
                   </span>
                 </div>
 
@@ -512,18 +510,6 @@ export function Topbar({ onOpenMobileMenu }: TopbarProps) {
                   >
                     <Shield size={15} />
                     <span>Quản lý nội dung</span>
-                  </Link>
-                )}
-
-                {user.role === 'support' && (
-                  <Link
-                    to="/support"
-                    className="topbar-user-dropdown-item"
-                    role="menuitem"
-                    onClick={() => setIsUserMenuOpen(false)}
-                  >
-                    <Shield size={15} />
-                    <span>Hỗ trợ khách hàng</span>
                   </Link>
                 )}
 

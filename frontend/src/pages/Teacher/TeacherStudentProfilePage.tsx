@@ -106,7 +106,7 @@ export const TeacherStudentProfilePage: React.FC = () => {
     if (!targetClass) return
 
     try {
-      await classroomService.moveStudentClass(student.id, targetClass.id, targetClass.name)
+      await classroomService.moveStudentClass(student.id, targetClass.id, targetClass.name, student.classId)
       showToast(`Đã chuyển học viên ${student.name} sang lớp ${targetClass.name}`)
       setIsMoveOpen(false)
       loadData()
@@ -118,10 +118,11 @@ export const TeacherStudentProfilePage: React.FC = () => {
   // Subjects progress for the student
   const studentSubjects = useMemo(() => {
     if (!student) return []
+    const gradeNum = student.grade?.includes('10') ? '10' : student.grade?.includes('11') ? '11' : '12'
     return [
       {
-        id: 'sub-math-12',
-        name: 'Toán học 12',
+        id: `sub_math${gradeNum}`,
+        name: `Toán học ${gradeNum}`,
         lessonsCompleted: student.lessonsCompleted,
         totalLessons: 24,
         progress: student.progress,

@@ -210,5 +210,223 @@ public class PhaseAi06LearningOperationsIntegrationTests : IClassFixture<StudyAI
         var resp = await _client.SendAsync(req);
         Assert.Equal(HttpStatusCode.Forbidden, resp.StatusCode);
     }
+
+    [Fact]
+    public async Task Practice_ReviewMistake_WhenInActiveExam_ReturnsForbidden_CannotExposeExamAnswers()
+    {
+        var learnerToken = await GetLearnerTokenAsync();
+        string learnerId;
+        string examQuestionId;
+
+        string activeExamId = $"exam_{Guid.NewGuid():N}"[..12];
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            var learner = await db.Users.FirstAsync(u => u.EmailNormalized == "LEARNER@STUDYAI.INTERNAL" || u.EmailNormalized == "learner@studyai.internal");
+            learnerId = learner.Id;
+
+            // Ensure a published question exists
+            var q = await db.ContentQuestions.FirstOrDefaultAsync(x => x.Status == "published" && !x.IsDeleted);
+            if (q == null)
+            {
+                q = new Domain.Entities.ContentQuestion
+                {
+                    Id = $"q_exam_leak_{Guid.NewGuid():N}"[..12],
+                    SubjectId = "sub_math12",
+                    Prompt = "Câu hỏi thi toán thử nghiệm tính toàn vẹn",
+                    OptionsJson = "[\"A. 1\", \"B. 2\", \"C. 3\", \"D. 4\"]",
+                    CorrectAnswer = "A",
+                    Explanation = "Giải thích chi tiết không được lộ trong giờ thi",
+                    Status = "published"
+                };
+                db.ContentQuestions.Add(q);
+            }
+            examQuestionId = q.Id;
+
+            // Create an active exam session containing this question
+            var activeExam = new Domain.Entities.AssessmentAttempt
+            {
+                Id = activeExamId,
+                UserId = learnerId,
+                AssessmentId = "asmt_exam",
+                SubjectId = "sub_math12",
+                CompletionStatus = "in_progress",
+                StartedAt = DateTimeOffset.UtcNow,
+                SuspendDataJson = JsonSerializer.Serialize(new
+                {
+                    mode = "exam",
+                    questionIds = new List<string> { examQuestionId },
+                    expiresAt = DateTimeOffset.UtcNow.AddMinutes(45).ToString("o")
+                })
+            };
+            db.AssessmentAttempts.Add(activeExam);
+            await db.SaveChangesAsync();
+        }
+
+        try
+        {
+            // Student attempts to call mistake review on active exam question to cheat and get CorrectAnswer & Explanation
+            var reviewReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/practice/mistakes/{examQuestionId}/review")
+            {
+                Content = new StringContent(JsonSerializer.Serialize(new { answer = "A" }), Encoding.UTF8, "application/json")
+            };
+            reviewReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", learnerToken);
+
+            var reviewResp = await _client.SendAsync(reviewReq);
+
+            // MUST be 403 Forbidden to prevent exam cheating
+            Assert.Equal(HttpStatusCode.Forbidden, reviewResp.StatusCode);
+            var body = await reviewResp.Content.ReadAsStringAsync();
+            Assert.Contains("bài thi", body);
+        }
+        finally
+        {
+            // Cleanup active exam attempt so subsequent tests for learner are not blocked by the exam guard
+            using var cleanupScope = _factory.Services.CreateScope();
+            var cleanupDb = cleanupScope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            var attempt = await cleanupDb.AssessmentAttempts.FindAsync(activeExamId);
+            if (attempt != null)
+            {
+                cleanupDb.AssessmentAttempts.Remove(attempt);
+                await cleanupDb.SaveChangesAsync();
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Practice_ReviewMistake_WhenNeverAnsweredIncorrectly_ReturnsBadRequest()
+    {
+        var learnerToken = await GetLearnerTokenAsync();
+        string unattemptedQId;
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            var q = new Domain.Entities.ContentQuestion
+            {
+                Id = $"q_unatt_{Guid.NewGuid():N}"[..12],
+                SubjectId = "sub_math12",
+                Prompt = "Câu hỏi học sinh chưa từng làm sai",
+                OptionsJson = "[\"A. 1\", \"B. 2\", \"C. 3\", \"D. 4\"]",
+                CorrectAnswer = "B",
+                Explanation = "Không được ôn tập khi chưa từng làm sai",
+                Status = "published"
+            };
+            db.ContentQuestions.Add(q);
+            await db.SaveChangesAsync();
+            unattemptedQId = q.Id;
+        }
+
+        var reviewReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/practice/mistakes/{unattemptedQId}/review")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new { answer = "A" }), Encoding.UTF8, "application/json")
+        };
+        reviewReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", learnerToken);
+
+        var reviewResp = await _client.SendAsync(reviewReq);
+
+        // MUST be 400 BadRequest because student has no mistake record for this question
+        Assert.Equal(HttpStatusCode.BadRequest, reviewResp.StatusCode);
+        var body = await reviewResp.Content.ReadAsStringAsync();
+        Assert.Contains("từng trả lời sai", body);
+    }
+
+    [Fact]
+    public async Task Practice_SubmitSession_PastDeadline_RestrictsToAutosave_And_PreservesScoreMax()
+    {
+        var learnerToken = await GetLearnerTokenAsync();
+        string sessionId;
+        string q1Id, q2Id;
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            var learner = await db.Users.FirstAsync(u => u.EmailNormalized == "LEARNER@STUDYAI.INTERNAL" || u.EmailNormalized == "learner@studyai.internal");
+
+            var q1 = new Domain.Entities.ContentQuestion
+            {
+                Id = $"q1_{Guid.NewGuid():N}"[..16],
+                SubjectId = "sub_math12",
+                Prompt = "Câu hỏi 1 đã lưu trước hạn",
+                OptionsJson = "[\"A\", \"B\", \"C\", \"D\"]",
+                CorrectAnswer = "A",
+                Status = "published"
+            };
+            var q2 = new Domain.Entities.ContentQuestion
+            {
+                Id = $"q2_{Guid.NewGuid():N}"[..16],
+                SubjectId = "sub_math12",
+                Prompt = "Câu hỏi 2 nộp muộn sau hạn",
+                OptionsJson = "[\"A\", \"B\", \"C\", \"D\"]",
+                CorrectAnswer = "B",
+                Status = "published"
+            };
+            db.ContentQuestions.AddRange(q1, q2);
+
+            sessionId = $"exp_{Guid.NewGuid():N}"[..16];
+            // Expired 10 minutes ago
+            var expiredTime = DateTimeOffset.UtcNow.AddMinutes(-10);
+
+            var attempt = new Domain.Entities.AssessmentAttempt
+            {
+                Id = sessionId,
+                UserId = learner.Id,
+                AssessmentId = "asmt_exam",
+                SubjectId = "sub_math12",
+                CompletionStatus = "in_progress",
+                StartedAt = expiredTime.AddMinutes(-60),
+                ScoreMax = 2.0,
+                SuspendDataJson = JsonSerializer.Serialize(new
+                {
+                    mode = "exam",
+                    questionIds = new List<string> { q1.Id, q2.Id },
+                    expiresAt = expiredTime.ToString("o"),
+                    answers = new Dictionary<string, string>
+                    {
+                        [q1.Id] = "A" // Correct answer autosaved BEFORE deadline
+                        // q2 was NOT saved before deadline
+                    }
+                })
+            };
+            db.AssessmentAttempts.Add(attempt);
+            await db.SaveChangesAsync();
+
+            q1Id = q1.Id;
+            q2Id = q2.Id;
+        }
+
+        // Student submits after deadline with answers dictionary trying to sneak in answer for q2
+        var submitReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/practice/sessions/{sessionId}/submit")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new
+            {
+                answers = new Dictionary<string, string>
+                {
+                    [q1Id] = "A",
+                    [q2Id] = "B" // Sneaked answer submitted late
+                },
+                sessionTimeMs = 3600000
+            }), Encoding.UTF8, "application/json")
+        };
+        submitReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", learnerToken);
+
+        var submitResp = await _client.SendAsync(submitReq);
+        Assert.Equal(HttpStatusCode.OK, submitResp.StatusCode);
+
+        // Verify in database: Only q1 (saved before expiration) was counted, q2 submitted late was NOT accepted
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            var savedAttempt = await db.AssessmentAttempts.FirstAsync(a => a.Id == sessionId);
+
+            Assert.Equal("completed", savedAttempt.CompletionStatus);
+            // Exactly 1 correct (from autosaved q1), q2 was not accepted so scoreRaw is 1.0
+            Assert.Equal(1.0, savedAttempt.ScoreRaw);
+            // ScoreMax must preserve total question count (2.0), not hardcoded 10.0!
+            Assert.Equal(2.0, savedAttempt.ScoreMax);
+            // ScoreScaled normalized to 10-scale: 1 out of 2 = 5.0
+            Assert.Equal(5.0, savedAttempt.ScoreScaled);
+        }
+    }
 }
 

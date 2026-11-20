@@ -195,7 +195,7 @@ describe('Topbar Header & Authentication Navigation (P20-000)', () => {
       expect(screen.getByText('Biên tập nội dung')).toBeInTheDocument()
     })
 
-    const nonAdminRoles: UserRole[] = ['learner', 'teacher', 'content', 'support']
+    const nonAdminRoles: UserRole[] = ['learner', 'teacher', 'content']
     nonAdminRoles.forEach((role) => {
       it(`does NOT show "Trang quản trị" shortcut for role "${role}"`, () => {
         mockAuthState({

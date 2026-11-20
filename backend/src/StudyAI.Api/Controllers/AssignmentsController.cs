@@ -284,10 +284,12 @@ public class AssignmentsController : ControllerBase
             return NotFound(new { message = "Không tìm thấy bài tập" });
         }
 
-        // Kiểm tra trạng thái bài tập: không cho nộp khi bài đã đóng hoặc lưu trữ
-        if (assignment.Status == "closed" || assignment.Status == "archived")
+        // Kiểm tra trạng thái bài tập: không cho nộp khi bài ở trạng thái draft, closed hoặc archived
+        if (assignment.Status == "draft" || assignment.Status == "closed" || assignment.Status == "archived")
         {
-            return BadRequest(new { message = "Bài tập đã đóng hoặc được lưu trữ, không nhận thêm bài nộp" });
+            return BadRequest(new { message = assignment.Status == "draft"
+                ? "Bài tập đang ở trạng thái bản nháp, chưa được phát hành"
+                : "Bài tập đã đóng hoặc được lưu trữ, không nhận thêm bài nộp" });
         }
 
         // Kiểm tra hạn nộp bài tập
@@ -355,7 +357,14 @@ public class AssignmentsController : ControllerBase
         };
 
         _db.AssignmentSubmissions.Add(submission);
-        await _db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            return Conflict(new { message = "Bài nộp đã tồn tại hoặc xảy ra xung đột khi lưu" });
+        }
 
         var result = new SubmissionDto
         {
@@ -485,9 +494,9 @@ public class AssignmentsController : ControllerBase
             return Forbid();
         }
 
-        if (assignment.Status == "archived" || assignment.Status == "closed")
+        if (assignment.Status == "archived")
         {
-            return BadRequest(new { message = "Bài tập đã đóng hoặc được lưu trữ, không thể chấm điểm." });
+            return BadRequest(new { message = "Bài tập đã được lưu trữ, không thể chấm điểm." });
         }
 
         if (dto.Score < 0 || dto.Score > assignment.MaxScore)
@@ -514,12 +523,90 @@ public class AssignmentsController : ControllerBase
         submission.GradedAt = DateTimeOffset.UtcNow;
         submission.GradedByTeacherId = userId;
 
-        // Auto-update student topic mastery upon grading
+        // Auto-update student topic mastery upon grading attributed to canonical subject
         var rawTopic = assignment.Title.Replace("[Can thiệp bổ trợ]", "").Trim();
         if (!string.IsNullOrWhiteSpace(rawTopic))
         {
+            // Resolve canonical SubjectId from Assignment -> Classroom -> Subject & Grade
+            string resolvedSubjectId = "sub_math12";
+            var classroom = assignment.Classroom;
+            if (classroom != null)
+            {
+                var rawGrade = (classroom.Grade ?? string.Empty).Trim();
+                var rawSubject = (classroom.Subject ?? string.Empty).Trim().ToLowerInvariant();
+
+                if (rawSubject.StartsWith("sub_"))
+                {
+                    resolvedSubjectId = rawSubject;
+                }
+                else
+                {
+                    string gradeNum = "12";
+                    if (rawGrade.Contains("10") || rawSubject.Contains("10") || assignment.Title.Contains("10")) gradeNum = "10";
+                    else if (rawGrade.Contains("11") || rawSubject.Contains("11") || assignment.Title.Contains("11")) gradeNum = "11";
+                    else if (rawGrade.Contains("12") || rawSubject.Contains("12") || assignment.Title.Contains("12")) gradeNum = "12";
+
+                    if (rawSubject.Contains("toán") || rawSubject.Contains("math") || assignment.Title.ToLowerInvariant().Contains("toán"))
+                    {
+                        resolvedSubjectId = $"sub_math{gradeNum}";
+                    }
+                    else if (rawSubject.Contains("vật") || rawSubject.Contains("lí") || rawSubject.Contains("phys"))
+                    {
+                        resolvedSubjectId = $"sub_phys{gradeNum}";
+                    }
+                    else if (rawSubject.Contains("hóa") || rawSubject.Contains("chem"))
+                    {
+                        resolvedSubjectId = $"sub_chem{gradeNum}";
+                    }
+                    else if (rawSubject.Contains("sinh") || rawSubject.Contains("bio"))
+                    {
+                        resolvedSubjectId = $"sub_bio{gradeNum}";
+                    }
+                    else if (rawSubject.Contains("anh") || rawSubject.Contains("eng"))
+                    {
+                        resolvedSubjectId = $"sub_eng{gradeNum}";
+                    }
+                    else
+                    {
+                        resolvedSubjectId = $"sub_math{gradeNum}";
+                    }
+                }
+            }
+
+            // Ensure foreign key safety: if the resolved subject is not yet in content_subjects, ensure it or fallback
+            var subjectExists = await _db.ContentSubjects.AnyAsync(s => s.Id == resolvedSubjectId, cancellationToken);
+            if (!subjectExists)
+            {
+                var fallbackSub = await _db.ContentSubjects.FirstOrDefaultAsync(s => s.Id == "sub_math12", cancellationToken);
+                if (fallbackSub != null)
+                {
+                    // If sub_math10 was resolved but not yet present in content_subjects, add it on demand
+                    if (resolvedSubjectId.StartsWith("sub_math"))
+                    {
+                        string g = resolvedSubjectId.Replace("sub_math", "");
+                        _db.ContentSubjects.Add(new Domain.Entities.ContentSubject
+                        {
+                            Id = resolvedSubjectId,
+                            Name = $"Toán {g}",
+                            Code = $"MATH{g}",
+                            Grade = g,
+                            Description = $"Chương trình Toán học Lớp {g} theo chuẩn GDPT 2018",
+                            IsActive = true,
+                            CreatedAt = DateTimeOffset.UtcNow
+                        });
+                        await _db.SaveChangesAsync(cancellationToken);
+                    }
+                    else
+                    {
+                        resolvedSubjectId = "sub_math12";
+                    }
+                }
+            }
+
             var mastery = await _db.StudentTopicMasteries
-                .FirstOrDefaultAsync(m => m.UserId == submission.StudentId && (m.TopicName.Contains(rawTopic) || rawTopic.Contains(m.TopicName)), cancellationToken);
+                .FirstOrDefaultAsync(m => m.UserId == submission.StudentId &&
+                                          m.SubjectId == resolvedSubjectId &&
+                                          (m.TopicName.Contains(rawTopic) || rawTopic.Contains(m.TopicName)), cancellationToken);
 
             double scorePercentage = assignment.MaxScore > 0 ? (dto.Score / assignment.MaxScore) * 100.0 : 100.0;
             double oldPercentage = (isRegrade && previousScore.HasValue && assignment.MaxScore > 0)
@@ -562,7 +649,7 @@ public class AssignmentsController : ControllerBase
                 {
                     Id = $"stm_{Guid.NewGuid():N}"[..12],
                     UserId = submission.StudentId,
-                    SubjectId = "sub_math12",
+                    SubjectId = resolvedSubjectId,
                     TopicName = rawTopic,
                     AttemptCount = 1,
                     CorrectCount = scorePercentage >= 70.0 ? 1 : 0,
@@ -613,5 +700,58 @@ public class AssignmentsController : ControllerBase
         };
 
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Xóa hoặc lưu trữ bài tập (Giáo viên phụ trách hoặc Admin)
+    /// </summary>
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "teacher,admin")]
+    public async Task<IActionResult> DeleteAssignment(string id, CancellationToken cancellationToken)
+    {
+        var userId = CurrentUserId;
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+        var assignment = await _db.Assignments
+            .Include(a => a.Classroom)
+            .Include(a => a.Submissions)
+            .FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
+
+        if (assignment == null)
+        {
+            return NotFound(new { message = "Không tìm thấy bài tập" });
+        }
+
+        if (!IsAdmin && assignment.CreatedByTeacherId != userId && assignment.Classroom?.TeacherId != userId)
+        {
+            return Forbid();
+        }
+
+        var strategy = _db.Database.CreateExecutionStrategy();
+        IActionResult result = NoContent();
+
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await _db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, cancellationToken);
+
+            // Kiểm tra nguyên tử (atomic check) xem đã có bài nộp nào của học sinh chưa để chống race condition cascade delete
+            var hasSubmissions = await _db.AssignmentSubmissions.AnyAsync(s => s.AssignmentId == id, cancellationToken);
+            if (hasSubmissions)
+            {
+                assignment.Status = "archived";
+                assignment.UpdatedAt = DateTimeOffset.UtcNow;
+                await _db.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+                result = Ok(new { message = "Bài tập đã có bài làm của học sinh nên được chuyển sang trạng thái lưu trữ", archived = true });
+                return;
+            }
+
+            _db.Assignments.Remove(assignment);
+            await _db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            result = NoContent();
+        });
+
+        return result;
     }
 }

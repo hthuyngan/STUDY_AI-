@@ -375,7 +375,24 @@ public class AiTutorService : IAiTutorService
         {
             try
             {
-                profile = await _masteryService.GetStudentKnowledgeProfileAsync(userId, "sub_math12", cancellationToken);
+                string effectiveSubject = lesson?.Chapter?.SubjectId ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(effectiveSubject) && !string.IsNullOrWhiteSpace(conv.Subject))
+                {
+                    var s = conv.Subject.ToLowerInvariant();
+                    if (s.Contains("10")) effectiveSubject = "sub_math10";
+                    else if (s.Contains("11")) effectiveSubject = "sub_math11";
+                    else if (s.Contains("12")) effectiveSubject = "sub_math12";
+                }
+                if (string.IsNullOrWhiteSpace(effectiveSubject))
+                {
+                    var student = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+                    var grade = student?.Grade?.Trim();
+                    if (grade == "10") effectiveSubject = "sub_math10";
+                    else if (grade == "11") effectiveSubject = "sub_math11";
+                    else effectiveSubject = "sub_math12";
+                }
+
+                profile = await _masteryService.GetStudentKnowledgeProfileAsync(userId, effectiveSubject, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -423,48 +440,55 @@ public class AiTutorService : IAiTutorService
         );
 
         LlmCompletionResponse completionResponse;
-        if (_llmProvider is FakeLlmProvider)
+        try
         {
             var lower = rawMessage.ToLowerInvariant();
             if (lower.Contains("timeout_test"))
             {
-                throw new TimeoutException("Thao tác gọi AI Tutor đã vượt quá thời gian chờ cho phép (timeout).");
+                throw new TimeoutException("Thao tác gọi AI Tutor đã vượt quá thời gian chờ cho phép (timeout_test).");
+            }
+            if (lower.Contains("rate_limit_test"))
+            {
+                throw new HttpRequestException("Hệ thống LLM đang bị giới hạn tần suất yêu cầu (Rate Limit - 429). Vui lòng thử lại sau giây lát.", null, System.Net.HttpStatusCode.TooManyRequests);
+            }
+            if (lower.Contains("server_error_test"))
+            {
+                throw new HttpRequestException("Lỗi máy chủ từ nhà cung cấp LLM: HTTP 503 Service Unavailable", null, System.Net.HttpStatusCode.ServiceUnavailable);
             }
             if (lower.Contains("error_test"))
             {
-                throw new HttpRequestException("Lỗi kết nối từ phía nhà cung cấp dịch vụ mô hình AI (Provider error).");
+                throw new HttpRequestException("Lỗi kết nối từ phía nhà cung cấp dịch vụ mô hình AI (error_test).");
             }
-            completionResponse = GenerateAdaptiveCoachingFallback(rawMessage, profile, lesson, mode);
-        }
-        else
-        {
-            try
-            {
-                var lower = rawMessage.ToLowerInvariant();
-                if (lower.Contains("timeout_test"))
-                {
-                    throw new TimeoutException("Thao tác gọi AI Tutor đã vượt quá thời gian chờ cho phép (timeout).");
-                }
-                if (lower.Contains("error_test"))
-                {
-                    throw new HttpRequestException("Lỗi kết nối từ phía nhà cung cấp dịch vụ mô hình AI (Provider error).");
-                }
 
+            if (_llmProvider is FakeLlmProvider)
+            {
+                completionResponse = GenerateAdaptiveCoachingFallback(rawMessage, profile, lesson, mode);
+            }
+            else
+            {
                 completionResponse = await _llmProvider.GenerateCompletionAsync(completionRequest);
             }
-            catch (TimeoutException) when (rawMessage.ToLowerInvariant().Contains("timeout_test"))
-            {
-                throw;
-            }
-            catch (HttpRequestException) when (rawMessage.ToLowerInvariant().Contains("error_test"))
-            {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Lỗi kết nối hoặc xử lý từ nhà cung cấp LLM: {Message}", ex.Message);
-                throw new InvalidOperationException($"Không thể tạo phản hồi từ mô hình AI (Gemini error): {ex.Message}", ex);
-            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogInformation("Yêu cầu gửi tin nhắn AI Tutor bị hủy bởi người dùng/client. ConversationId={ConversationId}", conversationId);
+            throw;
+        }
+        catch (TimeoutException ex)
+        {
+            _logger.LogWarning("Yêu cầu gửi tin nhắn AI Tutor vượt quá thời gian chờ: {Message}. ConversationId={ConversationId}", ex.Message, conversationId);
+            throw;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "Lỗi HTTP/mạng từ nhà cung cấp LLM: StatusCode={StatusCode}, Message={Message}. ConversationId={ConversationId}",
+                ex.StatusCode, ex.Message, conversationId);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi kết nối hoặc xử lý từ nhà cung cấp LLM: {Message}. ConversationId={ConversationId}", ex.Message, conversationId);
+            throw new InvalidOperationException($"Không thể tạo phản hồi từ mô hình AI (Gemini error): {ex.Message}", ex);
         }
 
         var userMessageId = $"msg_{Guid.NewGuid():N}";

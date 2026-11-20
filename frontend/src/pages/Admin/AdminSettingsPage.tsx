@@ -21,6 +21,7 @@ import '@/components/admin/AdminComponents.css'
 
 export const AdminSettingsPage: React.FC = () => {
   const [settings, setSettings] = useState<OperationalSettings>(operationsService.getSettings())
+  const [settingsLoading, setSettingsLoading] = useState<boolean>(true)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
 
   const showToast = (msg: string) => {
@@ -47,6 +48,27 @@ export const AdminSettingsPage: React.FC = () => {
   const [aiConfig, setAiConfig] = useState<AiFeatureConfig | null>(null)
   const [aiStats, setAiStats] = useState<AiUsageStats | null>(null)
   const [aiLoading, setAiLoading] = useState<boolean>(true)
+
+  useEffect(() => {
+    let isMounted = true
+    operationsService
+      .getSettingsAsync()
+      .then((loaded) => {
+        if (isMounted) {
+          setSettings(loaded)
+          setSettingsLoading(false)
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          showToast(`Lỗi tải cấu hình: ${err instanceof Error ? err.message : String(err)}`)
+          setSettingsLoading(false)
+        }
+      })
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   useEffect(() => {
     let isMounted = true
@@ -80,11 +102,22 @@ export const AdminSettingsPage: React.FC = () => {
     }
   }
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
-    operationsService.saveSettings(settings, 'Demo Admin')
-    showToast('Đã lưu thành công các thiết lập vận hành')
-    setStorageUsage(computeStorageUsage())
+    try {
+      const saved = await operationsService.saveSettings(settings, 'Demo Admin')
+      setSettings(saved)
+      showToast('Đã lưu thành công các thiết lập vận hành')
+      setStorageUsage(computeStorageUsage())
+    } catch (err: any) {
+      if (err?.status === 409 || err?.message?.includes('409') || err?.message?.includes('phiên quản trị khác')) {
+        showToast('Xung đột: Cấu hình đã được quản trị viên khác cập nhật. Đang tải lại cấu hình mới nhất...')
+        const refreshed = await operationsService.getSettingsAsync()
+        setSettings(refreshed)
+      } else {
+        showToast(err instanceof Error ? err.message : 'Lỗi khi lưu thiết lập.')
+      }
+    }
   }
 
   const handleResetSettings = () => {
@@ -99,7 +132,7 @@ export const AdminSettingsPage: React.FC = () => {
   const handleResetAllData = () => {
     if (
       window.confirm(
-        'CẢNH BÁO: Thao tác này sẽ xóa toàn bộ dữ liệu demo (phê duyệt, bài nộp, ticket, thông báo) đã lưu trong localStorage và đưa hệ thống về trạng thái ban đầu. Bạn có chắc chắn?'
+        'CẢNH BÁO: Thao tác này sẽ xóa toàn bộ dữ liệu demo (phê duyệt, bài nộp, thông báo) đã lưu trong localStorage và đưa hệ thống về trạng thái ban đầu. Bạn có chắc chắn?'
       )
     ) {
       operationsService.resetAllDemoData()
@@ -130,6 +163,7 @@ export const AdminSettingsPage: React.FC = () => {
             <h1 className="staff-page-title">Thiết lập vận hành (Operational Settings)</h1>
             <p className="staff-page-desc">
               Tùy biến các quy tắc học tập, ngưỡng cảnh báo, quy trình kiểm duyệt nội dung và quản trị bộ nhớ demo.
+              {settingsLoading && <span style={{ marginLeft: 8, color: '#0284c7' }}>(Đang đồng bộ từ máy chủ...)</span>}
             </p>
           </div>
           <div className="admin-header-actions">
@@ -335,7 +369,7 @@ export const AdminSettingsPage: React.FC = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#f8fafc', borderRadius: 6, marginBottom: 14 }}>
             <div>
               <div style={{ fontWeight: 600, color: '#102a43', fontSize: '0.9rem' }}>Dung lượng dữ liệu demo hiện tại:</div>
-              <div style={{ fontSize: '0.8rem', color: '#627d98' }}>Lưu trữ các lớp học, học viên, bài tập, ticket và phê duyệt</div>
+              <div style={{ fontSize: '0.8rem', color: '#627d98' }}>Lưu trữ các lớp học, học viên, bài tập và phê duyệt</div>
             </div>
             <strong style={{ fontSize: '1.1rem', color: '#0284c7' }}>{storageUsage}</strong>
           </div>

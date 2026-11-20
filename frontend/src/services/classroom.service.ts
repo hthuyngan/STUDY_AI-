@@ -615,7 +615,7 @@ export const classroomService = {
 
   async saveClass(classData: Partial<AdminClassItem>): Promise<AdminClassItem> {
     if (getAccessToken()) {
-      if (classData.id && !classData.id.startsWith('cls-temp') && !classData.id.startsWith('cls-12')) {
+      if (classData.id && !classData.id.startsWith('cls-temp')) {
         const updated = await apiClient.put<ClassroomDto>(`/api/v1/classrooms/${classData.id}`, {
           name: classData.name,
           code: classData.code,
@@ -726,6 +726,12 @@ export const classroomService = {
   },
 
   async deleteClass(classId: string): Promise<void> {
+    if (getAccessToken()) {
+      await apiClient.delete(`/api/v1/classrooms/${classId}`)
+      const classes = loadFromStorage<AdminClassItem[]>(STORAGE_KEYS.CLASSES, [])
+      saveToStorage(STORAGE_KEYS.CLASSES, classes.filter((c) => c.id !== classId))
+      return
+    }
     const students = await this.getStudentsByClass(classId)
     if (students.length > 0) {
       throw new Error(`Không thể xóa lớp đang có ${students.length} học viên. Vui lòng chuyển học viên sang lớp khác trước.`)
@@ -737,6 +743,28 @@ export const classroomService = {
 
   // ==================== STUDENTS ====================
   async getStudents(): Promise<AdminStudentItem[]> {
+    if (getAccessToken()) {
+      const classes = await this.getClasses()
+      const studentPromises = classes.map(async (c) => {
+        const classStudents = await this.getStudentsByClass(c.id)
+        return classStudents.map((s) => ({
+          ...s,
+          className: c.name || s.className || '',
+        }))
+      })
+      const nested = await Promise.all(studentPromises)
+      const flat = nested.flat()
+      const seen = new Set<string>()
+      const unique: AdminStudentItem[] = []
+      for (const s of flat) {
+        const key = s.code || s.id
+        if (!seen.has(key)) {
+          seen.add(key)
+          unique.push(s)
+        }
+      }
+      return unique
+    }
     return loadFromStorage<AdminStudentItem[]>(STORAGE_KEYS.STUDENTS, INITIAL_STUDENTS)
   },
 
@@ -805,7 +833,68 @@ export const classroomService = {
     return apiClient.post<ClassroomStudentDto>(`/api/v1/classrooms/${classId}/students`, payload)
   },
 
-  async moveStudentClass(studentId: string, targetClassId: string, targetClassName: string): Promise<AdminStudentItem> {
+  async moveStudentClass(
+    studentId: string,
+    targetClassId: string,
+    targetClassName: string,
+    explicitSourceClassId?: string
+  ): Promise<AdminStudentItem> {
+    if (getAccessToken()) {
+      let sourceClassId = explicitSourceClassId
+      let studentCode = studentId
+      let existing: AdminStudentItem | undefined
+
+      if (sourceClassId) {
+        const classStudents = await this.getStudentsByClass(sourceClassId)
+        existing = classStudents.find((s) => s.id === studentId || s.code === studentId)
+        if (existing?.code) {
+          studentCode = existing.code
+        }
+      }
+
+      if (!existing) {
+        const students = await this.getStudents()
+        existing = students.find((s) => s.id === studentId || s.code === studentId)
+        if (existing?.code) {
+          studentCode = existing.code
+        }
+        if (!sourceClassId) {
+          sourceClassId = existing?.classId
+        }
+      }
+
+      if (!sourceClassId) {
+        throw new Error('Không thể xác định lớp học nguồn của học sinh để chuyển lớp.')
+      }
+
+      await apiClient.post<ClassroomStudentDto>(`/api/v1/classrooms/${targetClassId}/transfer-student`, {
+        studentId: studentCode,
+        sourceClassroomId: sourceClassId,
+      })
+
+      const refreshedStudents = await this.getStudents()
+      const updated = refreshedStudents.find((s) => s.id === studentId || s.code === studentId)
+      if (updated) {
+        return updated
+      }
+
+      return {
+        id: studentId,
+        code: studentCode,
+        name: existing?.name || 'Học sinh',
+        email: existing?.email || '',
+        classId: targetClassId,
+        className: targetClassName,
+        grade: existing?.grade || 'Lớp 12',
+        progress: existing?.progress || 0,
+        lessonsCompleted: existing?.lessonsCompleted || 0,
+        averageScore: existing?.averageScore || 0,
+        totalLearningMinutes: existing?.totalLearningMinutes || 0,
+        status: existing?.status || 'on-track',
+        lastActive: existing?.lastActive || new Date().toISOString(),
+      }
+    }
+
     const students = await this.getStudents()
     const idx = students.findIndex((s) => s.id === studentId)
     if (idx === -1) throw new Error('Không tìm thấy học viên')
@@ -988,6 +1077,13 @@ export const classroomService = {
   },
 
   async deleteAssignment(assignmentId: string): Promise<void> {
+    if (getAccessToken()) {
+      await apiClient.delete(`/api/v1/assignments/${assignmentId}`)
+      const assignments = loadFromStorage<AdminAssignmentItem[]>(STORAGE_KEYS.ASSIGNMENTS, [])
+      saveToStorage(STORAGE_KEYS.ASSIGNMENTS, assignments.filter((a) => a.id !== assignmentId))
+      await this._syncClassCounts()
+      return
+    }
     const assignments = await this.getAssignments()
     const filtered = assignments.filter((a) => a.id !== assignmentId)
     saveToStorage(STORAGE_KEYS.ASSIGNMENTS, filtered)

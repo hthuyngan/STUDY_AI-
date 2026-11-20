@@ -25,14 +25,30 @@ public class LearningRecommendationService : ILearningRecommendationService
         _logger = logger;
     }
 
+    private async Task<string> ResolveEffectiveSubjectIdAsync(string userId, string? subjectId, CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(subjectId) && subjectId != "all")
+        {
+            return subjectId;
+        }
+
+        if (!string.IsNullOrWhiteSpace(userId) && userId != "guest")
+        {
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+            var g = user?.Grade?.Trim();
+            if (g == "10" || g?.Contains("10") == true) return "sub_math10";
+            if (g == "11" || g?.Contains("11") == true) return "sub_math11";
+        }
+
+        return "sub_math12";
+    }
+
     public async Task<List<AiLearningRecommendationDto>> GetRecommendationsAsync(
         string userId,
         string? subjectId = null,
         CancellationToken cancellationToken = default)
     {
-        var effectiveSubjectId = string.IsNullOrWhiteSpace(subjectId) || subjectId == "all"
-            ? "sub_math12"
-            : subjectId;
+        var effectiveSubjectId = await ResolveEffectiveSubjectIdAsync(userId, subjectId, cancellationToken);
 
         // 1. Fetch all published lessons in database for this subject
         var allLessons = await _context.ContentLessons
@@ -139,9 +155,7 @@ public class LearningRecommendationService : ILearningRecommendationService
         string? subjectId = null,
         CancellationToken cancellationToken = default)
     {
-        var effectiveSubjectId = string.IsNullOrWhiteSpace(subjectId) || subjectId == "all"
-            ? "sub_math12"
-            : subjectId;
+        var effectiveSubjectId = await ResolveEffectiveSubjectIdAsync(userId, subjectId, cancellationToken);
 
         var recommendations = await GetRecommendationsAsync(userId, effectiveSubjectId, cancellationToken);
 
@@ -250,9 +264,7 @@ public class LearningRecommendationService : ILearningRecommendationService
         string? subjectId = null,
         CancellationToken cancellationToken = default)
     {
-        var effectiveSubjectId = string.IsNullOrWhiteSpace(subjectId) || subjectId == "all"
-            ? "sub_math12"
-            : subjectId;
+        var effectiveSubjectId = await ResolveEffectiveSubjectIdAsync(userId, subjectId, cancellationToken);
 
         if (string.IsNullOrWhiteSpace(userId) || userId == "guest")
         {

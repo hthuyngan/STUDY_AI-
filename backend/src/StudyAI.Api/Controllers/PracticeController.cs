@@ -36,6 +36,9 @@ public class PracticeController : ControllerBase
         User.FindFirstValue("sub") ??
         throw new UnauthorizedAccessException("Người dùng chưa được xác thực.");
 
+    private string CurrentUserGrade =>
+        User.FindFirstValue("grade") ?? string.Empty;
+
     private bool IsStaffOrAdmin =>
         User.IsInRole("admin") || User.IsInRole("teacher") || User.IsInRole("content");
 
@@ -131,6 +134,7 @@ public class PracticeController : ControllerBase
             ["questionIds"] = JsonSerializer.SerializeToNode(questionIds),
             ["timeLimitMinutes"] = timeLimit,
             ["expiresAt"] = expiresAt?.ToString("o"),
+            ["blueprintId"] = request.BlueprintId,
             ["answers"] = new JsonObject()
         };
 
@@ -435,14 +439,33 @@ public class PracticeController : ControllerBase
 
         List<string> questionIds = new();
         string mode = "practice";
+        DateTimeOffset? expiresAt = null;
+        var savedAnswersBeforeDeadline = new Dictionary<string, string>();
 
         if (!string.IsNullOrEmpty(attempt.SuspendDataJson))
         {
             try
             {
-                var doc = JsonDocument.Parse(attempt.SuspendDataJson);
+                using var doc = JsonDocument.Parse(attempt.SuspendDataJson);
                 var root = doc.RootElement;
                 if (root.TryGetProperty("mode", out var m)) mode = m.GetString() ?? "practice";
+                if (root.TryGetProperty("expiresAt", out var expElem) &&
+                    expElem.ValueKind == JsonValueKind.String &&
+                    DateTimeOffset.TryParse(expElem.GetString(), out var expParsed))
+                {
+                    expiresAt = expParsed;
+                }
+                if (root.TryGetProperty("answers", out var ansElem) && ansElem.ValueKind == JsonValueKind.Object)
+                {
+                    foreach (var prop in ansElem.EnumerateObject())
+                    {
+                        var val = prop.Value.GetString();
+                        if (!string.IsNullOrEmpty(val))
+                        {
+                            savedAnswersBeforeDeadline[prop.Name] = val;
+                        }
+                    }
+                }
                 if (root.TryGetProperty("questionIds", out var qIdsElem) && qIdsElem.ValueKind == JsonValueKind.Array)
                 {
                     foreach (var elem in qIdsElem.EnumerateArray())
@@ -455,9 +478,17 @@ public class PracticeController : ControllerBase
             catch { }
         }
 
-        if (questionIds.Count == 0 && request.Answers.Count > 0)
+        // Deadline Guard: Enforce exam time limit with a 2-minute network grace period
+        bool isTimedExam = (mode == "exam" || attempt.AssessmentId == "asmt_exam") && expiresAt.HasValue;
+        var gracePeriod = TimeSpan.FromMinutes(2);
+        bool isSubmissionPastDeadline = isTimedExam && (DateTimeOffset.UtcNow > expiresAt!.Value + gracePeriod);
+
+        // If submitted past deadline + grace period, strictly restrict grading to answers autosaved before expiration
+        var effectiveAnswers = isSubmissionPastDeadline ? savedAnswersBeforeDeadline : request.Answers;
+
+        if (questionIds.Count == 0 && effectiveAnswers.Count > 0)
         {
-            questionIds = request.Answers.Keys.ToList();
+            questionIds = effectiveAnswers.Keys.ToList();
         }
 
         var questions = await _db.ContentQuestions.AsNoTracking()
@@ -477,7 +508,7 @@ public class PracticeController : ControllerBase
             if (!questions.TryGetValue(qId, out var q)) continue;
 
             var options = SafeDeserializeStringList(q.OptionsJson);
-            request.Answers.TryGetValue(qId, out var studentAns);
+            effectiveAnswers.TryGetValue(qId, out var studentAns);
             studentAns ??= string.Empty;
 
             bool isAnswered = !string.IsNullOrWhiteSpace(studentAns);
@@ -544,7 +575,7 @@ public class PracticeController : ControllerBase
         attempt.SuccessStatus = passed ? "passed" : "failed";
         attempt.ScoreRaw = scoreRaw;
         attempt.ScoreMin = 0.0;
-        attempt.ScoreMax = 10.0;
+        attempt.ScoreMax = totalCount > 0 ? (double)totalCount : 10.0;
         attempt.ScoreScaled = scoreScaled;
         attempt.ProgressMeasure = 1.0;
         attempt.CompletedAt = now;
@@ -746,11 +777,69 @@ public class PracticeController : ControllerBase
     [HttpPost("mistakes/{questionId}/review")]
     public async Task<IActionResult> ReviewMistake(string questionId, [FromBody] ReviewMistakeRequest request)
     {
+        var userId = CurrentUserId;
         var question = await _db.ContentQuestions.AsNoTracking()
             .FirstOrDefaultAsync(q => q.Id == questionId && !q.IsDeleted && q.Status == "published");
         if (question == null)
         {
             return NotFound(new { detail = $"Không tìm thấy câu hỏi published '{questionId}'." });
+        }
+
+        // 1. Assessment Integrity Guard: Prevent students from obtaining answers during an active exam
+        var now = DateTimeOffset.UtcNow;
+        var activeExamAttempts = await _db.AssessmentAttempts.AsNoTracking()
+            .Where(a => a.UserId == userId &&
+                        a.CompletionStatus == "in_progress" &&
+                        (a.AssessmentId == "asmt_exam" || a.AssessmentId == "exam"))
+            .ToListAsync();
+
+        foreach (var exam in activeExamAttempts)
+        {
+            if (!string.IsNullOrEmpty(exam.SuspendDataJson))
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(exam.SuspendDataJson);
+                    var root = doc.RootElement;
+                    DateTimeOffset? expiresAt = null;
+                    if (root.TryGetProperty("expiresAt", out var expElem) &&
+                        expElem.ValueKind == JsonValueKind.String &&
+                        DateTimeOffset.TryParse(expElem.GetString(), out var expParsed))
+                    {
+                        expiresAt = expParsed;
+                    }
+
+                    if (!expiresAt.HasValue || expiresAt.Value > now)
+                    {
+                        if (root.TryGetProperty("questionIds", out var qIdsElem) && qIdsElem.ValueKind == JsonValueKind.Array)
+                        {
+                            foreach (var elem in qIdsElem.EnumerateArray())
+                            {
+                                if (elem.GetString() == questionId)
+                                {
+                                    return StatusCode(StatusCodes.Status403Forbidden, new
+                                    {
+                                        detail = "Không thể xem đáp án hoặc ôn tập câu hỏi khi đang trong phiên làm bài thi kích hoạt."
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+                catch { }
+            }
+        }
+
+        // 2. Review Eligibility Guard: Student must have previously answered this question incorrectly
+        var hasPriorMistake = await _db.AssessmentResponses.AsNoTracking()
+            .AnyAsync(r => r.Attempt != null && r.Attempt.UserId == userId && r.QuestionId == questionId && r.IsCorrect == false);
+
+        if (!hasPriorMistake)
+        {
+            return BadRequest(new
+            {
+                detail = "Chỉ được phép ôn tập câu hỏi mà học sinh đã từng trả lời sai trong hệ thống."
+            });
         }
 
         var options = SafeDeserializeStringList(question.OptionsJson);
@@ -770,7 +859,9 @@ public class PracticeController : ControllerBase
             Id = reviewAttemptId,
             UserId = CurrentUserId,
             AssessmentId = "asmt_smart_review",
-            SubjectId = question.SubjectId ?? "sub_math12",
+            SubjectId = question.SubjectId ?? (!string.IsNullOrWhiteSpace(CurrentUserGrade)
+                ? (CurrentUserGrade.Contains("10") ? "sub_math10" : CurrentUserGrade.Contains("11") ? "sub_math11" : "sub_math12")
+                : "sub_math12"),
             LessonId = question.LessonId ?? string.Empty,
             AttemptNumber = 1,
             StartedAt = DateTimeOffset.UtcNow,

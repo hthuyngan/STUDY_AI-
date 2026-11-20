@@ -62,7 +62,7 @@ export const AdminUserDetailPage: React.FC = () => {
     return (
       <PageErrorState
         title="Không tìm thấy người dùng."
-        description={error || 'Tài khoản không tồn tại trong hệ thống demo.'}
+        description={error || 'Tài khoản không tồn tại trong hệ thống.'}
         onRetry={refresh}
       />
     )
@@ -96,7 +96,7 @@ export const AdminUserDetailPage: React.FC = () => {
     try {
       await revokeSessions()
       setResetConfirmOpen(false)
-      showToast('Mô phỏng thành công: Đã thu hồi toàn bộ token đăng nhập của người dùng.')
+      showToast('Đã thu hồi toàn bộ phiên đăng nhập của người dùng.')
     } finally {
       setActionLoading(false)
     }
@@ -252,7 +252,6 @@ export const AdminUserDetailPage: React.FC = () => {
                   <option value="learner">Học viên (Learner)</option>
                   <option value="teacher">Giáo viên (Teacher)</option>
                   <option value="content">Biên soạn nội dung (Content)</option>
-                  <option value="support">Nhân viên hỗ trợ (Support)</option>
                   <option value="admin">Quản trị viên (Admin)</option>
                 </select>
               </div>

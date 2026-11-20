@@ -109,27 +109,99 @@ public class AiLessonAuthoringService : IAiLessonAuthoringService
         CancellationToken cancellationToken = default)
     {
         int count = Math.Clamp(request.QuestionCount, 1, 5);
-        var result = new List<CheckpointQuestionDraftDto>();
+        string topic = string.IsNullOrWhiteSpace(request.TopicName) ? "Toán học THPT" : request.TopicName.Trim();
+        string difficulty = string.IsNullOrWhiteSpace(request.TargetDifficulty) ? "thong_hieu" : request.TargetDifficulty.Trim();
 
-        for (int i = 1; i <= count; i++)
+        string prompt = $"Bạn là chuyên gia khảo thí biên soạn câu hỏi kiểm tra nhanh (checkpoint questions) môn Toán THPT.\n" +
+            $"Hãy biên soạn {count} câu hỏi trắc nghiệm khách quan cho chủ đề: '{topic}'.\n" +
+            $"Mức độ nhận thức: {difficulty}.\n\n" +
+            "Yêu cầu:\n" +
+            "- Mỗi câu hỏi phải có đầy đủ giả thiết toán học tường minh, có thể giải được hoàn chỉnh mà không phụ thuộc hình ảnh ngoài luồng không cung cấp.\n" +
+            "- Công thức toán học định dạng KaTeX ($...$).\n" +
+            "- 4 phương án lựa chọn A, B, C, D rõ ràng.\n" +
+            "- Đáp án đúng phải là 1 trong 4 ký tự A, B, C, D kèm lời giải chi tiết, chính xác.\n\n" +
+            "Định dạng phản hồi JSON thuần túy (mảng JSON):\n" +
+            "[\n" +
+            "  {\n" +
+            "    \"prompt\": \"Câu hỏi...\",\n" +
+            "    \"options\": [\"A. ...\", \"B. ...\", \"C. ...\", \"D. ...\"],\n" +
+            "    \"correctAnswer\": \"A\",\n" +
+            "    \"explanation\": \"Lời giải...\",\n" +
+            "    \"cognitiveLevel\": \"" + difficulty + "\"\n" +
+            "  }\n" +
+            "]";
+
+        try
         {
-            result.Add(new CheckpointQuestionDraftDto
+            var completion = await _llmProvider.GenerateCompletionAsync(new LlmCompletionRequest(
+                Messages: new List<LlmChatMessage> { new("user", prompt) },
+                SystemPrompt: "Bạn là chuyên gia biên soạn câu hỏi trắc nghiệm Toán học. Hãy trả lời JSON thuần túy (mảng JSON).",
+                Temperature: 0.3,
+                MaxTokens: 2000,
+                CancellationToken: cancellationToken
+            ));
+
+            if (!string.IsNullOrWhiteSpace(completion.Content))
             {
-                Prompt = $"Câu {i}: Cho hàm số $y = f(x)$ liên tục trên $\\mathbb{{R}}$ có bảng xét dấu đạo hàm như hình vẽ. Hàm số đồng biến trên khoảng nào dưới đây?",
-                Options = new List<string>
+                var content = completion.Content.Trim();
+                int start = content.IndexOf('[');
+                int end = content.LastIndexOf(']');
+                if (start >= 0 && end > start)
                 {
-                    "A. $(-\\infty; 0)$",
-                    "B. $(0; 2)$",
-                    "C. $(2; +\\infty)$",
-                    "D. $(-\\infty; 2)$"
-                },
-                CorrectAnswer = "A",
-                Explanation = "Dựa vào bảng xét dấu, $f'(x) > 0$ trên $(-\\infty; 0)$ nên hàm số đồng biến trên khoảng $(-\\infty; 0)$.",
-                CognitiveLevel = request.TargetDifficulty
-            });
+                    var jsonStr = content.Substring(start, end - start + 1);
+                    var parsed = JsonSerializer.Deserialize<List<CheckpointQuestionDraftDto>>(jsonStr, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    if (parsed != null && parsed.Count > 0)
+                    {
+                        var validatedQuestions = new List<CheckpointQuestionDraftDto>();
+                        foreach (var item in parsed)
+                        {
+                            var itemPrompt = item.Prompt?.Trim() ?? string.Empty;
+                            if (string.IsNullOrWhiteSpace(itemPrompt) || itemPrompt.Length < 5)
+                            {
+                                throw new InvalidOperationException("Câu hỏi do AI sinh thiếu đề bài hoặc giả thiết toán học hợp lệ.");
+                            }
+
+                            if (item.Options == null || item.Options.Count < 2 || item.Options.Any(string.IsNullOrWhiteSpace))
+                            {
+                                throw new InvalidOperationException($"Câu hỏi '{itemPrompt}' thiếu danh sách phương án lựa chọn hợp lệ.");
+                            }
+
+                            var ans = item.CorrectAnswer?.Trim() ?? string.Empty;
+                            if (string.IsNullOrWhiteSpace(ans))
+                            {
+                                throw new InvalidOperationException($"Câu hỏi '{itemPrompt}' không có đáp án đúng được xác định.");
+                            }
+
+                            // Validate answer membership: either valid option key A/B/C/D or exact match with one of the options
+                            bool isValidKey = ans.Length == 1 && (ans[0] >= 'A' && ans[0] < 'A' + item.Options.Count);
+                            bool matchesOption = item.Options.Any(o =>
+                                o.Trim().Equals(ans, StringComparison.OrdinalIgnoreCase)
+                                || o.Trim().StartsWith(ans + ".", StringComparison.OrdinalIgnoreCase)
+                                || o.Trim().StartsWith(ans + ":", StringComparison.OrdinalIgnoreCase));
+
+                            if (!isValidKey && !matchesOption)
+                            {
+                                throw new InvalidOperationException($"Đáp án đúng '{ans}' của câu hỏi '{itemPrompt}' không hợp lệ hoặc không thuộc danh sách phương án.");
+                            }
+
+                            item.Prompt = itemPrompt;
+                            item.CorrectAnswer = ans;
+                            item.CognitiveLevel = difficulty;
+                            validatedQuestions.Add(item);
+                        }
+                        return validatedQuestions;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "LLM checkpoint questions generation failed: {Message}", ex.Message);
+            throw new InvalidOperationException(
+                $"Dịch vụ AI sinh câu hỏi kiểm tra hiện không khả dụng ({ex.Message}). Vui lòng kiểm tra cấu hình LLM Provider hoặc thử lại sau.");
         }
 
-        return await Task.FromResult(result);
+        throw new InvalidOperationException("Mô hình AI không trả về định dạng câu hỏi hợp lệ cho chủ đề được yêu cầu.");
     }
 }
 

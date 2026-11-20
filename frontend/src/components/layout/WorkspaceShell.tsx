@@ -250,9 +250,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
                           ? '2 Học liệu bài giảng mới chờ phê duyệt'
                           : role === 'teacher'
                             ? '5 Bài tập học sinh nộp cần chấm điểm'
-                            : role === 'support'
-                              ? '3 Vé hỗ trợ vượt thời hạn phản hồi SLA'
-                              : '14 Mục vận hành đang chờ xử lý'}
+                            : '14 Mục vận hành đang chờ xử lý'}
                       </div>
                       <div className="notify-item-meta">10 phút trước • Hệ thống STUDY_AI</div>
                     </div>
@@ -301,9 +299,6 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
                       case 'content':
                         navigate('/content')
                         break
-                      case 'support':
-                        navigate('/support')
-                        break
                     }
                   }}
                   aria-label="Chuyển không gian làm việc"
@@ -312,7 +307,6 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
                   <option value="admin">Quản trị (Admin)</option>
                   <option value="teacher">Giáo viên (Teacher)</option>
                   <option value="content">Nội dung (Content)</option>
-                  <option value="support">Hỗ trợ (Support)</option>
                   <option value="learner">Học viên (Learner)</option>
                 </select>
               </div>

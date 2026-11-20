@@ -388,7 +388,21 @@ public class StudentMasteryService : IStudentMasteryService
             .Where(q => questionIds.Contains(q.Id))
             .ToDictionaryAsync(q => q.Id, cancellationToken);
 
-        var subjectId = attempt.SubjectId ?? "sub_math12";
+        var subjectId = attempt.SubjectId;
+        if (string.IsNullOrWhiteSpace(subjectId))
+        {
+            var firstWithSub = questions.Values.FirstOrDefault(q => !string.IsNullOrWhiteSpace(q.SubjectId));
+            if (firstWithSub != null)
+            {
+                subjectId = firstWithSub.SubjectId;
+            }
+            else
+            {
+                var student = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+                var g = student?.Grade?.Trim();
+                subjectId = g == "10" ? "sub_math10" : g == "11" ? "sub_math11" : "sub_math12";
+            }
+        }
 
         // Group responses by Topic
         var groupedResponses = attempt.Responses
@@ -474,7 +488,13 @@ public class StudentMasteryService : IStudentMasteryService
             .Where(q => questionIds.Contains(q.Id))
             .ToDictionaryAsync(q => q.Id, cancellationToken);
 
-        var effectiveSubjectId = subjectId ?? "sub_math12";
+        var effectiveSubjectId = subjectId;
+        if (string.IsNullOrWhiteSpace(effectiveSubjectId))
+        {
+            var student = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+            var g = student?.Grade?.Trim();
+            effectiveSubjectId = g == "10" ? "sub_math10" : g == "11" ? "sub_math11" : "sub_math12";
+        }
         var completedAttemptIds = responses.Select(r => r.AttemptId).Distinct().ToList();
 
         var groups = responses

@@ -430,5 +430,702 @@ public class ClassroomAssignmentIntegrationTests : IClassFixture<StudyAIApiFixtu
         var submitExpiredResp = await _client.SendAsync(submitExpiredReq);
         Assert.Equal(HttpStatusCode.BadRequest, submitExpiredResp.StatusCode);
     }
+
+    [Fact]
+    public async Task Submission_Rejects_Draft_Assignment_With_BadRequest()
+    {
+        var (teacherToken, _, _) = await CreateAndLoginUserAsync("teacher", "Thầy Giáo Draft");
+        var (learnerToken, learnerId, learnerEmail) = await CreateAndLoginUserAsync("learner", "Học sinh Draft");
+
+        // 1. Create class & enroll learner
+        var classReq = new HttpRequestMessage(HttpMethod.Post, "/api/v1/classrooms")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateClassroomRequestDto
+            {
+                Name = "Lớp Nháp 10A",
+                Grade = "10",
+                Subject = "Toán học"
+            }), Encoding.UTF8, "application/json")
+        };
+        classReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        var classResp = await _client.SendAsync(classReq);
+        var classDto = JsonSerializer.Deserialize<ClassroomDto>(await classResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        var enrollReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/classrooms/{classDto.Id}/students")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new EnrollStudentRequestDto { StudentEmail = learnerEmail }), Encoding.UTF8, "application/json")
+        };
+        enrollReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        await _client.SendAsync(enrollReq);
+
+        // 2. Create assignment
+        var asgReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/classrooms/{classDto.Id}/assignments")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateAssignmentRequestDto
+            {
+                Title = "Bài tập bản nháp",
+                DueDate = DateTimeOffset.UtcNow.AddDays(2),
+            }), Encoding.UTF8, "application/json")
+        };
+        asgReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        var asgResp = await _client.SendAsync(asgReq);
+        var asgDto = JsonSerializer.Deserialize<AssignmentDto>(await asgResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        // Set status to draft
+        var updateReq = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/assignments/{asgDto.Id}")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new UpdateAssignmentRequestDto
+            {
+                Status = "draft"
+            }), Encoding.UTF8, "application/json")
+        };
+        updateReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        await _client.SendAsync(updateReq);
+
+        // 3. Learner attempts to submit -> 400 BadRequest
+        var submitReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/assignments/{asgDto.Id}/submissions")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateSubmissionRequestDto
+            {
+                Content = "Nộp bài cho bản nháp"
+            }), Encoding.UTF8, "application/json")
+        };
+        submitReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", learnerToken);
+        var submitResp = await _client.SendAsync(submitReq);
+        Assert.Equal(HttpStatusCode.BadRequest, submitResp.StatusCode);
+        var body = await submitResp.Content.ReadAsStringAsync();
+        Assert.Contains("bản nháp", body);
+    }
+
+    [Fact]
+    public async Task Teacher_Can_Grade_Closed_Assignment_Successfully_And_Cannot_Grade_Archived()
+    {
+        var (teacherToken, _, _) = await CreateAndLoginUserAsync("teacher", "Thầy Chấm Bài");
+        var (learnerToken, learnerId, learnerEmail) = await CreateAndLoginUserAsync("learner", "Học sinh Nộp");
+
+        // 1. Create class & enroll learner
+        var classReq = new HttpRequestMessage(HttpMethod.Post, "/api/v1/classrooms")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateClassroomRequestDto
+            {
+                Name = "Lớp Ôn Thi 12",
+                Grade = "12",
+            }), Encoding.UTF8, "application/json")
+        };
+        classReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        var classResp = await _client.SendAsync(classReq);
+        var classDto = JsonSerializer.Deserialize<ClassroomDto>(await classResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        var enrollReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/classrooms/{classDto.Id}/students")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new EnrollStudentRequestDto { StudentEmail = learnerEmail }), Encoding.UTF8, "application/json")
+        };
+        enrollReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        await _client.SendAsync(enrollReq);
+
+        // 2. Create assignment
+        var asgReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/classrooms/{classDto.Id}/assignments")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateAssignmentRequestDto
+            {
+                Title = "Bài thi thử",
+                DueDate = DateTimeOffset.UtcNow.AddDays(2),
+                MaxScore = 10.0
+            }), Encoding.UTF8, "application/json")
+        };
+        asgReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        var asgResp = await _client.SendAsync(asgReq);
+        var asgDto = JsonSerializer.Deserialize<AssignmentDto>(await asgResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        // 3. Learner submits while open
+        var submitReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/assignments/{asgDto.Id}/submissions")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateSubmissionRequestDto
+            {
+                Content = "Bài làm hoàn chỉnh"
+            }), Encoding.UTF8, "application/json")
+        };
+        submitReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", learnerToken);
+        var submitResp = await _client.SendAsync(submitReq);
+        Assert.Equal(HttpStatusCode.Created, submitResp.StatusCode);
+        var subDto = JsonSerializer.Deserialize<SubmissionDto>(await submitResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        // 4. Close the assignment
+        var closeReq = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/assignments/{asgDto.Id}")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new UpdateAssignmentRequestDto
+            {
+                Status = "closed"
+            }), Encoding.UTF8, "application/json")
+        };
+        closeReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        await _client.SendAsync(closeReq);
+
+        // 5. Teacher grades closed assignment -> 200 OK
+        var gradeClosedReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/assignments/{asgDto.Id}/submissions/{subDto.Id}/grade")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new GradeSubmissionRequestDto
+            {
+                Score = 8.5,
+                Feedback = "Tốt, bài đã đóng nhưng giáo viên vẫn chấm được"
+            }), Encoding.UTF8, "application/json")
+        };
+        gradeClosedReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        var gradeClosedResp = await _client.SendAsync(gradeClosedReq);
+        Assert.Equal(HttpStatusCode.OK, gradeClosedResp.StatusCode);
+        var graded = JsonSerializer.Deserialize<SubmissionDto>(await gradeClosedResp.Content.ReadAsStringAsync(), JsonOpts)!;
+        Assert.Equal(8.5, graded.Score);
+
+        // 6. Archive assignment
+        var archiveReq = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/assignments/{asgDto.Id}")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new UpdateAssignmentRequestDto
+            {
+                Status = "archived"
+            }), Encoding.UTF8, "application/json")
+        };
+        archiveReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        await _client.SendAsync(archiveReq);
+
+        // 7. Teacher attempts to grade archived assignment -> 400 BadRequest
+        var gradeArchivedReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/assignments/{asgDto.Id}/submissions/{subDto.Id}/grade")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new GradeSubmissionRequestDto
+            {
+                Score = 9.0,
+                Feedback = "Chấm khi đã archived"
+            }), Encoding.UTF8, "application/json")
+        };
+        gradeArchivedReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        var gradeArchivedResp = await _client.SendAsync(gradeArchivedReq);
+        Assert.Equal(HttpStatusCode.BadRequest, gradeArchivedResp.StatusCode);
+        var archivedBody = await gradeArchivedResp.Content.ReadAsStringAsync();
+        Assert.Contains("lưu trữ", archivedBody);
+    }
+
+    [Fact]
+    public async Task Delete_Assignment_Hard_Deletes_When_Empty_And_Archives_When_Submissions_Exist()
+    {
+        var (teacherToken, _, _) = await CreateAndLoginUserAsync("teacher", "Thầy Xóa Bài");
+        var (learnerToken, learnerId, learnerEmail) = await CreateAndLoginUserAsync("learner", "Học sinh Test Xóa");
+
+        // 1. Create class & enroll learner
+        var classReq = new HttpRequestMessage(HttpMethod.Post, "/api/v1/classrooms")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateClassroomRequestDto
+            {
+                Name = "Lớp Test Xóa",
+                Grade = "11",
+            }), Encoding.UTF8, "application/json")
+        };
+        classReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        var classResp = await _client.SendAsync(classReq);
+        var classDto = JsonSerializer.Deserialize<ClassroomDto>(await classResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        var enrollReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/classrooms/{classDto.Id}/students")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new EnrollStudentRequestDto { StudentEmail = learnerEmail }), Encoding.UTF8, "application/json")
+        };
+        enrollReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        await _client.SendAsync(enrollReq);
+
+        // 2. Create assignment A without submissions
+        var asgAReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/classrooms/{classDto.Id}/assignments")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateAssignmentRequestDto
+            {
+                Title = "Bài tập A không có submission",
+                DueDate = DateTimeOffset.UtcNow.AddDays(5),
+            }), Encoding.UTF8, "application/json")
+        };
+        asgAReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        var asgAResp = await _client.SendAsync(asgAReq);
+        var asgADto = JsonSerializer.Deserialize<AssignmentDto>(await asgAResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        // Delete assignment A -> 204 NoContent
+        var deleteAReq = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/assignments/{asgADto.Id}");
+        deleteAReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        var deleteAResp = await _client.SendAsync(deleteAReq);
+        Assert.Equal(HttpStatusCode.NoContent, deleteAResp.StatusCode);
+
+        // Verify assignment A is gone -> 404
+        var getAReq = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/assignments/{asgADto.Id}");
+        getAReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        var getAResp = await _client.SendAsync(getAReq);
+        Assert.Equal(HttpStatusCode.NotFound, getAResp.StatusCode);
+
+        // 3. Create assignment B with submission
+        var asgBReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/classrooms/{classDto.Id}/assignments")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateAssignmentRequestDto
+            {
+                Title = "Bài tập B có submission",
+                DueDate = DateTimeOffset.UtcNow.AddDays(5),
+            }), Encoding.UTF8, "application/json")
+        };
+        asgBReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        var asgBResp = await _client.SendAsync(asgBReq);
+        var asgBDto = JsonSerializer.Deserialize<AssignmentDto>(await asgBResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        // Submit to B
+        var submitBReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/assignments/{asgBDto.Id}/submissions")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateSubmissionRequestDto
+            {
+                Content = "Bài làm B"
+            }), Encoding.UTF8, "application/json")
+        };
+        submitBReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", learnerToken);
+        await _client.SendAsync(submitBReq);
+
+        // Delete assignment B -> 200 OK (soft-archived)
+        var deleteBReq = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/assignments/{asgBDto.Id}");
+        deleteBReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        var deleteBResp = await _client.SendAsync(deleteBReq);
+        Assert.Equal(HttpStatusCode.OK, deleteBResp.StatusCode);
+
+        // Verify B still exists and is archived
+        var getBReq = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/assignments/{asgBDto.Id}");
+        getBReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        var getBResp = await _client.SendAsync(getBReq);
+        Assert.Equal(HttpStatusCode.OK, getBResp.StatusCode);
+        var verifiedB = JsonSerializer.Deserialize<AssignmentDto>(await getBResp.Content.ReadAsStringAsync(), JsonOpts)!;
+        Assert.Equal("archived", verifiedB.Status);
+    }
+
+    [Fact]
+    public async Task Delete_Classroom_Rejects_When_Students_Enrolled_And_Archives_When_Assignments_Exist()
+    {
+        var (teacherToken, _, _) = await CreateAndLoginUserAsync("teacher", "Thầy Xóa Lớp");
+        var (learnerToken, learnerId, learnerEmail) = await CreateAndLoginUserAsync("learner", "Học sinh Lớp Xóa");
+
+        // 1. Create class with enrolled student
+        var classReq = new HttpRequestMessage(HttpMethod.Post, "/api/v1/classrooms")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateClassroomRequestDto
+            {
+                Name = "Lớp có học sinh",
+                Grade = "10",
+            }), Encoding.UTF8, "application/json")
+        };
+        classReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        var classResp = await _client.SendAsync(classReq);
+        var classDto = JsonSerializer.Deserialize<ClassroomDto>(await classResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        var enrollReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/classrooms/{classDto.Id}/students")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new EnrollStudentRequestDto { StudentEmail = learnerEmail }), Encoding.UTF8, "application/json")
+        };
+        enrollReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        await _client.SendAsync(enrollReq);
+
+        // Attempt to delete classroom with enrolled students -> 400 BadRequest
+        var deleteReq1 = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/classrooms/{classDto.Id}");
+        deleteReq1.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        var deleteResp1 = await _client.SendAsync(deleteReq1);
+        Assert.Equal(HttpStatusCode.BadRequest, deleteResp1.StatusCode);
+        var body1 = await deleteResp1.Content.ReadAsStringAsync();
+        Assert.Contains("học viên", body1);
+
+        // 2. Create class with no students, but with an assignment
+        var class2Req = new HttpRequestMessage(HttpMethod.Post, "/api/v1/classrooms")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateClassroomRequestDto
+            {
+                Name = "Lớp có bài tập không có học sinh",
+                Grade = "11",
+            }), Encoding.UTF8, "application/json")
+        };
+        class2Req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        var class2Resp = await _client.SendAsync(class2Req);
+        var class2Dto = JsonSerializer.Deserialize<ClassroomDto>(await class2Resp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        var asgReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/classrooms/{class2Dto.Id}/assignments")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateAssignmentRequestDto
+            {
+                Title = "Bài tập độc lập",
+                DueDate = DateTimeOffset.UtcNow.AddDays(5),
+            }), Encoding.UTF8, "application/json")
+        };
+        asgReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        await _client.SendAsync(asgReq);
+
+        // Delete class 2 -> 200 OK (soft-archived)
+        var deleteReq2 = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/classrooms/{class2Dto.Id}");
+        deleteReq2.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        var deleteResp2 = await _client.SendAsync(deleteReq2);
+        Assert.Equal(HttpStatusCode.OK, deleteResp2.StatusCode);
+
+        // 3. Create completely empty class -> 204 NoContent
+        var emptyClassReq = new HttpRequestMessage(HttpMethod.Post, "/api/v1/classrooms")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateClassroomRequestDto
+            {
+                Name = "Lớp trống rỗng",
+                Grade = "12",
+            }), Encoding.UTF8, "application/json")
+        };
+        emptyClassReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        var emptyClassResp = await _client.SendAsync(emptyClassReq);
+        var emptyClassDto = JsonSerializer.Deserialize<ClassroomDto>(await emptyClassResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        var deleteEmptyReq = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/classrooms/{emptyClassDto.Id}");
+        deleteEmptyReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        var deleteEmptyResp = await _client.SendAsync(deleteEmptyReq);
+        Assert.Equal(HttpStatusCode.NoContent, deleteEmptyResp.StatusCode);
+    }
+
+    [Fact]
+    public async Task GradeSubmission_DerivesMastery_From_Classroom_Grade_And_Subject()
+    {
+        var (teacherToken, _, _) = await CreateAndLoginUserAsync("teacher", "Thầy Giáo Toán 10");
+        var (learnerToken, learnerId, learnerEmail) = await CreateAndLoginUserAsync("learner", "Học sinh Lớp 10");
+
+        // 1. Create a Grade 10 Math classroom
+        var classReq = new HttpRequestMessage(HttpMethod.Post, "/api/v1/classrooms")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateClassroomRequestDto
+            {
+                Name = "Lớp 10A1 Chuyên Toán",
+                Grade = "10",
+                Subject = "Toán học"
+            }), Encoding.UTF8, "application/json")
+        };
+        classReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        var classResp = await _client.SendAsync(classReq);
+        var classDto = JsonSerializer.Deserialize<ClassroomDto>(await classResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        // Enroll learner
+        var enrollReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/classrooms/{classDto.Id}/students")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new EnrollStudentRequestDto { StudentEmail = learnerEmail }), Encoding.UTF8, "application/json")
+        };
+        enrollReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        await _client.SendAsync(enrollReq);
+
+        // 2. Create Grade 10 assignment
+        var asgReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/classrooms/{classDto.Id}/assignments")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateAssignmentRequestDto
+            {
+                Title = "Bài tập Hàm số bậc hai",
+                DueDate = DateTimeOffset.UtcNow.AddDays(3),
+                MaxScore = 10.0
+            }), Encoding.UTF8, "application/json")
+        };
+        asgReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        var asgResp = await _client.SendAsync(asgReq);
+        var asgDto = JsonSerializer.Deserialize<AssignmentDto>(await asgResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        // 3. Learner submits assignment
+        var submitReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/assignments/{asgDto.Id}/submissions")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateSubmissionRequestDto
+            {
+                Content = "Em nộp bài tập hàm số bậc hai đầy đủ các bước"
+            }), Encoding.UTF8, "application/json")
+        };
+        submitReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", learnerToken);
+        var submitResp = await _client.SendAsync(submitReq);
+        var subDto = JsonSerializer.Deserialize<SubmissionDto>(await submitResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        // 4. Teacher grades assignment with 9.0
+        var gradeReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/assignments/{asgDto.Id}/submissions/{subDto.Id}/grade")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new GradeSubmissionRequestDto
+            {
+                Score = 9.0,
+                Feedback = "Lời giải mạch lạc, vẽ bảng biến thiên chính xác."
+            }), Encoding.UTF8, "application/json")
+        };
+        gradeReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherToken);
+        var gradeResp = await _client.SendAsync(gradeReq);
+        Assert.Equal(HttpStatusCode.OK, gradeResp.StatusCode);
+
+        // 5. Verify mastery record in database: MUST be attributed to sub_math10, NOT sub_math12!
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            var mastery = await db.StudentTopicMasteries
+                .FirstOrDefaultAsync(m => m.UserId == learnerId && m.TopicName.Contains("Hàm số bậc hai"));
+
+            Assert.NotNull(mastery);
+            Assert.Equal("sub_math10", mastery.SubjectId);
+            Assert.NotEqual("sub_math12", mastery.SubjectId);
+            Assert.Equal(90.0, mastery.MasteryScore);
+            Assert.True(mastery.Status == "proficient" || mastery.Status == "mastered");
+        }
+    }
+
+    [Fact]
+    public async Task Classroom_TransferStudent_UpdatesEnrollmentInDatabase_And_ReflectsAcrossClasses()
+    {
+        var (teacherToken, teacherId, _) = await CreateAndLoginUserAsync("teacher", "Thầy Chủ Nhiệm Chuyển Lớp");
+        var (learnerToken, learnerId, learnerEmail) = await CreateAndLoginUserAsync("student", "Học Sinh Chuyển Lớp");
+
+        // 1. Create Class A and Class B
+        var classAResp = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/classrooms")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateClassroomRequestDto
+            {
+                Name = "Lớp 11A1 - Xuất Phát",
+                Grade = "11",
+                Subject = "Toán"
+            }), Encoding.UTF8, "application/json"),
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", teacherToken) }
+        });
+        Assert.Equal(HttpStatusCode.Created, classAResp.StatusCode);
+        var classA = JsonSerializer.Deserialize<ClassroomDto>(await classAResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        var classBResp = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/classrooms")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateClassroomRequestDto
+            {
+                Name = "Lớp 11A2 - Đích Đến",
+                Grade = "11",
+                Subject = "Toán"
+            }), Encoding.UTF8, "application/json"),
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", teacherToken) }
+        });
+        Assert.Equal(HttpStatusCode.Created, classBResp.StatusCode);
+        var classB = JsonSerializer.Deserialize<ClassroomDto>(await classBResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        // 2. Enroll student into Class A
+        var enrollReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/classrooms/{classA.Id}/students")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new EnrollStudentRequestDto
+            {
+                StudentEmail = learnerEmail
+            }), Encoding.UTF8, "application/json"),
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", teacherToken) }
+        };
+        var enrollResp = await _client.SendAsync(enrollReq);
+        Assert.True(enrollResp.StatusCode == HttpStatusCode.Created || enrollResp.StatusCode == HttpStatusCode.OK);
+
+        // Verify student is in Class A
+        var getStudentsAReq = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/classrooms/{classA.Id}/students")
+        {
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", teacherToken) }
+        };
+        var studentsAResp = await _client.SendAsync(getStudentsAReq);
+        var studentsA = JsonSerializer.Deserialize<List<ClassroomStudentDto>>(await studentsAResp.Content.ReadAsStringAsync(), JsonOpts)!;
+        Assert.Contains(studentsA, s => s.StudentId == learnerId);
+
+        // 3. Call Transfer Student API: move from Class A to Class B
+        var transferReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/classrooms/{classB.Id}/transfer-student")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new TransferStudentRequestDto
+            {
+                StudentId = learnerId,
+                SourceClassroomId = classA.Id
+            }), Encoding.UTF8, "application/json"),
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", teacherToken) }
+        };
+        var transferResp = await _client.SendAsync(transferReq);
+        Assert.Equal(HttpStatusCode.OK, transferResp.StatusCode);
+
+        // 4. Verify Class A NO LONGER contains the student
+        var checkAReq = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/classrooms/{classA.Id}/students")
+        {
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", teacherToken) }
+        };
+        var checkAResp = await _client.SendAsync(checkAReq);
+        var refreshedStudentsA = JsonSerializer.Deserialize<List<ClassroomStudentDto>>(await checkAResp.Content.ReadAsStringAsync(), JsonOpts)!;
+        Assert.DoesNotContain(refreshedStudentsA, s => s.StudentId == learnerId);
+
+        // 5. Verify Class B DOES contain the student
+        var checkBReq = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/classrooms/{classB.Id}/students")
+        {
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", teacherToken) }
+        };
+        var checkBResp = await _client.SendAsync(checkBReq);
+        var refreshedStudentsB = JsonSerializer.Deserialize<List<ClassroomStudentDto>>(await checkBResp.Content.ReadAsStringAsync(), JsonOpts)!;
+        Assert.Contains(refreshedStudentsB, s => s.StudentId == learnerId);
+
+        // 6. Direct Database Verification
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            var inA = await db.ClassroomStudents.AnyAsync(cs => cs.ClassroomId == classA.Id && cs.StudentId == learnerId);
+            var inB = await db.ClassroomStudents.AnyAsync(cs => cs.ClassroomId == classB.Id && cs.StudentId == learnerId);
+            Assert.False(inA, "Student must not be enrolled in Class A after transfer");
+            Assert.True(inB, "Student must be enrolled in Class B after transfer");
+        }
+    }
+
+    [Fact]
+    public async Task Classroom_TransferStudent_WhenTeacherDoesNotOwnSourceClassroom_ReturnsForbidden()
+    {
+        // Issue 1: Teacher attempting to transfer student from a class owned by another teacher without admin rights
+        var (teacher1Token, _, _) = await CreateAndLoginUserAsync("teacher", "Thầy Giáo Lớp Nguồn");
+        var (teacher2Token, _, _) = await CreateAndLoginUserAsync("teacher", "Thầy Giáo Lớp Đích");
+        var (_, learnerId, learnerEmail) = await CreateAndLoginUserAsync("student", "Học Sinh Chuyển Lớp Auth");
+
+        // Teacher 1 creates Class A
+        var classAResp = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/classrooms")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateClassroomRequestDto
+            {
+                Name = "Lớp 10A1 Thầy 1",
+                Grade = "10",
+                Subject = "Toán"
+            }), Encoding.UTF8, "application/json"),
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", teacher1Token) }
+        });
+        Assert.Equal(HttpStatusCode.Created, classAResp.StatusCode);
+        var classA = JsonSerializer.Deserialize<ClassroomDto>(await classAResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        // Teacher 2 creates Class B
+        var classBResp = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/classrooms")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateClassroomRequestDto
+            {
+                Name = "Lớp 10A2 Thầy 2",
+                Grade = "10",
+                Subject = "Toán"
+            }), Encoding.UTF8, "application/json"),
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", teacher2Token) }
+        });
+        Assert.Equal(HttpStatusCode.Created, classBResp.StatusCode);
+        var classB = JsonSerializer.Deserialize<ClassroomDto>(await classBResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        // Enroll student into Class A (by Teacher 1)
+        var enrollResp = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, $"/api/v1/classrooms/{classA.Id}/students")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new EnrollStudentRequestDto
+            {
+                StudentEmail = learnerEmail
+            }), Encoding.UTF8, "application/json"),
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", teacher1Token) }
+        });
+        Assert.True(enrollResp.StatusCode == HttpStatusCode.Created || enrollResp.StatusCode == HttpStatusCode.OK);
+
+        // Teacher 2 attempts to transfer student from Class A into Class B -> MUST RETURN 403 Forbidden!
+        var transferReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/classrooms/{classB.Id}/transfer-student")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new TransferStudentRequestDto
+            {
+                StudentId = learnerId,
+                SourceClassroomId = classA.Id
+            }), Encoding.UTF8, "application/json"),
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", teacher2Token) }
+        };
+        var transferResp = await _client.SendAsync(transferReq);
+        Assert.Equal(HttpStatusCode.Forbidden, transferResp.StatusCode);
+
+        // Verify student is still in Class A and not in Class B
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            var inA = await db.ClassroomStudents.AnyAsync(cs => cs.ClassroomId == classA.Id && cs.StudentId == learnerId);
+            var inB = await db.ClassroomStudents.AnyAsync(cs => cs.ClassroomId == classB.Id && cs.StudentId == learnerId);
+            Assert.True(inA, "Student must remain in Class A when transfer is forbidden");
+            Assert.False(inB, "Student must not be in Class B when transfer fails");
+        }
+    }
+
+    [Fact]
+    public async Task Classroom_TransferStudent_WhenSourceClassroomIdOmitted_ReturnsBadRequest()
+    {
+        // Issue 1: Omission of SourceClassroomId must fail-closed with 400 Bad Request
+        var (teacherToken, _, _) = await CreateAndLoginUserAsync("teacher", "Thầy Validate Source");
+        var (_, learnerId, _) = await CreateAndLoginUserAsync("student", "Học Sinh Validate Source");
+
+        var classResp = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/classrooms")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateClassroomRequestDto
+            {
+                Name = "Lớp Test Validate Source",
+                Grade = "11",
+                Subject = "Toán"
+            }), Encoding.UTF8, "application/json"),
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", teacherToken) }
+        });
+        var classObj = JsonSerializer.Deserialize<ClassroomDto>(await classResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        // Omit SourceClassroomId
+        var transferReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/classrooms/{classObj.Id}/transfer-student")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new TransferStudentRequestDto
+            {
+                StudentId = learnerId,
+                SourceClassroomId = "" // Empty / missing!
+            }), Encoding.UTF8, "application/json"),
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", teacherToken) }
+        };
+        var transferResp = await _client.SendAsync(transferReq);
+        Assert.Equal(HttpStatusCode.BadRequest, transferResp.StatusCode);
+    }
+
+    [Fact]
+    public async Task Classroom_TransferStudent_DoesNotRemoveUnrelatedClassEnrollments()
+    {
+        // Issue 1: Transfer must ONLY remove enrollment from SourceClassroomId, NOT all other enrollments
+        var (teacherToken, _, _) = await CreateAndLoginUserAsync("teacher", "Thầy Nhiều Lớp");
+        var (_, learnerId, learnerEmail) = await CreateAndLoginUserAsync("student", "Học Sinh Nhiều Lớp");
+
+        // Create Class A, Class B, Class C
+        var makeClass = async (string name) =>
+        {
+            var res = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/classrooms")
+            {
+                Content = new StringContent(JsonSerializer.Serialize(new CreateClassroomRequestDto
+                {
+                    Name = name,
+                    Grade = "11",
+                    Subject = "Toán"
+                }), Encoding.UTF8, "application/json"),
+                Headers = { Authorization = new AuthenticationHeaderValue("Bearer", teacherToken) }
+            });
+            return JsonSerializer.Deserialize<ClassroomDto>(await res.Content.ReadAsStringAsync(), JsonOpts)!;
+        };
+
+        var classA = await makeClass("Lớp Nguồn A");
+        var classB = await makeClass("Lớp Đích B");
+        var classC = await makeClass("Lớp Không Liên Quan C");
+
+        // Enroll in Class A and Class C
+        var enroll = async (string classId) =>
+        {
+            await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, $"/api/v1/classrooms/{classId}/students")
+            {
+                Content = new StringContent(JsonSerializer.Serialize(new EnrollStudentRequestDto
+                {
+                    StudentEmail = learnerEmail
+                }), Encoding.UTF8, "application/json"),
+                Headers = { Authorization = new AuthenticationHeaderValue("Bearer", teacherToken) }
+            });
+        };
+        await enroll(classA.Id);
+        await enroll(classC.Id);
+
+        // Transfer student from Class A -> Class B
+        var transferReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/classrooms/{classB.Id}/transfer-student")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new TransferStudentRequestDto
+            {
+                StudentId = learnerId,
+                SourceClassroomId = classA.Id
+            }), Encoding.UTF8, "application/json"),
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", teacherToken) }
+        };
+        var transferResp = await _client.SendAsync(transferReq);
+        Assert.Equal(HttpStatusCode.OK, transferResp.StatusCode);
+
+        // Direct DB Verification
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            var inA = await db.ClassroomStudents.AnyAsync(cs => cs.ClassroomId == classA.Id && cs.StudentId == learnerId);
+            var inB = await db.ClassroomStudents.AnyAsync(cs => cs.ClassroomId == classB.Id && cs.StudentId == learnerId);
+            var inC = await db.ClassroomStudents.AnyAsync(cs => cs.ClassroomId == classC.Id && cs.StudentId == learnerId);
+
+            Assert.False(inA, "Enrollment in source Class A must be removed");
+            Assert.True(inB, "Enrollment in target Class B must exist");
+            Assert.True(inC, "Enrollment in unrelated Class C MUST BE PRESERVED and NOT removed");
+        }
+    }
 }
+
 

@@ -105,6 +105,9 @@ public class StudyAIApiFixture : WebApplicationFactory<Program>
         var dbConnStr = db.Database.GetDbConnection().ConnectionString;
         DatabaseSafetyGuard.EnsureSafeTestDatabase(dbConnStr, "StudyAIApiFixture.CreateHost (DbContext)");
 
+        // Apply any pending migrations automatically to the verified test database
+        db.Database.Migrate();
+
         // 5. Ensure dedicated deterministic test users for integration tests on test database
         var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
 

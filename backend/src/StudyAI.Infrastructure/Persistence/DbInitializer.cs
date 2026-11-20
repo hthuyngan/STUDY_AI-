@@ -35,9 +35,39 @@ public static class DbInitializer
             await context.SaveChangesAsync();
         }
 
-        // 2. Seed Content Subject (Toán 12)
+        // 2. Seed Content Subjects (Toán 10, Toán 11, Toán 12 theo chuẩn GDPT 2018)
+        var math10 = await context.ContentSubjects.FirstOrDefaultAsync(s => s.Id == "sub_math10" || s.Code == "MATH10");
+        if (math10 == null)
+        {
+            context.ContentSubjects.Add(new ContentSubject
+            {
+                Id = "sub_math10",
+                Name = "Toán 10",
+                Code = "MATH10",
+                Grade = "10",
+                Description = "Chương trình Toán học Lớp 10 theo chuẩn GDPT 2018",
+                IsActive = true,
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+        }
+
+        var math11 = await context.ContentSubjects.FirstOrDefaultAsync(s => s.Id == "sub_math11" || s.Code == "MATH11");
+        if (math11 == null)
+        {
+            context.ContentSubjects.Add(new ContentSubject
+            {
+                Id = "sub_math11",
+                Name = "Toán 11",
+                Code = "MATH11",
+                Grade = "11",
+                Description = "Chương trình Toán học Lớp 11 theo chuẩn GDPT 2018",
+                IsActive = true,
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+        }
+
         var subjectCode = "MATH12";
-        var existingSubject = await context.ContentSubjects.FirstOrDefaultAsync(s => s.Code == subjectCode);
+        var existingSubject = await context.ContentSubjects.FirstOrDefaultAsync(s => s.Code == subjectCode || s.Id == "sub_math12");
         if (existingSubject == null)
         {
             var subject = new ContentSubject
