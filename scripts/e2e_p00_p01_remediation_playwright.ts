@@ -48,7 +48,9 @@ interface ScenarioResult {
 }
 
 async function run() {
-  console.log('🚀 [E2E Playwright] Starting P00/P01 Remediation Verification Suite...')
+  console.log('🚀 [UI Smoke Tests with Mocked APIs] Starting P00/P01 Client UI Verification...')
+  console.log('   Notice: This suite verifies frontend rendering, route navigation, and client fail-closed behavior using mocked APIs.')
+  console.log('   Real backend-to-database E2E validation is executed by LiveE2ERemediationScenariosTests.cs against StudyAIDb_E2E.')
   console.log(`Timestamp: ${new Date().toISOString()}`)
 
   const results: ScenarioResult[] = []
@@ -367,10 +369,10 @@ async function run() {
     // Summary Output
     // ──────────────────────────────────────────────────────────────────────────
     console.log('\n======================================================')
-    console.log('           PLAYWRIGHT E2E EXECUTION REPORT            ')
+    console.log('       PLAYWRIGHT UI SMOKE TEST REPORT (MOCKED API)   ')
     console.log('======================================================')
     results.forEach((r) => {
-      console.log(`[${r.status}] Scenario ${r.id}: ${r.title} (${r.durationMs}ms)`)
+      console.log(`[${r.status}] UI Smoke Scenario ${r.id}: ${r.title} (${r.durationMs}ms)`)
       console.log(`       Details: ${r.details}`)
     })
     console.log('======================================================\n')
