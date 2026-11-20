@@ -78,7 +78,7 @@ jobs:
           VITE_BASE_URL=/ VITE_BACKEND_URL=http://127.0.0.1:8000 bun run build
 
       - name: Install headless Chromium
-        run: bunx playwright install --with-deps chromium
+        run: bunx playwright install chromium
 
       - name: Start real API and real Vite preview
         shell: bash
