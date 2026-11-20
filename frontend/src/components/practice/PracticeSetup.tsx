@@ -225,6 +225,7 @@ export const PracticeSetup: React.FC<PracticeSetupProps> = ({
           </label>
           <select
             className="setup-select"
+            data-testid="question-type-select"
             value={questionType}
             onChange={(e) => setQuestionType(e.target.value as QuestionType | '')}
           >
@@ -314,6 +315,7 @@ export const PracticeSetup: React.FC<PracticeSetupProps> = ({
           <button
             type="button"
             className="setup-start-btn"
+            data-testid="practice-start-btn"
             disabled={loadingCount || !!countError || !availableCount || availableCount === 0}
             onClick={handleStart}
           >

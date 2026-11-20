@@ -275,15 +275,18 @@ async function browserPracticeFlowGrades10_11_12(browser: Browser) {
 
     // 1. Verify zero-match filter disables start button
     // Select short_answer type (0 questions exist in sub_math10)
-    const typeSelect = page.locator('.setup-form-grid select').nth(4) // Question Type select
+    const typeSelect = page.locator('select[data-testid="question-type-select"], .setup-form-grid select:nth-child(5)')
     await typeSelect.selectOption('short_answer')
     await page.locator('.no-question-alert').waitFor({ state: 'visible', timeout: 15000 })
-    const startBtn = page.locator('.setup-start-btn')
+    const startBtn = page.locator('button[data-testid="practice-start-btn"], .setup-start-btn')
+    await startBtn.filter({ has: page.locator(':scope') }).waitFor({ state: 'visible', timeout: 15000 })
+    await page.locator('button[data-testid="practice-start-btn"]:disabled, .setup-start-btn:disabled').waitFor({ state: 'attached', timeout: 15000 })
     assert.ok(await startBtn.isDisabled(), 'Start button must be disabled when 0 questions match filter')
 
     // 2. Select valid filters: all types, Grade 10
     await typeSelect.selectOption('')
     await page.locator('.available-count-box').filter({ hasText: '2 câu hỏi' }).waitFor({ state: 'visible', timeout: 15000 })
+    await page.locator('button[data-testid="practice-start-btn"]:not(:disabled), .setup-start-btn:not(:disabled)').waitFor({ state: 'attached', timeout: 15000 })
     assert.ok(await startBtn.isEnabled(), 'Start button must be enabled when matching questions exist')
 
     // 3. Start practice session
