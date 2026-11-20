@@ -46,22 +46,22 @@ public class PracticeController : ControllerBase
     // 1. PRACTICE & EXAM SESSION ENGINE
     // ─────────────────────────────────────────────────────────────────────────────
 
-    [HttpGet("question-count")]
-    public async Task<IActionResult> GetQuestionCount(
-        [FromQuery] string subjectId,
-        [FromQuery] string? chapterId = null,
-        [FromQuery] string? lessonId = null,
-        [FromQuery] string? difficulty = null)
+    private IQueryable<ContentQuestion> ApplyQuestionFilters(
+        IQueryable<ContentQuestion> query,
+        string subjectId,
+        string? chapterId,
+        string? lessonId,
+        string? difficulty,
+        string? skillId,
+        string? questionType,
+        string? grade)
     {
-        if (string.IsNullOrWhiteSpace(subjectId))
-        {
-            return BadRequest(new { detail = "Mã môn học (subjectId) là bắt buộc." });
-        }
-
-        var query = _db.ContentQuestions.AsNoTracking()
-            .Where(q => !q.IsDeleted && q.Status == "published" && !string.IsNullOrWhiteSpace(q.CorrectAnswer));
-
         query = query.Where(q => q.SubjectId == subjectId);
+
+        if (!string.IsNullOrWhiteSpace(grade))
+        {
+            query = query.Where(q => q.Grade == grade);
+        }
 
         if (!string.IsNullOrWhiteSpace(chapterId))
         {
@@ -80,9 +80,65 @@ public class PracticeController : ControllerBase
                 (diff == "easy" && q.Difficulty == "nhan_biet") ||
                 (diff == "medium" && q.Difficulty == "thong_hieu") ||
                 (diff == "hard" && q.Difficulty == "van_dung") ||
-                (diff == "very-hard" && q.Difficulty == "van_dung_cao"));
+                (diff == "very-hard" && q.Difficulty == "van_dung_cao") ||
+                (diff == "very_hard" && q.Difficulty == "van_dung_cao") ||
+                (diff == "nhan_biet" && q.Difficulty == "easy") ||
+                (diff == "thong_hieu" && q.Difficulty == "medium") ||
+                (diff == "van_dung" && q.Difficulty == "hard") ||
+                (diff == "van_dung_cao" && (q.Difficulty == "very-hard" || q.Difficulty == "very_hard")));
         }
 
+        if (!string.IsNullOrWhiteSpace(questionType) && questionType != "all")
+        {
+            var t = questionType.Trim().ToLowerInvariant().Replace("_", "-");
+            if (t == "multiple-choice" || t == "mcq")
+            {
+                query = query.Where(q => q.Type == "multiple-choice" || q.Type == "multiple_choice" || q.Type == "multiple-select");
+            }
+            else if (t.Contains("true-false"))
+            {
+                query = query.Where(q => q.Type == "true-false" || q.Type == "true_false" || q.Type == "true_false_group");
+            }
+            else if (t.Contains("short-answer") || t == "short")
+            {
+                query = query.Where(q => q.Type == "short-answer" || q.Type == "short_answer");
+            }
+            else
+            {
+                query = query.Where(q => q.Type == questionType || q.Type == t);
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(skillId))
+        {
+            var skill = skillId.Trim();
+            query = query.Where(q => (q.Topic != null && q.Topic.Contains(skill)) ||
+                                     (q.Code != null && q.Code.Contains(skill)) ||
+                                     (q.MetadataJson != null && q.MetadataJson.Contains(skill)));
+        }
+
+        return query;
+    }
+
+    [HttpGet("question-count")]
+    public async Task<IActionResult> GetQuestionCount(
+        [FromQuery] string subjectId,
+        [FromQuery] string? chapterId = null,
+        [FromQuery] string? lessonId = null,
+        [FromQuery] string? difficulty = null,
+        [FromQuery] string? skillId = null,
+        [FromQuery] string? questionType = null,
+        [FromQuery] string? grade = null)
+    {
+        if (string.IsNullOrWhiteSpace(subjectId))
+        {
+            return BadRequest(new { detail = "Mã môn học (subjectId) là bắt buộc." });
+        }
+
+        var baseQuery = _db.ContentQuestions.AsNoTracking()
+            .Where(q => !q.IsDeleted && q.Status == "published" && !string.IsNullOrWhiteSpace(q.CorrectAnswer));
+
+        var query = ApplyQuestionFilters(baseQuery, subjectId, chapterId, lessonId, difficulty, skillId, questionType, grade);
         var count = await query.CountAsync();
         return Ok(new { count });
     }
@@ -96,34 +152,22 @@ public class PracticeController : ControllerBase
         }
 
         // Query active, published questions matching criteria with verified correct answers
-        var query = _db.ContentQuestions.AsNoTracking()
+        var baseQuery = _db.ContentQuestions.AsNoTracking()
             .Where(q => !q.IsDeleted && q.Status == "published" && !string.IsNullOrWhiteSpace(q.CorrectAnswer));
 
-        // Subject filter
-        query = query.Where(q => q.SubjectId == request.SubjectId);
+        var skillId = !string.IsNullOrWhiteSpace(request.SkillId)
+            ? request.SkillId
+            : (request.SkillIds != null && request.SkillIds.Count > 0 ? request.SkillIds[0] : null);
 
-        // Optional chapter filter
-        if (!string.IsNullOrWhiteSpace(request.ChapterId))
-        {
-            query = query.Where(q => q.ChapterId == request.ChapterId);
-        }
-
-        // Optional lesson filter
-        if (!string.IsNullOrWhiteSpace(request.LessonId))
-        {
-            query = query.Where(q => q.LessonId == request.LessonId);
-        }
-
-        // Optional difficulty filter
-        if (!string.IsNullOrWhiteSpace(request.Difficulty) && request.Difficulty != "all")
-        {
-            var diff = request.Difficulty.Trim().ToLowerInvariant();
-            query = query.Where(q => q.Difficulty == diff ||
-                (diff == "easy" && q.Difficulty == "nhan_biet") ||
-                (diff == "medium" && q.Difficulty == "thong_hieu") ||
-                (diff == "hard" && q.Difficulty == "van_dung") ||
-                (diff == "very-hard" && q.Difficulty == "van_dung_cao"));
-        }
+        var query = ApplyQuestionFilters(
+            baseQuery,
+            request.SubjectId,
+            request.ChapterId,
+            request.LessonId,
+            request.Difficulty,
+            skillId,
+            request.QuestionType,
+            request.Grade);
 
         var totalAvailable = await query.CountAsync();
         if (totalAvailable == 0)

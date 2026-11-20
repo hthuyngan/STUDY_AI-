@@ -349,5 +349,149 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
         Assert.Equal(testSubjectId, matched.GetProperty("subjectId").GetString());
         Assert.Equal("completed", matched.GetProperty("completionStatus").GetString());
     }
+
+    [Fact]
+    public async Task GetQuestionCount_And_CreateSession_UseExactSamePredicate_Including_Skill_Type_Difficulty()
+    {
+        var token = await GetLearnerTokenAsync();
+
+        // 1. Filter sub_math10 with skillId = "Mệnh đề toán học" -> 1 question
+        var countMsg1 = new HttpRequestMessage(HttpMethod.Get, "/api/v1/practice/question-count?subjectId=sub_math10&skillId=M%E1%BB%87nh%20%C4%91%E1%BB%81%20to%C3%A1n%20h%E1%BB%8Dc");
+        countMsg1.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var resp1 = await _client.SendAsync(countMsg1);
+        Assert.Equal(HttpStatusCode.OK, resp1.StatusCode);
+        var body1 = await resp1.Content.ReadAsStringAsync();
+        using var doc1 = JsonDocument.Parse(body1);
+        Assert.Equal(1, doc1.RootElement.GetProperty("count").GetInt32());
+
+        // 2. Filter sub_math10 with non-existent skill -> count = 0
+        var countMsg2 = new HttpRequestMessage(HttpMethod.Get, "/api/v1/practice/question-count?subjectId=sub_math10&skillId=NON_EXISTENT_SKILL_99");
+        countMsg2.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var resp2 = await _client.SendAsync(countMsg2);
+        Assert.Equal(HttpStatusCode.OK, resp2.StatusCode);
+        var body2 = await resp2.Content.ReadAsStringAsync();
+        using var doc2 = JsonDocument.Parse(body2);
+        Assert.Equal(0, doc2.RootElement.GetProperty("count").GetInt32());
+
+        // 3. CreateSession with non-existent skill -> MUST return 404 NotFound
+        var createMsg = new HttpRequestMessage(HttpMethod.Post, "/api/v1/practice/sessions")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreatePracticeSessionRequest
+            {
+                SubjectId = "sub_math10",
+                SkillId = "NON_EXISTENT_SKILL_99",
+                QuestionCount = 5
+            }), Encoding.UTF8, MediaTypeHeaderValue.Parse("application/json"))
+        };
+        createMsg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var createResp = await _client.SendAsync(createMsg);
+        Assert.Equal(HttpStatusCode.NotFound, createResp.StatusCode);
+
+        // 4. QuestionType filter: multiple-choice on sub_math10 -> 2 questions
+        var countMsg3 = new HttpRequestMessage(HttpMethod.Get, "/api/v1/practice/question-count?subjectId=sub_math10&questionType=multiple_choice");
+        countMsg3.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var resp3 = await _client.SendAsync(countMsg3);
+        Assert.Equal(HttpStatusCode.OK, resp3.StatusCode);
+        var body3 = await resp3.Content.ReadAsStringAsync();
+        using var doc3 = JsonDocument.Parse(body3);
+        Assert.Equal(2, doc3.RootElement.GetProperty("count").GetInt32());
+
+        // 5. QuestionType filter: short_answer on sub_math10 -> 0 questions
+        var countMsg4 = new HttpRequestMessage(HttpMethod.Get, "/api/v1/practice/question-count?subjectId=sub_math10&questionType=short_answer");
+        countMsg4.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var resp4 = await _client.SendAsync(countMsg4);
+        Assert.Equal(HttpStatusCode.OK, resp4.StatusCode);
+        var body4 = await resp4.Content.ReadAsStringAsync();
+        using var doc4 = JsonDocument.Parse(body4);
+        Assert.Equal(0, doc4.RootElement.GetProperty("count").GetInt32());
+    }
+
+    [Fact]
+    public async Task AssessmentAttempt_Completed_IsImmutable_And_CannotChangeLessonId()
+    {
+        var token = await GetLearnerTokenAsync();
+        var attemptId = $"att_immut_{Guid.NewGuid():N}";
+
+        // 1. Create valid incomplete attempt
+        var createReq = new HttpRequestMessage(HttpMethod.Post, "/api/v1/me/assessment-attempts")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new AssessmentAttemptCreateDto
+            {
+                Id = attemptId,
+                LessonId = "les_math12_c1_b1",
+                SubjectId = "sub_math12",
+                CompletionStatus = "incomplete",
+                StartedAt = DateTimeOffset.UtcNow
+            }), Encoding.UTF8, MediaTypeHeaderValue.Parse("application/json"))
+        };
+        createReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var createResp = await _client.SendAsync(createReq);
+        Assert.Equal(HttpStatusCode.Created, createResp.StatusCode);
+
+        // 3. Try to change lessonId of existing attempt to another lesson -> 409 Conflict
+        var changeLessonReq = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/me/assessment-attempts/{attemptId}")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new AssessmentAttemptCreateDto
+            {
+                Id = attemptId,
+                LessonId = "les_math10_c1_b1", // changed lesson
+                SubjectId = "sub_math12"
+            }), Encoding.UTF8, MediaTypeHeaderValue.Parse("application/json"))
+        };
+        changeLessonReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var changeResp = await _client.SendAsync(changeLessonReq);
+        Assert.Equal(HttpStatusCode.Conflict, changeResp.StatusCode);
+
+        // 4. Mark attempt as completed
+        var completeReq = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/me/assessment-attempts/{attemptId}")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new AssessmentAttemptCreateDto
+            {
+                Id = attemptId,
+                LessonId = "les_math12_c1_b1",
+                SubjectId = "sub_math12",
+                CompletionStatus = "completed",
+                CompletedAt = DateTimeOffset.UtcNow
+            }), Encoding.UTF8, MediaTypeHeaderValue.Parse("application/json"))
+        };
+        completeReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var completeResp = await _client.SendAsync(completeReq);
+        Assert.Equal(HttpStatusCode.OK, completeResp.StatusCode);
+
+        // 5. Try to modify finalized completed attempt -> 409 Conflict
+        var mutateReq = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/me/assessment-attempts/{attemptId}")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new AssessmentAttemptCreateDto
+            {
+                Id = attemptId,
+                LessonId = "les_math12_c1_b1",
+                ScoreRaw = 100
+            }), Encoding.UTF8, MediaTypeHeaderValue.Parse("application/json"))
+        };
+        mutateReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var mutateResp = await _client.SendAsync(mutateReq);
+        Assert.Equal(HttpStatusCode.Conflict, mutateResp.StatusCode);
+    }
+
+    [Fact]
+    public async Task Curriculum_GetMaterials_ReturnsRealPublishedLessonsAndFormulas()
+    {
+        var token = await GetLearnerTokenAsync();
+
+        var msg = new HttpRequestMessage(HttpMethod.Get, "/api/v1/curriculum/materials?subjectId=sub_math12");
+        msg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var resp = await _client.SendAsync(msg);
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+
+        var body = await resp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(body);
+        var items = doc.RootElement.EnumerateArray();
+        Assert.True(items.Any(), "Expected published curriculum materials from SQL");
+
+        var first = items.First();
+        Assert.NotEmpty(first.GetProperty("title").GetString()!);
+        Assert.NotEmpty(first.GetProperty("category").GetString()!);
+        Assert.Equal("sub_math12", first.GetProperty("subjectId").GetString());
+    }
 }
 

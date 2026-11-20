@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react'
-import { BookOpen, CheckCircle, Filter, Play, Target } from 'lucide-react'
+import React, { useCallback, useEffect, useState } from 'react'
+import { AlertCircle, BookOpen, CheckCircle, Filter, Play, Target } from 'lucide-react'
 import { useAuth } from '@/auth/useAuth'
 import { curriculumService, type LearnerChapter } from '@/services/curriculum.service'
 import { practiceService } from '@/services/practice.service'
@@ -38,8 +38,9 @@ export const PracticeSetup: React.FC<PracticeSetupProps> = ({
   const [difficulty, setDifficulty] = useState<QuestionDifficulty | ''>('')
   const [limit, setLimit] = useState<number>(5)
 
-  const [availableCount, setAvailableCount] = useState<number>(0)
+  const [availableCount, setAvailableCount] = useState<number | null>(null)
   const [loadingCount, setLoadingCount] = useState<boolean>(true)
+  const [countError, setCountError] = useState<string | null>(null)
 
   const selectedSubjectId =
     selectedGrade === '10' ? 'sub_math10' : selectedGrade === '11' ? 'sub_math11' : 'sub_math12'
@@ -78,40 +79,36 @@ export const PracticeSetup: React.FC<PracticeSetupProps> = ({
     return chapters.flatMap((c) => c.lessons || [])
   }, [chapters, selectedChapterId])
 
-  // Query real question count from SQL backend
-  useEffect(() => {
-    let isMounted = true
-    const checkCount = async () => {
-      setLoadingCount(true)
-      try {
-        const count = await practiceService.getQuestionCount({
-          subjectId: selectedSubjectId,
-          chapterId: selectedChapterId || undefined,
-          lessonId: lessonId || undefined,
-          difficulty: difficulty || undefined,
-        })
-        if (isMounted) {
-          setAvailableCount(count)
-        }
-      } catch {
-        if (isMounted) {
-          setAvailableCount(0)
-        }
-      } finally {
-        if (isMounted) {
-          setLoadingCount(false)
-        }
-      }
+  // Query real question count from SQL backend with unified server predicate
+  const checkCount = useCallback(async () => {
+    setLoadingCount(true)
+    setCountError(null)
+    try {
+      const count = await practiceService.getQuestionCount({
+        subjectId: selectedSubjectId,
+        chapterId: selectedChapterId || undefined,
+        lessonId: lessonId || undefined,
+        difficulty: difficulty || undefined,
+        skillId: selectedSkillId || undefined,
+        questionType: questionType || undefined,
+        grade: selectedGrade || undefined,
+      })
+      setAvailableCount(count)
+      setCountError(null)
+    } catch {
+      setAvailableCount(null)
+      setCountError('Không thể kết nối máy chủ để kiểm tra số lượng câu hỏi.')
+    } finally {
+      setLoadingCount(false)
     }
+  }, [selectedSubjectId, selectedChapterId, lessonId, difficulty, selectedSkillId, questionType, selectedGrade])
 
+  useEffect(() => {
     checkCount()
-    return () => {
-      isMounted = false
-    }
-  }, [selectedSubjectId, selectedChapterId, lessonId, difficulty])
+  }, [checkCount])
 
   const handleStart = () => {
-    if (availableCount === 0) return
+    if (!availableCount || availableCount === 0 || countError) return
     onStartSession({
       subjectId: selectedSubjectId,
       chapterId: selectedChapterId || undefined,
@@ -283,7 +280,20 @@ export const PracticeSetup: React.FC<PracticeSetupProps> = ({
           <span className="count-text">
             {loadingCount ? (
               'Đang kiểm tra câu hỏi sẵn có từ máy chủ...'
-            ) : availableCount > 0 ? (
+            ) : countError ? (
+              <span className="count-error-alert" style={{ color: '#ef4444', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                <AlertCircle size={16} aria-hidden />
+                <span>{countError}</span>
+                <button
+                  type="button"
+                  className="retry-count-btn"
+                  onClick={() => checkCount()}
+                  style={{ textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontWeight: 600 }}
+                >
+                  Thử lại
+                </button>
+              </span>
+            ) : availableCount !== null && availableCount > 0 ? (
               <>
                 Sẵn sàng: <strong>{availableCount} câu hỏi</strong> đã duyệt trong ngân hàng
               </>
@@ -304,11 +314,11 @@ export const PracticeSetup: React.FC<PracticeSetupProps> = ({
           <button
             type="button"
             className="setup-start-btn"
-            disabled={loadingCount || availableCount === 0}
+            disabled={loadingCount || !!countError || !availableCount || availableCount === 0}
             onClick={handleStart}
           >
             <Play size={16} aria-hidden />
-            <span>Bắt đầu làm bài ({Math.min(limit, availableCount)} câu)</span>
+            <span>Bắt đầu làm bài ({availableCount ? Math.min(limit, availableCount) : 0} câu)</span>
           </button>
         </div>
       </div>

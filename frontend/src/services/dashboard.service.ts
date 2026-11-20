@@ -2,7 +2,7 @@ import { apiClient } from '@/lib/apiClient'
 import { getAuthUser } from '@/auth/authSession'
 import { mockDashboardData } from '@/data/dashboard.mock'
 import { buildLearningStateSnapshot } from '@/services/learningState.service'
-import type { DailyGoalItem, DashboardData, SubjectProgressItemData } from '@/types/dashboard'
+import type { DailyGoalItem, DashboardData, RecentActivityItem, SubjectProgressItemData } from '@/types/dashboard'
 
 export interface DashboardFetchOptions {
   simulateEmpty?: boolean
@@ -68,31 +68,28 @@ export async function fetchDashboardData(
     }
   }
 
-  // Map subjects with real derived learning progress or server stats
-  const subjects: SubjectProgressItemData[] = (base.subjects || []).map(
-    (baseSubj: SubjectProgressItemData) => {
-      if (serverStats?.subjectProgress) {
-        const serverSubj = serverStats.subjectProgress.find((s) => s.subjectId === baseSubj.id)
-        if (serverSubj) {
-          return {
-            ...baseSubj,
-            progress: Math.round(serverSubj.progressPercent),
-            completedLessons: serverSubj.completedLessons,
-            totalLessons: serverSubj.totalLessons || baseSubj.totalLessons,
-          }
+  // Map subjects with authoritative server stats or fallback demo
+  const subjects: SubjectProgressItemData[] = serverStats?.subjectProgress && serverStats.subjectProgress.length > 0
+    ? serverStats.subjectProgress.map((sp) => ({
+        id: sp.subjectId,
+        name: sp.subjectName,
+        icon: sp.subjectId.includes('math') ? '📐' : '📚',
+        color: sp.subjectId.includes('math') ? '#3b82f6' : '#10b981',
+        bgColor: sp.subjectId.includes('math') ? '#eff6ff' : '#ecfdf5',
+        progress: Math.round(sp.progressPercent),
+        completedLessons: sp.completedLessons,
+        totalLessons: sp.totalLessons,
+      }))
+    : (base.subjects || []).map((baseSubj: SubjectProgressItemData) => {
+        const derived = learning.subjects[baseSubj.id]
+        if (!derived) return baseSubj
+        return {
+          ...baseSubj,
+          progress: derived.progress,
+          completedLessons: derived.completedLessons,
+          totalLessons: derived.totalLessons,
         }
-      }
-
-      const derived = learning.subjects[baseSubj.id]
-      if (!derived) return baseSubj
-      return {
-        ...baseSubj,
-        progress: derived.progress,
-        completedLessons: derived.completedLessons,
-        totalLessons: derived.totalLessons,
-      }
-    }
-  )
+      })
 
   // Dynamic daily goal: "Học một bài học mới"
   const lastPoint = learning.weeklyActivity.points[learning.weeklyActivity.points.length - 1]
@@ -125,7 +122,20 @@ export async function fetchDashboardData(
       }
     : base.user
 
-  // Merge static demo base with real learner state
+  const recentActivities: RecentActivityItem[] = serverStats
+    ? serverStats.recentAttempts.map((a) => ({
+        id: a.attemptId,
+        userAvatar: user.avatar,
+        userName: user.name,
+        action: a.mode === 'exam' ? 'tham gia thi thử' : 'hoàn thành luyện tập',
+        targetName: a.subjectId === 'sub_math10' ? 'Toán 10' : a.subjectId === 'sub_math11' ? 'Toán 11' : 'Toán 12',
+        targetUrl: `/practice/hub?subjectId=${a.subjectId}`,
+        subjectOrModule: a.subjectId === 'sub_math10' ? 'Toán 10' : a.subjectId === 'sub_math11' ? 'Toán 11' : 'Toán 12',
+        timeAgo: a.completedAt ? new Date(a.completedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'Vừa xong',
+      }))
+    : (learning.recentActivities as RecentActivityItem[])
+
+  // Merge authoritative data with layout base
   return {
     ...base,
     user,
@@ -133,7 +143,7 @@ export async function fetchDashboardData(
       ...base.stats,
       streakDays,
       longestStreak: Math.max(streakDays, learning.streak.longest),
-      weeklyMinutes: learning.weeklyActivity.totalMinutes,
+      weeklyMinutes: serverStats ? serverStats.totalQuestionsPracticed * 2 : learning.weeklyActivity.totalMinutes,
       completedLessonsCount,
     },
     activity: {
@@ -145,6 +155,6 @@ export async function fetchDashboardData(
     dailyGoals,
     continueLessons: learning.continueLearning,
     subjects,
-    recentActivities: learning.recentActivities,
+    recentActivities,
   }
 }

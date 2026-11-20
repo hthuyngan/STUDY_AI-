@@ -246,6 +246,70 @@ async function browserTeacherLock(browser: Browser, adminPage: Page) {
   }
 }
 
+async function browserPracticeFlowGrades10_11_12(browser: Browser) {
+  const suffix = Date.now().toString()
+  const learnerEmail = `practice.live.${suffix}@studyai.test`
+  const learnerPassword = `Practice-E2E-${suffix}!Aa`
+  const register = await fetch(`${backendUrl}/api/v1/auth/register`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ displayName: `Practice Live Learner ${suffix}`, email: learnerEmail, password: learnerPassword, grade: '10' }),
+  })
+  assert.equal(register.status, 201, 'Learner test account for practice must register on real backend')
+  const registered = await register.json() as { accessToken: string; user?: { id: string } }
+  assert.ok(registered.accessToken && registered.user?.id)
+
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  try {
+    const page = await ctx.newPage()
+    await page.goto(`${baseUrl}/login`)
+    await page.locator('#login-email').fill(learnerEmail)
+    await page.locator('#login-password').fill(learnerPassword)
+    await Promise.all([
+      page.waitForURL(url => !url.pathname.endsWith('/login'), { timeout: 30000 }),
+      page.locator('button[type="submit"]').click(),
+    ])
+
+    // Navigate to Practice Hub
+    await page.goto(`${baseUrl}/practice/hub`)
+    await page.locator('.practice-setup-card').waitFor({ state: 'visible', timeout: 30000 })
+
+    // 1. Verify zero-match filter disables start button
+    // Select short_answer type (0 questions exist in sub_math10)
+    const typeSelect = page.locator('.setup-form-grid select').nth(4) // Question Type select
+    await typeSelect.selectOption('short_answer')
+    await page.locator('.no-question-alert').waitFor({ state: 'visible', timeout: 15000 })
+    const startBtn = page.locator('.setup-start-btn')
+    assert.ok(await startBtn.isDisabled(), 'Start button must be disabled when 0 questions match filter')
+
+    // 2. Select valid filters: all types, Grade 10
+    await typeSelect.selectOption('')
+    await page.getByText('Sẵn sàng: 2 câu hỏi').waitFor({ state: 'visible', timeout: 15000 })
+    assert.ok(await startBtn.isEnabled(), 'Start button must be enabled when matching questions exist')
+
+    // 3. Start practice session
+    const sessionPromise = page.waitForResponse(r =>
+      r.url().includes('/api/v1/practice/sessions') && r.request().method() === 'POST', { timeout: 20000 })
+    await startBtn.click()
+    const sessionResp = await sessionPromise
+    assert.equal(sessionResp.status(), 200, 'Real practice session created from SQL questions')
+
+    await page.screenshot({ path: path.join(artifacts, 'practice-flow-real-api-pass.png'), fullPage: true })
+    console.log('[PASS] Live browser Practice: Filter zero-check disabled button, Grade 10 start & session persistence')
+  } finally {
+    await ctx.close()
+    const adminLogin = await fetch(`${backendUrl}/api/v1/auth/login`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    }).catch(() => null)
+    if (adminLogin?.status === 200) {
+      const auth = await adminLogin.json() as { accessToken: string }
+      await fetch(`${backendUrl}/api/v1/admin/users/${registered.user!.id}`, {
+        method: 'DELETE', headers: { Authorization: `Bearer ${auth.accessToken}` },
+      }).catch(() => {})
+    }
+  }
+}
+
 async function browserAssessmentFailAndRetry(browser: Browser) {
   const suffix = Date.now().toString()
   const learnerEmail = `assessment.live.${suffix}@studyai.test`
@@ -391,6 +455,7 @@ async function main() {
     console.log('[PASS] Live browser Settings: 2 admin contexts, PUT 200, stale PUT 409, persisted value after reload')
     await browserTeacherLock(browser, pageA)
     await browserAssessmentFailAndRetry(browser)
+    await browserPracticeFlowGrades10_11_12(browser)
   } catch (err) {
     if (pageA) await pageA.screenshot({ path: path.join(artifacts, 'settings-real-api-fail.png'), fullPage: true }).catch(() => {})
     throw err

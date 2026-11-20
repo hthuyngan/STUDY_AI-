@@ -177,8 +177,19 @@ public class AssessmentAttemptsController : ControllerBase
     {
         if (!CanAccess(userId)) return Forbid();
 
-        var attempt = await SaveAttempt(userId, dto);
-        return StatusCode(201, FormatAttempt(attempt));
+        try
+        {
+            var attempt = await SaveAttempt(userId, dto);
+            return StatusCode(201, FormatAttempt(attempt));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { detail = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { detail = ex.Message });
+        }
     }
 
     [HttpPut("{attemptId}")]
@@ -188,8 +199,19 @@ public class AssessmentAttemptsController : ControllerBase
         if (!CanAccess(userId)) return Forbid();
 
         dto.Id = attemptId;
-        var attempt = await SaveAttempt(userId, dto);
-        return Ok(FormatAttempt(attempt));
+        try
+        {
+            var attempt = await SaveAttempt(userId, dto);
+            return Ok(FormatAttempt(attempt));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { detail = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { detail = ex.Message });
+        }
     }
 
     private async Task<AssessmentAttempt> SaveAttempt(string userId, AssessmentAttemptCreateDto dto)
@@ -229,9 +251,25 @@ public class AssessmentAttemptsController : ControllerBase
         }
         else
         {
-            if (!string.IsNullOrEmpty(dto.LessonId)) attempt.LessonId = dto.LessonId;
-            if (!string.IsNullOrEmpty(dto.SubjectId)) attempt.SubjectId = dto.SubjectId;
-            if (!string.IsNullOrEmpty(dto.AssessmentId)) attempt.AssessmentId = dto.AssessmentId;
+            if (attempt.CompletionStatus == "completed")
+            {
+                throw new InvalidOperationException("Phiên làm bài đã hoàn thành không thể chỉnh sửa.");
+            }
+
+            if (!string.IsNullOrEmpty(attempt.LessonId) && !string.IsNullOrEmpty(dto.LessonId) && attempt.LessonId != dto.LessonId)
+            {
+                throw new InvalidOperationException($"Không thể thay đổi bài học của phiên làm bài từ '{attempt.LessonId}' sang '{dto.LessonId}'.");
+            }
+
+            if (!string.IsNullOrEmpty(attempt.SubjectId) && !string.IsNullOrEmpty(dto.SubjectId) && attempt.SubjectId != dto.SubjectId)
+            {
+                throw new InvalidOperationException($"Không thể thay đổi môn học của phiên làm bài từ '{attempt.SubjectId}' sang '{dto.SubjectId}'.");
+            }
+
+            if (string.IsNullOrEmpty(attempt.LessonId) && !string.IsNullOrEmpty(dto.LessonId)) attempt.LessonId = dto.LessonId;
+            if (string.IsNullOrEmpty(attempt.SubjectId) && !string.IsNullOrEmpty(dto.SubjectId)) attempt.SubjectId = dto.SubjectId;
+            if (string.IsNullOrEmpty(attempt.AssessmentId) && !string.IsNullOrEmpty(dto.AssessmentId)) attempt.AssessmentId = dto.AssessmentId;
+
             attempt.LastActivityAt = dto.LastActivityAt == default ? DateTimeOffset.UtcNow : dto.LastActivityAt;
             attempt.CompletedAt = dto.CompletedAt ?? attempt.CompletedAt;
             attempt.CompletionStatus = dto.CompletionStatus ?? attempt.CompletionStatus;

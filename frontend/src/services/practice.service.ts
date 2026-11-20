@@ -124,19 +124,21 @@ export class PracticeService {
     chapterId?: string
     lessonId?: string
     difficulty?: string
+    skillId?: string
+    questionType?: string
+    grade?: string
   }): Promise<number> {
-    try {
-      const query = new URLSearchParams()
-      query.set('subjectId', params.subjectId)
-      if (params.chapterId) query.set('chapterId', params.chapterId)
-      if (params.lessonId) query.set('lessonId', params.lessonId)
-      if (params.difficulty && params.difficulty !== 'all') query.set('difficulty', params.difficulty)
+    const query = new URLSearchParams()
+    query.set('subjectId', params.subjectId)
+    if (params.chapterId) query.set('chapterId', params.chapterId)
+    if (params.lessonId) query.set('lessonId', params.lessonId)
+    if (params.difficulty && params.difficulty !== 'all') query.set('difficulty', params.difficulty)
+    if (params.skillId) query.set('skillId', params.skillId)
+    if (params.questionType) query.set('questionType', params.questionType)
+    if (params.grade) query.set('grade', params.grade)
 
-      const res = await apiClient.get<{ count: number }>(`/api/v1/practice/question-count?${query.toString()}`)
-      return typeof res.count === 'number' ? res.count : 0
-    } catch {
-      return 0
-    }
+    const res = await apiClient.get<{ count: number }>(`/api/v1/practice/question-count?${query.toString()}`)
+    return typeof res.count === 'number' ? res.count : 0
   }
 
   async getAvailableQuestions(config: PracticeSetupConfig): Promise<QuestionItem[]> {

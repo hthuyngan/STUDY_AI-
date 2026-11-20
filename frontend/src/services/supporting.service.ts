@@ -1,3 +1,4 @@
+import { apiClient } from '@/lib/apiClient'
 import { getAuthUser } from '@/auth/authSession'
 import {
   mockAchievements,
@@ -34,6 +35,26 @@ export async function getLibraryItems(filters?: {
   subjectId?: string
   search?: string
 }): Promise<LibraryItem[]> {
+  const authUser = getAuthUser()
+  if (authUser) {
+    try {
+      const params = new URLSearchParams()
+      if (filters?.category && filters.category !== 'all' && filters.category !== 'Đã lưu') {
+        params.set('category', filters.category)
+      }
+      if (filters?.subjectId && filters.subjectId !== 'all') {
+        params.set('subjectId', filters.subjectId)
+      }
+      if (filters?.search) {
+        params.set('search', filters.search)
+      }
+      const materials = await apiClient.get<LibraryItem[]>(`/api/v1/curriculum/materials?${params.toString()}`)
+      return materials || []
+    } catch {
+      throw new Error('Không thể tải danh sách tài liệu từ máy chủ. Vui lòng thử lại.')
+    }
+  }
+
   await new Promise((resolve) => setTimeout(resolve, 150))
   let list = [...mockLibraryItems]
   if (filters?.category && filters.category !== 'all') {
