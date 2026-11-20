@@ -48,6 +48,7 @@ async function login(page: Page) {
   ])
   await page.goto(`${baseUrl}/admin/settings`)
   await page.locator('#set-sysname').waitFor({ state: 'visible', timeout: 30000 })
+  await page.getByText('(Đang đồng bộ từ máy chủ...)').waitFor({ state: 'hidden', timeout: 30000 })
 }
 async function save(page: Page, name: string): Promise<Response> {
   await page.locator('#set-sysname').fill(name)
@@ -58,8 +59,10 @@ async function save(page: Page, name: string): Promise<Response> {
 
 async function main() {
   // Fail closed if backend is unavailable. Never silently swap in a stub.
-  const health = await fetch(`${backendUrl}/health`).catch(() => null)
-  if (!health || !health.ok) throw new Error('Real backend /health is not healthy; live browser test cannot proceed')
+  const authProbe = await fetch(`${backendUrl}/api/v1/auth/refresh`).catch(() => null)
+  if (!authProbe || authProbe.status === 404 || authProbe.status >= 500) {
+    throw new Error("Real backend auth endpoint unavailable; live browser test cannot proceed")
+  }
   fs.mkdirSync(artifacts, { recursive: true })
 
   let browser: Browser | undefined
