@@ -1,3 +1,4 @@
+import { getAuthUser } from '@/auth/authSession'
 import {
   mockAchievements,
   mockExercises,
@@ -60,7 +61,23 @@ export async function getAchievements(): Promise<AchievementItem[]> {
 }
 
 export async function getUserProfile(): Promise<UserProfileData> {
-  await new Promise((resolve) => setTimeout(resolve, 150))
+  await new Promise((resolve) => setTimeout(resolve, 50))
+  const authUser = getAuthUser()
+  if (authUser) {
+    return {
+      id: authUser.id,
+      name: authUser.displayName || 'Học viên',
+      avatar: mockUserProfile.avatar,
+      grade: authUser.grade ? `Lớp ${authUser.grade}` : 'Lớp 12',
+      school: 'THPT',
+      studyGoal: mockUserProfile.studyGoal,
+      streakDays: 0,
+      totalXP: 0,
+      studyHours: 0,
+      completedLessons: 0,
+      subjectStats: [],
+    }
+  }
   return { ...mockUserProfile }
 }
 

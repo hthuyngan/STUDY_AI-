@@ -13,7 +13,14 @@ export function LibraryPage() {
   const [activeCategory, setActiveCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSubject, setSelectedSubject] = useState('all')
-  const [savedOverrides, setSavedOverrides] = useState<Record<string, boolean>>({})
+  const [savedOverrides, setSavedOverrides] = useState<Record<string, boolean>>(() => {
+    try {
+      const stored = localStorage.getItem('study_ai.saved_library_items')
+      return stored ? JSON.parse(stored) : {}
+    } catch {
+      return {}
+    }
+  })
 
   const { items, isLoading, error, reload } = useLibrary({
     category: activeCategory,
@@ -22,10 +29,18 @@ export function LibraryPage() {
   })
 
   const handleToggleSave = (id: string, currentSaved?: boolean) => {
-    setSavedOverrides((prev) => ({
-      ...prev,
-      [id]: prev[id] !== undefined ? !prev[id] : !currentSaved,
-    }))
+    setSavedOverrides((prev) => {
+      const next = {
+        ...prev,
+        [id]: prev[id] !== undefined ? !prev[id] : !currentSaved,
+      }
+      try {
+        localStorage.setItem('study_ai.saved_library_items', JSON.stringify(next))
+      } catch {
+        // ignore storage errors
+      }
+      return next
+    })
   }
 
   const categories = ['all', 'Tài liệu', 'Công thức', 'Ghi chú', 'Đã lưu']

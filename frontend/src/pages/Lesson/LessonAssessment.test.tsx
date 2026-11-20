@@ -15,7 +15,7 @@ import {
   getActiveUnfinishedAttempt,
 } from '@/services/assessment.service'
 import { mockAssessments } from '@/data/assessments.mock'
-import { toScormTrackingSnapshot } from '@/types/assessment'
+import { toScormTrackingSnapshot, type LearningAttempt } from '@/types/assessment'
 
 describe('Lesson Progress Calculation & Section Tracking', () => {
   beforeEach(() => {
@@ -347,5 +347,69 @@ describe('Assessment UI Components & Modal Interactions', () => {
     const events = getStoredLearningEvents(assessment.lessonId)
     expect(events.length).toBeGreaterThan(0)
     expect(events.some((e) => e.type === 'assessment_started')).toBe(true)
+  })
+
+  it('rehydrates unfinished attempt when learning state event is received after page reload', async () => {
+    const { renderHook, act } = await import('@testing-library/react')
+    const { useLessonAssessment } = await import('@/hooks/useLessonAssessment')
+    const { updateAttempt } = await import('@/services/assessment.service')
+    const { notifyLearningStateChanged } = await import('@/services/learningStateEvents')
+
+    // Initial render without active attempt
+    const { result } = renderHook(() =>
+      useLessonAssessment({
+        assessment: {
+          ...assessment,
+          lessonId: 'les_math12_reload_test',
+        },
+      })
+    )
+
+    expect(result.current.hasUnfinishedAttempt).toBe(false)
+    expect(result.current.activeAttempt).toBeNull()
+
+    // Simulate an unfinished attempt being stored (e.g. after network failure or background fetch)
+    const now = new Date().toISOString()
+    const storedAttempt: LearningAttempt = {
+      id: 'atm_reload_123',
+      assessmentId: 'asmt_reload',
+      lessonId: 'les_math12_reload_test',
+      subjectId: 'math',
+      chapterId: 'chap_1',
+      learnerId: 'usr_test_1',
+      attemptNumber: 1,
+      startedAt: now,
+      lastActivityAt: now,
+      status: 'in-progress',
+      completionStatus: 'incomplete',
+      successStatus: 'unknown',
+      scoreRaw: 1,
+      scoreMin: 0,
+      scoreMax: 2,
+      scoreScaled: 0.5,
+      progressMeasure: 0.5,
+      sessionTimeMs: 45000,
+      currentQuestionId: 'q1',
+      responses: {
+        'q1': {
+          questionId: 'q1',
+          selectedOptionIds: ['opt_a'],
+          firstAnsweredAt: now,
+          lastAnsweredAt: now,
+          changeCount: 0,
+          timeSpentMs: 20000,
+        },
+      },
+      events: [],
+    }
+
+    act(() => {
+      updateAttempt(storedAttempt)
+      notifyLearningStateChanged()
+    })
+
+    // Hook must dynamically rehydrate and reflect the unfinished attempt
+    expect(result.current.hasUnfinishedAttempt).toBe(true)
+    expect(result.current.activeAttempt?.id).toBe('atm_reload_123')
   })
 })

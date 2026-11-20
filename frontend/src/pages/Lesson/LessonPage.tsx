@@ -79,6 +79,9 @@ export function LessonPage() {
     learningContextService.setContext(context)
   }, [lesson, resolvedSubjectId, location.pathname, setLearningContext])
 
+  // Resolve active lesson identifier immediately from props or URL
+  const currentLessonId = lesson?.id || lessonId || ''
+
   // Track progress (70% video + 30% assessment)
   const {
     overallProgress,
@@ -86,7 +89,7 @@ export function LessonPage() {
     markVideoCompleted,
     reloadProgress,
   } = useLessonProgress({
-    lessonId: lesson?.id || '',
+    lessonId: currentLessonId,
     subjectId: resolvedSubjectId,
     actualSectionIds,
     hasAssessment: true,
@@ -185,7 +188,7 @@ export function LessonPage() {
     assessment:
       assessment || {
         id: 'assessment-fallback',
-        lessonId: lesson?.id || '',
+        lessonId: currentLessonId,
         subjectId: resolvedSubjectId,
         title: 'Bài tập thu hoạch',
         description: '',

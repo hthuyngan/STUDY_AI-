@@ -51,6 +51,86 @@ public static class DbInitializer
             });
         }
 
+        // Seed Math 10 Chapter & Lesson & Questions if not existing
+        var math10Chapter = await context.ContentChapters.FirstOrDefaultAsync(c => c.Id == "chp_math10_c1" || (c.SubjectId == "sub_math10" && c.OrderIndex == 1));
+        if (math10Chapter == null)
+        {
+            math10Chapter = new ContentChapter
+            {
+                Id = "chp_math10_c1",
+                SubjectId = "sub_math10",
+                Title = "Chương 1: Mệnh đề và tập hợp",
+                OrderIndex = 1,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+            context.ContentChapters.Add(math10Chapter);
+
+            var lesson10 = new ContentLesson
+            {
+                Id = "les_math10_c1_b1",
+                ChapterId = math10Chapter.Id,
+                Title = "Bài 1: Mệnh đề toán học",
+                Slug = "menh-de-toan-hoc",
+                OrderIndex = 1,
+                Status = "published",
+                AuthorId = SystemAuthorUserId,
+                Introduction = "Khái niệm mệnh đề, mệnh đề phủ định, mệnh đề kéo theo và mệnh đề tương đương trong toán học.",
+                DefinitionsJson = "[\"Mệnh đề là một khẳng định đúng hoặc một khẳng định sai. Một khẳng định không thể vừa đúng vừa sai.\"]",
+                FormulasJson = "[\"P \\\\Rightarrow Q\"]",
+                ExamplesJson = "[\"Ví dụ 1: 'Số 12 chia hết cho 3' là một mệnh đề đúng.\"]",
+                ImportantNotesJson = "[\"Câu cảm thán, câu hỏi không phải là mệnh đề.\"]",
+                SummaryPointsJson = "[\"Phân biệt mệnh đề với câu nói thông thường và xác định tính đúng sai.\"]",
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+            context.ContentLessons.Add(lesson10);
+            await context.SaveChangesAsync();
+        }
+
+        var math10Questions = await context.ContentQuestions.AnyAsync(q => q.LessonId == "les_math10_c1_b1");
+        if (!math10Questions)
+        {
+            context.ContentQuestions.AddRange(
+                new ContentQuestion
+                {
+                    Id = "qst_math10_c1_b1_q1",
+                    LessonId = "les_math10_c1_b1",
+                    ChapterId = "chp_math10_c1",
+                    SubjectId = "sub_math10",
+                    Prompt = "Trong các câu sau, câu nào là mệnh đề toán học?",
+                    OptionsJson = "[\"Hôm nay trời đẹp quá!\",\"Số 17 là số nguyên tố.\",\"Bạn có thích học Toán không?\",\"x + 1 > 0.\"]",
+                    CorrectAnswer = "Số 17 là số nguyên tố.",
+                    Explanation = "\"Số 17 là số nguyên tố\" là một khẳng định chắc chắn đúng, do đó là mệnh đề toán học.",
+                    Topic = "Mệnh đề toán học",
+                    Difficulty = "easy",
+                    Type = "multiple-choice",
+                    Status = "published",
+                    OrderIndex = 1,
+                    CreatedAt = DateTimeOffset.UtcNow,
+                    UpdatedAt = DateTimeOffset.UtcNow
+                },
+                new ContentQuestion
+                {
+                    Id = "qst_math10_c1_b1_q2",
+                    LessonId = "les_math10_c1_b1",
+                    ChapterId = "chp_math10_c1",
+                    SubjectId = "sub_math10",
+                    Prompt = "Mệnh đề phủ định của mệnh đề $P: \"\\forall x \\in \\mathbb{R}, x^2 + 1 > 0\"$ là:",
+                    OptionsJson = "[\"\\\\overline{P}: \\\"\\\\exists x \\\\in \\\\mathbb{R}, x^2 + 1 \\\\le 0\\\"\",\"\\\\overline{P}: \\\"\\\\forall x \\\\in \\\\mathbb{R}, x^2 + 1 \\\\le 0\\\"\",\"\\\\overline{P}: \\\"\\\\exists x \\\\in \\\\mathbb{R}, x^2 + 1 < 0\\\"\",\"\\\\overline{P}: \\\"\\\\forall x \\\\in \\\\mathbb{R}, x^2 + 1 < 0\\\"\"]",
+                    CorrectAnswer = "\\overline{P}: \"\\exists x \\in \\mathbb{R}, x^2 + 1 \\le 0\"",
+                    Explanation = "Phủ định của mệnh đề chứa ký hiệu $\\forall$ là mệnh đề chứa ký hiệu $\\exists$, và phủ định của dấu $>$ là dấu $\\le$.",
+                    Topic = "Mệnh đề phủ định",
+                    Difficulty = "medium",
+                    Type = "multiple-choice",
+                    Status = "published",
+                    OrderIndex = 2,
+                    CreatedAt = DateTimeOffset.UtcNow,
+                    UpdatedAt = DateTimeOffset.UtcNow
+                }
+            );
+            await context.SaveChangesAsync();
+        }
+
         var math11 = await context.ContentSubjects.FirstOrDefaultAsync(s => s.Id == "sub_math11" || s.Code == "MATH11");
         if (math11 == null)
         {
@@ -64,6 +144,86 @@ public static class DbInitializer
                 IsActive = true,
                 CreatedAt = DateTimeOffset.UtcNow
             });
+        }
+
+        // Seed Math 11 Chapter & Lesson & Questions if not existing
+        var math11Chapter = await context.ContentChapters.FirstOrDefaultAsync(c => c.Id == "chp_math11_c1" || (c.SubjectId == "sub_math11" && c.OrderIndex == 1));
+        if (math11Chapter == null)
+        {
+            math11Chapter = new ContentChapter
+            {
+                Id = "chp_math11_c1",
+                SubjectId = "sub_math11",
+                Title = "Chương 1: Hàm số lượng giác và phương trình lượng giác",
+                OrderIndex = 1,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+            context.ContentChapters.Add(math11Chapter);
+
+            var lesson11 = new ContentLesson
+            {
+                Id = "les_math11_c1_b1",
+                ChapterId = math11Chapter.Id,
+                Title = "Bài 1: Giá trị lượng giác của góc lượng giác",
+                Slug = "gia-tri-luong-giac-cua-goc-luong-giac",
+                OrderIndex = 1,
+                Status = "published",
+                AuthorId = SystemAuthorUserId,
+                Introduction = "Góc lượng giác, đơn vị radian và các giá trị lượng giác của góc lượng giác trên đường tròn lượng giác.",
+                DefinitionsJson = "[\"Trên đường tròn lượng giác, điểm biểu diễn góc $\\\\alpha$ có tọa độ $(x; y)$. Khi đó $\\\\cos \\\\alpha = x, \\\\sin \\\\alpha = y$.\"]",
+                FormulasJson = "[\"\\\\sin^2 \\\\alpha + \\\\cos^2 \\\\alpha = 1\"]",
+                ExamplesJson = "[\"Ví dụ 1: Tính các giá trị lượng giác của góc $\\\\alpha = \\\\frac{\\\\pi}{3}$.\"]",
+                ImportantNotesJson = "[\"Xác định đúng cung phần tư để xét dấu của các giá trị lượng giác.\"]",
+                SummaryPointsJson = "[\"Nắm vững hệ thức cơ bản giữa các giá trị lượng giác của cùng một góc.\"]",
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+            context.ContentLessons.Add(lesson11);
+            await context.SaveChangesAsync();
+        }
+
+        var math11Questions = await context.ContentQuestions.AnyAsync(q => q.LessonId == "les_math11_c1_b1");
+        if (!math11Questions)
+        {
+            context.ContentQuestions.AddRange(
+                new ContentQuestion
+                {
+                    Id = "qst_math11_c1_b1_q1",
+                    LessonId = "les_math11_c1_b1",
+                    ChapterId = "chp_math11_c1",
+                    SubjectId = "sub_math11",
+                    Prompt = "Đổi số đo góc $60^\\circ$ sang đơn vị radian ta được:",
+                    OptionsJson = "[\"\\\\frac{\\\\pi}{3}\",\"\\\\frac{\\\\pi}{6}\",\"\\\\frac{\\\\pi}{4}\",\"\\\\frac{\\\\pi}{2}\"]",
+                    CorrectAnswer = "\\frac{\\pi}{3}",
+                    Explanation = "Công thức đổi: $\\alpha = a^\\circ \\cdot \\frac{\\pi}{180^\\circ} = 60 \\cdot \\frac{\\pi}{180} = \\frac{\\pi}{3}$ rad.",
+                    Topic = "Đổi đơn vị đo góc",
+                    Difficulty = "easy",
+                    Type = "multiple-choice",
+                    Status = "published",
+                    OrderIndex = 1,
+                    CreatedAt = DateTimeOffset.UtcNow,
+                    UpdatedAt = DateTimeOffset.UtcNow
+                },
+                new ContentQuestion
+                {
+                    Id = "qst_math11_c1_b1_q2",
+                    LessonId = "les_math11_c1_b1",
+                    ChapterId = "chp_math11_c1",
+                    SubjectId = "sub_math11",
+                    Prompt = "Cho góc $\\alpha$ thỏa mãn $\\frac{\\pi}{2} < \\alpha < \\pi$. Khẳng định nào sau đây là đúng?",
+                    OptionsJson = "[\"\\\\sin \\\\alpha > 0, \\\\cos \\\\alpha < 0\",\"\\\\sin \\\\alpha < 0, \\\\cos \\\\alpha < 0\",\"\\\\sin \\\\alpha > 0, \\\\cos \\\\alpha > 0\",\"\\\\sin \\\\alpha < 0, \\\\cos \\\\alpha > 0\"]",
+                    CorrectAnswer = "\\sin \\alpha > 0, \\cos \\alpha < 0",
+                    Explanation = "Góc $\\alpha$ thuộc góc phần tư thứ II nên $\\sin \\alpha > 0$ và $\\cos \\alpha < 0$.",
+                    Topic = "Dấu của giá trị lượng giác",
+                    Difficulty = "medium",
+                    Type = "multiple-choice",
+                    Status = "published",
+                    OrderIndex = 2,
+                    CreatedAt = DateTimeOffset.UtcNow,
+                    UpdatedAt = DateTimeOffset.UtcNow
+                }
+            );
+            await context.SaveChangesAsync();
         }
 
         var subjectCode = "MATH12";

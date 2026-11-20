@@ -249,21 +249,18 @@ export const adminService = {
   ): Promise<AdminUserItem[]> {
     const token = getAccessToken()
     if (token) {
-      try {
-        const params = new URLSearchParams()
-        if (search.trim()) params.set('search', search.trim())
-        if (roleFilter && roleFilter !== 'all') params.set('role', roleFilter)
-        if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter)
-        params.set('page', String(page))
-        params.set('pageSize', String(pageSize))
+      const params = new URLSearchParams()
+      if (search.trim()) params.set('search', search.trim())
+      if (roleFilter && roleFilter !== 'all') params.set('role', roleFilter)
+      if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter)
+      params.set('page', String(page))
+      params.set('pageSize', String(pageSize))
 
-        const res = await apiClient.get<BackendUsersResponse>(`/api/v1/admin/users?${params.toString()}`)
-        if (res?.items) {
-          return res.items.map(mapBackendUser)
-        }
-      } catch {
-        // Fallback to mock
+      const res = await apiClient.get<BackendUsersResponse>(`/api/v1/admin/users?${params.toString()}`)
+      if (res?.items) {
+        return res.items.map(mapBackendUser)
       }
+      return []
     }
 
     let result = [...mockUsers]
@@ -296,28 +293,31 @@ export const adminService = {
   ): Promise<PaginatedAdminUsers> {
     const token = getAccessToken()
     if (token) {
-      try {
-        const params = new URLSearchParams()
-        if (search.trim()) params.set('search', search.trim())
-        if (roleFilter && roleFilter !== 'all') params.set('role', roleFilter)
-        if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter)
-        params.set('page', String(page))
-        params.set('pageSize', String(pageSize))
-        params.set('sortBy', sortBy)
-        params.set('sortOrder', sortOrder)
+      const params = new URLSearchParams()
+      if (search.trim()) params.set('search', search.trim())
+      if (roleFilter && roleFilter !== 'all') params.set('role', roleFilter)
+      if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter)
+      params.set('page', String(page))
+      params.set('pageSize', String(pageSize))
+      params.set('sortBy', sortBy)
+      params.set('sortOrder', sortOrder)
 
-        const res = await apiClient.get<BackendUsersResponse>(`/api/v1/admin/users?${params.toString()}`)
-        if (res?.items) {
-          return {
-            items: res.items.map(mapBackendUser),
-            page: res.page,
-            pageSize: res.pageSize,
-            total: res.total,
-            totalPages: res.totalPages,
-          }
+      const res = await apiClient.get<BackendUsersResponse>(`/api/v1/admin/users?${params.toString()}`)
+      if (res?.items) {
+        return {
+          items: res.items.map(mapBackendUser),
+          page: res.page,
+          pageSize: res.pageSize,
+          total: res.total,
+          totalPages: res.totalPages,
         }
-      } catch {
-        // Fallback to mock
+      }
+      return {
+        items: [],
+        page,
+        pageSize,
+        total: 0,
+        totalPages: 0,
       }
     }
 
@@ -345,7 +345,7 @@ export const adminService = {
         if (err?.status === 404 || err?.response?.status === 404) {
           return null
         }
-        // Fallback to mock for test / offline
+        throw err
       }
     }
 

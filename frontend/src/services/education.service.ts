@@ -1085,20 +1085,16 @@ export const educationService = {
     search?: string
   }): Promise<AdminTeacherItem[]> {
     if (getAccessToken()) {
-      try {
-        const queryParams = new URLSearchParams()
-        if (filter?.search?.trim()) queryParams.set('search', filter.search.trim())
-        if (filter?.status && filter.status !== 'all') queryParams.set('status', filter.status)
-        if (filter?.subject && filter.subject !== 'all') queryParams.set('subject', filter.subject)
+      const queryParams = new URLSearchParams()
+      if (filter?.search?.trim()) queryParams.set('search', filter.search.trim())
+      if (filter?.status && filter.status !== 'all') queryParams.set('status', filter.status)
+      if (filter?.subject && filter.subject !== 'all') queryParams.set('subject', filter.subject)
 
-        const res = await apiClient.get<AdminTeacherItem[]>(`/api/v1/admin/teachers?${queryParams.toString()}`)
-        if (Array.isArray(res)) {
-          return res
-        }
-      } catch (err: any) {
-        if (err?.status === 401 || err?.status === 403) throw err
-        // Fallback to storage in demo mode or if user has insufficient permissions
+      const res = await apiClient.get<AdminTeacherItem[]>(`/api/v1/admin/teachers?${queryParams.toString()}`)
+      if (Array.isArray(res)) {
+        return res
       }
+      return []
     }
 
     let teachers = readStorage<AdminTeacherItem[]>(STORAGE_KEYS.TEACHERS, INITIAL_TEACHERS)
@@ -1136,14 +1132,11 @@ export const educationService = {
     bio?: string
   }): Promise<AdminTeacherItem & { _persistedLocally?: boolean }> {
     if (getAccessToken()) {
-      try {
-        const res = await apiClient.post<AdminTeacherItem>('/api/v1/admin/teachers', data)
-        if (res?.id) {
-          return { ...res, _persistedLocally: false }
-        }
-      } catch (err: any) {
-        if (err?.status === 401 || err?.status === 403) throw err
+      const res = await apiClient.post<AdminTeacherItem>('/api/v1/admin/teachers', data)
+      if (res?.id) {
+        return { ...res, _persistedLocally: false }
       }
+      throw new Error('Máy chủ không thể tạo tài khoản giáo viên.')
     }
 
     const teachers = readStorage<AdminTeacherItem[]>(STORAGE_KEYS.TEACHERS, INITIAL_TEACHERS)

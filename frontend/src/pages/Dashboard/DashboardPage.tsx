@@ -95,7 +95,8 @@ export function DashboardPage() {
             lessons={data.continueLessons}
             onContinueLesson={(lessonId, sectionId) => {
               const lesson = data.continueLessons.find((l) => l.id === lessonId)
-              const subjectId = lesson?.subjectId || 'math'
+              const defaultSubjectId = user?.grade === '10' ? 'sub_math10' : user?.grade === '11' ? 'sub_math11' : 'sub_math12'
+              const subjectId = lesson?.subjectId || defaultSubjectId
               const hash = sectionId ? `#${sectionId}` : ''
               navigate(`/subjects/${subjectId}/lessons/${lessonId}${hash}`)
             }}
