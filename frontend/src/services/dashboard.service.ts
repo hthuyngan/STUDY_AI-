@@ -1,4 +1,5 @@
 import { apiClient } from '@/lib/apiClient'
+import { getAuthUser } from '@/auth/authSession'
 import { mockDashboardData } from '@/data/dashboard.mock'
 import { buildLearningStateSnapshot } from '@/services/learningState.service'
 import type { DailyGoalItem, DashboardData, SubjectProgressItemData } from '@/types/dashboard'
@@ -112,9 +113,21 @@ export async function fetchDashboardData(
   const streakDays = serverStats ? serverStats.streakDays : learning.streak.current
   const completedLessonsCount = serverStats ? serverStats.completedLessons : learning.summary.completedLessons
 
+  const authUser = getAuthUser()
+  const user = authUser
+    ? {
+        id: authUser.id,
+        name: authUser.displayName || 'Học viên',
+        greetingName: (authUser.displayName || 'Bạn').split(' ').pop() || 'Bạn',
+        avatar: base.user.avatar,
+        grade: authUser.grade ? `Lớp ${authUser.grade}` : base.user.grade,
+      }
+    : base.user
+
   // Merge static demo base with real learner state
   return {
     ...base,
+    user,
     stats: {
       ...base.stats,
       streakDays,

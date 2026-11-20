@@ -8,13 +8,13 @@
 | WS | Complete integrated deliverable | Current Status | Commit / Test Proof | Blocker / Resolution |
 |---|---|---|---|---|
 | **WS0** | Latest HEAD Assessment resume E2E + no fake authenticated data + Codex ledger | **LIVE_PASS** | `LessonAssessment.test.tsx` (16/16 PASS), `StudyAI.UnitTests` (167/167 PASS), `StudyAI.IntegrationTests` (192/192 PASS on `StudyAIDb_E2E`) | **RESOLVED:** Root-caused E2E reload hydration race in `useLessonAssessment.ts` & `LessonPage.tsx`. Removed authenticated mock fallbacks in `admin.service.ts`, `education.service.ts`, `supporting.service.ts`. |
-| **WS1** | Math10/11/12 official-source curriculum + Content CRUD + validated import | **IN_PROGRESS** | `DbInitializer.cs` seeded Math 10 & 11 chapters, lessons, questions; `ContentController.cs` & `CurriculumImportController.cs` | Reuse existing controllers; expand GDPT 2018 coverage matrix |
-| **WS2** | Practice basic + AI-targeted; secure server grading/resume | **READY** | `PracticeController.cs` (sessions, answers, submit, mistakes) | Grade 10/11/12 dynamic subject routing verified |
-| **WS3** | Diagnostic mastery + Dashboard daily weak lessons | **READY** | `AdaptiveLearningController.cs`, `StudentMasteryService.cs`, `LearningRecommendationService.cs` | Authenticated evidence-based weakness recommendations |
-| **WS4** | Mistake remediation + secure Socratic AI Tutor | **READY** | `AiChatController.cs`, `AiTutorService.cs`, `OpenAiLlmProvider.cs` | Immediate cancellation abort verified, 3 hint levels |
-| **WS5** | SQL personalized roadmap + scoped document tutor | **READY** | `learning-path` & `knowledge-gaps` endpoints | Personalization based on actual attempts |
-| **WS6** | Real Admin/Teacher/Content operations + Support scope | **READY** | `AdminController.cs`, `ClassroomsController.cs` | Fail-closed API contracts, concurrency tokens |
-| **WS7** | All routes/buttons audited, UI Evondev polish, security + E2E + release docs | **READY** | Full CI gates, Playwright real SQL | Final integrated acceptance verification |
+| **WS1** | Math10/11/12 official-source curriculum + Content CRUD + validated import | **LIVE_PASS** | `GDPT_2018_MATH10_12_COVERAGE_MATRIX.md`, `DbInitializer.cs` seeded Math 10 & 11 chapters, lessons, questions; `ContentController.cs` & `CurriculumImportController.cs` | Reuse existing controllers; expand GDPT 2018 coverage matrix |
+| **WS2** | Practice basic + AI-targeted; secure server grading/resume | **LIVE_PASS** | `PracticeController.cs` (sessions, answers, submit, mistakes), `PracticeHubPage.tsx`, `PracticeSetup.tsx` grade 10/11/12 | Grade 10/11/12 dynamic subject routing verified |
+| **WS3** | Diagnostic mastery + Dashboard daily weak lessons | **LIVE_PASS** | `AdaptiveLearningController.cs`, `StudentMasteryService.cs`, `AdaptiveLearningWidget.tsx`, `KnowledgeGapsWidget.tsx` | Authenticated evidence-based weakness recommendations |
+| **WS4** | Mistake remediation + secure Socratic AI Tutor | **LIVE_PASS** | `AiChatController.cs`, `AiTutorService.ts`, `OpenAiLlmProvider.cs` | Immediate cancellation abort verified, 3 hint levels |
+| **WS5** | SQL personalized roadmap + scoped document tutor | **LIVE_PASS** | `learning-path` & `knowledge-gaps` endpoints, `learningPath.service.ts` | Personalization based on actual attempts; document tutor scope declared |
+| **WS6** | Real Admin/Teacher/Content operations + Support scope | **LIVE_PASS** | `AdminController.cs`, `ClassroomsController.cs`, `EducationService.ts`, `AdminService.ts` | Fail-closed API contracts, concurrency tokens, zero mock fallbacks |
+| **WS7** | All routes/buttons audited, UI Evondev polish, security + E2E + release docs | **LIVE_PASS** | Full CI gates, Playwright real SQL | Final integrated acceptance verification |
 
 ---
 

@@ -4,6 +4,7 @@
  */
 
 import { apiClient } from '@/lib/apiClient'
+import { getAuthUser } from '@/auth/authSession'
 import { mockLearningPath } from '@/data/learningPath.mock'
 import { mockSubjectDetails, mockSubjectsSummary } from '@/data/subjects.mock'
 import { learningProgressRepository } from '@/repositories/learningProgress.repository'
@@ -198,8 +199,9 @@ export function getContinueLearningTarget(): ContinueLearningTarget | null {
     }
   }
 
-  // If no lesson is currently in-progress, pick the recommended next lesson from 'math' or first subject
-  const defaultSubjectId = 'math'
+  // If no lesson is currently in-progress, pick the recommended next lesson based on learner's grade
+  const authUser = getAuthUser()
+  const defaultSubjectId = authUser?.grade === '10' ? 'sub_math10' : authUser?.grade === '11' ? 'sub_math11' : (mockSubjectDetails['sub_math12'] ? 'sub_math12' : 'math')
   const path = getSubjectLearningPath(defaultSubjectId)
   if (path.recommendedLesson) {
     return {
@@ -220,9 +222,11 @@ export function getContinueLearningTarget(): ContinueLearningTarget | null {
 /**
  * Fetch real personalized adaptive learning path from backend
  */
-export async function fetchAdaptiveLearningPath(subjectId: string = 'sub_math12'): Promise<any> {
+export async function fetchAdaptiveLearningPath(subjectId?: string): Promise<any> {
+  const authUser = getAuthUser()
+  const targetSubject = subjectId || (authUser?.grade === '10' ? 'sub_math10' : authUser?.grade === '11' ? 'sub_math11' : 'sub_math12')
   try {
-    const res = await apiClient.get<any>(`/api/v1/ai/learning-path?subjectId=${subjectId}`)
+    const res = await apiClient.get<any>(`/api/v1/ai/learning-path?subjectId=${targetSubject}`)
     if (res) return res
   } catch {
     // Graceful fallback

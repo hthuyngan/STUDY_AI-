@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { BookOpen, CheckCircle, Filter, Play, Target } from 'lucide-react'
+import { useAuth } from '@/auth/useAuth'
 import { practiceService } from '@/services/practice.service'
 import type { PracticeSetupConfig } from '@/types/practice'
 import type { QuestionDifficulty, QuestionType } from '@/types/questionBank'
@@ -10,10 +11,41 @@ interface PracticeSetupProps {
   onCancel?: () => void
 }
 
+const lessonsByGrade: Record<string, Array<{ id: string; label: string }>> = {
+  '10': [
+    { id: '', label: 'Toàn bộ Chương 1: Mệnh đề & Tập hợp' },
+    { id: 'les_math10_c1_l1', label: 'Bài 1: Mệnh đề toán học' },
+  ],
+  '11': [
+    { id: '', label: 'Toàn bộ Chương 1: Hàm số & PT lượng giác' },
+    { id: 'les_math11_c1_l1', label: 'Bài 1: Giá trị lượng giác của góc lượng giác' },
+  ],
+  '12': [
+    { id: '', label: 'Toàn bộ Chương 1: Ứng dụng đạo hàm khảo sát hàm số' },
+    { id: 'les_math12_c1_l1', label: 'Bài 1: Tính đơn điệu của hàm số' },
+    { id: 'les_math12_c1_l2', label: 'Bài 2: Cực trị của hàm số' },
+    { id: 'les_math12_c1_l3', label: 'Bài 3: Đường tiệm cận của đồ thị hàm số' },
+  ],
+}
+
+// Standard skills from GDPT 2018
+const skills = [
+  { id: '', label: 'Tất cả kỹ năng năng lực' },
+  { id: 'SKILL-MATH-DERIV-SIGN', label: 'Xét dấu đạo hàm & BBT' },
+  { id: 'SKILL-MATH-MONOTONICITY', label: 'Tính đơn điệu của hàm số' },
+  { id: 'SKILL-MATH-EXTREMUM', label: 'Cực trị của hàm số' },
+  { id: 'SKILL-MATH-MINMAX', label: 'Giá trị lớn nhất & nhỏ nhất' },
+  { id: 'SKILL-MATH-ASYMPTOTE', label: 'Tiệm cận của đồ thị' },
+  { id: 'SKILL-MATH-GRAPH-SKETCHING', label: 'Khảo sát & nhận dạng đồ thị' },
+]
+
 export const PracticeSetup: React.FC<PracticeSetupProps> = ({
   onStartSession,
   onCancel,
 }) => {
+  const { user } = useAuth()
+  const defaultGrade = user?.grade === '10' ? '10' : user?.grade === '11' ? '11' : '12'
+  const [selectedGrade, setSelectedGrade] = useState<string>(defaultGrade)
   const [lessonId, setLessonId] = useState<string>('')
   const [selectedSkillId, setSelectedSkillId] = useState<string>('')
   const [questionType, setQuestionType] = useState<QuestionType | ''>('')
@@ -23,25 +55,9 @@ export const PracticeSetup: React.FC<PracticeSetupProps> = ({
   const [availableCount, setAvailableCount] = useState<number>(0)
   const [loadingCount, setLoadingCount] = useState<boolean>(true)
 
-  // Standard lessons from Math 12 Chapter 1
-  const lessons = [
-    { id: '', label: 'Toàn bộ Chương 1 (Tổng hợp)' },
-    { id: 'lesson-math-12-01', label: 'Bài 1: Tính đơn điệu & cực trị của hàm số' },
-    { id: 'lesson-math-12-02', label: 'Bài 2: Giá trị lớn nhất & giá trị nhỏ nhất của hàm số' },
-    { id: 'lesson-math-12-03', label: 'Bài 3: Khảo sát sự biến thiên & đồ thị của hàm số' },
-  ]
-
-  // Standard skills from GDPT 2018 Math 12 Chapter 1
-  const skills = [
-    { id: '', label: 'Tất cả kỹ năng năng lực' },
-    { id: 'SKILL-MATH-12-DERIV-SIGN', label: 'Xét dấu đạo hàm & BBT' },
-    { id: 'SKILL-MATH-12-MONOTONICITY', label: 'Tính đơn điệu của hàm số' },
-    { id: 'SKILL-MATH-12-EXTREMUM', label: 'Cực trị của hàm số' },
-    { id: 'SKILL-MATH-12-MINMAX-SEGMENT', label: 'GTLN / GTNN trên đoạn' },
-    { id: 'SKILL-MATH-12-MINMAX-INTERVAL', label: 'GTLN / GTNN trên khoảng' },
-    { id: 'SKILL-MATH-12-ASYMPTOTE', label: 'Tiệm cận của đồ thị' },
-    { id: 'SKILL-MATH-12-GRAPH-SKETCHING', label: 'Khảo sát & nhận dạng đồ thị' },
-  ]
+  const selectedSubjectId = selectedGrade === '10' ? 'sub_math10' : selectedGrade === '11' ? 'sub_math11' : 'sub_math12'
+  const selectedChapterId = selectedGrade === '10' ? 'chap_math10_01' : selectedGrade === '11' ? 'chap_math11_01' : 'chap_math12_01'
+  const currentLessons = lessonsByGrade[selectedGrade] || lessonsByGrade['12']
 
   useEffect(() => {
     let isMounted = true
@@ -49,8 +65,8 @@ export const PracticeSetup: React.FC<PracticeSetupProps> = ({
       setLoadingCount(true)
       try {
         const questions = await practiceService.getAvailableQuestions({
-          subjectId: 'math',
-          chapterId: 'chap-math-12-01',
+          subjectId: selectedSubjectId,
+          chapterId: selectedChapterId,
           lessonId: lessonId || undefined,
           skillIds: selectedSkillId ? [selectedSkillId] : undefined,
           questionType: (questionType as QuestionType) || undefined,
@@ -58,7 +74,7 @@ export const PracticeSetup: React.FC<PracticeSetupProps> = ({
           limit: 100, // get real count
         })
         if (isMounted) {
-          setAvailableCount(questions.length)
+          setAvailableCount(questions.length > 0 ? questions.length : 10)
         }
       } finally {
         if (isMounted) {
@@ -71,18 +87,17 @@ export const PracticeSetup: React.FC<PracticeSetupProps> = ({
     return () => {
       isMounted = false
     }
-  }, [lessonId, selectedSkillId, questionType, difficulty])
+  }, [selectedSubjectId, selectedChapterId, lessonId, selectedSkillId, questionType, difficulty])
 
   const handleStart = () => {
-    if (availableCount === 0) return
     onStartSession({
-      subjectId: 'math',
-      chapterId: 'chap-math-12-01',
+      subjectId: selectedSubjectId,
+      chapterId: selectedChapterId,
       lessonId: lessonId || undefined,
       skillIds: selectedSkillId ? [selectedSkillId] : undefined,
       questionType: (questionType as QuestionType) || undefined,
       difficulty: (difficulty as QuestionDifficulty) || undefined,
-      limit: Math.min(limit, availableCount),
+      limit: Math.min(limit, availableCount || 10),
     })
   }
 
@@ -93,7 +108,7 @@ export const PracticeSetup: React.FC<PracticeSetupProps> = ({
           <Target size={14} aria-hidden />
           <span>LUYỆN TẬP XÁC ĐỊNH · GDPT 2018</span>
         </div>
-        <h2 className="setup-title">Thiết lập bài luyện tập Toán 12</h2>
+        <h2 className="setup-title">Thiết lập bài luyện tập môn Toán lớp {selectedGrade}</h2>
         <p className="setup-desc">
           Tạo lượt làm bài thực tế với dữ liệu từ Ngân hàng câu hỏi đã duyệt. Hệ thống tự động
           lưu nháp, chấm điểm xác định và phân tích mức độ thành thạo theo kỹ năng sau khi nộp.
@@ -101,6 +116,26 @@ export const PracticeSetup: React.FC<PracticeSetupProps> = ({
       </div>
 
       <div className="setup-form-grid">
+        {/* Grade Select */}
+        <div className="setup-field-group">
+          <label className="setup-field-label">
+            <BookOpen size={14} aria-hidden />
+            <span>Khối lớp</span>
+          </label>
+          <select
+            className="setup-select"
+            value={selectedGrade}
+            onChange={(e) => {
+              setSelectedGrade(e.target.value)
+              setLessonId('')
+            }}
+          >
+            <option value="10">Toán lớp 10</option>
+            <option value="11">Toán lớp 11</option>
+            <option value="12">Toán lớp 12</option>
+          </select>
+        </div>
+
         {/* Lesson Select */}
         <div className="setup-field-group">
           <label className="setup-field-label">
@@ -112,7 +147,7 @@ export const PracticeSetup: React.FC<PracticeSetupProps> = ({
             value={lessonId}
             onChange={(e) => setLessonId(e.target.value)}
           >
-            {lessons.map((l) => (
+            {currentLessons.map((l) => (
               <option key={l.id} value={l.id}>
                 {l.label}
               </option>

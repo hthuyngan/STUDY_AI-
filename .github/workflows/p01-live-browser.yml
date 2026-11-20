@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - feature/math10-12-p00-foundation
+      - feature/math10-12-integrated-learner-ai-fullstack
+  pull_request:
+    branches:
+      - feature/math10-12-p00-foundation
   workflow_dispatch:
 
 concurrency:

@@ -246,7 +246,7 @@ export const PracticeHubPage: React.FC = () => {
                   icon={Play}
                   onClick={() =>
                     handleStartSession({
-                      subjectId: 'sub_math12',
+                      subjectId: user?.grade === '10' ? 'sub_math10' : user?.grade === '11' ? 'sub_math11' : 'sub_math12',
                       mode: 'adaptive',
                       limit: 10,
                     })
