@@ -16,16 +16,16 @@
 Báo cáo nghiệm thu phân định rõ ràng giữa các tầng kiểm thử, không đánh đồng kiểm thử giao diện giả lập với kiểm thử tích hợp cơ sở dữ liệu thực tế:
 - **Tầng 1 — Linter & Type Safety:** Oxlint (0 lỗi/cảnh báo) & TypeScript Strict Mode (`tsc -b` PASS, 0 lỗi kiểu).
 - **Tầng 2 — Unit Tests:** Frontend Vitest (496 tests PASS) & Backend .NET xUnit (167 tests PASS).
-- **Tầng 3 — Backend Integration Tests:** 191 tests PASS trên cơ sở dữ liệu cô lập `StudyAIDb_E2E`.
+- **Tầng 3 — Backend Integration Tests:** 191 tests PASS trên cơ sở dữ liệu cô lập `StudyAIDb_E2E` tại CI `b7eb07f`; các bài regression mới của commit sau đó cần CI riêng.
 - **Tầng 4 — UI Smoke Tests with Mocked APIs (Playwright):** 4 kịch bản PASS, kiểm chứng khả năng render giao diện, luồng thao tác và xử lý lỗi mạng phía client (fail-closed) với API interception.
-- **Tầng 5 — Live E2E Integration Scenarios (Real SQL Server):** 4 kịch bản PASS với assertions trực tiếp trên `StudyAIDb_E2E` (chuyển lớp, khóa giáo viên, xung đột tương tranh 409, nộp bài kiểm tra fail-closed).
+- **Tầng 5 — Live Backend Integration Scenarios (Real SQL Server):** Bộ 4 test trên `StudyAIDb_E2E` đã PASS ở commit `b7eb07f`, nhưng không phải browser-to-backend E2E. Trong đó test Settings chỉ kiểm chứng stale-version tuần tự, và test Assessment trước đây dùng sai endpoint Practice. Commit `0a27905` bổ sung test concurrent PUT và sửa test Assessment đúng endpoint; **chờ CI xác nhận**. Trạng thái kiểm thử trình duyệt → API thật → SQL: **NOT RUN**.
 
 ### 2. Kết luận nghiệm thu theo từng phân hệ
 - **Phân hệ P00 (Baseline audit, Database Safety Guard & Architecture Integrity):** **PASS**
   - Chốt an toàn cơ sở dữ liệu `DatabaseSafetyGuard` ngăn chặn mọi hành vi ghi, migration, seed, import hoặc reset vào `StudyAIDb` production ở cả backend (.NET 10) và công cụ frontend/script.
   - Toàn bộ kiểm thử ghi và rehearsal dữ liệu thực hiện hoàn toàn trên `StudyAIDb_E2E`.
   - Baseline Clean Architecture, API contracts và phân quyền người học/quản trị viên được duy trì nhất quán.
-- **Phân hệ P01 (Core Security, Permission, Integrity & Data Normalization):** **PASS**
+- **Phân hệ P01 (Core Security, Permission, Integrity & Data Normalization):** **CONDITIONAL PASS** — các bài kiểm thử nghiệp vụ mới đang chờ CI, cần kiểm tra concurrent PUT và UI E2E thật trước khi merge.
   - Khắc phục triệt để toàn bộ 35 vấn đề do Codex Review phát hiện (bao gồm 9 vấn đề ban đầu và 26 review comments theo thread).
   - Loại bỏ hoàn toàn mật khẩu dùng chung; tạo mật khẩu ngẫu nhiên bảo mật cho giáo viên mới.
   - Đóng hoàn toàn lỗ hổng lộ đáp án bài thi qua Mistake Review và cưỡng chế thời hạn nộp bài.
@@ -184,7 +184,7 @@ Tất cả 35 vấn đề (gồm 9 vấn đề ban đầu và 26 review comments
 ## G. Kết Luận Nghiệm Thu & Khuyến Nghị (Recommendations)
 
 ### 1. Kết luận nghiệm thu
-**KẾT LUẬN: READY FOR HUMAN REVIEW**
+**KẾT LUẬN: READY FOR HUMAN REVIEW; NOT READY FOR MERGE**
 
 PR #15 đã hoàn tất toàn bộ yêu cầu của **Phase P00** và **Phase P01**:
 1. Cơ chế bảo vệ cơ sở dữ liệu `DatabaseSafetyGuard` bảo vệ an toàn tuyệt đối cho `StudyAIDb` production.
@@ -195,3 +195,23 @@ PR #15 đã hoàn tất toàn bộ yêu cầu của **Phase P00** và **Phase P0
 - Giữ PR #15 ở trạng thái **DRAFT** để reviewer con người (Human Reviewer / Tech Lead) rà soát và phê duyệt.
 - Tuyệt đối **không tự ý merge** PR #15 vào `feature/ai-core-v1` khi chưa có phê duyệt chính thức.
 - Sẵn sàng chuyển giao nền tảng sạch sang **Phase P02** (Xây dựng Curriculum & Adaptive Content Pipeline Toán 10–12).
+
+
+---
+
+## H. Independent Follow-up Review — 20/11/2026
+
+**Reviewer classification:** PR #15 remains Draft; passing CI does not prove untested behavior. The four Playwright scenarios use mocked API routes and screenshot-based assertions; they are **UI smoke tests**, not browser-to-SQL E2E.
+
+**Observed gaps at `b7eb07f`:**
+- Assessment test submitted to `/api/v1/practice/sessions/non_existent_session_id/submit` rather than the created `AssessmentAttempt`. It could pass even if assessment submission flow broke.
+- Settings test sent stale-version PUT sequentially, not concurrent PUTs.
+- Browser interactions lack end-to-end assertions tied to real backend state.
+
+**Remediation commit:** `0a279051c78f213e7415f77c93c298035f41f2ab`.
+- Assessment backend regression now rejects invalid payload at the correct `/api/v1/me/assessment-attempts/{id}` route, checks persisted incomplete state and retries the same attempt successfully.
+- Concurrent settings regression sends two PUTs concurrently from separate HTTP clients sharing the same settings version; asserts one HTTP 200, one HTTP 409 and verifies persisted winner.
+
+**Important test limit:** This is backend HTTP + SQL integration, **not** a simulation of frontend network failure or browser-to-SQL end-to-end behavior. Frontend fail-closed must be validated separately using actual UI interactions with assertions.
+
+**Current gate:** P00 PASS based on prior evidence; P01 **CONDITIONAL PASS** until newly added tests pass on CI and outstanding UI/behavior checks are completed. Preserve `StudyAIDb` production. Do not auto-merge or begin P02 implementation during remediation.
