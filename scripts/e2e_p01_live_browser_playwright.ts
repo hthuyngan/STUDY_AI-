@@ -193,6 +193,9 @@ async function main() {
     // Restore shared E2E settings only. Never restore/write to a non-E2E database.
     if (changed && pageA && previousName) {
       try {
+        await pageA.goto(`${baseUrl}/admin/settings`)
+        await pageA.locator('#set-sysname').waitFor({ state: 'visible', timeout: 30000 })
+        await pageA.getByText('(Đang đồng bộ từ máy chủ...)').waitFor({ state: 'hidden', timeout: 30000 })
         const restore = await save(pageA, previousName)
         if (restore.status() !== 200) console.error(`[WARN] Test Settings restore failed: ${restore.status()}`)
       } catch (err) {
