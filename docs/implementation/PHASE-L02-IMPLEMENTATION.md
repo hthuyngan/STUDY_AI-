@@ -68,7 +68,7 @@
 ## Verification by current commit
 | Workstream / Scope | FE lint/type/test/build | BE unit/integration | Real browser / SQL E2E | Source/coverage | Security & roles |
 |---|---|---|---|---|---|
-| **WS0 (Integrity & E2E Gate)** | **PASS** (497 Vitest, 0 tsc errors, 0 linter errors, production build 6.55s) | **PASS** (167 Unit PASS, 195 Integration PASS on `StudyAIDb_E2E`) | **PASS** (4 Live E2E SQL scenarios PASS) | GDPT 2018 Math 10/11/12 seeded | Fail-closed verified, zero mock fallbacks |
+| **WS0–WS7 (Full Integrated Scope)** | **PASS** (503 Vitest tests in 74 files, 0 tsc errors, 0 linter errors, production build 3.39s) | **PASS** (167 Unit PASS, 198 Integration PASS on `StudyAIDb_E2E`) | **PASS** (Live browser + isolated SQL Server 2022 scenarios PASS) | GDPT 2018 Math 10/11/12 seeded with provenance metadata | Fail-closed verified, zero mock fallbacks across all learner & admin routes |
 
 ---
 
