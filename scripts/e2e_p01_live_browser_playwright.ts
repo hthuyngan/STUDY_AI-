@@ -57,6 +57,93 @@ async function save(page: Page, name: string): Promise<Response> {
   return responsePromise
 }
 
+async function browserTeacherLock(browser: Browser, adminPage: Page) {
+  // A unique test-only teacher is created through the actual backend API. Cleanup is soft delete.
+  const adminLogin = await fetch(`${backendUrl}/api/v1/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  })
+  assert.equal(adminLogin.status, 200, 'Real admin API login must succeed')
+  const adminAuth = await adminLogin.json() as { accessToken: string }
+  const headers = {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${adminAuth.accessToken}`,
+  }
+  const teacherName = `Live E2E Teacher ${Date.now()}`
+  const teacherEmail = `live.teacher.${Date.now()}@studyai.test`
+  const teacherPassword = `E2E-Test-${Date.now()}!aA`
+  const createResponse = await fetch(`${backendUrl}/api/v1/admin/teachers`, {
+    method: 'POST', headers,
+    body: JSON.stringify({ name: teacherName, email: teacherEmail, password: teacherPassword, subject: 'Toán 12', status: 'active' }),
+  })
+  assert.equal(createResponse.status, 201, 'Create teacher fixture must succeed on real backend')
+  const teacher = await createResponse.json() as { id: string }
+  assert.ok(teacher.id, 'Teacher fixture needs persisted ID')
+  let locked = false
+  try {
+    await adminPage.goto(`${baseUrl}/admin/teachers`)
+    await adminPage.getByRole('searchbox', { name: 'Tìm kiếm giáo viên' }).fill(teacherEmail)
+    const lockButton = adminPage.getByRole('button', { name: `Khóa ${teacherName}` })
+    await lockButton.waitFor({ state: 'visible', timeout: 30000 })
+    await lockButton.click()
+    const lockResponsePromise = adminPage.waitForResponse(r =>
+      r.url().includes(`/api/v1/admin/teachers/${teacher.id}`) &&
+      ['PATCH', 'PUT'].includes(r.request().method()), { timeout: 20000 })
+    await adminPage.getByRole('button', { name: 'Khóa tài khoản', exact: true }).click()
+    const lockResponse = await lockResponsePromise
+    assert.equal(lockResponse.status(), 200, 'Teacher lock must persist via API')
+    locked = true
+    await adminPage.getByRole('button', { name: `Mở khóa ${teacherName}` })
+      .waitFor({ state: 'visible', timeout: 20000 })
+
+    const lockedContext = await browser.newContext()
+    try {
+      const lockedPage = await lockedContext.newPage()
+      await lockedPage.goto(`${baseUrl}/login`)
+      await lockedPage.locator('#login-email').fill(teacherEmail)
+      await lockedPage.locator('#login-password').fill(teacherPassword)
+      const denied = lockedPage.waitForResponse(r => r.url().includes('/api/v1/auth/login') && r.request().method() === 'POST')
+      await lockedPage.locator('button[type="submit"]').click()
+      assert.equal((await denied).status(), 403, 'Locked teacher must be rejected by real login API')
+      assert.ok(new URL(lockedPage.url()).pathname.endsWith('/login'), 'Locked teacher must stay on login page')
+    } finally {
+      await lockedContext.close()
+    }
+
+    await adminPage.getByRole('button', { name: `Mở khóa ${teacherName}` }).click()
+    const unlockResponsePromise = adminPage.waitForResponse(r =>
+      r.url().includes(`/api/v1/admin/teachers/${teacher.id}`) &&
+      ['PATCH', 'PUT'].includes(r.request().method()), { timeout: 20000 })
+    await adminPage.getByRole('button', { name: 'Mở khóa', exact: true }).click()
+    assert.equal((await unlockResponsePromise).status(), 200)
+    locked = false
+
+    const unlockedContext = await browser.newContext()
+    try {
+      const unlockedPage = await unlockedContext.newPage()
+      await unlockedPage.goto(`${baseUrl}/login`)
+      await unlockedPage.locator('#login-email').fill(teacherEmail)
+      await unlockedPage.locator('#login-password').fill(teacherPassword)
+      const accepted = unlockedPage.waitForResponse(r => r.url().includes('/api/v1/auth/login') && r.request().method() === 'POST')
+      await unlockedPage.locator('button[type="submit"]').click()
+      assert.equal((await accepted).status(), 200, 'Unlocked teacher should log in successfully')
+    } finally {
+      await unlockedContext.close()
+    }
+    await adminPage.screenshot({ path: path.join(artifacts, 'teacher-lock-real-api-pass.png'), fullPage: true })
+    console.log('[PASS] Live browser Teacher: UI lock/unlock persisted, real login rejected 403 then accepted 200')
+  } finally {
+    // Never leave an E2E teacher locked or active in test DB on failure.
+    const cleanup = await fetch(`${backendUrl}/api/v1/admin/teachers/${teacher.id}`, {
+      method: 'DELETE', headers,
+    }).catch(() => null)
+    if (!cleanup || cleanup.status !== 204) {
+      console.error(`[WARN] Failed to delete test teacher fixture ${teacher.id}, locked=${locked}`)
+    }
+  }
+}
+
 async function main() {
   // Fail closed if backend is unavailable. Never silently swap in a stub.
   const authProbe = await fetch(`${backendUrl}/api/v1/auth/refresh`).catch(() => null)
@@ -98,6 +185,7 @@ async function main() {
     assert.equal(await pageB.locator('#set-sysname').inputValue(), unique, 'Stale client overwrote persisted Settings')
     await pageA.screenshot({ path: path.join(artifacts, 'settings-real-api-pass.png'), fullPage: true })
     console.log('[PASS] Live browser Settings: 2 admin contexts, PUT 200, stale PUT 409, persisted value after reload')
+    await browserTeacherLock(browser, pageA)
   } catch (err) {
     if (pageA) await pageA.screenshot({ path: path.join(artifacts, 'settings-real-api-fail.png'), fullPage: true }).catch(() => {})
     throw err
