@@ -1171,14 +1171,11 @@ export const educationService = {
 
   async updateTeacher(id: string, updates: Partial<AdminTeacherItem>): Promise<AdminTeacherItem> {
     if (getAccessToken()) {
-      try {
-        const res = await apiClient.patch<AdminTeacherItem>(`/api/v1/admin/teachers/${id}`, updates)
-        if (res?.id) {
-          return res
-        }
-      } catch (err: any) {
-        if (err?.status === 401 || err?.status === 403) throw err
+      const res = await apiClient.patch<AdminTeacherItem>(`/api/v1/admin/teachers/${id}`, updates)
+      if (res?.id) {
+        return res
       }
+      throw new Error('Cập nhật thông tin giáo viên không thành công.')
     }
 
     const teachers = readStorage<AdminTeacherItem[]>(STORAGE_KEYS.TEACHERS, INITIAL_TEACHERS)
@@ -1197,18 +1194,15 @@ export const educationService = {
   async toggleTeacherLock(id: string): Promise<AdminTeacherItem> {
     const teacher = await this.getTeacherById(id)
     if (!teacher) throw new Error(`Teacher with id ${id} not found`)
-    const nextStatus = teacher.accountStatus === 'LOCKED' ? 'ACTIVE' : 'LOCKED'
-    return this.updateTeacher(id, { accountStatus: nextStatus })
+    const nextAccountStatus = teacher.accountStatus === 'LOCKED' ? 'ACTIVE' : 'LOCKED'
+    const nextStatus = nextAccountStatus === 'LOCKED' ? 'suspended' : 'active'
+    return this.updateTeacher(id, { accountStatus: nextAccountStatus, status: nextStatus as any })
   },
 
   async deleteTeacher(id: string): Promise<boolean> {
     if (getAccessToken()) {
-      try {
-        await apiClient.delete(`/api/v1/admin/teachers/${id}`)
-        return true
-      } catch (err: any) {
-        if (err?.status === 401 || err?.status === 403) throw err
-      }
+      await apiClient.delete(`/api/v1/admin/teachers/${id}`)
+      return true
     }
 
     const teachers = readStorage<AdminTeacherItem[]>(STORAGE_KEYS.TEACHERS, INITIAL_TEACHERS)
@@ -1224,17 +1218,14 @@ export const educationService = {
     newTeachers: number
   }> {
     if (getAccessToken()) {
-      try {
-        const res = await apiClient.get<{
-          totalTeachers: number
-          activeTeaching: number
-          pendingOrLeave: number
-          newTeachers: number
-        }>('/api/v1/admin/teachers/kpis')
-        if (res) return res
-      } catch (err: any) {
-        if (err?.status === 401 || err?.status === 403) throw err
-      }
+      const res = await apiClient.get<{
+        totalTeachers: number
+        activeTeaching: number
+        pendingOrLeave: number
+        newTeachers: number
+      }>('/api/v1/admin/teachers/kpis')
+      if (res) return res
+      throw new Error('Không thể tải KPI giáo viên từ máy chủ.')
     }
 
     const teachers = readStorage<AdminTeacherItem[]>(STORAGE_KEYS.TEACHERS, INITIAL_TEACHERS)
@@ -1258,19 +1249,23 @@ export const educationService = {
     classId?: string
   }): Promise<LearningReportsData> {
     if (getAccessToken()) {
-      try {
-        const queryParams = new URLSearchParams()
-        if (filter?.timeframe) queryParams.set('timeframe', filter.timeframe)
-        if (filter?.subjectId) queryParams.set('subjectId', filter.subjectId)
-        if (filter?.classId) queryParams.set('classId', filter.classId)
+      const queryParams = new URLSearchParams()
+      if (filter?.timeframe) queryParams.set('timeframe', filter.timeframe)
+      if (filter?.subjectId) queryParams.set('subjectId', filter.subjectId)
+      if (filter?.classId) queryParams.set('classId', filter.classId)
 
-        const res = await apiClient.get<LearningReportsData>(`/api/v1/admin/reports?${queryParams.toString()}`)
-        if (res && res.totalLearners !== undefined) {
-          return res
+      const res = await apiClient.get<any>(`/api/v1/admin/reports?${queryParams.toString()}`)
+      if (res && res.totalLearners !== undefined) {
+        return {
+          ...res,
+          activityTrend: (res.activityTrend || []).map((item: any) => ({
+            ...item,
+            lessonsCompleted: item.lessonsCompleted ?? item.completedLessons ?? 0,
+            completedLessons: item.completedLessons ?? item.lessonsCompleted ?? 0,
+          })),
         }
-      } catch (err: any) {
-        if (err?.status === 401 || err?.status === 403) throw err
       }
+      throw new Error('Dữ liệu báo cáo học tập trả về từ máy chủ không hợp lệ.')
     }
 
     // Return realistic analytics with filters applied

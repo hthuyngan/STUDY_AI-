@@ -130,6 +130,7 @@ public class AnalyticsTrendPointDto
     public int ActiveUsers { get; set; }
     public int NewUsers { get; set; }
     public int CompletedLessons { get; set; }
+    public int LessonsCompleted { get; set; }
 }
 
 public class UserDistributionItemDto
@@ -183,7 +184,8 @@ public class SaveTeacherRequestDto
     public string? Phone { get; set; }
     public string Subject { get; set; } = string.Empty;
     public List<string>? Classes { get; set; }
-    public string? Status { get; set; } = "active";
+    public string? Status { get; set; }
+    public string? AccountStatus { get; set; }
     public string? Qualifications { get; set; }
     public int? ExperienceYears { get; set; }
     public string? Bio { get; set; }
@@ -265,6 +267,7 @@ public class OperationalSettingsDto
     public bool EnableDemoAlerts { get; set; } = false;
     public string UpdatedAt { get; set; } = string.Empty;
     public string UpdatedBy { get; set; } = string.Empty;
+    public string? Version { get; set; }
 }
 
 public class AdminUserDetailDto : AdminUserDto

@@ -833,12 +833,21 @@ export const classroomService = {
     return apiClient.post<ClassroomStudentDto>(`/api/v1/classrooms/${classId}/students`, payload)
   },
 
-  async moveStudentClass(studentId: string, targetClassId: string, targetClassName: string): Promise<AdminStudentItem> {
+  async moveStudentClass(
+    studentId: string,
+    targetClassId: string,
+    targetClassName: string,
+    explicitSourceClassId?: string
+  ): Promise<AdminStudentItem> {
     if (getAccessToken()) {
       const students = await this.getStudents()
       const existing = students.find((s) => s.id === studentId || s.code === studentId)
       const studentCode = existing?.code || studentId
-      const sourceClassId = existing?.classId
+      const sourceClassId = explicitSourceClassId || existing?.classId
+
+      if (!sourceClassId) {
+        throw new Error('Không thể xác định lớp học nguồn của học sinh để chuyển lớp.')
+      }
 
       await apiClient.post<ClassroomStudentDto>(`/api/v1/classrooms/${targetClassId}/transfer-student`, {
         studentId: studentCode,
@@ -859,12 +868,12 @@ export const classroomService = {
         classId: targetClassId,
         className: targetClassName,
         grade: existing?.grade || 'Lớp 12',
-        progress: 0,
-        lessonsCompleted: 0,
-        averageScore: 0,
-        totalLearningMinutes: 0,
-        lastActive: new Date().toISOString(),
-        status: 'on-track',
+        progress: existing?.progress || 0,
+        lessonsCompleted: existing?.lessonsCompleted || 0,
+        averageScore: existing?.averageScore || 0,
+        totalLearningMinutes: existing?.totalLearningMinutes || 0,
+        status: existing?.status || 'on-track',
+        lastActive: existing?.lastActive || new Date().toISOString(),
       }
     }
 

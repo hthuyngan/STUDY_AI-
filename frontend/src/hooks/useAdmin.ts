@@ -434,21 +434,39 @@ export function useAdminRolesSimulation() {
 export function useAdminSystemHealth() {
   const [health, setHealth] = useState<Awaited<ReturnType<typeof adminService.getSystemHealth>> | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const loadHealth = useCallback(async () => {
     setLoading(true)
-    const data = await adminService.getSystemHealth()
-    setHealth(data)
-    setLoading(false)
+    setError(null)
+    try {
+      const data = await adminService.getSystemHealth()
+      setHealth(data)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Không thể kết nối đến máy chủ.')
+      setHealth(null)
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => {
     let isMounted = true
-    adminService.getSystemHealth().then((data) => {
-      if (!isMounted) return
-      setHealth(data)
-      setLoading(false)
-    })
+    setLoading(true)
+    setError(null)
+    adminService
+      .getSystemHealth()
+      .then((data) => {
+        if (!isMounted) return
+        setHealth(data)
+        setLoading(false)
+      })
+      .catch((err: unknown) => {
+        if (!isMounted) return
+        setError(err instanceof Error ? err.message : 'Không thể kết nối đến máy chủ.')
+        setHealth(null)
+        setLoading(false)
+      })
     return () => {
       isMounted = false
     }
@@ -459,5 +477,5 @@ export function useAdminSystemHealth() {
     await loadHealth()
   }
 
-  return { health, loading, resetDemoData, refresh: loadHealth }
+  return { health, loading, error, resetDemoData, refresh: loadHealth }
 }

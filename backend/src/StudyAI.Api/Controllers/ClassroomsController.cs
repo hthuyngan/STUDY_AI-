@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -440,6 +441,31 @@ public class ClassroomsController : ControllerBase
             return BadRequest(new { message = "Mã học sinh không được để trống" });
         }
 
+        if (string.IsNullOrWhiteSpace(dto.SourceClassroomId))
+        {
+            return BadRequest(new { message = "Mã lớp học nguồn (sourceClassroomId) là bắt buộc để chuyển lớp." });
+        }
+
+        if (string.Equals(dto.SourceClassroomId.Trim(), id.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest(new { message = "Lớp học nguồn và lớp học đích không thể trùng nhau." });
+        }
+
+        var sourceClassroom = await _db.Classrooms.FindAsync(new object[] { dto.SourceClassroomId }, cancellationToken);
+        if (sourceClassroom == null)
+        {
+            return NotFound(new { message = "Không tìm thấy lớp học nguồn." });
+        }
+
+        // Quyền hạn: Quản trị viên (admin) hoặc giáo viên phải quản lý CẢ lớp nguồn VÀ lớp đích
+        if (!IsAdmin)
+        {
+            if (targetClassroom.TeacherId != userId || sourceClassroom.TeacherId != userId)
+            {
+                return Forbid();
+            }
+        }
+
         var student = await _db.Users.FirstOrDefaultAsync(u => u.Id == dto.StudentId, cancellationToken);
         if (student == null)
         {
@@ -451,29 +477,18 @@ public class ClassroomsController : ControllerBase
             return BadRequest(new { message = "Chỉ có thể chuyển người dùng có vai trò học sinh (learner)" });
         }
 
-        // Xóa enrollment khỏi lớp cũ nếu có chỉ định sourceClassroomId
-        if (!string.IsNullOrWhiteSpace(dto.SourceClassroomId))
+        // Kiểm tra học sinh có thực sự ghi danh trong lớp nguồn không
+        var oldEnrollment = await _db.ClassroomStudents.FirstOrDefaultAsync(
+            cs => cs.ClassroomId == sourceClassroom.Id && cs.StudentId == student.Id, cancellationToken);
+
+        if (oldEnrollment == null)
         {
-            var oldEnrollment = await _db.ClassroomStudents.FirstOrDefaultAsync(
-                cs => cs.ClassroomId == dto.SourceClassroomId && cs.StudentId == student.Id, cancellationToken);
-            if (oldEnrollment != null)
-            {
-                _db.ClassroomStudents.Remove(oldEnrollment);
-                var sourceClassroom = await _db.Classrooms.FindAsync(new object[] { dto.SourceClassroomId }, cancellationToken);
-                if (sourceClassroom != null) sourceClassroom.UpdatedAt = DateTimeOffset.UtcNow;
-            }
+            return NotFound(new { message = "Học sinh không có trong danh sách ghi danh của lớp học nguồn." });
         }
-        else
-        {
-            // Nếu không cung cấp sourceClassroomId, xóa mọi enrollment của học sinh ở các lớp khác để tránh trùng lặp
-            var previousEnrollments = await _db.ClassroomStudents
-                .Where(cs => cs.StudentId == student.Id && cs.ClassroomId != id)
-                .ToListAsync(cancellationToken);
-            if (previousEnrollments.Count > 0)
-            {
-                _db.ClassroomStudents.RemoveRange(previousEnrollments);
-            }
-        }
+
+        // Chỉ xóa duy nhất enrollment ở lớp nguồn được ủy quyền
+        _db.ClassroomStudents.Remove(oldEnrollment);
+        sourceClassroom.UpdatedAt = DateTimeOffset.UtcNow;
 
         // Kiểm tra xem đã tham gia lớp đích chưa
         var targetEnrollment = await _db.ClassroomStudents.FirstOrDefaultAsync(
@@ -492,6 +507,23 @@ public class ClassroomsController : ControllerBase
         }
 
         targetClassroom.UpdatedAt = DateTimeOffset.UtcNow;
+
+        _db.StaffAuditLogs.Add(new StaffAuditLog
+        {
+            Id = $"log_{Guid.NewGuid():N}",
+            ActorUserId = userId,
+            Action = "student_class_transferred",
+            TargetType = "classroom",
+            TargetId = id,
+            Payload = JsonSerializer.Serialize(new
+            {
+                studentId = student.Id,
+                sourceClassroomId = sourceClassroom.Id,
+                targetClassroomId = targetClassroom.Id
+            }),
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
         await _db.SaveChangesAsync(cancellationToken);
 
         var result = new ClassroomStudentDto

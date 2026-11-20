@@ -106,7 +106,7 @@ export const TeacherStudentProfilePage: React.FC = () => {
     if (!targetClass) return
 
     try {
-      await classroomService.moveStudentClass(student.id, targetClass.id, targetClass.name)
+      await classroomService.moveStudentClass(student.id, targetClass.id, targetClass.name, student.classId)
       showToast(`Đã chuyển học viên ${student.name} sang lớp ${targetClass.name}`)
       setIsMoveOpen(false)
       loadData()

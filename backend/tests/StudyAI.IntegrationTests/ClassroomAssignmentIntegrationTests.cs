@@ -953,6 +953,179 @@ public class ClassroomAssignmentIntegrationTests : IClassFixture<StudyAIApiFixtu
             Assert.True(inB, "Student must be enrolled in Class B after transfer");
         }
     }
+
+    [Fact]
+    public async Task Classroom_TransferStudent_WhenTeacherDoesNotOwnSourceClassroom_ReturnsForbidden()
+    {
+        // Issue 1: Teacher attempting to transfer student from a class owned by another teacher without admin rights
+        var (teacher1Token, _, _) = await CreateAndLoginUserAsync("teacher", "Thầy Giáo Lớp Nguồn");
+        var (teacher2Token, _, _) = await CreateAndLoginUserAsync("teacher", "Thầy Giáo Lớp Đích");
+        var (_, learnerId, learnerEmail) = await CreateAndLoginUserAsync("student", "Học Sinh Chuyển Lớp Auth");
+
+        // Teacher 1 creates Class A
+        var classAResp = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/classrooms")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateClassroomRequestDto
+            {
+                Name = "Lớp 10A1 Thầy 1",
+                Grade = "10",
+                Subject = "Toán"
+            }), Encoding.UTF8, "application/json"),
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", teacher1Token) }
+        });
+        Assert.Equal(HttpStatusCode.Created, classAResp.StatusCode);
+        var classA = JsonSerializer.Deserialize<ClassroomDto>(await classAResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        // Teacher 2 creates Class B
+        var classBResp = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/classrooms")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateClassroomRequestDto
+            {
+                Name = "Lớp 10A2 Thầy 2",
+                Grade = "10",
+                Subject = "Toán"
+            }), Encoding.UTF8, "application/json"),
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", teacher2Token) }
+        });
+        Assert.Equal(HttpStatusCode.Created, classBResp.StatusCode);
+        var classB = JsonSerializer.Deserialize<ClassroomDto>(await classBResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        // Enroll student into Class A (by Teacher 1)
+        var enrollResp = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, $"/api/v1/classrooms/{classA.Id}/students")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new EnrollStudentRequestDto
+            {
+                StudentEmail = learnerEmail
+            }), Encoding.UTF8, "application/json"),
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", teacher1Token) }
+        });
+        Assert.True(enrollResp.StatusCode == HttpStatusCode.Created || enrollResp.StatusCode == HttpStatusCode.OK);
+
+        // Teacher 2 attempts to transfer student from Class A into Class B -> MUST RETURN 403 Forbidden!
+        var transferReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/classrooms/{classB.Id}/transfer-student")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new TransferStudentRequestDto
+            {
+                StudentId = learnerId,
+                SourceClassroomId = classA.Id
+            }), Encoding.UTF8, "application/json"),
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", teacher2Token) }
+        };
+        var transferResp = await _client.SendAsync(transferReq);
+        Assert.Equal(HttpStatusCode.Forbidden, transferResp.StatusCode);
+
+        // Verify student is still in Class A and not in Class B
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            var inA = await db.ClassroomStudents.AnyAsync(cs => cs.ClassroomId == classA.Id && cs.StudentId == learnerId);
+            var inB = await db.ClassroomStudents.AnyAsync(cs => cs.ClassroomId == classB.Id && cs.StudentId == learnerId);
+            Assert.True(inA, "Student must remain in Class A when transfer is forbidden");
+            Assert.False(inB, "Student must not be in Class B when transfer fails");
+        }
+    }
+
+    [Fact]
+    public async Task Classroom_TransferStudent_WhenSourceClassroomIdOmitted_ReturnsBadRequest()
+    {
+        // Issue 1: Omission of SourceClassroomId must fail-closed with 400 Bad Request
+        var (teacherToken, _, _) = await CreateAndLoginUserAsync("teacher", "Thầy Validate Source");
+        var (_, learnerId, _) = await CreateAndLoginUserAsync("student", "Học Sinh Validate Source");
+
+        var classResp = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/classrooms")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateClassroomRequestDto
+            {
+                Name = "Lớp Test Validate Source",
+                Grade = "11",
+                Subject = "Toán"
+            }), Encoding.UTF8, "application/json"),
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", teacherToken) }
+        });
+        var classObj = JsonSerializer.Deserialize<ClassroomDto>(await classResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        // Omit SourceClassroomId
+        var transferReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/classrooms/{classObj.Id}/transfer-student")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new TransferStudentRequestDto
+            {
+                StudentId = learnerId,
+                SourceClassroomId = "" // Empty / missing!
+            }), Encoding.UTF8, "application/json"),
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", teacherToken) }
+        };
+        var transferResp = await _client.SendAsync(transferReq);
+        Assert.Equal(HttpStatusCode.BadRequest, transferResp.StatusCode);
+    }
+
+    [Fact]
+    public async Task Classroom_TransferStudent_DoesNotRemoveUnrelatedClassEnrollments()
+    {
+        // Issue 1: Transfer must ONLY remove enrollment from SourceClassroomId, NOT all other enrollments
+        var (teacherToken, _, _) = await CreateAndLoginUserAsync("teacher", "Thầy Nhiều Lớp");
+        var (_, learnerId, learnerEmail) = await CreateAndLoginUserAsync("student", "Học Sinh Nhiều Lớp");
+
+        // Create Class A, Class B, Class C
+        var makeClass = async (string name) =>
+        {
+            var res = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/classrooms")
+            {
+                Content = new StringContent(JsonSerializer.Serialize(new CreateClassroomRequestDto
+                {
+                    Name = name,
+                    Grade = "11",
+                    Subject = "Toán"
+                }), Encoding.UTF8, "application/json"),
+                Headers = { Authorization = new AuthenticationHeaderValue("Bearer", teacherToken) }
+            });
+            return JsonSerializer.Deserialize<ClassroomDto>(await res.Content.ReadAsStringAsync(), JsonOpts)!;
+        };
+
+        var classA = await makeClass("Lớp Nguồn A");
+        var classB = await makeClass("Lớp Đích B");
+        var classC = await makeClass("Lớp Không Liên Quan C");
+
+        // Enroll in Class A and Class C
+        var enroll = async (string classId) =>
+        {
+            await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, $"/api/v1/classrooms/{classId}/students")
+            {
+                Content = new StringContent(JsonSerializer.Serialize(new EnrollStudentRequestDto
+                {
+                    StudentEmail = learnerEmail
+                }), Encoding.UTF8, "application/json"),
+                Headers = { Authorization = new AuthenticationHeaderValue("Bearer", teacherToken) }
+            });
+        };
+        await enroll(classA.Id);
+        await enroll(classC.Id);
+
+        // Transfer student from Class A -> Class B
+        var transferReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/classrooms/{classB.Id}/transfer-student")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new TransferStudentRequestDto
+            {
+                StudentId = learnerId,
+                SourceClassroomId = classA.Id
+            }), Encoding.UTF8, "application/json"),
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", teacherToken) }
+        };
+        var transferResp = await _client.SendAsync(transferReq);
+        Assert.Equal(HttpStatusCode.OK, transferResp.StatusCode);
+
+        // Direct DB Verification
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            var inA = await db.ClassroomStudents.AnyAsync(cs => cs.ClassroomId == classA.Id && cs.StudentId == learnerId);
+            var inB = await db.ClassroomStudents.AnyAsync(cs => cs.ClassroomId == classB.Id && cs.StudentId == learnerId);
+            var inC = await db.ClassroomStudents.AnyAsync(cs => cs.ClassroomId == classC.Id && cs.StudentId == learnerId);
+
+            Assert.False(inA, "Enrollment in source Class A must be removed");
+            Assert.True(inB, "Enrollment in target Class B must exist");
+            Assert.True(inC, "Enrollment in unrelated Class C MUST BE PRESERVED and NOT removed");
+        }
+    }
 }
 
 

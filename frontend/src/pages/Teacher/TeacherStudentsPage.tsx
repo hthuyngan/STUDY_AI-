@@ -103,7 +103,7 @@ export const TeacherStudentsPage: React.FC = () => {
     if (!targetClass) return
 
     try {
-      await classroomService.moveStudentClass(selectedStudent.id, targetClass.id, targetClass.name)
+      await classroomService.moveStudentClass(selectedStudent.id, targetClass.id, targetClass.name, selectedStudent.classId)
       await classroomService.addClassActivity(
         targetClass.id,
         'Tiếp nhận học viên chuyển lớp',

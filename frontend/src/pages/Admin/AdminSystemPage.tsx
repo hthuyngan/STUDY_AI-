@@ -17,7 +17,7 @@ import './AdminPages.css'
 import '@/components/admin/AdminComponents.css'
 
 export const AdminSystemPage: React.FC = () => {
-  const { health, loading, resetDemoData } = useAdminSystemHealth()
+  const { health, loading, error, resetDemoData, refresh } = useAdminSystemHealth()
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false)
   const [resetFeedback, setResetFeedback] = useState<string | null>(null)
 
@@ -85,6 +85,16 @@ export const AdminSystemPage: React.FC = () => {
       </div>
 
       {/* Honest Prototype Notice */}
+      {error && (
+        <div className="admin-alert-banner admin-alert-danger" role="alert" style={{ margin: '16px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#b91c1c' }}>
+          <div>
+            <strong>Lỗi kết nối máy chủ:</strong> {error}
+          </div>
+          <button type="button" className="admin-btn-outline" onClick={refresh} style={{ borderColor: '#b91c1c', color: '#b91c1c' }}>
+            Thử lại
+          </button>
+        </div>
+      )}
       <div className="admin-system-honest-card" style={{ marginTop: '20px' }}>
         <div className="honest-card-top">
           <span className="prototype-status-pill">FE Prototype Standalone</span>
@@ -138,20 +148,20 @@ export const AdminSystemPage: React.FC = () => {
             ) : (
               <>
                 <div className="sys-stat-val">
-                  {health?.storageStats.usersCount ?? 0} người dùng
+                  {health?.storageStats?.usersCount ?? 0} người dùng
                 </div>
                 <div className="sys-stat-sub">
-                  Đồng bộ tức thời vào Web Storage
+                  {health?.storageStats?.isLocalStoragePersisted ? 'Đồng bộ Web Storage' : 'Đồng bộ CSDL SQL Server'}
                 </div>
                 <div className="sys-meta-list">
                   <div className="sys-meta-item">
                     <span>Nhật ký hoạt động:</span>
-                    <strong>{health?.storageStats.activitiesCount ?? 0} bản ghi</strong>
+                    <strong>{health?.storageStats?.activitiesCount ?? 0} bản ghi</strong>
                   </div>
                   <div className="sys-meta-item">
                     <span>Trạng thái lưu:</span>
                     <strong style={{ color: '#047857' }}>
-                      {health?.storageStats.isLocalStoragePersisted ? 'Đã lưu cache' : 'Mặc định sẵn có'}
+                      {health?.storageStats?.isLocalStoragePersisted ? 'Đã lưu cache' : 'CSDL SQL Server'}
                     </strong>
                   </div>
                 </div>

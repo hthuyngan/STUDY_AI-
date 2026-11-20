@@ -218,20 +218,26 @@ export function useLessonAssessment({
   const confirmSubmit = useCallback(async () => {
     if (!activeAttempt) return
     const elapsedSession = Math.max(0, Date.now() - sessionStartTimeRef.current)
-    const { attempt: submitted, scorePercentage } = await submitAttemptWithServerValidation(
-      activeAttempt,
-      questions,
-      assessment.passingScorePercent,
-      elapsedSession,
-      totalActualSections
-    )
-    setActiveAttempt(submitted)
-    setLatestCompletedAttempt(submitted)
-    // Record any wrong answers into Knowledge Gaps & schedule Smart Review
-    knowledgeGapsService.recordGapsFromAssessmentAttempt(submitted, questions, assessment.title)
-    setShowSubmitConfirm(false)
-    setShowResultView(true)
-    onAssessmentCompleted?.(scorePercentage)
+    try {
+      const { attempt: submitted, scorePercentage } = await submitAttemptWithServerValidation(
+        activeAttempt,
+        questions,
+        assessment.passingScorePercent,
+        elapsedSession,
+        totalActualSections
+      )
+      setActiveAttempt(submitted)
+      setLatestCompletedAttempt(submitted)
+      // Record any wrong answers into Knowledge Gaps & schedule Smart Review
+      knowledgeGapsService.recordGapsFromAssessmentAttempt(submitted, questions, assessment.title)
+      setShowSubmitConfirm(false)
+      setShowResultView(true)
+      onAssessmentCompleted?.(scorePercentage)
+    } catch (err: unknown) {
+      setShowSubmitConfirm(false)
+      const msg = err instanceof Error ? err.message : 'Lỗi kết nối máy chủ khi nộp bài.'
+      alert(`Nộp bài không thành công: ${msg}. Bài làm của bạn đã được bảo lưu an toàn. Vui lòng thử lại.`)
+    }
   }, [
     activeAttempt,
     assessment.passingScorePercent,

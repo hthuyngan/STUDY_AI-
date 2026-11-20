@@ -106,4 +106,5 @@ export interface OperationalSettings {
   enableDemoAlerts: boolean
   updatedAt: string
   updatedBy: string
+  version?: string
 }

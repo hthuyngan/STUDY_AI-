@@ -1220,4 +1220,256 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
             await _client.SendAsync(reqDel2);
         }
     }
+
+    [Fact]
+    public async Task Admin_ToggleTeacherLock_PersistsSuspendedStatus_And_RejectsLogin()
+    {
+        // Issue 3: Locking teacher account must persist "suspended" in SQL and block authentication
+        var adminToken = await GetAdminTokenAsync();
+        var teacherEmail = $"teacher.lock.{Guid.NewGuid():N}@studyai.test";
+        var password = "Teacher@123456";
+
+        // 1. Create teacher
+        var reqCreate = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/teachers")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new SaveTeacherRequestDto
+            {
+                Name = "Thầy Giáo Khóa Tài Khoản",
+                Email = teacherEmail,
+                Subject = "Toán 12",
+                Password = password,
+                AccountStatus = "ACTIVE"
+            }), Encoding.UTF8, "application/json")
+        };
+        reqCreate.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var respCreate = await _client.SendAsync(reqCreate);
+        Assert.True(respCreate.StatusCode == HttpStatusCode.Created || respCreate.StatusCode == HttpStatusCode.OK);
+        var teacher = JsonSerializer.Deserialize<AdminTeacherDto>(await respCreate.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        try
+        {
+            // Verify initial login succeeds
+            var login1 = await _client.PostAsync("/api/v1/auth/login", new StringContent(
+                JsonSerializer.Serialize(new UserLoginRequestDto { Email = teacherEmail, Password = password }),
+                Encoding.UTF8, "application/json"));
+            Assert.Equal(HttpStatusCode.OK, login1.StatusCode);
+
+            // 2. Lock account via Admin API
+            var reqLock = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/admin/teachers/{teacher.Id}")
+            {
+                Content = new StringContent(JsonSerializer.Serialize(new SaveTeacherRequestDto
+                {
+                    Name = "Thầy Giáo Khóa Tài Khoản",
+                    Email = teacherEmail,
+                    Subject = "Toán 12",
+                    AccountStatus = "LOCKED"
+                }), Encoding.UTF8, "application/json")
+            };
+            reqLock.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+            var respLock = await _client.SendAsync(reqLock);
+            Assert.Equal(HttpStatusCode.OK, respLock.StatusCode);
+
+            // 3. Database verification: status must be "suspended"
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+                var dbTeacher = await db.Users.FirstOrDefaultAsync(u => u.Id == teacher.Id);
+                Assert.NotNull(dbTeacher);
+                Assert.Equal("suspended", dbTeacher.Status);
+            }
+
+            // 4. Login attempt when locked must be REJECTED (403 Forbidden)
+            var loginLocked = await _client.PostAsync("/api/v1/auth/login", new StringContent(
+                JsonSerializer.Serialize(new UserLoginRequestDto { Email = teacherEmail, Password = password }),
+                Encoding.UTF8, "application/json"));
+            Assert.Equal(HttpStatusCode.Forbidden, loginLocked.StatusCode);
+
+            // 5. Unlock account via Admin API
+            var reqUnlock = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/admin/teachers/{teacher.Id}")
+            {
+                Content = new StringContent(JsonSerializer.Serialize(new SaveTeacherRequestDto
+                {
+                    Name = "Thầy Giáo Khóa Tài Khoản",
+                    Email = teacherEmail,
+                    Subject = "Toán 12",
+                    AccountStatus = "ACTIVE"
+                }), Encoding.UTF8, "application/json")
+            };
+            reqUnlock.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+            var respUnlock = await _client.SendAsync(reqUnlock);
+            Assert.Equal(HttpStatusCode.OK, respUnlock.StatusCode);
+
+            // 6. Database verification: status must be "active"
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+                var dbTeacher = await db.Users.FirstOrDefaultAsync(u => u.Id == teacher.Id);
+                Assert.NotNull(dbTeacher);
+                Assert.Equal("active", dbTeacher.Status);
+            }
+
+            // 7. Login succeeds again
+            var loginUnlocked = await _client.PostAsync("/api/v1/auth/login", new StringContent(
+                JsonSerializer.Serialize(new UserLoginRequestDto { Email = teacherEmail, Password = password }),
+                Encoding.UTF8, "application/json"));
+            Assert.Equal(HttpStatusCode.OK, loginUnlocked.StatusCode);
+        }
+        finally
+        {
+            var reqDel = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/admin/users/{teacher.Id}");
+            reqDel.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+            await _client.SendAsync(reqDel);
+        }
+    }
+
+    [Fact]
+    public async Task Admin_UpdateTeacher_PartialUpdate_PreservesExistingProfileFields()
+    {
+        // Issue 4: Dedicated TeacherProfiles table preserves fields when partial update is sent
+        var adminToken = await GetAdminTokenAsync();
+        var teacherEmail = $"teacher.preserve.{Guid.NewGuid():N}@studyai.test";
+
+        // 1. Create teacher
+        var reqCreate = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/teachers")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new SaveTeacherRequestDto
+            {
+                Name = "Thầy Gốc Ban Đầu",
+                Email = teacherEmail,
+                Subject = "Toán 11",
+                Phone = "0911223344",
+                Qualifications = "Thạc Sĩ Toán Học",
+                ExperienceYears = 7,
+                Bio = "Chuyên gia Đại số tổ hợp"
+            }), Encoding.UTF8, "application/json")
+        };
+        reqCreate.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var respCreate = await _client.SendAsync(reqCreate);
+        Assert.True(respCreate.StatusCode == HttpStatusCode.Created || respCreate.StatusCode == HttpStatusCode.OK);
+        var teacher = JsonSerializer.Deserialize<AdminTeacherDto>(await respCreate.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        try
+        {
+            // 2. Perform partial update (e.g. only update name and account status, leaving phone/qualifications/experienceYears/bio null)
+            var reqPartial = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/admin/teachers/{teacher.Id}")
+            {
+                Content = new StringContent(JsonSerializer.Serialize(new SaveTeacherRequestDto
+                {
+                    Name = "Thầy Gốc Đã Cập Nhật Tên",
+                    Email = teacherEmail,
+                    Subject = "Toán 11"
+                    // Phone, Qualifications, ExperienceYears, Bio are omitted / null
+                }), Encoding.UTF8, "application/json")
+            };
+            reqPartial.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+            var respPartial = await _client.SendAsync(reqPartial);
+            Assert.Equal(HttpStatusCode.OK, respPartial.StatusCode);
+
+            // 3. Direct DB check on TeacherProfiles table
+            using (var scope = _factory.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+                var profile = await db.TeacherProfiles.FirstOrDefaultAsync(tp => tp.TeacherId == teacher.Id);
+                Assert.NotNull(profile);
+                Assert.Equal("0911223344", profile.Phone);
+                Assert.Equal("Thạc Sĩ Toán Học", profile.Qualifications);
+                Assert.Equal(7, profile.ExperienceYears);
+                Assert.Equal("Chuyên gia Đại số tổ hợp", profile.Bio);
+            }
+
+            // 4. API list check
+            var reqList = new HttpRequestMessage(HttpMethod.Get, "/api/v1/admin/teachers");
+            reqList.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+            var respList = await _client.SendAsync(reqList);
+            var teachers = JsonSerializer.Deserialize<List<AdminTeacherDto>>(await respList.Content.ReadAsStringAsync(), JsonOpts)!;
+            var reloaded = teachers.FirstOrDefault(t => t.Id == teacher.Id);
+            Assert.NotNull(reloaded);
+            Assert.Equal("Thầy Gốc Đã Cập Nhật Tên", reloaded.Name);
+            Assert.Equal("0911223344", reloaded.Phone);
+            Assert.Equal("Thạc Sĩ Toán Học", reloaded.Qualifications);
+            Assert.Equal(7, reloaded.ExperienceYears);
+            Assert.Equal("Chuyên gia Đại số tổ hợp", reloaded.Bio);
+        }
+        finally
+        {
+            var reqDel = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/admin/users/{teacher.Id}");
+            reqDel.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+            await _client.SendAsync(reqDel);
+        }
+    }
+
+    [Fact]
+    public async Task Admin_UpdateSettings_ConcurrencyConflict_Returns409()
+    {
+        // Issue 8: Settings concurrency check returns 409 Conflict when stale version is sent
+        var adminToken = await GetAdminTokenAsync();
+
+        // 1. Get initial settings
+        var reqGet = new HttpRequestMessage(HttpMethod.Get, "/api/v1/admin/settings");
+        reqGet.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var respGet = await _client.SendAsync(reqGet);
+        Assert.Equal(HttpStatusCode.OK, respGet.StatusCode);
+        var initialSettings = JsonSerializer.Deserialize<OperationalSettingsDto>(await respGet.Content.ReadAsStringAsync(), JsonOpts)!;
+        var staleVersion = initialSettings.Version;
+
+        // 2. Perform an update (advances version)
+        var update1 = new OperationalSettingsDto
+        {
+            SystemName = "STUDY_AI Updated Name 1",
+            PassingScoreThreshold = 6.0,
+            LowScoreAlertThreshold = 4.0,
+            AttentionProgressThreshold = 30,
+            Version = staleVersion
+        };
+        var reqUpdate1 = new HttpRequestMessage(HttpMethod.Put, "/api/v1/admin/settings")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(update1), Encoding.UTF8, "application/json")
+        };
+        reqUpdate1.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var respUpdate1 = await _client.SendAsync(reqUpdate1);
+        Assert.Equal(HttpStatusCode.OK, respUpdate1.StatusCode);
+
+        // 3. Attempt update with stale version -> MUST RETURN 409 Conflict!
+        var updateStale = new OperationalSettingsDto
+        {
+            SystemName = "STUDY_AI Stale Update",
+            PassingScoreThreshold = 5.0,
+            LowScoreAlertThreshold = 3.5,
+            AttentionProgressThreshold = 25,
+            Version = "stale-version-token-or-old-guid"
+        };
+        var reqStale = new HttpRequestMessage(HttpMethod.Put, "/api/v1/admin/settings")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(updateStale), Encoding.UTF8, "application/json")
+        };
+        reqStale.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var respStale = await _client.SendAsync(reqStale);
+        Assert.Equal(HttpStatusCode.Conflict, respStale.StatusCode);
+    }
+
+    [Fact]
+    public async Task Admin_GetSystemHealth_ReturnsRealStorageStatsFromDatabase()
+    {
+        // Issue 7: System health endpoint returns real storage stats from SQL Server
+        var adminToken = await GetAdminTokenAsync();
+        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v1/admin/system/health");
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+
+        var resp = await _client.SendAsync(req);
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+
+        var content = await resp.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(content);
+        var root = doc.RootElement;
+
+        Assert.True(root.TryGetProperty("apiStatus", out var statusProp));
+        Assert.Equal("operational", statusProp.GetString());
+
+        Assert.True(root.TryGetProperty("database", out var dbProp));
+        Assert.Equal("connected", dbProp.GetProperty("status").GetString());
+
+        Assert.True(root.TryGetProperty("storageStats", out var storageProp));
+        Assert.True(storageProp.TryGetProperty("usersCount", out var usersProp));
+        Assert.True(usersProp.GetInt32() >= 1, "Users count from database must be at least 1 (admin)");
+    }
 }

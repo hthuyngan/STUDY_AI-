@@ -817,6 +817,9 @@ public class AdminController : ControllerBase
             sw.Stop();
         }
 
+        int usersCount = await _db.Users.CountAsync(u => !u.IsDeleted);
+        int auditCount = await _db.StaffAuditLogs.CountAsync();
+
         return Ok(new
         {
             apiStatus = "operational",
@@ -827,7 +830,14 @@ public class AdminController : ControllerBase
             },
             environment = _configuration["APP_ENV"] ?? "development",
             backendVersion = "1.0.0",
-            checkedAt = DateTimeOffset.UtcNow.ToString("o")
+            checkedAt = DateTimeOffset.UtcNow.ToString("o"),
+            storageStats = new
+            {
+                usersCount = usersCount,
+                activitiesCount = auditCount,
+                attentionCount = 0,
+                isLocalStoragePersisted = false
+            }
         });
     }
 
@@ -887,7 +897,8 @@ public class AdminController : ControllerBase
                 Date = day.ToString("dd/MM"),
                 ActiveUsers = activeUsers,
                 NewUsers = newUsers,
-                CompletedLessons = completedLessons
+                CompletedLessons = completedLessons,
+                LessonsCompleted = completedLessons
             });
         }
 
@@ -923,13 +934,18 @@ public class AdminController : ControllerBase
         var teachers = await query.OrderBy(u => u.DisplayName).ToListAsync();
         var teacherIds = teachers.Select(t => t.Id).ToList();
 
-        // Load teacher profile metadata from audit logs
+        // Load teacher profile metadata from dedicated TeacherProfiles table
+        var dbProfiles = await _db.TeacherProfiles
+            .Where(p => teacherIds.Contains(p.TeacherId))
+            .ToDictionaryAsync(p => p.TeacherId);
+
+        // Fallback for legacy audit logs if not yet migrated to TeacherProfiles
         var profileLogs = await _db.StaffAuditLogs
             .Where(l => l.TargetType == "teacher_profile" && teacherIds.Contains(l.TargetId))
             .OrderByDescending(l => l.CreatedAt)
             .ToListAsync();
 
-        var profilesByTeacher = profileLogs
+        var legacyProfilesByTeacher = profileLogs
             .GroupBy(l => l.TargetId)
             .ToDictionary(g => g.Key, g =>
             {
@@ -960,24 +976,30 @@ public class AdminController : ControllerBase
             var classNames = teacherClasses.Select(c => c.Name).ToList();
             var totalStudents = teacherClasses.Sum(c => studentCounts.GetValueOrDefault(c.Id, 0));
 
-            profilesByTeacher.TryGetValue(t.Id, out var profile);
+            dbProfiles.TryGetValue(t.Id, out var profile);
+            legacyProfilesByTeacher.TryGetValue(t.Id, out var legacyProfile);
+
+            var phone = profile?.Phone ?? legacyProfile?.Phone ?? "";
+            var qualifications = profile?.Qualifications ?? legacyProfile?.Qualifications ?? "";
+            var experienceYears = profile?.ExperienceYears ?? legacyProfile?.ExperienceYears ?? 0;
+            var bio = profile?.Bio ?? legacyProfile?.Bio ?? "";
 
             result.Add(new AdminTeacherDto
             {
                 Id = t.Id,
                 Name = t.DisplayName ?? (t.Email != null ? t.Email.Split('@')[0] : "Giáo viên"),
                 Email = t.Email ?? "",
-                Phone = profile?.Phone ?? "",
+                Phone = phone,
                 Subject = !string.IsNullOrWhiteSpace(t.Grade) ? $"Toán học {t.Grade}" : "Toán học 12",
                 Classes = classNames,
                 StudentCount = totalStudents,
                 Status = t.Status == "active" ? "active" : t.Status == "disabled" ? "inactive" : "pending",
                 JoinedAt = t.CreatedAt.ToString("o"),
                 Rating = 5.0,
-                Qualifications = profile?.Qualifications ?? "",
-                ExperienceYears = profile?.ExperienceYears ?? 0,
-                Bio = profile?.Bio ?? "",
-                AccountStatus = t.Status == "active" ? "ACTIVE" : "LOCKED"
+                Qualifications = qualifications,
+                ExperienceYears = experienceYears,
+                Bio = bio,
+                AccountStatus = (t.Status == "suspended" || t.Status == "disabled") ? "LOCKED" : "ACTIVE"
             });
         }
 
@@ -1029,6 +1051,16 @@ public class AdminController : ControllerBase
             rawPassword = GenerateSecurePassword();
         }
 
+        string initialStatus = "active";
+        if (!string.IsNullOrWhiteSpace(req.AccountStatus) && req.AccountStatus.Trim().Equals("LOCKED", StringComparison.OrdinalIgnoreCase))
+        {
+            initialStatus = "suspended";
+        }
+        else if (!string.IsNullOrWhiteSpace(req.Status) && AllowedStatuses.Contains(req.Status.Trim().ToLowerInvariant()))
+        {
+            initialStatus = req.Status.Trim().ToLowerInvariant();
+        }
+
         var newTeacher = new User
         {
             Id = $"tch_{Guid.NewGuid():N}",
@@ -1038,20 +1070,25 @@ public class AdminController : ControllerBase
             DisplayName = req.Name.Trim(),
             Role = "teacher",
             Grade = req.Subject.Replace("Toán học", "").Trim(),
-            Status = req.Status ?? "active",
+            Status = initialStatus,
             IsDeleted = false,
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
         };
         _db.Users.Add(newTeacher);
 
-        var profilePayload = new TeacherProfileMetadataDto
+        var newProfile = new TeacherProfile
         {
-            Phone = req.Phone?.Trim() ?? string.Empty,
-            Qualifications = req.Qualifications?.Trim() ?? string.Empty,
+            Id = $"tp_{Guid.NewGuid():N}",
+            TeacherId = newTeacher.Id,
+            Phone = req.Phone?.Trim(),
+            Qualifications = req.Qualifications?.Trim(),
             ExperienceYears = req.ExperienceYears ?? 0,
-            Bio = req.Bio?.Trim() ?? string.Empty
+            Bio = req.Bio?.Trim(),
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
         };
+        _db.TeacherProfiles.Add(newProfile);
 
         _db.StaffAuditLogs.Add(new StaffAuditLog
         {
@@ -1064,17 +1101,6 @@ public class AdminController : ControllerBase
             CreatedAt = DateTimeOffset.UtcNow
         });
 
-        _db.StaffAuditLogs.Add(new StaffAuditLog
-        {
-            Id = $"log_{Guid.NewGuid():N}",
-            ActorUserId = CurrentUserId,
-            Action = "teacher_profile_updated",
-            TargetType = "teacher_profile",
-            TargetId = newTeacher.Id,
-            Payload = JsonSerializer.Serialize(profilePayload),
-            CreatedAt = DateTimeOffset.UtcNow
-        });
-
         await _db.SaveChangesAsync();
 
         return StatusCode(201, new AdminTeacherDto
@@ -1082,17 +1108,17 @@ public class AdminController : ControllerBase
             Id = newTeacher.Id,
             Name = newTeacher.DisplayName,
             Email = newTeacher.Email,
-            Phone = profilePayload.Phone,
+            Phone = newProfile.Phone ?? string.Empty,
             Subject = req.Subject,
             Classes = req.Classes ?? new List<string>(),
             StudentCount = 0,
             Status = newTeacher.Status,
             JoinedAt = newTeacher.CreatedAt.ToString("o"),
             Rating = 5.0,
-            Qualifications = profilePayload.Qualifications,
-            ExperienceYears = profilePayload.ExperienceYears ?? 0,
-            Bio = profilePayload.Bio,
-            AccountStatus = "ACTIVE",
+            Qualifications = newProfile.Qualifications ?? string.Empty,
+            ExperienceYears = newProfile.ExperienceYears,
+            Bio = newProfile.Bio ?? string.Empty,
+            AccountStatus = (newTeacher.Status == "suspended" || newTeacher.Status == "disabled") ? "LOCKED" : "ACTIVE",
             TemporaryPassword = rawPassword
         });
     }
@@ -1122,19 +1148,73 @@ public class AdminController : ControllerBase
             teacher.EmailNormalized = newEmail;
         }
 
+        // Cập nhật trạng thái khóa/mở khóa hoặc trạng thái giảng dạy
+        if (!string.IsNullOrWhiteSpace(req.AccountStatus))
+        {
+            var accStatus = req.AccountStatus.Trim().ToUpperInvariant();
+            if (accStatus == "LOCKED")
+            {
+                teacher.Status = "suspended";
+            }
+            else if (accStatus == "ACTIVE")
+            {
+                teacher.Status = "active";
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(req.Status))
+        {
+            var st = req.Status.Trim().ToLowerInvariant();
+            if (AllowedStatuses.Contains(st))
+            {
+                teacher.Status = st;
+            }
+        }
+
         if (!string.IsNullOrWhiteSpace(req.Name)) teacher.DisplayName = req.Name.Trim();
-        if (!string.IsNullOrWhiteSpace(req.Status)) teacher.Status = req.Status.Trim().ToLowerInvariant();
         if (!string.IsNullOrWhiteSpace(req.Subject)) teacher.Grade = req.Subject.Replace("Toán học", "").Trim();
         teacher.UpdatedAt = DateTimeOffset.UtcNow;
 
-        var profilePayload = new TeacherProfileMetadataDto
+        // Bảng TeacherProfiles riêng biệt: cập nhật từng trường không làm mất dữ liệu cũ
+        var profile = await _db.TeacherProfiles.FirstOrDefaultAsync(p => p.TeacherId == teacher.Id);
+        if (profile == null)
         {
-            Phone = req.Phone?.Trim() ?? string.Empty,
-            Qualifications = req.Qualifications?.Trim() ?? string.Empty,
-            ExperienceYears = req.ExperienceYears ?? 0,
-            Bio = req.Bio?.Trim() ?? string.Empty
-        };
+            profile = new TeacherProfile
+            {
+                Id = $"tp_{Guid.NewGuid():N}",
+                TeacherId = teacher.Id,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+            _db.TeacherProfiles.Add(profile);
+        }
 
+        bool profileChanged = false;
+        if (req.Phone != null)
+        {
+            profile.Phone = req.Phone.Trim();
+            profileChanged = true;
+        }
+        if (req.Qualifications != null)
+        {
+            profile.Qualifications = req.Qualifications.Trim();
+            profileChanged = true;
+        }
+        if (req.ExperienceYears.HasValue)
+        {
+            profile.ExperienceYears = req.ExperienceYears.Value;
+            profileChanged = true;
+        }
+        if (req.Bio != null)
+        {
+            profile.Bio = req.Bio.Trim();
+            profileChanged = true;
+        }
+        if (profileChanged)
+        {
+            profile.UpdatedAt = DateTimeOffset.UtcNow;
+        }
+
+        // StaffAuditLogs chỉ dùng làm nhật ký kiểm toán thay đổi
         _db.StaffAuditLogs.Add(new StaffAuditLog
         {
             Id = $"log_{Guid.NewGuid():N}",
@@ -1146,16 +1226,25 @@ public class AdminController : ControllerBase
             CreatedAt = DateTimeOffset.UtcNow
         });
 
-        _db.StaffAuditLogs.Add(new StaffAuditLog
+        if (profileChanged)
         {
-            Id = $"log_{Guid.NewGuid():N}",
-            ActorUserId = CurrentUserId,
-            Action = "teacher_profile_updated",
-            TargetType = "teacher_profile",
-            TargetId = teacher.Id,
-            Payload = JsonSerializer.Serialize(profilePayload),
-            CreatedAt = DateTimeOffset.UtcNow
-        });
+            _db.StaffAuditLogs.Add(new StaffAuditLog
+            {
+                Id = $"log_{Guid.NewGuid():N}",
+                ActorUserId = CurrentUserId,
+                Action = "teacher_profile_updated",
+                TargetType = "teacher_profile",
+                TargetId = teacher.Id,
+                Payload = JsonSerializer.Serialize(new
+                {
+                    phone = profile.Phone,
+                    qualifications = profile.Qualifications,
+                    experienceYears = profile.ExperienceYears,
+                    bio = profile.Bio
+                }),
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+        }
 
         await _db.SaveChangesAsync();
 
@@ -1172,17 +1261,17 @@ public class AdminController : ControllerBase
             Id = teacher.Id,
             Name = teacher.DisplayName ?? teacher.Email ?? "",
             Email = teacher.Email ?? "",
-            Phone = profilePayload.Phone,
+            Phone = profile.Phone ?? "",
             Subject = !string.IsNullOrWhiteSpace(teacher.Grade) ? $"Toán học {teacher.Grade}" : "Toán học 12",
             Classes = classNames,
             StudentCount = totalStudents,
             Status = teacher.Status == "active" ? "active" : teacher.Status == "disabled" ? "inactive" : "pending",
             JoinedAt = teacher.CreatedAt.ToString("o"),
             Rating = 5.0,
-            Qualifications = profilePayload.Qualifications,
-            ExperienceYears = profilePayload.ExperienceYears ?? 0,
-            Bio = profilePayload.Bio,
-            AccountStatus = teacher.Status == "active" ? "ACTIVE" : "LOCKED"
+            Qualifications = profile.Qualifications ?? "",
+            ExperienceYears = profile.ExperienceYears,
+            Bio = profile.Bio ?? "",
+            AccountStatus = (teacher.Status == "suspended" || teacher.Status == "disabled") ? "LOCKED" : "ACTIVE"
         });
     }
 
@@ -1274,7 +1363,8 @@ public class AdminController : ControllerBase
             {
                 Date = day.ToString("dd/MM"),
                 ActiveUsers = active,
-                CompletedLessons = completed
+                CompletedLessons = completed,
+                LessonsCompleted = completed
             });
         }
 
@@ -1456,7 +1546,11 @@ public class AdminController : ControllerBase
             try
             {
                 var settings = JsonSerializer.Deserialize<OperationalSettingsDto>(log.Payload, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                if (settings != null) return Ok(settings);
+                if (settings != null)
+                {
+                    settings.Version = log.Id;
+                    return Ok(settings);
+                }
             }
             catch { }
         }
@@ -1464,19 +1558,36 @@ public class AdminController : ControllerBase
         return Ok(new OperationalSettingsDto
         {
             UpdatedAt = DateTimeOffset.UtcNow.ToString("o"),
-            UpdatedBy = "System"
+            UpdatedBy = "System",
+            Version = "initial"
         });
     }
 
     [HttpPut("settings")]
     public async Task<IActionResult> UpdateSettings([FromBody] OperationalSettingsDto req)
     {
+        var latestLog = await _db.StaffAuditLogs
+            .Where(l => l.TargetType == "system_settings" && l.Action == "system_settings_updated")
+            .OrderByDescending(l => l.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        // Cơ chế chống ghi đè khi nhiều Admin cùng chỉnh sửa (Concurrency Token)
+        if (latestLog != null && !string.IsNullOrWhiteSpace(req.Version) && req.Version != "initial")
+        {
+            if (req.Version != latestLog.Id)
+            {
+                return Conflict(new { detail = "Cấu hình hệ thống đã được cập nhật bởi một phiên quản trị khác. Vui lòng tải lại trang để xem dữ liệu mới nhất trước khi chỉnh sửa." });
+            }
+        }
+
+        var newLogId = $"log_{Guid.NewGuid():N}";
         req.UpdatedAt = DateTimeOffset.UtcNow.ToString("o");
         req.UpdatedBy = CurrentUserId;
+        req.Version = newLogId;
 
         _db.StaffAuditLogs.Add(new StaffAuditLog
         {
-            Id = $"log_{Guid.NewGuid():N}",
+            Id = newLogId,
             ActorUserId = CurrentUserId,
             Action = "system_settings_updated",
             TargetType = "system_settings",

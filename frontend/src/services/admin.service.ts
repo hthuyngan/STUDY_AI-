@@ -724,12 +724,27 @@ export const adminService = {
   }> {
     const token = getAccessToken()
     if (token) {
-      try {
-        const res = await apiClient.get<any>('/api/v1/admin/system/health')
-        if (res) return res
-      } catch {
-        // Fallback to local
+      const res = await apiClient.get<any>('/api/v1/admin/system/health')
+      if (res) {
+        return {
+          apiStatus: res.apiStatus === 'operational' ? 'ASP.NET Core 10 Web API (Operational)' : res.apiStatus || 'Operational',
+          database: {
+            status: res.database?.status === 'connected' ? 'Microsoft SQL Server (Connected)' : 'Microsoft SQL Server (Disconnected)',
+            latencyMs: res.database?.latencyMs ?? -1,
+          },
+          environment: res.environment || 'development',
+          backendVersion: res.backendVersion ? `v${res.backendVersion} (ASP.NET Core 10)` : 'v1.0.0 (ASP.NET Core 10)',
+          checkedAt: res.checkedAt || new Date().toISOString(),
+          prototypeMode: false,
+          storageStats: {
+            usersCount: res.storageStats?.usersCount ?? 0,
+            activitiesCount: res.storageStats?.activitiesCount ?? 0,
+            attentionCount: res.storageStats?.attentionCount ?? 0,
+            isLocalStoragePersisted: false,
+          },
+        }
       }
+      throw new Error('Dữ liệu trạng thái hệ thống từ máy chủ không hợp lệ.')
     }
     const isPersisted = typeof window !== 'undefined' && !!window.localStorage?.getItem(STORAGE_KEY_USERS)
     return {

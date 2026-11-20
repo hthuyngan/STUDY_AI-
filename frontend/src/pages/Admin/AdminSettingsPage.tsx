@@ -21,6 +21,7 @@ import '@/components/admin/AdminComponents.css'
 
 export const AdminSettingsPage: React.FC = () => {
   const [settings, setSettings] = useState<OperationalSettings>(operationsService.getSettings())
+  const [settingsLoading, setSettingsLoading] = useState<boolean>(true)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
 
   const showToast = (msg: string) => {
@@ -47,6 +48,27 @@ export const AdminSettingsPage: React.FC = () => {
   const [aiConfig, setAiConfig] = useState<AiFeatureConfig | null>(null)
   const [aiStats, setAiStats] = useState<AiUsageStats | null>(null)
   const [aiLoading, setAiLoading] = useState<boolean>(true)
+
+  useEffect(() => {
+    let isMounted = true
+    operationsService
+      .getSettingsAsync()
+      .then((loaded) => {
+        if (isMounted) {
+          setSettings(loaded)
+          setSettingsLoading(false)
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          showToast(`Lỗi tải cấu hình: ${err instanceof Error ? err.message : String(err)}`)
+          setSettingsLoading(false)
+        }
+      })
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   useEffect(() => {
     let isMounted = true
@@ -83,11 +105,18 @@ export const AdminSettingsPage: React.FC = () => {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      await operationsService.saveSettings(settings, 'Demo Admin')
+      const saved = await operationsService.saveSettings(settings, 'Demo Admin')
+      setSettings(saved)
       showToast('Đã lưu thành công các thiết lập vận hành')
       setStorageUsage(computeStorageUsage())
-    } catch (err: unknown) {
-      if (err instanceof Error) alert(err.message)
+    } catch (err: any) {
+      if (err?.status === 409 || err?.message?.includes('409') || err?.message?.includes('phiên quản trị khác')) {
+        showToast('Xung đột: Cấu hình đã được quản trị viên khác cập nhật. Đang tải lại cấu hình mới nhất...')
+        const refreshed = await operationsService.getSettingsAsync()
+        setSettings(refreshed)
+      } else {
+        showToast(err instanceof Error ? err.message : 'Lỗi khi lưu thiết lập.')
+      }
     }
   }
 
@@ -134,6 +163,7 @@ export const AdminSettingsPage: React.FC = () => {
             <h1 className="staff-page-title">Thiết lập vận hành (Operational Settings)</h1>
             <p className="staff-page-desc">
               Tùy biến các quy tắc học tập, ngưỡng cảnh báo, quy trình kiểm duyệt nội dung và quản trị bộ nhớ demo.
+              {settingsLoading && <span style={{ marginLeft: 8, color: '#0284c7' }}>(Đang đồng bộ từ máy chủ...)</span>}
             </p>
           </div>
           <div className="admin-header-actions">

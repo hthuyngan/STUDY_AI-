@@ -861,8 +861,20 @@ export const operationsService = {
     return loadFromStorage<OperationalSettings>(STORAGE_KEYS.SETTINGS, INITIAL_SETTINGS)
   },
 
+  async getSettingsAsync(): Promise<OperationalSettings> {
+    if (getAccessToken()) {
+      const res = await apiClient.get<OperationalSettings>('/api/v1/admin/settings')
+      if (res && res.systemName) {
+        saveToStorage(STORAGE_KEYS.SETTINGS, res)
+        return res
+      }
+      throw new Error('Không thể tải cấu hình hệ thống từ máy chủ.')
+    }
+    return loadFromStorage<OperationalSettings>(STORAGE_KEYS.SETTINGS, INITIAL_SETTINGS)
+  },
+
   async saveSettings(data: Partial<OperationalSettings>, actor = 'Demo Admin'): Promise<OperationalSettings> {
-    const current = this.getSettings()
+    const current = loadFromStorage<OperationalSettings>(STORAGE_KEYS.SETTINGS, INITIAL_SETTINGS)
     const now = new Date().toISOString()
     const updated: OperationalSettings = {
       ...current,
@@ -872,7 +884,11 @@ export const operationsService = {
     }
 
     if (getAccessToken()) {
-      await apiClient.put('/api/v1/admin/settings', updated)
+      const serverRes = await apiClient.put<OperationalSettings>('/api/v1/admin/settings', updated)
+      if (serverRes) {
+        saveToStorage(STORAGE_KEYS.SETTINGS, serverRes)
+        return serverRes
+      }
     }
 
     saveToStorage(STORAGE_KEYS.SETTINGS, updated)

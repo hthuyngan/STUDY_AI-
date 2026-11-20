@@ -1392,6 +1392,44 @@ namespace StudyAI.Infrastructure.Migrations
                     b.ToTable("student_topic_mastery", (string)null);
                 });
 
+            modelBuilder.Entity("StudyAI.Domain.Entities.TeacherProfile", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Bio")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("ExperienceYears")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("Qualifications")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("TeacherId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TeacherId")
+                        .IsUnique();
+
+                    b.ToTable("TeacherProfiles", (string)null);
+                });
+
             modelBuilder.Entity("StudyAI.Domain.Entities.User", b =>
                 {
                     b.Property<string>("Id")
@@ -1489,7 +1527,7 @@ namespace StudyAI.Infrastructure.Migrations
                     b.HasOne("StudyAI.Domain.Entities.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("Question");
@@ -1508,7 +1546,7 @@ namespace StudyAI.Infrastructure.Migrations
                     b.HasOne("StudyAI.Domain.Entities.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("Lesson");
@@ -1656,7 +1694,7 @@ namespace StudyAI.Infrastructure.Migrations
                     b.HasOne("StudyAI.Domain.Entities.ContentTopic", "Topic")
                         .WithMany("Lessons")
                         .HasForeignKey("TopicId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("Author");
 
@@ -1737,7 +1775,7 @@ namespace StudyAI.Infrastructure.Migrations
                     b.HasOne("StudyAI.Domain.Entities.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("Subject");
@@ -1745,6 +1783,17 @@ namespace StudyAI.Infrastructure.Migrations
                     b.Navigation("Topic");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("StudyAI.Domain.Entities.TeacherProfile", b =>
+                {
+                    b.HasOne("StudyAI.Domain.Entities.User", "Teacher")
+                        .WithMany()
+                        .HasForeignKey("TeacherId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Teacher");
                 });
 
             modelBuilder.Entity("StudyAI.Domain.Entities.AiConversation", b =>

@@ -27,6 +27,7 @@ import '@/components/admin/AdminComponents.css'
 export const AdminReportsPage: React.FC = () => {
   const [data, setData] = useState<LearningReportsData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   // Filters
   const [timeframe, setTimeframe] = useState('30d')
@@ -35,6 +36,7 @@ export const AdminReportsPage: React.FC = () => {
 
   const loadReports = useCallback(() => {
     setLoading(true)
+    setError(null)
     educationService
       .getReports({
         timeframe,
@@ -45,10 +47,16 @@ export const AdminReportsPage: React.FC = () => {
         setData(res)
         setLoading(false)
       })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : 'Không thể kết nối đến máy chủ để tải báo cáo học tập.')
+        setLoading(false)
+      })
   }, [timeframe, subjectFilter, classFilter])
 
   useEffect(() => {
     let active = true
+    setLoading(true)
+    setError(null)
     educationService
       .getReports({
         timeframe,
@@ -58,6 +66,12 @@ export const AdminReportsPage: React.FC = () => {
       .then((res) => {
         if (active) {
           setData(res)
+          setLoading(false)
+        }
+      })
+      .catch((err) => {
+        if (active) {
+          setError(err instanceof Error ? err.message : 'Không thể kết nối đến máy chủ để tải báo cáo học tập.')
           setLoading(false)
         }
       })
@@ -137,6 +151,17 @@ export const AdminReportsPage: React.FC = () => {
           Làm mới số liệu
         </button>
       </div>
+
+      {error && (
+        <div className="admin-alert-banner admin-alert-danger" role="alert" style={{ margin: '16px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#b91c1c' }}>
+          <div>
+            <strong>Lỗi tải dữ liệu:</strong> {error}
+          </div>
+          <button type="button" className="admin-btn-outline" onClick={loadReports} style={{ borderColor: '#b91c1c', color: '#b91c1c' }}>
+            Thử lại
+          </button>
+        </div>
+      )}
 
       {/* Row 1 — 5 KPI Cards */}
       {loading || !data ? (

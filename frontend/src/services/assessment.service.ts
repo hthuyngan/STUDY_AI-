@@ -457,28 +457,43 @@ export async function submitAttemptWithServerValidation(
     lastActivityAt: now,
   }
 
-  updateAttempt(finalAttempt)
-
-  // Persist attempt to backend API
+  // Persist attempt to backend API FIRST if authenticated
   if (getAccessToken()) {
-    await apiClient.post('/api/v1/me/assessment-attempts', {
-      id: finalAttempt.id,
-      lessonId: finalAttempt.lessonId,
-      subjectId: finalAttempt.subjectId,
-      chapterId: finalAttempt.chapterId,
-      scoreRaw: finalAttempt.scoreRaw,
-      scoreMax: finalAttempt.scoreMax,
-      scoreScaled: finalAttempt.scoreScaled,
-      isPassed,
-      sessionTimeMs: finalAttempt.sessionTimeMs,
-      responses: Object.values(finalAttempt.responses).map((r) => ({
-        questionId: r.questionId,
-        selectedOptions: r.selectedOptionIds,
-        isCorrect: r.isCorrect,
-        timeSpentMs: r.timeSpentMs,
-      })),
-    })
+    try {
+      await apiClient.post('/api/v1/me/assessment-attempts', {
+        id: finalAttempt.id,
+        lessonId: finalAttempt.lessonId,
+        subjectId: finalAttempt.subjectId,
+        chapterId: finalAttempt.chapterId,
+        scoreRaw: finalAttempt.scoreRaw,
+        scoreMax: finalAttempt.scoreMax,
+        scoreScaled: finalAttempt.scoreScaled,
+        isPassed,
+        sessionTimeMs: finalAttempt.sessionTimeMs,
+        responses: Object.values(finalAttempt.responses).map((r) => ({
+          questionId: r.questionId,
+          selectedOptions: r.selectedOptionIds,
+          isCorrect: r.isCorrect,
+          timeSpentMs: r.timeSpentMs,
+        })),
+      })
+    } catch (err) {
+      // Giữ phiên làm bài ở trạng thái đang làm (in-progress), lưu câu trả lời để học sinh có thể tiếp tục hoặc nộp lại
+      const unfinalizedAttempt: LearningAttempt = {
+        ...attempt,
+        sessionTimeMs: attempt.sessionTimeMs + additionalSessionTimeMs,
+        responses: verifiedResponses,
+        lastActivityAt: now,
+        status: 'in-progress',
+        completionStatus: 'incomplete',
+      }
+      updateAttempt(unfinalizedAttempt)
+      throw err
+    }
   }
+
+  // Chỉ đánh dấu hoàn thành cục bộ và ghi nhận tiến độ bài học sau khi server đã lưu thành công
+  updateAttempt(finalAttempt)
 
   markAssessmentCompleted(
     attempt.lessonId,
