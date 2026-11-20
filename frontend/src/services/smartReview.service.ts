@@ -367,5 +367,9 @@ export const smartReviewService = {
       return this.getAllItems()
     }
   },
+
+  async submitMistakeReview(questionId: string, answer: string): Promise<any> {
+    return apiClient.post<any>(`/api/v1/practice/mistakes/${questionId}/review`, { answer })
+  },
 }
 

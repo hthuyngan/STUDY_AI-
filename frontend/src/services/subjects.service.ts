@@ -136,13 +136,14 @@ export async function getSubjects(): Promise<SubjectSummary[]> {
   const data = await curriculumService.getSubjects()
   const snapshot = buildLearningStateSnapshot()
   const summaries = data.map((sub) => mapLearnerSubjectToSummary(sub, snapshot))
-  // Focus exclusively on Toán 12 on student view (as requested), preserving all DB records
+  // Focus on Math 10-12 on student view, preserving all DB records
   return summaries.filter(
     (s) =>
+      s.id === 'sub_math10' ||
+      s.id === 'sub_math11' ||
       s.id === 'sub_math12' ||
       s.id === 'math' ||
-      s.name.toLowerCase().includes('toán 12') ||
-      s.name.toLowerCase().includes('toán học')
+      s.name.toLowerCase().includes('toán')
   )
 }
 

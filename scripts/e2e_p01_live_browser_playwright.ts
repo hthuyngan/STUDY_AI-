@@ -269,8 +269,8 @@ async function browserPracticeFlowGrades10_11_12(browser: Browser) {
       page.locator('button[type="submit"]').click(),
     ])
 
-    // Navigate to Practice Hub
-    await page.goto(`${baseUrl}/practice/hub`)
+    // Navigate to Practice
+    await page.goto(`${baseUrl}/practice`)
     await page.locator('.practice-setup-card').waitFor({ state: 'visible', timeout: 30000 })
 
     // 1. Verify zero-match filter disables start button
@@ -283,7 +283,7 @@ async function browserPracticeFlowGrades10_11_12(browser: Browser) {
 
     // 2. Select valid filters: all types, Grade 10
     await typeSelect.selectOption('')
-    await page.getByText('Sẵn sàng: 2 câu hỏi').waitFor({ state: 'visible', timeout: 15000 })
+    await page.locator('.available-count-box').filter({ hasText: '2 câu hỏi' }).waitFor({ state: 'visible', timeout: 15000 })
     assert.ok(await startBtn.isEnabled(), 'Start button must be enabled when matching questions exist')
 
     // 3. Start practice session

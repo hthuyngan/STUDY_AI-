@@ -1,8 +1,10 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AssessmentQuestion, LearningAttempt } from '@/types/assessment'
 import {
   knowledgeGapsService,
 } from './knowledgeGaps.service'
+import { apiClient } from '@/lib/apiClient'
+import { setAccessToken } from '@/auth/authSession'
 
 describe('knowledgeGaps.service', () => {
   beforeEach(() => {
@@ -267,5 +269,37 @@ describe('knowledgeGaps.service', () => {
     const deleted = knowledgeGapsService.deleteGap(gap.id)
     expect(deleted).toBe(true)
     expect(knowledgeGapsService.getAllGaps().length).toBe(0)
+  })
+
+  it('syncs remote knowledge gaps from backend when authenticated', async () => {
+    setAccessToken('valid_test_token')
+    const mockRemoteGaps = [
+      {
+        id: 'gap_remote_01',
+        skillId: 'skill_math10_01',
+        skillName: 'Mệnh đề và tập hợp',
+        subjectId: 'sub_math10',
+        severity: 'critical',
+        accuracyPercent: 25.0,
+        mistakeCount: 3,
+        evidenceSummary: 'Sai 3/4 câu về mệnh đề kéo theo',
+        recommendedLessonId: 'les_math10_c1_b1',
+        recommendedLessonTitle: 'Bài 1: Mệnh đề toán học',
+        status: 'open',
+        detectedAt: '2026-11-20T10:00:00Z',
+      },
+    ]
+
+    const getSpy = vi.spyOn(apiClient, 'get').mockResolvedValue(mockRemoteGaps)
+
+    const gaps = await knowledgeGapsService.syncFromBackend('sub_math10')
+    expect(getSpy).toHaveBeenCalledWith('/api/v1/ai/knowledge-gaps?subjectId=sub_math10')
+    expect(gaps.some((g) => g.id === 'gap_remote_01')).toBe(true)
+    const remoteGap = gaps.find((g) => g.id === 'gap_remote_01')
+    expect(remoteGap?.severity).toBe('high')
+    expect(remoteGap?.status).toBe('needs-review')
+    expect(remoteGap?.wrongAttemptsCount).toBe(3)
+
+    setAccessToken(null)
   })
 })
