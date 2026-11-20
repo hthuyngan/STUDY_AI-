@@ -4,7 +4,8 @@
   "scripts": {
     "lint": "cd frontend && bun run lint",
     "test": "cd frontend && bun run test",
-    "build": "cd frontend && bun run build"
+    "build": "cd frontend && bun run build",
+    "test:e2e:p00": "bun scripts/e2e_p00_p01_remediation_playwright.ts"
   },
   "dependencies": {},
   "devDependencies": {

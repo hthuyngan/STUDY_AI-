@@ -15,8 +15,8 @@ describe('Assessment Service Fail-Closed Session Finalization (Codex Review Issu
   const dummyQuestions: AssessmentQuestion[] = [
     {
       id: 'q1',
-      lessonId: 'les-math10-01',
-      questionText: 'Tính đạo hàm của x^2?',
+      type: 'single-choice',
+      prompt: 'Tính đạo hàm của x^2?',
       options: [
         { id: 'opt-a', label: 'A', text: '2x' },
         { id: 'opt-b', label: 'B', text: 'x' },
@@ -45,9 +45,12 @@ describe('Assessment Service Fail-Closed Session Finalization (Codex Review Issu
   it('preserves attempt in in-progress state and does NOT mark completed when backend submission fails', async () => {
     vi.spyOn(authSession, 'getAccessToken').mockReturnValue('mock_learner_token')
     vi.spyOn(curriculumService, 'checkQuestionAnswer').mockResolvedValue({
+      questionId: 'q1',
       isCorrect: true,
-      explanation: 'Đúng',
       correctAnswer: 'A',
+      explanation: 'Đúng',
+      scoreEarned: 1.0,
+      feedback: 'Chính xác',
     })
     // Server submission fails
     vi.spyOn(apiClient, 'post').mockRejectedValue(new Error('500 Internal Server Error'))
@@ -82,9 +85,12 @@ describe('Assessment Service Fail-Closed Session Finalization (Codex Review Issu
   it('marks attempt completed and saves result when backend submission succeeds', async () => {
     vi.spyOn(authSession, 'getAccessToken').mockReturnValue('mock_learner_token')
     vi.spyOn(curriculumService, 'checkQuestionAnswer').mockResolvedValue({
+      questionId: 'q1',
       isCorrect: true,
-      explanation: 'Đúng',
       correctAnswer: 'A',
+      explanation: 'Đúng',
+      scoreEarned: 1.0,
+      feedback: 'Chính xác',
     })
     vi.spyOn(apiClient, 'post').mockResolvedValue({ success: true, id: 'att-server-123' })
 

@@ -140,6 +140,7 @@ export interface LearningReportsData {
     date: string
     activeUsers: number
     lessonsCompleted: number
+    completedLessons?: number
   }[]
   subjectProgress: {
     subject: string

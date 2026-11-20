@@ -181,7 +181,7 @@ export const TeacherTable: React.FC<TeacherTableProps> = ({
                 <td style={{ textAlign: 'center' }}>
                   <div className="teacher-rating-pill">
                     <Star size={12} fill="#f59e0b" color="#f59e0b" aria-hidden="true" />
-                    <span>{tch.rating.toFixed(1)}</span>
+                    <span>{(tch.rating ?? 5.0).toFixed(1)}</span>
                   </div>
                 </td>
 

@@ -390,7 +390,7 @@ export const TeacherDetailDrawer: React.FC<TeacherDetailDrawerProps> = ({
                           <Star size={16} fill="#f59e0b" />
                         </div>
                         <div>
-                          <span className="stat-val">{teacher.rating.toFixed(2)} / 5.0</span>
+                          <span className="stat-val">{(teacher.rating ?? 5.0).toFixed(2)} / 5.0</span>
                           <span className="stat-lbl">Đánh giá trung bình</span>
                         </div>
                       </div>
