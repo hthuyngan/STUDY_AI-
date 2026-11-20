@@ -57,6 +57,107 @@ async function save(page: Page, name: string): Promise<Response> {
   return responsePromise
 }
 
+async function browserClassTransfer(
+  browser: Browser, teacherEmail: string, teacherPassword: string,
+  adminHeaders: Record<string, string>,
+) {
+  const teacherLogin = await fetch(`${backendUrl}/api/v1/auth/login`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: teacherEmail, password: teacherPassword }),
+  })
+  assert.equal(teacherLogin.status, 200)
+  const teacherAuth = await teacherLogin.json() as { accessToken: string }
+  const teacherHeaders = { 'Content-Type': 'application/json', Authorization: `Bearer ${teacherAuth.accessToken}` }
+
+  const suffix = Date.now().toString()
+  const learnerName = `Live Transfer Learner ${suffix}`
+  const learnerEmail = `live.learner.${suffix}@studyai.test`
+  const register = await fetch(`${backendUrl}/api/v1/auth/register`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ displayName: learnerName, email: learnerEmail, password: `Test-Learner-${suffix}!Aa`, grade: '12' }),
+  })
+  assert.equal(register.status, 201, 'Learner fixture registration should persist to SQL')
+  const learnerBody = await register.json() as { user?: { id: string } }
+  const learnerId = learnerBody.user?.id
+  assert.ok(learnerId, 'Register endpoint must return real learner ID')
+
+  const createdClasses: string[] = []
+  async function createClass(label: string) {
+    const response = await fetch(`${backendUrl}/api/v1/classrooms`, {
+      method: 'POST', headers: teacherHeaders,
+      body: JSON.stringify({ name: `P01 E2E ${label} ${suffix}`, grade: '12', subject: 'Toán học' }),
+    })
+    assert.equal(response.status, 201, `Create classroom ${label} returned ${response.status}`)
+    const classroom = await response.json() as { id: string; name: string }
+    createdClasses.push(classroom.id)
+    return classroom
+  }
+  let source: { id: string; name: string } | undefined
+  let target: { id: string; name: string } | undefined
+  try {
+    source = await createClass('Source')
+    target = await createClass('Target')
+    const enrolled = await fetch(`${backendUrl}/api/v1/classrooms/${source.id}/students`, {
+      method: 'POST', headers: teacherHeaders,
+      body: JSON.stringify({ studentId: learnerId }),
+    })
+    assert.ok([200, 201].includes(enrolled.status), 'Test learner must be enrolled into source class')
+
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+    try {
+      const page = await ctx.newPage()
+      await page.goto(`${baseUrl}/login`)
+      await page.locator('#login-email').fill(teacherEmail)
+      await page.locator('#login-password').fill(teacherPassword)
+      await Promise.all([
+        page.waitForURL(url => !url.pathname.endsWith('/login'), { timeout: 30000 }),
+        page.locator('button[type="submit"]').click(),
+      ])
+      await page.goto(`${baseUrl}/teacher/students`)
+      await page.getByPlaceholder('Tìm theo tên học viên, mã học viên hoặc email...').fill(learnerName)
+      const move = page.getByRole('button', { name: `Chuyển lớp cho học viên ${learnerName}` })
+      await move.waitFor({ state: 'visible', timeout: 30000 })
+      await move.click()
+      await page.locator('#target-class-select').selectOption(target.id)
+      const transferResponse = page.waitForResponse(r =>
+        r.url().includes(`/api/v1/classrooms/${target!.id}/transfer-student`) &&
+        r.request().method() === 'POST', { timeout: 20000 })
+      await page.getByRole('button', { name: 'Xác nhận chuyển lớp' }).click()
+      assert.equal((await transferResponse).status(), 200, 'Teacher UI transfer must persist via real API')
+
+      // The same test must still hold after hard reload, not just local state update.
+      await page.reload()
+      await page.getByPlaceholder('Tìm theo tên học viên, mã học viên hoặc email...').fill(learnerName)
+      await page.getByText(target.name, { exact: true }).first().waitFor({ state: 'visible', timeout: 30000 })
+
+      const getStudents = async (classId: string) => {
+        const res = await fetch(`${backendUrl}/api/v1/classrooms/${classId}/students`, { headers: teacherHeaders })
+        assert.equal(res.status, 200)
+        return res.json() as Promise<Array<{ studentId: string }>>
+      }
+      assert.ok(!(await getStudents(source.id)).some(x => x.studentId === learnerId),
+        'Source enrollment must be removed from SQL')
+      assert.ok((await getStudents(target.id)).some(x => x.studentId === learnerId),
+        'Target enrollment must be saved in SQL')
+      await page.screenshot({ path: path.join(artifacts, 'class-transfer-real-api-pass.png'), fullPage: true })
+      console.log('[PASS] Live browser Classroom: teacher UI transfer, SQL API enrollments and hard-reload persistence')
+    } finally { await ctx.close() }
+  } finally {
+    // Cleanup runs on isolated E2E SQL only.
+    for (const classId of createdClasses) {
+      await fetch(`${backendUrl}/api/v1/classrooms/${classId}/students/${learnerId}`, {
+        method: 'DELETE', headers: teacherHeaders,
+      }).catch(() => {})
+      await fetch(`${backendUrl}/api/v1/classrooms/${classId}`, {
+        method: 'DELETE', headers: teacherHeaders,
+      }).catch(() => {})
+    }
+    await fetch(`${backendUrl}/api/v1/admin/users/${learnerId}`, {
+      method: 'DELETE', headers: adminHeaders,
+    }).catch(() => {})
+  }
+}
+
 async function browserTeacherLock(browser: Browser, adminPage: Page) {
   // A unique test-only teacher is created through the actual backend API. Cleanup is soft delete.
   const adminLogin = await fetch(`${backendUrl}/api/v1/auth/login`, {
@@ -82,6 +183,7 @@ async function browserTeacherLock(browser: Browser, adminPage: Page) {
   assert.ok(teacher.id, 'Teacher fixture needs persisted ID')
   let locked = false
   try {
+    await browserClassTransfer(browser, teacherEmail, teacherPassword, headers)
     await adminPage.goto(`${baseUrl}/admin/teachers`)
     await adminPage.getByRole('searchbox', { name: 'Tìm kiếm giáo viên' }).fill(teacherEmail)
     const lockButton = adminPage.getByRole('button', { name: `Khóa ${teacherName}` })
