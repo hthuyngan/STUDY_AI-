@@ -246,6 +246,106 @@ async function browserTeacherLock(browser: Browser, adminPage: Page) {
   }
 }
 
+async function browserAssessmentFailAndRetry(browser: Browser) {
+  const suffix = Date.now().toString()
+  const learnerEmail = `assessment.live.${suffix}@studyai.test`
+  const learnerPassword = `Assessment-E2E-${suffix}!Aa`
+  const lessonId = 'les_math12_c1_b1' // Seeded, published lesson with 2 real questions.
+  const register = await fetch(`${backendUrl}/api/v1/auth/register`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ displayName: `Assessment Live Learner ${suffix}`, email: learnerEmail, password: learnerPassword, grade: '12' }),
+  })
+  assert.equal(register.status, 201, 'Learner test account must register on real SQL backend')
+  const registered = await register.json() as { accessToken: string; user?: { id: string } }
+  assert.ok(registered.accessToken && registered.user?.id)
+
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  try {
+    const page = await ctx.newPage()
+    await page.goto(`${baseUrl}/login`)
+    await page.locator('#login-email').fill(learnerEmail)
+    await page.locator('#login-password').fill(learnerPassword)
+    await Promise.all([
+      page.waitForURL(url => !url.pathname.endsWith('/login'), { timeout: 30000 }),
+      page.locator('button[type="submit"]').click(),
+    ])
+    await page.goto(`${baseUrl}/subjects/sub_math12/lessons/${lessonId}`)
+    await page.locator('.harvest-header').waitFor({ state: 'visible', timeout: 30000 })
+    await page.locator('.harvest-header').click()
+    await page.getByRole('button', { name: 'Bắt đầu làm bài' }).waitFor({ state: 'visible', timeout: 30000 })
+    await page.getByRole('button', { name: 'Bắt đầu làm bài' }).click()
+
+    for (let question = 1; question <= 2; question++) {
+      const group = page.getByRole('radiogroup', { name: `Các lựa chọn cho câu ${question}` })
+      await group.getByRole('radio').first().click()
+      if (question < 2) await page.getByRole('button', { name: 'Câu tiếp' }).click()
+    }
+
+    // Fault-inject ONLY the real assessment write endpoint. No fabricated 200/201 responses.
+    const pattern = '**/api/v1/me/assessment-attempts'
+    let blocked = 0
+    await page.route(pattern, async route => {
+      if (route.request().method() === 'POST') {
+        blocked++
+        await route.abort('failed')
+      } else {
+        await route.continue()
+      }
+    })
+    await page.getByRole('button', { name: 'Nộp bài', exact: true }).click()
+    const dialogPromise = page.waitForEvent('dialog', { timeout: 20000 })
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Xác nhận nộp bài' }).click()
+    const dialog = await dialogPromise
+    assert.match(dialog.message(), /Nộp bài không thành công/, 'Browser must show failed submission warning')
+    await dialog.accept()
+    assert.equal(blocked, 1, 'Real assessment POST must be attempted and interrupted exactly once')
+
+    await page.reload()
+    await page.locator('.harvest-header').waitFor({ state: 'visible', timeout: 30000 })
+    await page.locator('.harvest-header').click()
+    const resume = page.getByRole('button', { name: 'Tiếp tục bài tập' })
+    await resume.waitFor({ state: 'visible', timeout: 30000 })
+    await page.screenshot({ path: path.join(artifacts, 'assessment-failed-resumable.png'), fullPage: true })
+
+    await page.unroute(pattern)
+    await resume.click()
+    const submitButton = page.getByRole('button', { name: 'Nộp bài', exact: true })
+    await submitButton.waitFor({ state: 'visible', timeout: 30000 })
+    assert.ok(await submitButton.isEnabled(), 'Previously answered assessment must be resumable after refresh')
+    await submitButton.click()
+    const acceptedPromise = page.waitForResponse(r =>
+      r.url().includes('/api/v1/me/assessment-attempts') &&
+      r.request().method() === 'POST', { timeout: 20000 })
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Xác nhận nộp bài' }).click()
+    const accepted = await acceptedPromise
+    assert.equal(accepted.status(), 201, 'Retried assessment submission must persist to real backend')
+
+    // Verify the actual SQL-backed GET endpoint, not localStorage.
+    const persisted = await fetch(`${backendUrl}/api/v1/me/assessment-attempts?lessonId=${lessonId}`, {
+      headers: { Authorization: `Bearer ${registered.accessToken}` },
+    })
+    assert.equal(persisted.status, 200)
+    const attempts = await persisted.json() as Array<{ lessonId: string; completionStatus: string }>
+    assert.equal(attempts.filter(a => a.lessonId === lessonId && a.completionStatus === 'completed').length, 1,
+      'Exactly one completed assessment must be persisted in SQL after successful retry')
+    await page.screenshot({ path: path.join(artifacts, 'assessment-real-retry-pass.png'), fullPage: true })
+    console.log('[PASS] Live browser Assessment: actual POST network fault, resumable after reload, retry 201 and one SQL-backed completion')
+  } finally {
+    await ctx.close()
+    // Use a fresh real Admin bearer token for cleanup; test-only SQL server only.
+    const adminLogin = await fetch(`${backendUrl}/api/v1/auth/login`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    }).catch(() => null)
+    if (adminLogin?.status === 200) {
+      const auth = await adminLogin.json() as { accessToken: string }
+      await fetch(`${backendUrl}/api/v1/admin/users/${registered.user!.id}`, {
+        method: 'DELETE', headers: { Authorization: `Bearer ${auth.accessToken}` },
+      }).catch(() => {})
+    }
+  }
+}
+
 async function main() {
   // Fail closed if backend is unavailable. Never silently swap in a stub.
   const authProbe = await fetch(`${backendUrl}/api/v1/auth/refresh`).catch(() => null)
@@ -288,6 +388,7 @@ async function main() {
     await pageA.screenshot({ path: path.join(artifacts, 'settings-real-api-pass.png'), fullPage: true })
     console.log('[PASS] Live browser Settings: 2 admin contexts, PUT 200, stale PUT 409, persisted value after reload')
     await browserTeacherLock(browser, pageA)
+    await browserAssessmentFailAndRetry(browser)
   } catch (err) {
     if (pageA) await pageA.screenshot({ path: path.join(artifacts, 'settings-real-api-fail.png'), fullPage: true }).catch(() => {})
     throw err
