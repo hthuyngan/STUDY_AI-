@@ -46,6 +46,47 @@ public class PracticeController : ControllerBase
     // 1. PRACTICE & EXAM SESSION ENGINE
     // ─────────────────────────────────────────────────────────────────────────────
 
+    [HttpGet("question-count")]
+    public async Task<IActionResult> GetQuestionCount(
+        [FromQuery] string subjectId,
+        [FromQuery] string? chapterId = null,
+        [FromQuery] string? lessonId = null,
+        [FromQuery] string? difficulty = null)
+    {
+        if (string.IsNullOrWhiteSpace(subjectId))
+        {
+            return BadRequest(new { detail = "Mã môn học (subjectId) là bắt buộc." });
+        }
+
+        var query = _db.ContentQuestions.AsNoTracking()
+            .Where(q => !q.IsDeleted && q.Status == "published" && !string.IsNullOrWhiteSpace(q.CorrectAnswer));
+
+        query = query.Where(q => q.SubjectId == subjectId);
+
+        if (!string.IsNullOrWhiteSpace(chapterId))
+        {
+            query = query.Where(q => q.ChapterId == chapterId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(lessonId))
+        {
+            query = query.Where(q => q.LessonId == lessonId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(difficulty) && difficulty != "all")
+        {
+            var diff = difficulty.Trim().ToLowerInvariant();
+            query = query.Where(q => q.Difficulty == diff ||
+                (diff == "easy" && q.Difficulty == "nhan_biet") ||
+                (diff == "medium" && q.Difficulty == "thong_hieu") ||
+                (diff == "hard" && q.Difficulty == "van_dung") ||
+                (diff == "very-hard" && q.Difficulty == "van_dung_cao"));
+        }
+
+        var count = await query.CountAsync();
+        return Ok(new { count });
+    }
+
     [HttpPost("sessions")]
     public async Task<IActionResult> CreateSession([FromBody] CreatePracticeSessionRequest request)
     {

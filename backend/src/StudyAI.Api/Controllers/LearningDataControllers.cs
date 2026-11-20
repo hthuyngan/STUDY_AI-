@@ -229,6 +229,9 @@ public class AssessmentAttemptsController : ControllerBase
         }
         else
         {
+            if (!string.IsNullOrEmpty(dto.LessonId)) attempt.LessonId = dto.LessonId;
+            if (!string.IsNullOrEmpty(dto.SubjectId)) attempt.SubjectId = dto.SubjectId;
+            if (!string.IsNullOrEmpty(dto.AssessmentId)) attempt.AssessmentId = dto.AssessmentId;
             attempt.LastActivityAt = dto.LastActivityAt == default ? DateTimeOffset.UtcNow : dto.LastActivityAt;
             attempt.CompletedAt = dto.CompletedAt ?? attempt.CompletedAt;
             attempt.CompletionStatus = dto.CompletionStatus ?? attempt.CompletionStatus;

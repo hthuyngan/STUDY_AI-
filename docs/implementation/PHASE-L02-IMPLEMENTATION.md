@@ -2,19 +2,19 @@
 **Repo:** `hthuyngan/STUDY_AI-` | **Issue:** #17 | **Draft PR:** #18  
 **Base:** `feature/math10-12-p00-foundation@f287800`. **Updated:** 2026-11-20.
 
-> **STATE: IN PROGRESS (WS0 COMPLETED & VERIFIED).** This file is the unified progress ledger for Phase L02. All workstreams are executed on this single branch and Draft PR #18.
+> **STATE: IN PROGRESS (WS0, WS1, WS2 COMPLETED & VERIFIED; WS3–WS7 IN PROGRESS).** This file is the unified progress ledger for Phase L02. All workstreams are executed on this single branch and Draft PR #18.
 
 ## One phase, eight workstreams — Unified Progress Tracking
 | WS | Complete integrated deliverable | Current Status | Commit / Test Proof | Blocker / Resolution |
 |---|---|---|---|---|
-| **WS0** | Latest HEAD Assessment resume E2E + no fake authenticated data + Codex ledger | **LIVE_PASS** | `LessonAssessment.test.tsx` (16/16 PASS), `StudyAI.UnitTests` (167/167 PASS), `StudyAI.IntegrationTests` (192/192 PASS on `StudyAIDb_E2E`) | **RESOLVED:** Root-caused E2E reload hydration race in `useLessonAssessment.ts` & `LessonPage.tsx`. Removed authenticated mock fallbacks in `admin.service.ts`, `education.service.ts`, `supporting.service.ts`. |
-| **WS1** | Math10/11/12 official-source curriculum + Content CRUD + validated import | **LIVE_PASS** | `GDPT_2018_MATH10_12_COVERAGE_MATRIX.md`, `DbInitializer.cs` seeded Math 10 & 11 chapters, lessons, questions; `ContentController.cs` & `CurriculumImportController.cs` | Reuse existing controllers; expand GDPT 2018 coverage matrix |
-| **WS2** | Practice basic + AI-targeted; secure server grading/resume | **LIVE_PASS** | `PracticeController.cs` (sessions, answers, submit, mistakes), `PracticeHubPage.tsx`, `PracticeSetup.tsx` grade 10/11/12 | Grade 10/11/12 dynamic subject routing verified |
-| **WS3** | Diagnostic mastery + Dashboard daily weak lessons | **LIVE_PASS** | `AdaptiveLearningController.cs`, `StudentMasteryService.cs`, `AdaptiveLearningWidget.tsx`, `KnowledgeGapsWidget.tsx` | Authenticated evidence-based weakness recommendations |
-| **WS4** | Mistake remediation + secure Socratic AI Tutor | **LIVE_PASS** | `AiChatController.cs`, `AiTutorService.ts`, `OpenAiLlmProvider.cs` | Immediate cancellation abort verified, 3 hint levels |
-| **WS5** | SQL personalized roadmap + scoped document tutor | **LIVE_PASS** | `learning-path` & `knowledge-gaps` endpoints, `learningPath.service.ts` | Personalization based on actual attempts; document tutor scope declared |
-| **WS6** | Real Admin/Teacher/Content operations + Support scope | **LIVE_PASS** | `AdminController.cs`, `ClassroomsController.cs`, `EducationService.ts`, `AdminService.ts` | Fail-closed API contracts, concurrency tokens, zero mock fallbacks |
-| **WS7** | All routes/buttons audited, UI Evondev polish, security + E2E + release docs | **LIVE_PASS** | Full CI gates, Playwright real SQL | Final integrated acceptance verification |
+| **WS0** | Latest HEAD Assessment resume E2E + no fake authenticated data + Codex ledger | **LIVE_PASS** | `LessonAssessment.test.tsx` (16/16 PASS), `StudyAI.UnitTests` (167/167 PASS), `StudyAI.IntegrationTests` (195/195 PASS on `StudyAIDb_E2E`), attempt update bug fixed | **RESOLVED:** Root-caused E2E reload hydration race in `useLessonAssessment.ts` & `LessonPage.tsx`. Fixed `LessonId`/`SubjectId` assignment in `MeController.cs` & `LearningDataControllers.cs` attempt update branch. Removed authenticated mock fallbacks in `admin.service.ts`, `education.service.ts`. |
+| **WS1** | Math10/11/12 official-source curriculum + Content CRUD + validated import | **LIVE_PASS** | `GDPT_2018_MATH10_12_COVERAGE_MATRIX.md` aligned with DB IDs; `DbInitializer.cs` independent idempotent seeding for Math 10, 11, 12; `ContentController.cs` | **RESOLVED (L02-R04):** Decoupled Subject, Chapter, Lesson, and Questions seeding in `DbInitializer.cs` so each entity is checked and seeded independently without FK failure risks. Aligned matrix IDs (`les_math10_c1_b1`, `les_math11_c1_b1`, `les_math12_c1_b1`). |
+| **WS2** | Practice basic + AI-targeted; secure server grading/resume | **LIVE_PASS** | `PracticeController.cs` (`[HttpGet("question-count")]`, `CreateSession`), `PracticeSetup.tsx` dynamic curriculum & real count, `PracticeIntegrationTests.cs` (count & sessions) | **RESOLVED (L02-R01):** Added `GET /api/v1/practice/question-count` querying published SQL questions. Refactored `PracticeSetup.tsx` to dynamically fetch chapters/lessons from `curriculumService.getSubjectChapters`, display 0 and disable start button when 0 questions match, eliminating fake 10 fallbacks and broken chapter IDs. |
+| **WS3** | Diagnostic mastery + Dashboard daily weak lessons | **IN_PROGRESS** | `AdaptiveLearningController.cs`, `StudentMasteryService.cs`, `AdaptiveLearningWidget.tsx`, `KnowledgeGapsWidget.tsx`, `dashboard.service.ts` fail-closed | **RESOLVED (L02-R02 part 1):** `dashboard.service.ts` fail-closed on API error in authenticated mode instead of falling back to fake mock numbers. |
+| **WS4** | Mistake remediation + secure Socratic AI Tutor | **IN_PROGRESS** | `AiChatController.cs`, `AiTutorService.ts`, `OpenAiLlmProvider.cs` immediate cancellation abort verified | Immediate cancellation abort verified, 3 hint levels; continuing vertical slice verification. |
+| **WS5** | SQL personalized roadmap + scoped document tutor | **IN_PROGRESS** | `MeController.cs` (`/api/v1/me/bookmarks` in SQL `LearningEvents`), `libraryBookmark.service.ts`, `LibraryPage.tsx`, `learningPath.service.ts` fail-closed | **RESOLVED (L02-R03 & L02-R02 part 2):** Implemented user-scoped SQL bookmark endpoints in `MeController.cs` backed by `_db.LearningEvents`. Created `libraryBookmark.service.ts` and refactored `LibraryPage.tsx` to persist bookmarks across refresh in SQL. `learningPath.service.ts` fails-closed when authenticated. |
+| **WS6** | Real Admin/Teacher/Content operations + Support scope | **IN_PROGRESS** | `AdminController.cs`, `ClassroomsController.cs`, `EducationService.ts`, `AdminService.ts` concurrency & fail-closed | Fail-closed API contracts, concurrency tokens, zero mock fallbacks; continuing integration hardening. |
+| **WS7** | All routes/buttons audited, UI Evondev polish, security + E2E + release docs | **IN_PROGRESS** | Full CI gates (72 Vitest files/497 tests PASS, 0 lint errors, 0 tsc errors, 167 Unit PASS, 195 Integration PASS on `StudyAIDb_E2E`) | Final integrated acceptance verification ongoing. |
 
 ---
 
@@ -68,7 +68,7 @@
 ## Verification by current commit
 | Workstream / Scope | FE lint/type/test/build | BE unit/integration | Real browser / SQL E2E | Source/coverage | Security & roles |
 |---|---|---|---|---|---|
-| **WS0 (Integrity & E2E Gate)** | **PASS** (496 Vitest, 0 tsc errors, 0 linter errors) | **PASS** (167 Unit PASS, 192 Integration PASS on `StudyAIDb_E2E`) | **PASS** (4 Live E2E SQL scenarios PASS) | GDPT 2018 Math 10/11/12 seeded | Fail-closed verified, zero mock fallbacks |
+| **WS0 (Integrity & E2E Gate)** | **PASS** (497 Vitest, 0 tsc errors, 0 linter errors, production build 6.55s) | **PASS** (167 Unit PASS, 195 Integration PASS on `StudyAIDb_E2E`) | **PASS** (4 Live E2E SQL scenarios PASS) | GDPT 2018 Math 10/11/12 seeded | Fail-closed verified, zero mock fallbacks |
 
 ---
 

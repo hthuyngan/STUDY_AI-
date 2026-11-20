@@ -355,6 +355,9 @@ public class MeController : ControllerBase
         }
         else
         {
+            if (!string.IsNullOrEmpty(dto.LessonId)) attempt.LessonId = dto.LessonId;
+            if (!string.IsNullOrEmpty(dto.SubjectId)) attempt.SubjectId = dto.SubjectId;
+            if (!string.IsNullOrEmpty(dto.AssessmentId)) attempt.AssessmentId = dto.AssessmentId;
             attempt.LastActivityAt = dto.LastActivityAt == default ? DateTimeOffset.UtcNow : dto.LastActivityAt;
             attempt.CompletedAt = dto.CompletedAt ?? attempt.CompletedAt;
             attempt.CompletionStatus = dto.CompletionStatus ?? attempt.CompletionStatus;
@@ -492,4 +495,85 @@ public class MeController : ControllerBase
             Responses = respDict
         };
     }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // LIBRARY BOOKMARKS (PERSISTED IN LEARNING EVENTS)
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    [HttpGet("bookmarks")]
+    public async Task<IActionResult> GetBookmarks()
+    {
+        var bookmarks = await _db.LearningEvents.AsNoTracking()
+            .Where(e => e.UserId == CurrentUserId && e.Type == "library_bookmark")
+            .OrderByDescending(e => e.Timestamp)
+            .Select(e => new
+            {
+                id = e.Id,
+                itemId = e.LessonId,
+                subjectId = e.SubjectId,
+                createdAt = e.Timestamp,
+                payload = e.PayloadJson
+            })
+            .ToListAsync();
+
+        return Ok(bookmarks);
+    }
+
+    [HttpPost("bookmarks")]
+    public async Task<IActionResult> AddBookmark([FromBody] CreateBookmarkRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.ItemId))
+        {
+            return BadRequest(new { detail = "ItemId không được để trống." });
+        }
+
+        var existing = await _db.LearningEvents
+            .FirstOrDefaultAsync(e => e.UserId == CurrentUserId && e.Type == "library_bookmark" && e.LessonId == request.ItemId);
+
+        if (existing != null)
+        {
+            return Ok(new { success = true, itemId = request.ItemId, message = "Đã tồn tại đánh dấu." });
+        }
+
+        var bookmarkEvent = new LearningEvent
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            UserId = CurrentUserId,
+            Type = "library_bookmark",
+            LessonId = request.ItemId,
+            SubjectId = request.SubjectId ?? string.Empty,
+            Timestamp = DateTimeOffset.UtcNow,
+            PayloadJson = JsonSerializer.Serialize(new { title = request.Title ?? string.Empty }),
+            SchemaVersion = 1
+        };
+
+        _db.LearningEvents.Add(bookmarkEvent);
+        await _db.SaveChangesAsync();
+
+        return Ok(new { success = true, itemId = request.ItemId });
+    }
+
+    [HttpDelete("bookmarks/{itemId}")]
+    public async Task<IActionResult> RemoveBookmark(string itemId)
+    {
+        if (string.IsNullOrWhiteSpace(itemId))
+        {
+            return BadRequest(new { detail = "ItemId không được để trống." });
+        }
+
+        var existing = await _db.LearningEvents
+            .Where(e => e.UserId == CurrentUserId && e.Type == "library_bookmark" && e.LessonId == itemId)
+            .ToListAsync();
+
+        if (existing.Count > 0)
+        {
+            _db.LearningEvents.RemoveRange(existing);
+            await _db.SaveChangesAsync();
+        }
+
+        return Ok(new { success = true, itemId });
+    }
 }
+
+public record CreateBookmarkRequest(string ItemId, string? SubjectId = null, string? Title = null);
+

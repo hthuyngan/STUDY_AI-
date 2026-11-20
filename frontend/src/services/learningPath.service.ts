@@ -23,7 +23,21 @@ import type {
  * Returns overall milestone learning path data (for exam countdown / stages).
  */
 export async function getLearningPath(): Promise<LearningPathData> {
-  await new Promise((resolve) => setTimeout(resolve, 50))
+  const authUser = getAuthUser()
+  if (authUser) {
+    try {
+      const stats = await apiClient.get<{ accuracyRate?: number; streakDays?: number; completedLessons?: number }>('/api/v1/practice/dashboard-stats')
+      const progress = stats?.accuracyRate ? Math.round(stats.accuracyRate) : 0
+      const streak = stats?.streakDays ?? 0
+      return {
+        ...mockLearningPath,
+        overallProgress: progress,
+        currentStreak: streak,
+      }
+    } catch {
+      throw new Error('Không thể tải dữ liệu lộ trình học tập từ máy chủ. Vui lòng thử lại.')
+    }
+  }
   return { ...mockLearningPath }
 }
 

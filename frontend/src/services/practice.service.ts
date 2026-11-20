@@ -119,6 +119,26 @@ export class PracticeService {
     this.qbRepo = qbRepo
   }
 
+  async getQuestionCount(params: {
+    subjectId: string
+    chapterId?: string
+    lessonId?: string
+    difficulty?: string
+  }): Promise<number> {
+    try {
+      const query = new URLSearchParams()
+      query.set('subjectId', params.subjectId)
+      if (params.chapterId) query.set('chapterId', params.chapterId)
+      if (params.lessonId) query.set('lessonId', params.lessonId)
+      if (params.difficulty && params.difficulty !== 'all') query.set('difficulty', params.difficulty)
+
+      const res = await apiClient.get<{ count: number }>(`/api/v1/practice/question-count?${query.toString()}`)
+      return typeof res.count === 'number' ? res.count : 0
+    } catch {
+      return 0
+    }
+  }
+
   async getAvailableQuestions(config: PracticeSetupConfig): Promise<QuestionItem[]> {
     const allApproved = await this.qbRepo.getApprovedOnly({
       subjectId: config.subjectId,

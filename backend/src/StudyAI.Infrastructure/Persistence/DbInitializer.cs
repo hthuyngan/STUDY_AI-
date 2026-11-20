@@ -49,6 +49,7 @@ public static class DbInitializer
                 IsActive = true,
                 CreatedAt = DateTimeOffset.UtcNow
             });
+            await context.SaveChangesAsync();
         }
 
         // Seed Math 10 Chapter & Lesson & Questions if not existing
@@ -64,8 +65,13 @@ public static class DbInitializer
                 CreatedAt = DateTimeOffset.UtcNow
             };
             context.ContentChapters.Add(math10Chapter);
+            await context.SaveChangesAsync();
+        }
 
-            var lesson10 = new ContentLesson
+        var math10Lesson = await context.ContentLessons.FirstOrDefaultAsync(l => l.Id == "les_math10_c1_b1");
+        if (math10Lesson == null)
+        {
+            math10Lesson = new ContentLesson
             {
                 Id = "les_math10_c1_b1",
                 ChapterId = math10Chapter.Id,
@@ -83,7 +89,7 @@ public static class DbInitializer
                 CreatedAt = DateTimeOffset.UtcNow,
                 UpdatedAt = DateTimeOffset.UtcNow
             };
-            context.ContentLessons.Add(lesson10);
+            context.ContentLessons.Add(math10Lesson);
             await context.SaveChangesAsync();
         }
 
@@ -144,6 +150,7 @@ public static class DbInitializer
                 IsActive = true,
                 CreatedAt = DateTimeOffset.UtcNow
             });
+            await context.SaveChangesAsync();
         }
 
         // Seed Math 11 Chapter & Lesson & Questions if not existing
@@ -159,8 +166,13 @@ public static class DbInitializer
                 CreatedAt = DateTimeOffset.UtcNow
             };
             context.ContentChapters.Add(math11Chapter);
+            await context.SaveChangesAsync();
+        }
 
-            var lesson11 = new ContentLesson
+        var math11Lesson = await context.ContentLessons.FirstOrDefaultAsync(l => l.Id == "les_math11_c1_b1");
+        if (math11Lesson == null)
+        {
+            math11Lesson = new ContentLesson
             {
                 Id = "les_math11_c1_b1",
                 ChapterId = math11Chapter.Id,
@@ -178,7 +190,7 @@ public static class DbInitializer
                 CreatedAt = DateTimeOffset.UtcNow,
                 UpdatedAt = DateTimeOffset.UtcNow
             };
-            context.ContentLessons.Add(lesson11);
+            context.ContentLessons.Add(math11Lesson);
             await context.SaveChangesAsync();
         }
 
@@ -230,7 +242,7 @@ public static class DbInitializer
         var existingSubject = await context.ContentSubjects.FirstOrDefaultAsync(s => s.Code == subjectCode || s.Id == "sub_math12");
         if (existingSubject == null)
         {
-            var subject = new ContentSubject
+            existingSubject = new ContentSubject
             {
                 Id = "sub_math12",
                 Name = "Toán 12",
@@ -240,24 +252,32 @@ public static class DbInitializer
                 IsActive = true,
                 CreatedAt = DateTimeOffset.UtcNow
             };
-            context.ContentSubjects.Add(subject);
+            context.ContentSubjects.Add(existingSubject);
+            await context.SaveChangesAsync();
+        }
 
-            // Seed Chapter 1
-            var chapter1 = new ContentChapter
+        var chapter12 = await context.ContentChapters.FirstOrDefaultAsync(c => c.Id == "chp_math12_c1" || (c.SubjectId == "sub_math12" && c.OrderIndex == 1));
+        if (chapter12 == null)
+        {
+            chapter12 = new ContentChapter
             {
                 Id = "chp_math12_c1",
-                SubjectId = subject.Id,
+                SubjectId = "sub_math12",
                 Title = "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị của hàm số",
                 OrderIndex = 1,
                 CreatedAt = DateTimeOffset.UtcNow
             };
-            context.ContentChapters.Add(chapter1);
+            context.ContentChapters.Add(chapter12);
+            await context.SaveChangesAsync();
+        }
 
-            // Seed Lesson 1
-            var lesson1 = new ContentLesson
+        var lesson12 = await context.ContentLessons.FirstOrDefaultAsync(l => l.Id == "les_math12_c1_b1");
+        if (lesson12 == null)
+        {
+            lesson12 = new ContentLesson
             {
                 Id = "les_math12_c1_b1",
-                ChapterId = chapter1.Id,
+                ChapterId = chapter12.Id,
                 Title = "Bài 1: Tính đơn điệu và cực trị của hàm số",
                 Slug = "tinh-don-dieu-va-cuc-tri",
                 OrderIndex = 1,
@@ -272,8 +292,7 @@ public static class DbInitializer
                 CreatedAt = DateTimeOffset.UtcNow,
                 UpdatedAt = DateTimeOffset.UtcNow
             };
-            context.ContentLessons.Add(lesson1);
-
+            context.ContentLessons.Add(lesson12);
             await context.SaveChangesAsync();
         }
 

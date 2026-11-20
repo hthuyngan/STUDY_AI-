@@ -57,13 +57,15 @@ export async function fetchDashboardData(
 
   const base = mockDashboardData
   const learning = buildLearningStateSnapshot()
+  const authUser = getAuthUser()
 
   let serverStats: ServerDashboardStats | null = null
-  try {
-    serverStats = await apiClient.get<ServerDashboardStats>('/api/v1/practice/dashboard-stats')
-  } catch {
-    // Graceful fallback to client-derived state when offline
-    serverStats = null
+  if (authUser) {
+    try {
+      serverStats = await apiClient.get<ServerDashboardStats>('/api/v1/practice/dashboard-stats')
+    } catch {
+      throw new Error('Không thể tải dữ liệu bảng điều khiển từ máy chủ. Vui lòng thử lại.')
+    }
   }
 
   // Map subjects with real derived learning progress or server stats
@@ -113,7 +115,6 @@ export async function fetchDashboardData(
   const streakDays = serverStats ? serverStats.streakDays : learning.streak.current
   const completedLessonsCount = serverStats ? serverStats.completedLessons : learning.summary.completedLessons
 
-  const authUser = getAuthUser()
   const user = authUser
     ? {
         id: authUser.id,

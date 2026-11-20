@@ -19,7 +19,7 @@ Chương trình Toán cấp THPT (Lớp 10, 11, 12) bao gồm 3 mạch kiến th
 
 | Mã Môn / ID | Chương (Chapter) | Mạch | Yêu cầu cần đạt / Năng lực cốt lõi | Bài học (Lesson) | Mã SQL Seed | Trạng thái Dữ liệu |
 |---|---|:---:|---|---|:---:|:---:|
-| `sub_math10` | Chương 1: Mệnh đề và tập hợp | ALG | Hiểu mệnh đề, mệnh đề phủ định, kéo theo, tương đương; xác định các phép toán giao, hợp, hiệu của tập hợp | Bài 1: Mệnh đề toán học | `les_math10_c1_l1` | **SEEDED (StudyAIDb_E2E)** |
+| `sub_math10` | Chương 1: Mệnh đề và tập hợp | ALG | Hiểu mệnh đề, mệnh đề phủ định, kéo theo, tương đương; xác định các phép toán giao, hợp, hiệu của tập hợp | Bài 1: Mệnh đề toán học | `les_math10_c1_b1` | **SEEDED (StudyAIDb_E2E)** |
 | `sub_math10` | Chương 1: Mệnh đề và tập hợp | ALG | Vận dụng các phép toán tập hợp giải quyết bài toán thực tế | Bài 2: Tập hợp và các phép toán trên tập hợp | `les_math10_c1_l2` | In Preparation |
 | `sub_math10` | Chương 2: Bất phương trình & Hệ BPT bậc nhất hai ẩn | ALG | Biểu diễn miền nghiệm của BPT và hệ BPT bậc nhất hai ẩn; tối ưu tuyến tính cơ bản | Bài 1: Bất phương trình bậc nhất hai ẩn | `les_math10_c2_l1` | In Preparation |
 | `sub_math10` | Chương 3: Hàm số bậc hai & Đồ thị | ALG | Khảo sát tính đồng biến, nghịch biến, xác định đỉnh và vẽ parabol | Bài 1: Hàm số và đồ thị | `les_math10_c3_l1` | Planned |
@@ -33,7 +33,7 @@ Chương trình Toán cấp THPT (Lớp 10, 11, 12) bao gồm 3 mạch kiến th
 
 | Mã Môn / ID | Chương (Chapter) | Mạch | Yêu cầu cần đạt / Năng lực cốt lõi | Bài học (Lesson) | Mã SQL Seed | Trạng thái Dữ liệu |
 |---|---|:---:|---|---|:---:|:---:|
-| `sub_math11` | Chương 1: Hàm số lượng giác & PT lượng giác | ALG | Công thức lượng giác, tính tuần hoàn, chu kỳ, đồ thị của 4 hàm số lượng giác cơ bản | Bài 1: Giá trị lượng giác của góc lượng giác | `les_math11_c1_l1` | **SEEDED (StudyAIDb_E2E)** |
+| `sub_math11` | Chương 1: Hàm số lượng giác & PT lượng giác | ALG | Công thức lượng giác, tính tuần hoàn, chu kỳ, đồ thị của 4 hàm số lượng giác cơ bản | Bài 1: Giá trị lượng giác của góc lượng giác | `les_math11_c1_b1` | **SEEDED (StudyAIDb_E2E)** |
 | `sub_math11` | Chương 1: Hàm số lượng giác & PT lượng giác | ALG | Giải phương trình $\sin x = m, \cos x = m, \tan x = m$ | Bài 2: Phương trình lượng giác cơ bản | `les_math11_c1_l2` | In Preparation |
 | `sub_math11` | Chương 2: Dãy số, Cấp số cộng & Cấp số nhân | ALG | Tìm số hạng tổng quát, tính tổng $n$ số hạng đầu tiên của CSC, CSN | Bài 1: Dãy số | `les_math11_c2_l1` | In Preparation |
 | `sub_math11` | Chương 3: Giới hạn & Hàm số liên tục | ALG | Tính giới hạn dãy số, giới hạn hàm số tại một điểm và tại vô cực; xét tính liên tục | Bài 1: Giới hạn của dãy số | `les_math11_c3_l1` | Planned |
@@ -46,7 +46,7 @@ Chương trình Toán cấp THPT (Lớp 10, 11, 12) bao gồm 3 mạch kiến th
 
 | Mã Môn / ID | Chương (Chapter) | Mạch | Yêu cầu cần đạt / Năng lực cốt lõi | Bài học (Lesson) | Mã SQL Seed | Trạng thái Dữ liệu |
 |---|---|:---:|---|---|:---:|:---:|
-| `sub_math12` | Chương 1: Ứng dụng đạo hàm khảo sát hàm số | ALG | Xét tính đơn điệu, tìm cực trị, giá trị lớn nhất - nhỏ nhất, đường tiệm cận, vẽ đồ thị | Bài 1: Tính đơn điệu của hàm số | `les_math12_c1_l1` | **SEEDED (StudyAIDb_E2E)** |
+| `sub_math12` | Chương 1: Ứng dụng đạo hàm khảo sát hàm số | ALG | Xét tính đơn điệu, tìm cực trị, giá trị lớn nhất - nhỏ nhất, đường tiệm cận, vẽ đồ thị | Bài 1: Tính đơn điệu của hàm số | `les_math12_c1_b1` | **SEEDED (StudyAIDb_E2E)** |
 | `sub_math12` | Chương 1: Ứng dụng đạo hàm khảo sát hàm số | ALG | Định nghĩa cực đại, cực tiểu, điều kiện cần và đủ để hàm số có cực trị | Bài 2: Cực trị của hàm số | `les_math12_c1_l2` | **SEEDED (StudyAIDb_E2E)** |
 | `sub_math12` | Chương 1: Ứng dụng đạo hàm khảo sát hàm số | ALG | Tìm tiệm cận đứng, tiệm cận ngang, tiệm cận xiên | Bài 3: Đường tiệm cận của đồ thị hàm số | `les_math12_c1_l3` | **SEEDED (StudyAIDb_E2E)** |
 | `sub_math12` | Chương 2: Vectơ & Hệ tọa độ trong không gian | GEO | Toạ độ vectơ, các phép toán toạ độ, tích vô hướng trong không gian $Oxyz$ | Bài 1: Vectơ trong không gian | `les_math12_c2_l1` | In Preparation |

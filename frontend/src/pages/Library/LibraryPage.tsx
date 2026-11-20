@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Bookmark, BookmarkCheck, Library, Search } from 'lucide-react'
 import { Breadcrumb } from '@/components/ui/Breadcrumb'
 import { Button } from '@/components/ui/Button'
@@ -7,20 +7,17 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { PageErrorState } from '@/components/ui/PageErrorState'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { useLibrary } from '@/hooks/useSupporting'
+import { libraryBookmarkService } from '@/services/libraryBookmark.service'
+import type { LibraryItem } from '@/types/supporting'
 import './LibraryPage.css'
 
 export function LibraryPage() {
   const [activeCategory, setActiveCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSubject, setSelectedSubject] = useState('all')
-  const [savedOverrides, setSavedOverrides] = useState<Record<string, boolean>>(() => {
-    try {
-      const stored = localStorage.getItem('study_ai.saved_library_items')
-      return stored ? JSON.parse(stored) : {}
-    } catch {
-      return {}
-    }
-  })
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
+  const [bookmarkError, setBookmarkError] = useState<string | null>(null)
+  const [isBookmarksLoading, setIsBookmarksLoading] = useState(true)
 
   const { items, isLoading, error, reload } = useLibrary({
     category: activeCategory,
@@ -28,19 +25,55 @@ export function LibraryPage() {
     search: searchQuery,
   })
 
-  const handleToggleSave = (id: string, currentSaved?: boolean) => {
-    setSavedOverrides((prev) => {
-      const next = {
-        ...prev,
-        [id]: prev[id] !== undefined ? !prev[id] : !currentSaved,
-      }
-      try {
-        localStorage.setItem('study_ai.saved_library_items', JSON.stringify(next))
-      } catch {
-        // ignore storage errors
+  const loadBookmarks = async () => {
+    setIsBookmarksLoading(true)
+    setBookmarkError(null)
+    try {
+      const ids = await libraryBookmarkService.getSavedBookmarkIds()
+      setSavedIds(new Set(ids))
+    } catch (err: any) {
+      setBookmarkError(err?.message || 'Không thể tải danh sách tài liệu đã lưu.')
+    } finally {
+      setIsBookmarksLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadBookmarks()
+  }, [])
+
+  const handleToggleSave = async (item: LibraryItem) => {
+    const isCurrentlySaved = savedIds.has(item.id)
+    const nextSaved = !isCurrentlySaved
+
+    // Optimistically update
+    setSavedIds((prev) => {
+      const next = new Set(prev)
+      if (nextSaved) {
+        next.add(item.id)
+      } else {
+        next.delete(item.id)
       }
       return next
     })
+
+    try {
+      await libraryBookmarkService.toggleBookmark(item.id, nextSaved, {
+        title: item.title,
+        subjectId: item.subjectId,
+      })
+    } catch {
+      // Revert on failure
+      setSavedIds((prev) => {
+        const next = new Set(prev)
+        if (isCurrentlySaved) {
+          next.add(item.id)
+        } else {
+          next.delete(item.id)
+        }
+        return next
+      })
+    }
   }
 
   const categories = ['all', 'Tài liệu', 'Công thức', 'Ghi chú', 'Đã lưu']
@@ -51,7 +84,12 @@ export function LibraryPage() {
     { id: 'english', label: 'Tiếng Anh' },
   ]
 
-  if (isLoading) {
+  // Filter items if "Đã lưu" category is active
+  const displayedItems = activeCategory === 'Đã lưu'
+    ? items.filter((item) => savedIds.has(item.id))
+    : items
+
+  if (isLoading || isBookmarksLoading) {
     return (
       <div className="library-page-root">
         <Skeleton variant="text" width={200} height={28} />
@@ -64,11 +102,17 @@ export function LibraryPage() {
     )
   }
 
-  if (error) {
+  if (error || bookmarkError) {
     return (
       <div className="library-page-root">
         <Breadcrumb items={[{ label: 'Thư viện tài liệu' }]} />
-        <PageErrorState description={error} onRetry={reload} />
+        <PageErrorState
+          description={error || bookmarkError || 'Đã xảy ra lỗi khi tải dữ liệu.'}
+          onRetry={() => {
+            reload()
+            loadBookmarks()
+          }}
+        />
       </div>
     )
   }
@@ -127,7 +171,7 @@ export function LibraryPage() {
       </div>
 
       {/* Library Grid */}
-      {items.length === 0 ? (
+      {displayedItems.length === 0 ? (
         <EmptyState
           icon={Library}
           title="Không tìm thấy tài liệu phù hợp"
@@ -141,37 +185,35 @@ export function LibraryPage() {
         />
       ) : (
         <div className="library-grid">
-          {items.map((item) => (
-            <Card key={item.id} className="library-item-card">
-              <div className="library-card-top">
-                <span className="library-cat-badge">{item.category}</span>
-                <span className="library-subject-text">{item.subjectName}</span>
-              </div>
+          {displayedItems.map((item) => {
+            const isItemSaved = savedIds.has(item.id)
+            return (
+              <Card key={item.id} className="library-item-card">
+                <div className="library-card-top">
+                  <span className="library-cat-badge">{item.category}</span>
+                  <span className="library-subject-text">{item.subjectName}</span>
+                </div>
 
-              <h2 className="library-item-title">{item.title}</h2>
-              <p className="library-item-snippet">{item.snippet}</p>
+                <h2 className="library-item-title">{item.title}</h2>
+                <p className="library-item-snippet">{item.snippet}</p>
 
-              <div className="library-card-footer">
-                <span className="library-pages-meta">
-                  {item.pagesCount} trang · Cập nhật {item.updatedAt}
-                </span>
+                <div className="library-card-footer">
+                  <span className="library-pages-meta">
+                    {item.pagesCount} trang · Cập nhật {item.updatedAt}
+                  </span>
 
-                {(() => {
-                  const isItemSaved = savedOverrides[item.id] !== undefined ? savedOverrides[item.id] : !!item.isSaved
-                  return (
-                    <Button
-                      variant={isItemSaved ? 'secondary' : 'outline'}
-                      size="sm"
-                      icon={isItemSaved ? BookmarkCheck : Bookmark}
-                      onClick={() => handleToggleSave(item.id, item.isSaved)}
-                    >
-                      {isItemSaved ? 'Đã lưu' : 'Lưu lại'}
-                    </Button>
-                  )
-                })()}
-              </div>
-            </Card>
-          ))}
+                  <Button
+                    variant={isItemSaved ? 'secondary' : 'outline'}
+                    size="sm"
+                    icon={isItemSaved ? BookmarkCheck : Bookmark}
+                    onClick={() => handleToggleSave(item)}
+                  >
+                    {isItemSaved ? 'Đã lưu' : 'Lưu lại'}
+                  </Button>
+                </div>
+              </Card>
+            )
+          })}
         </div>
       )}
     </div>
