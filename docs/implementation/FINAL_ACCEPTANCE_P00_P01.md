@@ -215,3 +215,25 @@ PR #15 đã hoàn tất toàn bộ yêu cầu của **Phase P00** và **Phase P0
 **Important test limit:** This is backend HTTP + SQL integration, **not** a simulation of frontend network failure or browser-to-SQL end-to-end behavior. Frontend fail-closed must be validated separately using actual UI interactions with assertions.
 
 **Current gate:** P00 PASS based on prior evidence; P01 **CONDITIONAL PASS** until newly added tests pass on CI and outstanding UI/behavior checks are completed. Preserve `StudyAIDb` production. Do not auto-merge or begin P02 implementation during remediation.
+
+
+---
+
+## I. Independent Live Browser Verification — 20/11/2026
+
+**Verified implementation commit:** `11bfa8589fe97073ba87831389ee08ef5a95ad1a`
+
+- [Normal CI run #44717669662](https://github.com/hthuyngan/STUDY_AI-/actions/runs/44717669662): **SUCCESS**.
+- [Isolated SQL + Live Chromium run #44717669638](https://github.com/hthuyngan/STUDY_AI-/actions/runs/44717669638): **SUCCESS**.
+- Workflow: `.github/workflows/p01-live-browser.yml`, creates a disposable SQL Server 2022 container and **only** `StudyAIDb_E2E`; no writes to production `StudyAIDb` were initiated in this workflow.
+- Script: `scripts/e2e_p01_live_browser_playwright.ts`. Four real browser scenarios with no mocked successful API responses:
+  1. Settings: two authenticated Admin browser contexts; one PUT 200 and one stale-version PUT 409; hard reload verifies winner persists.
+  2. Classroom: teacher browser transfers a test learner between two real classes; SQL-backed enrollment API and hard reload confirm persistence.
+  3. Teacher: Admin browser locks/unlocks a test-only teacher; real login returns 403 while locked and 200 after unlock.
+  4. Assessment: real seeded Math 12 lesson and questions; explicit network abort at real `/api/v1/me/assessment-attempts` POST; browser resumes attempt after reload and retry succeeds with HTTP 201; real backend GET returns exactly one completed attempt.
+- Captured screenshot evidence and workflow logs as GitHub Actions artifacts. Raw browser traces are intentionally not published due to potential credential/cookie leakage.
+- The concurrent Settings PUT race is also covered by independent backend HTTP+SQL integration test `LiveE2E_SettingsConcurrentPuts_OnlyOneWriteCanWin` (one 200, one 409).
+
+**Reviewer disposition:** The earlier browser-E2E missing-evidence blocker has been addressed. P00 PASS, P01 browser+backend acceptance **PASS at the recorded commit**. However, GitHub PR #15 remains Draft and the Codex review thread list still includes outstanding unresolved items; human review and final merge authorization remain separate. Do not treat CI green as proof of zero remaining code defects or merge automatically.
+
+**P02 handoff:** Only proceed once reviewer explicitly approves PR #15 and the final integration baseline is established.
