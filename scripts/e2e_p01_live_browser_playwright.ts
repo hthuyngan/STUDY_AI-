@@ -270,8 +270,8 @@ async function browserAssessmentFailAndRetry(browser: Browser) {
       page.locator('button[type="submit"]').click(),
     ])
     await page.goto(`${baseUrl}/subjects/sub_math12/lessons/${lessonId}`)
-    await page.locator('.harvest-header').waitFor({ state: 'visible', timeout: 30000 })
-    await page.locator('.harvest-header').click()
+    await page.locator('.harvest-accordion-header').waitFor({ state: 'visible', timeout: 30000 })
+    await page.locator('.harvest-accordion-header').click()
     await page.getByRole('button', { name: 'Bắt đầu làm bài' }).waitFor({ state: 'visible', timeout: 30000 })
     await page.getByRole('button', { name: 'Bắt đầu làm bài' }).click()
 
@@ -303,8 +303,8 @@ async function browserAssessmentFailAndRetry(browser: Browser) {
     assert.equal(blocked, 1, 'Real assessment POST must be attempted and interrupted exactly once')
 
     await page.reload()
-    await page.locator('.harvest-header').waitFor({ state: 'visible', timeout: 30000 })
-    await page.locator('.harvest-header').click()
+    await page.locator('.harvest-accordion-header').waitFor({ state: 'visible', timeout: 30000 })
+    await page.locator('.harvest-accordion-header').click()
     const resume = page.getByRole('button', { name: 'Tiếp tục bài tập' })
     await resume.waitFor({ state: 'visible', timeout: 30000 })
     await page.screenshot({ path: path.join(artifacts, 'assessment-failed-resumable.png'), fullPage: true })
