@@ -82,7 +82,7 @@ jobs:
           set -euo pipefail
           dotnet run --no-build -c Release --project backend/src/StudyAI.Api/StudyAI.Api.csproj --urls http://127.0.0.1:8000 > /tmp/p01-api.log 2>&1 &
           echo $! > /tmp/p01-api.pid
-          (cd frontend && bunx vite preview --host 127.0.0.1 --port 5174 --strictPort) > /tmp/p01-vite.log 2>&1 &
+          (cd frontend && VITE_BASE_URL=/ VITE_BACKEND_URL=http://127.0.0.1:8000 bunx vite preview --host 127.0.0.1 --port 5174 --strictPort) > /tmp/p01-vite.log 2>&1 &
           echo $! > /tmp/p01-vite.pid
           for i in {1..60}; do
             api_code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/api/v1/auth/refresh || true)
