@@ -80,11 +80,15 @@ export const AdminSettingsPage: React.FC = () => {
     }
   }
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
-    operationsService.saveSettings(settings, 'Demo Admin')
-    showToast('Đã lưu thành công các thiết lập vận hành')
-    setStorageUsage(computeStorageUsage())
+    try {
+      await operationsService.saveSettings(settings, 'Demo Admin')
+      showToast('Đã lưu thành công các thiết lập vận hành')
+      setStorageUsage(computeStorageUsage())
+    } catch (err: unknown) {
+      if (err instanceof Error) alert(err.message)
+    }
   }
 
   const handleResetSettings = () => {

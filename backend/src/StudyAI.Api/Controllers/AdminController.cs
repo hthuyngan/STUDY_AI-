@@ -208,6 +208,28 @@ public class AdminController : ControllerBase
         });
     }
 
+    private static double? GetNormalizedScore(AssessmentAttempt attempt)
+    {
+        if (attempt.ScoreScaled.HasValue)
+        {
+            var scaled = attempt.ScoreScaled.Value;
+            if (scaled <= 1.0 && attempt.ScoreMax <= 1.0)
+            {
+                return Math.Round(scaled * 10.0, 2);
+            }
+            return Math.Round(scaled, 2);
+        }
+
+        if (attempt.ScoreRaw.HasValue)
+        {
+            var raw = attempt.ScoreRaw.Value;
+            var max = attempt.ScoreMax > 0 ? attempt.ScoreMax : 10.0;
+            return Math.Round((raw / max) * 10.0, 2);
+        }
+
+        return null;
+    }
+
     [HttpGet("users/{userId}")]
     public async Task<IActionResult> GetUserDetail(string userId, [FromQuery] bool includeDeleted = false)
     {
@@ -227,16 +249,27 @@ public class AdminController : ControllerBase
         var completedWithScores = attempts.Where(a => a.CompletedAt.HasValue && (a.ScoreScaled.HasValue || a.ScoreRaw.HasValue)).ToList();
         if (completedWithScores.Count > 0)
         {
-            avgScore = Math.Round(completedWithScores.Average(a => (a.ScoreRaw ?? (a.ScoreScaled!.Value * 10))), 1);
+            var normalizedList = completedWithScores
+                .Select(GetNormalizedScore)
+                .Where(s => s.HasValue)
+                .Select(s => s!.Value)
+                .ToList();
+
+            if (normalizedList.Count > 0)
+            {
+                avgScore = Math.Round(normalizedList.Average(), 1);
+            }
         }
 
         var assessments = attempts.Select(a => new UserAssessmentDto
         {
             Id = a.Id,
             Title = a.AssessmentId ?? "Bài thu hoạch",
-            SubjectName = "Toán học 12",
-            Score = a.ScoreRaw ?? (a.ScoreScaled.HasValue ? a.ScoreScaled.Value * 10 : null),
-            MaxScore = a.ScoreMax > 0 ? a.ScoreMax : 10.0,
+            SubjectName = !string.IsNullOrWhiteSpace(a.SubjectId)
+                ? (a.SubjectId == "sub_math10" ? "Toán học 10" : a.SubjectId == "sub_math11" ? "Toán học 11" : a.SubjectId == "sub_math12" ? "Toán học 12" : a.SubjectId)
+                : "Toán học",
+            Score = GetNormalizedScore(a),
+            MaxScore = 10.0,
             Status = a.CompletedAt.HasValue ? "completed" : "in_progress",
             CompletedAt = a.CompletedAt.HasValue ? a.CompletedAt.Value.ToString("o") : a.StartedAt.ToString("o")
         }).ToList();
@@ -888,38 +921,62 @@ public class AdminController : ControllerBase
         }
 
         var teachers = await query.OrderBy(u => u.DisplayName).ToListAsync();
+        var teacherIds = teachers.Select(t => t.Id).ToList();
+
+        // Load teacher profile metadata from audit logs
+        var profileLogs = await _db.StaffAuditLogs
+            .Where(l => l.TargetType == "teacher_profile" && teacherIds.Contains(l.TargetId))
+            .OrderByDescending(l => l.CreatedAt)
+            .ToListAsync();
+
+        var profilesByTeacher = profileLogs
+            .GroupBy(l => l.TargetId)
+            .ToDictionary(g => g.Key, g =>
+            {
+                var payload = g.First().Payload;
+                if (string.IsNullOrWhiteSpace(payload)) return null;
+                try
+                {
+                    return JsonSerializer.Deserialize<TeacherProfileMetadataDto>(payload, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                }
+                catch { return null; }
+            });
+
+        var classrooms = await _db.Classrooms
+            .Where(c => teacherIds.Contains(c.TeacherId) && c.Status != "archived")
+            .ToListAsync();
+
+        var classroomIds = classrooms.Select(c => c.Id).ToList();
+        var studentCounts = await _db.ClassroomStudents
+            .Where(cs => classroomIds.Contains(cs.ClassroomId))
+            .GroupBy(cs => cs.ClassroomId)
+            .Select(g => new { ClassroomId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.ClassroomId, x => x.Count);
 
         var result = new List<AdminTeacherDto>();
         foreach (var t in teachers)
         {
-            var classes = await _db.Classrooms
-                .Where(c => c.TeacherId == t.Id && c.Status != "archived")
-                .Select(c => c.Name)
-                .ToListAsync();
+            var teacherClasses = classrooms.Where(c => c.TeacherId == t.Id).ToList();
+            var classNames = teacherClasses.Select(c => c.Name).ToList();
+            var totalStudents = teacherClasses.Sum(c => studentCounts.GetValueOrDefault(c.Id, 0));
 
-            var classroomIds = await _db.Classrooms
-                .Where(c => c.TeacherId == t.Id && c.Status != "archived")
-                .Select(c => c.Id)
-                .ToListAsync();
-
-            var studentCount = await _db.ClassroomStudents
-                .CountAsync(cs => classroomIds.Contains(cs.ClassroomId));
+            profilesByTeacher.TryGetValue(t.Id, out var profile);
 
             result.Add(new AdminTeacherDto
             {
                 Id = t.Id,
-                Name = t.DisplayName ?? t.Email.Split('@')[0],
+                Name = t.DisplayName ?? (t.Email != null ? t.Email.Split('@')[0] : "Giáo viên"),
                 Email = t.Email ?? "",
-                Phone = "0901 234 567",
-                Subject = t.Grade != null ? $"Toán học {t.Grade}" : "Toán học 12",
-                Classes = classes.Count > 0 ? classes : new List<string> { "12A1" },
-                StudentCount = studentCount > 0 ? studentCount : 35,
+                Phone = profile?.Phone ?? "",
+                Subject = !string.IsNullOrWhiteSpace(t.Grade) ? $"Toán học {t.Grade}" : "Toán học 12",
+                Classes = classNames,
+                StudentCount = totalStudents,
                 Status = t.Status == "active" ? "active" : t.Status == "disabled" ? "inactive" : "pending",
                 JoinedAt = t.CreatedAt.ToString("o"),
                 Rating = 5.0,
-                Qualifications = "Cử nhân Sư phạm",
-                ExperienceYears = 3,
-                Bio = "Giáo viên bộ môn tâm huyết với học sinh.",
+                Qualifications = profile?.Qualifications ?? "",
+                ExperienceYears = profile?.ExperienceYears ?? 0,
+                Bio = profile?.Bio ?? "",
                 AccountStatus = t.Status == "active" ? "ACTIVE" : "LOCKED"
             });
         }
@@ -988,6 +1045,14 @@ public class AdminController : ControllerBase
         };
         _db.Users.Add(newTeacher);
 
+        var profilePayload = new TeacherProfileMetadataDto
+        {
+            Phone = req.Phone?.Trim() ?? string.Empty,
+            Qualifications = req.Qualifications?.Trim() ?? string.Empty,
+            ExperienceYears = req.ExperienceYears ?? 0,
+            Bio = req.Bio?.Trim() ?? string.Empty
+        };
+
         _db.StaffAuditLogs.Add(new StaffAuditLog
         {
             Id = $"log_{Guid.NewGuid():N}",
@@ -999,6 +1064,17 @@ public class AdminController : ControllerBase
             CreatedAt = DateTimeOffset.UtcNow
         });
 
+        _db.StaffAuditLogs.Add(new StaffAuditLog
+        {
+            Id = $"log_{Guid.NewGuid():N}",
+            ActorUserId = CurrentUserId,
+            Action = "teacher_profile_updated",
+            TargetType = "teacher_profile",
+            TargetId = newTeacher.Id,
+            Payload = JsonSerializer.Serialize(profilePayload),
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
         await _db.SaveChangesAsync();
 
         return StatusCode(201, new AdminTeacherDto
@@ -1006,31 +1082,58 @@ public class AdminController : ControllerBase
             Id = newTeacher.Id,
             Name = newTeacher.DisplayName,
             Email = newTeacher.Email,
-            Phone = req.Phone ?? "0901 234 567",
+            Phone = profilePayload.Phone,
             Subject = req.Subject,
-            Classes = req.Classes ?? new List<string> { "12A1" },
-            StudentCount = 35,
+            Classes = req.Classes ?? new List<string>(),
+            StudentCount = 0,
             Status = newTeacher.Status,
             JoinedAt = newTeacher.CreatedAt.ToString("o"),
             Rating = 5.0,
-            Qualifications = req.Qualifications ?? "Cử nhân Sư phạm",
-            ExperienceYears = req.ExperienceYears ?? 3,
-            Bio = req.Bio ?? "Giáo viên bộ môn tâm huyết với học sinh.",
+            Qualifications = profilePayload.Qualifications,
+            ExperienceYears = profilePayload.ExperienceYears ?? 0,
+            Bio = profilePayload.Bio,
             AccountStatus = "ACTIVE",
             TemporaryPassword = rawPassword
         });
     }
 
     [HttpPatch("teachers/{id}")]
+    [HttpPut("teachers/{id}")]
     public async Task<IActionResult> UpdateTeacher(string id, [FromBody] SaveTeacherRequestDto req)
     {
         var teacher = await _db.Users.FirstOrDefaultAsync(u => u.Id == id && u.Role == "teacher" && !u.IsDeleted);
         if (teacher == null) return NotFound(new { detail = "Không tìm thấy giáo viên." });
 
+        if (!string.IsNullOrWhiteSpace(req.Email))
+        {
+            var newEmail = req.Email.Trim().ToLowerInvariant();
+            if (!newEmail.Contains('@'))
+            {
+                return BadRequest(new { detail = "Định dạng email giáo viên không hợp lệ." });
+            }
+
+            var duplicate = await _db.Users.AnyAsync(u => u.EmailNormalized == newEmail && u.Id != teacher.Id && !u.IsDeleted);
+            if (duplicate)
+            {
+                return BadRequest(new { detail = "Email đã được sử dụng bởi tài khoản khác." });
+            }
+
+            teacher.Email = req.Email.Trim();
+            teacher.EmailNormalized = newEmail;
+        }
+
         if (!string.IsNullOrWhiteSpace(req.Name)) teacher.DisplayName = req.Name.Trim();
         if (!string.IsNullOrWhiteSpace(req.Status)) teacher.Status = req.Status.Trim().ToLowerInvariant();
         if (!string.IsNullOrWhiteSpace(req.Subject)) teacher.Grade = req.Subject.Replace("Toán học", "").Trim();
         teacher.UpdatedAt = DateTimeOffset.UtcNow;
+
+        var profilePayload = new TeacherProfileMetadataDto
+        {
+            Phone = req.Phone?.Trim() ?? string.Empty,
+            Qualifications = req.Qualifications?.Trim() ?? string.Empty,
+            ExperienceYears = req.ExperienceYears ?? 0,
+            Bio = req.Bio?.Trim() ?? string.Empty
+        };
 
         _db.StaffAuditLogs.Add(new StaffAuditLog
         {
@@ -1043,23 +1146,42 @@ public class AdminController : ControllerBase
             CreatedAt = DateTimeOffset.UtcNow
         });
 
+        _db.StaffAuditLogs.Add(new StaffAuditLog
+        {
+            Id = $"log_{Guid.NewGuid():N}",
+            ActorUserId = CurrentUserId,
+            Action = "teacher_profile_updated",
+            TargetType = "teacher_profile",
+            TargetId = teacher.Id,
+            Payload = JsonSerializer.Serialize(profilePayload),
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
         await _db.SaveChangesAsync();
+
+        var teacherClasses = await _db.Classrooms
+            .Where(c => c.TeacherId == teacher.Id && c.Status != "archived")
+            .ToListAsync();
+        var classNames = teacherClasses.Select(c => c.Name).ToList();
+        var teacherClassIds = teacherClasses.Select(c => c.Id).ToList();
+        var totalStudents = await _db.ClassroomStudents
+            .CountAsync(cs => teacherClassIds.Contains(cs.ClassroomId));
 
         return Ok(new AdminTeacherDto
         {
             Id = teacher.Id,
-            Name = teacher.DisplayName ?? teacher.Email,
+            Name = teacher.DisplayName ?? teacher.Email ?? "",
             Email = teacher.Email ?? "",
-            Phone = req.Phone ?? "0901 234 567",
+            Phone = profilePayload.Phone,
             Subject = !string.IsNullOrWhiteSpace(teacher.Grade) ? $"Toán học {teacher.Grade}" : "Toán học 12",
-            Classes = req.Classes ?? new List<string> { "12A1" },
-            StudentCount = 35,
+            Classes = classNames,
+            StudentCount = totalStudents,
             Status = teacher.Status == "active" ? "active" : teacher.Status == "disabled" ? "inactive" : "pending",
             JoinedAt = teacher.CreatedAt.ToString("o"),
             Rating = 5.0,
-            Qualifications = req.Qualifications ?? "Cử nhân Sư phạm",
-            ExperienceYears = req.ExperienceYears ?? 3,
-            Bio = req.Bio ?? "Giáo viên bộ môn tâm huyết với học sinh.",
+            Qualifications = profilePayload.Qualifications,
+            ExperienceYears = profilePayload.ExperienceYears ?? 0,
+            Bio = profilePayload.Bio,
             AccountStatus = teacher.Status == "active" ? "ACTIVE" : "LOCKED"
         });
     }
@@ -1110,28 +1232,34 @@ public class AdminController : ControllerBase
         var totalPublishedLessons = await _db.ContentLessons.CountAsync(l => l.Status == "published");
         var completionRatePercent = totalPublishedLessons > 0 && totalLearners > 0
             ? Math.Round((double)completedLessons * 100 / (totalPublishedLessons * totalLearners), 1)
-            : 76.5;
+            : 0.0;
 
         var attempts = await _db.AssessmentAttempts
             .Where(a => a.CompletedAt.HasValue && (a.ScoreScaled.HasValue || a.ScoreRaw.HasValue))
             .ToListAsync();
 
-        double avgScore = attempts.Count > 0
-            ? Math.Round(attempts.Average(a => (a.ScoreRaw ?? (a.ScoreScaled!.Value * 10))), 1)
-            : 8.2;
+        var normalizedScores = attempts
+            .Select(GetNormalizedScore)
+            .Where(s => s.HasValue)
+            .Select(s => s!.Value)
+            .ToList();
 
-        var excellentCount = attempts.Count(a => (a.ScoreRaw ?? (a.ScoreScaled!.Value * 10)) >= 9.0);
-        var goodCount = attempts.Count(a => (a.ScoreRaw ?? (a.ScoreScaled!.Value * 10)) >= 8.0 && (a.ScoreRaw ?? (a.ScoreScaled!.Value * 10)) < 9.0);
-        var fairCount = attempts.Count(a => (a.ScoreRaw ?? (a.ScoreScaled!.Value * 10)) >= 6.5 && (a.ScoreRaw ?? (a.ScoreScaled!.Value * 10)) < 8.0);
-        var averageCount = attempts.Count(a => (a.ScoreRaw ?? (a.ScoreScaled!.Value * 10)) < 6.5);
-        int attemptsTotal = Math.Max(attempts.Count, 1);
+        double avgScore = normalizedScores.Count > 0
+            ? Math.Round(normalizedScores.Average(), 1)
+            : 0.0;
+
+        var excellentCount = normalizedScores.Count(s => s >= 9.0);
+        var goodCount = normalizedScores.Count(s => s >= 8.0 && s < 9.0);
+        var fairCount = normalizedScores.Count(s => s >= 6.5 && s < 8.0);
+        var averageCount = normalizedScores.Count(s => s < 6.5);
+        int attemptsTotal = normalizedScores.Count;
 
         var scoreDistribution = new List<ScoreDistributionDto>
         {
-            new() { Range = "Xuất sắc (9.0 - 10)", Count = excellentCount > 0 ? excellentCount : 340, Percent = Math.Round((double)(excellentCount > 0 ? excellentCount : 340) * 100 / (attempts.Count > 0 ? attemptsTotal : 1280), 1) },
-            new() { Range = "Giỏi (8.0 - 8.9)", Count = goodCount > 0 ? goodCount : 520, Percent = Math.Round((double)(goodCount > 0 ? goodCount : 520) * 100 / (attempts.Count > 0 ? attemptsTotal : 1280), 1) },
-            new() { Range = "Khá (6.5 - 7.9)", Count = fairCount > 0 ? fairCount : 280, Percent = Math.Round((double)(fairCount > 0 ? fairCount : 280) * 100 / (attempts.Count > 0 ? attemptsTotal : 1280), 1) },
-            new() { Range = "Trung bình (< 6.5)", Count = averageCount > 0 ? averageCount : 140, Percent = Math.Round((double)(averageCount > 0 ? averageCount : 140) * 100 / (attempts.Count > 0 ? attemptsTotal : 1280), 1) },
+            new() { Range = "Xuất sắc (9.0 - 10)", Count = excellentCount, Percent = attemptsTotal > 0 ? Math.Round((double)excellentCount * 100 / attemptsTotal, 1) : 0.0 },
+            new() { Range = "Giỏi (8.0 - 8.9)", Count = goodCount, Percent = attemptsTotal > 0 ? Math.Round((double)goodCount * 100 / attemptsTotal, 1) : 0.0 },
+            new() { Range = "Khá (6.5 - 7.9)", Count = fairCount, Percent = attemptsTotal > 0 ? Math.Round((double)fairCount * 100 / attemptsTotal, 1) : 0.0 },
+            new() { Range = "Trung bình (< 6.5)", Count = averageCount, Percent = attemptsTotal > 0 ? Math.Round((double)averageCount * 100 / attemptsTotal, 1) : 0.0 },
         };
 
         var activityTrend = new List<AnalyticsTrendPointDto>();
@@ -1145,8 +1273,8 @@ public class AdminController : ControllerBase
             activityTrend.Add(new AnalyticsTrendPointDto
             {
                 Date = day.ToString("dd/MM"),
-                ActiveUsers = active > 0 ? active : 650 + (i % 5) * 20,
-                CompletedLessons = completed > 0 ? completed : 420 + (i % 4) * 25
+                ActiveUsers = active,
+                CompletedLessons = completed
             });
         }
 
@@ -1154,21 +1282,18 @@ public class AdminController : ControllerBase
         var subjectProgress = new List<SubjectProgressReportDto>();
         foreach (var s in subjects)
         {
+            var subjectLessons = await _db.ContentLessons.CountAsync(l => l.Chapter!.SubjectId == s.Id && l.Status == "published");
+            var subjectCompleted = await _db.LessonProgresses.CountAsync(lp => lp.SubjectId == s.Id && lp.OverallProgress >= 100);
+            var prog = subjectLessons > 0 && totalLearners > 0
+                ? Math.Round((double)subjectCompleted * 100 / (subjectLessons * totalLearners), 1)
+                : 0.0;
+
             subjectProgress.Add(new SubjectProgressReportDto
             {
                 Subject = s.Name,
-                Progress = 75.0,
-                LearnersCount = totalLearners > 0 ? totalLearners : 920
+                Progress = prog,
+                LearnersCount = totalLearners
             });
-        }
-
-        if (subjectProgress.Count == 0)
-        {
-            subjectProgress.Add(new SubjectProgressReportDto { Subject = "Toán học 12", Progress = 78, LearnersCount = 920 });
-            subjectProgress.Add(new SubjectProgressReportDto { Subject = "Vật lý 12", Progress = 65, LearnersCount = 780 });
-            subjectProgress.Add(new SubjectProgressReportDto { Subject = "Hóa học 12", Progress = 58, LearnersCount = 710 });
-            subjectProgress.Add(new SubjectProgressReportDto { Subject = "Ngữ văn 12", Progress = 82, LearnersCount = 840 });
-            subjectProgress.Add(new SubjectProgressReportDto { Subject = "Tiếng Anh 12", Progress = 86, LearnersCount = 890 });
         }
 
         if (!string.IsNullOrWhiteSpace(subjectId) && subjectId != "all")
@@ -1178,9 +1303,9 @@ public class AdminController : ControllerBase
 
         return Ok(new LearningReportsResponseDto
         {
-            TotalLearners = totalLearners > 0 ? totalLearners : 1280,
-            ActiveLearners = activeLearners > 0 ? activeLearners : 890,
-            CompletedLessons = completedLessons > 0 ? completedLessons : 14250,
+            TotalLearners = totalLearners,
+            ActiveLearners = activeLearners,
+            CompletedLessons = completedLessons,
             CompletionRatePercent = completionRatePercent,
             AverageAssessmentScore = avgScore,
             ActivityTrend = activityTrend,

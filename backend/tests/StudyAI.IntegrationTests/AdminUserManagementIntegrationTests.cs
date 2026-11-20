@@ -954,4 +954,270 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
         reqDel.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
         await _client.SendAsync(reqDel);
     }
+
+    [Fact]
+    public async Task Admin_GetReports_PreservesZeroCounts_And_DoesNotFabricateSampleData()
+    {
+        var adminToken = await GetAdminTokenAsync();
+        var req = new HttpRequestMessage(HttpMethod.Get, "/api/v1/admin/reports");
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+
+        var resp = await _client.SendAsync(req);
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+
+        var body = await resp.Content.ReadAsStringAsync();
+        var reports = JsonSerializer.Deserialize<LearningReportsResponseDto>(body, JsonOpts);
+
+        Assert.NotNull(reports);
+        // Verify ActivityTrend is returned and activeUsers / lessonsCompleted are valid real counts (not fabricated 650+ / 420+)
+        Assert.NotNull(reports.ActivityTrend);
+        Assert.All(reports.ActivityTrend, item =>
+        {
+            Assert.True(item.ActiveUsers >= 0);
+            Assert.True(item.CompletedLessons >= 0);
+            // Must NOT have the fabricated formulas: 650 + (i % 5) * 20 or 420 + (i % 4) * 25
+            Assert.True(item.ActiveUsers < 650 || reports.TotalLearners >= 650);
+        });
+
+        // Verify SubjectProgress does NOT contain fabricated subjects like "Vật lý", "Hóa học"
+        Assert.NotNull(reports.SubjectProgress);
+        Assert.DoesNotContain(reports.SubjectProgress, sp => sp.Subject == "Vật lý" || sp.Subject == "Hóa học");
+
+        // Verify ScoreDistribution exists and is properly structured
+        Assert.NotNull(reports.ScoreDistribution);
+        Assert.Equal(4, reports.ScoreDistribution.Count);
+        Assert.Contains(reports.ScoreDistribution, d => d.Range.Contains("Xuất sắc"));
+        Assert.Contains(reports.ScoreDistribution, d => d.Range.Contains("Giỏi"));
+        Assert.Contains(reports.ScoreDistribution, d => d.Range.Contains("Khá"));
+        Assert.Contains(reports.ScoreDistribution, d => d.Range.Contains("Trung bình"));
+    }
+
+    [Fact]
+    public async Task Admin_GetReports_And_UserDetail_NormalizesScores_UsingScoreMax()
+    {
+        var adminToken = await GetAdminTokenAsync();
+        var studentId = $"usr_norm_{Guid.NewGuid():N}"[..12];
+        var attemptId = $"atm_norm_{Guid.NewGuid():N}"[..12];
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            var user = new User
+            {
+                Id = studentId,
+                DisplayName = "Học sinh Chuẩn Hóa Điểm",
+                Email = $"student.norm.{Guid.NewGuid():N}@studyai.test",
+                EmailNormalized = $"STUDENT.NORM.{Guid.NewGuid():N}@STUDYAI.TEST",
+                Role = "student",
+                Status = "active",
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            };
+            db.Users.Add(user);
+
+            // Raw score 20 out of 40 = 50% = 5.0 on a 10-point scale
+            // If NOT normalized, 20.0 would be categorized as "Xuất sắc (>= 8.0)"!
+            // When properly normalized to 5.0, it MUST be categorized as "Trung bình (< 6.5)".
+            var attempt = new AssessmentAttempt
+            {
+                Id = attemptId,
+                UserId = studentId,
+                AssessmentId = "asmt_test_norm",
+                SubjectId = "sub_math10",
+                ScoreRaw = 20.0,
+                ScoreMax = 40.0,
+                ScoreScaled = null,
+                CompletedAt = DateTimeOffset.UtcNow,
+                StartedAt = DateTimeOffset.UtcNow.AddMinutes(-30)
+            };
+            db.AssessmentAttempts.Add(attempt);
+            await db.SaveChangesAsync();
+        }
+
+        try
+        {
+            // 1. Verify UserDetail returns normalized score 5.0
+            var reqDetail = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/admin/users/{studentId}");
+            reqDetail.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+            var respDetail = await _client.SendAsync(reqDetail);
+            Assert.Equal(HttpStatusCode.OK, respDetail.StatusCode);
+
+            var detailBody = await respDetail.Content.ReadAsStringAsync();
+            var detail = JsonSerializer.Deserialize<AdminUserDetailDto>(detailBody, JsonOpts);
+            Assert.NotNull(detail);
+            Assert.Equal(5.0, detail.AverageScore);
+            Assert.NotEmpty(detail.Assessments);
+            var userAttempt = detail.Assessments.FirstOrDefault(a => a.Id == attemptId);
+            Assert.NotNull(userAttempt);
+            Assert.Equal(5.0, userAttempt.Score);
+
+            // 2. Verify GetReports puts the normalized 5.0 in the "< 6.5" range
+            var reqReports = new HttpRequestMessage(HttpMethod.Get, "/api/v1/admin/reports");
+            reqReports.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+            var respReports = await _client.SendAsync(reqReports);
+            Assert.Equal(HttpStatusCode.OK, respReports.StatusCode);
+
+            var reportsBody = await respReports.Content.ReadAsStringAsync();
+            var reports = JsonSerializer.Deserialize<LearningReportsResponseDto>(reportsBody, JsonOpts);
+            Assert.NotNull(reports);
+            var lowRange = reports.ScoreDistribution.FirstOrDefault(d => d.Range.Contains("< 6.5"));
+            Assert.NotNull(lowRange);
+            Assert.True(lowRange.Count >= 1, "Attempt with normalized score 5.0 must fall in the < 6.5 bucket");
+        }
+        finally
+        {
+            using var scope = _factory.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            var att = await db.AssessmentAttempts.FindAsync(attemptId);
+            if (att != null) db.AssessmentAttempts.Remove(att);
+            var u = await db.Users.FindAsync(studentId);
+            if (u != null) db.Users.Remove(u);
+            await db.SaveChangesAsync();
+        }
+    }
+
+    [Fact]
+    public async Task Admin_UpdateTeacher_PersistsProfileFields_And_ReturnsThemOnReload()
+    {
+        var adminToken = await GetAdminTokenAsync();
+        var teacherEmail = $"teacher.profile.{Guid.NewGuid():N}@studyai.test";
+
+        // 1. Create teacher
+        var createReq = new SaveTeacherRequestDto
+        {
+            Name = "Thầy Profile Test",
+            Email = teacherEmail,
+            Subject = "Toán 11",
+            Phone = "0912345678",
+            Qualifications = "Thạc sĩ Toán học",
+            ExperienceYears = 8,
+            Bio = "Giáo viên chuyên ôn thi THPT Quốc gia",
+            Status = "active"
+        };
+        var reqCreate = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/teachers")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(createReq), Encoding.UTF8, "application/json")
+        };
+        reqCreate.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var respCreate = await _client.SendAsync(reqCreate);
+        Assert.True(respCreate.StatusCode == HttpStatusCode.Created || respCreate.StatusCode == HttpStatusCode.OK);
+
+        var createdTeacher = JsonSerializer.Deserialize<AdminTeacherDto>(await respCreate.Content.ReadAsStringAsync(), JsonOpts);
+        Assert.NotNull(createdTeacher);
+        var teacherId = createdTeacher.Id;
+
+        try
+        {
+            // 2. Update profile fields
+            var updatedEmail = $"teacher.updated.{Guid.NewGuid():N}@studyai.test";
+            var updateReq = new SaveTeacherRequestDto
+            {
+                Name = "Thầy Profile Test Đã Đổi Tên",
+                Email = updatedEmail,
+                Subject = "Toán 10",
+                Phone = "0987654321",
+                Qualifications = "Tiến sĩ Toán - Tin",
+                ExperienceYears = 12,
+                Bio = "Chuyên gia bồi dưỡng học sinh giỏi Toán",
+                Status = "active"
+            };
+            var reqUpdate = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/admin/teachers/{teacherId}")
+            {
+                Content = new StringContent(JsonSerializer.Serialize(updateReq), Encoding.UTF8, "application/json")
+            };
+            reqUpdate.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+            var respUpdate = await _client.SendAsync(reqUpdate);
+            Assert.Equal(HttpStatusCode.OK, respUpdate.StatusCode);
+
+            // 3. Reload teacher list and verify persisted fields from database
+            var reqList = new HttpRequestMessage(HttpMethod.Get, "/api/v1/admin/teachers");
+            reqList.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+            var respList = await _client.SendAsync(reqList);
+            Assert.Equal(HttpStatusCode.OK, respList.StatusCode);
+
+            var list = JsonSerializer.Deserialize<List<AdminTeacherDto>>(await respList.Content.ReadAsStringAsync(), JsonOpts);
+            Assert.NotNull(list);
+            var reloadedTeacher = list.FirstOrDefault(t => t.Id == teacherId);
+            Assert.NotNull(reloadedTeacher);
+            Assert.Equal("Thầy Profile Test Đã Đổi Tên", reloadedTeacher.Name);
+            Assert.Equal(updatedEmail, reloadedTeacher.Email);
+            Assert.Equal("0987654321", reloadedTeacher.Phone);
+            Assert.Equal("Tiến sĩ Toán - Tin", reloadedTeacher.Qualifications);
+            Assert.Equal(12, reloadedTeacher.ExperienceYears);
+            Assert.Equal("Chuyên gia bồi dưỡng học sinh giỏi Toán", reloadedTeacher.Bio);
+            Assert.Contains("Toán 10", reloadedTeacher.Subject);
+        }
+        finally
+        {
+            var reqDel = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/admin/users/{teacherId}");
+            reqDel.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+            await _client.SendAsync(reqDel);
+        }
+    }
+
+    [Fact]
+    public async Task Admin_UpdateTeacher_DuplicateEmail_ReturnsBadRequest()
+    {
+        var adminToken = await GetAdminTokenAsync();
+        var email1 = $"teacher1.{Guid.NewGuid():N}@studyai.test";
+        var email2 = $"teacher2.{Guid.NewGuid():N}@studyai.test";
+
+        // Create teacher 1
+        var reqCreate1 = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/teachers")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new SaveTeacherRequestDto
+            {
+                Name = "Giáo Viên Một",
+                Email = email1,
+                Subject = "Toán 12"
+            }), Encoding.UTF8, "application/json")
+        };
+        reqCreate1.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var resp1 = await _client.SendAsync(reqCreate1);
+        var t1 = JsonSerializer.Deserialize<AdminTeacherDto>(await resp1.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        // Create teacher 2
+        var reqCreate2 = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/teachers")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new SaveTeacherRequestDto
+            {
+                Name = "Giáo Viên Hai",
+                Email = email2,
+                Subject = "Toán 12"
+            }), Encoding.UTF8, "application/json")
+        };
+        reqCreate2.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var resp2 = await _client.SendAsync(reqCreate2);
+        var t2 = JsonSerializer.Deserialize<AdminTeacherDto>(await resp2.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        try
+        {
+            // Attempt to update teacher 2's email to teacher 1's email -> MUST RETURN 400 BadRequest
+            var reqUpdateDup = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/admin/teachers/{t2.Id}")
+            {
+                Content = new StringContent(JsonSerializer.Serialize(new SaveTeacherRequestDto
+                {
+                    Name = "Giáo Viên Hai Đổi Mail",
+                    Email = email1, // Duplicate!
+                    Subject = "Toán 12"
+                }), Encoding.UTF8, "application/json")
+            };
+            reqUpdateDup.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+            var respDup = await _client.SendAsync(reqUpdateDup);
+
+            Assert.Equal(HttpStatusCode.BadRequest, respDup.StatusCode);
+            var errBody = await respDup.Content.ReadAsStringAsync();
+            Assert.Contains("đã được sử dụng", errBody);
+        }
+        finally
+        {
+            var reqDel1 = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/admin/users/{t1.Id}");
+            reqDel1.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+            await _client.SendAsync(reqDel1);
+
+            var reqDel2 = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/admin/users/{t2.Id}");
+            reqDel2.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+            await _client.SendAsync(reqDel2);
+        }
+    }
 }

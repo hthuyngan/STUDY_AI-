@@ -421,6 +421,94 @@ public class ClassroomsController : ControllerBase
     }
 
     /// <summary>
+    /// Chuyển học sinh từ lớp nguồn sang lớp đích
+    /// </summary>
+    [HttpPost("{id}/transfer-student")]
+    [Authorize(Roles = "teacher,admin")]
+    public async Task<IActionResult> TransferStudent(string id, [FromBody] TransferStudentRequestDto dto, CancellationToken cancellationToken)
+    {
+        var userId = CurrentUserId;
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+        var targetClassroom = await _db.Classrooms.FindAsync(new object[] { id }, cancellationToken);
+        if (targetClassroom == null) return NotFound(new { message = "Không tìm thấy lớp học đích" });
+
+        if (!IsAdmin && targetClassroom.TeacherId != userId) return Forbid();
+
+        if (string.IsNullOrWhiteSpace(dto.StudentId))
+        {
+            return BadRequest(new { message = "Mã học sinh không được để trống" });
+        }
+
+        var student = await _db.Users.FirstOrDefaultAsync(u => u.Id == dto.StudentId, cancellationToken);
+        if (student == null)
+        {
+            return NotFound(new { message = "Không tìm thấy học sinh với mã cung cấp" });
+        }
+
+        if (student.Role != "learner" && student.Role != "student")
+        {
+            return BadRequest(new { message = "Chỉ có thể chuyển người dùng có vai trò học sinh (learner)" });
+        }
+
+        // Xóa enrollment khỏi lớp cũ nếu có chỉ định sourceClassroomId
+        if (!string.IsNullOrWhiteSpace(dto.SourceClassroomId))
+        {
+            var oldEnrollment = await _db.ClassroomStudents.FirstOrDefaultAsync(
+                cs => cs.ClassroomId == dto.SourceClassroomId && cs.StudentId == student.Id, cancellationToken);
+            if (oldEnrollment != null)
+            {
+                _db.ClassroomStudents.Remove(oldEnrollment);
+                var sourceClassroom = await _db.Classrooms.FindAsync(new object[] { dto.SourceClassroomId }, cancellationToken);
+                if (sourceClassroom != null) sourceClassroom.UpdatedAt = DateTimeOffset.UtcNow;
+            }
+        }
+        else
+        {
+            // Nếu không cung cấp sourceClassroomId, xóa mọi enrollment của học sinh ở các lớp khác để tránh trùng lặp
+            var previousEnrollments = await _db.ClassroomStudents
+                .Where(cs => cs.StudentId == student.Id && cs.ClassroomId != id)
+                .ToListAsync(cancellationToken);
+            if (previousEnrollments.Count > 0)
+            {
+                _db.ClassroomStudents.RemoveRange(previousEnrollments);
+            }
+        }
+
+        // Kiểm tra xem đã tham gia lớp đích chưa
+        var targetEnrollment = await _db.ClassroomStudents.FirstOrDefaultAsync(
+            cs => cs.ClassroomId == id && cs.StudentId == student.Id, cancellationToken);
+
+        if (targetEnrollment == null)
+        {
+            targetEnrollment = new ClassroomStudent
+            {
+                Id = $"cs-{Guid.NewGuid():N}"[..12],
+                ClassroomId = id,
+                StudentId = student.Id,
+                EnrolledAt = DateTimeOffset.UtcNow,
+            };
+            _db.ClassroomStudents.Add(targetEnrollment);
+        }
+
+        targetClassroom.UpdatedAt = DateTimeOffset.UtcNow;
+        await _db.SaveChangesAsync(cancellationToken);
+
+        var result = new ClassroomStudentDto
+        {
+            Id = targetEnrollment.Id,
+            ClassroomId = targetEnrollment.ClassroomId,
+            StudentId = targetEnrollment.StudentId,
+            StudentName = student.DisplayName ?? student.Email ?? "Học sinh",
+            StudentEmail = student.Email,
+            StudentGrade = student.Grade,
+            EnrolledAt = targetEnrollment.EnrolledAt,
+        };
+
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Danh sách bài tập trong lớp
     /// </summary>
     [HttpGet("{id}/assignments")]

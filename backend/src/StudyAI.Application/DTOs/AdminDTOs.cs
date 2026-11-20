@@ -189,6 +189,14 @@ public class SaveTeacherRequestDto
     public string? Bio { get; set; }
 }
 
+public class TeacherProfileMetadataDto
+{
+    public string? Phone { get; set; }
+    public string? Qualifications { get; set; }
+    public int? ExperienceYears { get; set; }
+    public string? Bio { get; set; }
+}
+
 public class SubjectProgressReportDto
 {
     public string Subject { get; set; } = string.Empty;

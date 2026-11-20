@@ -857,5 +857,102 @@ public class ClassroomAssignmentIntegrationTests : IClassFixture<StudyAIApiFixtu
             Assert.True(mastery.Status == "proficient" || mastery.Status == "mastered");
         }
     }
+
+    [Fact]
+    public async Task Classroom_TransferStudent_UpdatesEnrollmentInDatabase_And_ReflectsAcrossClasses()
+    {
+        var (teacherToken, teacherId, _) = await CreateAndLoginUserAsync("teacher", "Thầy Chủ Nhiệm Chuyển Lớp");
+        var (learnerToken, learnerId, learnerEmail) = await CreateAndLoginUserAsync("student", "Học Sinh Chuyển Lớp");
+
+        // 1. Create Class A and Class B
+        var classAResp = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/classrooms")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateClassroomRequestDto
+            {
+                Name = "Lớp 11A1 - Xuất Phát",
+                Grade = "11",
+                Subject = "Toán"
+            }), Encoding.UTF8, "application/json"),
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", teacherToken) }
+        });
+        Assert.Equal(HttpStatusCode.Created, classAResp.StatusCode);
+        var classA = JsonSerializer.Deserialize<ClassroomDto>(await classAResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        var classBResp = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/classrooms")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreateClassroomRequestDto
+            {
+                Name = "Lớp 11A2 - Đích Đến",
+                Grade = "11",
+                Subject = "Toán"
+            }), Encoding.UTF8, "application/json"),
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", teacherToken) }
+        });
+        Assert.Equal(HttpStatusCode.Created, classBResp.StatusCode);
+        var classB = JsonSerializer.Deserialize<ClassroomDto>(await classBResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        // 2. Enroll student into Class A
+        var enrollReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/classrooms/{classA.Id}/students")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new EnrollStudentRequestDto
+            {
+                StudentEmail = learnerEmail
+            }), Encoding.UTF8, "application/json"),
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", teacherToken) }
+        };
+        var enrollResp = await _client.SendAsync(enrollReq);
+        Assert.True(enrollResp.StatusCode == HttpStatusCode.Created || enrollResp.StatusCode == HttpStatusCode.OK);
+
+        // Verify student is in Class A
+        var getStudentsAReq = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/classrooms/{classA.Id}/students")
+        {
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", teacherToken) }
+        };
+        var studentsAResp = await _client.SendAsync(getStudentsAReq);
+        var studentsA = JsonSerializer.Deserialize<List<ClassroomStudentDto>>(await studentsAResp.Content.ReadAsStringAsync(), JsonOpts)!;
+        Assert.Contains(studentsA, s => s.StudentId == learnerId);
+
+        // 3. Call Transfer Student API: move from Class A to Class B
+        var transferReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/classrooms/{classB.Id}/transfer-student")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new TransferStudentRequestDto
+            {
+                StudentId = learnerId,
+                SourceClassroomId = classA.Id
+            }), Encoding.UTF8, "application/json"),
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", teacherToken) }
+        };
+        var transferResp = await _client.SendAsync(transferReq);
+        Assert.Equal(HttpStatusCode.OK, transferResp.StatusCode);
+
+        // 4. Verify Class A NO LONGER contains the student
+        var checkAReq = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/classrooms/{classA.Id}/students")
+        {
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", teacherToken) }
+        };
+        var checkAResp = await _client.SendAsync(checkAReq);
+        var refreshedStudentsA = JsonSerializer.Deserialize<List<ClassroomStudentDto>>(await checkAResp.Content.ReadAsStringAsync(), JsonOpts)!;
+        Assert.DoesNotContain(refreshedStudentsA, s => s.StudentId == learnerId);
+
+        // 5. Verify Class B DOES contain the student
+        var checkBReq = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/classrooms/{classB.Id}/students")
+        {
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", teacherToken) }
+        };
+        var checkBResp = await _client.SendAsync(checkBReq);
+        var refreshedStudentsB = JsonSerializer.Deserialize<List<ClassroomStudentDto>>(await checkBResp.Content.ReadAsStringAsync(), JsonOpts)!;
+        Assert.Contains(refreshedStudentsB, s => s.StudentId == learnerId);
+
+        // 6. Direct Database Verification
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            var inA = await db.ClassroomStudents.AnyAsync(cs => cs.ClassroomId == classA.Id && cs.StudentId == learnerId);
+            var inB = await db.ClassroomStudents.AnyAsync(cs => cs.ClassroomId == classB.Id && cs.StudentId == learnerId);
+            Assert.False(inA, "Student must not be enrolled in Class A after transfer");
+            Assert.True(inB, "Student must be enrolled in Class B after transfer");
+        }
+    }
 }
+
 

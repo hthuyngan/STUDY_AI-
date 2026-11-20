@@ -27,21 +27,37 @@ public class LearningAnalyticsService : ILearningAnalyticsService
         _logger = logger;
     }
 
+    private async Task<string> ResolveEffectiveSubjectIdAsync(string userId, string? subjectId, CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(subjectId) && subjectId != "all")
+        {
+            return subjectId;
+        }
+
+        if (!string.IsNullOrWhiteSpace(userId) && userId != "guest")
+        {
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+            var g = user?.Grade?.Trim();
+            if (g == "10" || g?.Contains("10") == true) return "sub_math10";
+            if (g == "11" || g?.Contains("11") == true) return "sub_math11";
+        }
+
+        return "sub_math12";
+    }
+
     public async Task<LearningAnalyticsOverviewDto> GetAnalyticsOverviewAsync(
         string userId,
         string? subjectId = null,
         string timeframe = "all",
         CancellationToken cancellationToken = default)
     {
-        var effectiveSubjectId = string.IsNullOrWhiteSpace(subjectId) || subjectId == "all"
-            ? "sub_math12"
-            : subjectId;
+        var effectiveSubjectId = await ResolveEffectiveSubjectIdAsync(userId, subjectId, cancellationToken);
 
         var emptyOverview = new LearningAnalyticsOverviewDto
         {
             UserId = userId,
             SubjectId = effectiveSubjectId,
-            SubjectName = "Toán 12",
+            SubjectName = effectiveSubjectId == "sub_math10" ? "Toán 10" : effectiveSubjectId == "sub_math11" ? "Toán 11" : "Toán 12",
             Timeframe = timeframe
         };
 
@@ -250,9 +266,7 @@ public class LearningAnalyticsService : ILearningAnalyticsService
         string? subjectId = null,
         CancellationToken cancellationToken = default)
     {
-        var effectiveSubjectId = string.IsNullOrWhiteSpace(subjectId) || subjectId == "all"
-            ? "sub_math12"
-            : subjectId;
+        var effectiveSubjectId = await ResolveEffectiveSubjectIdAsync(userId, subjectId, cancellationToken);
 
         if (string.IsNullOrWhiteSpace(userId) || userId == "guest")
         {
@@ -392,9 +406,7 @@ public class LearningAnalyticsService : ILearningAnalyticsService
         string? subjectId = null,
         CancellationToken cancellationToken = default)
     {
-        var effectiveSubjectId = string.IsNullOrWhiteSpace(subjectId) || subjectId == "all"
-            ? "sub_math12"
-            : subjectId;
+        var effectiveSubjectId = await ResolveEffectiveSubjectIdAsync(userId, subjectId, cancellationToken);
 
         var overview = await GetAnalyticsOverviewAsync(userId, effectiveSubjectId, "all", cancellationToken);
         var risks = await GetLearningRisksAsync(userId, effectiveSubjectId, cancellationToken);

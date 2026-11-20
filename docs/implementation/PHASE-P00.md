@@ -197,3 +197,67 @@ Tất cả các lệnh kiểm tra đều được thực thi trực tiếp trên
 - **Tiêu chí chuyển phase:** Nghiêm túc tuân thủ quy tắc không triển khai CRUD Toán 10–12 mới (P02) cho đến khi toàn bộ lỗi Codex review P00/P01 được xác minh và nghiệm thu.
 - **Phương án Rollback:**
   - Nhánh `feature/math10-12-p00-foundation` hoạt động độc lập, không ảnh hưởng đến `main` hay `feature/ai-core-v1`. Trong trường hợp cần quay lui, chỉ cần xóa nhánh hoặc chuyển về commit SHA trước đó.
+
+---
+
+## 9. Khắc Phục Toàn Diện 5 Lỗi P1 & 1 Lỗi P2 Từ Codex Review (Commit `cfa76b6`)
+
+Dựa trên các nhận xét kiểm toán chuyên sâu của Codex Review tại PR #15, toàn bộ các khiếm khuyết P1 và P2 đã được giải quyết triệt để và chứng minh qua regression tests:
+
+### 9.1. Chi Tiết Các Lỗi & Giải Pháp Khắc Phục
+
+1. **Issue 1 (P1 - Comment 4637657783): Loại bỏ số liệu giả trong Admin Reports**
+   - **Tệp sửa:** `backend/src/StudyAI.Api/Controllers/AdminController.cs` (`GetReports`)
+   - **Khắc phục:** Loại bỏ hoàn toàn fallback số liệu giả mạo (không fallback 340, 520, 280, 140 hay 76.5%, 8.2; giữ nguyên số đếm 0 thực tế và 0.0%). Loại bỏ công thức bịa đặt trong `activityTrend` (`650 + (i%5)*20`, `420 + (i%4)*25`), đếm lượt truy cập và hoàn thành thực tế từ CSDL. Tính `subjectProgress` động từ `ContentLessons` và `LessonProgresses`, không sinh môn học giả (Vật lý, Hóa học).
+
+2. **Issue 2 (P2 - Comment 4637657806): Chuẩn hóa điểm bài thi về thang 10**
+   - **Tệp sửa:** `backend/src/StudyAI.Api/Controllers/AdminController.cs` (`GetUserDetail`, `GetReports`)
+   - **Khắc phục:** Bổ sung phương thức `GetNormalizedScore(AssessmentAttempt attempt)` tự động quy đổi `(ScoreRaw / ScoreMax) * 10.0` hoặc `ScoreScaled` về thang điểm 10 chuẩn mực. Ngăn ngừa việc một bài thi đạt 20/40 (tương đương 5.0/10) bị phân loại sai vào dải "Xuất sắc (>= 8.0)".
+
+3. **Issue 3 (P1 - Comment 4637657789): Lưu trữ toàn vẹn hồ sơ giáo viên vào CSDL**
+   - **Tệp sửa:** `backend/src/StudyAI.Api/Controllers/AdminController.cs` (`UpdateTeacher`, `GetTeachers`, `CreateTeacher`), `backend/src/StudyAI.Application/DTOs/AdminDTOs.cs`
+   - **Khắc phục:** Cập nhật `UpdateTeacher` hỗ trợ cả `[HttpPut]` và `[HttpPatch]`. Lưu đầy đủ các trường `phone`, `qualifications`, `experienceYears`, `bio` vào SQL Server dưới dạng bản ghi `teacher_profile` trong `StaffAuditLogs`. Kiểm tra email trùng lặp và trả về `400 BadRequest`. Đọc lại đầy đủ dữ liệu khi tải danh sách qua `GetTeachers`, đồng thời tính sĩ số học sinh và lớp phụ trách thực tế từ `Classrooms` và `ClassroomStudents`.
+
+4. **Issue 4 (P1 - Comment 4637657794): Fail-Closed thông báo và cài đặt Admin**
+   - **Tệp sửa:** `frontend/src/services/operations.service.ts` (`saveAnnouncement`, `deleteAnnouncement`, `saveSettings`), `frontend/src/pages/Admin/AdminSettingsPage.tsx`
+   - **Khắc phục:** Khi đã xác thực (có access token), các thao tác tạo/sửa/xóa thông báo và lưu cấu hình gọi trực tiếp API Backend. Nếu API trả lỗi (500, mạng, 403), hệ thống ném ngoại lệ (propagate error) ra UI, tuyệt đối không nuốt lỗi và không ghi đè dữ liệu vào `localStorage`.
+
+5. **Issue 5 (P1 - Comment 4637657801): Kiểm tra tính hợp lệ câu hỏi AI sinh (No default "A")**
+   - **Tệp sửa:** `backend/src/StudyAI.Infrastructure/Services/AiLessonAuthoringService.cs`, `backend/src/StudyAI.Application/DTOs/TeacherManagementDTOs.cs`
+   - **Khắc phục:** Loại bỏ giá trị mặc định `"A"` trong `CheckpointQuestionDraftDto`. Kiểm tra nghiêm ngặt: đề bài >= 5 ký tự, danh sách phương án >= 2 lựa chọn, đáp án đúng không rỗng và phải là mã phương án hợp lệ hoặc khớp với nội dung phương án. Ném `InvalidOperationException` fail-closed nếu không đạt chuẩn.
+
+6. **Issue 6 (P1 - Comment 4637657809): Cập nhật enrollment CSDL khi chuyển lớp học sinh**
+   - **Tệp sửa:** `backend/src/StudyAI.Api/Controllers/ClassroomsController.cs`, `backend/src/StudyAI.Application/DTOs/ClassroomDTOs.cs`, `frontend/src/services/classroom.service.ts`
+   - **Khắc phục:** Bổ sung endpoint `POST /api/v1/classrooms/{id}/transfer-student` thực hiện xóa quan hệ ở lớp cũ và ghi quan hệ ở lớp mới trong SQL Server. Frontend gọi endpoint này, làm mới danh sách học sinh và hiển thị đúng `className`.
+
+7. **Yêu cầu 7: Rà soát & khắc phục triệt để SubjectId hardcode Toán 12**
+   - **Tệp sửa:** `TeacherManagementService.cs`, `PracticeController.cs`, `AiTutorService.cs`, `StudentMasteryService.cs`, `LearningAnalyticsService.cs`, `LearningRecommendationService.cs`, `ExamPreparationPage.tsx`, `TeacherStudentProfilePage.tsx`, `AdminStudentProfilePage.tsx`.
+   - **Khắc phục:** Tự động phân giải `SubjectId` theo khối lớp (`sub_math10`, `sub_math11`, `sub_math12`) dựa trên khối lớp của học sinh/lớp học, đảm bảo không làm sai lệch hồ sơ năng lực học tập của học sinh lớp 10 và 11.
+
+---
+
+## 10. Kết Quả Kiểm Thử Nghiệm Thu Sau Khắc Phục (Regression & Quality Gates)
+
+### 10.1. Backend Tests (.NET 10 / SQL Server E2E `StudyAIDb_E2E`)
+- **Unit Tests:** `dotnet test backend/tests/StudyAI.UnitTests/StudyAI.UnitTests.csproj`
+  - **167 / 167 Tests Passed (100%)**, bao gồm các bài kiểm tra xác nhận câu hỏi AI sinh fail-closed khi thiếu đáp án hoặc options không hợp lệ.
+- **Integration Tests:** `dotnet test backend/tests/StudyAI.IntegrationTests/StudyAI.IntegrationTests.csproj`
+  - **175 / 175 Tests Passed (100%)**, bao gồm:
+    - `Admin_GetReports_PreservesZeroCounts_And_DoesNotFabricateSampleData` (PASS)
+    - `Admin_GetReports_And_UserDetail_NormalizesScores_UsingScoreMax` (PASS)
+    - `Admin_UpdateTeacher_PersistsProfileFields_And_ReturnsThemOnReload` (PASS)
+    - `Admin_UpdateTeacher_DuplicateEmail_ReturnsBadRequest` (PASS)
+    - `Classroom_TransferStudent_UpdatesEnrollmentInDatabase_And_ReflectsAcrossClasses` (PASS)
+- **Tổng cộng Backend:** **342 / 342 Tests Passed (100%)**.
+
+### 10.2. Frontend Tests (React 19 / TypeScript / Bun)
+- **Linting:** `cd frontend; bun run lint`
+  - **Exit code 0, 0 errors, 0 warnings** trên 474 files.
+- **Unit & Service Tests:** `cd frontend; bun run test`
+  - **487 / 487 Tests Passed (69 test files, 100%)**, bao gồm `operationsServiceFailClosed.test.ts` (4/4 tests PASS).
+- **Production Build:** `cd frontend; bun run build`
+  - **Exit code 0**, hoàn tất đóng gói bundle client production không có lỗi.
+
+### 10.3. Playwright E2E
+- Trạng thái: **NOT RUN (Tooling/Env blocked)** — Kịch bản Playwright trực quan yêu cầu dev preview server kết nối phiên backend xác thực live. Đã kiểm tra script `scripts/verify_modal_playwright.ts`; theo quy tắc AGENTS.md báo cáo trung thực trạng thái kiểm thử, không công bố PASS khi chưa có logs đầu đủ.
+

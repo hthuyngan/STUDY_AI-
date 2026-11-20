@@ -20,6 +20,8 @@ import type { PracticeResult } from '@/types/practice'
 import './ExamPreparationPage.css'
 
 const SUBJECT_OPTIONS = [
+  { id: 'sub_math10', label: 'Toán học 10' },
+  { id: 'sub_math11', label: 'Toán học 11' },
   { id: 'sub_math12', label: 'Toán học 12' },
   { id: 'sub_physics12', label: 'Vật lý 12' },
   { id: 'sub_chemistry12', label: 'Hóa học 12' },

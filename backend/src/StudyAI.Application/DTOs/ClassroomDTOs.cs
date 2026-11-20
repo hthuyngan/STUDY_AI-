@@ -59,6 +59,12 @@ public class EnrollStudentRequestDto
     public string? StudentEmail { get; set; }
 }
 
+public class TransferStudentRequestDto
+{
+    public string StudentId { get; set; } = string.Empty;
+    public string? SourceClassroomId { get; set; }
+}
+
 public class AssignmentDto
 {
     public string Id { get; set; } = string.Empty;

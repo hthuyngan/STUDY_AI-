@@ -772,16 +772,10 @@ export const operationsService = {
 
   async saveAnnouncement(data: Partial<AnnouncementItem>, actor = 'Demo Admin'): Promise<AnnouncementItem> {
     if (getAccessToken()) {
-      try {
-        if (data.id) {
-          const res = await apiClient.put<AnnouncementItem>(`/api/v1/admin/announcements/${data.id}`, data)
-          if (res?.id) return res
-        } else {
-          const res = await apiClient.post<AnnouncementItem>('/api/v1/admin/announcements', data)
-          if (res?.id) return res
-        }
-      } catch (err: any) {
-        if (err?.status === 401 || err?.status === 403) throw err
+      if (data.id) {
+        return await apiClient.put<AnnouncementItem>(`/api/v1/admin/announcements/${data.id}`, data)
+      } else {
+        return await apiClient.post<AnnouncementItem>('/api/v1/admin/announcements', data)
       }
     }
 
@@ -841,11 +835,8 @@ export const operationsService = {
 
   async deleteAnnouncement(id: string, actor = 'Demo Admin'): Promise<void> {
     if (getAccessToken()) {
-      try {
-        await apiClient.delete(`/api/v1/admin/announcements/${id}`)
-      } catch (err: any) {
-        if (err?.status === 401 || err?.status === 403) throw err
-      }
+      await apiClient.delete(`/api/v1/admin/announcements/${id}`)
+      return
     }
 
     const list = await this.getAnnouncements()
@@ -870,7 +861,7 @@ export const operationsService = {
     return loadFromStorage<OperationalSettings>(STORAGE_KEYS.SETTINGS, INITIAL_SETTINGS)
   },
 
-  saveSettings(data: Partial<OperationalSettings>, actor = 'Demo Admin'): OperationalSettings {
+  async saveSettings(data: Partial<OperationalSettings>, actor = 'Demo Admin'): Promise<OperationalSettings> {
     const current = this.getSettings()
     const now = new Date().toISOString()
     const updated: OperationalSettings = {
@@ -879,11 +870,12 @@ export const operationsService = {
       updatedAt: now,
       updatedBy: actor,
     }
-    saveToStorage(STORAGE_KEYS.SETTINGS, updated)
 
     if (getAccessToken()) {
-      apiClient.put('/api/v1/admin/settings', updated).catch(() => {})
+      await apiClient.put('/api/v1/admin/settings', updated)
     }
+
+    saveToStorage(STORAGE_KEYS.SETTINGS, updated)
 
     this.recordAuditLog({
       actor,

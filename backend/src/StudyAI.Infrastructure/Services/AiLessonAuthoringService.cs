@@ -152,12 +152,44 @@ public class AiLessonAuthoringService : IAiLessonAuthoringService
                     var parsed = JsonSerializer.Deserialize<List<CheckpointQuestionDraftDto>>(jsonStr, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                     if (parsed != null && parsed.Count > 0)
                     {
+                        var validatedQuestions = new List<CheckpointQuestionDraftDto>();
                         foreach (var item in parsed)
                         {
+                            var itemPrompt = item.Prompt?.Trim() ?? string.Empty;
+                            if (string.IsNullOrWhiteSpace(itemPrompt) || itemPrompt.Length < 5)
+                            {
+                                throw new InvalidOperationException("Câu hỏi do AI sinh thiếu đề bài hoặc giả thiết toán học hợp lệ.");
+                            }
+
+                            if (item.Options == null || item.Options.Count < 2 || item.Options.Any(string.IsNullOrWhiteSpace))
+                            {
+                                throw new InvalidOperationException($"Câu hỏi '{itemPrompt}' thiếu danh sách phương án lựa chọn hợp lệ.");
+                            }
+
+                            var ans = item.CorrectAnswer?.Trim() ?? string.Empty;
+                            if (string.IsNullOrWhiteSpace(ans))
+                            {
+                                throw new InvalidOperationException($"Câu hỏi '{itemPrompt}' không có đáp án đúng được xác định.");
+                            }
+
+                            // Validate answer membership: either valid option key A/B/C/D or exact match with one of the options
+                            bool isValidKey = ans.Length == 1 && (ans[0] >= 'A' && ans[0] < 'A' + item.Options.Count);
+                            bool matchesOption = item.Options.Any(o =>
+                                o.Trim().Equals(ans, StringComparison.OrdinalIgnoreCase)
+                                || o.Trim().StartsWith(ans + ".", StringComparison.OrdinalIgnoreCase)
+                                || o.Trim().StartsWith(ans + ":", StringComparison.OrdinalIgnoreCase));
+
+                            if (!isValidKey && !matchesOption)
+                            {
+                                throw new InvalidOperationException($"Đáp án đúng '{ans}' của câu hỏi '{itemPrompt}' không hợp lệ hoặc không thuộc danh sách phương án.");
+                            }
+
+                            item.Prompt = itemPrompt;
+                            item.CorrectAnswer = ans;
                             item.CognitiveLevel = difficulty;
-                            if (string.IsNullOrWhiteSpace(item.CorrectAnswer)) item.CorrectAnswer = "A";
+                            validatedQuestions.Add(item);
                         }
-                        return parsed;
+                        return validatedQuestions;
                     }
                 }
             }

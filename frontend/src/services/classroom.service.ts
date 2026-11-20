@@ -745,7 +745,13 @@ export const classroomService = {
   async getStudents(): Promise<AdminStudentItem[]> {
     if (getAccessToken()) {
       const classes = await this.getClasses()
-      const studentPromises = classes.map((c) => this.getStudentsByClass(c.id))
+      const studentPromises = classes.map(async (c) => {
+        const classStudents = await this.getStudentsByClass(c.id)
+        return classStudents.map((s) => ({
+          ...s,
+          className: c.name || s.className || '',
+        }))
+      })
       const nested = await Promise.all(studentPromises)
       const flat = nested.flat()
       const seen = new Set<string>()
@@ -828,6 +834,40 @@ export const classroomService = {
   },
 
   async moveStudentClass(studentId: string, targetClassId: string, targetClassName: string): Promise<AdminStudentItem> {
+    if (getAccessToken()) {
+      const students = await this.getStudents()
+      const existing = students.find((s) => s.id === studentId || s.code === studentId)
+      const studentCode = existing?.code || studentId
+      const sourceClassId = existing?.classId
+
+      await apiClient.post<ClassroomStudentDto>(`/api/v1/classrooms/${targetClassId}/transfer-student`, {
+        studentId: studentCode,
+        sourceClassroomId: sourceClassId,
+      })
+
+      const refreshedStudents = await this.getStudents()
+      const updated = refreshedStudents.find((s) => s.id === studentId || s.code === studentId)
+      if (updated) {
+        return updated
+      }
+
+      return {
+        id: studentId,
+        code: studentCode,
+        name: existing?.name || 'Học sinh',
+        email: existing?.email || '',
+        classId: targetClassId,
+        className: targetClassName,
+        grade: existing?.grade || 'Lớp 12',
+        progress: 0,
+        lessonsCompleted: 0,
+        averageScore: 0,
+        totalLearningMinutes: 0,
+        lastActive: new Date().toISOString(),
+        status: 'on-track',
+      }
+    }
+
     const students = await this.getStudents()
     const idx = students.findIndex((s) => s.id === studentId)
     if (idx === -1) throw new Error('Không tìm thấy học viên')

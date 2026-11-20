@@ -67,6 +67,7 @@ public class TeachingRecommendationDto
 public class CreateRemedialInterventionRequestDto
 {
     public string ClassroomId { get; set; } = string.Empty;
+    public string? SubjectId { get; set; }
     public List<string> TargetStudentIds { get; set; } = new();
     public string Title { get; set; } = string.Empty;
     public string TargetTopic { get; set; } = string.Empty;
@@ -151,7 +152,7 @@ public class CheckpointQuestionDraftDto
 {
     public string Prompt { get; set; } = string.Empty;
     public List<string> Options { get; set; } = new();
-    public string CorrectAnswer { get; set; } = "A";
+    public string CorrectAnswer { get; set; } = string.Empty;
     public string Explanation { get; set; } = string.Empty;
     public string CognitiveLevel { get; set; } = "thong_hieu";
 }

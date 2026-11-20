@@ -375,7 +375,24 @@ public class AiTutorService : IAiTutorService
         {
             try
             {
-                profile = await _masteryService.GetStudentKnowledgeProfileAsync(userId, "sub_math12", cancellationToken);
+                string effectiveSubject = lesson?.Chapter?.SubjectId ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(effectiveSubject) && !string.IsNullOrWhiteSpace(conv.Subject))
+                {
+                    var s = conv.Subject.ToLowerInvariant();
+                    if (s.Contains("10")) effectiveSubject = "sub_math10";
+                    else if (s.Contains("11")) effectiveSubject = "sub_math11";
+                    else if (s.Contains("12")) effectiveSubject = "sub_math12";
+                }
+                if (string.IsNullOrWhiteSpace(effectiveSubject))
+                {
+                    var student = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+                    var grade = student?.Grade?.Trim();
+                    if (grade == "10") effectiveSubject = "sub_math10";
+                    else if (grade == "11") effectiveSubject = "sub_math11";
+                    else effectiveSubject = "sub_math12";
+                }
+
+                profile = await _masteryService.GetStudentKnowledgeProfileAsync(userId, effectiveSubject, cancellationToken);
             }
             catch (Exception ex)
             {

@@ -113,13 +113,13 @@ export const AdminStudentProfilePage: React.FC = () => {
     }
   }
 
-  // Mock subjects progress for the student
   const studentSubjects = useMemo(() => {
     if (!student) return []
+    const gradeNum = student.grade?.includes('10') ? '10' : student.grade?.includes('11') ? '11' : '12'
     return [
       {
-        id: 'sub-math-12',
-        name: 'Toán học 12',
+        id: `sub_math${gradeNum}`,
+        name: `Toán học ${gradeNum}`,
         lessonsCompleted: student.lessonsCompleted,
         totalLessons: 24,
         progress: student.progress,

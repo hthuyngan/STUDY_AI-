@@ -582,4 +582,97 @@ public class PhaseAi05TeacherManagementUnitTests
 
         Assert.Contains("không khả dụng", ex.Message);
     }
+
+    [Fact]
+    public async Task LessonAuthoring_04_GenerateCheckpointQuestions_WhenCorrectAnswerOmitted_ThrowsFailClosedException()
+    {
+        var db = CreateInMemoryDb(nameof(LessonAuthoring_04_GenerateCheckpointQuestions_WhenCorrectAnswerOmitted_ThrowsFailClosedException));
+        var mockLlm = new TestLlmProvider
+        {
+            ResponseGenerator = _ => @"[
+  {
+    ""prompt"": ""Cho hàm số y = f(x) liên tục trên đoạn [0; 2]. Tìm số điểm cực trị."",
+    ""options"": [""A. 1"", ""B. 2"", ""C. 3"", ""D. 4""],
+    ""correctAnswer"": """",
+    ""explanation"": ""Lời giải chi tiết""
+  }
+]"
+        };
+
+        var service = new AiLessonAuthoringService(db, mockLlm, NullLogger<AiLessonAuthoringService>.Instance);
+        var request = new GenerateCheckpointQuestionsRequestDto
+        {
+            SubjectId = "sub_math12",
+            TopicName = "Cực trị hàm số",
+            QuestionCount = 1,
+            TargetDifficulty = "thong_hieu"
+        };
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.GenerateCheckpointQuestionsAsync("usr_teacher_01", request));
+
+        Assert.Contains("không có đáp án đúng", ex.Message);
+    }
+
+    [Fact]
+    public async Task LessonAuthoring_05_GenerateCheckpointQuestions_WhenOptionsInvalid_ThrowsFailClosedException()
+    {
+        var db = CreateInMemoryDb(nameof(LessonAuthoring_05_GenerateCheckpointQuestions_WhenOptionsInvalid_ThrowsFailClosedException));
+        var mockLlm = new TestLlmProvider
+        {
+            ResponseGenerator = _ => @"[
+  {
+    ""prompt"": ""Câu hỏi có một lựa chọn"",
+    ""options"": [""A. Duy nhất""],
+    ""correctAnswer"": ""A"",
+    ""explanation"": ""Lời giải""
+  }
+]"
+        };
+
+        var service = new AiLessonAuthoringService(db, mockLlm, NullLogger<AiLessonAuthoringService>.Instance);
+        var request = new GenerateCheckpointQuestionsRequestDto
+        {
+            SubjectId = "sub_math12",
+            TopicName = "Hàm số",
+            QuestionCount = 1,
+            TargetDifficulty = "nhan_biet"
+        };
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.GenerateCheckpointQuestionsAsync("usr_teacher_01", request));
+
+        Assert.Contains("thiếu danh sách phương án", ex.Message);
+    }
+
+    [Fact]
+    public async Task LessonAuthoring_06_GenerateCheckpointQuestions_WhenCorrectAnswerNotInOptions_ThrowsFailClosedException()
+    {
+        var db = CreateInMemoryDb(nameof(LessonAuthoring_06_GenerateCheckpointQuestions_WhenCorrectAnswerNotInOptions_ThrowsFailClosedException));
+        var mockLlm = new TestLlmProvider
+        {
+            ResponseGenerator = _ => @"[
+  {
+    ""prompt"": ""Cho hàm số bậc ba $y = ax^3 + bx^2 + cx + d$. Đồ thị có bao nhiêu tâm đối xứng?"",
+    ""options"": [""A. 1"", ""B. 2"", ""C. 3"", ""D. 0""],
+    ""correctAnswer"": ""E"",
+    ""explanation"": ""Tâm đối xứng là điểm uốn""
+  }
+]"
+        };
+
+        var service = new AiLessonAuthoringService(db, mockLlm, NullLogger<AiLessonAuthoringService>.Instance);
+        var request = new GenerateCheckpointQuestionsRequestDto
+        {
+            SubjectId = "sub_math12",
+            TopicName = "Đồ thị hàm số",
+            QuestionCount = 1,
+            TargetDifficulty = "thong_hieu"
+        };
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.GenerateCheckpointQuestionsAsync("usr_teacher_01", request));
+
+        Assert.Contains("không thuộc danh sách phương án", ex.Message);
+    }
 }

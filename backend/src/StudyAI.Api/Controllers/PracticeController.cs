@@ -36,6 +36,9 @@ public class PracticeController : ControllerBase
         User.FindFirstValue("sub") ??
         throw new UnauthorizedAccessException("Người dùng chưa được xác thực.");
 
+    private string CurrentUserGrade =>
+        User.FindFirstValue("grade") ?? string.Empty;
+
     private bool IsStaffOrAdmin =>
         User.IsInRole("admin") || User.IsInRole("teacher") || User.IsInRole("content");
 
@@ -856,7 +859,9 @@ public class PracticeController : ControllerBase
             Id = reviewAttemptId,
             UserId = CurrentUserId,
             AssessmentId = "asmt_smart_review",
-            SubjectId = question.SubjectId ?? "sub_math12",
+            SubjectId = question.SubjectId ?? (!string.IsNullOrWhiteSpace(CurrentUserGrade)
+                ? (CurrentUserGrade.Contains("10") ? "sub_math10" : CurrentUserGrade.Contains("11") ? "sub_math11" : "sub_math12")
+                : "sub_math12"),
             LessonId = question.LessonId ?? string.Empty,
             AttemptNumber = 1,
             StartedAt = DateTimeOffset.UtcNow,
