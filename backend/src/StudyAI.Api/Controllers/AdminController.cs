@@ -381,6 +381,7 @@ public class AdminController : ControllerBase
     }
 
     [HttpPatch("users/{userId}")]
+    [HttpPut("users/{userId}")]
     public async Task<IActionResult> UpdateUser(string userId, [FromBody] UpdateUserRequestDto req)
     {
         var user = await _db.Users.FindAsync(userId);
