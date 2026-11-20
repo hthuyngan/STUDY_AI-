@@ -366,3 +366,36 @@ Dựa trên các nhận xét chuyên sâu mới nhất của Codex Review tại 
 | **7** | `frontend/src/services/operations.service.ts` | **Handle pagination before treating audit results as complete** *(P1)* | `getAuditLogs` chỉ lấy trang đầu tiên (mặc định 20 bản ghi), khiến trang quản trị và export CSV thiếu các sự kiện cũ hơn. | Bổ sung vòng lặp phân trang (`page`, `pageSize = 100`) tự động tải toàn bộ danh sách audit logs từ máy chủ cho đến khi đủ `total`, bảo đảm danh sách sự kiện đầy đủ 100% và fail-closed khi API lỗi. | `operationsServiceFailClosed.test.ts` (PASS: kiểm tra phân trang 40 items qua 2 trang) |
 | **8** | `backend/src/StudyAI.Api/Controllers/AssignmentsController.cs` | **Atomic assignment deletion with submission check** *(P1)* | Khi xóa bài tập, kiểm tra bài nộp và lệnh DELETE không cùng một giao dịch nguyên tử, có thể cascade xóa mất bài nộp của học sinh nộp đồng thời. | Đặt kiểm tra và thao tác xóa trong khối giao dịch nguyên tử `Serializable` thông qua `CreateExecutionStrategy()` của EF Core. Nếu có bài nộp đồng thời, tự động chuyển sang lưu trữ (archive), không cascade delete. | `ClassroomAssignmentIntegrationTests.Delete_Assignment_Hard_Deletes_When_Empty_And_Archives_When_Submissions_Exist` (PASS) |
 
+---
+
+## 15. Khắc Phục Bổ Sung 4 Nhận Xét Codex Review (Sau Commit `666bbc9`)
+
+| # | File & Vị Trí | Mức Độ | Vấn Đề (Finding) | Nguyên Nhân Gốc | Giải Pháp Đã Áp Dụng | Kiểm Chứng & Regression Test |
+|---|---|---|---|---|---|---|
+| **1** | `backend/src/StudyAI.Api/Controllers/ClassroomsController.cs` | **P1** | **Atomic classroom deletion race condition** | Kiểm tra số lượng học sinh (`classroom.Students.Count`) và bài tập (`classroom.Assignments.Count`) tách rời khỏi lệnh DELETE phòng học, dẫn đến khả năng cascade delete xóa mất học sinh vừa ghi danh hoặc bài tập vừa giao đồng thời. | Bọc toàn bộ logic kiểm tra và thao tác xóa trong `_db.Database.CreateExecutionStrategy().ExecuteAsync()` với giao dịch `IsolationLevel.Serializable`. Kiểm tra trực tiếp trên `ClassroomStudents` và `Assignments`. Từ chối 400 nếu có học sinh, chuyển `archived = true` (200 OK) nếu có bài tập, xóa cứng (204 NoContent) khi lớp hoàn toàn rỗng. | `Delete_Classroom_Rejects_When_Students_Enrolled_And_Archives_When_Assignments_Exist` (PASS) |
+| **2** | `backend/src/StudyAI.Api/Controllers/AdminController.cs` | **P2** | **Filter teachers by mapped status** | `GetTeachers` lọc theo `u.Status == status`, trong khi người dùng chọn `status = "inactive"` hoặc `"pending"`, nhưng CSDL lưu là `disabled` và `suspended`, khiến giáo viên bị lọc biến mất khỏi danh sách. | Áp dụng ánh xạ trạng thái giảng dạy: `inactive` → `disabled`, `pending` → `suspended` (hoặc `pending`), `active` → `active`. Tự động ánh xạ trước khi truy vấn SQL Server. | `Admin_GetTeachers_FilterByStatus_InactiveAndPending_CorrectlyFiltersMappedAccountStatuses` (PASS) |
+| **3** | `backend/src/StudyAI.Api/Controllers/AdminController.cs` | **P2** | **Settings concurrency race condition** | Hai yêu cầu PUT đồng thời cùng gửi version cũ có thể cùng đọc `latestLog` và cùng vượt qua bước kiểm tra trước khi ghi bản ghi mới vào CSDL. | Đặt logic đọc `latestLog`, kiểm tra token version và ghi bản ghi audit log mới vào bên trong `CreateExecutionStrategy()` kết hợp giao dịch `IsolationLevel.Serializable`. Lưu token version ban đầu chống EF Core retry làm sai lệch dữ liệu. | `Admin_UpdateSettings_ConcurrencyConflict_Returns409` & `Admin_UpdateSettings_StaleInitialVersion_WhenSettingsExist_Returns409` (PASS) |
+| **4** | `backend/src/StudyAI.Api/Controllers/AdminController.cs` | **P2** | **Announcement metadata preservation on update** | Khi cập nhật thông báo, payload thay thế bị mất trường `CreatedAt` (bị gán rỗng) và ghi đè `CreatedBy` bằng ID của người sửa thay vì giữ nguyên tác giả gốc, đồng thời không kiểm tra sự tồn tại của thông báo. | Kiểm tra sự tồn tại của thông báo (trả về 404 nếu không tìm thấy hoặc đã bị xóa). Đọc bản ghi hiện tại từ audit logs, giữ nguyên 100% giá trị `CreatedAt` và `CreatedBy` gốc, cập nhật `UpdatedAt = DateTimeOffset.UtcNow` và bọc trong giao dịch nguyên tử `Serializable`. | `Admin_UpdateAnnouncement_PreservesOriginalCreatedAtAndCreatedBy_AndReturns404ForDeleted` (PASS) |
+
+---
+
+## 16. Tổng Hợp Quality Gates Toàn Hệ Thống
+
+1. **Frontend Lint (`oxlint --deny-warnings`):**
+   - **0 errors, 0 warnings** trên toàn bộ 477 files.
+2. **TypeScript Compilation (`bunx tsc -b`):**
+   - **0 errors**, strict type-checking vượt qua tuyệt đối.
+3. **Frontend Vitest (`bun run test`):**
+   - **72 / 72 Test Files Passed (100%)**, **496 / 496 Tests Passed (100%)**.
+4. **Frontend Production Build (`bun run build`):**
+   - Đóng gói thành công toàn bộ bundle client trong **1.99s**.
+5. **Playwright E2E Verification (`bun run test:e2e:p00`):**
+   - **4 / 4 Scenarios Passed (100%)**, xuất 4 ảnh trực quan tại `docs/visual-qa/p00-remediation/`.
+6. **Backend Unit Tests (`StudyAI.UnitTests`):**
+   - **167 / 167 Tests Passed (100%)**.
+7. **Backend Integration Tests (`StudyAI.IntegrationTests`):**
+   - **187 / 187 Tests Passed (100%)** chạy trực tiếp trên cơ sở dữ liệu `StudyAIDb_E2E` dưới sự bảo vệ tuyệt đối của `DatabaseSafetyGuard`.
+8. **An Toàn Cơ Sở Dữ Liệu:**
+   - Bảo toàn tuyệt đối `StudyAIDb` production; 100% thao tác kiểm thử và ghi dữ liệu được cô lập trong `StudyAIDb_E2E`.
+
+

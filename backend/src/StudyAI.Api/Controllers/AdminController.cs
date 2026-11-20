@@ -189,7 +189,27 @@ public class AdminController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(status) && status != "all")
         {
-            query = query.Where(u => u.Status == status);
+            var raw = status.Trim().ToLowerInvariant();
+            if (raw == "inactive")
+            {
+                query = query.Where(u => u.Status == "disabled");
+            }
+            else if (raw == "pending")
+            {
+                query = query.Where(u => u.Status == "suspended" || u.Status == "pending");
+            }
+            else if (raw == "active")
+            {
+                query = query.Where(u => u.Status == "active");
+            }
+            else if (TryMapTeacherStatus(raw, out var mappedStatus))
+            {
+                query = query.Where(u => u.Status == mappedStatus);
+            }
+            else
+            {
+                query = query.Where(u => u.Status == status);
+            }
         }
 
         // Sorting
@@ -1005,7 +1025,27 @@ public class AdminController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(status) && status != "all")
         {
-            query = query.Where(u => u.Status == status);
+            var raw = status.Trim().ToLowerInvariant();
+            if (raw == "inactive")
+            {
+                query = query.Where(u => u.Status == "disabled");
+            }
+            else if (raw == "pending")
+            {
+                query = query.Where(u => u.Status == "suspended" || u.Status == "pending");
+            }
+            else if (raw == "active")
+            {
+                query = query.Where(u => u.Status == "active");
+            }
+            else if (TryMapTeacherStatus(raw, out var mappedStatus))
+            {
+                query = query.Where(u => u.Status == mappedStatus);
+            }
+            else
+            {
+                query = query.Where(u => u.Status == status);
+            }
         }
 
         var teachers = await query.OrderBy(u => u.DisplayName).ToListAsync();
@@ -1624,40 +1664,88 @@ public class AdminController : ControllerBase
     }
 
     [HttpPut("announcements/{id}")]
-    public async Task<IActionResult> UpdateAnnouncement(string id, [FromBody] SaveAnnouncementRequestDto req)
+    public async Task<IActionResult> UpdateAnnouncement(string id, [FromBody] SaveAnnouncementRequestDto req, CancellationToken cancellationToken = default)
     {
-        var updated = new AnnouncementDto
-        {
-            Id = id,
-            Title = req.Title?.Trim() ?? "Thông báo",
-            Content = req.Content?.Trim() ?? "",
-            Audience = req.Audience ?? "all",
-            TargetClassId = req.TargetClassId,
-            TargetClassName = req.TargetClassName,
-            Severity = req.Severity ?? "info",
-            Status = req.Status ?? "published",
-            UpdatedAt = DateTimeOffset.UtcNow.ToString("o"),
-            CreatedBy = CurrentUserId
-        };
+        var strategy = _db.Database.CreateExecutionStrategy();
+        IActionResult result = Ok();
 
-        _db.StaffAuditLogs.Add(new StaffAuditLog
+        await strategy.ExecuteAsync(async () =>
         {
-            Id = $"log_{Guid.NewGuid():N}",
-            ActorUserId = CurrentUserId,
-            Action = "announcement_updated",
-            TargetType = "announcement",
-            TargetId = id,
-            Payload = JsonSerializer.Serialize(updated),
-            CreatedAt = DateTimeOffset.UtcNow
+            await using var tx = await _db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, cancellationToken);
+
+            var logs = await _db.StaffAuditLogs
+                .Where(l => l.TargetType == "announcement" && l.TargetId == id)
+                .OrderByDescending(l => l.CreatedAt)
+                .ToListAsync(cancellationToken);
+
+            var latestLog = logs.FirstOrDefault();
+            if (latestLog == null || latestLog.Action == "announcement_deleted" || string.IsNullOrWhiteSpace(latestLog.Payload))
+            {
+                result = NotFound(new { detail = "Không tìm thấy thông báo." });
+                return;
+            }
+
+            AnnouncementDto? existing = null;
+            try
+            {
+                existing = JsonSerializer.Deserialize<AnnouncementDto>(latestLog.Payload, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch { }
+
+            if (existing == null || existing.Status == "deleted")
+            {
+                result = NotFound(new { detail = "Không tìm thấy thông báo." });
+                return;
+            }
+
+            var updated = new AnnouncementDto
+            {
+                Id = id,
+                Title = !string.IsNullOrWhiteSpace(req.Title) ? req.Title.Trim() : existing.Title,
+                Content = req.Content != null ? req.Content.Trim() : existing.Content,
+                Audience = !string.IsNullOrWhiteSpace(req.Audience) ? req.Audience : existing.Audience,
+                TargetClassId = req.TargetClassId ?? existing.TargetClassId,
+                TargetClassName = req.TargetClassName ?? existing.TargetClassName,
+                Severity = !string.IsNullOrWhiteSpace(req.Severity) ? req.Severity : existing.Severity,
+                Status = !string.IsNullOrWhiteSpace(req.Status) ? req.Status : existing.Status,
+                CreatedAt = string.IsNullOrWhiteSpace(existing.CreatedAt) ? DateTimeOffset.UtcNow.ToString("o") : existing.CreatedAt,
+                CreatedBy = string.IsNullOrWhiteSpace(existing.CreatedBy) ? CurrentUserId : existing.CreatedBy,
+                UpdatedAt = DateTimeOffset.UtcNow.ToString("o")
+            };
+
+            _db.StaffAuditLogs.Add(new StaffAuditLog
+            {
+                Id = $"log_{Guid.NewGuid():N}",
+                ActorUserId = CurrentUserId,
+                Action = "announcement_updated",
+                TargetType = "announcement",
+                TargetId = id,
+                Payload = JsonSerializer.Serialize(updated),
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+            await _db.SaveChangesAsync(cancellationToken);
+            await tx.CommitAsync(cancellationToken);
+
+            result = Ok(updated);
         });
-        await _db.SaveChangesAsync();
 
-        return Ok(updated);
+        return result;
     }
 
     [HttpDelete("announcements/{id}")]
-    public async Task<IActionResult> DeleteAnnouncement(string id)
+    public async Task<IActionResult> DeleteAnnouncement(string id, CancellationToken cancellationToken = default)
     {
+        var logs = await _db.StaffAuditLogs
+            .Where(l => l.TargetType == "announcement" && l.TargetId == id)
+            .OrderByDescending(l => l.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        var latestLog = logs.FirstOrDefault();
+        if (latestLog == null || latestLog.Action == "announcement_deleted")
+        {
+            return NotFound(new { detail = "Không tìm thấy thông báo." });
+        }
+
         _db.StaffAuditLogs.Add(new StaffAuditLog
         {
             Id = $"log_{Guid.NewGuid():N}",
@@ -1668,7 +1756,7 @@ public class AdminController : ControllerBase
             Payload = JsonSerializer.Serialize(new { Id = id }),
             CreatedAt = DateTimeOffset.UtcNow
         });
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
         return NoContent();
     }
@@ -1704,46 +1792,59 @@ public class AdminController : ControllerBase
     }
 
     [HttpPut("settings")]
-    public async Task<IActionResult> UpdateSettings([FromBody] OperationalSettingsDto req)
+    public async Task<IActionResult> UpdateSettings([FromBody] OperationalSettingsDto req, CancellationToken cancellationToken = default)
     {
-        var latestLog = await _db.StaffAuditLogs
-            .Where(l => l.TargetType == "system_settings" && l.Action == "system_settings_updated")
-            .OrderByDescending(l => l.CreatedAt)
-            .FirstOrDefaultAsync();
+        var incomingVersion = req.Version;
+        var strategy = _db.Database.CreateExecutionStrategy();
+        IActionResult result = Ok(req);
 
-        // Cơ chế chống ghi đè khi nhiều Admin cùng chỉnh sửa (Concurrency Token)
-        if (latestLog == null)
+        await strategy.ExecuteAsync(async () =>
         {
-            // Bản ghi đầu tiên trong hệ thống: chấp nhận "initial" hoặc rỗng
-        }
-        else
-        {
-            // Đã tồn tại cấu hình: bắt buộc req.Version phải khớp chính xác version hiện tại (latestLog.Id)
-            // Phiên bản "initial", null/rỗng hoặc bất kỳ version cũ nào đều bị từ chối 409 Conflict
-            if (string.IsNullOrWhiteSpace(req.Version) || req.Version != latestLog.Id)
+            await using var tx = await _db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, cancellationToken);
+
+            var latestLog = await _db.StaffAuditLogs
+                .Where(l => l.TargetType == "system_settings" && l.Action == "system_settings_updated")
+                .OrderByDescending(l => l.CreatedAt)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            // Cơ chế chống ghi đè khi nhiều Admin cùng chỉnh sửa (Concurrency Token)
+            if (latestLog == null)
             {
-                return Conflict(new { detail = "Cấu hình hệ thống đã được cập nhật bởi một phiên quản trị khác. Vui lòng tải lại trang để xem dữ liệu mới nhất trước khi chỉnh sửa." });
+                // Bản ghi đầu tiên trong hệ thống: chấp nhận "initial" hoặc rỗng
             }
-        }
+            else
+            {
+                // Đã tồn tại cấu hình: bắt buộc req.Version phải khớp chính xác version hiện tại (latestLog.Id)
+                // Phiên bản "initial", null/rỗng hoặc bất kỳ version cũ nào đều bị từ chối 409 Conflict
+                if (string.IsNullOrWhiteSpace(incomingVersion) || incomingVersion != latestLog.Id)
+                {
+                    result = Conflict(new { detail = "Cấu hình hệ thống đã được cập nhật bởi một phiên quản trị khác. Vui lòng tải lại trang để xem dữ liệu mới nhất trước khi chỉnh sửa." });
+                    return;
+                }
+            }
 
-        var newLogId = $"log_{Guid.NewGuid():N}";
-        req.UpdatedAt = DateTimeOffset.UtcNow.ToString("o");
-        req.UpdatedBy = CurrentUserId;
-        req.Version = newLogId;
+            var newLogId = $"log_{Guid.NewGuid():N}";
+            req.UpdatedAt = DateTimeOffset.UtcNow.ToString("o");
+            req.UpdatedBy = CurrentUserId;
+            req.Version = newLogId;
 
-        _db.StaffAuditLogs.Add(new StaffAuditLog
-        {
-            Id = newLogId,
-            ActorUserId = CurrentUserId,
-            Action = "system_settings_updated",
-            TargetType = "system_settings",
-            TargetId = "global",
-            Payload = JsonSerializer.Serialize(req),
-            CreatedAt = DateTimeOffset.UtcNow
+            _db.StaffAuditLogs.Add(new StaffAuditLog
+            {
+                Id = newLogId,
+                ActorUserId = CurrentUserId,
+                Action = "system_settings_updated",
+                TargetType = "system_settings",
+                TargetId = "global",
+                Payload = JsonSerializer.Serialize(req),
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+            await _db.SaveChangesAsync(cancellationToken);
+            await tx.CommitAsync(cancellationToken);
+
+            result = Ok(req);
         });
-        await _db.SaveChangesAsync();
 
-        return Ok(req);
+        return result;
     }
 
     [HttpGet("roles")]

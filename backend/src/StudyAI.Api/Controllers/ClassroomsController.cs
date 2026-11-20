@@ -710,23 +710,39 @@ public class ClassroomsController : ControllerBase
             return Forbid();
         }
 
-        if (classroom.Students.Count > 0)
-        {
-            return BadRequest(new { message = $"Không thể xóa lớp đang có {classroom.Students.Count} học viên. Vui lòng chuyển hoặc xóa học viên trước." });
-        }
+        var strategy = _db.Database.CreateExecutionStrategy();
+        IActionResult result = NoContent();
 
-        if (classroom.Assignments.Count > 0)
+        await strategy.ExecuteAsync(async () =>
         {
-            classroom.Status = "archived";
-            classroom.UpdatedAt = DateTimeOffset.UtcNow;
+            await using var transaction = await _db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, cancellationToken);
+
+            // Kiểm tra nguyên tử (atomic check) học sinh và bài tập để chống race condition cascade delete
+            var studentCount = await _db.ClassroomStudents.CountAsync(cs => cs.ClassroomId == id, cancellationToken);
+            if (studentCount > 0)
+            {
+                result = BadRequest(new { message = $"Không thể xóa lớp đang có {studentCount} học viên. Vui lòng chuyển hoặc xóa học viên trước." });
+                return;
+            }
+
+            var assignmentCount = await _db.Assignments.CountAsync(a => a.ClassroomId == id, cancellationToken);
+            if (assignmentCount > 0)
+            {
+                classroom.Status = "archived";
+                classroom.UpdatedAt = DateTimeOffset.UtcNow;
+                await _db.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+                result = Ok(new { message = "Lớp học đã có bài tập nên được chuyển sang trạng thái lưu trữ", archived = true });
+                return;
+            }
+
+            _db.Classrooms.Remove(classroom);
             await _db.SaveChangesAsync(cancellationToken);
-            return Ok(new { message = "Lớp học đã có bài tập nên được chuyển sang trạng thái lưu trữ", archived = true });
-        }
+            await transaction.CommitAsync(cancellationToken);
+            result = NoContent();
+        });
 
-        _db.Classrooms.Remove(classroom);
-        await _db.SaveChangesAsync(cancellationToken);
-
-        return NoContent();
+        return result;
     }
 }
 

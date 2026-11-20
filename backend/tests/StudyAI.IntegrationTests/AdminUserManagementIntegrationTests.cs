@@ -1622,4 +1622,155 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
         Assert.Equal(0, detail.LearningProgress!.StreakDays);
         Assert.Empty(detail.LearningProgress.RecentSubjects);
     }
+
+    [Fact]
+    public async Task Admin_GetTeachers_FilterByStatus_InactiveAndPending_CorrectlyFiltersMappedAccountStatuses()
+    {
+        var adminToken = await GetAdminTokenAsync();
+
+        // 1. Create a teacher with inactive status (mapped to disabled in Users table)
+        var emailInactive = $"teacher.filter.inact.{Guid.NewGuid():N}@studyai.test";
+        var createInactiveReq = new SaveTeacherRequestDto
+        {
+            Name = "Thầy Inactive Test",
+            Email = emailInactive,
+            Subject = "Toán 12",
+            Status = "inactive"
+        };
+        var httpCreateInactive = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/teachers")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(createInactiveReq), Encoding.UTF8, "application/json")
+        };
+        httpCreateInactive.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var respCreateInactive = await _client.SendAsync(httpCreateInactive);
+        Assert.Equal(HttpStatusCode.Created, respCreateInactive.StatusCode);
+        var teacherInactive = JsonSerializer.Deserialize<AdminTeacherDto>(await respCreateInactive.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        // 2. Create a teacher with pending status (mapped to suspended in Users table)
+        var emailPending = $"teacher.filter.pend.{Guid.NewGuid():N}@studyai.test";
+        var createPendingReq = new SaveTeacherRequestDto
+        {
+            Name = "Thầy Pending Test",
+            Email = emailPending,
+            Subject = "Toán 12",
+            Status = "pending"
+        };
+        var httpCreatePending = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/teachers")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(createPendingReq), Encoding.UTF8, "application/json")
+        };
+        httpCreatePending.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var respCreatePending = await _client.SendAsync(httpCreatePending);
+        Assert.Equal(HttpStatusCode.Created, respCreatePending.StatusCode);
+        var teacherPending = JsonSerializer.Deserialize<AdminTeacherDto>(await respCreatePending.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        // 3. Filter by status=inactive
+        var reqFilterInactive = new HttpRequestMessage(HttpMethod.Get, "/api/v1/admin/teachers?status=inactive");
+        reqFilterInactive.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var respFilterInactive = await _client.SendAsync(reqFilterInactive);
+        Assert.Equal(HttpStatusCode.OK, respFilterInactive.StatusCode);
+        var listInactive = JsonSerializer.Deserialize<List<AdminTeacherDto>>(await respFilterInactive.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        Assert.Contains(listInactive, t => t.Id == teacherInactive.Id);
+        Assert.DoesNotContain(listInactive, t => t.Id == teacherPending.Id);
+
+        // 4. Filter by status=pending
+        var reqFilterPending = new HttpRequestMessage(HttpMethod.Get, "/api/v1/admin/teachers?status=pending");
+        reqFilterPending.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var respFilterPending = await _client.SendAsync(reqFilterPending);
+        Assert.Equal(HttpStatusCode.OK, respFilterPending.StatusCode);
+        var listPending = JsonSerializer.Deserialize<List<AdminTeacherDto>>(await respFilterPending.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        Assert.Contains(listPending, t => t.Id == teacherPending.Id);
+        Assert.DoesNotContain(listPending, t => t.Id == teacherInactive.Id);
+
+        // 5. Filter by status=active
+        var reqFilterActive = new HttpRequestMessage(HttpMethod.Get, "/api/v1/admin/teachers?status=active");
+        reqFilterActive.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var respFilterActive = await _client.SendAsync(reqFilterActive);
+        Assert.Equal(HttpStatusCode.OK, respFilterActive.StatusCode);
+        var listActive = JsonSerializer.Deserialize<List<AdminTeacherDto>>(await respFilterActive.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        Assert.DoesNotContain(listActive, t => t.Id == teacherInactive.Id);
+        Assert.DoesNotContain(listActive, t => t.Id == teacherPending.Id);
+    }
+
+    [Fact]
+    public async Task Admin_UpdateAnnouncement_PreservesOriginalCreatedAtAndCreatedBy_AndReturns404ForDeleted()
+    {
+        var adminToken = await GetAdminTokenAsync();
+
+        // 1. Admin creates announcement
+        var createReq = new SaveAnnouncementRequestDto
+        {
+            Title = "Thông báo ban đầu kiểm thử metadata",
+            Content = "Nội dung ban đầu của thông báo hệ thống.",
+            Audience = "all",
+            Severity = "info",
+            Status = "published"
+        };
+        var postHttp = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/announcements")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(createReq), Encoding.UTF8, "application/json")
+        };
+        postHttp.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var postResp = await _client.SendAsync(postHttp);
+        Assert.Equal(HttpStatusCode.Created, postResp.StatusCode);
+        var created = JsonSerializer.Deserialize<AnnouncementDto>(await postResp.Content.ReadAsStringAsync(), JsonOpts)!;
+        Assert.False(string.IsNullOrWhiteSpace(created.CreatedAt));
+        Assert.False(string.IsNullOrWhiteSpace(created.CreatedBy));
+
+        var originalCreatedAt = created.CreatedAt;
+        var originalCreatedBy = created.CreatedBy;
+
+        // 2. Admin updates the announcement
+        var updateReq = new SaveAnnouncementRequestDto
+        {
+            Title = "Thông báo đã sửa tiêu đề",
+            Content = "Nội dung cập nhật mới hơn.",
+            Audience = "teacher",
+            Severity = "warning",
+            Status = "published"
+        };
+        var putHttp = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/admin/announcements/{created.Id}")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(updateReq), Encoding.UTF8, "application/json")
+        };
+        putHttp.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var putResp = await _client.SendAsync(putHttp);
+        Assert.Equal(HttpStatusCode.OK, putResp.StatusCode);
+        var updated = JsonSerializer.Deserialize<AnnouncementDto>(await putResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        // Verify CreatedAt and CreatedBy are preserved, UpdatedAt is set
+        Assert.Equal(originalCreatedAt, updated.CreatedAt);
+        Assert.Equal(originalCreatedBy, updated.CreatedBy);
+        Assert.Equal("Thông báo đã sửa tiêu đề", updated.Title);
+        Assert.Equal("teacher", updated.Audience);
+        Assert.False(string.IsNullOrWhiteSpace(updated.UpdatedAt));
+
+        // 3. Update non-existent announcement returns 404
+        var fakeId = $"anc_{Guid.NewGuid():N}";
+        var putFakeHttp = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/admin/announcements/{fakeId}")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(updateReq), Encoding.UTF8, "application/json")
+        };
+        putFakeHttp.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var putFakeResp = await _client.SendAsync(putFakeHttp);
+        Assert.Equal(HttpStatusCode.NotFound, putFakeResp.StatusCode);
+
+        // 4. Delete the announcement
+        var delHttp = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/admin/announcements/{created.Id}");
+        delHttp.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var delResp = await _client.SendAsync(delHttp);
+        Assert.Equal(HttpStatusCode.NoContent, delResp.StatusCode);
+
+        // 5. Update on deleted announcement returns 404
+        var putDeletedHttp = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/admin/announcements/{created.Id}")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(updateReq), Encoding.UTF8, "application/json")
+        };
+        putDeletedHttp.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var putDeletedResp = await _client.SendAsync(putDeletedHttp);
+        Assert.Equal(HttpStatusCode.NotFound, putDeletedResp.StatusCode);
+    }
 }
