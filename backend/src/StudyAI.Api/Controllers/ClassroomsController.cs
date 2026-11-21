@@ -744,5 +744,82 @@ public class ClassroomsController : ControllerBase
 
         return result;
     }
+
+    [HttpGet("{id}/activities")]
+    public async Task<IActionResult> GetClassActivities(string id, CancellationToken cancellationToken)
+    {
+        var classroom = await _db.Classrooms.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+        if (classroom == null)
+            return NotFound(new { message = "Không tìm thấy lớp học." });
+
+        if (!IsAdmin && classroom.TeacherId != CurrentUserId)
+        {
+            var isStudent = await _db.ClassroomStudents.AnyAsync(cs => cs.ClassroomId == id && cs.StudentId == CurrentUserId, cancellationToken);
+            if (!isStudent) return Forbid();
+        }
+
+        var logs = await _db.StaffAuditLogs
+            .AsNoTracking()
+            .Where(a => a.TargetId == id || (a.TargetType == "classroom" && a.TargetId == id))
+            .OrderByDescending(a => a.CreatedAt)
+            .Take(50)
+            .ToListAsync(cancellationToken);
+
+        var userIds = logs.Select(l => l.ActorUserId).Distinct().ToList();
+        var actors = await _db.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.DisplayName, cancellationToken);
+
+        var activities = logs.Select(l => new
+        {
+            id = l.Id,
+            classId = id,
+            action = l.Action,
+            detail = l.Payload ?? "",
+            timestamp = l.CreatedAt.ToString("o"),
+            actor = actors.TryGetValue(l.ActorUserId, out var name) ? name : "Giáo viên"
+        }).ToList();
+
+        return Ok(activities);
+    }
+
+    [HttpPost("{id}/activities")]
+    [Authorize(Roles = "teacher,admin")]
+    public async Task<IActionResult> AddClassActivity(string id, [FromBody] System.Text.Json.Nodes.JsonObject payload, CancellationToken cancellationToken)
+    {
+        var classroom = await _db.Classrooms.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+        if (classroom == null)
+            return NotFound(new { message = "Không tìm thấy lớp học." });
+
+        if (!IsAdmin && classroom.TeacherId != CurrentUserId)
+            return Forbid();
+
+        var action = payload["action"]?.ToString() ?? "class_activity";
+        var detail = payload["detail"]?.ToString() ?? "";
+
+        var log = new StaffAuditLog
+        {
+            Id = $"log_act_{Guid.NewGuid():N}",
+            ActorUserId = CurrentUserId,
+            Action = action,
+            TargetType = "classroom",
+            TargetId = id,
+            Payload = detail,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        _db.StaffAuditLogs.Add(log);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        var actor = await _db.Users.FindAsync(new object[] { CurrentUserId }, cancellationToken);
+
+        return Ok(new
+        {
+            id = log.Id,
+            classId = id,
+            action = log.Action,
+            detail = log.Payload,
+            timestamp = log.CreatedAt.ToString("o"),
+            actor = actor?.DisplayName ?? "Giáo viên"
+        });
+    }
 }
 

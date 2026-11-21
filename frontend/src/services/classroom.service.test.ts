@@ -75,5 +75,43 @@ describe('classroomService — Fail-Closed Authenticated Policy', () => {
     expect(classes.length).toBeGreaterThan(0)
     expect(classes[0].id).toBe('cls-12a1')
   })
+
+  it('when authenticated: getAlerts calls /api/v1/teacher/alerts and fails closed on error', async () => {
+    vi.spyOn(authSession, 'getAccessToken').mockReturnValue('mock-jwt-token')
+    vi.mocked(apiClient.get).mockRejectedValue(new Error('Server Error 500'))
+
+    await expect(classroomService.getAlerts()).rejects.toThrow('Server Error 500')
+    expect(apiClient.get).toHaveBeenCalledWith('/api/v1/teacher/alerts')
+  })
+
+  it('when authenticated: getClassActivities calls /api/v1/classrooms/{id}/activities', async () => {
+    vi.spyOn(authSession, 'getAccessToken').mockReturnValue('mock-jwt-token')
+    vi.mocked(apiClient.get).mockResolvedValue([
+      { id: 'act-1', classId: 'cls-101', action: 'test', detail: 'test activity', timestamp: '2026-11-21', actor: 'Teacher' },
+    ])
+
+    const res = await classroomService.getClassActivities('cls-101')
+    expect(res).toHaveLength(1)
+    expect(res[0].id).toBe('act-1')
+    expect(apiClient.get).toHaveBeenCalledWith('/api/v1/classrooms/cls-101/activities')
+  })
+
+  it('when authenticated: getStudentAcademicDetail calls /api/v1/teacher/students/{id}/academic-detail', async () => {
+    vi.spyOn(authSession, 'getAccessToken').mockReturnValue('mock-jwt-token')
+    vi.mocked(apiClient.get).mockResolvedValue({
+      student: { id: 'stu-1', name: 'Nguyen Van A', email: 'a@test.com', grade: '10', className: '10A1' },
+      overallProgress: 75,
+      averageAssessmentScore: 80,
+      recentLessons: [],
+      assessmentAttempts: [],
+      weakAreas: [],
+    })
+
+    const detail = await classroomService.getStudentAcademicDetail('stu-1')
+    expect(detail).not.toBeNull()
+    expect(detail!.name).toBe('Nguyen Van A')
+    expect(detail!.recentLessons).toEqual([])
+    expect(apiClient.get).toHaveBeenCalledWith('/api/v1/teacher/students/stu-1/academic-detail')
+  })
 })
 

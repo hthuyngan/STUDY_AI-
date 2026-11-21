@@ -562,7 +562,7 @@ export const classroomService = {
           id: c.id,
           code: c.code || c.id,
           name: c.name,
-          grade: c.grade || 'Lớp 12',
+          grade: c.grade || 'Chưa phân khối',
           homeroomTeacherId: c.teacherId,
           homeroomTeacherName: c.teacherName || 'Giáo viên',
           room: c.room || 'P.101',
@@ -591,7 +591,7 @@ export const classroomService = {
           id: c.id,
           code: c.code || c.id,
           name: c.name,
-          grade: c.grade || 'Lớp 12',
+          grade: c.grade || 'Chưa phân khối',
           homeroomTeacherId: c.teacherId,
           homeroomTeacherName: c.teacherName || 'Giáo viên',
           room: c.room || 'P.101',
@@ -1235,10 +1235,21 @@ export const classroomService = {
 
   // ==================== ALERTS ====================
   async getAlerts(): Promise<AdminLearningAlert[]> {
+    if (getAccessToken()) {
+      const res = await apiClient.get<AdminLearningAlert[]>('/api/v1/teacher/alerts')
+      return res || []
+    }
     return loadFromStorage<AdminLearningAlert[]>(STORAGE_KEYS.ALERTS, INITIAL_ALERTS)
   },
 
   async updateAlertStatus(alertId: string, status: AlertStatus, resolutionNote?: string): Promise<AdminLearningAlert> {
+    if (getAccessToken()) {
+      const res = await apiClient.put<AdminLearningAlert>(`/api/v1/teacher/alerts/${alertId}`, {
+        status,
+        resolutionNote: resolutionNote ?? 'Đã xử lý',
+      })
+      if (res) return res
+    }
     const alerts = await this.getAlerts()
     const idx = alerts.findIndex((a) => a.id === alertId)
     if (idx === -1) throw new Error('Không tìm thấy cảnh báo')
@@ -1253,6 +1264,10 @@ export const classroomService = {
   },
 
   async resolveAllAlerts(): Promise<void> {
+    if (getAccessToken()) {
+      await apiClient.post('/api/v1/teacher/alerts/resolve-all')
+      return
+    }
     const alerts = await this.getAlerts()
     const resolved = alerts.map((a) => ({
       ...a,
@@ -1264,11 +1279,19 @@ export const classroomService = {
 
   // ==================== ACTIVITIES ====================
   async getClassActivities(classId: string): Promise<ClassActivityItem[]> {
+    if (getAccessToken()) {
+      const res = await apiClient.get<ClassActivityItem[]>(`/api/v1/classrooms/${classId}/activities`)
+      return res || []
+    }
     const all = loadFromStorage<ClassActivityItem[]>(STORAGE_KEYS.ACTIVITIES, INITIAL_ACTIVITIES)
     return all.filter((a) => a.classId === classId)
   },
 
   async addClassActivity(classId: string, action: string, detail: string, actor: string = 'Quản trị viên'): Promise<void> {
+    if (getAccessToken()) {
+      await apiClient.post(`/api/v1/classrooms/${classId}/activities`, { action, detail, actor })
+      return
+    }
     const all = loadFromStorage<ClassActivityItem[]>(STORAGE_KEYS.ACTIVITIES, INITIAL_ACTIVITIES)
     const newAct: ClassActivityItem = {
       id: `act-${Date.now()}`,
@@ -1328,6 +1351,25 @@ export const classroomService = {
   },
 
   async getStudentAcademicDetail(studentId: string): Promise<StudentAcademicDetail | null> {
+    if (getAccessToken()) {
+      const res = await apiClient.get<any>(`/api/v1/teacher/students/${studentId}/academic-detail`)
+      if (res && res.student) {
+        return {
+          id: res.student.id,
+          name: res.student.name,
+          email: res.student.email,
+          grade: res.student.grade || 'Chưa phân khối',
+          className: res.student.className,
+          totalLearningMinutes: 0,
+          overallProgress: res.overallProgress || 0,
+          averageAssessmentScore: res.averageAssessmentScore || 0,
+          recentLessons: res.recentLessons || [],
+          assessmentAttempts: res.assessmentAttempts || [],
+          weakAreas: res.weakAreas || [],
+        }
+      }
+    }
+
     const student = await this.getStudentById(studentId)
     if (!student) return null
     return {
@@ -1339,30 +1381,9 @@ export const classroomService = {
       totalLearningMinutes: student.totalLearningMinutes,
       overallProgress: student.progress,
       averageAssessmentScore: student.averageScore * 10,
-      recentLessons: [
-        {
-          id: 'les-01',
-          title: 'Sự đồng biến, nghịch biến của hàm số',
-          progress: 90,
-          lastActive: student.lastActive,
-        },
-        {
-          id: 'les-02',
-          title: 'Cực trị của hàm số',
-          progress: 75,
-          lastActive: '2026-10-25T14:00:00Z',
-        },
-      ],
-      assessmentAttempts: [
-        {
-          id: 'att-1',
-          title: 'Thu hoạch: Khảo sát tính đơn điệu hàm số',
-          score: student.averageScore * 10,
-          passed: student.averageScore >= 5.0,
-          date: student.lastActive,
-        },
-      ],
-      weakAreas: student.weakAreas || ['Đang cập nhật'],
+      recentLessons: [],
+      assessmentAttempts: [],
+      weakAreas: student.weakAreas || [],
     }
   },
 
