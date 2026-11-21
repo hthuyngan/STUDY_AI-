@@ -5,7 +5,6 @@
 
 import { apiClient } from '@/lib/apiClient'
 import { getAuthUser } from '@/auth/authSession'
-import { mockLearningPath } from '@/data/learningPath.mock'
 import { mockSubjectDetails, mockSubjectsSummary } from '@/data/subjects.mock'
 import { resolveSubjectId } from '@/lib/subjectResolver'
 import { learningProgressRepository } from '@/repositories/learningProgress.repository'
@@ -111,7 +110,16 @@ export async function getLearningPath(): Promise<LearningPathData> {
       throw new Error('Không thể tải dữ liệu lộ trình học tập từ máy chủ. Vui lòng thử lại.')
     }
   }
-  return { ...mockLearningPath }
+
+  return {
+    goalTitle: 'Lộ trình chuẩn GDPT 2018',
+    targetExam: 'Kỳ thi Tốt nghiệp THPT',
+    daysRemaining: 0,
+    overallProgress: 0,
+    currentStreak: 0,
+    stages: [],
+    aiSuggestion: null as unknown as AISuggestion,
+  }
 }
 
 /**

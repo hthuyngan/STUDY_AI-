@@ -26,6 +26,8 @@ public class ContentController : ControllerBase
 
     private bool IsAdminOrContentAdmin => User.IsInRole("admin") || User.IsInRole("content_admin");
 
+    private bool IsContentStaffOrAdmin => IsAdminOrContentAdmin || User.IsInRole("content");
+
     private bool IsAuthorizedReviewer =>
         !User.HasClaim("reviewer", "false") &&
         (User.IsInRole("content") ||
@@ -37,9 +39,25 @@ public class ContentController : ControllerBase
 
     private bool CanManageContent(string? authorId)
     {
-        if (IsAdminOrContentAdmin) return true;
+        if (IsContentStaffOrAdmin) return true;
         if (string.IsNullOrEmpty(CurrentUserId)) return false;
         return !string.IsNullOrEmpty(authorId) && authorId == CurrentUserId;
+    }
+
+    private async Task<bool> IsFourEyesRestrictedAsync(string? authorId)
+    {
+        if (string.IsNullOrEmpty(authorId)) return false;
+        if (CurrentUserId != authorId) return false;
+        if (IsAdminOrContentAdmin) return false;
+
+        if (User.IsInRole("author") || User.IsInRole("content_creator") || User.HasClaim("reviewer", "false"))
+            return true;
+
+        var authorUser = await _db.Users.FindAsync(authorId);
+        if (authorUser != null && (authorUser.Role == "author" || authorUser.Role == "content_creator"))
+            return true;
+
+        return false;
     }
 
     private async Task<ContentRevision> CreateLessonRevisionAsync(ContentLesson les, string reason, string? sourceRevisionId = null)
@@ -1617,7 +1635,7 @@ public class ContentController : ControllerBase
         if (les == null)
             return NotFound(new { detail = "Bài học không tồn tại." });
 
-        if (!IsAdminOrContentAdmin && les.AuthorId == CurrentUserId)
+        if (await IsFourEyesRestrictedAsync(les.AuthorId))
         {
             return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Quy tắc kiểm duyệt độc lập (four-eyes): Người biên soạn không được tự phê duyệt bài học của chính mình." });
         }
@@ -1704,7 +1722,7 @@ public class ContentController : ControllerBase
         if (les == null)
             return NotFound(new { detail = "Bài học không tồn tại." });
 
-        if (!IsAdminOrContentAdmin && les.AuthorId == CurrentUserId)
+        if (await IsFourEyesRestrictedAsync(les.AuthorId))
         {
             return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Quy tắc kiểm duyệt độc lập (four-eyes): Người biên soạn không thể tự từ chối bài học của chính mình." });
         }
@@ -2303,7 +2321,7 @@ public class ContentController : ControllerBase
             ? req.Code.Trim()
             : $"Q-{DateTime.UtcNow:yyMMdd}-{Guid.NewGuid():N}"[..16].ToUpperInvariant();
 
-        var defaultStatus = IsAdminOrContentAdmin
+        var defaultStatus = IsContentStaffOrAdmin
             ? (string.IsNullOrWhiteSpace(req.Status) ? "published" : req.Status)
             : "draft";
 
@@ -2327,7 +2345,7 @@ public class ContentController : ControllerBase
             ImageUrl = req.ImageUrl,
             MetadataJson = req.MetadataJson,
             AuthorId = CurrentUserId,
-            ReviewedBy = IsAdminOrContentAdmin && defaultStatus == "published" ? CurrentUserId : null,
+            ReviewedBy = IsContentStaffOrAdmin && defaultStatus == "published" ? CurrentUserId : null,
             SourceType = string.IsNullOrWhiteSpace(req.SourceType) ? "manual" : req.SourceType,
             SourceBatchId = req.SourceBatchId,
             SourceUrl = req.SourceUrl,
@@ -2566,11 +2584,11 @@ public class ContentController : ControllerBase
     [HttpPost("questions/{questionId}/approve")]
     public async Task<IActionResult> ApproveQuestion(string questionId)
     {
-        if (!IsAuthorizedReviewer)
+        if (!User.IsInRole("content") && !User.IsInRole("content_admin") && !User.HasClaim("permission", "content.approve"))
         {
             return StatusCode(StatusCodes.Status403Forbidden, new
             {
-                detail = "Chỉ Người kiểm duyệt nội dung (Content) hoặc Quản trị viên mới có quyền phê duyệt câu hỏi."
+                detail = "QUYỀN PHÊ DUYỆT: Role 'content' là người có thẩm quyền phê duyệt nội dung giáo dục cuối cùng. Admin hoặc vai trò khác không được phép phê duyệt câu hỏi."
             });
         }
 
@@ -2584,7 +2602,7 @@ public class ContentController : ControllerBase
         if (question == null)
             return NotFound(new { detail = "Câu hỏi không tồn tại." });
 
-        if (!IsAdminOrContentAdmin && question.AuthorId == CurrentUserId)
+        if (await IsFourEyesRestrictedAsync(question.AuthorId))
         {
             return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Quy tắc kiểm duyệt độc lập (four-eyes): Người biên soạn không được tự phê duyệt câu hỏi của chính mình." });
         }
@@ -2612,11 +2630,11 @@ public class ContentController : ControllerBase
     [HttpPost("questions/{questionId}/reject")]
     public async Task<IActionResult> RejectQuestion(string questionId, [FromBody] RejectQuestionRequestDto? body = null)
     {
-        if (!IsAuthorizedReviewer)
+        if (!User.IsInRole("content") && !User.IsInRole("content_admin") && !User.HasClaim("permission", "content.approve"))
         {
             return StatusCode(StatusCodes.Status403Forbidden, new
             {
-                detail = "Chỉ Người kiểm duyệt nội dung (Content) hoặc Quản trị viên mới có quyền từ chối câu hỏi."
+                detail = "QUYỀN PHÊ DUYỆT: Role 'content' là người có thẩm quyền từ chối nội dung giáo dục cuối cùng."
             });
         }
 
@@ -2630,7 +2648,7 @@ public class ContentController : ControllerBase
         if (question == null)
             return NotFound(new { detail = "Câu hỏi không tồn tại." });
 
-        if (!IsAdminOrContentAdmin && question.AuthorId == CurrentUserId)
+        if (await IsFourEyesRestrictedAsync(question.AuthorId))
         {
             return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Quy tắc kiểm duyệt độc lập (four-eyes): Người biên soạn không thể tự từ chối câu hỏi của chính mình." });
         }
@@ -2662,11 +2680,11 @@ public class ContentController : ControllerBase
     [HttpPost("questions/{questionId}/publish")]
     public async Task<IActionResult> PublishQuestion(string questionId)
     {
-        if (!IsAuthorizedReviewer)
+        if (!User.IsInRole("content") && !User.IsInRole("content_admin") && !User.HasClaim("permission", "content.publish"))
         {
             return StatusCode(StatusCodes.Status403Forbidden, new
             {
-                detail = "Chỉ Người kiểm duyệt nội dung (Content) hoặc Quản trị viên mới có quyền xuất bản câu hỏi."
+                detail = "QUYỀN PHÊ DUYỆT: Role 'content' là người có thẩm quyền xuất bản nội dung giáo dục cuối cùng."
             });
         }
 
@@ -2680,7 +2698,7 @@ public class ContentController : ControllerBase
         if (question == null)
             return NotFound(new { detail = "Câu hỏi không tồn tại." });
 
-        if (!IsAdminOrContentAdmin && question.AuthorId == CurrentUserId)
+        if (await IsFourEyesRestrictedAsync(question.AuthorId))
         {
             return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Quy tắc kiểm duyệt độc lập (four-eyes): Người biên soạn không được tự xuất bản câu hỏi của chính mình." });
         }
@@ -2708,11 +2726,11 @@ public class ContentController : ControllerBase
     [HttpPost("questions/{questionId}/unpublish")]
     public async Task<IActionResult> UnpublishQuestion(string questionId)
     {
-        if (!IsAuthorizedReviewer)
+        if (!User.IsInRole("content") && !User.IsInRole("content_admin") && !User.HasClaim("permission", "content.publish"))
         {
             return StatusCode(StatusCodes.Status403Forbidden, new
             {
-                detail = "Chỉ Người kiểm duyệt nội dung (Content) hoặc Quản trị viên mới có quyền gỡ xuất bản câu hỏi."
+                detail = "QUYỀN PHÊ DUYỆT: Role 'content' là người có thẩm quyền gỡ xuất bản nội dung giáo dục."
             });
         }
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { aiTutorService, LEGACY_AI_CONVERSATIONS_KEY } from './aiTutor.service'
+import { aiTutorService } from './aiTutor.service'
 import type { TutorLearningContext } from '@/types/aiTutor'
 
 describe('aiTutorService', () => {
@@ -8,15 +8,9 @@ describe('aiTutorService', () => {
     sessionStorage.clear()
   })
 
-  it('loads default conversations and persists them to localStorage', async () => {
+  it('starts with empty conversation list when unauthenticated and unseeded', async () => {
     const list = await aiTutorService.getConversations()
-    expect(list.length).toBeGreaterThan(0)
-    expect(list[0].id).toBeDefined()
-    expect(list[0].messages.length).toBeGreaterThan(0)
-
-    // Check localStorage was written
-    const stored = localStorage.getItem(LEGACY_AI_CONVERSATIONS_KEY)
-    expect(stored).not.toBeNull()
+    expect(list.length).toBe(0)
   })
 
   it('creates and persists a new contextual conversation', async () => {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo, useContext } from 'react'
 import {
   Search,
   CheckCircle2,
@@ -6,6 +6,7 @@ import {
   RotateCcw,
 } from 'lucide-react'
 import { operationsService } from '@/services/operations.service'
+import { AuthContext } from '@/auth/AuthContext'
 import type {
   ApprovalContentType,
   PublicationRecord,
@@ -16,6 +17,8 @@ import './AdminPages.css'
 import '@/components/admin/AdminComponents.css'
 
 export const AdminPublicationsPage: React.FC = () => {
+  const auth = useContext(AuthContext)
+  const user = auth?.user
   const [publications, setPublications] = useState<PublicationRecord[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -90,7 +93,7 @@ export const AdminPublicationsPage: React.FC = () => {
 
     if (window.confirm(`Xác nhận khôi phục bài học "${pub.title}" từ ${pub.version} về ${targetVersion}? Hành động này sẽ được ghi vào nhật ký kiểm toán.`)) {
       try {
-        await operationsService.rollbackPublication(pub.id, targetVersion, 'Demo Admin')
+        await operationsService.rollbackPublication(pub.id, targetVersion, user?.displayName || 'Quản trị viên')
         showToast(`Đã khôi phục "${pub.title}" về phiên bản ${targetVersion}`)
         loadData()
       } catch (err: unknown) {

@@ -4,15 +4,30 @@ import type {
   TeacherAssignmentItem,
   TeacherClassItem,
 } from '@/types/teacher'
-import {
-  INITIAL_STUDENT_ACADEMIC_DETAIL,
-  INITIAL_TEACHER_DASHBOARD,
-  type TeacherAttentionStudent,
-  type TeacherRecentSubmission,
-} from '@/data/staff/teacher.mock'
 import { classroomService } from '@/services/classroom.service'
 
-export type { TeacherRecentSubmission, TeacherAttentionStudent }
+export interface TeacherRecentSubmission {
+  id: string
+  studentName: string
+  studentAvatar?: string
+  assignmentTitle: string
+  className: string
+  submittedAt: string
+  score?: number
+  maxScore: number
+  status: 'submitted' | 'graded' | 'late'
+}
+
+export interface TeacherAttentionStudent {
+  id: string
+  name: string
+  avatar?: string
+  className: string
+  reason: string
+  metricLabel: string
+  metricValue: string
+  urgency: 'high' | 'medium' | 'low'
+}
 
 export const teacherService = {
   async getDashboardSummary(): Promise<{
@@ -29,11 +44,12 @@ export const teacherService = {
     const alerts = await classroomService.getAlerts()
 
     return {
-      ...INITIAL_TEACHER_DASHBOARD,
       classesCount: classes.length,
       studentsCount: students.length,
       activeAssignmentsCount: assignments.filter((a) => a.status === 'active').length,
       studentsNeedingAttentionCount: alerts.filter((a) => a.status !== 'resolved').length,
+      recentSubmissions: [],
+      attentionStudents: [],
     }
   },
 
@@ -52,12 +68,7 @@ export const teacherService = {
   },
 
   async getStudentAcademicDetail(studentId: string): Promise<StudentAcademicDetail | null> {
-    const detail = await classroomService.getStudentAcademicDetail(studentId)
-    if (detail) return detail
-    return {
-      ...INITIAL_STUDENT_ACADEMIC_DETAIL,
-      id: studentId,
-    }
+    return classroomService.getStudentAcademicDetail(studentId)
   },
 
   async getAssignments(): Promise<TeacherAssignmentItem[]> {

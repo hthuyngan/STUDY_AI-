@@ -7,6 +7,8 @@ import type {
   QuestionItem,
 } from '@/types/questionBank'
 
+declare const process: { env?: { NODE_ENV?: string } } | undefined
+
 const QUESTION_BANK_STORAGE_KEY = 'study_ai_question_bank_v1'
 
 export interface IQuestionBankRepository {

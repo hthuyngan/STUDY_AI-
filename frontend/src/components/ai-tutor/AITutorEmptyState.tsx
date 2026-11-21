@@ -1,6 +1,6 @@
 import { Sparkles } from 'lucide-react'
 import type { SuggestedPrompt } from '../../types/aiTutor'
-import { SUGGESTED_PROMPTS } from '../../data/aiTutor.mock'
+import { SUGGESTED_PROMPTS } from '../../config/aiTutorOptions'
 
 interface AITutorEmptyStateProps {
   onSelectPrompt: (prompt: string, subject?: string) => void

@@ -1,10 +1,6 @@
 import { apiClient } from '@/lib/apiClient'
 import { getAuthUser } from '@/auth/authSession'
 import { getStorageKey } from '@/repositories/storageKeys'
-import {
-  mockLibraryItems,
-  mockUserSettings,
-} from '@/data/supporting.mock'
 import type {
   AchievementItem,
   ExerciseItem,
@@ -12,6 +8,15 @@ import type {
   UserProfileData,
   UserSettingsData,
 } from '@/types/supporting'
+
+const DEFAULT_USER_SETTINGS: UserSettingsData = {
+  theme: 'light',
+  dailyGoalMinutes: 30,
+  studyReminder: true,
+  streakAlert: true,
+  courseAlert: true,
+  aiResponseStyle: 'balanced',
+}
 
 export async function getExercises(_filters?: {
   subjectId?: string
@@ -25,45 +30,22 @@ export async function getLibraryItems(filters?: {
   subjectId?: string
   search?: string
 }): Promise<LibraryItem[]> {
-  const authUser = getAuthUser()
-  if (authUser) {
-    try {
-      const params = new URLSearchParams()
-      if (filters?.category && filters.category !== 'all' && filters.category !== 'Đã lưu') {
-        params.set('category', filters.category)
-      }
-      if (filters?.subjectId && filters.subjectId !== 'all') {
-        params.set('subjectId', filters.subjectId)
-      }
-      if (filters?.search) {
-        params.set('search', filters.search)
-      }
-      const materials = await apiClient.get<LibraryItem[]>(`/api/v1/curriculum/materials?${params.toString()}`)
-      return materials || []
-    } catch {
-      throw new Error('Không thể tải danh sách tài liệu từ máy chủ. Vui lòng thử lại.')
+  try {
+    const params = new URLSearchParams()
+    if (filters?.category && filters.category !== 'all' && filters.category !== 'Đã lưu') {
+      params.set('category', filters.category)
     }
-  }
-
-  await new Promise((resolve) => setTimeout(resolve, 150))
-  let list = [...mockLibraryItems]
-  if (filters?.category && filters.category !== 'all') {
-    if (filters.category === 'Đã lưu') {
-      list = list.filter((item) => item.isSaved)
-    } else {
-      list = list.filter((item) => item.category === filters.category)
+    if (filters?.subjectId && filters.subjectId !== 'all') {
+      params.set('subjectId', filters.subjectId)
     }
+    if (filters?.search) {
+      params.set('search', filters.search)
+    }
+    const materials = await apiClient.get<LibraryItem[]>(`/api/v1/curriculum/materials?${params.toString()}`)
+    return materials || []
+  } catch {
+    return []
   }
-  if (filters?.subjectId && filters.subjectId !== 'all') {
-    list = list.filter((item) => item.subjectId === filters.subjectId)
-  }
-  if (filters?.search) {
-    const q = filters.search.toLowerCase()
-    list = list.filter(
-      (item) => item.title.toLowerCase().includes(q) || item.snippet.toLowerCase().includes(q)
-    )
-  }
-  return list
 }
 
 export async function getAchievements(): Promise<AchievementItem[]> {
@@ -170,7 +152,7 @@ export async function getUserSettings(): Promise<UserSettingsData> {
       // fallback
     }
   }
-  return { ...mockUserSettings }
+  return { ...DEFAULT_USER_SETTINGS }
 }
 
 export async function updateUserSettings(settings: Partial<UserSettingsData>): Promise<UserSettingsData> {

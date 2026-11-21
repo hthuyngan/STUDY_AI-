@@ -250,7 +250,7 @@ describe('Admin Workspace V5 — Operations, Content Approval & Quality Control 
 
       expect(screen.getByRole('heading', { name: /nhật ký quản trị \(audit logs\)/i })).toBeInTheDocument()
       await waitFor(() => {
-        expect(screen.getAllByText(/demo admin/i).length).toBeGreaterThan(0)
+        expect(screen.getAllByText(/quản trị viên/i).length).toBeGreaterThan(0)
       })
 
       // Test CSV Export

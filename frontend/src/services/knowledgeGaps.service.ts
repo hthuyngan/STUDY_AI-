@@ -3,8 +3,8 @@
  * Tracks learner knowledge weaknesses, updates gaps from assessment attempts, and syncs with Smart Review.
  */
 
-import { mockSubjectDetails, mockSubjectsSummary } from '@/data/subjects.mock'
 import { resolveKnowledgeMapping } from '@/data/knowledgeMapping'
+import { getSubjectName } from '@/lib/subjectResolver'
 import { getStorageKey } from '@/repositories/storageKeys'
 import { smartReviewService } from '@/services/smartReview.service'
 import { apiClient } from '@/lib/apiClient'
@@ -223,10 +223,7 @@ export const knowledgeGapsService = {
 
     const currentGaps = loadStoredGaps()
     const nowIso = new Date().toISOString()
-    const subject =
-      mockSubjectDetails[attempt.subjectId] ||
-      mockSubjectsSummary.find((s) => s.id === attempt.subjectId)
-    const subjectName = subject?.name || 'Môn học'
+    const subjectName = getSubjectName(attempt.subjectId) || 'Môn học'
 
     const affectedGaps: KnowledgeGap[] = []
 

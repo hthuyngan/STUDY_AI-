@@ -1,13 +1,11 @@
-import { mockDefaultQuizResult, mockQuizzes } from '@/data/quiz.mock'
+import { mockQuizzes } from '@/data/quiz.mock'
 import type { QuizDetail, QuizResultReport, QuizSubmissionAnswer } from '@/types/quiz'
 
 export async function getQuiz(quizId: string): Promise<QuizDetail | null> {
-  await new Promise((resolve) => setTimeout(resolve, 150))
+  await new Promise((resolve) => setTimeout(resolve, 50))
   const quiz = mockQuizzes[quizId]
   if (!quiz) {
-    // Return first available quiz as fallback
-    const firstKey = Object.keys(mockQuizzes)[0]
-    return mockQuizzes[firstKey] || null
+    return null
   }
   return { ...quiz }
 }
@@ -61,7 +59,22 @@ export async function submitQuiz(
   }
 }
 
-export async function getLatestQuizResult(quizId: string): Promise<QuizResultReport> {
-  await new Promise((resolve) => setTimeout(resolve, 150))
-  return { ...mockDefaultQuizResult, quizId }
+export async function getLatestQuizResult(quizId: string): Promise<QuizResultReport | null> {
+  await new Promise((resolve) => setTimeout(resolve, 50))
+  const quiz = mockQuizzes[quizId]
+  if (!quiz) return null
+  return {
+    quizId,
+    quizTitle: quiz.title,
+    subjectName: quiz.subjectName,
+    totalQuestions: quiz.questions.length,
+    correctCount: 0,
+    percentage: 0,
+    earnedXP: 0,
+    timeTakenSeconds: 0,
+    passed: false,
+    strengths: [],
+    improvements: [],
+    answers: [],
+  }
 }

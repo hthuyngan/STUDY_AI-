@@ -7,7 +7,7 @@ import {
   type FormEvent,
 } from 'react'
 import { ArrowUp, Plus, Square, X } from 'lucide-react'
-import { SUBJECT_OPTIONS } from '../../data/aiTutor.mock'
+import { SUBJECT_OPTIONS } from '../../config/aiTutorOptions'
 import type { LearningAssistanceMode } from '../../types/aiTutor'
 import { AssistanceModeSelector } from './AssistanceModeSelector'
 

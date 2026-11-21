@@ -16,7 +16,6 @@ import type {
   TutorLearningContext,
 } from '../types/aiTutor'
 import {
-  MOCK_CONVERSATIONS,
   MOCK_STREAMING_RESPONSES,
 } from '../data/aiTutor.mock'
 import { getStorageKey } from '@/repositories/storageKeys'
@@ -122,7 +121,7 @@ class AITutorService {
    * Load conversations from persistent storage with fallback to mock data (demo/unauthenticated mode)
    */
   private loadFromStorage(): ChatConversation[] {
-    if (typeof window === 'undefined') return JSON.parse(JSON.stringify(MOCK_CONVERSATIONS))
+    if (typeof window === 'undefined') return []
     try {
       const key = this.getStorageKeyName()
       const raw = localStorage.getItem(key) || localStorage.getItem(LEGACY_AI_CONVERSATIONS_KEY)
@@ -133,12 +132,10 @@ class AITutorService {
         }
       }
     } catch (err) {
-      console.warn('Failed to parse saved conversations, resetting to default:', err)
+      console.warn('Failed to parse saved conversations:', err)
     }
 
-    const defaultList = JSON.parse(JSON.stringify(MOCK_CONVERSATIONS))
-    this.saveToStorage(defaultList)
-    return defaultList
+    return []
   }
 
   /**
