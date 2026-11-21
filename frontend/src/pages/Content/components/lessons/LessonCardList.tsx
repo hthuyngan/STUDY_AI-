@@ -51,6 +51,14 @@ export const LessonCardList: React.FC<LessonCardListProps> = ({
               )}
             </div>
             <div className="teacher-card-stat">
+              <span className="teacher-stat-label">Video</span>
+              {(l.videoCount ?? l.videos?.length ?? 0) > 0 ? (
+                <span style={{ fontSize: '0.78rem', color: '#15803d', fontWeight: 600 }}>▶ {l.videoCount ?? l.videos?.length} video</span>
+              ) : (
+                <span style={{ fontSize: '0.78rem', color: '#b91c1c', fontWeight: 600 }}>⚠ Thiếu video</span>
+              )}
+            </div>
+            <div className="teacher-card-stat">
               <span className="teacher-stat-label">Cập nhật</span>
               <span style={{ fontSize: '0.78rem' }}>{new Date(l.updatedAt).toLocaleDateString('vi-VN')}</span>
             </div>

@@ -25,6 +25,9 @@ frontend/dist-ssr/
 id_rsa*
 credentials.json
 service-account*.json
+scripts/sql/
+scripts/verify_sql_logins.ts
+database_backups/
 
 # Python cache & virtual environments
 __pycache__/
@@ -80,3 +83,5 @@ backend/.venv/
 backend/alembic/versions/__pycache__/
 *.egg-info/
 .pytest_cache/
+
+temp_vnhsge/

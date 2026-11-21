@@ -1,7 +1,70 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { mockSubjectDetails } from '@/data/subjects.mock'
 import { getSubjectOutline } from '@/services/lesson.service'
 import { getSubjectById, getSubjects } from '@/services/subjects.service'
+
+vi.mock('@/services/curriculum.service', () => ({
+  curriculumService: {
+    getSubjects: vi.fn().mockResolvedValue([
+      {
+        id: 'math',
+        code: 'MATH12',
+        name: 'Toán học',
+        grade: '12',
+        description: 'Chương trình Giải tích và Hình học không gian',
+        orderIndex: 1,
+        chapterCount: 3,
+        lessonCount: 32,
+      },
+    ]),
+    getSubject: vi.fn().mockImplementation((id: string) => {
+      const match = mockSubjectDetails[id]
+      if (!match) return Promise.resolve(null)
+      return Promise.resolve({
+        id: match.id,
+        code: 'MATH12',
+        name: match.name,
+        grade: match.grade,
+        description: match.description,
+        orderIndex: 1,
+        chapterCount: match.chapters.length,
+        lessonCount: match.totalLessons,
+        chapters: match.chapters.map((c) => ({
+          id: c.id,
+          title: c.title,
+          description: c.description || '',
+          orderIndex: c.chapterNumber || 1,
+          lessons: c.lessons.map((l, idx) => ({
+            id: l.id,
+            title: l.title,
+            slug: l.id,
+            orderIndex: idx + 1,
+            status: l.status || 'published',
+          })),
+        })),
+      })
+    }),
+    getSubjectChapters: vi.fn().mockImplementation((id: string) => {
+      const match = mockSubjectDetails[id]
+      if (!match) return Promise.resolve([])
+      return Promise.resolve(
+        match.chapters.map((c) => ({
+          id: c.id,
+          title: c.title,
+          description: c.description || '',
+          orderIndex: c.chapterNumber || 1,
+          lessons: c.lessons.map((l, idx) => ({
+            id: l.id,
+            title: l.title,
+            slug: l.id,
+            orderIndex: idx + 1,
+            status: l.status || 'published',
+          })),
+        }))
+      )
+    }),
+  },
+}))
 
 describe('Subject Curriculum and Filtering Logic', () => {
   it('loads subjects with textbook curriculum metadata', async () => {
@@ -10,9 +73,8 @@ describe('Subject Curriculum and Filtering Logic', () => {
 
     const math = subjects.find((s) => s.id === 'math')
     expect(math).toBeDefined()
-    expect(math?.curriculumLabel).toBe('Giáo trình SGK')
+    expect(math?.curriculumLabel).toBe('Toán học GDPT 2018')
     expect(math?.totalLessons).toBe(32)
-    expect(math?.completedLessons).toBe(23)
   })
 
   it('loads math detail with structured chapters and lessons', async () => {

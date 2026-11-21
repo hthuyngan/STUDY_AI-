@@ -463,3 +463,227 @@
   justify-content: center;
   margin-top: 32px;
 }
+
+/* AI Error Analysis Card */
+.ai-error-analysis-card {
+  background: #ffffff;
+  border: 1px solid #c3dafe;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 14px rgba(30, 64, 175, 0.05);
+}
+
+.ai-analysis-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.ai-analysis-title-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.ai-sparkle-icon {
+  color: #2563eb;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.ai-analysis-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e3a8a;
+  margin: 0;
+}
+
+.ai-analysis-subtitle {
+  font-size: 13px;
+  color: #475569;
+  margin: 4px 0 0;
+}
+
+.ai-analysis-body {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e0e7ff;
+}
+
+.ai-analysis-loading,
+.ai-analysis-error {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.ai-analysis-loading {
+  background: #eff6ff;
+  color: #1e40af;
+}
+
+.ai-analysis-loading .spinner {
+  animation: spin 1s linear infinite;
+  color: #2563eb;
+}
+
+.ai-analysis-error {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.ai-subheading {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e3a8a;
+  margin: 0 0 10px;
+}
+
+.ai-overall-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.ai-overall-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #1e293b;
+  margin: 0;
+}
+
+.ai-concepts-box {
+  margin-bottom: 20px;
+}
+
+.ai-concept-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ai-concept-tag {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ai-errors-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ai-error-item-card {
+  background: #fdfefe;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #ef4444;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.ai-error-item-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.ai-error-qid {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e293b;
+  background: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.ai-error-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.badge-verified {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.badge-hypothesized {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.badge-deducible {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.ai-error-concept {
+  font-size: 12px;
+  color: #64748b;
+  margin-left: auto;
+}
+
+.ai-error-stem {
+  font-size: 14px;
+  color: #334155;
+  margin-bottom: 12px;
+  background: #f8fafc;
+  padding: 10px;
+  border-radius: 6px;
+}
+
+.ai-error-cause-box {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #991b1b;
+  margin-bottom: 10px;
+}
+
+.ai-error-correct-method {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #1e293b;
+  margin-bottom: 12px;
+}
+
+.method-math {
+  margin-top: 4px;
+  color: #0f172a;
+}
+
+.ai-error-lesson-link {
+  margin-top: 10px;
+}
+
+.ai-no-errors-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  padding: 16px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.ai-perfect-icon {
+  color: #22c55e;
+  flex-shrink: 0;
+}

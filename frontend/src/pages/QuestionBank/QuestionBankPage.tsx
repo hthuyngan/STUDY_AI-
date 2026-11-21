@@ -95,7 +95,7 @@ export const QuestionBankPage: React.FC = () => {
         <Breadcrumb
           items={[
             { label: 'Học tập', to: '/dashboard' },
-            { label: 'Môn Toán 12', to: '/subjects/math' },
+            { label: 'Toán học GDPT 2018', to: '/subjects' },
             { label: 'Ngân hàng câu hỏi chuẩn GDPT 2018' },
           ]}
         />
@@ -106,11 +106,12 @@ export const QuestionBankPage: React.FC = () => {
         <div className="qb-hero-content">
           <div className="qb-hero-badge">
             <Database size={14} aria-hidden />
-            <span>NGÂN HÀNG CÂU HỎI TOÁN 12 GDPT 2018</span>
+            <span>NGÂN HÀNG CÂU HỎI TOÁN HỌC GDPT 2018</span>
           </div>
-          <h1 className="qb-hero-title">Kho câu hỏi kiểm chứng · Chương 1: Đạo hàm & Khảo sát đồ thị</h1>
+          <h1 className="qb-hero-title">Kho câu hỏi chuẩn hóa sư phạm GDPT 2018</h1>
           <p className="qb-hero-desc">
-            Tuyển tập 22 câu hỏi chuẩn hóa sư phạm bao gồm 3 dạng: Trắc nghiệm 4 lựa chọn (MCQ), Trắc nghiệm
+            {stats ? `Tuyển tập ${stats.total} câu hỏi chuẩn hóa sư phạm` : 'Tuyển tập câu hỏi chuẩn hóa sư phạm'}{' '}
+            bao gồm 3 dạng: Trắc nghiệm 4 lựa chọn (MCQ), Trắc nghiệm
             Đúng/Sai theo cụm 4 ý và Trả lời ngắn số học. Toàn bộ câu hỏi được gắn mã kỹ năng năng lực và lời
             giải KaTeX chi tiết từng bước.
           </p>

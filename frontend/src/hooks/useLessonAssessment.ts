@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useRef, useState } from 'react'
+import { AuthContext } from '@/auth/AuthContext'
+import { LEARNING_STATE_CHANGED_EVENT } from '@/services/learningStateEvents'
 import {
   getActiveUnfinishedAttempt,
   getLatestCompletedAttempt,
@@ -6,7 +8,7 @@ import {
   recordAnswerSelection,
   resumeAttempt,
   startNewAttempt,
-  submitAttempt,
+  submitAttemptWithServerValidation,
   updateAttempt,
 } from '@/services/assessment.service'
 import { createLearningEvent } from '@/services/learningTracking.service'
@@ -49,13 +51,40 @@ export function useLessonAssessment({
   const questions = assessment.questions
   const currentQuestion: AssessmentQuestion | undefined = questions[currentQuestionIndex]
 
-  // Sync state on lesson change
+  // Reactive auth user identity
+  const auth = useContext(AuthContext)
+  const currentUserId = auth?.user?.id
+
+  const refreshAttempts = useCallback(() => {
+    const targetLessonId = assessment.lessonId || ''
+    if (!targetLessonId) return
+    const unfinished = getActiveUnfinishedAttempt(targetLessonId)
+    setActiveAttempt(unfinished)
+    setLatestCompletedAttempt(getLatestCompletedAttempt(targetLessonId))
+  }, [assessment.lessonId])
+
+  // Sync state on lessonId change or auth user change
   const [trackedLessonId, setTrackedLessonId] = useState(assessment.lessonId)
   if (trackedLessonId !== assessment.lessonId) {
     setTrackedLessonId(assessment.lessonId)
-    setActiveAttempt(getActiveUnfinishedAttempt(assessment.lessonId))
-    setLatestCompletedAttempt(getLatestCompletedAttempt(assessment.lessonId))
+    refreshAttempts()
   }
+
+  useEffect(() => {
+    refreshAttempts()
+  }, [refreshAttempts, currentUserId])
+
+  // Re-sync on global learning state changes (e.g. background sync or save events)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const handleStateChange = () => {
+      refreshAttempts()
+    }
+    window.addEventListener(LEARNING_STATE_CHANGED_EVENT, handleStateChange)
+    return () => {
+      window.removeEventListener(LEARNING_STATE_CHANGED_EVENT, handleStateChange)
+    }
+  }, [refreshAttempts])
 
   // Accumulate time spent on current question
   const flushCurrentQuestionTime = useCallback(() => {
@@ -214,24 +243,30 @@ export function useLessonAssessment({
     setIsModalOpen(false)
   }, [activeAttempt])
 
-  // Submit Attempt
-  const confirmSubmit = useCallback(() => {
+  // Submit Attempt with Server-Side Zero-Leak Verification
+  const confirmSubmit = useCallback(async () => {
     if (!activeAttempt) return
     const elapsedSession = Math.max(0, Date.now() - sessionStartTimeRef.current)
-    const { attempt: submitted, scorePercentage } = submitAttempt(
-      activeAttempt,
-      questions,
-      assessment.passingScorePercent,
-      elapsedSession,
-      totalActualSections
-    )
-    setActiveAttempt(submitted)
-    setLatestCompletedAttempt(submitted)
-    // Record any wrong answers into Knowledge Gaps & schedule Smart Review
-    knowledgeGapsService.recordGapsFromAssessmentAttempt(submitted, questions, assessment.title)
-    setShowSubmitConfirm(false)
-    setShowResultView(true)
-    onAssessmentCompleted?.(scorePercentage)
+    try {
+      const { attempt: submitted, scorePercentage } = await submitAttemptWithServerValidation(
+        activeAttempt,
+        questions,
+        assessment.passingScorePercent,
+        elapsedSession,
+        totalActualSections
+      )
+      setActiveAttempt(submitted)
+      setLatestCompletedAttempt(submitted)
+      // Record any wrong answers into Knowledge Gaps & schedule Smart Review
+      knowledgeGapsService.recordGapsFromAssessmentAttempt(submitted, questions, assessment.title)
+      setShowSubmitConfirm(false)
+      setShowResultView(true)
+      onAssessmentCompleted?.(scorePercentage)
+    } catch (err: unknown) {
+      setShowSubmitConfirm(false)
+      const msg = err instanceof Error ? err.message : 'Lỗi kết nối máy chủ khi nộp bài.'
+      alert(`Nộp bài không thành công: ${msg}. Bài làm của bạn đã được bảo lưu an toàn. Vui lòng thử lại.`)
+    }
   }, [
     activeAttempt,
     assessment.passingScorePercent,

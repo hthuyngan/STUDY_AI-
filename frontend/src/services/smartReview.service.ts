@@ -3,6 +3,8 @@
  * Implements rule-based Spaced Repetition scheduling, session persistence, and progress evaluation.
  */
 
+import { apiClient } from '@/lib/apiClient'
+import { getAccessToken } from '@/auth/authSession'
 import { getStorageKey } from '@/repositories/storageKeys'
 import type { KnowledgeGap } from '@/types/knowledgeGaps'
 import type {
@@ -315,6 +317,68 @@ export const smartReviewService = {
     const key = getStorageKey('active_review_session')
     localStorage.removeItem(key)
     localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY)
+  },
+
+  async fetchServerMistakes(subjectId?: string): Promise<SmartReviewItem[]> {
+    if (typeof window === 'undefined' || !getAccessToken()) {
+      return this.getAllItems()
+    }
+
+    try {
+      const query = subjectId ? `?subjectId=${subjectId}` : ''
+      const mistakes = await apiClient.get<Array<{
+        questionId: string
+        subjectId: string
+        prompt: string
+        options: string[]
+        difficulty: string
+        lastAttemptAt: string
+        mistakeCount: number
+        reviewBox: number
+        nextReviewDate: string
+        status: string
+      }>>(`/api/v1/practice/mistakes${query}`)
+
+      if (Array.isArray(mistakes)) {
+        const mapped: SmartReviewItem[] = mistakes.map((m) => {
+          const id = `rev_mst_${m.questionId}`
+          return {
+            id,
+            gapId: m.questionId,
+            knowledgePointId: m.questionId,
+            subjectId: m.subjectId,
+            subjectName: m.subjectId.includes('10') ? 'Toán 10' : m.subjectId.includes('11') ? 'Toán 11' : 'Toán 12',
+            lessonId: 'lesson-review',
+            lessonTitle: 'Ôn tập câu sai',
+            title: `Ôn tập: ${m.prompt.slice(0, 45)}...`,
+            prompt: m.prompt,
+            dueDate: m.nextReviewDate,
+            reviewCount: m.mistakeCount,
+            intervalDays: m.reviewBox === 1 ? 1 : m.reviewBox === 2 ? 3 : 7,
+            status: m.status as any,
+            history: [],
+            createdAt: m.lastAttemptAt,
+            updatedAt: new Date().toISOString(),
+          }
+        })
+
+        // Server is authoritative: replace items for this subject scope
+        const current = loadStoredItems()
+        const otherSubjects = (subjectId && subjectId !== 'all')
+          ? current.filter((item) => item.subjectId !== subjectId)
+          : []
+        const updated = [...otherSubjects, ...mapped]
+        persistItems(updated)
+        return mapped
+      }
+      return []
+    } catch (err: any) {
+      throw new Error(`Không thể tải danh sách ôn tập câu sai từ máy chủ: ${err?.message || 'Lỗi mạng'}`)
+    }
+  },
+
+  async submitMistakeReview(questionId: string, answer: string): Promise<any> {
+    return apiClient.post<any>(`/api/v1/practice/mistakes/${questionId}/review`, { answer })
   },
 }
 

@@ -1,4 +1,4 @@
-import { Bot, Layers, LayoutGrid, User } from 'lucide-react'
+import { Layers, LayoutGrid, Target, User } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 
 export function MobileBottomNav() {
@@ -6,8 +6,8 @@ export function MobileBottomNav() {
 
   const navItems = [
     { to: '/dashboard', label: 'Trang chủ', icon: LayoutGrid },
-    { to: '/ai-tutor', label: 'AI', icon: Bot },
     { to: '/subjects', label: 'Môn học', icon: Layers },
+    { to: '/practice', label: 'Luyện tập', icon: Target },
     { to: '/profile', label: 'Tôi', icon: User },
   ]
 

@@ -28,15 +28,17 @@ export class LocalLearningProgressRepository implements ILearningProgressReposit
       const raw = localStorage.getItem(storageKey)
       if (raw) return JSON.parse(raw)
 
-      // Fallback to legacy v1 key
-      const legacyRaw = localStorage.getItem(LESSON_PROGRESS_STORAGE_KEY)
-      if (legacyRaw) {
-        try {
-          localStorage.setItem(storageKey, legacyRaw)
-        } catch {
-          // ignore
+      // Fallback to legacy v1 key ONLY for unauthenticated guests, never for logged-in accounts
+      if (!getAuthUser()) {
+        const legacyRaw = localStorage.getItem(LESSON_PROGRESS_STORAGE_KEY)
+        if (legacyRaw) {
+          try {
+            localStorage.setItem(storageKey, legacyRaw)
+          } catch {
+            // ignore
+          }
+          return JSON.parse(legacyRaw)
         }
-        return JSON.parse(legacyRaw)
       }
       return {}
     } catch {

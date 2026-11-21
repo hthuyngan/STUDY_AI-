@@ -6,6 +6,9 @@ namespace StudyAI.Infrastructure.Services;
 public class FakeLlmProvider : ILlmProvider
 {
     public string ProviderName => "FakeLlmProvider";
+    public string DefaultModel => "fake-flash-v1";
+    public string? ReasoningModel => "fake-reasoner-v1";
+    public string FallbackModel => "fake-rule-fallback";
     public bool IsConfigured => true;
 
     public Task<LlmCompletionResponse> GenerateCompletionAsync(LlmCompletionRequest request)
@@ -26,12 +29,52 @@ public class FakeLlmProvider : ILlmProvider
             throw new TimeoutException("Thao tác gọi AI Tutor đã vượt quá thời gian chờ cho phép (timeout).");
         }
 
+        if (lower.Contains("rate_limit_test"))
+        {
+            throw new HttpRequestException("Hệ thống LLM đang bị giới hạn tần suất yêu cầu (Rate Limit - 429). Vui lòng thử lại sau giây lát.", null, System.Net.HttpStatusCode.TooManyRequests);
+        }
+
+        if (lower.Contains("server_error_test"))
+        {
+            throw new HttpRequestException("Lỗi máy chủ từ nhà cung cấp LLM: HTTP 503 Service Unavailable", null, System.Net.HttpStatusCode.ServiceUnavailable);
+        }
+
         if (lower.Contains("error_test"))
         {
             throw new HttpRequestException("Lỗi kết nối từ phía nhà cung cấp dịch vụ mô hình AI (Provider error).");
         }
 
-        if (hasLessonContext)
+        if (lower.Contains("checkpoint") || lower.Contains("câu hỏi kiểm tra") || lower.Contains("checkpoint questions"))
+        {
+            var fakeJson = @"[
+  {
+    ""prompt"": ""Cho hàm số $y = x^3 - 3x^2 + 2$. Tìm khoảng đồng biến của hàm số."",
+    ""options"": [
+      ""A. $(-\\infty; 0)$ và $(2; +\\infty)$"",
+      ""B. $(0; 2)$"",
+      ""C. $(-\\infty; 2)$"",
+      ""D. $(0; +\\infty)$""
+    ],
+    ""correctAnswer"": ""A"",
+    ""explanation"": ""Ta có $y' = 3x^2 - 6x = 3x(x - 2)$. Cho $y' > 0 \\Leftrightarrow x < 0$ hoặc $x > 2$. Do đó hàm số đồng biến trên $(-\\infty; 0)$ và $(2; +\\infty)$."",
+    ""cognitiveLevel"": ""thong_hieu""
+  },
+  {
+    ""prompt"": ""Giá trị cực đại của hàm số $y = -x^3 + 3x - 1$ bằng bao nhiêu?"",
+    ""options"": [
+      ""A. $1$"",
+      ""B. $-3$"",
+      ""C. $2$"",
+      ""D. $0$""
+    ],
+    ""correctAnswer"": ""A"",
+    ""explanation"": ""$y' = -3x^2 + 3 = 0 \\Leftrightarrow x = \\pm 1$. Tại $x = 1$, $y'' = -6 < 0$ nên $x = 1$ là điểm cực đại, giá trị cực đại là $y(1) = 1$."",
+    ""cognitiveLevel"": ""thong_hieu""
+  }
+]";
+            sb.Append(fakeJson);
+        }
+        else if (hasLessonContext)
         {
             sb.AppendLine("### 📖 Trả lời có ngữ cảnh bài học (AI Tutor)");
             sb.AppendLine();
@@ -44,6 +87,15 @@ public class FakeLlmProvider : ILlmProvider
             sb.AppendLine("3. **Lưu ý sư phạm:** Nếu câu hỏi này mở rộng ra ngoài phạm vi bài giảng trên lớp, bạn nên ghi nhớ rằng hệ thống ưu tiên bám sát khung kiến thức sách giáo khoa.");
             sb.AppendLine();
             sb.AppendLine("> *Ghi chú:* Thông tin trên được tổng hợp trực tiếp từ tài liệu bài học chính khóa.");
+        }
+        else if (lower.Contains("cực trị") || lower.Contains("cuc tri"))
+        {
+            sb.AppendLine("### 📐 Hướng dẫn tìm cực trị:");
+            sb.AppendLine();
+            sb.AppendLine("Để tìm cực trị của hàm số, em thực hiện 3 bước trọng tâm:");
+            sb.AppendLine("1. Tìm tập xác định và tính đạo hàm $y' = f'(x)$.");
+            sb.AppendLine("2. Giải phương trình $y' = 0$ để tìm các điểm tới hạn.");
+            sb.AppendLine("3. Lập bảng biến thiên hoặc xét dấu đạo hàm để kết luận điểm cực đại, cực tiểu (cực trị).");
         }
         else if (lower.Contains("đạo hàm") || lower.Contains("dao ham"))
         {

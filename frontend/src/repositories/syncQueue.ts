@@ -42,9 +42,11 @@ export function getPersistenceMode(): PersistenceMode {
 export function getSyncQueue(identity?: string): SyncQueueItem[] {
   if (typeof window === 'undefined') return []
   try {
-    const key = getStorageKey('sync_queue', identity)
-    const raw =
-      localStorage.getItem(key) || localStorage.getItem(SYNC_QUEUE_STORAGE_KEY)
+    const targetId = identity || getAuthUser()?.id
+    const key = getStorageKey('sync_queue', targetId)
+    const raw = targetId
+      ? localStorage.getItem(key)
+      : localStorage.getItem(key) || localStorage.getItem(SYNC_QUEUE_STORAGE_KEY)
     return raw ? JSON.parse(raw) : []
   } catch {
     return []
@@ -54,7 +56,8 @@ export function getSyncQueue(identity?: string): SyncQueueItem[] {
 function saveSyncQueue(queue: SyncQueueItem[], identity?: string): void {
   if (typeof window === 'undefined') return
   try {
-    const key = getStorageKey('sync_queue', identity)
+    const targetId = identity || getAuthUser()?.id
+    const key = getStorageKey('sync_queue', targetId)
     const json = JSON.stringify(queue)
     localStorage.setItem(key, json)
     localStorage.setItem(SYNC_QUEUE_STORAGE_KEY, json)
@@ -69,7 +72,8 @@ export function enqueueSyncItem(
   entityId: string,
   payload: Record<string, unknown>
 ): void {
-  const queue = getSyncQueue()
+  const currentUserId = getAuthUser()?.id
+  const queue = getSyncQueue(currentUserId)
   // If duplicate pending operation for same entity, replace with latest
   const filtered = queue.filter(
     (item) => !(item.type === type && item.entityId === entityId)
@@ -85,15 +89,16 @@ export function enqueueSyncItem(
   }
 
   filtered.push(newItem)
-  saveSyncQueue(filtered)
+  saveSyncQueue(filtered, currentUserId)
 
   // Trigger processing asynchronously
   triggerQueueFlush()
 }
 
 export function removeSyncItem(id: string): void {
-  const queue = getSyncQueue()
-  saveSyncQueue(queue.filter((item) => item.id !== id))
+  const currentUserId = getAuthUser()?.id
+  const queue = getSyncQueue(currentUserId)
+  saveSyncQueue(queue.filter((item) => item.id !== id), currentUserId)
 }
 
 export async function flushSyncQueue(): Promise<void> {
@@ -102,7 +107,16 @@ export async function flushSyncQueue(): Promise<void> {
     return
   }
 
-  const queue = getSyncQueue()
+  const authUser = getAuthUser()
+  // Guest mode stays local only; do not dispatch guest data to fake/demo server paths
+  if (!authUser) {
+    currentSyncState = 'idle'
+    notifySyncStatus()
+    return
+  }
+
+  const currentUserId = authUser.id
+  const queue = getSyncQueue(currentUserId)
   if (queue.length === 0) {
     currentSyncState = 'idle'
     notifySyncStatus()
@@ -113,36 +127,31 @@ export async function flushSyncQueue(): Promise<void> {
   currentSyncState = 'syncing'
   notifySyncStatus()
 
-  const authUser = getAuthUser()
-  const remainingQueue: SyncQueueItem[] = []
+  const succeededItemIds = new Set<string>()
 
   for (const item of queue) {
+    // If user changed identity mid-flush, abort immediately to prevent cross-account writes
+    if (getAuthUser()?.id !== currentUserId) {
+      isProcessing = false
+      return
+    }
+
     try {
       if (item.type === 'progress-upsert') {
-        const endpoint = authUser
-          ? `/api/v1/me/lesson-progress/${item.entityId}`
-          : `/users/stu-001/lesson-progress/${item.entityId}`
-        await apiClient.put(endpoint, item.payload)
+        await apiClient.put(`/api/v1/me/lesson-progress/${item.entityId}`, item.payload)
       } else if (item.type === 'attempt-upsert') {
-        const endpoint = authUser
-          ? `/api/v1/me/assessment-attempts/${item.entityId}`
-          : `/users/stu-001/assessment-attempts/${item.entityId}`
-        await apiClient.put(endpoint, item.payload)
+        await apiClient.put(`/api/v1/me/assessment-attempts/${item.entityId}`, item.payload)
       } else if (item.type === 'event-batch') {
-        const endpoint = authUser
-          ? '/api/v1/me/learning-events/batch'
-          : '/users/stu-001/learning-events/batch'
-        await apiClient.post(endpoint, item.payload)
+        await apiClient.post('/api/v1/me/learning-events/batch', item.payload)
       }
+      succeededItemIds.add(item.id)
       lastSyncedAt = new Date().toISOString()
       lastError = undefined
     } catch (err: unknown) {
       item.retryCount += 1
       lastError = err instanceof Error ? err.message : 'Sync dispatch failed'
 
-      if (item.retryCount < MAX_QUEUE_RETRIES) {
-        remainingQueue.push(item)
-      } else {
+      if (item.retryCount >= MAX_QUEUE_RETRIES) {
         console.warn(
           `Sync operation [${item.type}] for [${item.entityId}] dropped after max retries`,
           err
@@ -151,9 +160,25 @@ export async function flushSyncQueue(): Promise<void> {
     }
   }
 
-  saveSyncQueue(remainingQueue)
+  // Abort if identity switched during network calls
+  if (getAuthUser()?.id !== currentUserId) {
+    isProcessing = false
+    return
+  }
+
+  // Preserve any items enqueued while flush was running; only remove succeeded ones
+  const latestQueue = getSyncQueue(currentUserId)
+  const updatedQueue = latestQueue
+    .filter((item) => !succeededItemIds.has(item.id))
+    .map((item) => {
+      const processed = queue.find((q) => q.id === item.id)
+      return processed ? { ...item, retryCount: processed.retryCount } : item
+    })
+    .filter((item) => item.retryCount < MAX_QUEUE_RETRIES)
+
+  saveSyncQueue(updatedQueue, currentUserId)
   isProcessing = false
-  currentSyncState = remainingQueue.length > 0 ? 'error' : 'idle'
+  currentSyncState = updatedQueue.length > 0 ? 'error' : 'idle'
   notifySyncStatus()
 }
 

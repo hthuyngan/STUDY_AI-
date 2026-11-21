@@ -83,6 +83,18 @@ export function useAITutor() {
   const activeSubjectRef = useRef(activeSubject)
   const activeContextRef = useRef(activeContext)
   const activeModeRef = useRef(activeMode)
+  const isMountedRef = useRef(true)
+
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+        abortControllerRef.current = null
+      }
+    }
+  }, [])
 
   useEffect(() => {
     activeConversationRef.current = activeConversation
@@ -94,6 +106,7 @@ export function useAITutor() {
   // Listen to learning context changes across app
   useEffect(() => {
     const handleContextChange = (e: Event) => {
+      if (!isMountedRef.current) return
       const customEvent = e as CustomEvent<TutorLearningContext | null>
       const newCtx = customEvent.detail
       setActiveContext(newCtx)
@@ -115,7 +128,7 @@ export function useAITutor() {
   useEffect(() => {
     let mounted = true
     aiTutorService.getConversations().then(async (list) => {
-      if (!mounted) return
+      if (!mounted || !isMountedRef.current) return
       setConversations(list)
       // Pick first active conversation if available, or create new
       if (list.length > 0 && !activeConversationRef.current) {
@@ -127,7 +140,7 @@ export function useAITutor() {
         } catch {
           // use summary if detail fails
         }
-        if (!mounted) return
+        if (!mounted || !isMountedRef.current) return
         setActiveConversation(fullFirst)
         setActiveSubject(fullFirst.subject || 'all')
         if (fullFirst.assistanceMode) {
@@ -138,7 +151,7 @@ export function useAITutor() {
         }
       }
     }).catch((err) => {
-      if (mounted) setError(err?.message || 'Không thể tải danh sách cuộc trò chuyện.')
+      if (mounted && isMountedRef.current) setError(err?.message || 'Không thể tải danh sách cuộc trò chuyện.')
     })
     return () => {
       mounted = false
@@ -147,6 +160,7 @@ export function useAITutor() {
 
   // Clean URL search param prompt so refresh/back doesn't re-populate
   useEffect(() => {
+    if (!isMountedRef.current) return
     if (searchParams.has('prompt')) {
       const newParams = new URLSearchParams(searchParams)
       newParams.delete('prompt')
@@ -156,11 +170,15 @@ export function useAITutor() {
 
   const selectConversation = useCallback(
     async (id: string) => {
-      if (isStreaming) {
-        abortControllerRef.current?.abort()
-        setIsStreaming(false)
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+        abortControllerRef.current = null
       }
-      setError(null)
+      if (isMountedRef.current) {
+        setIsStreaming(false)
+        setIsTyping(false)
+        setError(null)
+      }
       let conv = conversations.find((c) => c.id === id) || null
       try {
         const detail = await aiTutorService.getConversationById(id)
@@ -168,6 +186,7 @@ export function useAITutor() {
       } catch {
         // use summary
       }
+      if (!isMountedRef.current) return
       if (conv) {
         setActiveConversation(conv)
         setActiveSubject(conv.subject || 'all')
@@ -179,32 +198,38 @@ export function useAITutor() {
         }
       }
     },
-    [conversations, isStreaming]
+    [conversations]
   )
 
   const startNewConversation = useCallback(
     async (subject?: string) => {
-      if (isStreaming) {
-        abortControllerRef.current?.abort()
-        setIsStreaming(false)
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+        abortControllerRef.current = null
       }
-      setError(null)
-      const targetSubject = subject || activeSubject
+      if (isMountedRef.current) {
+        setIsStreaming(false)
+        setIsTyping(false)
+        setError(null)
+      }
+      const targetSubject = subject || activeSubjectRef.current
       const newConv = await aiTutorService.createConversation(
         targetSubject,
         undefined,
-        activeContext || undefined,
-        activeMode
+        activeContextRef.current || undefined,
+        activeModeRef.current
       )
+      if (!isMountedRef.current) return
       setConversations((prev) => [newConv, ...prev])
       setActiveConversation(newConv)
     },
-    [activeSubject, activeContext, activeMode, isStreaming]
+    []
   )
 
   const deleteConversation = useCallback(
     async (id: string) => {
       await aiTutorService.deleteConversation(id)
+      if (!isMountedRef.current) return
       setConversations((prev) => {
         const remaining = prev.filter((c) => c.id !== id)
         if (activeConversation?.id === id) {
@@ -221,8 +246,10 @@ export function useAITutor() {
       abortControllerRef.current.abort()
       abortControllerRef.current = null
     }
-    setIsStreaming(false)
-    setIsTyping(false)
+    if (isMountedRef.current) {
+      setIsStreaming(false)
+      setIsTyping(false)
+    }
   }, [])
 
   const setAssistanceMode = useCallback(
@@ -253,7 +280,9 @@ export function useAITutor() {
       const trimmed = content.trim()
       if (!trimmed || isStreaming) return
 
-      setError(null)
+      if (isMountedRef.current) {
+        setError(null)
+      }
       lastUserMessageRef.current = trimmed
 
       // Ensure we have an active conversation
@@ -265,9 +294,13 @@ export function useAITutor() {
           activeContextRef.current || undefined,
           activeModeRef.current
         )
+        if (!isMountedRef.current) return
         setConversations((prev) => [targetConv!, ...prev])
         setActiveConversation(targetConv)
       }
+
+      if (!isMountedRef.current) return
+      const targetConvId = targetConv.id
 
       const userMsgId = `usr-${Date.now()}`
       const userMessage: ChatMessage = {
@@ -305,13 +338,19 @@ export function useAITutor() {
         assistanceMode: activeModeRef.current,
       }
 
-      setActiveConversation(updatedConv)
+      if (!isMountedRef.current) return
+      setActiveConversation((prev) => {
+        if (!prev || prev.id !== targetConvId) return prev
+        return updatedConv
+      })
       setConversations((prev) =>
         prev.map((c) => (c.id === updatedConv.id ? updatedConv : c))
       )
 
       // Persist user message to storage
       await aiTutorService.appendMessage(targetConv.id, userMessage)
+
+      if (!isMountedRef.current) return
 
       setIsTyping(true)
       setIsStreaming(true)
@@ -320,7 +359,7 @@ export function useAITutor() {
       abortControllerRef.current = abortController
 
       try {
-        await aiTutorService.sendMessageStream(
+        const assistantResult = await aiTutorService.sendMessageStream(
           {
             conversationId: targetConv.id,
             message: trimmed,
@@ -329,9 +368,10 @@ export function useAITutor() {
             mode: activeModeRef.current,
           },
           (streamedText) => {
+            if (!isMountedRef.current) return
             setIsTyping(false)
             setActiveConversation((prev) => {
-              if (!prev) return prev
+              if (!prev || prev.id !== targetConvId) return prev
               const msgs = prev.messages.map((m) =>
                 m.id === assistantMsgId
                   ? { ...m, content: streamedText, status: 'streaming' as const }
@@ -344,38 +384,92 @@ export function useAITutor() {
         )
 
         // Mark assistant message as done
-        setActiveConversation((prev) => {
-          if (!prev) return prev
-          const msgs = prev.messages.map((m) =>
-            m.id === assistantMsgId ? { ...m, status: 'done' as const } : m
+        if (isMountedRef.current) {
+          setActiveConversation((prev) => {
+            if (!prev || prev.id !== targetConvId) return prev
+            const msgs = prev.messages.map((m) =>
+              m.id === assistantMsgId
+                ? {
+                    ...m,
+                    content: assistantResult.content,
+                    status: 'done' as const,
+                    suggestedActions: assistantResult.suggestedActions,
+                  }
+                : m
+            )
+            return { ...prev, messages: msgs }
+          })
+          setConversations((all) =>
+            all.map((c) => {
+              if (c.id !== targetConvId) return c
+              const msgs = c.messages.map((m) =>
+                m.id === assistantMsgId
+                  ? {
+                      ...m,
+                      content: assistantResult.content,
+                      status: 'done' as const,
+                      suggestedActions: assistantResult.suggestedActions,
+                    }
+                  : m
+              )
+              return { ...c, messages: msgs }
+            })
           )
-          const finalized = { ...prev, messages: msgs }
-          setConversations((all) => all.map((c) => (c.id === finalized.id ? finalized : c)))
-          return finalized
-        })
+        }
       } catch (err: unknown) {
-        if (err instanceof DOMException && err.name === 'AbortError') {
-          setActiveConversation((prev) => {
-            if (!prev) return prev
-            const msgs = prev.messages.map((m) =>
-              m.id === assistantMsgId ? { ...m, status: 'done' as const } : m
+        const isAbort =
+          (err instanceof DOMException && err.name === 'AbortError') ||
+          (err as Error)?.name === 'AbortError' ||
+          abortController.signal.aborted
+
+        if (isAbort) {
+          if (isMountedRef.current) {
+            setActiveConversation((prev) => {
+              if (!prev || prev.id !== targetConvId) return prev
+              const msgs = prev.messages.map((m) =>
+                m.id === assistantMsgId ? { ...m, status: 'done' as const } : m
+              )
+              return { ...prev, messages: msgs }
+            })
+            setConversations((all) =>
+              all.map((c) => {
+                if (c.id !== targetConvId) return c
+                const msgs = c.messages.map((m) =>
+                  m.id === assistantMsgId ? { ...m, status: 'done' as const } : m
+                )
+                return { ...c, messages: msgs }
+              })
             )
-            return { ...prev, messages: msgs }
-          })
+          }
         } else {
-          setError((err as Error)?.message || 'Không thể tạo câu trả lời. Vui lòng thử lại.')
-          setActiveConversation((prev) => {
-            if (!prev) return prev
-            const msgs = prev.messages.map((m) =>
-              m.id === assistantMsgId ? { ...m, status: 'error' as const } : m
+          if (isMountedRef.current) {
+            setError((err as Error)?.message || 'Không thể tạo câu trả lời. Vui lòng thử lại.')
+            setActiveConversation((prev) => {
+              if (!prev || prev.id !== targetConvId) return prev
+              const msgs = prev.messages.map((m) =>
+                m.id === assistantMsgId ? { ...m, status: 'error' as const } : m
+              )
+              return { ...prev, messages: msgs }
+            })
+            setConversations((all) =>
+              all.map((c) => {
+                if (c.id !== targetConvId) return c
+                const msgs = c.messages.map((m) =>
+                  m.id === assistantMsgId ? { ...m, status: 'error' as const } : m
+                )
+                return { ...c, messages: msgs }
+              })
             )
-            return { ...prev, messages: msgs }
-          })
+          }
         }
       } finally {
-        setIsStreaming(false)
-        setIsTyping(false)
-        abortControllerRef.current = null
+        if (isMountedRef.current) {
+          setIsStreaming(false)
+          setIsTyping(false)
+        }
+        if (abortControllerRef.current === abortController) {
+          abortControllerRef.current = null
+        }
       }
     },
     [isStreaming]

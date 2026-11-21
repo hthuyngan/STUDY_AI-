@@ -35,15 +35,51 @@ public class CurriculumController : ControllerBase
         try { return JsonNode.Parse(val) as JsonArray ?? new JsonArray(); } catch { return new JsonArray(); }
     }
 
+    private static List<string> SafeDeserializeStringList(string? rawJson)
+    {
+        if (string.IsNullOrWhiteSpace(rawJson)) return new List<string>();
+        try
+        {
+            return JsonSerializer.Deserialize<List<string>>(rawJson) ?? new List<string>();
+        }
+        catch
+        {
+            // Fallback for LaTeX backslash escapes: sanitize single backslashes that are invalid in JSON into double backslashes
+            try
+            {
+                var sanitized = System.Text.RegularExpressions.Regex.Replace(rawJson, @"\\(?![/""\\bfnrtu]|u[0-9a-fA-F]{4})", "\\\\");
+                return JsonSerializer.Deserialize<List<string>>(sanitized) ?? new List<string>();
+            }
+            catch
+            {
+                try
+                {
+                    var matches = System.Text.RegularExpressions.Regex.Matches(rawJson, @"""((?:\\""|[^""])*)""");
+                    var list = new List<string>();
+                    foreach (System.Text.RegularExpressions.Match m in matches)
+                    {
+                        list.Add(m.Groups[1].Value.Replace("\\\"", "\""));
+                    }
+                    return list;
+                }
+                catch
+                {
+                    return new List<string>();
+                }
+            }
+        }
+    }
+
     /// <summary>
     /// GET /api/v1/curriculum/subjects
     /// Returns only active subjects with published content.
+    /// Excludes test fixtures.
     /// </summary>
     [HttpGet("subjects")]
     public async Task<IActionResult> GetSubjects([FromQuery] string? grade = null, [FromQuery] string? search = null)
     {
         var query = _db.ContentSubjects
-            .Where(s => s.IsActive)
+            .Where(s => s.IsActive && !s.Code.StartsWith("TEST_") && !s.Code.StartsWith("SEC_") && !s.Code.StartsWith("PHYS12_"))
             .Include(s => s.Chapters)
                 .ThenInclude(c => c.Lessons)
             .AsNoTracking()
@@ -78,7 +114,7 @@ public class CurriculumController : ControllerBase
                 Name = s.Name,
                 Code = s.Code,
                 Grade = s.Grade,
-                Description = s.Description,
+                Description = s.Description ?? string.Empty,
                 OrderIndex = s.OrderIndex,
                 ChapterCount = activeChapters.Count,
                 LessonCount = publishedLessonCount
@@ -89,15 +125,115 @@ public class CurriculumController : ControllerBase
     }
 
     /// <summary>
+    /// GET /api/v1/curriculum/subjects/{subjectId}
+    /// Returns single active subject with its active chapters and published lessons.
+    /// Supports lookup by Id or Code.
+    /// </summary>
+    [HttpGet("subjects/{subjectId}")]
+    public async Task<IActionResult> GetSubjectDetail(string subjectId)
+    {
+        var subject = await _db.ContentSubjects
+            .Include(s => s.Chapters)
+                .ThenInclude(c => c.Topics)
+            .Include(s => s.Chapters)
+                .ThenInclude(c => c.Lessons)
+                    .ThenInclude(l => l.Topic)
+            .Include(s => s.Chapters)
+                .ThenInclude(c => c.Lessons)
+                    .ThenInclude(l => l.Videos)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => (s.Id == subjectId || s.Code == subjectId || s.Code.ToLower() == subjectId.ToLower()) && s.IsActive);
+
+        if (subject == null)
+        {
+            return NotFound(new { message = $"Môn học '{subjectId}' không tồn tại hoặc đã ngừng kích hoạt." });
+        }
+
+        var activeChapters = subject.Chapters
+            .Where(c => c.IsActive)
+            .OrderBy(c => c.OrderIndex)
+            .Select(c =>
+            {
+                var publishedLessons = c.Lessons
+                    .Where(l => l.Status == "published")
+                    .OrderBy(l => l.OrderIndex)
+                    .Select(l =>
+                    {
+                        var primaryVideo = l.Videos.FirstOrDefault(v => v.IsPublished && v.EmbedAllowed);
+                        return new LearnerLessonSummaryDto
+                        {
+                            Id = l.Id,
+                            TopicId = l.TopicId,
+                            TopicTitle = l.Topic?.Title,
+                            Title = l.Title,
+                            Slug = l.Slug,
+                            OrderIndex = l.OrderIndex,
+                            Status = l.Status,
+                            ContentType = "video",
+                            HasVideo = l.Videos.Any(v => v.IsPublished),
+                            VideoProvider = primaryVideo?.Provider ?? (l.Videos.Any() ? "youtube" : null),
+                            YouTubeVideoId = primaryVideo?.YouTubeVideoId
+                        };
+                    })
+                    .ToList();
+
+                var activeTopics = c.Topics
+                    .Where(t => t.IsActive)
+                    .OrderBy(t => t.OrderIndex)
+                    .Select(t => new LearnerTopicDto
+                    {
+                        Id = t.Id,
+                        ChapterId = t.ChapterId,
+                        Title = t.Title,
+                        Description = t.Description ?? string.Empty,
+                        OrderIndex = t.OrderIndex,
+                        Lessons = publishedLessons.Where(l => l.TopicId == t.Id).ToList()
+                    })
+                    .ToList();
+
+                return new LearnerChapterDto
+                {
+                    Id = c.Id,
+                    Title = c.Title,
+                    Description = c.Description ?? string.Empty,
+                    OrderIndex = c.OrderIndex,
+                    Topics = activeTopics,
+                    Lessons = publishedLessons
+                };
+            })
+            .ToList();
+
+        var publishedLessonCount = activeChapters
+            .SelectMany(c => c.Lessons)
+            .Count();
+
+        var dto = new LearnerSubjectWithChaptersDto
+        {
+            Id = subject.Id,
+            Name = subject.Name,
+            Code = subject.Code,
+            Grade = subject.Grade,
+            Description = subject.Description ?? string.Empty,
+            OrderIndex = subject.OrderIndex,
+            ChapterCount = activeChapters.Count,
+            LessonCount = publishedLessonCount,
+            Chapters = activeChapters
+        };
+
+        return Ok(dto);
+    }
+
+    /// <summary>
     /// GET /api/v1/curriculum/subjects/{subjectId}/chapters
     /// Returns active chapters and their published lessons for a subject.
+    /// Supports lookup by Id or Code.
     /// </summary>
     [HttpGet("subjects/{subjectId}/chapters")]
     public async Task<IActionResult> GetSubjectChapters(string subjectId)
     {
         var subject = await _db.ContentSubjects
             .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Id == subjectId && s.IsActive);
+            .FirstOrDefaultAsync(s => (s.Id == subjectId || s.Code == subjectId || s.Code.ToLower() == subjectId.ToLower()) && s.IsActive);
 
         if (subject == null)
         {
@@ -105,29 +241,63 @@ public class CurriculumController : ControllerBase
         }
 
         var chapters = await _db.ContentChapters
-            .Where(c => c.SubjectId == subjectId && c.IsActive)
+            .Where(c => c.SubjectId == subject.Id && c.IsActive)
+            .Include(c => c.Topics)
             .Include(c => c.Lessons.Where(l => l.Status == "published"))
+                .ThenInclude(l => l.Topic)
+            .Include(c => c.Lessons.Where(l => l.Status == "published"))
+                .ThenInclude(l => l.Videos)
             .AsNoTracking()
             .OrderBy(c => c.OrderIndex)
             .ToListAsync();
 
-        var response = chapters.Select(c => new LearnerChapterDto
+        var response = chapters.Select(c =>
         {
-            Id = c.Id,
-            Title = c.Title,
-            Description = c.Description ?? string.Empty,
-            OrderIndex = c.OrderIndex,
-            Lessons = c.Lessons
+            var publishedLessons = c.Lessons
                 .OrderBy(l => l.OrderIndex)
-                .Select(l => new LearnerLessonSummaryDto
+                .Select(l =>
                 {
-                    Id = l.Id,
-                    Title = l.Title,
-                    Slug = l.Slug,
-                    OrderIndex = l.OrderIndex,
-                    Status = l.Status
+                    var primaryVideo = l.Videos.FirstOrDefault(v => v.IsPublished && v.EmbedAllowed);
+                    return new LearnerLessonSummaryDto
+                    {
+                        Id = l.Id,
+                        TopicId = l.TopicId,
+                        TopicTitle = l.Topic?.Title,
+                        Title = l.Title,
+                        Slug = l.Slug,
+                        OrderIndex = l.OrderIndex,
+                        Status = l.Status,
+                        ContentType = "video",
+                        HasVideo = l.Videos.Any(v => v.IsPublished),
+                        VideoProvider = primaryVideo?.Provider ?? (l.Videos.Any() ? "youtube" : null),
+                        YouTubeVideoId = primaryVideo?.YouTubeVideoId
+                    };
                 })
-                .ToList()
+                .ToList();
+
+            var activeTopics = c.Topics
+                .Where(t => t.IsActive)
+                .OrderBy(t => t.OrderIndex)
+                .Select(t => new LearnerTopicDto
+                {
+                    Id = t.Id,
+                    ChapterId = t.ChapterId,
+                    Title = t.Title,
+                    Description = t.Description ?? string.Empty,
+                    OrderIndex = t.OrderIndex,
+                    Lessons = publishedLessons.Where(l => l.TopicId == t.Id).ToList()
+                })
+                .ToList();
+
+            return new LearnerChapterDto
+            {
+                Id = c.Id,
+                Title = c.Title,
+                Description = c.Description ?? string.Empty,
+                OrderIndex = c.OrderIndex,
+                Topics = activeTopics,
+                Lessons = publishedLessons
+            };
         }).ToList();
 
         return Ok(response);
@@ -135,7 +305,7 @@ public class CurriculumController : ControllerBase
 
     /// <summary>
     /// GET /api/v1/curriculum/lessons/{lessonId}
-    /// Returns lesson theory & KaTeX formulas.
+    /// Returns lesson theory &amp; KaTeX formulas.
     /// Returns HTTP 404 for Draft or In-Review lessons.
     /// </summary>
     [HttpGet("lessons/{lessonId}")]
@@ -144,30 +314,56 @@ public class CurriculumController : ControllerBase
         var lesson = await _db.ContentLessons
             .Include(l => l.Chapter)
                 .ThenInclude(c => c!.Subject)
+            .Include(l => l.Topic)
+            .Include(l => l.Videos)
             .AsNoTracking()
-            .FirstOrDefaultAsync(l => l.Id == lessonId);
+            .FirstOrDefaultAsync(l => l.Id == lessonId || l.Slug == lessonId);
 
         if (lesson == null || lesson.Status != "published" || lesson.Chapter == null || !lesson.Chapter.IsActive || lesson.Chapter.Subject == null || !lesson.Chapter.Subject.IsActive)
         {
             return NotFound(new { message = "Bài học không tồn tại hoặc chưa được xuất bản." });
         }
 
+        var publishedVideos = lesson.Videos
+            .Where(v => v.IsPublished)
+            .OrderBy(v => v.SortOrder)
+            .Select(v => new LearnerVideoDto
+            {
+                Id = v.Id,
+                Title = v.Title,
+                Description = v.Description,
+                Provider = v.Provider,
+                SourceUrl = v.SourceUrl,
+                EmbedUrl = v.EmbedUrl,
+                YouTubeVideoId = v.YouTubeVideoId,
+                DurationSeconds = v.DurationSeconds,
+                ThumbnailUrl = v.ThumbnailUrl,
+                EmbedAllowed = v.EmbedAllowed,
+                VerificationStatus = v.VerificationStatus
+            })
+            .ToList();
+
         var dto = new LearnerLessonDetailDto
         {
             Id = lesson.Id,
             ChapterId = lesson.ChapterId,
             ChapterTitle = lesson.Chapter.Title,
+            TopicId = lesson.TopicId,
+            TopicTitle = lesson.Topic?.Title,
             SubjectId = lesson.Chapter.SubjectId,
             SubjectName = lesson.Chapter.Subject.Name,
             Title = lesson.Title,
             Slug = lesson.Slug,
             OrderIndex = lesson.OrderIndex,
+            ContentType = "video",
             Introduction = lesson.Introduction ?? string.Empty,
+            LearningObjectives = SafeJsonArray(lesson.LearningObjectivesJson),
             Definitions = SafeJsonArray(lesson.DefinitionsJson),
             Formulas = SafeJsonArray(lesson.FormulasJson),
             Examples = SafeJsonArray(lesson.ExamplesJson),
             ImportantNotes = SafeJsonArray(lesson.ImportantNotesJson),
-            SummaryPoints = SafeJsonArray(lesson.SummaryPointsJson)
+            SummaryPoints = SafeJsonArray(lesson.SummaryPointsJson),
+            Videos = publishedVideos
         };
 
         return Ok(dto);
@@ -185,7 +381,7 @@ public class CurriculumController : ControllerBase
             .Include(l => l.Chapter)
                 .ThenInclude(c => c!.Subject)
             .AsNoTracking()
-            .FirstOrDefaultAsync(l => l.Id == lessonId && l.Status == "published");
+            .FirstOrDefaultAsync(l => (l.Id == lessonId || l.Slug == lessonId) && l.Status == "published");
 
         if (lesson == null || lesson.Chapter == null || !lesson.Chapter.IsActive || lesson.Chapter.Subject == null || !lesson.Chapter.Subject.IsActive)
         {
@@ -193,22 +389,14 @@ public class CurriculumController : ControllerBase
         }
 
         var questions = await _db.ContentQuestions
-            .Where(q => q.LessonId == lessonId && q.Status == "published")
+            .Where(q => q.LessonId == lesson.Id && q.Status == "published")
             .OrderBy(q => q.OrderIndex)
             .AsNoTracking()
             .ToListAsync();
 
         var dtos = questions.Select(q =>
         {
-            List<string> options = new();
-            try
-            {
-                options = JsonSerializer.Deserialize<List<string>>(q.OptionsJson) ?? new List<string>();
-            }
-            catch
-            {
-                options = new List<string>();
-            }
+            var options = SafeDeserializeStringList(q.OptionsJson);
 
             return new LearnerQuestionDto
             {
@@ -260,7 +448,7 @@ public class CurriculumController : ControllerBase
             .Include(q => q.Lesson)
                 .ThenInclude(l => l!.Chapter)
                     .ThenInclude(c => c!.Subject)
-            .FirstOrDefaultAsync(q => q.Id == questionId && q.LessonId == lessonId && q.Status == "published");
+            .FirstOrDefaultAsync(q => q.Id == questionId && (q.LessonId == lessonId || (q.Lesson != null && q.Lesson.Slug == lessonId)) && q.Status == "published");
 
         if (question == null || question.Lesson == null || question.Lesson.Status != "published" ||
             question.Lesson.Chapter == null || !question.Lesson.Chapter.IsActive ||
@@ -277,22 +465,25 @@ public class CurriculumController : ControllerBase
         // Also check if selected is option index/letter (e.g. "A", "B", "C", "D") matching the index
         if (!isCorrect)
         {
-            try
+            var options = SafeDeserializeStringList(question.OptionsJson);
+            int correctIdx = options.FindIndex(o => string.Equals(o.Trim(), correct, StringComparison.OrdinalIgnoreCase));
+            if (correctIdx >= 0)
             {
-                var options = JsonSerializer.Deserialize<List<string>>(question.OptionsJson) ?? new List<string>();
-                int correctIdx = options.FindIndex(o => string.Equals(o.Trim(), correct, StringComparison.OrdinalIgnoreCase));
-                if (correctIdx >= 0)
+                string correctLetter = ((char)('A' + correctIdx)).ToString();
+                if (string.Equals(selected, correctLetter, StringComparison.OrdinalIgnoreCase))
                 {
-                    string correctLetter = ((char)('A' + correctIdx)).ToString();
-                    if (string.Equals(selected, correctLetter, StringComparison.OrdinalIgnoreCase))
-                    {
-                        isCorrect = true;
-                    }
+                    isCorrect = true;
                 }
             }
-            catch
+
+            // Also check client option id pattern like "opt_1_B"
+            if (!isCorrect && selected.StartsWith("opt_"))
             {
-                // ignore
+                var parts = selected.Split('_');
+                if (parts.Length >= 3 && correctIdx >= 0 && parts[2].Equals(((char)('A' + correctIdx)).ToString(), StringComparison.OrdinalIgnoreCase))
+                {
+                    isCorrect = true;
+                }
             }
         }
 
@@ -345,4 +536,249 @@ public class CurriculumController : ControllerBase
 
         return Ok(response);
     }
+
+    [HttpGet("materials")]
+    public async Task<IActionResult> GetMaterials(
+        [FromQuery] string? category = null,
+        [FromQuery] string? subjectId = null,
+        [FromQuery] string? search = null)
+    {
+        var query = _db.ContentLessons.AsNoTracking()
+            .Include(l => l.Chapter)
+            .ThenInclude(c => c!.Subject)
+            .Where(l => l.Status == "published");
+
+        if (!string.IsNullOrWhiteSpace(subjectId) && subjectId != "all")
+        {
+            query = query.Where(l => l.Chapter != null && (l.Chapter.SubjectId == subjectId || (l.Chapter.Subject != null && l.Chapter.Subject.Code == subjectId)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim().ToLower();
+            query = query.Where(l => l.Title.ToLower().Contains(s) || (l.Introduction != null && l.Introduction.ToLower().Contains(s)));
+        }
+
+        var lessons = await query
+            .OrderBy(l => l.Chapter!.OrderIndex)
+            .ThenBy(l => l.OrderIndex)
+            .ToListAsync();
+
+        var materials = lessons.Select(l =>
+        {
+            var hasFormulas = !string.IsNullOrWhiteSpace(l.FormulasJson) && l.FormulasJson != "[]";
+            var itemCategory = hasFormulas ? "Công thức" : "Tài liệu";
+
+            return new
+            {
+                id = l.Id,
+                title = l.Title,
+                category = itemCategory,
+                subjectId = l.Chapter?.SubjectId ?? (l.Chapter?.Subject?.Code != null ? $"sub_{l.Chapter.Subject.Code.ToLowerInvariant()}" : "sub_math10"),
+                subjectName = l.Chapter?.Subject?.Name ?? "Toán học",
+                snippet = !string.IsNullOrWhiteSpace(l.Introduction) ? l.Introduction : l.Title,
+                pagesCount = Math.Max(3, (l.DefinitionsJson?.Length ?? 0) / 50 + 2),
+                updatedAt = l.UpdatedAt.ToString("dd/MM/yyyy")
+            };
+        });
+
+        if (!string.IsNullOrWhiteSpace(category) && category != "all" && category != "Đã lưu")
+        {
+            materials = materials.Where(m => m.category == category);
+        }
+
+        return Ok(materials.ToList());
+    }
+
+    #region Question Bank (Learner-Facing Verified Assessment Items)
+
+    [HttpGet("question-bank")]
+    public async Task<IActionResult> GetQuestionBank(
+        [FromQuery] string? subjectId = null,
+        [FromQuery] string? chapterId = null,
+        [FromQuery] string? lessonId = null,
+        [FromQuery] string? grade = null,
+        [FromQuery] string? difficulty = null,
+        [FromQuery] string? type = null,
+        [FromQuery] string? search = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50)
+    {
+        var query = _db.ContentQuestions.AsNoTracking()
+            .Include(q => q.Lesson)
+                .ThenInclude(l => l!.Chapter)
+                    .ThenInclude(c => c!.Subject)
+            .Where(q => !q.IsDeleted && (q.Status == "published" || q.Status == "approved"));
+
+        if (!string.IsNullOrWhiteSpace(subjectId) && subjectId != "all")
+        {
+            query = query.Where(q => q.SubjectId == subjectId || (q.Lesson != null && q.Lesson.Chapter != null && q.Lesson.Chapter.SubjectId == subjectId));
+        }
+
+        if (!string.IsNullOrWhiteSpace(chapterId) && chapterId != "all")
+        {
+            query = query.Where(q => q.ChapterId == chapterId || (q.Lesson != null && q.Lesson.ChapterId == chapterId));
+        }
+
+        if (!string.IsNullOrWhiteSpace(lessonId) && lessonId != "all")
+        {
+            query = query.Where(q => q.LessonId == lessonId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(grade) && grade != "all")
+        {
+            query = query.Where(q => q.Grade == grade || (q.Lesson != null && q.Lesson.Chapter != null && q.Lesson.Chapter.Subject != null && q.Lesson.Chapter.Subject.Grade == grade));
+        }
+
+        if (!string.IsNullOrWhiteSpace(difficulty) && difficulty != "all")
+        {
+            var diffNormalized = difficulty.ToLowerInvariant();
+            query = query.Where(q => q.Difficulty.ToLower() == diffNormalized);
+        }
+
+        if (!string.IsNullOrWhiteSpace(type) && type != "all")
+        {
+            var norm1 = type.Replace("_", "-").ToLowerInvariant();
+            var norm2 = type.Replace("-", "_").ToLowerInvariant();
+            query = query.Where(q => q.Type.ToLower() == norm1 || q.Type.ToLower() == norm2);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLower();
+            query = query.Where(q => q.Prompt.ToLower().Contains(term) || q.Id.ToLower().Contains(term) || (q.Topic != null && q.Topic.ToLower().Contains(term)));
+        }
+
+        var total = await query.CountAsync();
+        var safePage = Math.Max(1, page);
+        var safePageSize = Math.Clamp(pageSize, 1, 100);
+
+        var questions = await query
+            .OrderBy(q => q.OrderIndex)
+            .ThenBy(q => q.Id)
+            .Skip((safePage - 1) * safePageSize)
+            .Take(safePageSize)
+            .ToListAsync();
+
+        var dtos = questions.Select(FormatQuestionBankItem).ToList();
+        return Ok(new { items = dtos, total, page = safePage, pageSize = safePageSize });
+    }
+
+    [HttpGet("question-bank/statistics")]
+    public async Task<IActionResult> GetQuestionBankStats(
+        [FromQuery] string? subjectId = null,
+        [FromQuery] string? grade = null)
+    {
+        var query = _db.ContentQuestions.AsNoTracking()
+            .Include(q => q.Lesson)
+                .ThenInclude(l => l!.Chapter)
+                    .ThenInclude(c => c!.Subject)
+            .Where(q => !q.IsDeleted);
+
+        if (!string.IsNullOrWhiteSpace(subjectId) && subjectId != "all")
+        {
+            query = query.Where(q => q.SubjectId == subjectId || (q.Lesson != null && q.Lesson.Chapter != null && q.Lesson.Chapter.SubjectId == subjectId));
+        }
+
+        if (!string.IsNullOrWhiteSpace(grade) && grade != "all")
+        {
+            query = query.Where(q => q.Grade == grade || (q.Lesson != null && q.Lesson.Chapter != null && q.Lesson.Chapter.Subject != null && q.Lesson.Chapter.Subject.Grade == grade));
+        }
+
+        var allItems = await query.ToListAsync();
+
+        var total = allItems.Count(q => q.Status == "published" || q.Status == "approved");
+        var approvedCount = total;
+        var needsReviewCount = allItems.Count(q => q.Status == "in-review");
+        var draftCount = allItems.Count(q => q.Status == "draft");
+        var rejectedCount = allItems.Count(q => q.Status == "rejected");
+
+        var byType = new Dictionary<string, int>
+        {
+            ["multiple_choice"] = allItems.Count(q => (q.Status == "published" || q.Status == "approved") && (q.Type == "multiple_choice" || q.Type == "multiple-choice")),
+            ["true_false_group"] = allItems.Count(q => (q.Status == "published" || q.Status == "approved") && (q.Type == "true_false_group" || q.Type == "true-false-group")),
+            ["short_answer"] = allItems.Count(q => (q.Status == "published" || q.Status == "approved") && (q.Type == "short_answer" || q.Type == "short-answer"))
+        };
+
+        var byCognitiveLevel = new Dictionary<string, int>
+        {
+            ["recognition"] = allItems.Count(q => (q.Status == "published" || q.Status == "approved") && (q.Difficulty == "easy" || q.Difficulty == "nhan_biet")),
+            ["comprehension"] = allItems.Count(q => (q.Status == "published" || q.Status == "approved") && (q.Difficulty == "medium" || q.Difficulty == "thong_hieu")),
+            ["application"] = allItems.Count(q => (q.Status == "published" || q.Status == "approved") && (q.Difficulty == "hard" || q.Difficulty == "van_dung")),
+            ["high_application"] = allItems.Count(q => (q.Status == "published" || q.Status == "approved") && (q.Difficulty == "very_hard" || q.Difficulty == "van_dung_cao"))
+        };
+
+        return Ok(new
+        {
+            total,
+            approvedCount,
+            needsReviewCount,
+            draftCount,
+            rejectedCount,
+            byType,
+            byCognitiveLevel
+        });
+    }
+
+    [HttpGet("question-bank/{questionId}")]
+    public async Task<IActionResult> GetQuestionBankDetail(string questionId)
+    {
+        var q = await _db.ContentQuestions.AsNoTracking()
+            .Include(x => x.Lesson)
+                .ThenInclude(l => l!.Chapter)
+                    .ThenInclude(c => c!.Subject)
+            .FirstOrDefaultAsync(x => x.Id == questionId && !x.IsDeleted && (x.Status == "published" || x.Status == "approved"));
+
+        if (q == null)
+            return NotFound(new { message = "Câu hỏi không tồn tại hoặc chưa được phê duyệt." });
+
+        return Ok(FormatQuestionBankItem(q));
+    }
+
+    private static object FormatQuestionBankItem(ContentQuestion q)
+    {
+        var letters = new[] { "A", "B", "C", "D" };
+        var rawOptions = SafeDeserializeStringList(q.OptionsJson);
+        var options = rawOptions.Select((text, idx) => new
+        {
+            id = idx < letters.Length ? letters[idx] : $"O{idx + 1}",
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"^[A-Da-d][.:)\s]+", "").Trim()
+        }).ToList();
+
+        var normalizedType = q.Type == "multiple-choice" ? "multiple_choice"
+            : q.Type == "true-false-group" ? "true_false_group"
+            : q.Type == "short-answer" ? "short_answer"
+            : q.Type;
+
+        var cognitiveLevel = q.Difficulty switch
+        {
+            "easy" or "nhan_biet" => "recognition",
+            "medium" or "thong_hieu" => "comprehension",
+            "hard" or "van_dung" => "application",
+            "very_hard" or "van_dung_cao" => "high_application",
+            _ => "comprehension"
+        };
+
+        return new
+        {
+            id = q.Id,
+            subjectId = q.SubjectId ?? q.Lesson?.Chapter?.SubjectId ?? "sub_math10",
+            chapterId = q.ChapterId ?? q.Lesson?.ChapterId ?? "",
+            lessonId = q.LessonId ?? "",
+            skillIds = new List<string> { q.Topic ?? "SKILL-GENERAL" },
+            type = normalizedType,
+            stem = q.Prompt,
+            difficulty = q.Difficulty,
+            cognitiveLevel = cognitiveLevel,
+            options = options,
+            correctAnswer = q.CorrectAnswer,
+            explanation = q.Explanation ?? "",
+            source = q.SourceType ?? "STUDY_AI Official",
+            reviewStatus = q.Status == "published" ? "approved" : q.Status,
+            createdAt = q.CreatedAt.ToString("o"),
+            updatedAt = q.UpdatedAt.ToString("o")
+        };
+    }
+
+    #endregion
 }

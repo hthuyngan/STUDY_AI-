@@ -4,6 +4,7 @@
    Clean cards, 1px border, subtle shadow, compact tables (48-52px),
    Accessible tabs, form dialogs, bulk actions.
    ============================================================ */
+@import '../staff/staff-shared.css';
 
 /* ── Analytics Grid (2/3 and 1/3) ────────────────────────── */
 .admin-analytics-grid {

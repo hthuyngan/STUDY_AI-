@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -340,6 +341,12 @@ public class ClassroomsController : ControllerBase
             return NotFound(new { message = "Không tìm thấy học sinh với thông tin cung cấp" });
         }
 
+        // Đảm bảo đối tượng được ghi danh là học sinh (learner)
+        if (student.Role != "learner" && student.Role != "student")
+        {
+            return BadRequest(new { message = "Chỉ có thể ghi danh người dùng có vai trò học sinh (learner) vào lớp học" });
+        }
+
         // Kiểm tra xem đã tham gia lớp chưa
         var alreadyEnrolled = await _db.ClassroomStudents.AnyAsync(
             cs => cs.ClassroomId == id && cs.StudentId == student.Id,
@@ -360,7 +367,14 @@ public class ClassroomsController : ControllerBase
 
         _db.ClassroomStudents.Add(enrollment);
         classroom.UpdatedAt = DateTimeOffset.UtcNow;
-        await _db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            return Conflict(new { message = "Học sinh này đã tham gia lớp học từ trước" });
+        }
 
         var result = new ClassroomStudentDto
         {
@@ -405,6 +419,125 @@ public class ClassroomsController : ControllerBase
         await _db.SaveChangesAsync(cancellationToken);
 
         return NoContent();
+    }
+
+    /// <summary>
+    /// Chuyển học sinh từ lớp nguồn sang lớp đích
+    /// </summary>
+    [HttpPost("{id}/transfer-student")]
+    [Authorize(Roles = "teacher,admin")]
+    public async Task<IActionResult> TransferStudent(string id, [FromBody] TransferStudentRequestDto dto, CancellationToken cancellationToken)
+    {
+        var userId = CurrentUserId;
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+        var targetClassroom = await _db.Classrooms.FindAsync(new object[] { id }, cancellationToken);
+        if (targetClassroom == null) return NotFound(new { message = "Không tìm thấy lớp học đích" });
+
+        if (!IsAdmin && targetClassroom.TeacherId != userId) return Forbid();
+
+        if (string.IsNullOrWhiteSpace(dto.StudentId))
+        {
+            return BadRequest(new { message = "Mã học sinh không được để trống" });
+        }
+
+        if (string.IsNullOrWhiteSpace(dto.SourceClassroomId))
+        {
+            return BadRequest(new { message = "Mã lớp học nguồn (sourceClassroomId) là bắt buộc để chuyển lớp." });
+        }
+
+        if (string.Equals(dto.SourceClassroomId.Trim(), id.Trim(), StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest(new { message = "Lớp học nguồn và lớp học đích không thể trùng nhau." });
+        }
+
+        var sourceClassroom = await _db.Classrooms.FindAsync(new object[] { dto.SourceClassroomId }, cancellationToken);
+        if (sourceClassroom == null)
+        {
+            return NotFound(new { message = "Không tìm thấy lớp học nguồn." });
+        }
+
+        // Quyền hạn: Quản trị viên (admin) hoặc giáo viên phải quản lý CẢ lớp nguồn VÀ lớp đích
+        if (!IsAdmin)
+        {
+            if (targetClassroom.TeacherId != userId || sourceClassroom.TeacherId != userId)
+            {
+                return Forbid();
+            }
+        }
+
+        var student = await _db.Users.FirstOrDefaultAsync(u => u.Id == dto.StudentId, cancellationToken);
+        if (student == null)
+        {
+            return NotFound(new { message = "Không tìm thấy học sinh với mã cung cấp" });
+        }
+
+        if (student.Role != "learner" && student.Role != "student")
+        {
+            return BadRequest(new { message = "Chỉ có thể chuyển người dùng có vai trò học sinh (learner)" });
+        }
+
+        // Kiểm tra học sinh có thực sự ghi danh trong lớp nguồn không
+        var oldEnrollment = await _db.ClassroomStudents.FirstOrDefaultAsync(
+            cs => cs.ClassroomId == sourceClassroom.Id && cs.StudentId == student.Id, cancellationToken);
+
+        if (oldEnrollment == null)
+        {
+            return NotFound(new { message = "Học sinh không có trong danh sách ghi danh của lớp học nguồn." });
+        }
+
+        // Chỉ xóa duy nhất enrollment ở lớp nguồn được ủy quyền
+        _db.ClassroomStudents.Remove(oldEnrollment);
+        sourceClassroom.UpdatedAt = DateTimeOffset.UtcNow;
+
+        // Kiểm tra xem đã tham gia lớp đích chưa
+        var targetEnrollment = await _db.ClassroomStudents.FirstOrDefaultAsync(
+            cs => cs.ClassroomId == id && cs.StudentId == student.Id, cancellationToken);
+
+        if (targetEnrollment == null)
+        {
+            targetEnrollment = new ClassroomStudent
+            {
+                Id = $"cs-{Guid.NewGuid():N}"[..12],
+                ClassroomId = id,
+                StudentId = student.Id,
+                EnrolledAt = DateTimeOffset.UtcNow,
+            };
+            _db.ClassroomStudents.Add(targetEnrollment);
+        }
+
+        targetClassroom.UpdatedAt = DateTimeOffset.UtcNow;
+
+        _db.StaffAuditLogs.Add(new StaffAuditLog
+        {
+            Id = $"log_{Guid.NewGuid():N}",
+            ActorUserId = userId,
+            Action = "student_class_transferred",
+            TargetType = "classroom",
+            TargetId = id,
+            Payload = JsonSerializer.Serialize(new
+            {
+                studentId = student.Id,
+                sourceClassroomId = sourceClassroom.Id,
+                targetClassroomId = targetClassroom.Id
+            }),
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        await _db.SaveChangesAsync(cancellationToken);
+
+        var result = new ClassroomStudentDto
+        {
+            Id = targetEnrollment.Id,
+            ClassroomId = targetEnrollment.ClassroomId,
+            StudentId = targetEnrollment.StudentId,
+            StudentName = student.DisplayName ?? student.Email ?? "Học sinh",
+            StudentEmail = student.Email,
+            StudentGrade = student.Grade,
+            EnrolledAt = targetEnrollment.EnrolledAt,
+        };
+
+        return Ok(result);
     }
 
     /// <summary>
@@ -550,6 +683,143 @@ public class ClassroomsController : ControllerBase
         };
 
         return CreatedAtAction("GetAssignment", "Assignments", new { id = assignment.Id }, result);
+    }
+
+    /// <summary>
+    /// Xóa hoặc lưu trữ lớp học (Giáo viên phụ trách hoặc Admin)
+    /// </summary>
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "teacher,admin")]
+    public async Task<IActionResult> DeleteClassroom(string id, CancellationToken cancellationToken)
+    {
+        var userId = CurrentUserId;
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+        var classroom = await _db.Classrooms
+            .Include(c => c.Students)
+            .Include(c => c.Assignments)
+            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+
+        if (classroom == null)
+        {
+            return NotFound(new { message = "Không tìm thấy lớp học" });
+        }
+
+        if (!IsAdmin && classroom.TeacherId != userId)
+        {
+            return Forbid();
+        }
+
+        var strategy = _db.Database.CreateExecutionStrategy();
+        IActionResult result = NoContent();
+
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await _db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, cancellationToken);
+
+            // Kiểm tra nguyên tử (atomic check) học sinh và bài tập để chống race condition cascade delete
+            var studentCount = await _db.ClassroomStudents.CountAsync(cs => cs.ClassroomId == id, cancellationToken);
+            if (studentCount > 0)
+            {
+                result = BadRequest(new { message = $"Không thể xóa lớp đang có {studentCount} học viên. Vui lòng chuyển hoặc xóa học viên trước." });
+                return;
+            }
+
+            var assignmentCount = await _db.Assignments.CountAsync(a => a.ClassroomId == id, cancellationToken);
+            if (assignmentCount > 0)
+            {
+                classroom.Status = "archived";
+                classroom.UpdatedAt = DateTimeOffset.UtcNow;
+                await _db.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+                result = Ok(new { message = "Lớp học đã có bài tập nên được chuyển sang trạng thái lưu trữ", archived = true });
+                return;
+            }
+
+            _db.Classrooms.Remove(classroom);
+            await _db.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            result = NoContent();
+        });
+
+        return result;
+    }
+
+    [HttpGet("{id}/activities")]
+    public async Task<IActionResult> GetClassActivities(string id, CancellationToken cancellationToken)
+    {
+        var classroom = await _db.Classrooms.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+        if (classroom == null)
+            return NotFound(new { message = "Không tìm thấy lớp học." });
+
+        if (!IsAdmin && classroom.TeacherId != CurrentUserId)
+        {
+            var isStudent = await _db.ClassroomStudents.AnyAsync(cs => cs.ClassroomId == id && cs.StudentId == CurrentUserId, cancellationToken);
+            if (!isStudent) return Forbid();
+        }
+
+        var logs = await _db.StaffAuditLogs
+            .AsNoTracking()
+            .Where(a => a.TargetId == id || (a.TargetType == "classroom" && a.TargetId == id))
+            .OrderByDescending(a => a.CreatedAt)
+            .Take(50)
+            .ToListAsync(cancellationToken);
+
+        var userIds = logs.Select(l => l.ActorUserId).Distinct().ToList();
+        var actors = await _db.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.DisplayName, cancellationToken);
+
+        var activities = logs.Select(l => new
+        {
+            id = l.Id,
+            classId = id,
+            action = l.Action,
+            detail = l.Payload ?? "",
+            timestamp = l.CreatedAt.ToString("o"),
+            actor = actors.TryGetValue(l.ActorUserId, out var name) ? name : "Giáo viên"
+        }).ToList();
+
+        return Ok(activities);
+    }
+
+    [HttpPost("{id}/activities")]
+    [Authorize(Roles = "teacher,admin")]
+    public async Task<IActionResult> AddClassActivity(string id, [FromBody] System.Text.Json.Nodes.JsonObject payload, CancellationToken cancellationToken)
+    {
+        var classroom = await _db.Classrooms.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+        if (classroom == null)
+            return NotFound(new { message = "Không tìm thấy lớp học." });
+
+        if (!IsAdmin && classroom.TeacherId != CurrentUserId)
+            return Forbid();
+
+        var action = payload["action"]?.ToString() ?? "class_activity";
+        var detail = payload["detail"]?.ToString() ?? "";
+
+        var log = new StaffAuditLog
+        {
+            Id = $"log_act_{Guid.NewGuid():N}",
+            ActorUserId = CurrentUserId,
+            Action = action,
+            TargetType = "classroom",
+            TargetId = id,
+            Payload = detail,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        _db.StaffAuditLogs.Add(log);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        var actor = await _db.Users.FindAsync(new object[] { CurrentUserId }, cancellationToken);
+
+        return Ok(new
+        {
+            id = log.Id,
+            classId = id,
+            action = log.Action,
+            detail = log.Payload,
+            timestamp = log.CreatedAt.ToString("o"),
+            actor = actor?.DisplayName ?? "Giáo viên"
+        });
     }
 }
 

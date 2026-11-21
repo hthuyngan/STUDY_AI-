@@ -107,7 +107,7 @@ export const ContentReviewPage: React.FC = () => {
   const handleQuickApprove = async (item: ApprovalItem) => {
     if (window.confirm(`Xác nhận phê duyệt nội dung: "${item.title}"?`)) {
       try {
-        await operationsService.approveContent(item.id, 'Phê duyệt nhanh từ danh sách', 'Demo Admin')
+        await operationsService.approveContent(item.id, 'Phê duyệt nhanh từ danh sách', 'Chuyên viên Nội dung (Content)')
         showToast(`Đã phê duyệt nội dung: ${item.title}`)
         loadData()
       } catch (err: unknown) {
@@ -133,10 +133,10 @@ export const ContentReviewPage: React.FC = () => {
 
     try {
       if (modalMode === 'reject') {
-        await operationsService.rejectContent(selectedItem.id, actionReason, 'Demo Admin')
+        await operationsService.rejectContent(selectedItem.id, actionReason, 'Chuyên viên Nội dung (Content)')
         showToast(`Đã từ chối nội dung: ${selectedItem.title}`)
       } else {
-        await operationsService.requestChanges(selectedItem.id, actionReason, 'Demo Admin')
+        await operationsService.requestChanges(selectedItem.id, actionReason, 'Chuyên viên Nội dung (Content)')
         showToast(`Đã gửi yêu cầu chỉnh sửa: ${selectedItem.title}`)
       }
       setIsModalOpen(false)

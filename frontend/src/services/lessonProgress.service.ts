@@ -17,34 +17,75 @@ export function saveLessonProgress(progress: LessonProgressState): void {
 }
 
 
+/**
+ * Compute progress based on 70% content/video + 30% assessment model.
+ * Formula: Content = (completedSections / totalSections) * 70%
+ *          Overall = Content + (isAssessmentCompleted ? 30% : 0%)
+ */
 export function computeProgressValues(
-  completedSectionCount: number,
-  totalActualSections: number,
-  isAssessmentCompleted: boolean
-): { contentProgress: number; overallProgress: number } {
-  if (totalActualSections <= 0) {
+  answeredCount: number,
+  totalQuestions: number,
+  isAssessmentCompleted: boolean = false,
+  hasAssessment: boolean = true
+): { answerProgress: number; overallProgress: number; isCompleted: boolean; contentProgress: number } {
+  if (totalQuestions <= 0) {
     return {
-      contentProgress: isAssessmentCompleted ? 80 : 0,
+      answerProgress: 0,
       overallProgress: isAssessmentCompleted ? 100 : 0,
+      contentProgress: 0,
+      isCompleted: isAssessmentCompleted,
     }
   }
 
-  const fraction = Math.min(1, Math.max(0, completedSectionCount / totalActualSections))
-  const contentProgress = Math.round(fraction * 80)
-
-  if (isAssessmentCompleted) {
-    // When assessment is completed, guarantee EXACT 100%
+  const fraction = Math.min(1, Math.max(0, answeredCount / totalQuestions))
+  if (hasAssessment) {
+    const contentProgress = Math.round(fraction * 70)
+    const overallProgress = contentProgress + (isAssessmentCompleted ? 30 : 0)
     return {
-      contentProgress: 80,
-      overallProgress: 100,
+      answerProgress: Math.round(fraction * 100),
+      overallProgress: Math.min(100, overallProgress),
+      contentProgress,
+      isCompleted: isAssessmentCompleted && contentProgress >= 70,
+    }
+  } else {
+    const contentProgress = Math.round(fraction * 100)
+    return {
+      answerProgress: contentProgress,
+      overallProgress: contentProgress,
+      contentProgress,
+      isCompleted: contentProgress >= 100,
     }
   }
+}
 
-  const overallProgress = Math.min(80, contentProgress)
-  return {
-    contentProgress,
+export function markQuestionsProgress(
+  lessonId: string,
+  subjectId: string,
+  answeredCount: number,
+  totalQuestions: number
+): LessonProgressState {
+  const existing = getLessonProgress(lessonId)
+  const isDone = existing?.assessmentStatus === 'completed'
+  const { overallProgress } = computeProgressValues(
+    answeredCount,
+    totalQuestions,
+    isDone
+  )
+
+  const updated: LessonProgressState = {
+    lessonId,
+    subjectId,
+    completedSectionIds: existing?.completedSectionIds || [],
+    contentProgress: overallProgress,
+    assessmentStatus: isDone ? 'completed' : answeredCount > 0 ? 'incomplete' : 'not-attempted',
+    assessmentAttemptId: existing?.assessmentAttemptId,
+    assessmentScore: existing?.assessmentScore,
     overallProgress,
+    updatedAt: new Date().toISOString(),
   }
+
+  saveLessonProgress(updated)
+  return updated
 }
 
 export function markSectionCompleted(
@@ -61,7 +102,7 @@ export function markSectionCompleted(
   }
 
   const isAssessmentDone = existing?.assessmentStatus === 'completed'
-  const { contentProgress, overallProgress } = computeProgressValues(
+  const { overallProgress } = computeProgressValues(
     currentSections.length,
     totalActualSections,
     isAssessmentDone
@@ -71,7 +112,7 @@ export function markSectionCompleted(
     lessonId,
     subjectId,
     completedSectionIds: currentSections,
-    contentProgress,
+    contentProgress: overallProgress,
     assessmentStatus: existing?.assessmentStatus || 'not-attempted',
     assessmentAttemptId: existing?.assessmentAttemptId,
     assessmentScore: existing?.assessmentScore,

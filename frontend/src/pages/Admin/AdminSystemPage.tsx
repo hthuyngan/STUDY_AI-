@@ -1,108 +1,69 @@
-import React, { useState } from 'react'
+import React from 'react'
 import {
-  RotateCcw,
-  CheckCircle2,
   Cpu,
-  HardDrive,
   Layers,
   Database,
   ExternalLink,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAdminSystemHealth } from '@/hooks/useAdmin'
-import { Button } from '@/components/ui/Button'
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Skeleton } from '@/components/ui/Skeleton'
 import './AdminPages.css'
 import '@/components/admin/AdminComponents.css'
 
 export const AdminSystemPage: React.FC = () => {
-  const { health, loading, resetDemoData } = useAdminSystemHealth()
-  const [resetConfirmOpen, setResetConfirmOpen] = useState(false)
-  const [resetFeedback, setResetFeedback] = useState<string | null>(null)
-
-  const handleReset = async () => {
-    await resetDemoData()
-    setResetConfirmOpen(false)
-    setResetFeedback('Đã đặt lại toàn bộ dữ liệu demo về trạng thái ban đầu.')
-    setTimeout(() => setResetFeedback(null), 3500)
-  }
+  const { health, loading, error, refresh } = useAdminSystemHealth()
 
   const WORKSPACE_MODULES = [
     {
       name: 'Học viên (Learner Workspace)',
       route: '/dashboard',
-      status: 'Sẵn sàng trải nghiệm',
-      features: ['Lộ trình Toán 12', 'AI Tutor chat', 'Làm bài trắc nghiệm', 'Bài thu hoạch'],
+      status: 'Đã đăng ký route',
+      features: ['Lộ trình theo khối lớp', 'AI Tutor chat', 'Luyện tập', 'Bài thu hoạch'],
     },
     {
       name: 'Giáo viên (Teacher Workspace)',
       route: '/teacher',
-      status: 'Sẵn sàng trải nghiệm',
+      status: 'Đã đăng ký route',
       features: ['Quản lý lớp học', 'Giao bài tập', 'Theo dõi điểm số'],
     },
     {
       name: 'Biên soạn nội dung (Content Workspace)',
       route: '/content',
-      status: 'Sẵn sàng trải nghiệm',
+      status: 'Đã đăng ký route',
       features: ['Biên soạn bài học', 'Công thức LaTeX', 'Hàng đợi duyệt'],
-    },
-    {
-      name: 'Trung tâm hỗ trợ (Support Workspace)',
-      route: '/support',
-      status: 'Sẵn sàng trải nghiệm',
-      features: ['Ticket khiếu nại', 'Tra cứu người dùng', 'Trạng thái sync'],
     },
     {
       name: 'Quản trị hệ thống (Admin Workspace V2)',
       route: '/admin',
-      status: 'Đã hoàn thiện V2',
-      features: ['Tổng quan 5 hàng', 'Quản lý người dùng', 'Phân trang & CSV', 'Sandbox quyền'],
+      status: 'Đã đăng ký route',
+      features: ['Tổng quan', 'Quản lý người dùng', 'Phân trang & CSV', 'Theo dõi hệ thống'],
     },
   ]
 
   return (
     <div className="admin-system-page">
-      {/* Toast Feedback */}
-      {resetFeedback && (
-        <div className="admin-toast-banner" role="status">
-          <CheckCircle2 size={16} />
-          <span>{resetFeedback}</span>
-        </div>
-      )}
-
       {/* Header */}
       <div className="admin-header-row">
         <div className="staff-page-header" style={{ marginBottom: 0 }}>
           <h1 className="staff-page-title">Trạng thái hệ thống & Hạ tầng</h1>
           <p className="staff-page-desc">
-            Báo cáo môi trường vận hành, phiên bản giao diện và bộ lưu trữ cục bộ STUDY_AI.
+            Báo cáo trực tiếp từ API quản trị và cơ sở dữ liệu STUDY_AI.
           </p>
         </div>
-
-        <Button
-          variant="outline"
-          icon={RotateCcw}
-          onClick={() => setResetConfirmOpen(true)}
-          aria-label="Đặt lại dữ liệu demo"
-        >
-          <span>Đặt lại dữ liệu Demo</span>
-        </Button>
       </div>
 
-      {/* Honest Prototype Notice */}
-      <div className="admin-system-honest-card" style={{ marginTop: '20px' }}>
-        <div className="honest-card-top">
-          <span className="prototype-status-pill">FE Prototype Standalone</span>
-          <span className="prototype-label-tag">Chế độ xem trước giao diện</span>
+      {error && (
+        <div className="admin-alert-banner admin-alert-danger" role="alert" style={{ margin: '16px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#b91c1c' }}>
+          <div>
+            <strong>Lỗi kết nối máy chủ:</strong> {error}
+          </div>
+          <button type="button" className="admin-btn-outline" onClick={refresh} style={{ borderColor: '#b91c1c', color: '#b91c1c' }}>
+            Thử lại
+          </button>
         </div>
-        <p className="honest-card-text">
-          Hệ thống đang chạy hoàn toàn ở chế độ <strong>Frontend Prototype</strong> phục vụ đánh giá UI/UX.
-          Mọi số liệu, thời gian phản hồi API và nhật ký thay đổi đều là <strong>Dữ liệu mô phỏng (Mock Data)</strong> được lưu bền vững trong trình duyệt (<code>localStorage</code>) và <strong>chưa kết nối với cơ sở dữ liệu thật của Backend</strong>.
-        </p>
-      </div>
+      )}
 
-      {/* 3 Metric Cards with Mock Indicator */}
       <div className="admin-system-grid" style={{ marginTop: '20px' }}>
         {/* Card 1: Frontend Engine */}
         <div className="staff-card">
@@ -114,7 +75,7 @@ export const AdminSystemPage: React.FC = () => {
             <span className="mock-label-pill">Thực tế</span>
           </div>
           <div className="staff-card-body">
-            <div className="sys-stat-val">v2.2.0</div>
+            <div className="sys-stat-val">{import.meta.env.VITE_APP_VERSION || 'Chưa khai báo'}</div>
             <div className="sys-stat-sub">React 19.2 + Vite 8.3 + TypeScript</div>
             <div className="sys-meta-list">
               <div className="sys-meta-item">
@@ -123,20 +84,20 @@ export const AdminSystemPage: React.FC = () => {
               </div>
               <div className="sys-meta-item">
                 <span>Môi trường:</span>
-                <strong>GitHub Pages / Static SPA</strong>
+                <strong>{health?.environment || 'Chưa nhận dữ liệu'}</strong>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Card 2: Local Storage Persistence */}
+        {/* Card 2: Database persistence */}
         <div className="staff-card">
           <div className="staff-card-header">
             <div className="admin-sys-header-left">
-              <HardDrive size={16} className="sys-icon" />
-              <h3 className="staff-card-title">Lưu trữ cục bộ</h3>
+              <Database size={16} className="sys-icon" />
+              <h3 className="staff-card-title">Cơ sở dữ liệu</h3>
             </div>
-            <span className="mock-label-pill">LocalStorage</span>
+            <span className="mock-label-pill">SQL Server</span>
           </div>
           <div className="staff-card-body">
             {loading ? (
@@ -144,21 +105,19 @@ export const AdminSystemPage: React.FC = () => {
             ) : (
               <>
                 <div className="sys-stat-val">
-                  {health?.storageStats.usersCount ?? 0} người dùng
+                  {health?.storageStats?.usersCount ?? 0} người dùng
                 </div>
                 <div className="sys-stat-sub">
-                  Đồng bộ tức thời vào Web Storage
+                  {health?.database.status || 'Chưa nhận trạng thái'}
                 </div>
                 <div className="sys-meta-list">
                   <div className="sys-meta-item">
                     <span>Nhật ký hoạt động:</span>
-                    <strong>{health?.storageStats.activitiesCount ?? 0} bản ghi</strong>
+                    <strong>{health?.storageStats?.activitiesCount ?? 0} bản ghi</strong>
                   </div>
                   <div className="sys-meta-item">
-                    <span>Trạng thái lưu:</span>
-                    <strong style={{ color: '#047857' }}>
-                      {health?.storageStats.isLocalStoragePersisted ? 'Đã lưu cache' : 'Mặc định sẵn có'}
-                    </strong>
+                    <span>Độ trễ truy vấn:</span>
+                    <strong>{health && health.database.latencyMs >= 0 ? `${health.database.latencyMs} ms` : 'Không khả dụng'}</strong>
                   </div>
                 </div>
               </>
@@ -173,23 +132,23 @@ export const AdminSystemPage: React.FC = () => {
               <Database size={16} className="sys-icon" />
               <h3 className="staff-card-title">Máy chủ (Backend)</h3>
             </div>
-            <span className="mock-label-pill warning">Dữ liệu mô phỏng</span>
+            <span className="mock-label-pill">API trực tiếp</span>
           </div>
           <div className="staff-card-body">
-            <div className="sys-stat-val" style={{ color: '#b45309' }}>
-              Chưa nối máy chủ
+            <div className="sys-stat-val">
+              {loading ? 'Đang kiểm tra…' : health?.apiStatus || 'Không khả dụng'}
             </div>
             <div className="sys-stat-sub">
-              Sử dụng Mock Engine trong bộ nhớ
+              {health?.backendVersion || 'Chưa nhận phiên bản backend'}
             </div>
             <div className="sys-meta-list">
               <div className="sys-meta-item">
                 <span>API Gateway:</span>
-                <strong>Client Mock Service</strong>
+                <strong>{health?.apiStatus || 'Không khả dụng'}</strong>
               </div>
               <div className="sys-meta-item">
-                <span>Đồng bộ máy chủ:</span>
-                <strong style={{ color: '#b45309' }}>Sẵn sàng kết nối sau</strong>
+                <span>Lần kiểm tra:</span>
+                <strong>{health?.checkedAt ? new Date(health.checkedAt).toLocaleString('vi-VN') : '—'}</strong>
               </div>
             </div>
           </div>
@@ -254,17 +213,6 @@ export const AdminSystemPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Confirm Reset Dialog */}
-      <ConfirmDialog
-        isOpen={resetConfirmOpen}
-        title="Đặt lại toàn bộ dữ liệu Demo?"
-        description="Toàn bộ tài khoản vừa thêm, phân quyền đã chỉnh và nhật ký hoạt động lưu trong localStorage sẽ bị xóa và quay về bộ dữ liệu mẫu ban đầu."
-        confirmText="Xác nhận đặt lại"
-        cancelText="Hủy bỏ"
-        isDestructive={true}
-        onConfirm={handleReset}
-        onCancel={() => setResetConfirmOpen(false)}
-      />
     </div>
   )
 }

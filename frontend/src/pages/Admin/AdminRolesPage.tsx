@@ -3,21 +3,16 @@ import {
   Check,
   X,
   Shield,
-  RotateCcw,
   GraduationCap,
   Briefcase,
   BookOpen,
-  Headphones,
-  SlidersHorizontal,
   Info,
+  Lock,
 } from 'lucide-react'
 import { ROLE_PERMISSIONS } from '@/auth/permissions'
 import type { RolePermission } from '@/auth/permissions'
 import type { UserRole } from '@/auth/auth.types'
 import { ROLE_LABELS } from '@/components/layout/workspaceNavigation'
-import { useAdminRolesSimulation } from '@/hooks/useAdmin'
-import { Button } from '@/components/ui/Button'
-import { Skeleton } from '@/components/ui/Skeleton'
 import './AdminPages.css'
 import '@/components/admin/AdminComponents.css'
 
@@ -83,21 +78,9 @@ const PERMISSION_ROWS: PermissionRow[] = [
     description: 'Phát hành chính thức bài học lên chương trình của học viên.',
     category: 'Nội dung & Giáo trình',
   },
-  {
-    key: 'manage_support_tickets',
-    label: 'Xử lý ticket hỗ trợ',
-    description: 'Tiếp nhận, phản hồi và cập nhật trạng thái yêu cầu người dùng.',
-    category: 'Hỗ trợ khách hàng',
-  },
-  {
-    key: 'view_user_support_profile',
-    label: 'Tra cứu hồ sơ hỗ trợ',
-    description: 'Tra cứu tài khoản và trạng thái đồng bộ khi giải quyết khiếu nại.',
-    category: 'Hỗ trợ khách hàng',
-  },
 ]
 
-const ROLES: UserRole[] = ['learner', 'teacher', 'content', 'support', 'admin']
+const ROLES: UserRole[] = ['learner', 'teacher', 'content', 'admin']
 
 interface RoleDetailInfo {
   role: UserRole
@@ -134,14 +117,6 @@ const ROLE_DETAILS: RoleDetailInfo[] = [
     description: 'Biên soạn giáo án, nội dung đa phương tiện, công thức toán LaTeX và gửi kiểm duyệt xuất bản.',
   },
   {
-    role: 'support',
-    icon: Headphones,
-    title: 'Hỗ trợ kỹ thuật (Support)',
-    scope: 'Trung tâm hỗ trợ',
-    accessRoutes: '/support, /support/tickets, /support/users',
-    description: 'Tiếp nhận ticket từ học sinh/phụ huynh, tra cứu trạng thái đồng bộ ngoại tuyến và xử lý sự cố tài khoản.',
-  },
-  {
     role: 'admin',
     icon: Shield,
     title: 'Quản trị viên (Admin)',
@@ -152,8 +127,7 @@ const ROLE_DETAILS: RoleDetailInfo[] = [
 ]
 
 export const AdminRolesPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'matrix' | 'simulator' | 'explanation'>('matrix')
-  const { permissionsMap, loading, togglePermission, resetDefaults } = useAdminRolesSimulation()
+  const [activeTab, setActiveTab] = useState<'matrix' | 'explanation'>('matrix')
 
   return (
     <div className="admin-roles-page">
@@ -162,8 +136,22 @@ export const AdminRolesPage: React.FC = () => {
         <div className="staff-page-header" style={{ marginBottom: 0 }}>
           <h1 className="staff-page-title">Ma trận phân quyền & Vai trò</h1>
           <p className="staff-page-desc">
-            Phân định quyền hạn cho 5 vai trò hệ thống và mô phỏng chính sách truy cập STUDY_AI.
+            Phân định quyền hạn cho các vai trò hệ thống theo kiến trúc Code-Defined & Server-Enforced RBAC của STUDY_AI.
           </p>
+        </div>
+      </div>
+
+      {/* Security Architecture Notice */}
+      <div className="admin-sandbox-notice" style={{ marginTop: '16px' }}>
+        <Lock size={18} className="sandbox-notice-icon" style={{ color: '#0284c7' }} />
+        <div>
+          <div className="sandbox-notice-title" style={{ color: '#0369a1' }}>
+            Chính sách phân quyền bảo mật cấp mã nguồn (Code-Defined RBAC)
+          </div>
+          <div className="sandbox-notice-desc">
+            Quyền hạn của từng vai trò được định nghĩa cố định trong mã nguồn và kiểm soát nghiêm ngặt bởi ASP.NET Core Authorize Policies trên máy chủ Backend.
+            Quản trị viên có thể gán hoặc thay đổi vai trò tài khoản tại trang <strong>Quản lý người dùng</strong>.
+          </div>
         </div>
       </div>
 
@@ -177,19 +165,7 @@ export const AdminRolesPage: React.FC = () => {
           onClick={() => setActiveTab('matrix')}
         >
           <Shield size={15} />
-          <span>Ma trận quyền chuẩn</span>
-        </button>
-
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === 'simulator'}
-          className={`admin-tab-btn ${activeTab === 'simulator' ? 'active' : ''}`}
-          onClick={() => setActiveTab('simulator')}
-        >
-          <SlidersHorizontal size={15} />
-          <span>Mô phỏng cấu hình quyền (Sandbox)</span>
-          <span className="admin-tab-pill">Demo</span>
+          <span>Ma trận quyền chuẩn (RBAC Matrix)</span>
         </button>
 
         <button
@@ -230,7 +206,7 @@ export const AdminRolesPage: React.FC = () => {
                     </div>
                   </td>
                   {ROLES.map((r) => {
-                    const allowed = ROLE_PERMISSIONS[r].includes(row.key)
+                    const allowed = (ROLE_PERMISSIONS[r] || []).includes(row.key)
                     return (
                       <td key={r} style={{ textAlign: 'center' }}>
                         {allowed ? (
@@ -258,85 +234,7 @@ export const AdminRolesPage: React.FC = () => {
         </div>
       )}
 
-      {/* Tab 2: Interactive Simulation Sandbox */}
-      {activeTab === 'simulator' && (
-        <div className="admin-roles-simulator-section">
-          {/* Simulation disclaimer banner */}
-          <div className="admin-sandbox-notice">
-            <Info size={18} className="sandbox-notice-icon" />
-            <div>
-              <div className="sandbox-notice-title">Chế độ mô phỏng cấu hình quyền (Prototype Sandbox)</div>
-              <div className="sandbox-notice-desc">
-                Bạn có thể bấm trực tiếp vào từng ô để kích hoạt hoặc hủy kích hoạt quyền demo.
-                Các thay đổi được lưu tạm thời vào <code>localStorage</code> và <strong>không ảnh hưởng đến cơ chế phân quyền bảo mật của backend</strong>.
-              </div>
-            </div>
-            <Button
-              variant="outline"
-              icon={RotateCcw}
-              onClick={resetDefaults}
-              style={{ marginLeft: 'auto', flexShrink: 0 }}
-            >
-              Đặt lại mặc định
-            </Button>
-          </div>
-
-          <div className="staff-table-wrapper" style={{ marginTop: '16px' }}>
-            {loading || !permissionsMap ? (
-              <div style={{ padding: '24px' }}>
-                <Skeleton height={40} style={{ marginBottom: 8 }} />
-                <Skeleton height={40} />
-              </div>
-            ) : (
-              <table className="staff-table" aria-label="Bảng mô phỏng cấu hình phân quyền">
-                <thead>
-                  <tr>
-                    <th scope="col" style={{ width: '340px' }}>Quyền hạn</th>
-                    {ROLES.map((r) => (
-                      <th key={r} scope="col" style={{ textAlign: 'center' }}>
-                        {ROLE_LABELS[r]}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {PERMISSION_ROWS.map((row) => (
-                    <tr key={row.key}>
-                      <td>
-                        <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>
-                          {row.label}
-                        </div>
-                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                          {row.description}
-                        </div>
-                      </td>
-                      {ROLES.map((r) => {
-                        const allowed = (permissionsMap[r] || []).includes(row.key)
-                        return (
-                          <td key={r} style={{ textAlign: 'center' }}>
-                            <button
-                              type="button"
-                              className={`role-sim-toggle-btn ${allowed ? 'enabled' : 'disabled'}`}
-                              onClick={() => togglePermission(r, row.key)}
-                              aria-pressed={allowed}
-                              aria-label={`Bật/tắt quyền ${row.label} cho ${ROLE_LABELS[r]}`}
-                              title={`Bấm để ${allowed ? 'hủy' : 'cấp'} quyền`}
-                            >
-                              {allowed ? <Check size={14} /> : <X size={12} />}
-                            </button>
-                          </td>
-                        )
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Tab 3: Detailed Roles Explanation Cards */}
+      {/* Tab 2: Detailed Roles Explanation Cards */}
       {activeTab === 'explanation' && (
         <div className="admin-roles-cards-grid">
           {ROLE_DETAILS.map((info) => {

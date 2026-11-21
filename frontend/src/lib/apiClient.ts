@@ -200,9 +200,22 @@ export async function requestJson<T>(
     if (!res.ok) {
       let errorBody: unknown
       try {
-        errorBody = await res.json()
+        if (typeof res.json === 'function') {
+          errorBody = await (typeof res.clone === 'function' ? res.clone().json() : res.json())
+        }
       } catch {
-        errorBody = await res.text()
+        try {
+          if (typeof res.text === 'function') {
+            const text = await res.text()
+            try {
+              errorBody = JSON.parse(text)
+            } catch {
+              errorBody = text
+            }
+          }
+        } catch {
+          errorBody = undefined
+        }
       }
       throw new ApiError(
         res.status,

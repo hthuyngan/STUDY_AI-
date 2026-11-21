@@ -1,134 +1,192 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import {
-  BookOpen,
   Plus,
   Search,
   Layers,
+  BookOpen,
   Edit2,
   Trash2,
   CheckCircle2,
   X,
   ArrowRight,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  RotateCcw,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { educationService } from '@/services/education.service'
 import type { CurriculumSubjectItem, ContentStatus } from '@/types/education'
-import { StatusBadge } from '@/components/ui/StatusBadge'
+import { Breadcrumb } from '@/components/ui/Breadcrumb'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { SummaryStrip } from '@/components/ui/SummaryStrip'
+import { PageErrorState } from '@/components/ui/PageErrorState'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
-import { SubjectCardList } from './components/subjects/SubjectCardList'
-import './ContentPages.css'
-import '../Admin/AdminPages.css'
-import '@/components/admin/AdminComponents.css'
+import { SubjectIconSvg, type SubjectIconType } from '@/components/subjects/SubjectIconSvg'
+import {
+  SUBJECT_ICON_OPTIONS,
+  resolveSubjectIcon,
+  extractDescriptionText,
+  packDescriptionWithIcon,
+} from '@/components/subjects/subjectIconUtils'
+import './ContentSubjectsPage.css'
 
 export const ContentSubjectsPage: React.FC = () => {
   const [subjects, setSubjects] = useState<CurriculumSubjectItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [gradeFilter, setGradeFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState<'all' | ContentStatus>('all')
   const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const [toastType, setToastType] = useState<'success' | 'error'>('success')
 
-  // Dialog State
+  // Modal State
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingSubject, setEditingSubject] = useState<CurriculumSubjectItem | null>(null)
   const [formName, setFormName] = useState('')
   const [formCode, setFormCode] = useState('')
-  const [formGrade, setFormGrade] = useState('Lớp 12')
-  const [formIcon, setFormIcon] = useState('📖')
+  const [formGrade, setFormGrade] = useState('12')
+  const [formIcon, setFormIcon] = useState<SubjectIconType>('math')
   const [formDescription, setFormDescription] = useState('')
   const [formStatus, setFormStatus] = useState<ContentStatus>('published')
   const [formError, setFormError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Delete Confirm State
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [deletingSubject, setDeletingSubject] = useState<{ id: string; name: string } | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
-  // Listen for Escape key to close dialog
+  const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
+    setToastMessage(msg)
+    setToastType(type)
+    setTimeout(() => setToastMessage(null), 3500)
+  }
+
+  // Fetch subjects from backend
+  const loadData = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await educationService.getSubjects()
+      setSubjects(data)
+    } catch (err: any) {
+      const msg = err?.data?.detail || err?.message || 'Không thể tải danh sách môn học từ máy chủ.'
+      setError(msg)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadData()
+
+    const handleDataChange = () => {
+      loadData()
+    }
+    window.addEventListener('study_ai_education_change', handleDataChange)
+    return () => {
+      window.removeEventListener('study_ai_education_change', handleDataChange)
+    }
+  }, [loadData])
+
+  // Lock body scroll on modal open
+  useEffect(() => {
+    if (isDialogOpen) {
+      const orig = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+      return () => {
+        document.body.style.overflow = orig
+      }
+    }
+  }, [isDialogOpen])
+
+  // Listen for Escape key to close modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isDialogOpen) {
+      if (e.key === 'Escape' && isDialogOpen && !isSubmitting) {
         setIsDialogOpen(false)
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isDialogOpen])
+  }, [isDialogOpen, isSubmitting])
 
-  // Lock body scroll when dialog is open
-  useEffect(() => {
-    if (isDialogOpen) {
-      const originalOverflow = document.body.style.overflow
-      document.body.style.overflow = 'hidden'
-      return () => {
-        document.body.style.overflow = originalOverflow
-      }
-    }
-  }, [isDialogOpen])
+  // Filtered list
+  const filteredSubjects = useMemo(() => {
+    return subjects.filter((s) => {
+      const term = search.trim().toLowerCase()
+      const matchSearch =
+        !term ||
+        s.name.toLowerCase().includes(term) ||
+        s.code.toLowerCase().includes(term) ||
+        s.description.toLowerCase().includes(term)
 
-  const showToast = (msg: string) => {
-    setToastMessage(msg)
-    setTimeout(() => setToastMessage(null), 3000)
-  }
+      const matchGrade =
+        gradeFilter === 'all' ||
+        s.grade.replace(/[^0-9]/g, '') === gradeFilter.replace(/[^0-9]/g, '')
 
-  const loadData = useCallback(() => {
-    setLoading(true)
-    educationService.getSubjects().then((data) => {
-      setSubjects(data)
-      setLoading(false)
+      const matchStatus = statusFilter === 'all' || s.status === statusFilter
+
+      return matchSearch && matchGrade && matchStatus
     })
-  }, [])
+  }, [subjects, search, gradeFilter, statusFilter])
 
-  useEffect(() => {
-    let active = true
-    educationService.getSubjects().then((data) => {
-      if (active) {
-        setSubjects(data)
-        setLoading(false)
-      }
-    })
+  // KPIs
+  const totalSubjects = subjects.length
+  const activeCount = subjects.filter((s) => s.status === 'published').length
+  const draftCount = subjects.filter((s) => s.status === 'draft').length
+  const totalLessons = subjects.reduce((sum, s) => sum + (s.lessonCount || 0), 0)
 
-    const handleDataChange = () => {
-      if (active) loadData()
-    }
-    window.addEventListener('study_ai_education_change', handleDataChange)
-    return () => {
-      active = false
-      window.removeEventListener('study_ai_education_change', handleDataChange)
-    }
-  }, [loadData])
-
-  const filteredSubjects = subjects.filter((s) => {
-    const matchSearch =
-      s.name.toLowerCase().includes(search.toLowerCase()) ||
-      s.code.toLowerCase().includes(search.toLowerCase())
-    const matchStatus = statusFilter === 'all' || s.status === statusFilter
-    return matchSearch && matchStatus
-  })
-
+  // Open Create Modal
   const openCreateDialog = () => {
     setEditingSubject(null)
     setFormName('')
     setFormCode('')
-    setFormGrade('Lớp 12')
-    setFormIcon('📖')
+    setFormGrade('12')
+    setFormIcon('math')
     setFormDescription('')
     setFormStatus('published')
     setFormError(null)
     setIsDialogOpen(true)
   }
 
+  // Open Edit Modal
   const openEditDialog = (s: CurriculumSubjectItem) => {
     setEditingSubject(s)
     setFormName(s.name)
     setFormCode(s.code)
-    setFormGrade(s.grade)
-    setFormIcon(s.icon || '📖')
-    setFormDescription(s.description || '')
+    const gradeClean = s.grade ? s.grade.replace(/[^0-9]/g, '') || '12' : '12'
+    setFormGrade(gradeClean)
+    setFormIcon(resolveSubjectIcon(s.code, s.name, s.icon, s.description))
+    setFormDescription(extractDescriptionText(s.description))
     setFormStatus(s.status || 'published')
     setFormError(null)
     setIsDialogOpen(true)
   }
 
+  // Quick Toggle Active / Hidden
+  const handleToggleStatus = async (s: CurriculumSubjectItem) => {
+    const newStatus: ContentStatus = s.status === 'published' ? 'draft' : 'published'
+    try {
+      await educationService.updateSubject(s.id, {
+        status: newStatus,
+      })
+      showToast(
+        newStatus === 'published'
+          ? `Đã kích hoạt môn học: ${s.name}`
+          : `Đã tạm ẩn môn học: ${s.name}`,
+        'success'
+      )
+      loadData()
+    } catch (err: any) {
+      const msg = err?.data?.detail || err?.message || 'Không thể thay đổi trạng thái môn học.'
+      showToast(msg, 'error')
+    }
+  }
+
+  // Form Submit Handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formName.trim() || !formCode.trim()) {
@@ -136,374 +194,589 @@ export const ContentSubjectsPage: React.FC = () => {
       return
     }
 
-    if (editingSubject) {
-      await educationService.updateSubject(editingSubject.id, {
-        name: formName.trim(),
-        code: formCode.trim().toUpperCase(),
-        grade: formGrade,
-        icon: formIcon,
-        description: formDescription.trim(),
-        status: formStatus,
-      })
-      showToast(`Đã cập nhật môn học: ${formName}`)
-    } else {
-      await educationService.createSubject({
-        name: formName.trim(),
-        code: formCode.trim().toUpperCase(),
-        grade: formGrade,
-        icon: formIcon,
-        description: formDescription.trim(),
-        status: formStatus,
-      })
-      showToast(`Đã thêm môn học mới: ${formName}`)
-    }
+    setIsSubmitting(true)
+    setFormError(null)
 
-    setIsDialogOpen(false)
-    loadData()
+    const packedDesc = packDescriptionWithIcon(formDescription, formIcon)
+
+    try {
+      if (editingSubject) {
+        await educationService.updateSubject(editingSubject.id, {
+          name: formName.trim(),
+          code: formCode.trim().toUpperCase(),
+          grade: `Lớp ${formGrade}`,
+          icon: formIcon,
+          description: packedDesc,
+          status: formStatus,
+        })
+        showToast(`Đã cập nhật môn học: ${formName.trim()}`, 'success')
+      } else {
+        await educationService.createSubject({
+          name: formName.trim(),
+          code: formCode.trim().toUpperCase(),
+          grade: `Lớp ${formGrade}`,
+          icon: formIcon,
+          description: packedDesc,
+          status: formStatus,
+        })
+        showToast(`Đã thêm môn học mới: ${formName.trim()}`, 'success')
+      }
+      setIsDialogOpen(false)
+      loadData()
+    } catch (err: any) {
+      const msg = err?.data?.detail || err?.message || 'Có lỗi xảy ra khi lưu môn học. Vui lòng thử lại.'
+      setFormError(msg)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
-  const handleDelete = (id: string, name: string) => {
+  // Delete Handlers
+  const handleDeleteClick = (id: string, name: string) => {
     setDeletingSubject({ id, name })
     setDeleteConfirmOpen(true)
   }
 
   const handleDeleteConfirm = async () => {
     if (!deletingSubject) return
-    await educationService.deleteSubject(deletingSubject.id)
-    showToast(`Đã xóa môn học: ${deletingSubject.name}`)
-    setDeleteConfirmOpen(false)
-    setDeletingSubject(null)
-    loadData()
+    setIsDeleting(true)
+    try {
+      await educationService.deleteSubject(deletingSubject.id)
+      showToast(`Đã xóa môn học: ${deletingSubject.name}`, 'success')
+      setDeleteConfirmOpen(false)
+      setDeletingSubject(null)
+      loadData()
+    } catch (err: any) {
+      const msg = err?.data?.detail || err?.message || 'Không thể xóa môn học do có nội dung ràng buộc.'
+      showToast(msg, 'error')
+      setDeleteConfirmOpen(false)
+      setDeletingSubject(null)
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
-  const subjectKPIs = [
-    { id: 'total', label: 'Tổng số môn học', value: subjects.length, color: 'var(--navy-primary, #102a43)' },
-    { id: 'grades', label: 'Khối lớp THPT', value: '3 khối (10-12)', color: '#0284c7' },
-    { id: 'lessons', label: 'Tổng bài học', value: subjects.reduce((sum, s) => sum + (s.lessonCount || 0), 0), color: '#16a34a' },
-    { id: 'published', label: 'Đã xuất bản', value: subjects.filter((s) => s.status === 'published').length, color: '#8b5cf6' },
-  ]
-
   return (
-    <div className="admin-page-container">
+    <div className="content-subjects-root">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="admin-toast-notification">
-          <CheckCircle2 size={18} color="#047857" />
+        <div
+          className={`admin-toast-notification ${toastType === 'error' ? 'toast-error' : ''}`}
+          style={{
+            position: 'fixed',
+            top: 24,
+            right: 24,
+            zIndex: 2000,
+            background: toastType === 'error' ? '#fef2f2' : '#ecfdf5',
+            color: toastType === 'error' ? '#991b1b' : '#065f46',
+            border: `1px solid ${toastType === 'error' ? '#fca5a5' : '#a7f3d0'}`,
+            padding: '12px 20px',
+            borderRadius: '12px',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.08)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            fontWeight: 600,
+            fontSize: '0.9rem',
+          }}
+          role="status"
+        >
+          {toastType === 'error' ? (
+            <AlertCircle size={20} color="#dc2626" />
+          ) : (
+            <CheckCircle2 size={20} color="#059669" />
+          )}
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Page Header */}
-      <div className="staff-page-header">
-        <div className="admin-header-row">
-          <div>
-            <h1 className="staff-page-title">Quản lý môn học (Subjects)</h1>
-            <p className="staff-page-desc">
-              Khung chương trình giảng dạy, thiết lập danh mục môn học và theo dõi độ phủ bài học trên STUDY_AI.
-            </p>
+      {/* 1. Breadcrumb */}
+      <Breadcrumb
+        items={[
+          { label: 'Quản lý nội dung', to: '/content' },
+          { label: 'Danh mục môn học' },
+        ]}
+      />
+
+      {/* 2. Page Header */}
+      <header className="content-subjects-header">
+        <div className="subjects-header-text">
+          <h1>Quản lý môn học</h1>
+          <p>
+            Quản lý khung chương trình GDPT, môn học, khối lớp và các liên kết giáo trình trên hệ thống STUDY_AI.
+          </p>
+        </div>
+        <div className="subjects-header-actions">
+          <button
+            type="button"
+            className="btn-evon-primary"
+            onClick={openCreateDialog}
+            title="Thêm môn học mới"
+          >
+            <Plus size={18} />
+            <span>Thêm môn học</span>
+          </button>
+        </div>
+      </header>
+
+      {/* 3. KPI / Metrics Strip */}
+      <section className="subjects-kpi-grid" aria-label="Thống kê tổng quan môn học">
+        <div className="subjects-kpi-card">
+          <div className="kpi-icon-circle" style={{ background: '#eef2ff', color: '#4f46e5' }}>
+            <Layers size={22} />
           </div>
-          <div className="admin-header-actions">
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={openCreateDialog}
-            >
-              <Plus size={16} />
-              <span>Thêm môn học</span>
-            </button>
+          <div className="kpi-data">
+            <span className="kpi-value">{totalSubjects}</span>
+            <span className="kpi-label">Tổng số môn</span>
           </div>
         </div>
-      </div>
 
-      {/* 4 KPIs Summary Strip */}
-      <SummaryStrip items={subjectKPIs} ariaLabel="Thống kê nhanh môn học" />
+        <div className="subjects-kpi-card">
+          <div className="kpi-icon-circle" style={{ background: '#ecfdf5', color: '#059669' }}>
+            <CheckCircle2 size={22} />
+          </div>
+          <div className="kpi-data">
+            <span className="kpi-value">{activeCount}</span>
+            <span className="kpi-label">Đang hoạt động</span>
+          </div>
+        </div>
 
-      {/* Filter and Search Bar */}
-      <div className="admin-filter-bar">
-        <div className="admin-search-input-wrap">
-          <Search size={16} className="admin-search-icon" />
+        <div className="subjects-kpi-card">
+          <div className="kpi-icon-circle" style={{ background: '#fffbeb', color: '#d97706' }}>
+            <EyeOff size={22} />
+          </div>
+          <div className="kpi-data">
+            <span className="kpi-value">{draftCount}</span>
+            <span className="kpi-label">Bản nháp / Ẩn</span>
+          </div>
+        </div>
+
+        <div className="subjects-kpi-card">
+          <div className="kpi-icon-circle" style={{ background: '#f5f3ff', color: '#7c3aed' }}>
+            <BookOpen size={22} />
+          </div>
+          <div className="kpi-data">
+            <span className="kpi-value">{totalLessons}</span>
+            <span className="kpi-label">Tổng bài học</span>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. Search and Filter Bar */}
+      <div className="subjects-filter-container">
+        <div className="subjects-search-group">
+          <Search size={18} color="#94a3b8" aria-hidden />
           <input
-            type="text"
-            className="admin-search-input"
+            type="search"
             placeholder="Tìm theo tên môn, mã môn..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            aria-label="Tìm kiếm môn học"
           />
         </div>
 
-        <select
-          className="admin-filter-select"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as 'all' | ContentStatus)}
-        >
-          <option value="all">Tất cả trạng thái</option>
-          <option value="published">Đã xuất bản</option>
-          <option value="draft">Bản nháp</option>
-          <option value="archived">Lưu trữ</option>
-        </select>
+        <div className="subjects-select-filters">
+          <select
+            className="evon-select"
+            value={gradeFilter}
+            onChange={(e) => setGradeFilter(e.target.value)}
+            aria-label="Lọc theo khối lớp"
+          >
+            <option value="all">Tất cả khối lớp</option>
+            <option value="12">Lớp 12</option>
+            <option value="11">Lớp 11</option>
+            <option value="10">Lớp 10</option>
+          </select>
+
+          <select
+            className="evon-select"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as 'all' | ContentStatus)}
+            aria-label="Lọc theo trạng thái"
+          >
+            <option value="all">Tất cả trạng thái</option>
+            <option value="published">Đang hoạt động</option>
+            <option value="draft">Bản nháp / Tạm ẩn</option>
+          </select>
+
+          {(search || gradeFilter !== 'all' || statusFilter !== 'all') && (
+            <button
+              type="button"
+              className="btn-evon-cancel"
+              style={{ padding: '6px 12px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 4 }}
+              onClick={() => {
+                setSearch('')
+                setGradeFilter('all')
+                setStatusFilter('all')
+              }}
+            >
+              <RotateCcw size={12} />
+              <span>Đặt lại</span>
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Subjects Table */}
-      <div className="staff-table-wrapper has-mobile-cards">
-        {loading ? (
-          <div style={{ padding: '24px' }}>
-            <Skeleton height={48} />
-          </div>
-        ) : filteredSubjects.length === 0 ? (
-          <EmptyState
-            title="Không tìm thấy môn học"
-            description="Hãy thử thay đổi điều kiện tìm kiếm hoặc thêm môn học mới."
-          />
-        ) : (
-          <>
-            <table className="staff-table">
-              <thead>
-                <tr>
-                  <th>Môn học</th>
-                  <th>Mã môn</th>
-                  <th>Khối lớp</th>
-                  <th>Số chương</th>
-                  <th>Số bài học</th>
-                  <th>Trạng thái</th>
-                  <th>Cập nhật cuối</th>
-                  <th style={{ textAlign: 'right' }}>Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredSubjects.map((s) => (
-                  <tr key={s.id}>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ fontSize: '1.4rem' }}>{s.icon || '📖'}</span>
-                        <div>
-                          <strong style={{ color: '#102a43' }}>{s.name}</strong>
-                          {s.description && (
-                            <div style={{ fontSize: '0.8rem', color: '#627d98', maxWidth: 260, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                              {s.description}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <code>{s.code}</code>
-                    </td>
-                    <td>{s.grade}</td>
-                    <td>
-                      <Link
-                        to={`/content/chapters?subject=${s.id}`}
-                        style={{ color: '#0284c7', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}
-                        title="Xem danh sách chương học"
-                      >
-                        <Layers size={14} />
-                        <span>{s.chapterCount || 0} chương</span>
-                      </Link>
-                    </td>
-                    <td>{s.lessonCount || 0} bài học</td>
-                    <td>
-                      <StatusBadge status={s.status} />
-                    </td>
-                    <td style={{ fontSize: '0.85rem', color: '#627d98' }}>
-                      {new Date(s.updatedAt).toLocaleDateString('vi-VN')}
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div className="table-actions" style={{ justifyContent: 'flex-end', gap: 6 }}>
-                        <Link
-                          to={`/content/subjects/${s.id}`}
-                          className="table-action-btn"
-                          title="Xem chi tiết giáo trình"
-                        >
-                          <ArrowRight size={16} />
-                        </Link>
-                        <button
-                          type="button"
-                          className="table-action-btn"
-                          onClick={() => openEditDialog(s)}
-                          title="Chỉnh sửa môn học"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                        <button
-                          type="button"
-                          className="table-action-btn text-danger"
-                          onClick={() => handleDelete(s.id, s.name)}
-                          title="Xóa môn học"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {/* 5. Main Card Grid Content */}
+      {loading ? (
+        <div className="subjects-card-grid">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="subject-card" style={{ minHeight: 260 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+                <Skeleton variant="rect" width={56} height={56} style={{ borderRadius: 16 }} />
+                <Skeleton variant="rect" width={80} height={24} style={{ borderRadius: 8 }} />
+              </div>
+              <Skeleton variant="text" width="70%" height={22} style={{ marginBottom: 8 }} />
+              <Skeleton variant="text" width="90%" height={14} style={{ marginBottom: 16 }} />
+              <Skeleton variant="rect" width="100%" height={40} style={{ borderRadius: 10, marginTop: 'auto' }} />
+            </div>
+          ))}
+        </div>
+      ) : error ? (
+        <PageErrorState
+          title="Không thể tải dữ liệu môn học"
+          description={error}
+          onRetry={loadData}
+        />
+      ) : filteredSubjects.length === 0 ? (
+        <EmptyState
+          title="Không tìm thấy môn học nào"
+          description={
+            search || gradeFilter !== 'all' || statusFilter !== 'all'
+              ? 'Không có môn học nào phù hợp với điều kiện tìm kiếm và bộ lọc hiện tại.'
+              : 'Chưa có môn học nào trong hệ thống. Hãy thêm môn học đầu tiên để bắt đầu tạo giáo trình.'
+          }
+          actionLabel={search || gradeFilter !== 'all' || statusFilter !== 'all' ? 'Xóa bộ lọc' : 'Thêm môn học ngay'}
+          onAction={
+            search || gradeFilter !== 'all' || statusFilter !== 'all'
+              ? () => {
+                  setSearch('')
+                  setGradeFilter('all')
+                  setStatusFilter('all')
+                }
+              : openCreateDialog
+          }
+        />
+      ) : (
+        <div className="subjects-card-grid" role="region" aria-label="Lưới danh sách môn học">
+          {filteredSubjects.map((s) => {
+            const isPublished = s.status === 'published'
+            const iconType = resolveSubjectIcon(s.code, s.name, s.icon, s.description)
+            const cleanDescription = extractDescriptionText(s.description)
 
-            {/* Mobile Card List (<768px) */}
-            <SubjectCardList
-              subjects={filteredSubjects}
-              onEdit={openEditDialog}
-              onDelete={handleDelete}
-            />
-          </>
-        )}
-      </div>
+            return (
+              <article
+                key={s.id}
+                className={`subject-card ${!isPublished ? 'is-draft' : ''}`}
+                aria-label={`Môn học ${s.name}`}
+              >
+                <div>
+                  {/* Top Row: SVG Icon & Badges */}
+                  <div className="subject-card-top-row">
+                    <div className="subject-svg-wrapper">
+                      <SubjectIconSvg type={iconType} size={58} />
+                    </div>
+                    <div className="subject-card-badges">
+                      <span className="subject-grade-pill">{s.grade}</span>
+                      <span className={`subject-status-pill ${isPublished ? 'published' : 'draft'}`}>
+                        {isPublished ? (
+                          <>
+                            <CheckCircle2 size={11} aria-hidden /> Đang hoạt động
+                          </>
+                        ) : (
+                          <>
+                            <EyeOff size={11} aria-hidden /> Tạm ẩn
+                          </>
+                        )}
+                      </span>
+                    </div>
+                  </div>
 
-      {/* Modal Dialog Tạo / Sửa Môn */}
+                  {/* Info: Code, Title, Description */}
+                  <div className="subject-card-info">
+                    <span className="subject-card-code">{s.code}</span>
+                    <h2 className="subject-card-title">{s.name}</h2>
+                    <p className="subject-card-desc" title={cleanDescription}>
+                      {cleanDescription || 'Chương trình chuẩn theo khung bám sát định hướng thi THPT Quốc gia.'}
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  {/* Stats Row */}
+                  <div className="subject-card-stats">
+                    <div className="card-stat-item">
+                      <Layers size={15} aria-hidden />
+                      <span>
+                        Chương: <strong>{s.chapterCount || 0}</strong>
+                      </span>
+                    </div>
+                    <div className="card-stat-item">
+                      <BookOpen size={15} aria-hidden />
+                      <span>
+                        Bài học: <strong>{s.lessonCount || 0}</strong>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Actions Footer */}
+                  <div className="subject-card-actions">
+                    <Link
+                      to={`/content/subjects/${s.id}`}
+                      className="btn-card-manage"
+                      title={`Quản lý chương và bài giảng môn ${s.name}`}
+                    >
+                      <span>Quản lý</span>
+                      <ArrowRight size={14} aria-hidden />
+                    </Link>
+
+                    <button
+                      type="button"
+                      className="btn-card-icon"
+                      onClick={() => openEditDialog(s)}
+                      title={`Chỉnh sửa môn ${s.name}`}
+                      aria-label={`Chỉnh sửa môn ${s.name}`}
+                    >
+                      <Edit2 size={15} />
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn-card-icon"
+                      onClick={() => handleToggleStatus(s)}
+                      title={isPublished ? `Tạm ẩn môn ${s.name}` : `Kích hoạt môn ${s.name}`}
+                      aria-label={isPublished ? `Tạm ẩn môn ${s.name}` : `Kích hoạt môn ${s.name}`}
+                    >
+                      {isPublished ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn-card-icon btn-danger"
+                      onClick={() => handleDeleteClick(s.id, s.name)}
+                      title={`Xóa môn ${s.name}`}
+                      aria-label={`Xóa môn ${s.name}`}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                </div>
+              </article>
+            )
+          })}
+        </div>
+      )}
+
+      {/* 6. Modal Create / Edit Subject */}
       {isDialogOpen && (
-        <div className="admin-modal-overlay" role="dialog" aria-modal="true">
-          <div className="admin-modal-card">
-            <div className="admin-modal-header">
-              <h3 className="modal-title">
-                {editingSubject ? 'Chỉnh sửa môn học' : 'Thêm môn học mới'}
-              </h3>
+        <div
+          className="evon-modal-backdrop"
+          onClick={() => {
+            if (!isSubmitting) setIsDialogOpen(false)
+          }}
+          role="presentation"
+        >
+          <div
+            className="evon-modal-dialog"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="subject-modal-title"
+          >
+            {/* Modal Header */}
+            <header className="evon-modal-header">
+              <h2 id="subject-modal-title">
+                {editingSubject ? `Chỉnh sửa môn học: ${editingSubject.name}` : 'Thêm môn học mới'}
+              </h2>
               <button
                 type="button"
-                className="modal-close-btn"
+                className="evon-modal-close"
                 onClick={() => setIsDialogOpen(false)}
+                disabled={isSubmitting}
+                aria-label="Đóng cửa sổ"
               >
-                <X size={18} />
+                <X size={20} />
               </button>
-            </div>
+            </header>
 
-            <form onSubmit={handleSubmit}>
-              <div className="admin-modal-body">
+            {/* Modal Form */}
+            <form onSubmit={handleSubmit} style={{ display: 'contents' }}>
+              <div className="evon-modal-body">
                 {formError && (
-                  <div className="form-error-banner" style={{ marginBottom: 16 }}>
+                  <div className="evon-form-error" role="alert">
                     {formError}
                   </div>
                 )}
 
-                <div className="form-group" style={{ marginBottom: 14 }}>
-                  <label className="form-label" htmlFor="subj-name">
-                    Tên môn học <span className="text-danger">*</span>
-                  </label>
-                  <input
-                    id="subj-name"
-                    type="text"
-                    className="form-input"
-                    placeholder="VD: Toán học 12, Vật lý 12..."
-                    value={formName}
-                    onChange={(e) => setFormName(e.target.value)}
-                    required
-                    autoFocus
-                  />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="subj-code">
-                      Mã môn học <span className="text-danger">*</span>
+                <div className="evon-form-row">
+                  <div className="evon-form-group">
+                    <label htmlFor="form-subject-name" className="evon-label">
+                      Tên môn học <span className="req">*</span>
                     </label>
                     <input
-                      id="subj-code"
+                      id="form-subject-name"
                       type="text"
-                      className="form-input"
-                      placeholder="VD: MATH12, PHY12..."
+                      className="evon-input"
+                      placeholder="VD: Toán học 12, Vật lý 12..."
+                      value={formName}
+                      onChange={(e) => setFormName(e.target.value)}
+                      required
+                      autoFocus
+                    />
+                  </div>
+
+                  <div className="evon-form-group">
+                    <label htmlFor="form-subject-code" className="evon-label">
+                      Mã môn học <span className="req">*</span>
+                    </label>
+                    <input
+                      id="form-subject-code"
+                      type="text"
+                      className="evon-input"
+                      placeholder="VD: MATH12, PHYS12..."
                       value={formCode}
-                      onChange={(e) => setFormCode(e.target.value)}
+                      onChange={(e) => setFormCode(e.target.value.toUpperCase())}
                       required
                     />
                   </div>
+                </div>
 
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="subj-grade">
-                      Khối lớp
+                <div className="evon-form-row">
+                  <div className="evon-form-group">
+                    <label htmlFor="form-subject-grade" className="evon-label">
+                      Khối lớp <span className="req">*</span>
                     </label>
                     <select
-                      id="subj-grade"
-                      className="form-input"
+                      id="form-subject-grade"
+                      className="evon-form-select"
                       value={formGrade}
                       onChange={(e) => setFormGrade(e.target.value)}
                     >
-                      <option value="Lớp 10">Lớp 10</option>
-                      <option value="Lớp 11">Lớp 11</option>
-                      <option value="Lớp 12">Lớp 12</option>
+                      <option value="12">Lớp 12</option>
+                      <option value="11">Lớp 11</option>
+                      <option value="10">Lớp 10</option>
+                      <option value="THPT">Khối THPT</option>
                     </select>
+                  </div>
+
+                  <div className="evon-form-group">
+                    <label className="evon-label">Trạng thái phát hành</label>
+                    <div className="evon-radio-row" style={{ marginTop: 10 }}>
+                      <label className="evon-radio-label">
+                        <input
+                          type="radio"
+                          name="subject-status"
+                          value="published"
+                          checked={formStatus === 'published'}
+                          onChange={() => setFormStatus('published')}
+                        />
+                        <span>Hoạt động</span>
+                      </label>
+                      <label className="evon-radio-label">
+                        <input
+                          type="radio"
+                          name="subject-status"
+                          value="draft"
+                          checked={formStatus === 'draft'}
+                          onChange={() => setFormStatus('draft')}
+                        />
+                        <span>Bản nháp / Ẩn</span>
+                      </label>
+                    </div>
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 14, marginBottom: 14 }}>
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="subj-icon">
-                      Biểu tượng
-                    </label>
-                    <input
-                      id="subj-icon"
-                      type="text"
-                      className="form-input"
-                      placeholder="📖, 📐, 🔬..."
-                      value={formIcon}
-                      onChange={(e) => setFormIcon(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label" htmlFor="subj-status">
-                      Trạng thái xuất bản
-                    </label>
-                    <select
-                      id="subj-status"
-                      className="form-input"
-                      value={formStatus}
-                      onChange={(e) => setFormStatus(e.target.value as ContentStatus)}
-                    >
-                      <option value="published">Đã xuất bản</option>
-                      <option value="draft">Bản nháp</option>
-                      <option value="archived">Lưu trữ</option>
-                    </select>
+                {/* Visual SVG Icon Picker */}
+                <div className="evon-form-group">
+                  <label className="evon-label">
+                    Biểu tượng SVG môn học <span className="req">*</span>
+                  </label>
+                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                    Chọn biểu tượng đồ họa SVG hiển thị trên thẻ môn học:
+                  </span>
+                  <div className="icon-picker-grid" role="radiogroup" aria-label="Chọn biểu tượng môn học">
+                    {SUBJECT_ICON_OPTIONS.map((opt) => {
+                      const isSelected = formIcon === opt.id
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          role="radio"
+                          aria-checked={isSelected}
+                          className={`icon-picker-item ${isSelected ? 'is-selected' : ''}`}
+                          onClick={() => setFormIcon(opt.id)}
+                          title={`Chọn biểu tượng ${opt.label}`}
+                          aria-label={`Chọn biểu tượng ${opt.label}`}
+                        >
+                          <SubjectIconSvg type={opt.id} size={38} />
+                          <span className="icon-picker-label">{opt.label}</span>
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label" htmlFor="subj-desc">
+                <div className="evon-form-group">
+                  <label htmlFor="form-subject-desc" className="evon-label">
                     Mô tả môn học
                   </label>
                   <textarea
-                    id="subj-desc"
-                    className="form-input"
+                    id="form-subject-desc"
+                    className="evon-textarea"
                     rows={3}
-                    placeholder="Mô tả tóm tắt nội dung chương trình học..."
+                    placeholder="Mô tả tóm tắt nội dung, mục tiêu chương trình học bám sát kỳ thi..."
                     value={formDescription}
                     onChange={(e) => setFormDescription(e.target.value)}
                   />
                 </div>
               </div>
 
-              <div className="admin-modal-footer">
+              {/* Modal Footer */}
+              <footer className="evon-modal-footer">
                 <button
                   type="button"
-                  className="btn btn-secondary"
+                  className="btn-evon-cancel"
                   onClick={() => setIsDialogOpen(false)}
+                  disabled={isSubmitting}
                 >
-                  Hủy
+                  Hủy bỏ
                 </button>
                 <button
                   type="submit"
-                  className="btn btn-primary"
+                  className="btn-evon-primary"
+                  disabled={isSubmitting}
                 >
-                  <BookOpen size={16} />
-                  <span>{editingSubject ? 'Lưu thay đổi' : 'Tạo môn học'}</span>
+                  {isSubmitting ? (
+                    <span>Đang lưu...</span>
+                  ) : (
+                    <span>{editingSubject ? 'Lưu thay đổi' : 'Tạo môn học'}</span>
+                  )}
                 </button>
-              </div>
+              </footer>
             </form>
           </div>
         </div>
       )}
 
-      {/* Delete Confirmation Dialog */}
+      {/* 7. Delete Confirmation Dialog */}
       <ConfirmDialog
         isOpen={deleteConfirmOpen}
         title="Xác nhận xóa môn học"
-        message={`Bạn có chắc chắn muốn xóa môn học "${deletingSubject?.name}"? Các chương và bài học thuộc môn này cũng sẽ bị ẩn.`}
-        confirmText="Xác nhận xóa"
+        message={`Bạn có chắc chắn muốn xóa môn học "${deletingSubject?.name}"? Hệ thống sẽ ngăn chặn việc xóa nếu môn học đã có chương, bài giảng hoặc dữ liệu tiến độ của học sinh.`}
+        confirmText={isDeleting ? 'Đang xóa...' : 'Xóa môn học'}
         cancelText="Hủy bỏ"
         variant="danger"
+        isLoading={isDeleting}
         onConfirm={handleDeleteConfirm}
         onCancel={() => {
-          setDeleteConfirmOpen(false)
-          setDeletingSubject(null)
+          if (!isDeleting) {
+            setDeleteConfirmOpen(false)
+            setDeletingSubject(null)
+          }
         }}
       />
     </div>
   )
 }
+
+export default ContentSubjectsPage

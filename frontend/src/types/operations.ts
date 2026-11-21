@@ -84,7 +84,7 @@ export interface AuditLogEntry {
   id: string
   timestamp: string
   actor: string
-  workspace: 'admin' | 'content' | 'teacher' | 'support'
+  workspace: 'admin' | 'content' | 'teacher'
   action: string
   target: string
   targetId?: string
@@ -106,4 +106,5 @@ export interface OperationalSettings {
   enableDemoAlerts: boolean
   updatedAt: string
   updatedBy: string
+  version?: string
 }

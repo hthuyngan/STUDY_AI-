@@ -14,8 +14,11 @@ import { StatsStrip } from '@/components/dashboard/StatsStrip'
 import { StudyActivityCard } from '@/components/dashboard/StudyActivityCard'
 import { SubjectProgressCard } from '@/components/dashboard/SubjectProgressCard'
 import { SmartReviewWidget } from '@/components/dashboard/SmartReviewWidget'
+import { KnowledgeGapsWidget } from '@/components/dashboard/KnowledgeGapsWidget'
+import { AdaptiveLearningWidget } from '@/components/dashboard/AdaptiveLearningWidget'
 import { useAuth } from '@/auth/useAuth'
 import { useDashboard } from '@/hooks/useDashboard'
+import { resolveSubjectId } from '@/lib/subjectResolver'
 import './DashboardPage.css'
 
 export function DashboardPage() {
@@ -85,14 +88,16 @@ export function DashboardPage() {
         onViewAnalytics={() => navigate('/learning-analytics')}
       />
 
-      {/* Row 1: Continue Learning (8 cols) + AI Tutor (4 cols) — Learning-First */}
+      {/* Row 1: Adaptive Learning Next Step + Continue Learning (8 cols) + AI Tutor & Review (4 cols) */}
       <div className="dashboard-row-grid">
-        <div className="col-span-8">
+        <div className="col-span-8" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4, 16px)' }}>
+          <AdaptiveLearningWidget />
           <ContinueLearningCard
             lessons={data.continueLessons}
             onContinueLesson={(lessonId, sectionId) => {
               const lesson = data.continueLessons.find((l) => l.id === lessonId)
-              const subjectId = lesson?.subjectId || 'math'
+              const defaultSubjectId = resolveSubjectId({ grade: user?.grade }) || 'sub_math10'
+              const subjectId = lesson?.subjectId || defaultSubjectId
               const hash = sectionId ? `#${sectionId}` : ''
               navigate(`/subjects/${subjectId}/lessons/${lessonId}${hash}`)
             }}
@@ -100,6 +105,7 @@ export function DashboardPage() {
         </div>
         <div className="col-span-4" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4, 16px)' }}>
           <SmartReviewWidget />
+          <KnowledgeGapsWidget />
           <AITutorCard />
         </div>
       </div>

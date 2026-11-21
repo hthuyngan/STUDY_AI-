@@ -1,4 +1,4 @@
-import { ArrowRight, BookMarked, Play } from 'lucide-react'
+import { ArrowRight, Play } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -16,12 +16,8 @@ export function ContinueLearningCard({
 }: ContinueLearningCardProps) {
   const viewAllAction = (
     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-      <Link to="/my-notes" className="card-link-action" title="Mở sổ tay ghi chú">
-        <BookMarked size={14} aria-hidden />
-        <span>Sổ tay</span>
-      </Link>
       <Link to="/subjects" className="card-link-action">
-        <span>Xem tất cả</span>
+        <span>Xem tất cả môn học</span>
         <ArrowRight size={14} aria-hidden />
       </Link>
     </div>

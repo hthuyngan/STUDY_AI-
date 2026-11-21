@@ -21,7 +21,9 @@ public class JwtTokenService : IJwtTokenService
 
     public JwtTokenService(IConfiguration configuration)
     {
-        var secret = configuration["Jwt:SecretKey"];
+        var secret = configuration["Jwt:SecretKey"]
+            ?? Environment.GetEnvironmentVariable("JWT_SECRET_KEY")
+            ?? Environment.GetEnvironmentVariable("Jwt__SecretKey");
         if (string.IsNullOrWhiteSpace(secret) || secret.Length < 32)
         {
             throw new InvalidOperationException("Jwt:SecretKey configuration is missing or fewer than 32 characters.");

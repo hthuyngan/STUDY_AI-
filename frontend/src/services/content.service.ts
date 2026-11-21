@@ -10,6 +10,8 @@ import {
 } from '@/data/staff/content.mock'
 import { educationService } from './education.service'
 import { operationsService } from './operations.service'
+import { apiClient } from '@/lib/apiClient'
+import { getAccessToken } from '@/auth/authSession'
 
 const mockLessonContents: Record<string, LessonEditorData> = { ...INITIAL_MOCK_LESSON_CONTENT }
 
@@ -24,11 +26,14 @@ export const contentService = {
   }> {
     const lessons = await educationService.getLessons()
     const reviewQueue = await this.getReviewQueue()
+    const totalLessons = lessons.length
+    const coveredLessons = lessons.filter((l) => (l as any).assessmentId || (l as any).hasAssessment).length
+    const assessmentCoveragePercent = totalLessons > 0 ? Math.round((coveredLessons / totalLessons) * 100) : 0
     return {
       draftCount: lessons.filter((l) => l.status === 'draft').length,
       needsReviewCount: lessons.filter((l) => l.status === 'in-review').length,
       publishedThisWeek: lessons.filter((l) => l.status === 'published').length,
-      assessmentCoveragePercent: 86,
+      assessmentCoveragePercent,
       reviewQueue,
       recentLessons: [...lessons.slice(0, 4)],
     }
@@ -51,6 +56,27 @@ export const contentService = {
   },
 
   async getLessonEditor(lessonId: string): Promise<LessonEditorData> {
+    if (getAccessToken()) {
+      const lesson = await apiClient.get<any>(`/api/v1/content/lessons/${lessonId}`)
+      if (lesson) {
+        return {
+          id: lesson.id,
+          title: lesson.title || 'Bài học mới',
+          subjectId: lesson.subjectId || 'sub_math10',
+          chapterId: lesson.chapterId || '',
+          status: lesson.status || 'draft',
+          introduction: lesson.introduction || '',
+          definitions: Array.isArray(lesson.definitions) ? lesson.definitions.join('\n') : (lesson.definitions || ''),
+          formulas: Array.isArray(lesson.formulas) ? lesson.formulas.join('\n') : (lesson.formulas || ''),
+          examples: Array.isArray(lesson.examples) ? lesson.examples.join('\n') : (lesson.examples || ''),
+          notes: Array.isArray(lesson.importantNotes) ? lesson.importantNotes.join('\n') : (lesson.importantNotes || ''),
+          summary: Array.isArray(lesson.summaryPoints) ? lesson.summaryPoints.join('\n') : (lesson.summaryPoints || ''),
+          assessmentId: lesson.questionsCount > 0 ? `asm-${lesson.id}` : undefined,
+          lastSavedAt: lesson.updatedAt || new Date().toISOString(),
+        }
+      }
+    }
+
     if (mockLessonContents[lessonId]) {
       return { ...mockLessonContents[lessonId] }
     }
@@ -75,6 +101,30 @@ export const contentService = {
   },
 
   async saveLessonEditor(data: LessonEditorData): Promise<LessonEditorData> {
+    if (getAccessToken()) {
+      const payload = {
+        title: data.title,
+        introduction: data.introduction,
+        definitions: data.definitions ? data.definitions.split('\n').filter((s) => s.trim().length > 0) : [],
+        formulas: data.formulas ? data.formulas.split('\n').filter((s) => s.trim().length > 0) : [],
+        examples: data.examples ? data.examples.split('\n').filter((s) => s.trim().length > 0) : [],
+        importantNotes: data.notes ? data.notes.split('\n').filter((s) => s.trim().length > 0) : [],
+        summaryPoints: data.summary ? data.summary.split('\n').filter((s) => s.trim().length > 0) : [],
+      }
+      await apiClient.patch(`/api/v1/content/lessons/${data.id}`, payload)
+      if (data.status === 'in-review') {
+        try {
+          await apiClient.post(`/api/v1/content/lessons/${data.id}/submit-review`)
+        } catch {
+          // If already submitted, ignore
+        }
+      }
+      return {
+        ...data,
+        lastSavedAt: new Date().toISOString(),
+      }
+    }
+
     const updated: LessonEditorData = {
       ...data,
       lastSavedAt: new Date().toISOString(),

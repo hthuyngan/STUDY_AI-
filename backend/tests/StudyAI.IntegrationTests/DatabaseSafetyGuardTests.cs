@@ -203,4 +203,30 @@ public class DatabaseSafetyGuardTests
 
         Assert.True(guardExceptionFound, $"Expected DatabaseSafetyGuard exception but got: {ex}");
     }
+
+    [Theory]
+    [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb;Trusted_Connection=True;", "Development", "Startup")]
+    [InlineData("Server=.\\SQLEXPRESS;Database=studyaidb;Trusted_Connection=True;", "Development", "Program.cs")]
+    [InlineData("Server=.\\SQLEXPRESS;Database=[StudyAIDb];Trusted_Connection=True;", "Production", "Migration")]
+    [InlineData("Server=.\\SQLEXPRESS;Initial Catalog=StudyAIDb;Trusted_Connection=True;", "Staging", "DbSeed")]
+    [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb;Trusted_Connection=True;", "Testing", "ImportScript")]
+    public void Guard_Blocks_StudyAIDb_In_Development_And_Migrations(string connStr, string env, string context)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            DatabaseSafetyGuard.EnsureSafeDatabaseForDevelopmentOrMigration(connStr, env, context));
+
+        Assert.Contains("CRITICAL DATABASE SAFETY GUARD TRIGGERED", ex.Message);
+        Assert.Contains("strictly FORBIDDEN", ex.Message);
+        Assert.Contains("StudyAIDb", ex.Message);
+    }
+
+    [Theory]
+    [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb_E2E;Trusted_Connection=True;", "Development", "Startup")]
+    [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb_E2E;Trusted_Connection=True;", "Testing", "Migration")]
+    [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb_E2E;Trusted_Connection=True;", "Development", "ImportScript")]
+    public void Guard_Allows_StudyAIDb_E2E_In_Development_And_Migrations(string connStr, string env, string context)
+    {
+        var resolved = DatabaseSafetyGuard.EnsureSafeDatabaseForDevelopmentOrMigration(connStr, env, context);
+        Assert.Equal("StudyAIDb_E2E", resolved);
+    }
 }

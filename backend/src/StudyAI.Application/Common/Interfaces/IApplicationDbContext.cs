@@ -15,7 +15,9 @@ public interface IApplicationDbContext
     DbSet<LearningEvent> LearningEvents { get; }
     DbSet<ContentSubject> ContentSubjects { get; }
     DbSet<ContentChapter> ContentChapters { get; }
+    DbSet<ContentTopic> ContentTopics { get; }
     DbSet<ContentLesson> ContentLessons { get; }
+    DbSet<ContentLessonVideo> ContentLessonVideos { get; }
     DbSet<ContentAssessment> ContentAssessments { get; }
     DbSet<ContentQuestion> ContentQuestions { get; }
     DbSet<AiConversation> AiConversations { get; }
@@ -24,6 +26,10 @@ public interface IApplicationDbContext
     DbSet<ClassroomStudent> ClassroomStudents { get; }
     DbSet<Assignment> Assignments { get; }
     DbSet<AssignmentSubmission> AssignmentSubmissions { get; }
+    DbSet<AiUsageLog> AiUsageLogs { get; }
+    DbSet<StudentTopicMastery> StudentTopicMasteries { get; }
+    DbSet<AiHintUsage> AiHintUsages { get; }
+    DbSet<AiLearningRecommendation> AiLearningRecommendations { get; }
 
     DatabaseFacade Database { get; }
 

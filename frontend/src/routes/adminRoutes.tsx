@@ -12,7 +12,7 @@ import { AdminAuditLogsPage } from '@/pages/Admin/AdminAuditLogsPage'
 import { AdminSystemPage } from '@/pages/Admin/AdminSystemPage'
 import { AdminSettingsPage } from '@/pages/Admin/AdminSettingsPage'
 import { AdminContentMonitorPage } from '@/pages/Admin/AdminContentMonitorPage'
-import { AdminSupportMonitorPage } from '@/pages/Admin/AdminSupportMonitorPage'
+import { AdminOperationsDashboard } from '@/pages/Admin/AdminOperationsDashboard'
 
 // Helper component to preserve URL params on legacy redirect
 function RedirectWithParam({ basePath, paramName }: { basePath: string; paramName: string }) {
@@ -42,11 +42,12 @@ export function AdminRoutes() {
       <Route path="announcements" element={<AdminAnnouncementsPage />} />
       <Route path="audit-logs" element={<AdminAuditLogsPage />} />
       <Route path="system" element={<AdminSystemPage />} />
+      <Route path="operations" element={<AdminOperationsDashboard />} />
       <Route path="settings" element={<AdminSettingsPage />} />
 
       {/* 2. Cross-Workspace Oversight & Performance Monitoring (V6) */}
       <Route path="content-monitor" element={<AdminContentMonitorPage />} />
-      <Route path="support-monitor" element={<AdminSupportMonitorPage />} />
+      <Route path="support-monitor" element={<Navigate to="/admin" replace />} />
 
       {/* 3. Backward Compatibility Redirects (Seamless Transition from V3/V4/V5) */}
       {/* Curriculum Management -> Content Workspace */}
@@ -69,9 +70,9 @@ export function AdminRoutes() {
       <Route path="grades" element={<Navigate to="/teacher/grades" replace />} />
       <Route path="alerts" element={<Navigate to="/teacher/alerts" replace />} />
 
-      {/* User Support Tickets -> Support Workspace */}
-      <Route path="tickets" element={<Navigate to="/support/tickets" replace />} />
-      <Route path="tickets/:ticketId" element={<RedirectWithParam basePath="/support/tickets" paramName="ticketId" />} />
+      {/* Legacy Support Tickets -> Redirect to Admin Home */}
+      <Route path="tickets" element={<Navigate to="/admin" replace />} />
+      <Route path="tickets/:ticketId" element={<Navigate to="/admin" replace />} />
     </Route>
   )
 }

@@ -13,7 +13,9 @@ export function CurriculumLessonRow({
   indexInChapter,
   subjectId,
 }: CurriculumLessonRowProps) {
-  const isLocked = lesson.status === 'locked'
+  const isDraft = lesson.availability === 'coming_soon' || lesson.availability === 'unavailable'
+  const isPreview = lesson.availability === 'preview'
+  const isLocked = lesson.status === 'locked' || isDraft
   const isCompleted = lesson.status === 'completed'
   const isInProgress = lesson.status === 'in-progress'
   const lessonUrl = `/subjects/${subjectId}/lessons/${lesson.id}`
@@ -34,13 +36,13 @@ export function CurriculumLessonRow({
       <div className="lesson-row-status-col" aria-hidden>
         {isCompleted && <CheckCircle2 size={18} className="status-icon completed" />}
         {isInProgress && <Play size={14} className="status-icon in-progress" />}
-        {lesson.status === 'available' && <div className="status-dot available" />}
+        {lesson.status === 'available' && !isDraft && <div className="status-dot available" />}
         {isLocked && <Lock size={15} className="status-icon locked" />}
       </div>
 
       {/* 3. Lesson Main Info (Title & Metadata) */}
       <div className="lesson-row-info-col">
-        {isLocked ? (
+        {isDraft ? (
           <span className="lesson-row-title is-locked">{lesson.title}</span>
         ) : (
           <Link to={lessonUrl} className="lesson-row-title-link">
@@ -50,6 +52,24 @@ export function CurriculumLessonRow({
 
         <div className="lesson-row-meta">
           <span className="lesson-meta-duration">{lesson.durationMinutes} phút</span>
+
+          {lesson.hasVideo && (
+            <span className="lesson-meta-quiz-badge" style={{ color: '#2563eb', borderColor: 'rgba(37, 99, 235, 0.2)' }}>
+              ▶ Video bài giảng
+            </span>
+          )}
+
+          {isPreview && (
+            <span className="lesson-meta-quiz-badge" style={{ color: '#d97706', borderColor: 'rgba(217, 119, 6, 0.2)' }}>
+              Xem trước
+            </span>
+          )}
+
+          {isDraft && (
+            <span className="lesson-meta-quiz-badge" style={{ color: '#64748b', borderColor: 'rgba(100, 116, 139, 0.2)' }}>
+              Đang biên soạn
+            </span>
+          )}
 
           {lesson.quizId && (
             <span className="lesson-meta-quiz-badge">
@@ -67,8 +87,19 @@ export function CurriculumLessonRow({
 
       {/* 4. Action CTA */}
       <div className="lesson-row-action-col">
-        {isLocked ? (
+        {isDraft ? (
           <span className="lesson-locked-label">Chưa mở</span>
+        ) : isLocked ? (
+          <span className="lesson-locked-label">Chưa mở</span>
+        ) : isPreview ? (
+          <Link
+            to={lessonUrl}
+            className="lesson-cta-link available"
+            aria-label={`Xem trước: ${lesson.title}`}
+          >
+            <span>Xem trước</span>
+            <ChevronRight size={15} aria-hidden />
+          </Link>
         ) : isInProgress ? (
           <Link
             to={lessonUrl}

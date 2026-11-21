@@ -1,10 +1,18 @@
 import type {
+  AdaptiveLearningPath,
+  AiErrorAnalysisResult,
+  AiFeatureConfig,
+  AiLearningRecommendation,
+  AiUsageLogItem,
+  AiUsageStats,
   ChatConversation,
   ChatMessage,
   ChatRole,
+  HintResponse,
   LearningAssistanceMode,
   MessageStatus,
   SendMessagePayload,
+  SkillMasteryResponse,
   TutorLearningContext,
 } from '../types/aiTutor'
 import {
@@ -46,6 +54,24 @@ function mapConversationDetailToChatConversation(dto: any): ChatConversation {
       assistanceMode: m.assistanceMode as LearningAssistanceMode,
     })),
   }
+}
+
+function abortableDelay(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    if (signal?.aborted) {
+      return reject(new DOMException('Aborted by user', 'AbortError'))
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort)
+      resolve()
+    }, ms)
+    const onAbort = () => {
+      clearTimeout(timer)
+      signal?.removeEventListener('abort', onAbort)
+      reject(new DOMException('Aborted by user', 'AbortError'))
+    }
+    signal?.addEventListener('abort', onAbort)
+  })
 }
 
 class AITutorService {
@@ -416,7 +442,7 @@ ${context.explanation ? `\n> **Giải thích chuẩn:** ${context.explanation}` 
     signal?: AbortSignal
   ): Promise<ChatMessage> {
     if (payload.message.trim() === 'error_test') {
-      await new Promise((resolve) => setTimeout(resolve, 80))
+      await abortableDelay(80, signal)
       throw new Error('Lỗi kết nối tới AI Tutor. Vui lòng thử lại.')
     }
 
@@ -473,7 +499,7 @@ ${context.explanation ? `\n> **Giải thích chuẩn:** ${context.explanation}` 
         accumulated += (i === 0 ? words[i] : ' ' + words[i])
         onChunk(accumulated)
         if (words.length > 1) {
-          await new Promise((resolve) => setTimeout(resolve, 6))
+          await abortableDelay(6, signal)
         }
       }
 
@@ -502,7 +528,7 @@ ${context.explanation ? `\n> **Giải thích chuẩn:** ${context.explanation}` 
       accumulated += wordWithSpace
       onChunk(accumulated)
       const delay = Math.floor(Math.random() * 8) + 4
-      await new Promise((resolve) => setTimeout(resolve, delay))
+      await abortableDelay(delay, signal)
     }
 
     const completedMessage: ChatMessage = {
@@ -518,6 +544,140 @@ ${context.explanation ? `\n> **Giải thích chuẩn:** ${context.explanation}` 
 
     await this.appendMessage(payload.conversationId, completedMessage)
     return completedMessage
+  }
+
+  /**
+   * Multi-level Hint Ladder (Cấp độ 1: Định hướng, Cấp độ 2: Phương pháp, Cấp độ 3: Then chốt)
+   */
+  async getHintLadder(
+    questionId: string,
+    hintLevel: 1 | 2 | 3,
+    studentAnswer?: string,
+    sessionId?: string,
+    mode?: string
+  ): Promise<HintResponse> {
+    if (this.isAuthenticated()) {
+      const url = `/api/v1/ai/hints${sessionId ? `?sessionId=${sessionId}` : ''}${mode ? `&mode=${mode}` : ''}`
+      const res = await apiClient.post<HintResponse>(url, {
+        questionId,
+        hintLevel,
+        studentAnswer,
+      })
+      if (!res) {
+        throw new Error('Không nhận được phản hồi gợi ý từ máy chủ.')
+      }
+      return res
+    }
+
+    const levelName =
+      hintLevel === 1
+        ? 'Gợi ý định hướng'
+        : hintLevel === 2
+        ? 'Gợi ý phương pháp'
+        : 'Gợi ý bước then chốt'
+
+    return {
+      questionId,
+      hintLevel,
+      hintLevelName: levelName,
+      hintText:
+        'Hãy quan sát kỹ giả thiết đề bài, xác định công thức cốt lõi và loại trừ các phương án không phù hợp.',
+      mathFormulas: [],
+      suggestedNextSteps: ['Đọc lại định nghĩa', 'Xác định đại lượng cần tìm'],
+    }
+  }
+
+  /**
+   * AI Error Analysis for a completed practice session
+   */
+  async analyzeSessionErrors(
+    sessionId: string,
+    subjectId?: string
+  ): Promise<AiErrorAnalysisResult> {
+    const res = await apiClient.post<AiErrorAnalysisResult>('/api/v1/ai/error-analysis', {
+      sessionId,
+      subjectId,
+    })
+    return res
+  }
+
+  /**
+   * Get deterministic topic mastery scores
+   */
+  async getStudentMastery(subjectId?: string): Promise<SkillMasteryResponse> {
+    const url = `/api/v1/ai/mastery${subjectId ? `?subjectId=${subjectId}` : ''}`
+    const res = await apiClient.get<SkillMasteryResponse>(url)
+    return res || {
+      userId: '',
+      overallMasteryScore: 0,
+      skillsEvaluated: 0,
+      skillsMastered: 0,
+      skills: [],
+    }
+  }
+
+  /**
+   * Get adaptive learning path
+   */
+  async getLearningPath(subjectId?: string): Promise<AdaptiveLearningPath> {
+    const url = `/api/v1/ai/learning-path${subjectId ? `?subjectId=${subjectId}` : ''}`
+    const res = await apiClient.get<AdaptiveLearningPath>(url)
+    return res
+  }
+
+  /**
+   * Get verified recommended lessons
+   */
+  async getRecommendations(subjectId?: string): Promise<AiLearningRecommendation[]> {
+    const url = `/api/v1/ai/recommendations${subjectId ? `?subjectId=${subjectId}` : ''}`
+    const res = await apiClient.get<AiLearningRecommendation[]>(url)
+    return res || []
+  }
+
+  /**
+   * Get backend-validated lesson context for AI Tutor
+   */
+  async getLessonAiContext(lessonId: string): Promise<any> {
+    return await apiClient.get<any>(`/api/v1/ai/context/lesson/${lessonId}`)
+  }
+
+  /**
+   * Admin: Get AI feature toggles & provider status
+   */
+  async getAdminAiStatus(): Promise<AiFeatureConfig> {
+    return await apiClient.get<AiFeatureConfig>('/api/v1/admin/ai/status')
+  }
+
+  /**
+   * Admin: Get AI usage metrics and token statistics
+   */
+  async getAdminAiStats(userId?: string, from?: string, to?: string): Promise<AiUsageStats> {
+    const params = new URLSearchParams()
+    if (userId) params.append('userId', userId)
+    if (from) params.append('from', from)
+    if (to) params.append('to', to)
+    const queryString = params.toString() ? `?${params.toString()}` : ''
+    return await apiClient.get<AiUsageStats>(`/api/v1/admin/ai/usage-stats${queryString}`)
+  }
+
+  /**
+   * Admin: Get recent AI audit logs
+   */
+  async getAdminAiLogs(limit: number = 50): Promise<AiUsageLogItem[]> {
+    return await apiClient.get<AiUsageLogItem[]>(`/api/v1/admin/ai/logs?limit=${limit}`)
+  }
+
+  /**
+   * Admin: Toggle AI feature
+   */
+  async toggleAdminAiFeature(
+    feature: string,
+    enabled: boolean
+  ): Promise<{ message: string; config: AiFeatureConfig }> {
+    return await apiClient.post('/api/v1/admin/ai/feature-toggle', {
+      feature,
+      enabled,
+    })
   }
 }
 

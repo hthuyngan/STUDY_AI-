@@ -33,6 +33,7 @@ public class CurriculumImportConfirmService : ICurriculumImportConfirmService
         string previewToken,
         string currentUserId,
         string? auditNote,
+        bool dryRun = false,
         CancellationToken cancellationToken = default)
     {
         // 1. Chống Double-click bằng khóa bộ nhớ theo PreviewToken
@@ -74,6 +75,54 @@ public class CurriculumImportConfirmService : ICurriculumImportConfirmService
                     "Tệp dữ liệu chứa lỗi xác thực, không thể thực hiện xác nhận trong chế độ Strict.");
             }
 
+            // 4.1 Chế độ Dry-Run / Copyright Verification Mode: Hoàn toàn không ghi Database
+            if (dryRun || auditNote?.Contains("DRY_RUN", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                var dryRunResponse = new CurriculumImportConfirmResponseDto
+                {
+                    Success = true,
+                    PreviewToken = previewToken,
+                    ActorId = currentUserId,
+                    ConfirmedAt = DateTimeOffset.UtcNow,
+                    AuditLogId = $"dry_{Guid.NewGuid():N}"[..12],
+                    IsDryRun = true,
+                    Provenance = "VNHSGE Benchmark Dataset (arXiv:2305.12199 / CC BY-NC-SA 4.0)",
+                    Summary = new CurriculumImportConfirmSummaryDto
+                    {
+                        TotalProcessed = session.PreviewResponse.Summary.TotalItems,
+                        Inserted = session.PreviewResponse.Summary.InsertCount,
+                        Updated = session.PreviewResponse.Summary.UpdateCount,
+                        Skipped = session.PreviewResponse.Summary.SkipCount,
+                        Failed = session.PreviewResponse.Summary.ErrorCount,
+                    },
+                    EntityCounts = new CurriculumImportEntityCountsDto
+                    {
+                        Subjects = session.Batch.Subjects.Count,
+                        Chapters = session.Batch.Subjects.Sum(s => s.Chapters.Count),
+                        Lessons = session.Batch.Subjects.Sum(s => s.Chapters.Sum(c => c.Lessons.Count)),
+                        Questions = session.Batch.FlatQuestions.Count + session.Batch.Subjects.Sum(s => s.Chapters.Sum(c => c.Lessons.Sum(l => l.Questions.Count))),
+                    },
+                    Message = "Chế độ Dry-Run: Đã mô phỏng quy trình nhập dữ liệu và đối soát toàn vẹn thành công. Không có thay đổi nào được ghi vào cơ sở dữ liệu."
+                };
+                return CurriculumImportConfirmResult.Ok(dryRunResponse);
+            }
+
+            // 4.2 Kiểm tra cổng bản quyền VNHSGE: Chặn import thật nếu chưa có giấy phép hợp lệ
+            bool isVnhsgeBatch = session.Batch.FlatQuestions.Any(q => q.SourceCitation?.Contains("VNHSGE", StringComparison.OrdinalIgnoreCase) == true) ||
+                                 session.Batch.FileName.Contains("MET_", StringComparison.OrdinalIgnoreCase);
+
+            if (isVnhsgeBatch)
+            {
+                bool hasVerifiedCopyright = auditNote?.Contains("VNHSGE_COPYRIGHT_LICENSED", StringComparison.OrdinalIgnoreCase) == true;
+                if (!hasVerifiedCopyright)
+                {
+                    return CurriculumImportConfirmResult.Fail(
+                        403,
+                        "VNHSGE_COPYRIGHT_GATE_LOCKED",
+                        "Bộ dữ liệu khảo cứu VNHSGE đang trong cơ chế khóa bản quyền học thuật (CC BY-NC-SA 4.0 / arXiv:2305.12199). Chỉ được phép thực hiện ở chế độ kiểm thử an toàn (Dry-Run). Thao tác ghi CSDL và xuất bản công khai bị chặn cho đến khi được cấp quyền sử dụng hợp lệ.");
+                }
+            }
+
             // 5. Giao dịch nguyên tử (ACID Transaction) thông qua ExecutionStrategy
             var strategy = _context.Database.CreateExecutionStrategy();
             return await strategy.ExecuteAsync(async () =>
@@ -89,6 +138,9 @@ public class CurriculumImportConfirmService : ICurriculumImportConfirmService
                     int insertedChapters = 0;
                     int insertedLessons = 0;
                     int insertedQuestions = 0;
+                    int skippedQuestions = 0;
+
+                    bool isCurriculumTreeOnly = session.Batch.FlatQuestions.Count == 0 && !isVnhsgeBatch;
 
                     // 5.1 Xử lý Subjects trong Batch
                     foreach (var sub in session.Batch.Subjects)
@@ -98,29 +150,35 @@ public class CurriculumImportConfirmService : ICurriculumImportConfirmService
 
                         if (existingSub != null)
                         {
-                            await transaction.RollbackAsync(cancellationToken);
-                            return CurriculumImportConfirmResult.Fail(
-                                409,
-                                "ENTITY_ALREADY_EXISTS",
-                                $"Môn học với mã '{sub.Code}' đã tồn tại trong hệ thống. Chế độ Insert-only từ chối ghi đè.");
+                            if (isCurriculumTreeOnly)
+                            {
+                                await transaction.RollbackAsync(cancellationToken);
+                                return CurriculumImportConfirmResult.Fail(
+                                    409,
+                                    "ENTITY_ALREADY_EXISTS",
+                                    $"Môn học với mã '{sub.Code}' đã tồn tại trong hệ thống. Chế độ Insert-only từ chối ghi đè.");
+                            }
+                            subjectIdMap[sub.Code] = existingSub.Id;
                         }
-
-                        var newSub = new ContentSubject
+                        else
                         {
-                            Id = Guid.NewGuid().ToString("N"),
-                            Code = sub.Code,
-                            Name = sub.Name,
-                            Grade = !string.IsNullOrWhiteSpace(sub.Grade) ? sub.Grade : "12",
-                            Description = sub.Description,
-                            OrderIndex = sub.OrderIndex,
-                            IsActive = true,
-                            CreatedAt = DateTimeOffset.UtcNow,
-                            UpdatedAt = DateTimeOffset.UtcNow
-                        };
+                            var newSub = new ContentSubject
+                            {
+                                Id = Guid.NewGuid().ToString("N"),
+                                Code = sub.Code,
+                                Name = sub.Name,
+                                Grade = !string.IsNullOrWhiteSpace(sub.Grade) ? sub.Grade : "12",
+                                Description = sub.Description,
+                                OrderIndex = sub.OrderIndex,
+                                IsActive = true,
+                                CreatedAt = DateTimeOffset.UtcNow,
+                                UpdatedAt = DateTimeOffset.UtcNow
+                            };
 
-                        _context.ContentSubjects.Add(newSub);
-                        subjectIdMap[sub.Code] = newSub.Id;
-                        insertedSubjects++;
+                            _context.ContentSubjects.Add(newSub);
+                            subjectIdMap[sub.Code] = newSub.Id;
+                            insertedSubjects++;
+                        }
                     }
 
                     // 5.2 Xử lý Chapters trong Batch
@@ -141,32 +199,38 @@ public class CurriculumImportConfirmService : ICurriculumImportConfirmService
                             }
 
                             var existingChapter = await _context.ContentChapters
-                                .FirstOrDefaultAsync(c => c.SubjectId == parentSubjectId && c.Title == ch.Title, cancellationToken);
+                                .FirstOrDefaultAsync(c => c.SubjectId == parentSubjectId && (c.Title == ch.Title || (ch.Code != null && c.Id == ch.Code)), cancellationToken);
 
                             if (existingChapter != null)
                             {
-                                await transaction.RollbackAsync(cancellationToken);
-                                return CurriculumImportConfirmResult.Fail(
-                                    409,
-                                    "ENTITY_ALREADY_EXISTS",
-                                    $"Chương '{ch.Title}' đã tồn tại trong môn học '{sub.Code}'. Chế độ Insert-only từ chối ghi đè.");
+                                if (isCurriculumTreeOnly)
+                                {
+                                    await transaction.RollbackAsync(cancellationToken);
+                                    return CurriculumImportConfirmResult.Fail(
+                                        409,
+                                        "ENTITY_ALREADY_EXISTS",
+                                        $"Chương '{ch.Title}' đã tồn tại trong môn học '{sub.Code}'. Chế độ Insert-only từ chối ghi đè.");
+                                }
+                                chapterIdMap[ch.Code] = existingChapter.Id;
                             }
-
-                            var newChapter = new ContentChapter
+                            else
                             {
-                                Id = Guid.NewGuid().ToString("N"),
-                                SubjectId = parentSubjectId,
-                                Title = ch.Title,
-                                Description = ch.Description,
-                                OrderIndex = ch.OrderIndex,
-                                IsActive = true,
-                                CreatedAt = DateTimeOffset.UtcNow,
-                                UpdatedAt = DateTimeOffset.UtcNow
-                            };
+                                var newChapter = new ContentChapter
+                                {
+                                    Id = Guid.NewGuid().ToString("N"),
+                                    SubjectId = parentSubjectId,
+                                    Title = ch.Title,
+                                    Description = ch.Description,
+                                    OrderIndex = ch.OrderIndex,
+                                    IsActive = true,
+                                    CreatedAt = DateTimeOffset.UtcNow,
+                                    UpdatedAt = DateTimeOffset.UtcNow
+                                };
 
-                            _context.ContentChapters.Add(newChapter);
-                            chapterIdMap[ch.Code] = newChapter.Id;
-                            insertedChapters++;
+                                _context.ContentChapters.Add(newChapter);
+                                chapterIdMap[ch.Code] = newChapter.Id;
+                                insertedChapters++;
+                            }
                         }
                     }
 
@@ -196,52 +260,63 @@ public class CurriculumImportConfirmService : ICurriculumImportConfirmService
 
                                 if (existingLesson != null)
                                 {
-                                    await transaction.RollbackAsync(cancellationToken);
-                                    return CurriculumImportConfirmResult.Fail(
-                                        409,
-                                        "ENTITY_ALREADY_EXISTS",
-                                        $"Bài học '{les.Title}' (slug: '{slug}') đã tồn tại trong chương. Chế độ Insert-only từ chối ghi đè.");
-                                }
-
-                                var newLesson = new ContentLesson
-                                {
-                                    Id = Guid.NewGuid().ToString("N"),
-                                    ChapterId = parentChapterId,
-                                    Title = les.Title,
-                                    Slug = slug,
-                                    OrderIndex = les.OrderIndex,
-                                    Status = "draft",
-                                    AuthorId = currentUserId,
-                                    Introduction = les.Introduction,
-                                    DefinitionsJson = les.Definitions.Count > 0 ? JsonSerializer.Serialize(les.Definitions) : null,
-                                    FormulasJson = les.Formulas.Count > 0 ? JsonSerializer.Serialize(les.Formulas) : null,
-                                    ExamplesJson = les.Examples.Count > 0 ? JsonSerializer.Serialize(les.Examples) : null,
-                                    ImportantNotesJson = les.ImportantNotes.Count > 0 ? JsonSerializer.Serialize(les.ImportantNotes) : null,
-                                    SummaryPointsJson = les.SummaryPoints.Count > 0 ? JsonSerializer.Serialize(les.SummaryPoints) : null,
-                                    CreatedAt = DateTimeOffset.UtcNow,
-                                    UpdatedAt = DateTimeOffset.UtcNow
-                                };
-
-                                _context.ContentLessons.Add(newLesson);
-                                lessonIdMap[les.Code] = newLesson.Id;
-                                insertedLessons++;
-
-                                // Chèn các câu hỏi con đi kèm bài học
-                                var seenQuestionPrompts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                                foreach (var q in les.Questions)
-                                {
-                                    if (!seenQuestionPrompts.Add(q.Prompt.Trim()))
+                                    if (isCurriculumTreeOnly)
                                     {
                                         await transaction.RollbackAsync(cancellationToken);
                                         return CurriculumImportConfirmResult.Fail(
                                             409,
                                             "ENTITY_ALREADY_EXISTS",
-                                            $"Câu hỏi '{q.Prompt}' bị trùng lặp trong cùng bài học.");
+                                            $"Bài học '{les.Title}' (slug: '{slug}') đã tồn tại trong chương. Chế độ Insert-only từ chối ghi đè.");
                                     }
+                                    lessonIdMap[les.Code] = existingLesson.Id;
+                                }
+                                else
+                                {
+                                    var newLesson = new ContentLesson
+                                    {
+                                        Id = Guid.NewGuid().ToString("N"),
+                                        ChapterId = parentChapterId,
+                                        Title = les.Title,
+                                        Slug = slug,
+                                        OrderIndex = les.OrderIndex,
+                                        Status = "draft",
+                                        AuthorId = currentUserId,
+                                        Introduction = les.Introduction,
+                                        DefinitionsJson = les.Definitions.Count > 0 ? JsonSerializer.Serialize(les.Definitions) : null,
+                                        FormulasJson = les.Formulas.Count > 0 ? JsonSerializer.Serialize(les.Formulas) : null,
+                                        ExamplesJson = les.Examples.Count > 0 ? JsonSerializer.Serialize(les.Examples) : null,
+                                        ImportantNotesJson = les.ImportantNotes.Count > 0 ? JsonSerializer.Serialize(les.ImportantNotes) : null,
+                                        SummaryPointsJson = les.SummaryPoints.Count > 0 ? JsonSerializer.Serialize(les.SummaryPoints) : null,
+                                        CreatedAt = DateTimeOffset.UtcNow,
+                                        UpdatedAt = DateTimeOffset.UtcNow
+                                    };
+
+                                    _context.ContentLessons.Add(newLesson);
+                                    lessonIdMap[les.Code] = newLesson.Id;
+                                    insertedLessons++;
+                                }
+
+                                // Chèn các câu hỏi con đi kèm bài học (Idempotent skip)
+                                var currentLessonId = lessonIdMap[les.Code];
+                                foreach (var q in les.Questions)
+                                {
+                                    var promptExists = await _context.ContentQuestions
+                                        .AnyAsync(x => !x.IsDeleted && (
+                                            (x.LessonId == currentLessonId && x.Prompt == q.Prompt) ||
+                                            (!string.IsNullOrWhiteSpace(q.Code) && x.Code == q.Code)
+                                        ), cancellationToken);
+
+                                    if (promptExists)
+                                    {
+                                        skippedQuestions++;
+                                        continue;
+                                    }
+
                                     var newQ = new ContentQuestion
                                     {
                                         Id = Guid.NewGuid().ToString("N"),
-                                        LessonId = newLesson.Id,
+                                        Code = q.Code,
+                                        LessonId = currentLessonId,
                                         ChapterId = parentChapterId,
                                         SubjectId = subjectIdMap[sub.Code],
                                         Prompt = q.Prompt,
@@ -251,18 +326,21 @@ public class CurriculumImportConfirmService : ICurriculumImportConfirmService
                                         Topic = q.Topic,
                                         Difficulty = !string.IsNullOrWhiteSpace(q.Difficulty) ? q.Difficulty.ToLowerInvariant() : "medium",
                                         Type = !string.IsNullOrWhiteSpace(q.Type) ? q.Type.ToLowerInvariant() : "multiple-choice",
-                                        Status = "published",
+                                        Status = !string.IsNullOrWhiteSpace(q.Status) ? q.Status.ToLowerInvariant() : (isVnhsgeBatch ? "draft" : "draft"),
+                                        SourceType = isVnhsgeBatch ? "vnhsge" : "manual",
+                                        CopyrightStatus = isVnhsgeBatch ? "pending_verification" : "proprietary",
+                                        CopyrightProofRef = isVnhsgeBatch ? "CC-BY-NC-SA-4.0 (arXiv:2305.12199)" : "Internal Proprietary",
                                         OrderIndex = q.OrderIndex,
                                         CreatedAt = DateTimeOffset.UtcNow,
                                         UpdatedAt = DateTimeOffset.UtcNow
                                     };
 
-                                _context.ContentQuestions.Add(newQ);
-                                insertedQuestions++;
+                                    _context.ContentQuestions.Add(newQ);
+                                    insertedQuestions++;
+                                }
                             }
                         }
                     }
-                }
 
                 // 5.4 Xử lý Flat Questions (từ CSV hoặc ngân hàng câu hỏi độc lập)
                 var seenFlatQuestions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -350,34 +428,31 @@ public class CurriculumImportConfirmService : ICurriculumImportConfirmService
                         }
                     }
 
-                    // Kiểm tra trùng lặp prompt trong bài học (Insert-Only rule)
-                    if (qLessonId != null)
+                    // Kiểm tra trùng lặp prompt và mã câu hỏi (Idempotent Skip)
+                    var isDuplicate = false;
+                    if (!string.IsNullOrWhiteSpace(q.Code))
                     {
-                        var batchPromptKey = $"{qLessonId}::{q.Prompt.Trim()}";
-                        if (!seenFlatQuestions.Add(batchPromptKey))
-                        {
-                            await transaction.RollbackAsync(cancellationToken);
-                            return CurriculumImportConfirmResult.Fail(
-                                409,
-                                "ENTITY_ALREADY_EXISTS",
-                                $"Câu hỏi với nội dung '{q.Prompt}' bị trùng lặp trong cùng tệp nhập cho bài học này.");
-                        }
+                        isDuplicate = await _context.ContentQuestions.AnyAsync(x => !x.IsDeleted && x.Code == q.Code, cancellationToken);
+                    }
+                    if (!isDuplicate && !string.IsNullOrWhiteSpace(qSubjectId))
+                    {
+                        isDuplicate = await _context.ContentQuestions.AnyAsync(x => !x.IsDeleted && x.SubjectId == qSubjectId && x.Prompt == q.Prompt, cancellationToken);
+                    }
+                    if (!isDuplicate && !string.IsNullOrWhiteSpace(qLessonId))
+                    {
+                        isDuplicate = await _context.ContentQuestions.AnyAsync(x => !x.IsDeleted && x.LessonId == qLessonId && x.Prompt == q.Prompt, cancellationToken);
+                    }
 
-                        var promptExists = await _context.ContentQuestions
-                            .AnyAsync(x => x.LessonId == qLessonId && x.Prompt == q.Prompt, cancellationToken);
-                        if (promptExists)
-                        {
-                            await transaction.RollbackAsync(cancellationToken);
-                            return CurriculumImportConfirmResult.Fail(
-                                409,
-                                "ENTITY_ALREADY_EXISTS",
-                                $"Câu hỏi với nội dung tương tự đã tồn tại trong bài học. Chế độ Insert-only từ chối chèn trùng lặp.");
-                        }
+                    if (isDuplicate)
+                    {
+                        skippedQuestions++;
+                        continue;
                     }
 
                     var newQ = new ContentQuestion
                     {
                         Id = Guid.NewGuid().ToString("N"),
+                        Code = q.Code,
                         LessonId = qLessonId,
                         ChapterId = qChapterId,
                         SubjectId = qSubjectId,
@@ -388,7 +463,10 @@ public class CurriculumImportConfirmService : ICurriculumImportConfirmService
                         Topic = q.Topic,
                         Difficulty = !string.IsNullOrWhiteSpace(q.Difficulty) ? q.Difficulty.ToLowerInvariant() : "medium",
                         Type = !string.IsNullOrWhiteSpace(q.Type) ? q.Type.ToLowerInvariant() : "multiple-choice",
-                        Status = "published",
+                        Status = !string.IsNullOrWhiteSpace(q.Status) ? q.Status.ToLowerInvariant() : (isVnhsgeBatch ? "draft" : "draft"),
+                        SourceType = isVnhsgeBatch ? "vnhsge" : "manual",
+                        CopyrightStatus = isVnhsgeBatch ? "pending_verification" : "proprietary",
+                        CopyrightProofRef = isVnhsgeBatch ? "CC-BY-NC-SA-4.0 (arXiv:2305.12199)" : "Internal Proprietary",
                         OrderIndex = q.OrderIndex,
                         CreatedAt = DateTimeOffset.UtcNow,
                         UpdatedAt = DateTimeOffset.UtcNow
@@ -417,10 +495,10 @@ public class CurriculumImportConfirmService : ICurriculumImportConfirmService
                         fileFormat = session.FileFormat,
                         summary = new
                         {
-                            totalProcessed = totalProcessed,
+                            totalProcessed = totalProcessed + skippedQuestions,
                             inserted = totalProcessed,
                             updated = 0,
-                            skipped = 0,
+                            skipped = skippedQuestions,
                             failed = 0
                         },
                         entityCounts = new
@@ -446,8 +524,8 @@ public class CurriculumImportConfirmService : ICurriculumImportConfirmService
                 _cache.Remove(cacheKey);
 
                 _logger.LogInformation(
-                    "Đã xác nhận import thành công: Token={Token}, Actor={Actor}, Total={Total}, Subjects={Sub}, Chapters={Ch}, Lessons={Les}, Questions={Q}",
-                    previewToken, currentUserId, totalProcessed, insertedSubjects, insertedChapters, insertedLessons, insertedQuestions);
+                    "Đã xác nhận import thành công: Token={Token}, Actor={Actor}, Total={Total}, Subjects={Sub}, Chapters={Ch}, Lessons={Les}, Questions={Q}, Skipped={Skip}",
+                    previewToken, currentUserId, totalProcessed, insertedSubjects, insertedChapters, insertedLessons, insertedQuestions, skippedQuestions);
 
                 return CurriculumImportConfirmResult.Ok(new CurriculumImportConfirmResponseDto
                 {
@@ -458,10 +536,10 @@ public class CurriculumImportConfirmService : ICurriculumImportConfirmService
                     AuditLogId = auditLogId,
                     Summary = new CurriculumImportConfirmSummaryDto
                     {
-                        TotalProcessed = totalProcessed,
+                        TotalProcessed = totalProcessed + skippedQuestions,
                         Inserted = totalProcessed,
                         Updated = 0,
-                        Skipped = 0,
+                        Skipped = skippedQuestions,
                         Failed = 0
                     },
                     EntityCounts = new CurriculumImportEntityCountsDto

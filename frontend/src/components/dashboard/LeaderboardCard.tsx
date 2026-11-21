@@ -38,38 +38,44 @@ export function LeaderboardCard({ entries }: LeaderboardCardProps) {
       className="leaderboard-card"
     >
       <div className="leaderboard-list">
-        {entries.map((entry) => {
-          return (
-            <div
-              key={entry.id}
-              className={`leaderboard-row ${entry.isCurrentUser ? 'current-user' : ''}`}
-            >
-              <div className="rank-badge-box">
-                {getRankBadge(entry.rank)}
-              </div>
+        {entries.length === 0 ? (
+          <div style={{ padding: '24px 16px', textAlign: 'center', color: '#64748b', fontSize: '0.875rem' }}>
+            Chưa có bảng xếp hạng tuần này. Hãy hoàn thành bài luyện tập để tích lũy XP!
+          </div>
+        ) : (
+          entries.map((entry) => {
+            return (
+              <div
+                key={entry.id}
+                className={`leaderboard-row ${entry.isCurrentUser ? 'current-user' : ''}`}
+              >
+                <div className="rank-badge-box">
+                  {getRankBadge(entry.rank)}
+                </div>
 
-              <Avatar
-                src={entry.avatar}
-                alt={entry.name}
-                size="sm"
-                className="leaderboard-avatar"
-              />
+                <Avatar
+                  src={entry.avatar}
+                  alt={entry.name}
+                  size="sm"
+                  className="leaderboard-avatar"
+                />
 
-              <div className="leaderboard-name-box">
-                <span className="leaderboard-user-name">
-                  {entry.name}
-                </span>
-              </div>
+                <div className="leaderboard-name-box">
+                  <span className="leaderboard-user-name">
+                    {entry.name}
+                  </span>
+                </div>
 
-              <div className="leaderboard-xp-box">
-                <span className="leaderboard-xp-value">
-                  {entry.xp.toLocaleString('vi-VN')}
-                </span>
-                <span className="leaderboard-xp-unit">XP</span>
+                <div className="leaderboard-xp-box">
+                  <span className="leaderboard-xp-value">
+                    {entry.xp.toLocaleString('vi-VN')}
+                  </span>
+                  <span className="leaderboard-xp-unit">XP</span>
+                </div>
               </div>
-            </div>
-          )
-        })}
+            )
+          })
+        )}
       </div>
     </Card>
   )

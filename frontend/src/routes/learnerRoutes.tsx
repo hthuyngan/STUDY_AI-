@@ -1,12 +1,10 @@
 import { Route, Navigate, useParams } from 'react-router-dom'
+import { LegacyAiTutorRoutes } from './legacyRedirectRoutes'
 import { AppShell } from '@/components/layout/AppShell'
 import DashboardPage from '@/pages/Dashboard/DashboardPage'
 import SubjectsPage from '@/pages/Subjects/SubjectsPage'
 import SubjectDetailPage from '@/pages/Subjects/SubjectDetailPage'
 import LessonPage from '@/pages/Lesson/LessonPage'
-import QuizPage from '@/pages/Quiz/QuizPage'
-import QuizResultPage from '@/pages/Quiz/QuizResultPage'
-import AITutorPage from '@/pages/AITutor/AITutorPage'
 import LearningPathPage from '@/pages/LearningPath/LearningPathPage'
 import MyNotesPage from '@/pages/MyNotes/MyNotesPage'
 import KnowledgeGapsPage from '@/pages/KnowledgeGaps/KnowledgeGapsPage'
@@ -22,6 +20,8 @@ import ProfilePage from '@/pages/Profile/ProfilePage'
 import SettingsPage from '@/pages/Settings/SettingsPage'
 import DesignSystemPage from '@/pages/DesignSystem/DesignSystemPage'
 import { LearnerAssignmentsPage } from '@/pages/Assignments/LearnerAssignmentsPage'
+import { ExamPreparationPage } from '@/pages/Exam/ExamPreparationPage'
+import { SchedulePage } from '@/pages/Schedule/SchedulePage'
 
 export function LegacyCoursesRedirect() {
   const { courseId } = useParams<{ courseId?: string }>()
@@ -102,41 +102,13 @@ export function LearnerRoutes() {
       {/* Legacy /learn redirect */}
       <Route path="/learn/:courseId/:lessonId" element={<LegacyLearnRedirect />} />
 
-      {/* Quiz Flow */}
-      <Route
-        path="/quiz/:quizId"
-        element={
-          <AppShell>
-            <QuizPage />
-          </AppShell>
-        }
-      />
-      <Route
-        path="/quiz/:quizId/result"
-        element={
-          <AppShell>
-            <QuizResultPage />
-          </AppShell>
-        }
-      />
+      {/* Legacy quiz pages used an in-browser mock engine. Route all old links to
+          the persisted practice workflow instead of presenting synthetic results. */}
+      <Route path="/quiz/:quizId" element={<Navigate to="/practice" replace />} />
+      <Route path="/quiz/:quizId/result" element={<Navigate to="/practice" replace />} />
 
-      {/* AI Tutor */}
-      <Route
-        path="/ai-tutor"
-        element={
-          <AppShell>
-            <AITutorPage />
-          </AppShell>
-        }
-      />
-      <Route
-        path="/ai-tutor/:conversationId"
-        element={
-          <AppShell>
-            <AITutorPage />
-          </AppShell>
-        }
-      />
+      {/* Legacy AI Tutor Redirects: seamlessly route to /subjects with zero dead links & active Floating AI Chatbot */}
+      {LegacyAiTutorRoutes()}
 
       {/* Learning Path */}
       <Route
@@ -195,6 +167,24 @@ export function LearnerRoutes() {
         element={
           <AppShell>
             <PracticeHubPage />
+          </AppShell>
+        }
+      />
+      <Route path="/practice/hub" element={<Navigate to="/practice" replace />} />
+      <Route
+        path="/exam-preparation"
+        element={
+          <AppShell>
+            <ExamPreparationPage />
+          </AppShell>
+        }
+      />
+      <Route path="/exam" element={<Navigate to="/exam-preparation" replace />} />
+      <Route
+        path="/schedule"
+        element={
+          <AppShell>
+            <SchedulePage />
           </AppShell>
         }
       />

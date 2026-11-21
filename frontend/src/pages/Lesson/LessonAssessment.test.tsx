@@ -15,7 +15,7 @@ import {
   getActiveUnfinishedAttempt,
 } from '@/services/assessment.service'
 import { mockAssessments } from '@/data/assessments.mock'
-import { toScormTrackingSnapshot } from '@/types/assessment'
+import { toScormTrackingSnapshot, type LearningAttempt } from '@/types/assessment'
 
 describe('Lesson Progress Calculation & Section Tracking', () => {
   beforeEach(() => {
@@ -29,27 +29,27 @@ describe('Lesson Progress Calculation & Section Tracking', () => {
   })
 
   it('computes proportional content progress for partial sections', () => {
-    // 2 out of 5 sections = (2/5) * 80 = 32%
+    // 2 out of 5 sections = (2/5) * 70 = 28%
     const { contentProgress, overallProgress } = computeProgressValues(2, 5, false)
-    expect(contentProgress).toBe(32)
-    expect(overallProgress).toBe(32)
+    expect(contentProgress).toBe(28)
+    expect(overallProgress).toBe(28)
 
-    // 1 out of 5 = 16%
+    // 1 out of 5 = 14%
     const oneSec = computeProgressValues(1, 5, false)
-    expect(oneSec.contentProgress).toBe(16)
-    expect(oneSec.overallProgress).toBe(16)
+    expect(oneSec.contentProgress).toBe(14)
+    expect(oneSec.overallProgress).toBe(14)
   })
 
-  it('caps content progress at exactly 80% when all sections are completed', () => {
-    const { contentProgress, overallProgress } = computeProgressValues(5, 5, false)
-    expect(contentProgress).toBe(80)
-    expect(overallProgress).toBe(80)
+  it('caps content progress at exactly 70% when video section is completed', () => {
+    const { contentProgress, overallProgress } = computeProgressValues(1, 1, false)
+    expect(contentProgress).toBe(70)
+    expect(overallProgress).toBe(70)
   })
 
   it('achieves EXACT 100% overall progress when assessment is completed', () => {
-    // Even if only 3 sections were read, completing assessment gives 100%
-    const { contentProgress, overallProgress } = computeProgressValues(3, 5, true)
-    expect(contentProgress).toBe(80)
+    // Completing video (70%) and assessment (30%) gives 100%
+    const { contentProgress, overallProgress } = computeProgressValues(1, 1, true)
+    expect(contentProgress).toBe(70)
     expect(overallProgress).toBe(100)
   })
 
@@ -61,17 +61,17 @@ describe('Lesson Progress Calculation & Section Tracking', () => {
     // Mark section 1
     const p1 = markSectionCompleted(lessonId, subjectId, 'introduction', totalSections)
     expect(p1.completedSectionIds).toEqual(['introduction'])
-    expect(p1.overallProgress).toBe(16)
+    expect(p1.overallProgress).toBe(14)
 
     // Re-mark section 1 (e.g. re-entering viewport)
     const p2 = markSectionCompleted(lessonId, subjectId, 'introduction', totalSections)
     expect(p2.completedSectionIds).toEqual(['introduction'])
-    expect(p2.overallProgress).toBe(16)
+    expect(p2.overallProgress).toBe(14)
 
     // Mark section 2
     const p3 = markSectionCompleted(lessonId, subjectId, 'definitions', totalSections)
     expect(p3.completedSectionIds).toEqual(['introduction', 'definitions'])
-    expect(p3.overallProgress).toBe(32)
+    expect(p3.overallProgress).toBe(28)
 
     // Verify stored progress can be restored
     const restored = getLessonProgress(lessonId)
@@ -129,6 +129,9 @@ describe('Assessment Attempt Lifecycle & Autosave', () => {
   })
 
   it('submits attempt, scores answers accurately, reaches 100% lesson progress, and records events', () => {
+    // Complete video section first (70%)
+    markSectionCompleted(assessment.lessonId, assessment.subjectId, 'video-lecture', 1)
+
     let attempt = startNewAttempt(assessment)
 
     // Answer all 5 questions correctly
@@ -141,7 +144,7 @@ describe('Assessment Attempt Lifecycle & Autosave', () => {
       assessment.questions,
       assessment.passingScorePercent,
       10000,
-      5
+      1
     )
 
     expect(submitted.status).toBe('completed')
@@ -197,7 +200,7 @@ describe('Assessment UI Components & Modal Interactions', () => {
     cleanup()
   })
 
-  it('renders LessonAssessmentCard with pending 80% badge and starts attempt', async () => {
+  it('renders LessonAssessmentCard with pending badge and starts attempt', async () => {
     const { render, screen, fireEvent } = await import('@testing-library/react')
     const { LessonAssessmentCard } = await import('@/components/assessment/LessonAssessmentCard')
 
@@ -212,7 +215,7 @@ describe('Assessment UI Components & Modal Interactions', () => {
     )
 
     expect(screen.getByRole('heading', { name: /Bài tập thu hoạch/i })).toBeInTheDocument()
-    expect(screen.getByText('80%')).toBeInTheDocument()
+    expect(screen.getByText('+30%')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Bắt đầu làm bài/i })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /Bắt đầu làm bài/i }))
@@ -336,7 +339,7 @@ describe('Assessment UI Components & Modal Interactions', () => {
     )
 
     expect(screen.getByText(/Bài tập thu hoạch đang được cập nhật/i)).toBeInTheDocument()
-    expect(screen.getByText('80%')).toBeInTheDocument()
+    expect(screen.getByText('Chưa làm')).toBeInTheDocument()
   })
 
   it('verifies learning event log persistence in storage', async () => {
@@ -344,5 +347,69 @@ describe('Assessment UI Components & Modal Interactions', () => {
     const events = getStoredLearningEvents(assessment.lessonId)
     expect(events.length).toBeGreaterThan(0)
     expect(events.some((e) => e.type === 'assessment_started')).toBe(true)
+  })
+
+  it('rehydrates unfinished attempt when learning state event is received after page reload', async () => {
+    const { renderHook, act } = await import('@testing-library/react')
+    const { useLessonAssessment } = await import('@/hooks/useLessonAssessment')
+    const { updateAttempt } = await import('@/services/assessment.service')
+    const { notifyLearningStateChanged } = await import('@/services/learningStateEvents')
+
+    // Initial render without active attempt
+    const { result } = renderHook(() =>
+      useLessonAssessment({
+        assessment: {
+          ...assessment,
+          lessonId: 'les_math12_reload_test',
+        },
+      })
+    )
+
+    expect(result.current.hasUnfinishedAttempt).toBe(false)
+    expect(result.current.activeAttempt).toBeNull()
+
+    // Simulate an unfinished attempt being stored (e.g. after network failure or background fetch)
+    const now = new Date().toISOString()
+    const storedAttempt: LearningAttempt = {
+      id: 'atm_reload_123',
+      assessmentId: 'asmt_reload',
+      lessonId: 'les_math12_reload_test',
+      subjectId: 'math',
+      chapterId: 'chap_1',
+      learnerId: 'usr_test_1',
+      attemptNumber: 1,
+      startedAt: now,
+      lastActivityAt: now,
+      status: 'in-progress',
+      completionStatus: 'incomplete',
+      successStatus: 'unknown',
+      scoreRaw: 1,
+      scoreMin: 0,
+      scoreMax: 2,
+      scoreScaled: 0.5,
+      progressMeasure: 0.5,
+      sessionTimeMs: 45000,
+      currentQuestionId: 'q1',
+      responses: {
+        'q1': {
+          questionId: 'q1',
+          selectedOptionIds: ['opt_a'],
+          firstAnsweredAt: now,
+          lastAnsweredAt: now,
+          changeCount: 0,
+          timeSpentMs: 20000,
+        },
+      },
+      events: [],
+    }
+
+    act(() => {
+      updateAttempt(storedAttempt)
+      notifyLearningStateChanged()
+    })
+
+    // Hook must dynamically rehydrate and reflect the unfinished attempt
+    expect(result.current.hasUnfinishedAttempt).toBe(true)
+    expect(result.current.activeAttempt?.id).toBe('atm_reload_123')
   })
 })

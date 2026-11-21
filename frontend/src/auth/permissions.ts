@@ -10,8 +10,6 @@ export type RolePermission =
   | 'manage_content'
   | 'review_content'
   | 'publish_content'
-  | 'manage_support_tickets'
-  | 'view_user_support_profile'
 
 export const ROLE_PERMISSIONS: Record<UserRole, RolePermission[]> = {
   learner: [],
@@ -25,10 +23,6 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermission[]> = {
     'review_content',
     'publish_content',
   ],
-  support: [
-    'manage_support_tickets',
-    'view_user_support_profile',
-  ],
   admin: [
     'manage_users',
     'manage_roles',
@@ -39,8 +33,6 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermission[]> = {
     'manage_content',
     'review_content',
     'publish_content',
-    'manage_support_tickets',
-    'view_user_support_profile',
   ],
 }
 
@@ -90,8 +82,6 @@ export function getDefaultRouteForRole(role?: UserRole): string {
       return '/teacher'
     case 'content':
       return '/content'
-    case 'support':
-      return '/support'
     case 'learner':
     default:
       return '/dashboard'

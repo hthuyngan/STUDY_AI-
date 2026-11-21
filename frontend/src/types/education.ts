@@ -22,6 +22,7 @@ export interface CurriculumChapterItem {
   subjectId: string
   subjectName?: string
   title: string
+  description?: string
   order: number
   lessonsCount: number
   status: ContentStatus
@@ -35,11 +36,50 @@ export interface CurriculumLessonItem {
   subjectName: string
   chapterId: string
   chapterName: string
+  topicId?: string
+  topicTitle?: string
   status: ContentStatus
   authorName: string
   updatedAt: string
   hasAssessment: boolean
   order?: number
+  videos?: CurriculumLessonVideoItem[]
+  videoCount?: number
+}
+
+export interface CurriculumTopicItem {
+  id: string
+  chapterId: string
+  chapterTitle?: string
+  title: string
+  description?: string
+  orderIndex: number
+  isActive: boolean
+  lessonCount: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CurriculumLessonVideoItem {
+  id: string
+  lessonId: string
+  lessonTitle?: string
+  title: string
+  description?: string
+  provider: string
+  sourceUrl: string
+  embedUrl?: string | null
+  youTubeVideoId?: string | null
+  language: string
+  durationSeconds?: number | null
+  thumbnailUrl?: string | null
+  sortOrder: number
+  embedAllowed: boolean
+  verificationStatus: string
+  verifiedAt?: string | null
+  isPublished: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 export interface AssessmentOptionItem {
@@ -100,6 +140,7 @@ export interface LearningReportsData {
     date: string
     activeUsers: number
     lessonsCompleted: number
+    completedLessons?: number
   }[]
   subjectProgress: {
     subject: string

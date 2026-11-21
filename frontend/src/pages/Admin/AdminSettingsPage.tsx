@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   Save,
   RotateCcw,
@@ -9,7 +9,11 @@ import {
   BookOpen,
   Bell,
   Database,
+  Cpu,
+  Loader2,
 } from 'lucide-react'
+import { aiTutorService } from '@/services/aiTutor.service'
+import type { AiFeatureConfig, AiUsageStats } from '@/types/aiTutor'
 import { operationsService } from '@/services/operations.service'
 import type { OperationalSettings } from '@/types/operations'
 import './AdminPages.css'
@@ -17,6 +21,7 @@ import '@/components/admin/AdminComponents.css'
 
 export const AdminSettingsPage: React.FC = () => {
   const [settings, setSettings] = useState<OperationalSettings>(operationsService.getSettings())
+  const [settingsLoading, setSettingsLoading] = useState<boolean>(true)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
 
   const showToast = (msg: string) => {
@@ -39,11 +44,80 @@ export const AdminSettingsPage: React.FC = () => {
 
   const [storageUsage, setStorageUsage] = useState<string>(() => computeStorageUsage())
 
-  const handleSave = (e: React.FormEvent) => {
+  // AI Operations state
+  const [aiConfig, setAiConfig] = useState<AiFeatureConfig | null>(null)
+  const [aiStats, setAiStats] = useState<AiUsageStats | null>(null)
+  const [aiLoading, setAiLoading] = useState<boolean>(true)
+
+  useEffect(() => {
+    let isMounted = true
+    operationsService
+      .getSettingsAsync()
+      .then((loaded) => {
+        if (isMounted) {
+          setSettings(loaded)
+          setSettingsLoading(false)
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          showToast(`Lỗi tải cấu hình: ${err instanceof Error ? err.message : String(err)}`)
+          setSettingsLoading(false)
+        }
+      })
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let isMounted = true
+    const loadAiData = async () => {
+      try {
+        const [cfg, stats] = await Promise.all([
+          aiTutorService.getAdminAiStatus().catch(() => null),
+          aiTutorService.getAdminAiStats().catch(() => null),
+        ])
+        if (isMounted) {
+          if (cfg) setAiConfig(cfg)
+          if (stats) setAiStats(stats)
+        }
+      } finally {
+        if (isMounted) setAiLoading(false)
+      }
+    }
+    loadAiData()
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  const handleToggleAiFeature = async (feature: string, current: boolean) => {
+    try {
+      const res = await aiTutorService.toggleAdminAiFeature(feature, !current)
+      setAiConfig(res.config)
+      showToast(res.message)
+    } catch {
+      showToast(`Không thể cập nhật tính năng AI '${feature}'.`)
+    }
+  }
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
-    operationsService.saveSettings(settings, 'Demo Admin')
-    showToast('Đã lưu thành công các thiết lập vận hành')
-    setStorageUsage(computeStorageUsage())
+    try {
+      const saved = await operationsService.saveSettings(settings, 'Demo Admin')
+      setSettings(saved)
+      showToast('Đã lưu thành công các thiết lập vận hành')
+      setStorageUsage(computeStorageUsage())
+    } catch (err: any) {
+      if (err?.status === 409 || err?.message?.includes('409') || err?.message?.includes('phiên quản trị khác')) {
+        showToast('Xung đột: Cấu hình đã được quản trị viên khác cập nhật. Đang tải lại cấu hình mới nhất...')
+        const refreshed = await operationsService.getSettingsAsync()
+        setSettings(refreshed)
+      } else {
+        showToast(err instanceof Error ? err.message : 'Lỗi khi lưu thiết lập.')
+      }
+    }
   }
 
   const handleResetSettings = () => {
@@ -58,7 +132,7 @@ export const AdminSettingsPage: React.FC = () => {
   const handleResetAllData = () => {
     if (
       window.confirm(
-        'CẢNH BÁO: Thao tác này sẽ xóa toàn bộ dữ liệu demo (phê duyệt, bài nộp, ticket, thông báo) đã lưu trong localStorage và đưa hệ thống về trạng thái ban đầu. Bạn có chắc chắn?'
+        'CẢNH BÁO: Thao tác này sẽ xóa toàn bộ dữ liệu demo (phê duyệt, bài nộp, thông báo) đã lưu trong localStorage và đưa hệ thống về trạng thái ban đầu. Bạn có chắc chắn?'
       )
     ) {
       operationsService.resetAllDemoData()
@@ -89,6 +163,7 @@ export const AdminSettingsPage: React.FC = () => {
             <h1 className="staff-page-title">Thiết lập vận hành (Operational Settings)</h1>
             <p className="staff-page-desc">
               Tùy biến các quy tắc học tập, ngưỡng cảnh báo, quy trình kiểm duyệt nội dung và quản trị bộ nhớ demo.
+              {settingsLoading && <span style={{ marginLeft: 8, color: '#0284c7' }}>(Đang đồng bộ từ máy chủ...)</span>}
             </p>
           </div>
           <div className="admin-header-actions">
@@ -294,7 +369,7 @@ export const AdminSettingsPage: React.FC = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#f8fafc', borderRadius: 6, marginBottom: 14 }}>
             <div>
               <div style={{ fontWeight: 600, color: '#102a43', fontSize: '0.9rem' }}>Dung lượng dữ liệu demo hiện tại:</div>
-              <div style={{ fontSize: '0.8rem', color: '#627d98' }}>Lưu trữ các lớp học, học viên, bài tập, ticket và phê duyệt</div>
+              <div style={{ fontSize: '0.8rem', color: '#627d98' }}>Lưu trữ các lớp học, học viên, bài tập và phê duyệt</div>
             </div>
             <strong style={{ fontSize: '1.1rem', color: '#0284c7' }}>{storageUsage}</strong>
           </div>
@@ -309,6 +384,128 @@ export const AdminSettingsPage: React.FC = () => {
               <span>Xóa toàn bộ dữ liệu demo & Reset trạng thái</span>
             </button>
           </div>
+        </div>
+
+        {/* F. QUẢN TRỊ TRÍ TUỆ NHÂN TẠO (AI OPERATIONS) */}
+        <div className="admin-card" style={{ background: '#fff', border: '1px solid #c3dafe', borderRadius: 8, padding: 22 }}>
+          <h2 style={{ fontSize: '1rem', fontWeight: 700, color: '#1e3a8a', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Cpu size={18} color="#2563eb" />
+            <span>F. Quản trị & Giám sát Trí tuệ Nhân tạo (AI Operations)</span>
+          </h2>
+
+          {aiLoading ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 16, color: '#64748b' }}>
+              <Loader2 className="spinner" size={18} />
+              <span>Đang tải thông số và tình trạng hệ thống AI...</span>
+            </div>
+          ) : (
+            <div>
+              {/* Provider Info Banner */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#eff6ff', borderRadius: 6, marginBottom: 16 }}>
+                <div>
+                  <div style={{ fontWeight: 600, color: '#1e3a8a', fontSize: '0.9rem' }}>
+                    Nhà cung cấp LLM: <strong>{aiConfig?.providerName || 'OpenAI'}</strong> ({aiConfig?.modelName || 'gpt-4o-mini'})
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                    {aiConfig?.isConfigured ? '✓ Đã kết nối khóa API an toàn từ máy chủ' : 'Chế độ mô phỏng sư phạm (Fake Pedagogical Mock)'}
+                  </div>
+                </div>
+                <span
+                  style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    padding: '4px 10px',
+                    borderRadius: 4,
+                    background: aiConfig?.isConfigured ? '#dcfce7' : '#fef3c7',
+                    color: aiConfig?.isConfigured ? '#15803d' : '#92400e',
+                  }}
+                >
+                  {aiConfig?.isConfigured ? 'LIVE AI READY' : 'MOCK ENGINE'}
+                </span>
+              </div>
+
+              {/* Feature Toggles */}
+              <div style={{ marginBottom: 18 }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#334e68', marginBottom: 10 }}>
+                  Công tắc kích hoạt tính năng AI:
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.875rem', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={aiConfig?.enableTutor ?? true}
+                      onChange={() => handleToggleAiFeature('tutor', aiConfig?.enableTutor ?? true)}
+                    />
+                    <span>1. AI Tutor Socratic Chat (Trợ lý bài học)</span>
+                  </label>
+
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.875rem', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={aiConfig?.enableHints ?? true}
+                      onChange={() => handleToggleAiFeature('hints', aiConfig?.enableHints ?? true)}
+                    />
+                    <span>2. AI 3-Level Hints (Bậc thang gợi ý làm bài)</span>
+                  </label>
+
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.875rem', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={aiConfig?.enableErrorAnalysis ?? true}
+                      onChange={() => handleToggleAiFeature('error_analysis', aiConfig?.enableErrorAnalysis ?? true)}
+                    />
+                    <span>3. AI Error Analysis (Phân tích lỗi sai)</span>
+                  </label>
+
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.875rem', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={aiConfig?.enableLearningPath ?? true}
+                      onChange={() => handleToggleAiFeature('learning_path', aiConfig?.enableLearningPath ?? true)}
+                    />
+                    <span>4. AI Learning Path (Đề xuất lộ trình)</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Budget Warning Banner */}
+              {aiStats?.budgetWarning && (
+                <div style={{ marginBottom: 14, padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6, color: '#991b1b', fontSize: '0.85rem' }}>
+                  ⚠️ Cảnh báo ngân sách: Chi phí AI hôm nay đã đạt hoặc vượt 80% hạn mức ngày ($5.00 USD). Hệ thống đang kiểm soát token chặt chẽ.
+                </div>
+              )}
+
+              {/* Usage Stats Strip */}
+              {aiStats && (
+                <div style={{ padding: '14px', background: '#f8fafc', borderRadius: 6 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Tổng số lượt gọi:</div>
+                      <strong style={{ fontSize: '1.1rem', color: '#0f172a' }}>{aiStats.totalRequests ?? 0}</strong>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Tổng Token:</div>
+                      <strong style={{ fontSize: '1.1rem', color: '#2563eb' }}>{((aiStats.totalInputTokens ?? 0) + (aiStats.totalOutputTokens ?? 0)).toLocaleString()}</strong>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Chi phí ước tính:</div>
+                      <strong style={{ fontSize: '1.1rem', color: '#16a34a' }}>${(aiStats.estimatedTotalCostUsd ?? 0).toFixed(4)}</strong>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Độ trễ trung bình:</div>
+                      <strong style={{ fontSize: '1.1rem', color: '#7c3aed' }}>{aiStats.averageLatencyMs ?? 0} ms</strong>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginTop: 12, paddingTop: 10, borderTop: '1px solid #e2e8f0', fontSize: '0.8rem', color: '#64748b' }}>
+                    <div>Số lượt Fallback: <strong style={{ color: '#0f172a' }}>{aiStats.fallbackCount ?? 0}</strong></div>
+                    <div>Lỗi Rate Limit (429): <strong style={{ color: (aiStats.rateLimitCount ?? 0) > 0 ? '#dc2626' : '#0f172a' }}>{aiStats.rateLimitCount ?? 0}</strong></div>
+                    <div>Lỗi Timeout: <strong style={{ color: (aiStats.timeoutCount ?? 0) > 0 ? '#dc2626' : '#0f172a' }}>{aiStats.timeoutCount ?? 0}</strong></div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Save button bar */}

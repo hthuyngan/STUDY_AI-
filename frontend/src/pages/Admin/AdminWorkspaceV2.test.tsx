@@ -56,7 +56,6 @@ describe('Admin Workspace V2 UI Tests', () => {
       expect(screen.getByRole('link', { name: /Truy cập Quản lý người dùng/i })).toHaveAttribute('href', '/admin/users')
       expect(screen.getByRole('link', { name: /Truy cập Quản lý giáo trình/i })).toHaveAttribute('href', '/content')
       expect(screen.getByRole('link', { name: /Truy cập Không gian giáo viên/i })).toHaveAttribute('href', '/teacher')
-      expect(screen.getByRole('link', { name: /Truy cập Trung tâm hỗ trợ/i })).toHaveAttribute('href', '/support')
     })
 
     it('opens and closes the report modal when clicking "Xem báo cáo"', async () => {
@@ -214,8 +213,8 @@ describe('Admin Workspace V2 UI Tests', () => {
     })
   })
 
-  describe('AdminRolesPage (Matrix & Simulation Sandbox)', () => {
-    it('renders permission matrix, simulation sandbox, and role explanations', async () => {
+  describe('AdminRolesPage (Code-Defined RBAC Matrix)', () => {
+    it('renders code-defined permission matrix, security notice, and role explanations', async () => {
       render(
         <MemoryRouter>
           <AdminRolesPage />
@@ -223,15 +222,10 @@ describe('Admin Workspace V2 UI Tests', () => {
       )
 
       expect(screen.getByText('Ma trận phân quyền & Vai trò')).toBeInTheDocument()
+      expect(screen.getByText(/Chính sách phân quyền bảo mật cấp mã nguồn/i)).toBeInTheDocument()
       expect(screen.getByRole('tab', { name: /Ma trận quyền chuẩn/i })).toBeInTheDocument()
-      expect(screen.getByRole('tab', { name: /Mô phỏng cấu hình quyền/i })).toBeInTheDocument()
       expect(screen.getByRole('tab', { name: /Giải thích chi tiết 5 vai trò/i })).toBeInTheDocument()
-
-      // Switch to simulator tab
-      fireEvent.click(screen.getByRole('tab', { name: /Mô phỏng cấu hình quyền/i }))
-      await waitFor(() => {
-        expect(screen.getByText(/Chế độ mô phỏng cấu hình quyền \(Prototype Sandbox\)/i)).toBeInTheDocument()
-      })
+      expect(screen.queryByRole('tab', { name: /Mô phỏng cấu hình quyền/i })).not.toBeInTheDocument()
 
       // Switch to explanation tab
       fireEvent.click(screen.getByRole('tab', { name: /Giải thích chi tiết 5 vai trò/i }))
@@ -241,8 +235,8 @@ describe('Admin Workspace V2 UI Tests', () => {
     })
   })
 
-  describe('AdminSystemPage (Honest Prototype Status)', () => {
-    it('displays honest prototype mode indicator and module list', async () => {
+  describe('AdminSystemPage (Real API Status)', () => {
+    it('fails closed without an admin session and never presents mock health as real', async () => {
       render(
         <MemoryRouter>
           <AdminSystemPage />
@@ -253,10 +247,12 @@ describe('Admin Workspace V2 UI Tests', () => {
         expect(screen.getByText('Trạng thái hệ thống & Hạ tầng')).toBeInTheDocument()
       })
 
-      expect(screen.getByText('FE Prototype Standalone')).toBeInTheDocument()
-      expect(screen.getByText(/Hệ thống đang chạy hoàn toàn ở chế độ/i)).toBeInTheDocument()
-      expect(screen.getByText('Chưa nối máy chủ')).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: /Đặt lại dữ liệu demo/i })).toBeInTheDocument()
+      expect(screen.getByRole('alert')).toHaveTextContent(/Cần đăng nhập bằng tài khoản quản trị/i)
+      expect(screen.queryByText('FE Prototype Standalone')).not.toBeInTheDocument()
+      expect(screen.queryByText(/Dữ liệu mô phỏng/i)).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /Đặt lại dữ liệu demo/i })).not.toBeInTheDocument()
+      expect(screen.getByText('Cơ sở dữ liệu')).toBeInTheDocument()
+      expect(screen.getByText('Máy chủ (Backend)')).toBeInTheDocument()
       expect(screen.getByText('Các module giao diện đã triển khai')).toBeInTheDocument()
     })
   })

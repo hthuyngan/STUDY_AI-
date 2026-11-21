@@ -5,18 +5,21 @@ import {
   getLessonProgress,
   markSectionCompleted,
 } from '@/services/lessonProgress.service'
+import { learningProgressRepository } from '@/repositories/learningProgress.repository'
 import type { LessonProgressState } from '@/types/assessment'
 
 export interface UseLessonProgressOptions {
   lessonId: string
   subjectId: string
   actualSectionIds: string[]
+  hasAssessment?: boolean
 }
 
 export function useLessonProgress({
   lessonId,
   subjectId,
   actualSectionIds,
+  hasAssessment = true,
 }: UseLessonProgressOptions) {
   const [progressState, setProgressState] = useState<LessonProgressState | null>(() =>
     getLessonProgress(lessonId)
@@ -32,6 +35,21 @@ export function useLessonProgress({
     setTrackedLessonId(lessonId)
     setProgressState(getLessonProgress(lessonId))
   }
+
+  // Sync fresh progress from SQL Server backend on mount or lesson change
+  useEffect(() => {
+    if (!lessonId) return
+    if (learningProgressRepository.fetchRemoteAll) {
+      learningProgressRepository
+        .fetchRemoteAll()
+        .then((remoteMap) => {
+          if (remoteMap && remoteMap[lessonId]) {
+            setProgressState(remoteMap[lessonId])
+          }
+        })
+        .catch(() => {})
+    }
+  }, [lessonId])
 
   // Emit lesson_opened event
   useEffect(() => {
@@ -54,9 +72,26 @@ export function useLessonProgress({
     return computeProgressValues(
       completedSectionIds.length,
       totalActualSections,
-      isAssessmentCompleted
+      isAssessmentCompleted,
+      hasAssessment
     )
-  }, [completedSectionIds.length, totalActualSections, isAssessmentCompleted])
+  }, [completedSectionIds.length, totalActualSections, isAssessmentCompleted, hasAssessment])
+
+  const markVideoCompleted = useCallback(() => {
+    const updated = markSectionCompleted(
+      lessonId,
+      subjectId,
+      'video-lecture',
+      totalActualSections
+    )
+    setProgressState(updated)
+    createLearningEvent({
+      lessonId,
+      subjectId,
+      type: 'lesson_section_completed',
+      payload: { sectionId: 'video-lecture', overallProgress: updated.overallProgress },
+    })
+  }, [lessonId, subjectId, totalActualSections])
 
   // Register section element callback
   const registerSection = useCallback(
@@ -158,7 +193,7 @@ export function useLessonProgress({
       const idx = actualSectionIds.indexOf(sectionId)
       if (idx === -1 || totalActualSections === 0) return 0
       const fraction = (idx + 1) / totalActualSections
-      return Math.round(fraction * 80)
+      return Math.round(fraction * 70)
     },
     [actualSectionIds, totalActualSections]
   )
@@ -183,6 +218,7 @@ export function useLessonProgress({
     registerSection,
     getSectionProgress,
     isSectionCompleted,
+    markVideoCompleted,
     reloadProgress,
   }
 }

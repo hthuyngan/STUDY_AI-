@@ -1,9 +1,15 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { adminService } from './admin.service'
+import * as authSession from '@/auth/authSession'
+import { apiClient } from '@/lib/apiClient'
 
 describe('adminService V2 (Mock Engine & Persistence)', () => {
   beforeEach(() => {
     adminService._resetMockState()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
 
   it('calculates metrics properly based on current users', async () => {
@@ -112,23 +118,71 @@ describe('adminService V2 (Mock Engine & Persistence)', () => {
   it('provides analytics trends and distributions', async () => {
     const analytics7d = await adminService.getAnalytics('7d')
     expect(analytics7d.trends.length).toBeGreaterThan(0)
-    expect(analytics7d.roleDistribution.length).toBe(5)
+    expect(analytics7d.roleDistribution.length).toBe(4)
     expect(analytics7d.statusDistribution.length).toBe(4)
 
     const analyticsMonth = await adminService.getAnalytics('month')
     expect(analyticsMonth.trends.length).toBeGreaterThan(0)
   })
 
-  it('handles role permissions simulation sandbox', async () => {
+  it('handles code-defined role permissions matrix immutably', async () => {
     const initialSim = await adminService.getRolePermissionsSimulation()
     expect(initialSim.admin.length).toBeGreaterThan(0)
 
-    // Toggle a permission
+    // Toggle is a no-op because RBAC is immutable and code-defined
     const updated = await adminService.toggleRolePermissionSimulation('learner', 'view_classes')
-    expect(updated.learner).toContain('view_classes')
+    expect(updated.learner).not.toContain('view_classes')
 
-    // Reset back
+    // Reset returns authoritative matrix
     const reset = await adminService.resetRolePermissionsSimulation()
     expect(reset.learner).not.toContain('view_classes')
+  })
+
+  it('fails closed when authenticated and API rejects with 401/403/500', async () => {
+    const authSession = await import('@/auth/authSession')
+    const { apiClient } = await import('@/lib/apiClient')
+    const { vi } = await import('vitest')
+
+    const users = await adminService.getUsers()
+    const target = users[0]
+    const originalRole = target.role
+
+    vi.spyOn(authSession, 'getAccessToken').mockReturnValue('mock-admin-token')
+    vi.spyOn(apiClient, 'patch').mockRejectedValue(new Error('API 403 Forbidden'))
+
+    await expect(adminService.updateUserRole(target.id, 'admin')).rejects.toThrow('API 403 Forbidden')
+
+    vi.restoreAllMocks()
+
+    // Verify local mock state was NOT mutated
+    const checkUser = await adminService.getUserById(target.id)
+    expect(checkUser?.role).toBe(originalRole)
+  })
+
+  it('toggles an API-loaded user without depending on the mock user array', async () => {
+    vi.spyOn(authSession, 'getAccessToken').mockReturnValue('real-admin-token')
+    vi.spyOn(apiClient, 'get').mockResolvedValue({
+      id: 'db-user-not-in-mock-state',
+      email: 'db-user@study.ai',
+      displayName: 'Người dùng CSDL',
+      role: 'learner',
+      status: 'active',
+      createdAt: '2026-11-21T00:00:00Z',
+    })
+    const patchSpy = vi.spyOn(apiClient, 'patch').mockResolvedValue(undefined)
+
+    await expect(adminService.toggleUserStatus('db-user-not-in-mock-state')).resolves.toBe(true)
+    expect(apiClient.get).toHaveBeenCalledWith('/api/v1/admin/users/db-user-not-in-mock-state')
+    expect(patchSpy).toHaveBeenCalledWith('/api/v1/admin/users/db-user-not-in-mock-state/status', {
+      status: 'suspended',
+    })
+  })
+
+  it('reports a successful API deletion even when the user is absent from mock state', async () => {
+    vi.spyOn(authSession, 'getAccessToken').mockReturnValue('real-admin-token')
+    const deleteSpy = vi.spyOn(apiClient, 'delete').mockResolvedValue(undefined)
+
+    await expect(adminService.deleteUser('db-user-not-in-mock-state')).resolves.toBe(true)
+    expect(deleteSpy).toHaveBeenCalledWith('/api/v1/admin/users/db-user-not-in-mock-state')
   })
 })

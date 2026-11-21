@@ -8,7 +8,7 @@ import type { CognitiveLevel, QuestionDifficulty, QuestionType } from './questio
 
 export type PracticeSessionStatus = 'in_progress' | 'submitted' | 'abandoned'
 
-export type PracticeSessionMode = 'lesson' | 'skill' | 'mixed' | 'custom'
+export type PracticeSessionMode = 'lesson' | 'skill' | 'mixed' | 'custom' | 'adaptive'
 
 /* -------------------------------------------------------------------------
  * Student Answers (Discriminated Union)
@@ -129,8 +129,13 @@ export interface PracticeSetupConfig {
   subjectId: string
   chapterId?: string
   lessonId?: string
+  skillId?: string
   skillIds?: string[]
   questionType?: QuestionType
   difficulty?: QuestionDifficulty
+  grade?: string
   limit: number // e.g. 5, 10
+  mode?: 'practice' | 'exam' | 'adaptive'
+  timeLimitMinutes?: number
+  blueprintId?: string
 }

@@ -1,11 +1,18 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import { AITutorPage } from './AITutorPage'
+import { aiTutorService } from '../../services/aiTutor.service'
 
 describe('AITutorPage Component', () => {
   beforeEach(() => {
     localStorage.clear()
+    vi.spyOn(aiTutorService, 'getProviderStatus').mockResolvedValue({
+      provider: 'fake',
+      displayName: 'Chế độ mô phỏng',
+      isReady: true,
+      model: 'demo',
+    })
   })
 
   it('renders conversation header, composer and chat components', async () => {

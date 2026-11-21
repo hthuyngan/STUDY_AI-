@@ -67,7 +67,7 @@ export const TeacherCardList: React.FC<TeacherCardListProps> = ({
               <span className="teacher-subject-pill">{tch.subject}</span>
               <div className="teacher-rating-pill">
                 <Star size={11} fill="#f59e0b" color="#f59e0b" aria-hidden="true" />
-                <span>{tch.rating.toFixed(1)}</span>
+                <span>{(tch.rating ?? 5.0).toFixed(1)}</span>
               </div>
             </div>
 

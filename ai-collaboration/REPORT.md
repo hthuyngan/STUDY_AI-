@@ -170,3 +170,39 @@ SELECT COUNT(*) AS MigrationsCount FROM StudyAIDb.dbo.__EFMigrationsHistory;
 - Quality gates passed with zero regressions.
 - No Phase 21 features have been touched or created.
 - Antigravity is stopped and awaiting review from ChatGPT.
+
+---
+
+## 7. P20-001-FIX & Full-Stack Audit (2026-11-19)
+
+### 7.1. Verification & Quality Gates
+- **Frontend Vitest**: 494 / 494 passed across 69 test files (100% PASS).
+- **Frontend Linter (Oxlint)**: 0 errors, 0 warnings across 495 files.
+- **Frontend Production Build**: `tsc -b && vite build` built in 5.76s.
+- **Backend Unit Tests**: 156 / 156 passed.
+- **Backend Integration Tests**: 150 / 150 passed on `StudyAIDb_E2E`.
+- **Database Safety Guard**: 100% PASS (Zero writes, zero migrations against `StudyAIDb`).
+
+### 7.2. Bug Fixes Delivered
+1. **F01 (Fail-Closed API Errors)**: Eliminated error-swallowing in `admin.service.ts` (`updateUserRole`, `updateUserStatus`, `revokeUserSessions`), `operations.service.ts` (`publishContent`), and `assessment.service.ts` (`submitAttemptWithServerValidation`).
+2. **F02 (Assignment Lifecycle & Grading Rules)**:
+   - Rejected submissions to `draft`, `closed`, and `archived` assignments.
+   - Enforced UTC `DueDate` boundary and enrollment check.
+   - Allowed teachers to grade `closed` assignments while blocking `archived`.
+   - Handled duplicate submission race conditions via `409 Conflict`.
+3. **F03 (Offline SyncQueue Isolation)**:
+   - Scoped storage keys per user identity.
+   - Prohibited guest synchronization dispatch to remote server endpoints.
+   - Handled user logout / identity switch gracefully during in-flight flush.
+4. **F04 (Classroom & Assignment Deletion Endpoints)**:
+   - Implemented `DELETE /api/v1/assignments/{id}` (soft-archives if submissions exist, hard-deletes if none).
+   - Implemented `DELETE /api/v1/classrooms/{id}` (rejects with 400 if active students enrolled, soft-archives if assignments exist, hard-deletes if none).
+   - Connected frontend `deleteClass` and `deleteAssignment` in `classroom.service.ts`.
+
+### 7.3. Commits Delivered
+- `2e30347`: fix(backend): harden assignment lifecycle, submission guards, and classroom delete endpoints (F02, F04)
+- `014e110`: fix(frontend): enforce fail-closed error handling, resilient sync queue, and delete actions (F01, F03, F04)
+
+### 7.4. Full System Functionality Matrix
+Detailed functionality matrix documenting every route and core action across `learner`, `teacher`, `content`, `admin`, `support` has been authored in `docs/reports/2026-11-19-full-stack-audit.md`.
+

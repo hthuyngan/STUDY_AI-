@@ -1,25 +1,12 @@
 import {
-  AlertCircle,
-  Atom,
-  Award,
-  BarChart3,
-  BookMarked,
-  Bot,
   ChevronLeft,
   ChevronRight,
-  Compass,
-  Database,
-  FlaskConical,
   GraduationCap,
-  Languages,
   Layers,
   LayoutGrid,
-  Milestone,
-  Palette,
-  RotateCw,
-  Settings,
-  Target,
   LogIn,
+  Target,
+  Trophy,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/auth/useAuth'
@@ -85,25 +72,19 @@ export function Sidebar({
 
         {/* Navigation list */}
         <nav className="sidebar-nav scrollbar-clean">
+          {/* Group 1: MENU CHÍNH */}
           <div className="sidebar-nav-group">
+            {!collapsed ? (
+              <div className="sidebar-group-header">
+                <span className="sidebar-group-title">MENU CHÍNH</span>
+              </div>
+            ) : (
+              <div className="sidebar-group-divider" aria-hidden />
+            )}
             <SidebarItem
               to="/dashboard"
               label="Tổng quan"
               icon={LayoutGrid}
-              collapsed={collapsed}
-              onClick={onCloseMobile}
-            />
-            <SidebarItem
-              to="/learning-path"
-              label="Lộ trình học"
-              icon={Milestone}
-              collapsed={collapsed}
-              onClick={onCloseMobile}
-            />
-            <SidebarItem
-              to="/ai-tutor"
-              label="AI Tutor"
-              icon={Bot}
               collapsed={collapsed}
               onClick={onCloseMobile}
             />
@@ -115,121 +96,34 @@ export function Sidebar({
               onClick={onCloseMobile}
             />
             <SidebarItem
-              to="/my-notes"
-              label="Sổ tay ghi chú"
-              icon={BookMarked}
+              to="/assignments"
+              label="Lớp học"
+              icon={GraduationCap}
               collapsed={collapsed}
               onClick={onCloseMobile}
             />
+          </div>
+
+          {/* Group 2: LUYỆN TẬP */}
+          <div className="sidebar-nav-group">
+            {!collapsed ? (
+              <div className="sidebar-group-header">
+                <span className="sidebar-group-title">LUYỆN TẬP</span>
+              </div>
+            ) : (
+              <div className="sidebar-group-divider" aria-hidden />
+            )}
             <SidebarItem
-              to="/knowledge-gaps"
-              label="Kiến thức yếu"
-              icon={AlertCircle}
-              collapsed={collapsed}
-              onClick={onCloseMobile}
-            />
-            <SidebarItem
-              to="/learning-analytics"
-              label="Phân tích học tập"
-              icon={BarChart3}
-              collapsed={collapsed}
-              onClick={onCloseMobile}
-            />
-            <SidebarItem
-              to="/review"
-              label="Ôn tập"
-              icon={RotateCw}
+              to="/exam-preparation"
+              label="Luyện thi"
+              icon={Trophy}
               collapsed={collapsed}
               onClick={onCloseMobile}
             />
             <SidebarItem
               to="/practice"
-              label="Luyện tập & Thi"
+              label="Bài tập"
               icon={Target}
-              collapsed={collapsed}
-              onClick={onCloseMobile}
-            />
-            <SidebarItem
-              to="/question-bank"
-              label="Ngân hàng câu hỏi"
-              icon={Database}
-              collapsed={collapsed}
-              onClick={onCloseMobile}
-            />
-          </div>
-
-          {/* Group 2: HỌC TẬP */}
-          <div className="sidebar-nav-group">
-            {!collapsed ? (
-              <div className="sidebar-group-header">
-                <span className="sidebar-group-title">PHÂN MÔN</span>
-              </div>
-            ) : (
-              <div className="sidebar-group-divider" aria-hidden />
-            )}
-
-            <div className="sidebar-sub-items">
-              <SidebarItem
-                to="/subjects/math"
-                label="Toán học"
-                icon={Compass}
-                collapsed={collapsed}
-                onClick={onCloseMobile}
-              />
-              <SidebarItem
-                to="/subjects/physics"
-                label="Vật lý"
-                icon={Atom}
-                collapsed={collapsed}
-                onClick={onCloseMobile}
-              />
-              <SidebarItem
-                to="/subjects/chemistry"
-                label="Hóa học"
-                icon={FlaskConical}
-                collapsed={collapsed}
-                onClick={onCloseMobile}
-              />
-              <SidebarItem
-                to="/subjects/english"
-                label="Tiếng Anh"
-                icon={Languages}
-                collapsed={collapsed}
-                onClick={onCloseMobile}
-              />
-            </div>
-          </div>
-
-          {/* Group 3: KHÁC */}
-          <div className="sidebar-nav-group">
-            {!collapsed ? (
-              <div className="sidebar-group-header">
-                <span className="sidebar-group-title">KHÁC</span>
-              </div>
-            ) : (
-              <div className="sidebar-group-divider" aria-hidden />
-            )}
-
-            <SidebarItem
-              to="/achievements"
-              label="Thành tích"
-              icon={Award}
-              collapsed={collapsed}
-              onClick={onCloseMobile}
-            />
-            {import.meta.env.DEV && (
-              <SidebarItem
-                to="/design-system"
-                label="Design System"
-                icon={Palette}
-                collapsed={collapsed}
-                onClick={onCloseMobile}
-              />
-            )}
-            <SidebarItem
-              to="/settings"
-              label="Cài đặt"
-              icon={Settings}
               collapsed={collapsed}
               onClick={onCloseMobile}
             />

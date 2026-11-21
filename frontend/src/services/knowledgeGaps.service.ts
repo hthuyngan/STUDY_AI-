@@ -7,11 +7,14 @@ import { mockSubjectDetails, mockSubjectsSummary } from '@/data/subjects.mock'
 import { resolveKnowledgeMapping } from '@/data/knowledgeMapping'
 import { getStorageKey } from '@/repositories/storageKeys'
 import { smartReviewService } from '@/services/smartReview.service'
+import { apiClient } from '@/lib/apiClient'
+import { getAccessToken } from '@/auth/authSession'
 import type { AssessmentQuestion, LearningAttempt } from '@/types/assessment'
 import type {
   KnowledgeGap,
   KnowledgeGapsSummary,
   KnowledgeGapStatus,
+  KnowledgeGapSeverity,
 } from '@/types/knowledgeGaps'
 
 export const KNOWLEDGE_GAPS_STORAGE_KEY = 'study_ai.knowledge_gaps.v1'
@@ -85,6 +88,56 @@ function markAttemptProcessed(attemptId: string): void {
 }
 
 export const knowledgeGapsService = {
+  async syncFromBackend(subjectId?: string): Promise<KnowledgeGap[]> {
+    if (typeof window === 'undefined' || !getAccessToken()) {
+      return this.getAllGaps({ subjectId })
+    }
+
+    try {
+      const url = `/api/v1/ai/knowledge-gaps${subjectId && subjectId !== 'all' ? `?subjectId=${subjectId}` : ''}`
+      const remoteGaps = await apiClient.get<any[]>(url)
+      if (Array.isArray(remoteGaps)) {
+        const mapped: KnowledgeGap[] = remoteGaps.map((dto) => {
+          const sev: KnowledgeGapSeverity =
+            dto.severity === 'critical' ? 'high' : dto.severity === 'minor' ? 'low' : 'medium'
+          const st: KnowledgeGapStatus =
+            dto.status === 'resolved' ? 'mastered' : dto.status === 'reviewing' ? 'reinforcing' : 'needs-review'
+          return {
+            id: dto.id || `gap_${dto.skillId}`,
+            subjectId: dto.subjectId || 'sub_math12',
+            subjectName: dto.subjectId?.includes('10') ? 'Toán 10' : dto.subjectId?.includes('11') ? 'Toán 11' : 'Toán 12',
+            lessonId: dto.recommendedLessonId || '',
+            lessonTitle: dto.recommendedLessonTitle || dto.skillName || 'Bài học ôn tập',
+            knowledgePointId: dto.skillId || '',
+            title: dto.skillName || 'Kỹ năng cần ôn tập',
+            description: dto.evidenceSummary,
+            explanation: dto.evidenceSummary,
+            severity: sev,
+            source: 'assessment_attempt' as const,
+            wrongAttemptsCount: dto.mistakeCount || 1,
+            correctReviewCount: 0,
+            status: st,
+            lastDetectedAt: dto.detectedAt || new Date().toISOString(),
+            createdAt: dto.detectedAt || new Date().toISOString(),
+            updatedAt: dto.detectedAt || new Date().toISOString(),
+          }
+        })
+
+        // Server is authoritative: replace gaps for this subject scope
+        const current = loadStoredGaps()
+        const otherSubjects = (subjectId && subjectId !== 'all')
+          ? current.filter((g) => g.subjectId !== subjectId)
+          : []
+        const updated = [...otherSubjects, ...mapped]
+        persistGaps(updated)
+        return mapped
+      }
+      return []
+    } catch (err: any) {
+      throw new Error(`Không thể đồng bộ lỗ hổng kiến thức từ máy chủ: ${err?.message || 'Lỗi mạng'}`)
+    }
+  },
+
   getAllGaps(filter?: {
     subjectId?: string
     status?: string

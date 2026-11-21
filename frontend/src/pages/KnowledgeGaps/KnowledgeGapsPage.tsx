@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useKnowledgeGaps } from '@/hooks/useKnowledgeGaps'
 import { usePersonalization } from '@/hooks/usePersonalization'
+import { useAiChat } from '@/context/useAiChat'
 import type { KnowledgeGap, KnowledgeGapStatus } from '@/types/knowledgeGaps'
 import { learningContextService } from '@/services/learningContext.service'
 import './KnowledgeGapsPage.css'
@@ -33,6 +34,7 @@ const SUBJECT_FILTER_OPTIONS = [
 
 export function KnowledgeGapsPage() {
   const navigate = useNavigate()
+  const { openChat } = useAiChat()
   const { gaps, summary, removeGap } = useKnowledgeGaps()
   const { data: personalizationData } = usePersonalization()
   const practiceGaps = personalizationData?.gaps || []
@@ -64,8 +66,8 @@ export function KnowledgeGapsPage() {
 
   
   const handleAskAI = (gap: KnowledgeGap) => {
-    learningContextService.setContext({
-      source: 'knowledge-gap',
+    const context = {
+      source: 'knowledge-gap' as const,
       knowledgeGapId: gap.id,
       subjectId: gap.subjectId,
       subjectName: gap.subjectName,
@@ -76,8 +78,9 @@ export function KnowledgeGapsPage() {
       title: gap.title,
       excerpt: gap.questionPrompt || gap.explanation,
       returnUrl: '/knowledge-gaps',
-    })
-    navigate('/ai-tutor')
+    }
+    learningContextService.setContext(context)
+    openChat(context, `Em đang gặp khó khăn ở phần "${gap.title}". Xin AI Tutor giải thích bản chất kiến thức và phương pháp khắc phục.`)
   }
 
   const handleOpenLesson = (gap: KnowledgeGap) => {
@@ -306,18 +309,19 @@ export function KnowledgeGapsPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => {
-                      learningContextService.setContext({
-                        source: 'knowledge-gap',
+                      const context = {
+                        source: 'knowledge-gap' as const,
                         knowledgeGapId: pg.id,
                         subjectId: 'math',
                         subjectName: 'Toán học 12',
-                        lessonId: pg.relatedLessonIds[0] || 'lesson-math-12-01',
+                        lessonId: pg.relatedLessonIds[0] || 'les_math12_c1_b1',
                         lessonTitle: pg.skillName,
                         title: `Lỗ hổng kỹ năng: ${pg.skillName}`,
                         excerpt: pg.evidenceSummary,
                         returnUrl: '/knowledge-gaps',
-                      })
-                      navigate('/ai-tutor')
+                      }
+                      learningContextService.setContext(context)
+                      openChat(context, `Em đang gặp khó khăn ở kỹ năng "${pg.skillName}". Xin AI Tutor hướng dẫn giải và các bước ôn tập.`)
                     }}
                   >
                     <Bot size={14} aria-hidden /> Hỏi AI Tutor

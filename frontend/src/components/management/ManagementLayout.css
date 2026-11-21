@@ -1,0 +1,799 @@
+/* ==========================================================================
+   STUDY_AI — MANAGEMENT SYSTEM V2 DESIGN TOKENS & COMPONENT STYLES
+   Practical Educational Management System — No AI
+   Colors: Blue (#1D4ED8), White (#FFFFFF), Gray (#F8FAFC, #E2E8F0, #0F172A)
+   ========================================================================== */
+
+:root {
+  /* Core Management Palette — Mapped to Standard Design Tokens */
+  --mgmt-primary: var(--ui-color-primary, #1D4ED8);
+  --mgmt-primary-hover: var(--ui-color-primary-hover, #1E40AF);
+  --mgmt-primary-active: #1E3A8A;
+  --mgmt-primary-light: var(--ui-color-primary-subtle, #EFF6FF);
+  --mgmt-primary-border: #BFDBFE;
+
+  /* Surfaces & Backgrounds */
+  --mgmt-bg-app: var(--ui-color-canvas, #F8FAFC);
+  --mgmt-bg-surface: var(--ui-color-surface, #FFFFFF);
+  --mgmt-bg-subtle: #F1F5F9;
+  --mgmt-bg-hover: #F8FAFC;
+
+  /* Borders */
+  --mgmt-border: var(--ui-color-border, #E2E8F0);
+  --mgmt-border-strong: #CBD5E1;
+  --mgmt-border-focus: var(--ui-color-primary, #1D4ED8);
+
+  /* Typography */
+  --mgmt-text-primary: var(--ui-color-text, #0F172A);
+  --mgmt-text-secondary: #475569;
+  --mgmt-text-muted: var(--ui-color-text-muted, #64748B);
+  --mgmt-text-subtle: #94A3B8;
+
+  /* Status Colors */
+  --mgmt-success: var(--ui-color-success, #16A34A);
+  --mgmt-success-bg: #DCFCE7;
+  --mgmt-success-border: #86EFAC;
+  --mgmt-warning: var(--ui-color-warning, #D97706);
+  --mgmt-warning-bg: #FEF3C7;
+  --mgmt-warning-border: #FCD34D;
+  --mgmt-danger: var(--ui-color-danger, #DC2626);
+  --mgmt-danger-bg: #FEE2E2;
+  --mgmt-danger-border: #FCA5A5;
+  --mgmt-info: #0284C7;
+  --mgmt-info-bg: #E0F2FE;
+  --mgmt-info-border: #BAE6FD;
+
+  /* Dimensions & Spacing */
+  --mgmt-sidebar-width: 240px;
+  --mgmt-sidebar-collapsed: 64px;
+  --mgmt-header-height: 48px;
+  --mgmt-radius-sm: var(--ui-radius-sm, 4px);
+  --mgmt-radius-md: var(--ui-radius-md, 6px);
+  --mgmt-radius-lg: 8px;
+  --mgmt-radius-xl: var(--ui-radius-lg, 12px);
+
+  /* Shadows */
+  --mgmt-shadow-sm: var(--ui-shadow-sm, 0 1px 2px 0 rgba(15, 23, 42, 0.05));
+  --mgmt-shadow-md: var(--ui-shadow-md, 0 4px 6px -1px rgba(15, 23, 42, 0.07));
+  --mgmt-shadow-lg: var(--ui-shadow-lg, 0 10px 15px -3px rgba(15, 23, 42, 0.08));
+}
+
+/* Base Management Layout Container */
+.mgmt-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--mgmt-bg-app);
+  color: var(--mgmt-text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 13.5px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Main Content Area */
+.mgmt-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  margin-left: var(--mgmt-sidebar-width);
+  transition: margin-left 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  background-color: var(--mgmt-bg-app);
+}
+
+.mgmt-main.collapsed {
+  margin-left: var(--mgmt-sidebar-collapsed);
+}
+
+.mgmt-content-body {
+  flex: 1;
+  padding: 16px 24px 32px 24px;
+  width: 100%;
+  max-width: 1680px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
+   SIDEBAR (ManagementSidebar)
+   ========================================================================== */
+.mgmt-sidebar {
+  width: var(--mgmt-sidebar-width);
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--mgmt-bg-surface);
+  border-right: 1px solid var(--mgmt-border);
+  transition: width 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.mgmt-sidebar.collapsed {
+  width: var(--mgmt-sidebar-collapsed);
+}
+
+/* Sidebar Brand Header */
+.mgmt-sidebar-brand {
+  height: var(--mgmt-header-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--mgmt-border);
+  flex-shrink: 0;
+}
+
+.mgmt-sidebar.collapsed .mgmt-sidebar-brand {
+  padding: 0;
+  justify-content: center;
+}
+
+.mgmt-brand-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+  min-width: 0;
+}
+
+.mgmt-brand-seal {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--mgmt-radius-md);
+  background-color: var(--mgmt-primary);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.mgmt-brand-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mgmt-brand-name {
+  font-weight: 700;
+  font-size: 13.5px;
+  letter-spacing: -0.01em;
+  color: var(--mgmt-text-primary);
+  line-height: 1.2;
+}
+
+.mgmt-brand-tag {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--mgmt-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Sidebar Nav Scroll Area */
+.mgmt-sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mgmt-sidebar.collapsed .mgmt-sidebar-nav {
+  padding: 12px 4px;
+}
+
+.mgmt-nav-group-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--mgmt-text-subtle);
+  padding: 0 8px;
+  margin-bottom: 4px;
+}
+
+.mgmt-nav-item-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mgmt-nav-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: var(--mgmt-radius-md);
+  color: var(--mgmt-text-secondary);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.12s ease;
+  position: relative;
+}
+
+.mgmt-sidebar.collapsed .mgmt-nav-link {
+  justify-content: center;
+  padding: 0;
+  width: 40px;
+  height: 40px;
+  margin: 0 auto;
+}
+
+.mgmt-nav-link:hover:not(.active) {
+  background-color: var(--mgmt-bg-subtle);
+  color: var(--mgmt-text-primary);
+}
+
+.mgmt-nav-link.active {
+  background-color: var(--mgmt-primary-light);
+  color: var(--mgmt-primary);
+  font-weight: 600;
+}
+
+.mgmt-nav-link-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.mgmt-nav-icon {
+  flex-shrink: 0;
+  color: var(--mgmt-text-muted);
+}
+
+.mgmt-nav-link.active .mgmt-nav-icon {
+  color: var(--mgmt-primary);
+}
+
+.mgmt-nav-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mgmt-nav-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  background-color: var(--mgmt-bg-subtle);
+  color: var(--mgmt-text-secondary);
+}
+
+.mgmt-nav-link.active .mgmt-nav-badge {
+  background-color: var(--mgmt-primary);
+  color: #FFFFFF;
+}
+
+/* Sidebar Footer */
+.mgmt-sidebar-footer {
+  border-top: 1px solid var(--mgmt-border);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background-color: var(--mgmt-bg-surface);
+  flex-shrink: 0;
+}
+
+.mgmt-footer-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: var(--mgmt-radius-md);
+  color: var(--mgmt-text-muted);
+  font-size: 12.5px;
+  font-weight: 500;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.12s ease;
+  box-sizing: border-box;
+}
+
+.mgmt-sidebar.collapsed .mgmt-footer-btn {
+  justify-content: center;
+  padding: 0;
+}
+
+.mgmt-footer-btn:hover {
+  background-color: var(--mgmt-bg-subtle);
+  color: var(--mgmt-text-primary);
+}
+
+/* ==========================================================================
+   HEADER (ManagementHeader)
+   ========================================================================== */
+.mgmt-header {
+  height: var(--mgmt-header-height);
+  background-color: var(--mgmt-bg-surface);
+  border-bottom: 1px solid var(--mgmt-border);
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.mgmt-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.mgmt-header-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--mgmt-text-primary);
+  margin: 0;
+  white-space: nowrap;
+}
+
+.mgmt-header-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--mgmt-text-muted);
+}
+
+.mgmt-header-crumb-sep {
+  color: var(--mgmt-border-strong);
+}
+
+.mgmt-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mgmt-header-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--mgmt-text-secondary);
+}
+
+.mgmt-user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: var(--mgmt-bg-subtle);
+  border: 1px solid var(--mgmt-border);
+  color: var(--mgmt-text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   DATA TABLE (ManagementTable)
+   ========================================================================== */
+.mgmt-table-card {
+  background-color: var(--mgmt-bg-surface);
+  border: 1px solid var(--mgmt-border);
+  border-radius: var(--mgmt-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--mgmt-shadow-sm);
+}
+
+.mgmt-table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mgmt-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+
+.mgmt-table th {
+  background-color: var(--mgmt-bg-subtle);
+  color: var(--mgmt-text-muted);
+  font-weight: 600;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--mgmt-border);
+  white-space: nowrap;
+}
+
+.mgmt-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--mgmt-border);
+  color: var(--mgmt-text-primary);
+  vertical-align: middle;
+}
+
+.mgmt-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.mgmt-table tbody tr:hover {
+  background-color: var(--mgmt-bg-hover);
+}
+
+.mgmt-table tbody tr.selected {
+  background-color: var(--mgmt-primary-light);
+}
+
+/* ==========================================================================
+   TOOLBAR & FILTERS (ManagementFilter)
+   ========================================================================== */
+.mgmt-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.mgmt-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 260px;
+}
+
+.mgmt-search-input-wrap {
+  position: relative;
+  min-width: 240px;
+  flex: 1;
+  max-width: 360px;
+}
+
+.mgmt-search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--mgmt-text-subtle);
+  pointer-events: none;
+}
+
+.mgmt-search-input {
+  width: 100%;
+  height: 34px;
+  padding: 0 10px 0 32px;
+  font-size: 13px;
+  background-color: var(--mgmt-bg-surface);
+  border: 1px solid var(--mgmt-border-strong);
+  border-radius: var(--mgmt-radius-md);
+  color: var(--mgmt-text-primary);
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mgmt-search-input:focus {
+  border-color: var(--mgmt-primary);
+  box-shadow: 0 0 0 2px var(--mgmt-primary-border);
+}
+
+.mgmt-select {
+  height: 34px;
+  padding: 0 28px 0 10px;
+  font-size: 12.5px;
+  font-weight: 500;
+  background-color: var(--mgmt-bg-surface);
+  border: 1px solid var(--mgmt-border-strong);
+  border-radius: var(--mgmt-radius-md);
+  color: var(--mgmt-text-primary);
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 14px;
+}
+
+.mgmt-select:focus {
+  border-color: var(--mgmt-primary);
+  box-shadow: 0 0 0 2px var(--mgmt-primary-border);
+}
+
+/* Action Buttons */
+.mgmt-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: var(--mgmt-radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.12s ease;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.mgmt-btn-primary {
+  background-color: var(--mgmt-primary);
+  color: #FFFFFF;
+}
+
+.mgmt-btn-primary:hover {
+  background-color: var(--mgmt-primary-hover);
+}
+
+.mgmt-btn-secondary {
+  background-color: var(--mgmt-bg-surface);
+  border-color: var(--mgmt-border-strong);
+  color: var(--mgmt-text-secondary);
+}
+
+.mgmt-btn-secondary:hover {
+  background-color: var(--mgmt-bg-subtle);
+  color: var(--mgmt-text-primary);
+}
+
+.mgmt-btn-danger {
+  background-color: var(--mgmt-danger);
+  color: #FFFFFF;
+}
+
+.mgmt-btn-danger:hover {
+  background-color: #B91C1C;
+}
+
+/* ==========================================================================
+   DRAWER (ManagementDrawer)
+   ========================================================================== */
+.mgmt-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.45);
+  z-index: var(--ui-layer-dialog, 500);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.mgmt-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  max-width: 540px;
+  background-color: var(--mgmt-bg-surface);
+  border-left: 1px solid var(--mgmt-border);
+  z-index: calc(var(--ui-layer-dialog, 500) + 10);
+  box-shadow: var(--mgmt-shadow-lg);
+  display: flex;
+  flex-direction: column;
+}
+
+.mgmt-drawer-header {
+  height: 52px;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--mgmt-border);
+  flex-shrink: 0;
+}
+
+.mgmt-drawer-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.mgmt-drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.mgmt-drawer-footer {
+  border-top: 1px solid var(--mgmt-border);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  background-color: var(--mgmt-bg-surface);
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   DIALOG (ManagementDialog)
+   ========================================================================== */
+.mgmt-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: var(--ui-layer-dialog, 500);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.mgmt-dialog {
+  background-color: var(--mgmt-bg-surface);
+  border: 1px solid var(--mgmt-border);
+  border-radius: var(--mgmt-radius-xl);
+  box-shadow: var(--mgmt-shadow-lg);
+  width: 100%;
+  max-width: 480px;
+  max-height: calc(100vh - 40px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  z-index: calc(var(--ui-layer-dialog, 500) + 10);
+}
+
+.mgmt-dialog-header {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--mgmt-border);
+}
+
+.mgmt-dialog-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.mgmt-dialog-body {
+  padding: 20px;
+}
+
+.mgmt-dialog-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--mgmt-border);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  background-color: var(--mgmt-bg-subtle);
+}
+
+/* ==========================================================================
+   PAGINATION (ManagementPagination)
+   ========================================================================== */
+.mgmt-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-top: 1px solid var(--mgmt-border);
+  font-size: 12px;
+  color: var(--mgmt-text-muted);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.mgmt-pagination-info strong {
+  color: var(--mgmt-text-primary);
+}
+
+.mgmt-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mgmt-page-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border-radius: var(--mgmt-radius-sm);
+  border: 1px solid var(--mgmt-border);
+  background-color: var(--mgmt-bg-surface);
+  color: var(--mgmt-text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.mgmt-page-btn:hover:not(:disabled) {
+  border-color: var(--mgmt-border-strong);
+  color: var(--mgmt-text-primary);
+}
+
+.mgmt-page-btn.active {
+  background-color: var(--mgmt-primary);
+  border-color: var(--mgmt-primary);
+  color: #FFFFFF;
+  font-weight: 600;
+}
+
+.mgmt-page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ==========================================================================
+   EMPTY & ERROR STATES
+   ========================================================================== */
+.mgmt-empty-state,
+.mgmt-error-state {
+  padding: 48px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.mgmt-empty-icon,
+.mgmt-error-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mgmt-empty-icon {
+  background-color: var(--mgmt-bg-subtle);
+  color: var(--mgmt-text-muted);
+}
+
+.mgmt-error-icon {
+  background-color: var(--mgmt-danger-bg);
+  color: var(--mgmt-danger);
+}
+
+.mgmt-empty-title,
+.mgmt-error-title {
+  font-size: 14.5px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--mgmt-text-primary);
+}
+
+.mgmt-empty-desc,
+.mgmt-error-desc {
+  font-size: 13px;
+  color: var(--mgmt-text-muted);
+  max-width: 420px;
+  margin: 0;
+  line-height: 1.4;
+}

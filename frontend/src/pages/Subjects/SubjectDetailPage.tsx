@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ArrowLeft, BookOpen, Bot, Clock, Compass, Play, Search, SlidersHorizontal, Sparkles } from 'lucide-react'
+import { ArrowLeft, BookOpen, Bot, Clock, Compass, Play, Search, SlidersHorizontal } from 'lucide-react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { CurriculumChapterNav, type ChapterWithStats } from '@/components/subjects/CurriculumChapterNav'
 import { CurriculumLessonsPanel } from '@/components/subjects/CurriculumLessonsPanel'
@@ -278,14 +278,6 @@ export function SubjectDetailPage() {
             <div className="coming-soon-actions">
               <Button
                 variant="primary"
-                icon={Sparkles}
-                onClick={() => navigate(`/ai-tutor?topic=${encodeURIComponent(subject.name)}`)}
-              >
-                Hỏi AI Tutor về môn {subject.name}
-              </Button>
-
-              <Button
-                variant="outline"
                 icon={BookOpen}
                 onClick={() => navigate('/subjects/math')}
               >
@@ -369,16 +361,6 @@ export function SubjectDetailPage() {
                 Tiếp tục bài đang học
               </Button>
             )}
-            <Button
-              variant="outline"
-              icon={Bot}
-              fullWidth
-              onClick={() =>
-                navigate(`/ai-tutor?topic=${encodeURIComponent(subject.name)}`)
-              }
-            >
-              Hỏi AI về môn này
-            </Button>
           </div>
         </div>
       </header>

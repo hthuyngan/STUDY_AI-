@@ -33,6 +33,8 @@ export function useSmartReview() {
   }, [])
 
   useEffect(() => {
+    smartReviewService.fetchServerMistakes().then(() => refresh()).catch(() => {})
+
     const handleChanged = () => {
       refresh()
     }

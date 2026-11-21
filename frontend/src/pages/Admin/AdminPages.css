@@ -5,6 +5,7 @@
    Clean cards, 1px border, subtle shadows, compact tables (48-52px),
    Section gap 24-28px, page padding 28-32px.
    ============================================================ */
+@import '../../components/staff/staff-shared.css';
 
 /* ── Page Layout & Headers ───────────────────────────────── */
 .staff-page-header {

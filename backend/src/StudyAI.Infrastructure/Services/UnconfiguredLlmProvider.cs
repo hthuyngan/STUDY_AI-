@@ -9,6 +9,9 @@ namespace StudyAI.Infrastructure.Services;
 public class UnconfiguredLlmProvider : ILlmProvider
 {
     public string ProviderName => "Unconfigured";
+    public string DefaultModel => "none";
+    public string? ReasoningModel => null;
+    public string FallbackModel => "rule-based";
     public bool IsConfigured => false;
 
     public Task<LlmCompletionResponse> GenerateCompletionAsync(LlmCompletionRequest request)

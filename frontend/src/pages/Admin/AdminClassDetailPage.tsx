@@ -186,7 +186,7 @@ export const AdminClassDetailPage: React.FC = () => {
     if (!targetClass) return
 
     try {
-      await classroomService.moveStudentClass(selectedStudent.id, targetClass.id, targetClass.name)
+      await classroomService.moveStudentClass(selectedStudent.code || selectedStudent.id, targetClass.id, targetClass.name, classData?.id || classId)
       if (classData) {
         await classroomService.addClassActivity(
           classData.id,
