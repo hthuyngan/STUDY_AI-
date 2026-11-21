@@ -83,6 +83,10 @@ public class QuestionResultItemDto
     public bool IsCorrect { get; set; }
     public string? Explanation { get; set; }
     public string Difficulty { get; set; } = string.Empty;
+    public string Type { get; set; } = "multiple-choice";
+    public string? QuestionType { get; set; }
+    public List<string> SkillIds { get; set; } = new();
+    public string? CognitiveLevel { get; set; }
 }
 
 public class PracticeResultDto
@@ -90,6 +94,8 @@ public class PracticeResultDto
     public string ResultId { get; set; } = string.Empty;
     public string SessionId { get; set; } = string.Empty;
     public string SubjectId { get; set; } = string.Empty;
+    public string? ChapterId { get; set; }
+    public string? LessonId { get; set; }
     public string Mode { get; set; } = "practice";
     public int TotalQuestions { get; set; }
     public int CorrectCount { get; set; }
@@ -99,6 +105,7 @@ public class PracticeResultDto
     public double ScoreScaled { get; set; } // Out of 10.0
     public bool Passed { get; set; }
     public int TimeSpentSeconds { get; set; }
+    public DateTimeOffset? StartedAt { get; set; }
     public DateTimeOffset CompletedAt { get; set; }
     public List<QuestionResultItemDto> Questions { get; set; } = new();
     public Dictionary<string, double> PerformanceByDifficulty { get; set; } = new();

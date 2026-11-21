@@ -400,10 +400,14 @@ async function browserPracticeFlowGrades10_11_12(browser: Browser) {
     const attemptsResp = await fetch(`${backendUrl}/api/v1/me/assessment-attempts`, {
       headers: { Authorization: `Bearer ${registered.accessToken}` }
     })
-    assert.equal(attemptsResp.status(), 200, 'Assessment attempts fetched from server')
-    const attempts = await attemptsResp.json() as Array<{ subjectId: string, completionStatus: string, scoreScaled: number }>
+    assert.equal(attemptsResp.status, 200, 'Assessment attempts fetched from server')
+    const attempts = await attemptsResp.json() as Array<{ id: string, subjectId: string, completionStatus: string, scoreScaled: number }>
     const completedPracAttempts = attempts.filter(a => a.completionStatus === 'completed')
     assert.ok(completedPracAttempts.length >= 3, `Must have at least 3 completed practice sessions across Grade 10, 11, 12, found ${completedPracAttempts.length}`)
+    const subjects = new Set(completedPracAttempts.map(a => a.subjectId))
+    assert.ok(subjects.has('sub_math10'), 'Must contain completed sub_math10 attempt')
+    assert.ok(subjects.has('sub_math11'), 'Must contain completed sub_math11 attempt')
+    assert.ok(subjects.has('sub_math12'), 'Must contain completed sub_math12 attempt')
 
     await page.screenshot({ path: path.join(artifacts, 'practice-flow-real-api-pass.png'), fullPage: true })
     console.log('[PASS] Live browser Practice: Complete Grade 10/11/12 workflows, zero-match filter check, answer save, server grading & result verification')

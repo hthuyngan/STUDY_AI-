@@ -2,30 +2,37 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using StudyAI.Application.Common.Interfaces;
 using StudyAI.Application.DTOs;
+using StudyAI.Domain.Entities;
+using StudyAI.Infrastructure.Persistence;
 using Xunit;
 
 namespace StudyAI.IntegrationTests;
 
 public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
 {
+    private readonly StudyAIApiFixture _factory;
     private readonly HttpClient _client;
     private readonly JsonSerializerOptions _jsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
     public PracticeIntegrationTests(StudyAIApiFixture factory)
     {
+        _factory = factory;
         _client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
         {
             HandleCookies = true
         });
     }
 
-    private async Task<string> GetLearnerTokenAsync()
+    private async Task<string> LoginAsync(string email, string password)
     {
         var loginDto = new UserLoginRequestDto
         {
-            Email = "learner@studyai.internal",
-            Password = "Learner@123456"
+            Email = email,
+            Password = password
         };
         var content = new StringContent(JsonSerializer.Serialize(loginDto), Encoding.UTF8, "application/json");
         var response = await _client.PostAsync("/api/v1/auth/login", content);
@@ -34,6 +41,11 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
         var body = await response.Content.ReadAsStringAsync();
         var result = JsonSerializer.Deserialize<AuthResponseDto>(body, _jsonOptions);
         return result!.AccessToken;
+    }
+
+    private async Task<string> GetLearnerTokenAsync()
+    {
+        return await LoginAsync("learner@studyai.internal", "Learner@123456");
     }
 
     [Fact]
@@ -623,6 +635,10 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
         Assert.NotNull(resultDto.Questions);
         Assert.True(resultDto.Questions.Count > 0);
         Assert.NotEmpty(resultDto.Questions[0].CorrectAnswer);
+        Assert.NotNull(resultDto.StartedAt);
+        Assert.NotEmpty(resultDto.Questions[0].QuestionType ?? "");
+        Assert.NotEmpty(resultDto.Questions[0].CognitiveLevel ?? "");
+        Assert.NotNull(resultDto.Questions[0].SkillIds);
 
         // 7. GET /results/{resultId} (with 'res_' prefix and raw ID) -> 200 OK
         var resIdReq = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/practice/results/res_{session.SessionId}");
@@ -634,6 +650,231 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
         rawIdReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var rawIdResp = await _client.SendAsync(rawIdReq);
         Assert.Equal(HttpStatusCode.OK, rawIdResp.StatusCode);
+    }
+
+    [Fact]
+    public async Task Practice_RBAC_Student_Teacher_Content_Admin_Isolation()
+    {
+        var learnerAToken = await GetLearnerTokenAsync();
+        var learnerBToken = await RegisterOtherLearnerTokenAsync();
+
+        // 1. Provision Teacher A, Teacher B, Admin, Content in StudyAIDb_E2E
+        string teacherAEmail = "teacher.a@studyai.internal";
+        string teacherBEmail = "teacher.b@studyai.internal";
+        string teacherPassword = "Teacher@123456";
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+
+            var learnerAUser = await db.Users.FirstAsync(u => u.EmailNormalized == "LEARNER@STUDYAI.INTERNAL" || u.EmailNormalized == "learner@studyai.internal");
+
+            var teacherA = await db.Users.FirstOrDefaultAsync(u => u.EmailNormalized == teacherAEmail.ToUpperInvariant());
+            if (teacherA == null)
+            {
+                teacherA = new User
+                {
+                    Id = $"usr_tea_{Guid.NewGuid():N}"[..16],
+                    Email = teacherAEmail,
+                    EmailNormalized = teacherAEmail.ToUpperInvariant(),
+                    PasswordHash = hasher.HashPassword(teacherPassword),
+                    DisplayName = "Giáo viên A (Quản lý lớp)",
+                    Role = "teacher",
+                    Status = "active",
+                    CreatedAt = DateTimeOffset.UtcNow,
+                    UpdatedAt = DateTimeOffset.UtcNow
+                };
+                db.Users.Add(teacherA);
+            }
+
+            var teacherB = await db.Users.FirstOrDefaultAsync(u => u.EmailNormalized == teacherBEmail.ToUpperInvariant());
+            if (teacherB == null)
+            {
+                teacherB = new User
+                {
+                    Id = $"usr_teb_{Guid.NewGuid():N}"[..16],
+                    Email = teacherBEmail,
+                    EmailNormalized = teacherBEmail.ToUpperInvariant(),
+                    PasswordHash = hasher.HashPassword(teacherPassword),
+                    DisplayName = "Giáo viên B (Không dạy HS)",
+                    Role = "teacher",
+                    Status = "active",
+                    CreatedAt = DateTimeOffset.UtcNow,
+                    UpdatedAt = DateTimeOffset.UtcNow
+                };
+                db.Users.Add(teacherB);
+            }
+
+            // Classroom A managed by Teacher A
+            var classroomA = await db.Classrooms.FirstOrDefaultAsync(c => c.TeacherId == teacherA.Id);
+            if (classroomA == null)
+            {
+                classroomA = new Classroom
+                {
+                    Id = $"cls_tea_{Guid.NewGuid():N}"[..16],
+                    Name = "Lớp 12A1 Thử Nghiệm",
+                    Code = $"12A1_{Guid.NewGuid():N}"[..8],
+                    Grade = "12",
+                    Subject = "Toán",
+                    TeacherId = teacherA.Id,
+                    TeacherName = teacherA.DisplayName
+                };
+                db.Classrooms.Add(classroomA);
+            }
+
+            // Ensure Learner A is enrolled in Classroom A
+            var enrollment = await db.ClassroomStudents.FirstOrDefaultAsync(cs => cs.ClassroomId == classroomA.Id && cs.StudentId == learnerAUser.Id);
+            if (enrollment == null)
+            {
+                enrollment = new ClassroomStudent
+                {
+                    Id = $"cs_{Guid.NewGuid():N}"[..16],
+                    ClassroomId = classroomA.Id,
+                    StudentId = learnerAUser.Id,
+                    EnrolledAt = DateTimeOffset.UtcNow
+                };
+                db.ClassroomStudents.Add(enrollment);
+            }
+
+            // Ensure Learner A is NOT enrolled in any classroom of Teacher B
+            var classroomB = await db.Classrooms.FirstOrDefaultAsync(c => c.TeacherId == teacherB.Id);
+            if (classroomB != null)
+            {
+                var foreignEnrollments = await db.ClassroomStudents.Where(cs => cs.ClassroomId == classroomB.Id && cs.StudentId == learnerAUser.Id).ToListAsync();
+                db.ClassroomStudents.RemoveRange(foreignEnrollments);
+            }
+
+            await db.SaveChangesAsync();
+        }
+
+        var teacherAToken = await LoginAsync(teacherAEmail, teacherPassword);
+        var teacherBToken = await LoginAsync(teacherBEmail, teacherPassword);
+        var contentToken = await LoginAsync("content@studyai.internal", "Content@123456");
+        var adminToken = await LoginAsync("admin@studyai.internal", "Admin@123456");
+
+        // 2. Learner A creates a practice session
+        var createReq = new CreatePracticeSessionRequest
+        {
+            SubjectId = "sub_math12",
+            QuestionCount = 2,
+            Mode = "practice"
+        };
+        var postMsg = new HttpRequestMessage(HttpMethod.Post, "/api/v1/practice/sessions")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(createReq), Encoding.UTF8, "application/json")
+        };
+        postMsg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", learnerAToken);
+        var createResp = await _client.SendAsync(postMsg);
+        Assert.Equal(HttpStatusCode.OK, createResp.StatusCode);
+        var session = JsonSerializer.Deserialize<PracticeSessionResponseDto>(await createResp.Content.ReadAsStringAsync(), _jsonOptions)!;
+
+        // 3. Learner B cannot view, answer, or submit Learner A's session -> 403
+        var bGetMsg = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/practice/sessions/{session.SessionId}");
+        bGetMsg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", learnerBToken);
+        var bGetResp = await _client.SendAsync(bGetMsg);
+        Assert.Equal(HttpStatusCode.Forbidden, bGetResp.StatusCode);
+
+        var bAnswerMsg = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/practice/sessions/{session.SessionId}/answer")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new SaveAnswerRequest { QuestionId = session.Questions[0].Id, Answer = session.Questions[0].Options[0] }), Encoding.UTF8, "application/json")
+        };
+        bAnswerMsg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", learnerBToken);
+        var bAnswerResp = await _client.SendAsync(bAnswerMsg);
+        Assert.Equal(HttpStatusCode.Forbidden, bAnswerResp.StatusCode);
+
+        var bSubmitMsg = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/practice/sessions/{session.SessionId}/submit")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new SubmitPracticeSessionRequest { Answers = new Dictionary<string, string>() }), Encoding.UTF8, "application/json")
+        };
+        bSubmitMsg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", learnerBToken);
+        var bSubmitResp = await _client.SendAsync(bSubmitMsg);
+        Assert.Equal(HttpStatusCode.Forbidden, bSubmitResp.StatusCode);
+
+        // 4. Content user cannot view session -> 403
+        var cGetMsg = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/practice/sessions/{session.SessionId}");
+        cGetMsg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        var cGetResp = await _client.SendAsync(cGetMsg);
+        Assert.Equal(HttpStatusCode.Forbidden, cGetResp.StatusCode);
+
+        // 5. Teacher B (not teaching Learner A) cannot view session -> 403
+        var tBGetMsg = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/practice/sessions/{session.SessionId}");
+        tBGetMsg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherBToken);
+        var tBGetResp = await _client.SendAsync(tBGetMsg);
+        Assert.Equal(HttpStatusCode.Forbidden, tBGetResp.StatusCode);
+
+        // 6. Teacher A (teaches Learner A) CAN view session -> 200 OK
+        var tAGetMsg = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/practice/sessions/{session.SessionId}");
+        tAGetMsg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherAToken);
+        var tAGetResp = await _client.SendAsync(tAGetMsg);
+        Assert.Equal(HttpStatusCode.OK, tAGetResp.StatusCode);
+
+        // But Teacher A CANNOT submit or answer for Learner A -> 403 Forbidden
+        var tASubmitMsg = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/practice/sessions/{session.SessionId}/submit")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new SubmitPracticeSessionRequest { Answers = new Dictionary<string, string>() }), Encoding.UTF8, "application/json")
+        };
+        tASubmitMsg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherAToken);
+        var tASubmitResp = await _client.SendAsync(tASubmitMsg);
+        Assert.Equal(HttpStatusCode.Forbidden, tASubmitResp.StatusCode);
+
+        // 7. Admin CAN view session -> 200 OK, but CANNOT submit for student -> 403
+        var admGetMsg = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/practice/sessions/{session.SessionId}");
+        admGetMsg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var admGetResp = await _client.SendAsync(admGetMsg);
+        Assert.Equal(HttpStatusCode.OK, admGetResp.StatusCode);
+
+        var admSubmitMsg = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/practice/sessions/{session.SessionId}/submit")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new SubmitPracticeSessionRequest { Answers = new Dictionary<string, string>() }), Encoding.UTF8, "application/json")
+        };
+        admSubmitMsg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var admSubmitResp = await _client.SendAsync(admSubmitMsg);
+        Assert.Equal(HttpStatusCode.Forbidden, admSubmitResp.StatusCode);
+
+        // 8. Learner A submits session
+        var aSubmitMsg = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/practice/sessions/{session.SessionId}/submit")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new SubmitPracticeSessionRequest
+            {
+                Answers = new Dictionary<string, string> { { session.Questions[0].Id, session.Questions[0].Options[0] } },
+                SessionTimeMs = 5000
+            }), Encoding.UTF8, "application/json")
+        };
+        aSubmitMsg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", learnerAToken);
+        var aSubmitResp = await _client.SendAsync(aSubmitMsg);
+        Assert.Equal(HttpStatusCode.OK, aSubmitResp.StatusCode);
+
+        // 9. Post-Submission Result Access RBAC:
+        // Learner B -> 403
+        var bResultMsg = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/practice/sessions/{session.SessionId}/result");
+        bResultMsg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", learnerBToken);
+        var bResultResp = await _client.SendAsync(bResultMsg);
+        Assert.Equal(HttpStatusCode.Forbidden, bResultResp.StatusCode);
+
+        // Content -> 403
+        var cResultMsg = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/practice/sessions/{session.SessionId}/result");
+        cResultMsg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        var cResultResp = await _client.SendAsync(cResultMsg);
+        Assert.Equal(HttpStatusCode.Forbidden, cResultResp.StatusCode);
+
+        // Teacher B -> 403
+        var tBResultMsg = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/practice/sessions/{session.SessionId}/result");
+        tBResultMsg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherBToken);
+        var tBResultResp = await _client.SendAsync(tBResultMsg);
+        Assert.Equal(HttpStatusCode.Forbidden, tBResultResp.StatusCode);
+
+        // Teacher A (managing teacher) -> 200 OK
+        var tAResultMsg = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/practice/sessions/{session.SessionId}/result");
+        tAResultMsg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", teacherAToken);
+        var tAResultResp = await _client.SendAsync(tAResultMsg);
+        Assert.Equal(HttpStatusCode.OK, tAResultResp.StatusCode);
+
+        // Admin -> 200 OK
+        var admResultMsg = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/practice/sessions/{session.SessionId}/result");
+        admResultMsg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var admResultResp = await _client.SendAsync(admResultMsg);
+        Assert.Equal(HttpStatusCode.OK, admResultResp.StatusCode);
     }
 }
 

@@ -1823,9 +1823,22 @@ public class AdminController : ControllerBase
                     // Acquire application lock to serialize settings mutations without broad table locking
                     if (_db.Database.IsSqlServer())
                     {
+                        var returnCodeParam = new SqlParameter
+                        {
+                            ParameterName = "@ReturnValue",
+                            SqlDbType = System.Data.SqlDbType.Int,
+                            Direction = System.Data.ParameterDirection.Output
+                        };
                         await _db.Database.ExecuteSqlRawAsync(
-                            "EXEC sp_getapplock @Resource = 'system_settings_lock', @LockMode = 'Exclusive', @LockOwner = 'Transaction'",
+                            "EXEC @ReturnValue = sp_getapplock @Resource = 'system_settings_lock', @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 5000",
+                            new object[] { returnCodeParam },
                             cancellationToken);
+
+                        int lockResult = (int)(returnCodeParam.Value ?? -999);
+                        if (lockResult < 0)
+                        {
+                            throw new InvalidOperationException($"Không thể xác lập khóa quản trị hệ thống (sp_getapplock result: {lockResult}).");
+                        }
                     }
 
                     var latestLog = await _db.StaffAuditLogs

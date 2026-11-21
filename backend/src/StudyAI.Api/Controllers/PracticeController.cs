@@ -39,8 +39,87 @@ public class PracticeController : ControllerBase
     private string CurrentUserGrade =>
         User.FindFirstValue("grade") ?? string.Empty;
 
-    private bool IsStaffOrAdmin =>
-        User.IsInRole("admin") || User.IsInRole("teacher") || User.IsInRole("content");
+    private async Task<bool> CanAccessAttemptAsync(AssessmentAttempt attempt)
+    {
+        if (attempt.UserId == CurrentUserId) return true;
+        if (User.IsInRole("admin")) return true;
+        if (User.IsInRole("teacher"))
+        {
+            return await _db.ClassroomStudents.AnyAsync(cs =>
+                cs.StudentId == attempt.UserId && cs.Classroom != null && cs.Classroom.TeacherId == CurrentUserId);
+        }
+        return false;
+    }
+
+    private static void ExtractQuestionMetadata(ContentQuestion q, out List<string> skillIds, out string cognitiveLevel)
+    {
+        skillIds = new List<string>();
+        cognitiveLevel = string.Empty;
+
+        if (!string.IsNullOrEmpty(q.MetadataJson))
+        {
+            try
+            {
+                using var metaDoc = JsonDocument.Parse(q.MetadataJson);
+                var root = metaDoc.RootElement;
+                if (root.TryGetProperty("skillIds", out var sIds) && sIds.ValueKind == JsonValueKind.Array)
+                {
+                    skillIds = sIds.EnumerateArray()
+                        .Select(x => x.GetString())
+                        .Where(x => !string.IsNullOrEmpty(x))
+                        .ToList()!;
+                }
+                else if (root.TryGetProperty("skills", out var skills) && skills.ValueKind == JsonValueKind.Array)
+                {
+                    skillIds = skills.EnumerateArray()
+                        .Select(x => x.GetString())
+                        .Where(x => !string.IsNullOrEmpty(x))
+                        .ToList()!;
+                }
+                if (root.TryGetProperty("cognitiveLevel", out var cog) && cog.ValueKind == JsonValueKind.String)
+                {
+                    cognitiveLevel = cog.GetString() ?? string.Empty;
+                }
+            }
+            catch { }
+        }
+
+        if (string.IsNullOrEmpty(cognitiveLevel))
+        {
+            cognitiveLevel = q.Difficulty switch
+            {
+                "easy" or "nhan_biet" => "nhan_biet",
+                "medium" or "thong_hieu" => "thong_hieu",
+                "hard" or "van_dung" => "van_dung",
+                "very-hard" or "very_hard" or "van_dung_cao" => "van_dung_cao",
+                _ => "thong_hieu"
+            };
+        }
+    }
+
+    private static void ExtractAttemptContext(AssessmentAttempt attempt, out string? chapterId, out string? lessonId)
+    {
+        chapterId = null;
+        lessonId = !string.IsNullOrEmpty(attempt.LessonId) ? attempt.LessonId : null;
+
+        if (!string.IsNullOrEmpty(attempt.SuspendDataJson))
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(attempt.SuspendDataJson);
+                var root = doc.RootElement;
+                if (root.TryGetProperty("chapterId", out var cElem) && cElem.ValueKind == JsonValueKind.String)
+                {
+                    chapterId = cElem.GetString();
+                }
+                if (string.IsNullOrEmpty(lessonId) && root.TryGetProperty("lessonId", out var lElem) && lElem.ValueKind == JsonValueKind.String)
+                {
+                    lessonId = lElem.GetString();
+                }
+            }
+            catch { }
+        }
+    }
 
     // ─────────────────────────────────────────────────────────────────────────────
     // 1. PRACTICE & EXAM SESSION ENGINE
@@ -220,6 +299,8 @@ public class PracticeController : ControllerBase
             ["timeLimitMinutes"] = timeLimit,
             ["expiresAt"] = expiresAt?.ToString("o"),
             ["blueprintId"] = request.BlueprintId,
+            ["chapterId"] = request.ChapterId,
+            ["lessonId"] = request.LessonId,
             ["answers"] = new JsonObject()
         };
 
@@ -284,9 +365,9 @@ public class PracticeController : ControllerBase
             return NotFound(new { detail = $"Không tìm thấy phiên làm bài '{sessionId}'." });
         }
 
-        if (attempt.UserId != CurrentUserId && !IsStaffOrAdmin)
+        if (!await CanAccessAttemptAsync(attempt))
         {
-            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Bạn không có quyền truy cập phiên làm bài của người khác." });
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Bạn không có quyền truy cập phiên làm bài này." });
         }
 
         List<string> questionIds = new();
@@ -294,6 +375,7 @@ public class PracticeController : ControllerBase
         int? timeLimit = null;
         DateTimeOffset? expiresAt = null;
         string mode = "practice";
+        string? chapterId = null;
 
         if (!string.IsNullOrEmpty(attempt.SuspendDataJson))
         {
@@ -307,6 +389,10 @@ public class PracticeController : ControllerBase
                 if (root.TryGetProperty("expiresAt", out var exp) && exp.ValueKind == JsonValueKind.String)
                 {
                     if (DateTimeOffset.TryParse(exp.GetString(), out var expParsed)) expiresAt = expParsed;
+                }
+                if (root.TryGetProperty("chapterId", out var cIdElem) && cIdElem.ValueKind == JsonValueKind.String)
+                {
+                    chapterId = cIdElem.GetString();
                 }
                 if (root.TryGetProperty("questionIds", out var qIdsElem) && qIdsElem.ValueKind == JsonValueKind.Array)
                 {
@@ -354,6 +440,7 @@ public class PracticeController : ControllerBase
         {
             SessionId = attempt.Id,
             SubjectId = attempt.SubjectId,
+            ChapterId = chapterId,
             LessonId = attempt.LessonId,
             Mode = mode,
             QuestionCount = questionDtos.Count,
@@ -377,7 +464,7 @@ public class PracticeController : ControllerBase
             return NotFound(new { detail = $"Không tìm thấy phiên làm bài '{sessionId}'." });
         }
 
-        if (attempt.UserId != CurrentUserId && !IsStaffOrAdmin)
+        if (attempt.UserId != CurrentUserId)
         {
             return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Bạn không có quyền chỉnh sửa phiên làm bài của người khác." });
         }
@@ -446,9 +533,9 @@ public class PracticeController : ControllerBase
             return NotFound(new { detail = $"Không tìm thấy phiên làm bài '{sessionId}'." });
         }
 
-        if (attempt.UserId != CurrentUserId && !IsStaffOrAdmin)
+        if (attempt.UserId != CurrentUserId)
         {
-            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Bạn không có quyền truy cập phiên làm bài này." });
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Bạn không có quyền kiểm tra câu hỏi cho phiên làm bài của người khác." });
         }
 
         // ANTI-CHEAT: In exam mode, students CANNOT view answers before submitting!
@@ -511,7 +598,7 @@ public class PracticeController : ControllerBase
             return NotFound(new { detail = $"Không tìm thấy phiên làm bài '{sessionId}'." });
         }
 
-        if (attempt.UserId != CurrentUserId && !IsStaffOrAdmin)
+        if (attempt.UserId != CurrentUserId)
         {
             return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Bạn không có quyền nộp bài cho học sinh khác." });
         }
@@ -614,6 +701,8 @@ public class PracticeController : ControllerBase
             if (!perfByDiff.ContainsKey(diff)) perfByDiff[diff] = (0, 0);
             perfByDiff[diff] = (perfByDiff[diff].correct + (isCorrect ? 1 : 0), perfByDiff[diff].total + 1);
 
+            ExtractQuestionMetadata(q, out var skillIds, out var cognitiveLevel);
+
             detailedResults.Add(new QuestionResultItemDto
             {
                 QuestionId = q.Id,
@@ -623,7 +712,11 @@ public class PracticeController : ControllerBase
                 CorrectAnswer = q.CorrectAnswer,
                 IsCorrect = isCorrect,
                 Explanation = q.Explanation,
-                Difficulty = q.Difficulty
+                Difficulty = q.Difficulty,
+                Type = q.Type ?? "multiple-choice",
+                QuestionType = q.Type ?? "multiple-choice",
+                SkillIds = skillIds,
+                CognitiveLevel = cognitiveLevel
             });
 
             // Record into AssessmentResponse
@@ -701,11 +794,15 @@ public class PracticeController : ControllerBase
             kvp => kvp.Value.total > 0 ? Math.Round((double)kvp.Value.correct / kvp.Value.total * 100.0, 1) : 0.0
         );
 
+        ExtractAttemptContext(attempt, out var submitChapterId, out var submitLessonId);
+
         return Ok(new PracticeResultDto
         {
             ResultId = $"res_{attempt.Id}",
             SessionId = attempt.Id,
             SubjectId = attempt.SubjectId,
+            ChapterId = submitChapterId,
+            LessonId = submitLessonId,
             Mode = mode,
             TotalQuestions = totalCount,
             CorrectCount = correctCount,
@@ -715,6 +812,7 @@ public class PracticeController : ControllerBase
             ScoreScaled = scoreScaled,
             Passed = passed,
             TimeSpentSeconds = attempt.SessionTimeMs / 1000,
+            StartedAt = attempt.StartedAt,
             CompletedAt = now,
             Questions = detailedResults,
             PerformanceByDifficulty = diffStats
@@ -745,6 +843,8 @@ public class PracticeController : ControllerBase
             else if (isCorrect) correct++;
             else incorrect++;
 
+            ExtractQuestionMetadata(q, out var skillIds, out var cognitiveLevel);
+
             detailedResults.Add(new QuestionResultItemDto
             {
                 QuestionId = q.Id,
@@ -754,7 +854,11 @@ public class PracticeController : ControllerBase
                 CorrectAnswer = q.CorrectAnswer,
                 IsCorrect = isCorrect,
                 Explanation = q.Explanation,
-                Difficulty = q.Difficulty
+                Difficulty = q.Difficulty,
+                Type = q.Type ?? "multiple-choice",
+                QuestionType = q.Type ?? "multiple-choice",
+                SkillIds = skillIds,
+                CognitiveLevel = cognitiveLevel
             });
         }
 
@@ -771,11 +875,15 @@ public class PracticeController : ControllerBase
             kvp => kvp.Value.total > 0 ? Math.Round((double)kvp.Value.correct / kvp.Value.total * 100.0, 1) : 0.0
         );
 
+        ExtractAttemptContext(attempt, out var compChapterId, out var compLessonId);
+
         return Ok(new PracticeResultDto
         {
             ResultId = $"res_{attempt.Id}",
             SessionId = attempt.Id,
             SubjectId = attempt.SubjectId,
+            ChapterId = compChapterId,
+            LessonId = compLessonId,
             Mode = attempt.AssessmentId == "asmt_exam" ? "exam" : "practice",
             TotalQuestions = detailedResults.Count,
             CorrectCount = correct,
@@ -785,6 +893,7 @@ public class PracticeController : ControllerBase
             ScoreScaled = attempt.ScoreScaled ?? (detailedResults.Count > 0 ? Math.Round((double)correct / detailedResults.Count * 10.0, 2) : 0),
             Passed = (attempt.ScoreScaled ?? 0) >= 5.0,
             TimeSpentSeconds = attempt.SessionTimeMs / 1000,
+            StartedAt = attempt.StartedAt,
             CompletedAt = attempt.CompletedAt ?? DateTimeOffset.UtcNow,
             Questions = detailedResults,
             PerformanceByDifficulty = diffStats
@@ -803,9 +912,9 @@ public class PracticeController : ControllerBase
             return NotFound(new { detail = $"Không tìm thấy phiên làm bài '{sessionId}'." });
         }
 
-        if (attempt.UserId != CurrentUserId && !IsStaffOrAdmin)
+        if (!await CanAccessAttemptAsync(attempt))
         {
-            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Bạn không có quyền xem kết quả làm bài của học sinh khác." });
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Bạn không có quyền xem kết quả làm bài này." });
         }
 
         if (attempt.CompletionStatus != "completed")
@@ -830,9 +939,9 @@ public class PracticeController : ControllerBase
             return NotFound(new { detail = $"Không tìm thấy kết quả làm bài '{resultId}'." });
         }
 
-        if (attempt.UserId != CurrentUserId && !IsStaffOrAdmin)
+        if (!await CanAccessAttemptAsync(attempt))
         {
-            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Bạn không có quyền xem kết quả làm bài của học sinh khác." });
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Bạn không có quyền xem kết quả làm bài này." });
         }
 
         if (attempt.CompletionStatus != "completed")
