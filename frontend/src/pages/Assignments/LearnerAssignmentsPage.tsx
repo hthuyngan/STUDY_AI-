@@ -44,43 +44,19 @@ export const LearnerAssignmentsPage: React.FC = () => {
       const data = await apiClient.get<AssignmentDto[]>('/api/v1/assignments')
       setAssignments(Array.isArray(data) ? data : [])
     } catch (err) {
-      if (authState === 'authenticated') {
-        const msg = err instanceof Error ? err.message : 'Không thể kết nối máy chủ để tải bài tập.'
-        setError(msg)
-        setAssignments([])
-      } else {
-        try {
-          const fallback = await classroomService.getAssignments()
-          setAssignments(
-            fallback.map((f) => ({
-              id: f.id,
-              classroomId: f.classId,
-              classroomName: f.className,
-              title: f.title,
-              description: f.description,
-              instructions: f.instructions,
-              dueDate: f.dueDate,
-              maxScore: f.maxScore,
-              status: f.status,
-              createdByTeacherId: 'tch-01',
-              createdByTeacherName: 'Giáo viên',
-              submissionsCount: f.submissionsCount,
-              totalStudents: f.totalStudents,
-              createdAt: f.createdAt,
-              updatedAt: f.createdAt,
-            }))
-          )
-        } catch {
-          setAssignments([])
-        }
-      }
+      const msg = err instanceof Error ? err.message : 'Không thể kết nối máy chủ để tải bài tập.'
+      setError(msg)
+      setAssignments([])
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    if (authState === 'initializing') return
+    if (authState !== 'authenticated') {
+      setLoading(false)
+      return
+    }
     let active = true
 
     apiClient
@@ -93,44 +69,9 @@ export const LearnerAssignmentsPage: React.FC = () => {
       })
       .catch((err) => {
         if (!active) return
-        if (authState === 'authenticated') {
-          setError(err instanceof Error ? err.message : 'Không thể kết nối máy chủ.')
-          setAssignments([])
-          setLoading(false)
-        } else {
-          classroomService
-            .getAssignments()
-            .then((fallback) => {
-              if (active) {
-                setAssignments(
-                  fallback.map((f) => ({
-                    id: f.id,
-                    classroomId: f.classId,
-                    classroomName: f.className,
-                    title: f.title,
-                    description: f.description,
-                    instructions: f.instructions,
-                    dueDate: f.dueDate,
-                    maxScore: f.maxScore,
-                    status: f.status,
-                    createdByTeacherId: 'tch-01',
-                    createdByTeacherName: 'Giáo viên',
-                    submissionsCount: f.submissionsCount,
-                    totalStudents: f.totalStudents,
-                    createdAt: f.createdAt,
-                    updatedAt: f.createdAt,
-                  }))
-                )
-                setLoading(false)
-              }
-            })
-            .catch(() => {
-              if (active) {
-                setAssignments([])
-                setLoading(false)
-              }
-            })
-        }
+        setError(err instanceof Error ? err.message : 'Không thể kết nối máy chủ.')
+        setAssignments([])
+        setLoading(false)
       })
 
     return () => {
@@ -187,6 +128,33 @@ export const LearnerAssignmentsPage: React.FC = () => {
       return matchesSearch && matchesStatus
     })
   }, [assignments, search, statusFilter])
+
+  if (authState === 'initializing') {
+    return (
+      <div className="learner-assignments-container">
+        <Skeleton variant="rect" width="100%" height={200} />
+      </div>
+    )
+  }
+
+  if (authState === 'guest') {
+    return (
+      <div className="learner-assignments-container" data-testid="guest-assignments-gate">
+        <div style={{ textAlign: 'center', padding: '48px 24px', background: 'var(--surface-card, #ffffff)', border: '1px solid var(--border-default, #e2e8f0)', borderRadius: '12px' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '8px' }}>Bài tập lớp học</h2>
+          <p style={{ color: 'var(--text-secondary, #64748b)', marginBottom: '24px' }}>Vui lòng đăng nhập tài khoản học viên để xem và nộp bài tập được giao từ giáo viên.</p>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+            <button type="button" className="asg-filter-chip active" onClick={() => { window.location.href = '/login' }}>
+              Đăng nhập
+            </button>
+            <button type="button" className="asg-filter-chip" onClick={() => { window.location.href = '/register' }}>
+              Đăng ký tài khoản
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="learner-assignments-container">

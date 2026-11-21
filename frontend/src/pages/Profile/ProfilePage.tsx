@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { BookOpen, Clock, Flame, GraduationCap, Sparkles, X } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Avatar } from '@/components/ui/Avatar'
 import { Breadcrumb } from '@/components/ui/Breadcrumb'
 import { Button } from '@/components/ui/Button'
@@ -8,10 +8,13 @@ import { Card } from '@/components/ui/Card'
 import { PageErrorState } from '@/components/ui/PageErrorState'
 import { Progress } from '@/components/ui/Progress'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { useAuth } from '@/auth/useAuth'
 import { useUserProfile } from '@/hooks/useSupporting'
 import './ProfilePage.css'
 
 export function ProfilePage() {
+  const navigate = useNavigate()
+  const { user, isAuthenticated, state } = useAuth()
   const { profile, isLoading, error, reload } = useUserProfile()
 
   const [isEditing, setIsEditing] = useState(false)
@@ -24,11 +27,31 @@ export function ProfilePage() {
     studyGoal?: string
   }>({})
 
-  if (isLoading) {
+  if (state === 'initializing' || isLoading) {
     return (
       <div className="profile-page-root">
         <Skeleton variant="text" width={200} height={28} />
         <Skeleton variant="rect" width="100%" height={160} />
+      </div>
+    )
+  }
+
+  if (!isAuthenticated || !user) {
+    return (
+      <div className="profile-page-root" data-testid="guest-profile-gate">
+        <Breadcrumb items={[{ label: 'Hồ sơ cá nhân' }]} />
+        <div style={{ textAlign: 'center', padding: '48px 24px', background: 'var(--surface-card, #ffffff)', border: '1px solid var(--border-default, #e2e8f0)', borderRadius: '12px' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '8px' }}>Vui lòng đăng nhập</h2>
+          <p style={{ color: 'var(--text-secondary, #64748b)', marginBottom: '24px' }}>Bạn cần đăng nhập tài khoản học viên để xem và quản lý hồ sơ cá nhân.</p>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+            <Button variant="primary" onClick={() => navigate('/login')}>
+              Đăng nhập
+            </Button>
+            <Button variant="outline" onClick={() => navigate('/register')}>
+              Đăng ký tài khoản
+            </Button>
+          </div>
+        </div>
       </div>
     )
   }

@@ -36,7 +36,58 @@ export function DashboardPage() {
     return <DashboardSkeleton />
   }
 
-  // 2. Error State
+  // 2. Guest State: Show clean landing / public overview with login CTA (no personal metrics)
+  if (!isAuthenticated || !user) {
+    return (
+      <div className="dashboard-root" data-testid="guest-dashboard">
+        <div className="guest-hero-card">
+          <div className="guest-hero-badge">
+            <span>HỆ THỐNG HỌC TẬP TOÁN THPT GDPT 2018</span>
+          </div>
+          <h1 className="guest-hero-title">Chào mừng bạn đến với STUDY_AI</h1>
+          <p className="guest-hero-desc">
+            Nền tảng học tập cá nhân hóa, luyện thi Toán 10, 11 và 12 chuẩn ma trận Bộ Giáo dục & Đào tạo.
+            Đăng nhập để theo dõi lộ trình năng lực thực tế, nhận diện lỗ hổng kiến thức và luyện tập cùng AI Tutor.
+          </p>
+          <div className="guest-hero-actions">
+            <Button variant="primary" onClick={() => navigate('/login')}>
+              Đăng nhập để theo dõi học tập
+            </Button>
+            <Button variant="outline" onClick={() => navigate('/register')}>
+              Đăng ký tài khoản
+            </Button>
+          </div>
+        </div>
+
+        {/* Public Subjects Exploration */}
+        <div className="guest-subjects-section">
+          <h2 className="guest-section-title">Chương trình môn Toán GDPT 2018</h2>
+          <div className="guest-subjects-grid">
+            <div className="guest-subject-card" onClick={() => navigate('/subjects')}>
+              <span className="guest-subject-icon">📐</span>
+              <h3>Toán học 10</h3>
+              <p>Mệnh đề, tập hợp, bất phương trình bậc hai, hệ thức lượng trong tam giác.</p>
+              <span className="guest-explore-link">Khám phá chương trình →</span>
+            </div>
+            <div className="guest-subject-card" onClick={() => navigate('/subjects')}>
+              <span className="guest-subject-icon">📐</span>
+              <h3>Toán học 11</h3>
+              <p>Hàm số lượng giác, dãy số, cấp số cộng, giới hạn, đạo hàm và hình học không gian.</p>
+              <span className="guest-explore-link">Khám phá chương trình →</span>
+            </div>
+            <div className="guest-subject-card" onClick={() => navigate('/subjects')}>
+              <span className="guest-subject-icon">📐</span>
+              <h3>Toán học 12</h3>
+              <p>Ứng dụng đạo hàm khảo sát hàm số, nguyên hàm, tích phân, tọa độ Oxyz.</p>
+              <span className="guest-explore-link">Khám phá chương trình →</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // 3. Error State
   if (error || !data) {
     if (showEmptyPreview) {
       return (

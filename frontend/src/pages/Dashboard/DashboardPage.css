@@ -1583,3 +1583,101 @@
     font-size: 20px;
   }
 }
+
+/* ── GUEST DASHBOARD STYLES ───────────────────────────────── */
+.guest-hero-card {
+  background: linear-gradient(135deg, #102a43 0%, #243b53 100%);
+  border-radius: 12px;
+  padding: 36px 32px;
+  color: #ffffff;
+  margin-bottom: 32px;
+}
+
+.guest-hero-badge {
+  display: inline-flex;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  margin-bottom: 16px;
+}
+
+.guest-hero-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 12px;
+}
+
+.guest-hero-desc {
+  font-size: 15px;
+  line-height: 1.6;
+  color: #d9e2ec;
+  max-width: 680px;
+  margin: 0 0 24px;
+}
+
+.guest-hero-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.guest-subjects-section {
+  margin-top: 24px;
+}
+
+.guest-section-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+}
+
+.guest-subjects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.guest-subject-card {
+  background: var(--surface-card, #ffffff);
+  border: 1px solid var(--border-default, #e2e8f0);
+  border-radius: 10px;
+  padding: 24px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.guest-subject-card:hover {
+  border-color: #3b82f6;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.guest-subject-icon {
+  font-size: 28px;
+  display: inline-block;
+  margin-bottom: 12px;
+}
+
+.guest-subject-card h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 8px;
+  color: var(--text-primary);
+}
+
+.guest-subject-card p {
+  font-size: 14px;
+  color: var(--text-secondary, #64748b);
+  line-height: 1.5;
+  margin: 0 0 16px;
+}
+
+.guest-explore-link {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2563eb;
+}

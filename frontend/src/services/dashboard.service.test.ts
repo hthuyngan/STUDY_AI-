@@ -122,4 +122,20 @@ describe('DashboardService — Authenticated Zero-Mock & Fail-Closed Suite', () 
     expect(data!.dailyGoals.items[0].completed).toBe(false)
     expect(data!.subjects.every((s) => s.progress === 0 && s.completedLessons === 0)).toBe(true)
   })
+
+  it('returns clean guest state without mock leaks or personal metrics when unauthenticated', async () => {
+    vi.mocked(getAuthUser).mockReturnValue(null)
+
+    const data = await fetchDashboardData()
+
+    expect(data).not.toBeNull()
+    expect(data!.user.id).toBe('guest')
+    expect(data!.stats.completedLessonsCount).toBe(0)
+    expect(data!.stats.streakDays).toBe(0)
+    expect(data!.stats.totalXP).toBe(0)
+    expect(data!.recentActivities).toEqual([])
+    expect(data!.continueLessons).toEqual([])
+    expect(data!.dailyGoals.items).toEqual([])
+    expect(apiClient.get).not.toHaveBeenCalled()
+  })
 })

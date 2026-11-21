@@ -1,17 +1,22 @@
 import { CheckCircle2, Flame, Lock, Sparkles, Trophy } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { Breadcrumb } from '@/components/ui/Breadcrumb'
+import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { PageErrorState } from '@/components/ui/PageErrorState'
 import { Progress } from '@/components/ui/Progress'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { useAuth } from '@/auth/useAuth'
 import { useAchievements, useUserProfile } from '@/hooks/useSupporting'
 import './AchievementsPage.css'
 
 export function AchievementsPage() {
+  const navigate = useNavigate()
+  const { user, isAuthenticated, state } = useAuth()
   const { achievements, isLoading: loadingAch, error: errorAch, reload } = useAchievements()
   const { profile, isLoading: loadingProf } = useUserProfile()
 
-  if (loadingAch || loadingProf) {
+  if (state === 'initializing' || loadingAch || loadingProf) {
     return (
       <div className="achievements-page-root">
         <Skeleton variant="text" width={220} height={28} />
@@ -20,6 +25,26 @@ export function AchievementsPage() {
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <Skeleton key={i} variant="rect" width="100%" height={160} />
           ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (!isAuthenticated || !user) {
+    return (
+      <div className="achievements-page-root" data-testid="guest-achievements-gate">
+        <Breadcrumb items={[{ label: 'Thành tích' }]} />
+        <div style={{ textAlign: 'center', padding: '48px 24px', background: 'var(--surface-card, #ffffff)', border: '1px solid var(--border-default, #e2e8f0)', borderRadius: '12px' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '8px' }}>Vui lòng đăng nhập</h2>
+          <p style={{ color: 'var(--text-secondary, #64748b)', marginBottom: '24px' }}>Bạn cần đăng nhập tài khoản học viên để xem huy hiệu và thành tích học tập cá nhân.</p>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+            <Button variant="primary" onClick={() => navigate('/login')}>
+              Đăng nhập
+            </Button>
+            <Button variant="outline" onClick={() => navigate('/register')}>
+              Đăng ký tài khoản
+            </Button>
+          </div>
         </div>
       </div>
     )
@@ -53,7 +78,7 @@ export function AchievementsPage() {
           </div>
           <div className="metric-text-wrap">
             <span className="metric-label">Chuỗi ngày học</span>
-            <span className="metric-value">{profile?.streakDays || 12} ngày liên tục</span>
+            <span className="metric-value">{profile?.streakDays ?? 0} ngày liên tục</span>
           </div>
         </div>
 
@@ -65,7 +90,7 @@ export function AchievementsPage() {
           </div>
           <div className="metric-text-wrap">
             <span className="metric-label">Tổng điểm kinh nghiệm</span>
-            <span className="metric-value">{profile?.totalXP || 2450} XP</span>
+            <span className="metric-value">{profile?.totalXP ?? 0} XP</span>
           </div>
         </div>
 
@@ -77,7 +102,7 @@ export function AchievementsPage() {
           </div>
           <div className="metric-text-wrap">
             <span className="metric-label">Bài học hoàn thành</span>
-            <span className="metric-value">{profile?.completedLessons || 68} bài học</span>
+            <span className="metric-value">{profile?.completedLessons ?? 0} bài học</span>
           </div>
         </div>
       </div>
