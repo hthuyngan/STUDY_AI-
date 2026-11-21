@@ -781,7 +781,12 @@ export const operationsService = {
       if (typeFilter !== 'all') params.set('type', typeFilter)
       if (search.trim()) params.set('search', search.trim())
       const res = await apiClient.get<PublicationRecord[]>(`/api/v1/content/publications?${params.toString()}`)
-      return res || []
+      const items = res || []
+      return items.map((p) => ({
+        ...p,
+        publishedBy: p.publishedBy || p.publisherName || 'Quản trị viên',
+        status: (p.status === 'published' ? 'active' : p.status) || 'active',
+      }))
     }
 
     let pubs = loadFromStorage<PublicationRecord[]>(STORAGE_KEYS.PUBLICATIONS, INITIAL_PUBLICATIONS)
@@ -794,7 +799,7 @@ export const operationsService = {
         (p) =>
           p.title.toLowerCase().includes(q) ||
           p.subjectName.toLowerCase().includes(q) ||
-          p.publishedBy.toLowerCase().includes(q)
+          (p.publishedBy || '').toLowerCase().includes(q)
       )
     }
     return pubs
@@ -807,10 +812,31 @@ export const operationsService = {
   ): Promise<PublicationRecord> {
     if (getAccessToken()) {
       const cleanId = pubId.replace(/^pub_/, '')
-      await apiClient.post(`/api/v1/content/lessons/${cleanId}/rollback`)
+      const isQuestion = cleanId.startsWith('qst_')
+      const endpoint = isQuestion
+        ? `/api/v1/content/questions/${cleanId}/rollback`
+        : `/api/v1/content/lessons/${cleanId}/rollback`
+      const versionNum = parseInt(targetVersion.replace(/\D/g, ''), 10) || 1
+      await apiClient.post(endpoint, {
+        targetVersion: versionNum,
+        reason: `Rollback về ${targetVersion} bởi ${actor}`
+      })
       const pubs = await this.getPublications('all')
       const found = pubs.find((p) => p.id === pubId || p.contentId === cleanId)
       if (found) return found
+
+      return {
+        id: pubId,
+        contentId: cleanId,
+        contentType: isQuestion ? 'assessment' : 'lesson',
+        title: 'Đã khôi phục phiên bản thành công',
+        subjectName: 'Toán học',
+        version: targetVersion,
+        publishedBy: actor,
+        publishedAt: new Date().toISOString(),
+        status: 'archived',
+        changelog: `Khôi phục về phiên bản ${targetVersion}`,
+      }
     }
 
     const pubs = await this.getPublications()

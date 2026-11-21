@@ -305,6 +305,13 @@ public class RejectQuestionRequestDto
     public string Reason { get; set; } = string.Empty;
 }
 
+public class RollbackContentRequestDto
+{
+    public int? TargetVersion { get; set; }
+    public string? RevisionId { get; set; }
+    public string? Reason { get; set; }
+}
+
 public class ContentQuestionItemDto
 {
     public string Id { get; set; } = string.Empty;

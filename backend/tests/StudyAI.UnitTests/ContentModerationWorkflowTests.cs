@@ -243,4 +243,85 @@ public class ContentModerationWorkflowTests
         var items = Assert.IsAssignableFrom<System.Collections.IEnumerable>(okResult.Value);
         Assert.NotEmpty(items);
     }
+
+    [Fact]
+    public async Task GetPublications_ReturnsPublishedBy_AndActiveStatus()
+    {
+        var (_, controller) = CreateContextAndController(role: "content");
+
+        var result = await controller.GetPublications();
+
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var json = System.Text.Json.JsonSerializer.Serialize(okResult.Value);
+        using var doc = System.Text.Json.JsonDocument.Parse(json);
+        var array = doc.RootElement.EnumerateArray().ToList();
+        Assert.NotEmpty(array);
+
+        var first = array[0];
+        Assert.True(first.TryGetProperty("publishedBy", out var publishedByProp));
+        Assert.False(string.IsNullOrWhiteSpace(publishedByProp.GetString()));
+        Assert.True(first.TryGetProperty("status", out var statusProp));
+        Assert.Equal("active", statusProp.GetString());
+    }
+
+    [Fact]
+    public async Task RollbackLesson_WithTargetVersion_RestoresHistoricalSnapshot()
+    {
+        var (context, controller) = CreateContextAndController(role: "content");
+
+        // Seed a historical revision for les_published_1
+        var snapshot = new
+        {
+            Id = "les_published_1",
+            Title = "Bài 2: Tập hợp - Bản gốc v1",
+            Introduction = "Giới thiệu phiên bản cũ",
+            DefinitionsJson = "[\"Định nghĩa v1\"]",
+            FormulasJson = "[]",
+            ExamplesJson = "[]",
+            SummaryPointsJson = "[]"
+        };
+
+        context.ContentRevisions.Add(new ContentRevision
+        {
+            Id = "rev_l_historical_1",
+            ContentId = "les_published_1",
+            ContentType = "lesson",
+            Version = 1,
+            Status = "published",
+            Title = "Bài 2: Tập hợp - Bản gốc v1",
+            SnapshotJson = System.Text.Json.JsonSerializer.Serialize(snapshot),
+            AuthorId = "usr_author_1",
+            CreatedBy = "usr_author_1",
+            CreatedAt = DateTimeOffset.UtcNow.AddDays(-10)
+        });
+        await context.SaveChangesAsync();
+
+        // Mutate current title
+        var lesson = await context.ContentLessons.FindAsync("les_published_1");
+        lesson!.Title = "Bài 2: Tập hợp - Đã sửa đổi";
+        await context.SaveChangesAsync();
+
+        var rollbackReq = new StudyAI.Application.DTOs.RollbackContentRequestDto
+        {
+            TargetVersion = 1,
+            Reason = "Khôi phục phiên bản v1"
+        };
+
+        var result = await controller.RollbackLesson("les_published_1", rollbackReq);
+
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var updated = await context.ContentLessons.FindAsync("les_published_1");
+        Assert.NotNull(updated);
+        Assert.Equal("draft", updated.Status);
+        Assert.Equal("Bài 2: Tập hợp - Bản gốc v1", updated.Title);
+        Assert.Equal("Giới thiệu phiên bản cũ", updated.Introduction);
+
+        // Verify revision was recorded
+        var latestRev = await context.ContentRevisions
+            .Where(r => r.ContentId == "les_published_1")
+            .OrderByDescending(r => r.CreatedAt)
+            .FirstOrDefaultAsync();
+        Assert.NotNull(latestRev);
+        Assert.Equal("rev_l_historical_1", latestRev.SourceRevisionId);
+    }
 }

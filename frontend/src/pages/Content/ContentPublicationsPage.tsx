@@ -81,7 +81,7 @@ export const ContentPublicationsPage: React.FC = () => {
       const matchSearch =
         p.title.toLowerCase().includes(search.toLowerCase()) ||
         p.subjectName.toLowerCase().includes(search.toLowerCase()) ||
-        p.publishedBy.toLowerCase().includes(search.toLowerCase())
+        (p.publishedBy || p.publisherName || '').toLowerCase().includes(search.toLowerCase())
       const matchType = typeFilter === 'all' || p.contentType === typeFilter
       return matchSearch && matchType
     })

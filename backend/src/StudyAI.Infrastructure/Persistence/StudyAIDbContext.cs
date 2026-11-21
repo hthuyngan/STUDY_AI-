@@ -51,6 +51,8 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
     public DbSet<ContentQuestion> ContentQuestions => Set<ContentQuestion>();
 
+    public DbSet<ContentRevision> ContentRevisions => Set<ContentRevision>();
+
     public DbSet<AiConversation> AiConversations => Set<AiConversation>();
 
     public DbSet<AiMessage> AiMessages => Set<AiMessage>();
@@ -716,6 +718,25 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
             entity.HasIndex(e => e.IsDeleted);
 
             entity.HasIndex(e => e.SourceType);
+        });
+
+        modelBuilder.Entity<ContentRevision>(entity =>
+        {
+            entity.ToTable("content_revisions");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.ContentId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.ContentType).HasMaxLength(32).IsRequired();
+            entity.Property(e => e.Status).HasMaxLength(32).IsRequired();
+            entity.Property(e => e.Title).HasMaxLength(256).IsRequired();
+            entity.Property(e => e.AuthorId).HasMaxLength(64);
+            entity.Property(e => e.CreatedBy).HasMaxLength(64);
+            entity.Property(e => e.Reason).HasMaxLength(500);
+            entity.Property(e => e.SourceRevisionId).HasMaxLength(64);
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            entity.HasIndex(e => new { e.ContentId, e.Version });
+            entity.HasIndex(e => e.CreatedAt);
         });
 
         // AiConversation

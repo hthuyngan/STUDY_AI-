@@ -42,6 +42,94 @@ public class ContentController : ControllerBase
         return !string.IsNullOrEmpty(authorId) && authorId == CurrentUserId;
     }
 
+    private async Task<ContentRevision> CreateLessonRevisionAsync(ContentLesson les, string reason, string? sourceRevisionId = null)
+    {
+        var count = await _db.ContentRevisions.CountAsync(r => r.ContentId == les.Id);
+        var snapshot = new
+        {
+            les.Id,
+            les.ChapterId,
+            les.TopicId,
+            les.Title,
+            les.Slug,
+            les.Status,
+            les.AuthorId,
+            les.ReviewedBy,
+            les.Introduction,
+            les.DefinitionsJson,
+            les.FormulasJson,
+            les.ExamplesJson,
+            les.ImportantNotesJson,
+            les.SummaryPointsJson,
+            les.OrderIndex
+        };
+
+        var revision = new ContentRevision
+        {
+            Id = $"rev_l_{Guid.NewGuid():N}",
+            ContentId = les.Id,
+            ContentType = "lesson",
+            Version = count + 1,
+            Status = les.Status,
+            Title = les.Title,
+            SnapshotJson = JsonSerializer.Serialize(snapshot),
+            AuthorId = les.AuthorId,
+            CreatedBy = CurrentUserId,
+            Reason = reason,
+            SourceRevisionId = sourceRevisionId,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        _db.ContentRevisions.Add(revision);
+        return revision;
+    }
+
+    private async Task<ContentRevision> CreateQuestionRevisionAsync(ContentQuestion q, string reason, string? sourceRevisionId = null)
+    {
+        var count = await _db.ContentRevisions.CountAsync(r => r.ContentId == q.Id);
+        var snapshot = new
+        {
+            q.Id,
+            q.Code,
+            q.LessonId,
+            q.SubjectId,
+            q.ChapterId,
+            q.Grade,
+            q.Prompt,
+            q.OptionsJson,
+            q.CorrectAnswer,
+            q.Explanation,
+            q.Topic,
+            q.Difficulty,
+            q.Type,
+            q.Status,
+            q.OrderIndex,
+            q.ImageUrl,
+            q.MetadataJson,
+            q.AuthorId,
+            q.ReviewedBy
+        };
+
+        var revision = new ContentRevision
+        {
+            Id = $"rev_q_{Guid.NewGuid():N}",
+            ContentId = q.Id,
+            ContentType = "question",
+            Version = count + 1,
+            Status = q.Status,
+            Title = q.Prompt.Length > 80 ? q.Prompt[..80] : q.Prompt,
+            SnapshotJson = JsonSerializer.Serialize(snapshot),
+            AuthorId = q.AuthorId,
+            CreatedBy = CurrentUserId,
+            Reason = reason,
+            SourceRevisionId = sourceRevisionId,
+            CreatedAt = DateTimeOffset.UtcNow
+        };
+
+        _db.ContentRevisions.Add(revision);
+        return revision;
+    }
+
     #region Subject Endpoints
 
     [HttpGet("subjects")]
@@ -1551,6 +1639,8 @@ public class ContentController : ControllerBase
         les.ReviewedBy = CurrentUserId;
         les.UpdatedAt = DateTimeOffset.UtcNow;
 
+        await CreateLessonRevisionAsync(les, "Phê duyệt xuất bản bài học");
+
         _db.StaffAuditLogs.Add(new StaffAuditLog
         {
             Id = $"log_{Guid.NewGuid():N}",
@@ -1645,7 +1735,7 @@ public class ContentController : ControllerBase
     }
 
     [HttpPost("lessons/{lessonId}/rollback")]
-    public async Task<IActionResult> RollbackLesson(string lessonId)
+    public async Task<IActionResult> RollbackLesson(string lessonId, [FromBody] RollbackContentRequestDto? req = null)
     {
         if (!IsAuthorizedReviewer)
         {
@@ -1659,9 +1749,67 @@ public class ContentController : ControllerBase
         if (les.Status == "draft")
             return StatusCode(409, new { detail = "Bài học đang ở trạng thái bản nháp ('draft'), không thể rollback." });
 
+        ContentRevision? targetRev = null;
+        if (!string.IsNullOrWhiteSpace(req?.RevisionId))
+        {
+            targetRev = await _db.ContentRevisions.FirstOrDefaultAsync(r => r.Id == req.RevisionId && r.ContentId == lessonId);
+            if (targetRev == null)
+            {
+                return NotFound(new { detail = $"Không tìm thấy phiên bản revision '{req.RevisionId}' cho bài học này." });
+            }
+        }
+        else if (req?.TargetVersion.HasValue == true)
+        {
+            targetRev = await _db.ContentRevisions
+                .Where(r => r.ContentId == lessonId && r.Version == req.TargetVersion.Value)
+                .OrderByDescending(r => r.CreatedAt)
+                .FirstOrDefaultAsync();
+            if (targetRev == null)
+            {
+                return NotFound(new { detail = $"Không tìm thấy phiên bản v{req.TargetVersion.Value} cho bài học này." });
+            }
+        }
+        else
+        {
+            targetRev = await _db.ContentRevisions
+                .Where(r => r.ContentId == lessonId)
+                .OrderByDescending(r => r.CreatedAt)
+                .Skip(1)
+                .FirstOrDefaultAsync();
+        }
+
         var previousStatus = les.Status;
+
+        if (targetRev != null && !string.IsNullOrWhiteSpace(targetRev.SnapshotJson))
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(targetRev.SnapshotJson);
+                var root = doc.RootElement;
+                if (root.TryGetProperty("Title", out var titleProp) && titleProp.GetString() is string title && !string.IsNullOrWhiteSpace(title))
+                    les.Title = title;
+                if (root.TryGetProperty("Introduction", out var introProp))
+                    les.Introduction = introProp.GetString();
+                if (root.TryGetProperty("DefinitionsJson", out var defProp))
+                    les.DefinitionsJson = defProp.GetString();
+                if (root.TryGetProperty("FormulasJson", out var formProp))
+                    les.FormulasJson = formProp.GetString();
+                if (root.TryGetProperty("ExamplesJson", out var exProp))
+                    les.ExamplesJson = exProp.GetString();
+                if (root.TryGetProperty("ImportantNotesJson", out var notesProp))
+                    les.ImportantNotesJson = notesProp.GetString();
+                if (root.TryGetProperty("SummaryPointsJson", out var sumProp))
+                    les.SummaryPointsJson = sumProp.GetString();
+            }
+            catch (JsonException)
+            {
+            }
+        }
+
         les.Status = "draft";
         les.UpdatedAt = DateTimeOffset.UtcNow;
+
+        var rollbackRev = await CreateLessonRevisionAsync(les, req?.Reason ?? $"Rollback từ trạng thái {previousStatus} về bản nháp", targetRev?.Id);
 
         _db.StaffAuditLogs.Add(new StaffAuditLog
         {
@@ -1670,7 +1818,16 @@ public class ContentController : ControllerBase
             Action = "lesson_rollback",
             TargetType = "content_lesson",
             TargetId = les.Id,
-            Payload = JsonSerializer.Serialize(new { title = les.Title, previousStatus, newStatus = les.Status, actorId = CurrentUserId }),
+            Payload = JsonSerializer.Serialize(new
+            {
+                title = les.Title,
+                previousStatus,
+                newStatus = les.Status,
+                targetRevisionId = targetRev?.Id,
+                targetVersion = targetRev?.Version,
+                rollbackRevisionId = rollbackRev.Id,
+                actorId = CurrentUserId
+            }),
             CreatedAt = DateTimeOffset.UtcNow
         });
 
@@ -1874,6 +2031,7 @@ public class ContentController : ControllerBase
             var lessons = await lessonQuery.OrderByDescending(l => l.UpdatedAt).Take(100).ToListAsync();
             foreach (var l in lessons)
             {
+                var pubBy = !string.IsNullOrWhiteSpace(l.ReviewedBy) ? l.ReviewedBy : (l.Author?.DisplayName ?? "Quản trị viên");
                 results.Add(new
                 {
                     id = $"pub_{l.Id}",
@@ -1884,8 +2042,9 @@ public class ContentController : ControllerBase
                     subjectName = l.Chapter?.Subject?.Name ?? "",
                     version = "v1.0",
                     publishedAt = l.UpdatedAt.ToString("o"),
-                    publisherName = "Quản trị viên",
-                    status = "published",
+                    publisherName = pubBy,
+                    publishedBy = pubBy,
+                    status = "active",
                     changelog = "Phiên bản chuẩn GDPT 2018",
                     views = 120,
                     rating = 4.9,
@@ -1899,6 +2058,7 @@ public class ContentController : ControllerBase
             var questions = await questionQuery.OrderByDescending(q => q.UpdatedAt).Take(100).ToListAsync();
             foreach (var q in questions)
             {
+                var pubBy = !string.IsNullOrWhiteSpace(q.ReviewedBy) ? q.ReviewedBy : "Quản trị viên";
                 results.Add(new
                 {
                     id = $"pub_{q.Id}",
@@ -1909,8 +2069,9 @@ public class ContentController : ControllerBase
                     subjectName = q.Lesson?.Chapter?.Subject?.Name ?? "Toán học",
                     version = "v1.0",
                     publishedAt = q.UpdatedAt.ToString("o"),
-                    publisherName = "Quản trị viên",
-                    status = "published",
+                    publisherName = pubBy,
+                    publishedBy = pubBy,
+                    status = "active",
                     changelog = "Ngân hàng câu hỏi kiểm chứng",
                     views = 85,
                     rating = 4.8,
@@ -2527,6 +2688,8 @@ public class ContentController : ControllerBase
         question.Status = "published";
         question.UpdatedAt = DateTimeOffset.UtcNow;
 
+        await CreateQuestionRevisionAsync(question, "Xuất bản câu hỏi");
+
         _db.StaffAuditLogs.Add(new StaffAuditLog
         {
             Id = $"log_{Guid.NewGuid():N}",
@@ -2582,7 +2745,7 @@ public class ContentController : ControllerBase
     }
 
     [HttpPost("questions/{questionId}/rollback")]
-    public async Task<IActionResult> RollbackQuestion(string questionId)
+    public async Task<IActionResult> RollbackQuestion(string questionId, [FromBody] RollbackContentRequestDto? req = null)
     {
         if (!IsAuthorizedReviewer)
         {
@@ -2602,9 +2765,63 @@ public class ContentController : ControllerBase
         if (question.Status == "draft")
             return StatusCode(409, new { detail = "Câu hỏi đang ở trạng thái bản nháp ('draft'), không thể rollback." });
 
+        ContentRevision? targetRev = null;
+        if (!string.IsNullOrWhiteSpace(req?.RevisionId))
+        {
+            targetRev = await _db.ContentRevisions.FirstOrDefaultAsync(r => r.Id == req.RevisionId && r.ContentId == questionId);
+            if (targetRev == null)
+            {
+                return NotFound(new { detail = $"Không tìm thấy phiên bản revision '{req.RevisionId}' cho câu hỏi này." });
+            }
+        }
+        else if (req?.TargetVersion.HasValue == true)
+        {
+            targetRev = await _db.ContentRevisions
+                .Where(r => r.ContentId == questionId && r.Version == req.TargetVersion.Value)
+                .OrderByDescending(r => r.CreatedAt)
+                .FirstOrDefaultAsync();
+            if (targetRev == null)
+            {
+                return NotFound(new { detail = $"Không tìm thấy phiên bản v{req.TargetVersion.Value} cho câu hỏi này." });
+            }
+        }
+        else
+        {
+            targetRev = await _db.ContentRevisions
+                .Where(r => r.ContentId == questionId)
+                .OrderByDescending(r => r.CreatedAt)
+                .Skip(1)
+                .FirstOrDefaultAsync();
+        }
+
         var previousStatus = question.Status;
+
+        if (targetRev != null && !string.IsNullOrWhiteSpace(targetRev.SnapshotJson))
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(targetRev.SnapshotJson);
+                var root = doc.RootElement;
+                if (root.TryGetProperty("Prompt", out var promptProp) && promptProp.GetString() is string p && !string.IsNullOrWhiteSpace(p))
+                    question.Prompt = p;
+                if (root.TryGetProperty("OptionsJson", out var optProp))
+                    question.OptionsJson = optProp.GetString() ?? "[]";
+                if (root.TryGetProperty("CorrectAnswer", out var ansProp))
+                    question.CorrectAnswer = ansProp.GetString() ?? string.Empty;
+                if (root.TryGetProperty("Explanation", out var expProp))
+                    question.Explanation = expProp.GetString();
+                if (root.TryGetProperty("Difficulty", out var diffProp))
+                    question.Difficulty = diffProp.GetString() ?? "medium";
+            }
+            catch (JsonException)
+            {
+            }
+        }
+
         question.Status = "draft";
         question.UpdatedAt = DateTimeOffset.UtcNow;
+
+        var rollbackRev = await CreateQuestionRevisionAsync(question, req?.Reason ?? $"Rollback từ trạng thái {previousStatus} về bản nháp", targetRev?.Id);
 
         _db.StaffAuditLogs.Add(new StaffAuditLog
         {
@@ -2613,7 +2830,16 @@ public class ContentController : ControllerBase
             Action = "question_rollback",
             TargetType = "content_question",
             TargetId = questionId,
-            Payload = JsonSerializer.Serialize(new { code = question.Code, previousStatus, newStatus = question.Status }),
+            Payload = JsonSerializer.Serialize(new
+            {
+                code = question.Code,
+                previousStatus,
+                newStatus = question.Status,
+                targetRevisionId = targetRev?.Id,
+                targetVersion = targetRev?.Version,
+                rollbackRevisionId = rollbackRev.Id,
+                actorId = CurrentUserId
+            }),
             CreatedAt = DateTimeOffset.UtcNow
         });
 
