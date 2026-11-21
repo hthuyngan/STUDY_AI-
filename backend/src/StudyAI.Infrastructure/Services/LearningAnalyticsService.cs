@@ -40,9 +40,23 @@ public class LearningAnalyticsService : ILearningAnalyticsService
             var g = user?.Grade?.Trim();
             if (g == "10" || g?.Contains("10") == true) return "sub_math10";
             if (g == "11" || g?.Contains("11") == true) return "sub_math11";
+            if (g == "12" || g?.Contains("12") == true) return "sub_math12";
+
+            var latestAttemptSub = await _context.AssessmentAttempts.AsNoTracking()
+                .Where(a => a.UserId == userId && !string.IsNullOrEmpty(a.SubjectId))
+                .OrderByDescending(a => a.StartedAt)
+                .Select(a => a.SubjectId)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (!string.IsNullOrEmpty(latestAttemptSub))
+                return latestAttemptSub;
         }
 
-        return "sub_math12";
+        var activeSub = await _context.ContentSubjects.AsNoTracking()
+            .Where(s => s.IsActive)
+            .OrderBy(s => s.OrderIndex)
+            .Select(s => s.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+        return activeSub ?? "sub_math10";
     }
 
     public async Task<LearningAnalyticsOverviewDto> GetAnalyticsOverviewAsync(
@@ -57,7 +71,7 @@ public class LearningAnalyticsService : ILearningAnalyticsService
         {
             UserId = userId,
             SubjectId = effectiveSubjectId,
-            SubjectName = effectiveSubjectId == "sub_math10" ? "Toán 10" : effectiveSubjectId == "sub_math11" ? "Toán 11" : "Toán 12",
+            SubjectName = effectiveSubjectId == "sub_math10" ? "Toán 10" : effectiveSubjectId == "sub_math11" ? "Toán 11" : effectiveSubjectId == "sub_math12" ? "Toán 12" : effectiveSubjectId,
             Timeframe = timeframe
         };
 

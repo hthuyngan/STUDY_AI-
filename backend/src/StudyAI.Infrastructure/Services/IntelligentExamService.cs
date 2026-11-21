@@ -30,9 +30,16 @@ public class IntelligentExamService : IIntelligentExamService
         ExamMatrixRequestDto request,
         CancellationToken cancellationToken = default)
     {
-        var effectiveSubjectId = string.IsNullOrWhiteSpace(request.SubjectId)
-            ? "sub_math12"
-            : request.SubjectId;
+        string effectiveSubjectId = request.SubjectId;
+        if (string.IsNullOrWhiteSpace(effectiveSubjectId))
+        {
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+            var g = user?.Grade?.Trim();
+            if (g == "10" || g?.Contains("10") == true) effectiveSubjectId = "sub_math10";
+            else if (g == "11" || g?.Contains("11") == true) effectiveSubjectId = "sub_math11";
+            else if (g == "12" || g?.Contains("12") == true) effectiveSubjectId = "sub_math12";
+            else effectiveSubjectId = "sub_math10";
+        }
 
         // Resolve blueprint
         ExamBlueprintDto? blueprint = null;

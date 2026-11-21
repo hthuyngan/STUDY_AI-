@@ -387,9 +387,17 @@ public class AiTutorService : IAiTutorService
                 {
                     var student = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
                     var grade = student?.Grade?.Trim();
-                    if (grade == "10") effectiveSubject = "sub_math10";
-                    else if (grade == "11") effectiveSubject = "sub_math11";
-                    else effectiveSubject = "sub_math12";
+                    if (grade == "10" || grade?.Contains("10") == true) effectiveSubject = "sub_math10";
+                    else if (grade == "11" || grade?.Contains("11") == true) effectiveSubject = "sub_math11";
+                    else if (grade == "12" || grade?.Contains("12") == true) effectiveSubject = "sub_math12";
+                    else
+                    {
+                        var studentSubject = await _context.StudentTopicMasteries.AsNoTracking()
+                            .Where(m => m.UserId == userId && !string.IsNullOrEmpty(m.SubjectId))
+                            .Select(m => m.SubjectId)
+                            .FirstOrDefaultAsync(cancellationToken);
+                        effectiveSubject = !string.IsNullOrEmpty(studentSubject) ? studentSubject : "sub_math12";
+                    }
                 }
 
                 profile = await _masteryService.GetStudentKnowledgeProfileAsync(userId, effectiveSubject, cancellationToken);

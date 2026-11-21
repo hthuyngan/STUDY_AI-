@@ -87,9 +87,35 @@ public class StudentMasteryService : IStudentMasteryService
         string? subjectId = null,
         CancellationToken cancellationToken = default)
     {
-        var effectiveSubjectId = string.IsNullOrWhiteSpace(subjectId) || subjectId == "all"
-            ? "sub_math12"
-            : subjectId;
+        string effectiveSubjectId = subjectId ?? "";
+        if (string.IsNullOrWhiteSpace(effectiveSubjectId) || effectiveSubjectId == "all")
+        {
+            if (!string.IsNullOrWhiteSpace(userId) && userId != "guest")
+            {
+                var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+                var g = user?.Grade?.Trim();
+                if (g == "10" || g?.Contains("10") == true) effectiveSubjectId = "sub_math10";
+                else if (g == "11" || g?.Contains("11") == true) effectiveSubjectId = "sub_math11";
+                else if (g == "12" || g?.Contains("12") == true) effectiveSubjectId = "sub_math12";
+                else
+                {
+                    var studentSubject = await _context.StudentTopicMasteries.AsNoTracking()
+                        .Where(m => m.UserId == userId && !string.IsNullOrEmpty(m.SubjectId))
+                        .Select(m => m.SubjectId)
+                        .FirstOrDefaultAsync(cancellationToken);
+                    if (!string.IsNullOrEmpty(studentSubject))
+                    {
+                        effectiveSubjectId = studentSubject;
+                    }
+                }
+            }
+            if (string.IsNullOrWhiteSpace(effectiveSubjectId))
+            {
+                effectiveSubjectId = "sub_math10";
+            }
+        }
+
+        var dynamicSubjectName = effectiveSubjectId == "sub_math10" ? "Toán học 10" : effectiveSubjectId == "sub_math11" ? "Toán học 11" : effectiveSubjectId == "sub_math12" ? "Toán học 12" : effectiveSubjectId;
 
         if (string.IsNullOrWhiteSpace(userId))
         {
@@ -97,7 +123,7 @@ public class StudentMasteryService : IStudentMasteryService
             {
                 UserId = "guest",
                 SubjectId = effectiveSubjectId,
-                SubjectName = "Toán học 12",
+                SubjectName = dynamicSubjectName,
                 ScoringExplanation = GetScoringExplanation()
             };
         }

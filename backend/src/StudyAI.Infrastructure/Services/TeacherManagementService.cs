@@ -282,7 +282,11 @@ public class TeacherManagementService : ITeacherManagementService
 
         string resolvedSubject = !string.IsNullOrWhiteSpace(request.SubjectId)
             ? request.SubjectId
-            : (classroom?.Grade?.Trim() == "10" ? "sub_math10" : classroom?.Grade?.Trim() == "11" ? "sub_math11" : "sub_math12");
+            : (!string.IsNullOrWhiteSpace(classroom?.Grade)
+                ? (classroom.Grade.Contains("10") ? "sub_math10" : classroom.Grade.Contains("11") ? "sub_math11" : "sub_math12")
+                : (!string.IsNullOrWhiteSpace(student?.Grade)
+                    ? (student.Grade.Contains("10") ? "sub_math10" : student.Grade.Contains("11") ? "sub_math11" : "sub_math12")
+                    : "sub_math10"));
 
         var mastery = await _context.StudentTopicMasteries.AsNoTracking()
             .FirstOrDefaultAsync(m => m.UserId == targetStudentId && (m.SubjectId == resolvedSubject || m.SubjectId == "sub_math") && m.TopicName.Contains(request.TargetTopic), cancellationToken);

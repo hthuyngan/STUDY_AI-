@@ -1112,6 +1112,25 @@ public class PracticeController : ControllerBase
         var nextReviewDate = DateTimeOffset.UtcNow.Date.AddDays(intervalDays).ToString("yyyy-MM-dd");
         bool mastered = newBox >= 5 && isCorrect;
 
+        // Resolve target subject
+        var targetSubjectId = question.SubjectId;
+        if (string.IsNullOrWhiteSpace(targetSubjectId))
+        {
+            if (!string.IsNullOrWhiteSpace(question.Grade))
+            {
+                targetSubjectId = $"sub_math{question.Grade}";
+            }
+            else if (!string.IsNullOrWhiteSpace(CurrentUserGrade))
+            {
+                var normGrade = CurrentUserGrade.Contains("10") ? "10" : CurrentUserGrade.Contains("11") ? "11" : "12";
+                targetSubjectId = $"sub_math{normGrade}";
+            }
+            else
+            {
+                targetSubjectId = "sub_math10";
+            }
+        }
+
         // Record response
         var reviewAttemptId = $"att_rev_{Guid.NewGuid():N}";
         var reviewAttempt = new AssessmentAttempt
@@ -1119,9 +1138,7 @@ public class PracticeController : ControllerBase
             Id = reviewAttemptId,
             UserId = CurrentUserId,
             AssessmentId = "asmt_smart_review",
-            SubjectId = question.SubjectId ?? (!string.IsNullOrWhiteSpace(CurrentUserGrade)
-                ? (CurrentUserGrade.Contains("10") ? "sub_math10" : CurrentUserGrade.Contains("11") ? "sub_math11" : "sub_math12")
-                : "sub_math12"),
+            SubjectId = targetSubjectId,
             LessonId = question.LessonId ?? string.Empty,
             AttemptNumber = 1,
             StartedAt = DateTimeOffset.UtcNow,

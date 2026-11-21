@@ -2945,16 +2945,17 @@ public class ContentController : ControllerBase
             var resolvedSubjectId = item.SubjectId;
             if (string.IsNullOrWhiteSpace(resolvedSubjectId))
             {
-                var combined = $"{item.Topic} {item.Code}".ToLowerInvariant();
-                if (combined.Contains("math") || combined.Contains("toan")) resolvedSubjectId = "sub_math12";
-                else if (combined.Contains("phys") || combined.Contains("vatly")) resolvedSubjectId = "sub_phys12";
-                else if (combined.Contains("chem") || combined.Contains("hoahoc")) resolvedSubjectId = "sub_chem12";
-                else if (combined.Contains("bio") || combined.Contains("sinhhoc")) resolvedSubjectId = "sub_bio12";
-                else if (combined.Contains("lit") || combined.Contains("nguvan") || combined.Contains("văn")) resolvedSubjectId = "sub_lit12";
-                else if (combined.Contains("eng") || combined.Contains("tienganh")) resolvedSubjectId = "sub_eng12";
-                else if (combined.Contains("hist") || combined.Contains("lichsu")) resolvedSubjectId = "sub_hist12";
-                else if (combined.Contains("geo") || combined.Contains("dialy")) resolvedSubjectId = "sub_geo12";
-                else if (combined.Contains("civic") || combined.Contains("gdcd")) resolvedSubjectId = "sub_civic12";
+                var combined = $"{item.Topic} {item.Code} {item.Grade}".ToLowerInvariant();
+                string g = !string.IsNullOrWhiteSpace(item.Grade) ? item.Grade : (combined.Contains("10") ? "10" : combined.Contains("11") ? "11" : "12");
+                if (combined.Contains("math") || combined.Contains("toan")) resolvedSubjectId = $"sub_math{g}";
+                else if (combined.Contains("phys") || combined.Contains("vatly")) resolvedSubjectId = $"sub_phys{g}";
+                else if (combined.Contains("chem") || combined.Contains("hoahoc")) resolvedSubjectId = $"sub_chem{g}";
+                else if (combined.Contains("bio") || combined.Contains("sinhhoc")) resolvedSubjectId = $"sub_bio{g}";
+                else if (combined.Contains("lit") || combined.Contains("nguvan") || combined.Contains("văn")) resolvedSubjectId = $"sub_lit{g}";
+                else if (combined.Contains("eng") || combined.Contains("tienganh")) resolvedSubjectId = $"sub_eng{g}";
+                else if (combined.Contains("hist") || combined.Contains("lichsu")) resolvedSubjectId = $"sub_hist{g}";
+                else if (combined.Contains("geo") || combined.Contains("dialy")) resolvedSubjectId = $"sub_geo{g}";
+                else if (combined.Contains("civic") || combined.Contains("gdcd")) resolvedSubjectId = $"sub_civic{g}";
             }
 
             var question = new ContentQuestion

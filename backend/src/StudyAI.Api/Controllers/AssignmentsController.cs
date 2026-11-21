@@ -534,7 +534,7 @@ public class AssignmentsController : ControllerBase
         if (!string.IsNullOrWhiteSpace(rawTopic))
         {
             // Resolve canonical SubjectId from Assignment -> Classroom -> Subject & Grade
-            string resolvedSubjectId = "sub_math12";
+            string resolvedSubjectId = "sub_math10";
             var classroom = assignment.Classroom;
             if (classroom != null)
             {
@@ -547,10 +547,17 @@ public class AssignmentsController : ControllerBase
                 }
                 else
                 {
-                    string gradeNum = "12";
+                    string gradeNum = "10";
                     if (rawGrade.Contains("10") || rawSubject.Contains("10") || assignment.Title.Contains("10")) gradeNum = "10";
                     else if (rawGrade.Contains("11") || rawSubject.Contains("11") || assignment.Title.Contains("11")) gradeNum = "11";
                     else if (rawGrade.Contains("12") || rawSubject.Contains("12") || assignment.Title.Contains("12")) gradeNum = "12";
+                    else
+                    {
+                        var student = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == submission.StudentId, cancellationToken);
+                        if (student?.Grade?.Contains("11") == true) gradeNum = "11";
+                        else if (student?.Grade?.Contains("12") == true) gradeNum = "12";
+                        else gradeNum = "10";
+                    }
 
                     if (rawSubject.Contains("toán") || rawSubject.Contains("math") || assignment.Title.ToLowerInvariant().Contains("toán"))
                     {
@@ -579,34 +586,22 @@ public class AssignmentsController : ControllerBase
                 }
             }
 
-            // Ensure foreign key safety: if the resolved subject is not yet in content_subjects, ensure it or fallback
+            // Ensure foreign key safety: if the resolved subject is not yet in content_subjects, add it
             var subjectExists = await _db.ContentSubjects.AnyAsync(s => s.Id == resolvedSubjectId, cancellationToken);
-            if (!subjectExists)
+            if (!subjectExists && resolvedSubjectId.StartsWith("sub_math"))
             {
-                var fallbackSub = await _db.ContentSubjects.FirstOrDefaultAsync(s => s.Id == "sub_math12", cancellationToken);
-                if (fallbackSub != null)
+                string g = resolvedSubjectId.Replace("sub_math", "");
+                _db.ContentSubjects.Add(new Domain.Entities.ContentSubject
                 {
-                    // If sub_math10 was resolved but not yet present in content_subjects, add it on demand
-                    if (resolvedSubjectId.StartsWith("sub_math"))
-                    {
-                        string g = resolvedSubjectId.Replace("sub_math", "");
-                        _db.ContentSubjects.Add(new Domain.Entities.ContentSubject
-                        {
-                            Id = resolvedSubjectId,
-                            Name = $"Toán {g}",
-                            Code = $"MATH{g}",
-                            Grade = g,
-                            Description = $"Chương trình Toán học Lớp {g} theo chuẩn GDPT 2018",
-                            IsActive = true,
-                            CreatedAt = DateTimeOffset.UtcNow
-                        });
-                        await _db.SaveChangesAsync(cancellationToken);
-                    }
-                    else
-                    {
-                        resolvedSubjectId = "sub_math12";
-                    }
-                }
+                    Id = resolvedSubjectId,
+                    Name = $"Toán {g}",
+                    Code = $"MATH{g}",
+                    Grade = g,
+                    Description = $"Chương trình Toán học Lớp {g} theo chuẩn GDPT 2018",
+                    IsActive = true,
+                    CreatedAt = DateTimeOffset.UtcNow
+                });
+                await _db.SaveChangesAsync(cancellationToken);
             }
 
             var mastery = await _db.StudentTopicMasteries
