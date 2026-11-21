@@ -15,6 +15,8 @@ import {
   XCircle,
 } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useAuth } from '@/auth/useAuth'
+import { isRemoteApiConfigured } from '@/config/learner'
 import { MathView } from '@/components/common/MathView'
 import { Breadcrumb } from '@/components/ui/Breadcrumb'
 import { Button } from '@/components/ui/Button'
@@ -32,6 +34,7 @@ import './PracticeResultPage.css'
 export const PracticeResultPage: React.FC = () => {
   const { resultId } = useParams<{ resultId: string }>()
   const navigate = useNavigate()
+  const { state: authState, user } = useAuth()
 
   const [result, setResult] = useState<PracticeResult | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
@@ -66,8 +69,20 @@ export const PracticeResultPage: React.FC = () => {
   }
 
   useEffect(() => {
+    // Refresh cookies hydrate the access token asynchronously after a hard reload.
+    // Never read a protected result under the temporary guest identity.
+    if (authState === 'initializing') return
+
     let isMounted = true
     const fetchData = async () => {
+      setResult(null)
+      if (authState !== 'authenticated' && isRemoteApiConfigured()) {
+        if (isMounted) {
+          setError('Vui lòng đăng nhập để xem kết quả bài làm.')
+          setLoading(false)
+        }
+        return
+      }
       if (!resultId) {
         if (isMounted) {
           setError('Thiếu mã kết quả bài làm.')
@@ -105,7 +120,7 @@ export const PracticeResultPage: React.FC = () => {
     return () => {
       isMounted = false
     }
-  }, [resultId])
+  }, [resultId, authState, user?.id])
 
   const toggleExplanation = (qId: string) => {
     setExpandedQuestions((prev) => ({
