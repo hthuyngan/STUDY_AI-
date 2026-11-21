@@ -223,6 +223,88 @@ public class CurriculumQuestionBankTests
     }
 
     [Fact]
+    public async Task GetQuestionBank_ReturnsProperDiscriminatedUnionFields_ForVariants()
+    {
+        var (controller, db) = CreateCurriculumController(Guid.NewGuid().ToString());
+
+        db.ContentQuestions.AddRange(
+            new ContentQuestion
+            {
+                Id = "q_mcq_1",
+                SubjectId = "sub_math12",
+                Grade = "12",
+                Prompt = "Câu MCQ 1",
+                Status = "published",
+                Type = "multiple-choice",
+                OptionsJson = "[\"Đáp án A\", \"Đáp án B\", \"Đáp án C\", \"Đáp án D\"]",
+                CorrectAnswer = "B"
+            },
+            new ContentQuestion
+            {
+                Id = "q_tfg_1",
+                SubjectId = "sub_math12",
+                Grade = "12",
+                Prompt = "Câu Đúng Sai Cụm",
+                Status = "published",
+                Type = "true_false_group",
+                OptionsJson = "[\"Mệnh đề a\", \"Mệnh đề b\", \"Mệnh đề c\", \"Mệnh đề d\"]",
+                CorrectAnswer = "true,false,true,false"
+            },
+            new ContentQuestion
+            {
+                Id = "q_sa_1",
+                SubjectId = "sub_math12",
+                Grade = "12",
+                Prompt = "Câu Trả lời ngắn",
+                Status = "published",
+                Type = "short-answer",
+                CorrectAnswer = "4.5; 9/2",
+                MetadataJson = "{\"acceptedAnswers\":[\"4.5\",\"9/2\"],\"displayAnswer\":\"4.5\",\"unit\":\"cm\"}"
+            }
+        );
+        await db.SaveChangesAsync();
+
+        // Test math filter matching sub_math12
+        var result = await controller.GetQuestionBank(subjectId: "math") as OkObjectResult;
+        Assert.NotNull(result);
+
+        var json = System.Text.Json.JsonSerializer.Serialize(result.Value);
+        var node = JsonNode.Parse(json);
+        var items = node?["items"]?.AsArray();
+        Assert.NotNull(items);
+        Assert.Equal(3, items.Count);
+
+        // Verify MCQ
+        var mcq = items.FirstOrDefault(x => x?["id"]?.GetValue<string>() == "q_mcq_1");
+        Assert.NotNull(mcq);
+        Assert.Equal("multiple_choice", mcq["type"]?.GetValue<string>());
+        Assert.Equal("B", mcq["correctAnswer"]?.GetValue<string>());
+        var mcqOptions = mcq["options"]?.AsArray();
+        Assert.Equal(4, mcqOptions?.Count);
+
+        // Verify True/False Group subItems
+        var tfg = items.FirstOrDefault(x => x?["id"]?.GetValue<string>() == "q_tfg_1");
+        Assert.NotNull(tfg);
+        Assert.Equal("true_false_group", tfg["type"]?.GetValue<string>());
+        var subItems = tfg["subItems"]?.AsArray();
+        Assert.NotNull(subItems);
+        Assert.Equal(4, subItems.Count);
+        Assert.Equal("a", subItems[0]?["id"]?.GetValue<string>());
+        Assert.True(subItems[0]?["isCorrect"]?.GetValue<bool>());
+        Assert.False(subItems[1]?["isCorrect"]?.GetValue<bool>());
+
+        // Verify Short Answer
+        var sa = items.FirstOrDefault(x => x?["id"]?.GetValue<string>() == "q_sa_1");
+        Assert.NotNull(sa);
+        Assert.Equal("short_answer", sa["type"]?.GetValue<string>());
+        Assert.Equal("4.5", sa["displayAnswer"]?.GetValue<string>());
+        Assert.Equal("cm", sa["unit"]?.GetValue<string>());
+        var acc = sa["acceptedAnswers"]?.AsArray();
+        Assert.NotNull(acc);
+        Assert.Equal(2, acc.Count);
+    }
+
+    [Fact]
     public async Task GetLeaderboard_ReturnsRealRankingFromResponses_ExcludesDeletedUsers()
     {
         var dbName = Guid.NewGuid().ToString();

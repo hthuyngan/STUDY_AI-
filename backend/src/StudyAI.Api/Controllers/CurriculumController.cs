@@ -612,7 +612,18 @@ public class CurriculumController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(subjectId) && subjectId != "all")
         {
-            query = query.Where(q => q.SubjectId == subjectId || (q.Lesson != null && q.Lesson.Chapter != null && q.Lesson.Chapter.SubjectId == subjectId));
+            var sNorm1 = subjectId.Replace("-", "_").ToLowerInvariant();
+            var sNorm2 = subjectId.Replace("_", "-").ToLowerInvariant();
+            if (sNorm1 == "math")
+            {
+                query = query.Where(q => (q.SubjectId != null && q.SubjectId.ToLower().Contains("math")) ||
+                                         (q.Lesson != null && q.Lesson.Chapter != null && q.Lesson.Chapter.SubjectId.ToLower().Contains("math")));
+            }
+            else
+            {
+                query = query.Where(q => q.SubjectId == sNorm1 || q.SubjectId == sNorm2 ||
+                                         (q.Lesson != null && q.Lesson.Chapter != null && (q.Lesson.Chapter.SubjectId == sNorm1 || q.Lesson.Chapter.SubjectId == sNorm2)));
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(chapterId) && chapterId != "all")
@@ -677,7 +688,18 @@ public class CurriculumController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(subjectId) && subjectId != "all")
         {
-            query = query.Where(q => q.SubjectId == subjectId || (q.Lesson != null && q.Lesson.Chapter != null && q.Lesson.Chapter.SubjectId == subjectId));
+            var sNorm1 = subjectId.Replace("-", "_").ToLowerInvariant();
+            var sNorm2 = subjectId.Replace("_", "-").ToLowerInvariant();
+            if (sNorm1 == "math")
+            {
+                query = query.Where(q => (q.SubjectId != null && q.SubjectId.ToLower().Contains("math")) ||
+                                         (q.Lesson != null && q.Lesson.Chapter != null && q.Lesson.Chapter.SubjectId.ToLower().Contains("math")));
+            }
+            else
+            {
+                query = query.Where(q => q.SubjectId == sNorm1 || q.SubjectId == sNorm2 ||
+                                         (q.Lesson != null && q.Lesson.Chapter != null && (q.Lesson.Chapter.SubjectId == sNorm1 || q.Lesson.Chapter.SubjectId == sNorm2)));
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(grade) && grade != "all")
@@ -746,7 +768,7 @@ public class CurriculumController : ControllerBase
         }).ToList();
 
         var normalizedType = q.Type == "multiple-choice" ? "multiple_choice"
-            : q.Type == "true-false-group" ? "true_false_group"
+            : q.Type == "true-false-group" || q.Type == "true-false" || q.Type == "true_false" ? "true_false_group"
             : q.Type == "short-answer" ? "short_answer"
             : q.Type;
 
@@ -759,10 +781,168 @@ public class CurriculumController : ControllerBase
             _ => "comprehension"
         };
 
+        var resolvedSubjectId = q.SubjectId ?? q.Lesson?.Chapter?.SubjectId ?? (q.Grade != null ? $"sub_math{q.Grade}" : "sub_math10");
+
+        if (normalizedType == "true_false_group")
+        {
+            var subLetters = new[] { "a", "b", "c", "d" };
+            var correctTokens = (q.CorrectAnswer ?? "").Split(new[] { ',', ';', '|', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            var subItems = new List<object>();
+            bool hasMetadataSubItems = false;
+
+            if (!string.IsNullOrWhiteSpace(q.MetadataJson))
+            {
+                try
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(q.MetadataJson);
+                    if (doc.RootElement.TryGetProperty("subItems", out var subItemsEl) && subItemsEl.ValueKind == System.Text.Json.JsonValueKind.Array)
+                    {
+                        foreach (var el in subItemsEl.EnumerateArray())
+                        {
+                            var sId = el.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? "" : "";
+                            var sStatement = el.TryGetProperty("statement", out var statProp) ? statProp.GetString() ?? "" : "";
+                            var sIsCorrect = el.TryGetProperty("isCorrect", out var corrProp) && corrProp.GetBoolean();
+                            var sExplanation = el.TryGetProperty("explanation", out var expProp) ? expProp.GetString() : null;
+                            subItems.Add(new
+                            {
+                                id = sId,
+                                statement = sStatement,
+                                isCorrect = sIsCorrect,
+                                explanation = sExplanation
+                            });
+                        }
+                        if (subItems.Count > 0)
+                            hasMetadataSubItems = true;
+                    }
+                }
+                catch { }
+            }
+
+            if (!hasMetadataSubItems)
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    var subId = i < subLetters.Length ? subLetters[i] : $"sub_{i + 1}";
+                    var statement = i < rawOptions.Count ? rawOptions[i] : $"Mệnh đề ({subId})";
+                    bool isCorrect = false;
+                    if (i < correctTokens.Length)
+                    {
+                        var token = correctTokens[i].Trim().ToLowerInvariant();
+                        isCorrect = token == "true" || token == "t" || token == "đ" || token == "dung" || token == "1";
+                    }
+                    subItems.Add(new
+                    {
+                        id = subId,
+                        statement = statement,
+                        isCorrect = isCorrect,
+                        explanation = (string?)null
+                    });
+                }
+            }
+
+            return new
+            {
+                id = q.Id,
+                subjectId = resolvedSubjectId,
+                chapterId = q.ChapterId ?? q.Lesson?.ChapterId ?? "",
+                lessonId = q.LessonId ?? "",
+                skillIds = new List<string> { q.Topic ?? "SKILL-GENERAL" },
+                type = normalizedType,
+                stem = q.Prompt,
+                difficulty = q.Difficulty,
+                cognitiveLevel = cognitiveLevel,
+                subItems = subItems,
+                explanation = q.Explanation ?? "",
+                source = q.SourceType ?? "STUDY_AI Official",
+                reviewStatus = q.Status == "published" ? "approved" : q.Status,
+                createdAt = q.CreatedAt.ToString("o"),
+                updatedAt = q.UpdatedAt.ToString("o")
+            };
+        }
+
+        if (normalizedType == "short_answer")
+        {
+            var acceptedAnswers = new List<string>();
+            string displayAnswer = q.CorrectAnswer ?? "";
+            string? unit = null;
+
+            if (!string.IsNullOrWhiteSpace(q.MetadataJson))
+            {
+                try
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(q.MetadataJson);
+                    if (doc.RootElement.TryGetProperty("acceptedAnswers", out var accEl) && accEl.ValueKind == System.Text.Json.JsonValueKind.Array)
+                    {
+                        foreach (var el in accEl.EnumerateArray())
+                        {
+                            var val = el.GetString();
+                            if (!string.IsNullOrWhiteSpace(val)) acceptedAnswers.Add(val);
+                        }
+                    }
+                    if (doc.RootElement.TryGetProperty("displayAnswer", out var dispEl))
+                    {
+                        displayAnswer = dispEl.GetString() ?? displayAnswer;
+                    }
+                    if (doc.RootElement.TryGetProperty("unit", out var unitEl))
+                    {
+                        unit = unitEl.GetString();
+                    }
+                }
+                catch { }
+            }
+
+            if (acceptedAnswers.Count == 0)
+            {
+                if (!string.IsNullOrWhiteSpace(q.CorrectAnswer))
+                {
+                    var tokens = q.CorrectAnswer.Split(new[] { ';', '|', ',' }, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var t in tokens)
+                    {
+                        var trimmed = t.Trim();
+                        if (!string.IsNullOrWhiteSpace(trimmed) && !acceptedAnswers.Contains(trimmed))
+                            acceptedAnswers.Add(trimmed);
+                    }
+                }
+                if (acceptedAnswers.Count == 0 && rawOptions.Count > 0)
+                {
+                    acceptedAnswers.AddRange(rawOptions);
+                }
+                if (acceptedAnswers.Count == 0 && !string.IsNullOrWhiteSpace(q.CorrectAnswer))
+                {
+                    acceptedAnswers.Add(q.CorrectAnswer.Trim());
+                }
+            }
+            if (string.IsNullOrWhiteSpace(displayAnswer) && acceptedAnswers.Count > 0)
+            {
+                displayAnswer = acceptedAnswers[0];
+            }
+
+            return new
+            {
+                id = q.Id,
+                subjectId = resolvedSubjectId,
+                chapterId = q.ChapterId ?? q.Lesson?.ChapterId ?? "",
+                lessonId = q.LessonId ?? "",
+                skillIds = new List<string> { q.Topic ?? "SKILL-GENERAL" },
+                type = normalizedType,
+                stem = q.Prompt,
+                difficulty = q.Difficulty,
+                cognitiveLevel = cognitiveLevel,
+                acceptedAnswers = acceptedAnswers,
+                displayAnswer = displayAnswer,
+                unit = unit,
+                explanation = q.Explanation ?? "",
+                source = q.SourceType ?? "STUDY_AI Official",
+                reviewStatus = q.Status == "published" ? "approved" : q.Status,
+                createdAt = q.CreatedAt.ToString("o"),
+                updatedAt = q.UpdatedAt.ToString("o")
+            };
+        }
+
         return new
         {
             id = q.Id,
-            subjectId = q.SubjectId ?? q.Lesson?.Chapter?.SubjectId ?? "sub_math10",
+            subjectId = resolvedSubjectId,
             chapterId = q.ChapterId ?? q.Lesson?.ChapterId ?? "",
             lessonId = q.LessonId ?? "",
             skillIds = new List<string> { q.Topic ?? "SKILL-GENERAL" },
