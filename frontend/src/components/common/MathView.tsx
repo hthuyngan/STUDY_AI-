@@ -54,6 +54,33 @@ function normalizeMathText(text: string): string {
   return normalized
 }
 
+const VIETNAMESE_ACCENT_REGEX = /[àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i
+
+function sanitizeMathToken(token: string): { isPureProse: boolean; formula: string } {
+  const trimmed = token.trim()
+  const hasAccents = VIETNAMESE_ACCENT_REGEX.test(trimmed)
+  const hasMathSymbols = /[\\{}_^=+\-*/<>]|\d+/.test(trimmed)
+
+  // If token is purely Vietnamese words without any math operators, it's prose, not a formula
+  if (hasAccents && !hasMathSymbols) {
+    return { isPureProse: true, formula: trimmed }
+  }
+
+  if (!hasAccents) {
+    return { isPureProse: false, formula: trimmed }
+  }
+
+  // Wrap Vietnamese words/phrases inside the math formula with \text{...} if not already wrapped
+  const formula = trimmed.replace(/(?<!\\text\{)([\p{L}\p{M}]+(?:\s+[\p{L}\p{M}]+)*)(?!\})/gu, (segment) => {
+    if (VIETNAMESE_ACCENT_REGEX.test(segment) && !segment.startsWith('\\')) {
+      return `\\text{${segment}}`
+    }
+    return segment
+  })
+
+  return { isPureProse: false, formula }
+}
+
 export const MathView: React.FC<MathViewProps> = ({
   math,
   displayMode = false,
@@ -111,9 +138,16 @@ export const MathView: React.FC<MathViewProps> = ({
           isBlock = false
         }
 
+        const { isPureProse, formula: cleanFormula } = sanitizeMathToken(formula)
+        if (isPureProse) {
+          parts.push(cleanFormula)
+          lastIndex = match.index + token.length
+          continue
+        }
+
         let html: string | null = null
         try {
-          html = katex.renderToString(formula.trim(), {
+          html = katex.renderToString(cleanFormula, {
             displayMode: isBlock || isDisplay,
             throwOnError: false,
           })
@@ -143,11 +177,29 @@ export const MathView: React.FC<MathViewProps> = ({
       return parts
     }
 
-    // Case 2: Pure math (explicit displayMode or contains LaTeX commands like \frac)
+    // Case 2: Pure math or display mode (explicit displayMode or contains LaTeX commands like \frac)
     if (isDisplay || hasLatexCommands) {
+      const textWithoutTextMacros = cleanText.replace(/\\text\{[^}]*\}/g, '')
+      const hasBareAccents = VIETNAMESE_ACCENT_REGEX.test(textWithoutTextMacros)
+
+      // If it contains NO LaTeX commands and has bare accents and no math operators, it's plain text (not math)
+      if (hasBareAccents && !hasLatexCommands && !/[=<>_{}^\\+\-*/]/.test(cleanText)) {
+        return cleanText
+      }
+
+      let formulaToRender = cleanText.trim()
+      if (hasBareAccents) {
+        formulaToRender = formulaToRender.replace(/(?<!\\text\{)([\p{L}\p{M}]+(?:\s+[\p{L}\p{M}]+)*)(?!\})/gu, (segment) => {
+          if (VIETNAMESE_ACCENT_REGEX.test(segment) && !segment.startsWith('\\')) {
+            return `\\text{${segment}}`
+          }
+          return segment
+        })
+      }
+
       let pureHtml: string | null = null
       try {
-        pureHtml = katex.renderToString(cleanText.trim(), {
+        pureHtml = katex.renderToString(formulaToRender, {
           displayMode: isDisplay,
           throwOnError: false,
         })

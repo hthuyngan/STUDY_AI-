@@ -16,12 +16,17 @@ describe('DashboardPage Component', () => {
   it('renders guest landing with zero personal metrics and login CTA when unauthenticated', () => {
     vi.mocked(authHook.useAuth).mockReturnValue({
       isAuthenticated: false,
+      isGuest: true,
+      state: 'guest',
+      error: null,
       user: null,
-      token: null,
       login: vi.fn(),
       logout: vi.fn(),
       register: vi.fn(),
-      clearSession: vi.fn(),
+      refreshSession: vi.fn(),
+      migrationPending: false,
+      confirmMigration: vi.fn(),
+      declineMigration: vi.fn(),
     })
 
     vi.mocked(dashboardHook.useDashboard).mockReturnValue({
@@ -46,18 +51,24 @@ describe('DashboardPage Component', () => {
   it('renders learner dashboard without mock competition or leaderboard widget', () => {
     vi.mocked(authHook.useAuth).mockReturnValue({
       isAuthenticated: true,
+      isGuest: false,
+      state: 'authenticated',
+      error: null,
       user: {
         id: 'usr_01',
         email: 'learner@studyai.edu.vn',
         displayName: 'Nguyễn Văn A',
         role: 'learner',
         grade: '12',
+        createdAt: '2026-11-21T00:00:00Z',
       },
-      token: 'jwt_test',
       login: vi.fn(),
       logout: vi.fn(),
       register: vi.fn(),
-      clearSession: vi.fn(),
+      refreshSession: vi.fn(),
+      migrationPending: false,
+      confirmMigration: vi.fn(),
+      declineMigration: vi.fn(),
     })
 
     vi.mocked(dashboardHook.useDashboard).mockReturnValue({
