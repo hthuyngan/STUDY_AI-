@@ -216,42 +216,5 @@ export const mockDashboardData: DashboardData = {
       timeAgo: 'Hôm qua',
     },
   ],
-  leaderboard: [
-    {
-      rank: 1,
-      id: 'user-minh',
-      name: 'Trần Quang Minh',
-      avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80',
-      xp: 4280,
-    },
-    {
-      rank: 2,
-      id: 'user-an',
-      name: 'Lê Thùy An',
-      avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
-      xp: 3970,
-    },
-    {
-      rank: 3,
-      id: 'user-ngan',
-      name: 'Hoàng Thúy Ngân (Bạn)',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-      xp: 3850,
-      isCurrentUser: true,
-    },
-    {
-      rank: 4,
-      id: 'user-huy',
-      name: 'Nguyễn Gia Huy',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-      xp: 3420,
-    },
-    {
-      rank: 5,
-      id: 'user-lan',
-      name: 'Phạm Ngọc Lan',
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
-      xp: 3180,
-    },
-  ],
+  leaderboard: [],
 }

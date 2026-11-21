@@ -1,5 +1,3 @@
-import { Trophy } from 'lucide-react'
-import { Link } from 'react-router-dom'
 import { Avatar } from '@/components/ui/Avatar'
 import { Card } from '@/components/ui/Card'
 import type { LeaderboardUser } from '@/types/dashboard'
@@ -22,18 +20,10 @@ export function LeaderboardCard({ entries }: LeaderboardCardProps) {
     }
   }
 
-  const footerAction = (
-    <Link to="/leaderboard" className="card-footer-link">
-      <Trophy size={14} aria-hidden />
-      <span>Xem toàn bộ bảng xếp hạng</span>
-    </Link>
-  )
-
   return (
     <Card
       title="Bảng xếp hạng"
       subtitle="Top học sinh tích cực tuần này"
-      footer={footerAction}
       isFlushList
       className="leaderboard-card"
     >

@@ -189,39 +189,8 @@ export async function fetchDashboardData(
       }))
     : []
 
-  const totalXP = serverStats ? serverStats.totalCorrectAnswers * 10 : 0
-
-  let leaderboard: LeaderboardUser[] = []
-  try {
-    const realLeaderboard = await apiClient.get<LeaderboardUser[]>('/api/v1/practice/leaderboard?limit=5')
-    if (Array.isArray(realLeaderboard) && realLeaderboard.length > 0) {
-      leaderboard = realLeaderboard
-    } else if (totalXP > 0) {
-      leaderboard = [
-        {
-          rank: 1,
-          id: user.id,
-          name: user.name,
-          avatar: user.avatar,
-          xp: totalXP,
-          isCurrentUser: true,
-        },
-      ]
-    }
-  } catch {
-    if (totalXP > 0) {
-      leaderboard = [
-        {
-          rank: 1,
-          id: user.id,
-          name: user.name,
-          avatar: user.avatar,
-          xp: totalXP,
-          isCurrentUser: true,
-        },
-      ]
-    }
-  }
+  const totalXP = 0
+  const leaderboard: LeaderboardUser[] = []
 
   return {
     user,

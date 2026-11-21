@@ -8,7 +8,6 @@ import { DailyGoalsCard } from '@/components/dashboard/DailyGoalsCard'
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader'
 import { DashboardOnboarding } from '@/components/dashboard/DashboardOnboarding'
 import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton'
-import { LeaderboardCard } from '@/components/dashboard/LeaderboardCard'
 import { RecentActivityCard } from '@/components/dashboard/RecentActivityCard'
 import { StatsStrip } from '@/components/dashboard/StatsStrip'
 import { StudyActivityCard } from '@/components/dashboard/StudyActivityCard'
@@ -181,13 +180,10 @@ export function DashboardPage() {
       {/* Row 3: Subject Progress (Full width container with 4 cols) */}
       <SubjectProgressCard subjects={data.subjects} />
 
-      {/* Row 4: Recent Activity (8 cols) + Leaderboard (4 cols) */}
+      {/* Row 4: Recent Activity (12 cols) */}
       <div className="dashboard-row-grid">
-        <div className="col-span-8">
+        <div className="col-span-12">
           <RecentActivityCard activities={data.recentActivities} />
-        </div>
-        <div className="col-span-4">
-          <LeaderboardCard entries={data.leaderboard} />
         </div>
       </div>
     </div>
