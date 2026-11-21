@@ -144,8 +144,10 @@ public class TeacherManagementController : ControllerBase
             ? await _db.Classrooms.Include(c => c.Students).ThenInclude(cs => cs.Student).ToListAsync(cancellationToken)
             : await _db.Classrooms.Where(c => c.TeacherId == CurrentUserId).Include(c => c.Students).ThenInclude(cs => cs.Student).ToListAsync(cancellationToken);
 
+        var classroomIds = teacherClassrooms.Select(c => c.Id).Distinct().ToList();
         var studentIds = teacherClassrooms.SelectMany(c => c.Students).Select(cs => cs.StudentId).Distinct().ToList();
 
+        // 1. Scan for any learning events not yet in ClassroomAlerts
         var alertEvents = await _db.LearningEvents
             .AsNoTracking()
             .Where(e => e.Type == "learning_alert" && (studentIds.Contains(e.UserId) || string.IsNullOrEmpty(e.UserId)))
@@ -153,29 +155,37 @@ public class TeacherManagementController : ControllerBase
             .Take(50)
             .ToListAsync(cancellationToken);
 
-        var alerts = new List<object>();
+        var existingAlertIds = await _db.ClassroomAlerts
+            .Where(a => classroomIds.Contains(a.ClassroomId))
+            .Select(a => a.Id)
+            .ToListAsync(cancellationToken);
+
+        var newAlertsToAdd = new List<ClassroomAlert>();
 
         foreach (var ev in alertEvents)
         {
-            var studentClass = teacherClassrooms.FirstOrDefault(c => c.Students.Any(cs => cs.StudentId == ev.UserId));
-            var student = studentClass?.Students.FirstOrDefault(cs => cs.StudentId == ev.UserId)?.Student;
+            if (existingAlertIds.Contains(ev.Id)) continue;
 
-            alerts.Add(new
+            var studentClass = teacherClassrooms.FirstOrDefault(c => c.Students.Any(cs => cs.StudentId == ev.UserId));
+            if (studentClass == null) continue;
+
+            var alert = new ClassroomAlert
             {
-                id = ev.Id,
-                studentId = ev.UserId,
-                studentName = student?.DisplayName ?? "Học viên",
-                classId = studentClass?.Id ?? "",
-                className = studentClass?.Name ?? "",
-                severity = "high",
-                type = "falling_behind",
-                message = ev.PayloadJson ?? "Cần chú ý tiến độ học tập",
-                createdAt = ev.Timestamp.ToString("o"),
-                status = "new",
-                resolutionNote = (string?)null
-            });
+                Id = ev.Id,
+                ClassroomId = studentClass.Id,
+                StudentId = ev.UserId ?? string.Empty,
+                Severity = "high",
+                Type = "falling_behind",
+                Message = ev.PayloadJson ?? "Cần chú ý tiến độ học tập",
+                CreatedAt = ev.Timestamp,
+                UpdatedAt = ev.Timestamp,
+                Status = "new"
+            };
+            newAlertsToAdd.Add(alert);
+            existingAlertIds.Add(alert.Id);
         }
 
+        // 2. Scan low score attempts
         var lowScoreAttempts = await _db.AssessmentAttempts
             .AsNoTracking()
             .Where(a => studentIds.Contains(a.UserId) && a.ScoreScaled.HasValue && a.ScoreScaled.Value < 5.0)
@@ -185,27 +195,59 @@ public class TeacherManagementController : ControllerBase
 
         foreach (var attempt in lowScoreAttempts)
         {
-            var studentClass = teacherClassrooms.FirstOrDefault(c => c.Students.Any(cs => cs.StudentId == attempt.UserId));
-            var student = studentClass?.Students.FirstOrDefault(cs => cs.StudentId == attempt.UserId)?.Student;
-
             var alertId = $"alt_asmt_{attempt.Id}";
-            alerts.Add(new
+            if (existingAlertIds.Contains(alertId)) continue;
+
+            var studentClass = teacherClassrooms.FirstOrDefault(c => c.Students.Any(cs => cs.StudentId == attempt.UserId));
+            if (studentClass == null) continue;
+
+            var alert = new ClassroomAlert
             {
-                id = alertId,
-                studentId = attempt.UserId,
-                studentName = student?.DisplayName ?? "Học viên",
-                classId = studentClass?.Id ?? "",
-                className = studentClass?.Name ?? "",
-                severity = (attempt.ScoreScaled ?? 0.0) < 3.5 ? "high" : "medium",
-                type = "low_score",
-                message = $"Điểm bài luyện tập '{attempt.AssessmentId}' dưới trung bình ({(attempt.ScoreScaled ?? 0.0):F1}/10.0)",
-                createdAt = attempt.CompletedAt?.ToString("o") ?? attempt.StartedAt.ToString("o"),
-                status = "new",
-                resolutionNote = (string?)null
-            });
+                Id = alertId,
+                ClassroomId = studentClass.Id,
+                StudentId = attempt.UserId,
+                Severity = (attempt.ScoreScaled ?? 0.0) < 3.5 ? "high" : "medium",
+                Type = "low_score",
+                Message = $"Điểm bài luyện tập '{attempt.AssessmentId}' dưới trung bình ({(attempt.ScoreScaled ?? 0.0):F1}/10.0)",
+                CreatedAt = attempt.CompletedAt ?? attempt.StartedAt,
+                UpdatedAt = attempt.CompletedAt ?? attempt.StartedAt,
+                Status = "new"
+            };
+            newAlertsToAdd.Add(alert);
+            existingAlertIds.Add(alert.Id);
         }
 
-        return Ok(alerts);
+        if (newAlertsToAdd.Count > 0)
+        {
+            _db.ClassroomAlerts.AddRange(newAlertsToAdd);
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+
+        // 3. Query all alerts from classroom_alerts for the teacher's classrooms
+        var persistedAlerts = await _db.ClassroomAlerts
+            .AsNoTracking()
+            .Include(a => a.Student)
+            .Include(a => a.Classroom)
+            .Where(a => classroomIds.Contains(a.ClassroomId))
+            .OrderByDescending(a => a.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        var result = persistedAlerts.Select(a => new
+        {
+            id = a.Id,
+            studentId = a.StudentId,
+            studentName = a.Student?.DisplayName ?? "Học viên",
+            classId = a.ClassroomId,
+            className = a.Classroom?.Name ?? "",
+            severity = a.Severity,
+            type = a.Type,
+            message = a.Message,
+            createdAt = a.CreatedAt.ToString("o"),
+            status = a.Status,
+            resolutionNote = a.ResolutionNote
+        }).ToList();
+
+        return Ok(result);
     }
 
     [HttpPut("alerts/{alertId}")]
@@ -214,6 +256,26 @@ public class TeacherManagementController : ControllerBase
         var status = payload["status"]?.ToString() ?? "resolved";
         var note = payload["resolutionNote"]?.ToString() ?? "Đã xử lý";
 
+        var alert = await _db.ClassroomAlerts
+            .Include(a => a.Classroom)
+            .FirstOrDefaultAsync(a => a.Id == alertId, cancellationToken);
+
+        if (alert == null)
+        {
+            return NotFound(new { detail = "Không tìm thấy cảnh báo học tập." });
+        }
+
+        if (CurrentUserRole != "admin" && alert.Classroom?.TeacherId != CurrentUserId)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Bạn không có quyền xử lý cảnh báo của lớp học khác." });
+        }
+
+        alert.Status = status;
+        alert.ResolutionNote = note;
+        alert.ResolvedByTeacherId = CurrentUserId;
+        alert.ResolvedAt = DateTimeOffset.UtcNow;
+        alert.UpdatedAt = DateTimeOffset.UtcNow;
+
         var log = new StaffAuditLog
         {
             Id = $"log_alt_{Guid.NewGuid():N}",
@@ -221,7 +283,7 @@ public class TeacherManagementController : ControllerBase
             Action = "alert_resolved",
             TargetType = "learning_alert",
             TargetId = alertId,
-            Payload = JsonSerializer.Serialize(new { status, resolutionNote = note }),
+            Payload = JsonSerializer.Serialize(new { status, resolutionNote = note, classroomId = alert.ClassroomId }),
             CreatedAt = DateTimeOffset.UtcNow
         };
         _db.StaffAuditLogs.Add(log);
@@ -229,15 +291,35 @@ public class TeacherManagementController : ControllerBase
 
         return Ok(new
         {
-            id = alertId,
-            status,
-            resolutionNote = note
+            id = alert.Id,
+            status = alert.Status,
+            resolutionNote = alert.ResolutionNote
         });
     }
 
     [HttpPost("alerts/resolve-all")]
     public async Task<IActionResult> ResolveAllAlerts(CancellationToken cancellationToken)
     {
+        var teacherClassrooms = CurrentUserRole == "admin"
+            ? await _db.Classrooms.ToListAsync(cancellationToken)
+            : await _db.Classrooms.Where(c => c.TeacherId == CurrentUserId).ToListAsync(cancellationToken);
+
+        var classroomIds = teacherClassrooms.Select(c => c.Id).Distinct().ToList();
+
+        var pendingAlerts = await _db.ClassroomAlerts
+            .Where(a => classroomIds.Contains(a.ClassroomId) && a.Status != "resolved")
+            .ToListAsync(cancellationToken);
+
+        var now = DateTimeOffset.UtcNow;
+        foreach (var alert in pendingAlerts)
+        {
+            alert.Status = "resolved";
+            alert.ResolutionNote ??= "Đã giải quyết tất cả cảnh báo";
+            alert.ResolvedByTeacherId = CurrentUserId;
+            alert.ResolvedAt = now;
+            alert.UpdatedAt = now;
+        }
+
         var log = new StaffAuditLog
         {
             Id = $"log_alt_{Guid.NewGuid():N}",
@@ -245,13 +327,13 @@ public class TeacherManagementController : ControllerBase
             Action = "alerts_resolved_all",
             TargetType = "learning_alert",
             TargetId = "all",
-            Payload = "Đã giải quyết tất cả cảnh báo",
-            CreatedAt = DateTimeOffset.UtcNow
+            Payload = JsonSerializer.Serialize(new { count = pendingAlerts.Count, classroomIds }),
+            CreatedAt = now
         };
         _db.StaffAuditLogs.Add(log);
         await _db.SaveChangesAsync(cancellationToken);
 
-        return Ok(new { success = true });
+        return Ok(new { success = true, resolvedCount = pendingAlerts.Count });
     }
 
     [HttpGet("students/{studentId}/academic-detail")]

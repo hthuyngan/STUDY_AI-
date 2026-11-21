@@ -930,8 +930,8 @@ export const classroomService = {
           title: a.title,
           classId: a.classroomId,
           className: a.classroomName || '',
-          subjectId: 'sub-math-12',
-          subjectName: 'Toán học 12',
+          subjectId: a.subject ? `sub-${a.subject.toLowerCase()}` : (a.grade ? `sub-math-${a.grade}` : 'sub-math'),
+          subjectName: a.subject || (a.grade ? `Toán học ${a.grade}` : (a.classroomName ? `Môn học ${a.classroomName}` : 'Toán học')),
           description: a.description || '',
           instructions: a.instructions || '',
           dueDate: a.dueDate,
@@ -964,8 +964,8 @@ export const classroomService = {
           title: a.title,
           classId: a.classroomId,
           className: a.classroomName || '',
-          subjectId: 'sub-math-12',
-          subjectName: 'Toán học 12',
+          subjectId: a.subject ? `sub-${a.subject.toLowerCase()}` : (a.grade ? `sub-math-${a.grade}` : 'sub-math'),
+          subjectName: a.subject || (a.grade ? `Toán học ${a.grade}` : (a.classroomName ? `Môn học ${a.classroomName}` : 'Toán học')),
           description: a.description || '',
           instructions: a.instructions || '',
           dueDate: a.dueDate,
@@ -998,8 +998,8 @@ export const classroomService = {
           title: updated.title,
           classId: updated.classroomId,
           className: updated.classroomName || '',
-          subjectId: 'sub-math-12',
-          subjectName: 'Toán học 12',
+          subjectId: updated.subject ? `sub-${updated.subject.toLowerCase()}` : (updated.grade ? `sub-math-${updated.grade}` : 'sub-math'),
+          subjectName: updated.subject || (updated.grade ? `Toán học ${updated.grade}` : (updated.classroomName ? `Môn học ${updated.classroomName}` : 'Toán học')),
           description: updated.description || '',
           instructions: updated.instructions || '',
           dueDate: updated.dueDate,
@@ -1025,8 +1025,8 @@ export const classroomService = {
           title: created.title,
           classId: created.classroomId,
           className: created.classroomName || '',
-          subjectId: 'sub-math-12',
-          subjectName: 'Toán học 12',
+          subjectId: created.subject ? `sub-${created.subject.toLowerCase()}` : (created.grade ? `sub-math-${created.grade}` : 'sub-math'),
+          subjectName: created.subject || (created.grade ? `Toán học ${created.grade}` : (created.classroomName ? `Môn học ${created.classroomName}` : 'Toán học')),
           description: created.description || '',
           instructions: created.instructions || '',
           dueDate: created.dueDate,
@@ -1209,25 +1209,6 @@ export const classroomService = {
           feedback: sub.feedback,
         })
       }
-    })
-
-    // Add some mock assessment grades
-    students.forEach((stu) => {
-      grades.push({
-        id: `grd-ass-${stu.id}`,
-        studentId: stu.id,
-        studentName: stu.name,
-        studentCode: stu.code,
-        classId: stu.classId,
-        className: stu.className,
-        subjectName: 'Toán học 12',
-        activityTitle: 'Thu hoạch: Khảo sát tính đơn điệu hàm số',
-        activityType: 'assessment',
-        score: stu.averageScore,
-        maxScore: 10,
-        passed: stu.averageScore >= 5.0,
-        date: stu.lastActive,
-      })
     })
 
     return grades

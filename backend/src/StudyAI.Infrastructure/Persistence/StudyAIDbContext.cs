@@ -65,6 +65,8 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
     public DbSet<AssignmentSubmission> AssignmentSubmissions => Set<AssignmentSubmission>();
 
+    public DbSet<ClassroomAlert> ClassroomAlerts => Set<ClassroomAlert>();
+
     public DbSet<AiUsageLog> AiUsageLogs => Set<AiUsageLog>();
 
     public DbSet<StudentTopicMastery> StudentTopicMasteries => Set<StudentTopicMastery>();
@@ -899,6 +901,37 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
             entity.HasOne(e => e.Assignment)
                 .WithMany(a => a.Submissions)
                 .HasForeignKey(e => e.AssignmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Student)
+                .WithMany()
+                .HasForeignKey(e => e.StudentId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ClassroomAlert>(entity =>
+        {
+            entity.ToTable("classroom_alerts");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.ClassroomId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.StudentId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.Type).HasMaxLength(32).IsRequired();
+            entity.Property(e => e.Severity).HasMaxLength(16).IsRequired();
+            entity.Property(e => e.Message).HasMaxLength(500).IsRequired();
+            entity.Property(e => e.Status).HasMaxLength(32).IsRequired();
+            entity.Property(e => e.ResolutionNote).HasMaxLength(500);
+            entity.Property(e => e.ResolvedByTeacherId).HasMaxLength(64);
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
+
+            entity.HasIndex(e => e.ClassroomId);
+            entity.HasIndex(e => e.StudentId);
+            entity.HasIndex(e => e.Status);
+
+            entity.HasOne(e => e.Classroom)
+                .WithMany()
+                .HasForeignKey(e => e.ClassroomId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(e => e.Student)

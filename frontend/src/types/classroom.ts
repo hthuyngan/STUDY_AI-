@@ -160,6 +160,8 @@ export interface AssignmentDto {
   id: string
   classroomId: string
   classroomName?: string
+  subject?: string
+  grade?: string
   title: string
   description?: string
   instructions?: string

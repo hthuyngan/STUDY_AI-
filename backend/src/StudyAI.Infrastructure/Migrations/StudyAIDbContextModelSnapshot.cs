@@ -593,6 +593,72 @@ namespace StudyAI.Infrastructure.Migrations
                     b.ToTable("classrooms", (string)null);
                 });
 
+            modelBuilder.Entity("StudyAI.Domain.Entities.ClassroomAlert", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("ClassroomId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("ResolutionNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTimeOffset?>("ResolvedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ResolvedByTeacherId")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("StudentId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClassroomId");
+
+                    b.HasIndex("ResolvedByTeacherId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("StudentId");
+
+                    b.ToTable("classroom_alerts", (string)null);
+                });
+
             modelBuilder.Entity("StudyAI.Domain.Entities.ClassroomStudent", b =>
                 {
                     b.Property<string>("Id")
@@ -1699,6 +1765,31 @@ namespace StudyAI.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Teacher");
+                });
+
+            modelBuilder.Entity("StudyAI.Domain.Entities.ClassroomAlert", b =>
+                {
+                    b.HasOne("StudyAI.Domain.Entities.Classroom", "Classroom")
+                        .WithMany()
+                        .HasForeignKey("ClassroomId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("StudyAI.Domain.Entities.User", "ResolvedByTeacher")
+                        .WithMany()
+                        .HasForeignKey("ResolvedByTeacherId");
+
+                    b.HasOne("StudyAI.Domain.Entities.User", "Student")
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Classroom");
+
+                    b.Navigation("ResolvedByTeacher");
+
+                    b.Navigation("Student");
                 });
 
             modelBuilder.Entity("StudyAI.Domain.Entities.ClassroomStudent", b =>

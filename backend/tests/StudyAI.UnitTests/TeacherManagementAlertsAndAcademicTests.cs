@@ -205,4 +205,125 @@ public class TeacherManagementAlertsAndAcademicTests
         var list = Assert.IsAssignableFrom<System.Collections.IEnumerable>(okGet.Value);
         Assert.NotEmpty(list);
     }
+
+    [Fact]
+    public async Task UpdateAlert_PersistsResolvedStatus_AcrossSubsequentQueries()
+    {
+        var (context, controller, _) = CreateContextAndControllers(teacherId: "usr_teacher_A");
+
+        // 1. Get alerts (this populates and persists ClassroomAlerts from low score attempts)
+        var initialResult = await controller.GetAlerts(CancellationToken.None);
+        var initialOk = Assert.IsType<OkObjectResult>(initialResult);
+        var initialAlerts = Assert.IsAssignableFrom<System.Collections.IEnumerable>(initialOk.Value);
+        Assert.NotEmpty(initialAlerts);
+
+        var firstAlertId = "alt_asmt_att_low_1";
+
+        // 2. Resolve alert
+        var updatePayload = new JsonObject
+        {
+            ["status"] = "resolved",
+            ["resolutionNote"] = "Đã hướng dẫn lại kiến thức"
+        };
+        var updateResult = await controller.UpdateAlert(firstAlertId, updatePayload, CancellationToken.None);
+        Assert.IsType<OkObjectResult>(updateResult);
+
+        // 3. Query again (simulating reload)
+        var reloadResult = await controller.GetAlerts(CancellationToken.None);
+        var reloadOk = Assert.IsType<OkObjectResult>(reloadResult);
+        var json = System.Text.Json.JsonSerializer.Serialize(reloadOk.Value);
+        using var doc = System.Text.Json.JsonDocument.Parse(json);
+        var array = doc.RootElement.EnumerateArray().ToList();
+        var targetAlert = array.FirstOrDefault(a => a.GetProperty("id").GetString() == firstAlertId);
+        Assert.True(targetAlert.ValueKind != System.Text.Json.JsonValueKind.Undefined);
+        Assert.Equal("resolved", targetAlert.GetProperty("status").GetString());
+        Assert.Equal("Đã hướng dẫn lại kiến thức", targetAlert.GetProperty("resolutionNote").GetString());
+    }
+
+    [Fact]
+    public async Task UpdateAlert_ByDifferentTeacher_Returns403()
+    {
+        var (context, controllerA, _) = CreateContextAndControllers(teacherId: "usr_teacher_A");
+        await controllerA.GetAlerts(CancellationToken.None);
+
+        // Teacher B tries to resolve alert in Teacher A's classroom on the same database
+        var controllerB = new TeacherManagementController(
+            null!,
+            null!,
+            context,
+            NullLogger<TeacherManagementController>.Instance);
+
+        var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.NameIdentifier, "usr_teacher_B"),
+            new Claim("sub", "usr_teacher_B"),
+            new Claim(ClaimTypes.Role, "teacher"),
+            new Claim("role", "teacher")
+        };
+        controllerB.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth")) }
+        };
+
+        var updatePayload = new JsonObject
+        {
+            ["status"] = "resolved",
+            ["resolutionNote"] = "Unauthorized resolve"
+        };
+
+        var result = await controllerB.UpdateAlert("alt_asmt_att_low_1", updatePayload, CancellationToken.None);
+        var statusResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, statusResult.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateAlert_UnknownId_Returns404()
+    {
+        var (_, controller, _) = CreateContextAndControllers(teacherId: "usr_teacher_A");
+        var updatePayload = new JsonObject
+        {
+            ["status"] = "resolved"
+        };
+
+        var result = await controller.UpdateAlert("nonexistent_alert_id", updatePayload, CancellationToken.None);
+        Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task ResolveAllAlerts_ResolvesOnlyTeacherOwnedAlerts()
+    {
+        var (context, controllerA, _) = CreateContextAndControllers(teacherId: "usr_teacher_A");
+
+        // Seed alert in class B
+        context.ClassroomAlerts.Add(new ClassroomAlert
+        {
+            Id = "alt_class_b_1",
+            ClassroomId = "cls_B",
+            StudentId = "usr_student_2",
+            Type = "low_score",
+            Severity = "medium",
+            Message = "Alert in class B",
+            Status = "new",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+        await context.SaveChangesAsync();
+
+        // Populate class A alerts
+        await controllerA.GetAlerts(CancellationToken.None);
+
+        // Teacher A calls ResolveAllAlerts
+        var result = await controllerA.ResolveAllAlerts(CancellationToken.None);
+        Assert.IsType<OkObjectResult>(result);
+
+        // Verify Class A alert is resolved
+        var classAAlert = await context.ClassroomAlerts.FindAsync("alt_asmt_att_low_1");
+        Assert.NotNull(classAAlert);
+        Assert.Equal("resolved", classAAlert.Status);
+
+        // Verify Class B alert remains "new"
+        var classBAlert = await context.ClassroomAlerts.FindAsync("alt_class_b_1");
+        Assert.NotNull(classBAlert);
+        Assert.Equal("new", classBAlert.Status);
+    }
 }
