@@ -291,6 +291,7 @@ async function browserPracticeFlowGrades10_11_12(browser: Browser) {
     assert.ok(await startBtn.isDisabled(), 'Start button must be disabled when 0 questions match filter')
 
     // 2. Select valid filters: all types, Grade 10
+    await page.locator('select[data-testid="grade-select"]').selectOption('10')
     await typeSelect.selectOption('')
     await page.locator('.available-count-box').filter({ hasText: '2 câu hỏi' }).waitFor({ state: 'visible', timeout: 20000 })
     await page.waitForFunction(() => {

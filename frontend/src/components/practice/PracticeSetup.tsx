@@ -30,6 +30,13 @@ export const PracticeSetup: React.FC<PracticeSetupProps> = ({
   const { user } = useAuth()
   const defaultGrade = user?.grade === '10' ? '10' : user?.grade === '11' ? '11' : '12'
   const [selectedGrade, setSelectedGrade] = useState<string>(defaultGrade)
+
+  // Sync selected grade once learner profile finishes hydrating
+  useEffect(() => {
+    if (user?.grade === '10' || user?.grade === '11' || user?.grade === '12') {
+      setSelectedGrade(user.grade)
+    }
+  }, [user?.grade])
   const [chapters, setChapters] = useState<LearnerChapter[]>([])
   const [selectedChapterId, setSelectedChapterId] = useState<string>('')
   const [lessonId, setLessonId] = useState<string>('')
