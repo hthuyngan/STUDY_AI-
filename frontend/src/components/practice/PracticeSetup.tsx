@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from 'react'
-import { BookOpen, CheckCircle, Filter, Play, Target } from 'lucide-react'
+import React, { useCallback, useEffect, useState } from 'react'
+import { AlertCircle, BookOpen, CheckCircle, Filter, Play, Target } from 'lucide-react'
+import { useAuth } from '@/auth/useAuth'
+import { curriculumService, type LearnerChapter } from '@/services/curriculum.service'
 import { practiceService } from '@/services/practice.service'
 import type { PracticeSetupConfig } from '@/types/practice'
 import type { QuestionDifficulty, QuestionType } from '@/types/questionBank'
@@ -10,79 +12,121 @@ interface PracticeSetupProps {
   onCancel?: () => void
 }
 
+// Standard skills from GDPT 2018
+const skills = [
+  { id: '', label: 'Tất cả kỹ năng năng lực' },
+  { id: 'SKILL-MATH-DERIV-SIGN', label: 'Xét dấu đạo hàm & BBT' },
+  { id: 'SKILL-MATH-MONOTONICITY', label: 'Tính đơn điệu của hàm số' },
+  { id: 'SKILL-MATH-EXTREMUM', label: 'Cực trị của hàm số' },
+  { id: 'SKILL-MATH-MINMAX', label: 'Giá trị lớn nhất & nhỏ nhất' },
+  { id: 'SKILL-MATH-ASYMPTOTE', label: 'Tiệm cận của đồ thị' },
+  { id: 'SKILL-MATH-GRAPH-SKETCHING', label: 'Khảo sát & nhận dạng đồ thị' },
+]
+
 export const PracticeSetup: React.FC<PracticeSetupProps> = ({
   onStartSession,
   onCancel,
 }) => {
+  const { user } = useAuth()
+  const defaultGrade = user?.grade === '10' ? '10' : user?.grade === '11' ? '11' : '12'
+  const [selectedGrade, setSelectedGrade] = useState<string>(defaultGrade)
+
+  // Sync selected grade once learner profile finishes hydrating
+  useEffect(() => {
+    if (user?.grade === '10' || user?.grade === '11' || user?.grade === '12') {
+      setSelectedGrade(user.grade)
+    }
+  }, [user?.grade])
+  const [chapters, setChapters] = useState<LearnerChapter[]>([])
+  const [selectedChapterId, setSelectedChapterId] = useState<string>('')
   const [lessonId, setLessonId] = useState<string>('')
   const [selectedSkillId, setSelectedSkillId] = useState<string>('')
   const [questionType, setQuestionType] = useState<QuestionType | ''>('')
   const [difficulty, setDifficulty] = useState<QuestionDifficulty | ''>('')
   const [limit, setLimit] = useState<number>(5)
 
-  const [availableCount, setAvailableCount] = useState<number>(0)
+  const [availableCount, setAvailableCount] = useState<number | null>(null)
   const [loadingCount, setLoadingCount] = useState<boolean>(true)
+  const [countError, setCountError] = useState<string | null>(null)
 
-  // Standard lessons from Math 12 Chapter 1
-  const lessons = [
-    { id: '', label: 'Toàn bộ Chương 1 (Tổng hợp)' },
-    { id: 'lesson-math-12-01', label: 'Bài 1: Tính đơn điệu & cực trị của hàm số' },
-    { id: 'lesson-math-12-02', label: 'Bài 2: Giá trị lớn nhất & giá trị nhỏ nhất của hàm số' },
-    { id: 'lesson-math-12-03', label: 'Bài 3: Khảo sát sự biến thiên & đồ thị của hàm số' },
-  ]
+  const selectedSubjectId =
+    selectedGrade === '10' ? 'sub_math10' : selectedGrade === '11' ? 'sub_math11' : 'sub_math12'
 
-  // Standard skills from GDPT 2018 Math 12 Chapter 1
-  const skills = [
-    { id: '', label: 'Tất cả kỹ năng năng lực' },
-    { id: 'SKILL-MATH-12-DERIV-SIGN', label: 'Xét dấu đạo hàm & BBT' },
-    { id: 'SKILL-MATH-12-MONOTONICITY', label: 'Tính đơn điệu của hàm số' },
-    { id: 'SKILL-MATH-12-EXTREMUM', label: 'Cực trị của hàm số' },
-    { id: 'SKILL-MATH-12-MINMAX-SEGMENT', label: 'GTLN / GTNN trên đoạn' },
-    { id: 'SKILL-MATH-12-MINMAX-INTERVAL', label: 'GTLN / GTNN trên khoảng' },
-    { id: 'SKILL-MATH-12-ASYMPTOTE', label: 'Tiệm cận của đồ thị' },
-    { id: 'SKILL-MATH-12-GRAPH-SKETCHING', label: 'Khảo sát & nhận dạng đồ thị' },
-  ]
-
+  // Fetch real curriculum chapters whenever selected grade/subject changes
   useEffect(() => {
     let isMounted = true
-    const checkCount = async () => {
-      setLoadingCount(true)
+    const loadChapters = async () => {
       try {
-        const questions = await practiceService.getAvailableQuestions({
-          subjectId: 'math',
-          chapterId: 'chap-math-12-01',
-          lessonId: lessonId || undefined,
-          skillIds: selectedSkillId ? [selectedSkillId] : undefined,
-          questionType: (questionType as QuestionType) || undefined,
-          difficulty: (difficulty as QuestionDifficulty) || undefined,
-          limit: 100, // get real count
-        })
+        const fetchedChapters = await curriculumService.getSubjectChapters(selectedSubjectId)
         if (isMounted) {
-          setAvailableCount(questions.length)
+          setChapters(fetchedChapters || [])
+          setSelectedChapterId('')
+          setLessonId('')
         }
-      } finally {
+      } catch {
         if (isMounted) {
-          setLoadingCount(false)
+          setChapters([])
+          setSelectedChapterId('')
+          setLessonId('')
         }
       }
     }
-
-    checkCount()
+    loadChapters()
     return () => {
       isMounted = false
     }
-  }, [lessonId, selectedSkillId, questionType, difficulty])
+  }, [selectedSubjectId])
+
+  // Derive visible lessons based on selected chapter or all chapters
+  const availableLessons = React.useMemo(() => {
+    if (selectedChapterId) {
+      const chap = chapters.find((c) => c.id === selectedChapterId)
+      return chap ? chap.lessons : []
+    }
+    return chapters.flatMap((c) => c.lessons || [])
+  }, [chapters, selectedChapterId])
+
+  // Query real question count from SQL backend with unified server predicate
+  const checkCount = useCallback(async () => {
+    setLoadingCount(true)
+    setCountError(null)
+    try {
+      const count = await practiceService.getQuestionCount({
+        subjectId: selectedSubjectId,
+        chapterId: selectedChapterId || undefined,
+        lessonId: lessonId || undefined,
+        difficulty: difficulty || undefined,
+        skillId: selectedSkillId || undefined,
+        questionType: questionType || undefined,
+        grade: selectedGrade || undefined,
+      })
+      setAvailableCount(count)
+      setCountError(null)
+    } catch {
+      setAvailableCount(null)
+      setCountError('Không thể kết nối máy chủ để kiểm tra số lượng câu hỏi.')
+    } finally {
+      setLoadingCount(false)
+    }
+  }, [selectedSubjectId, selectedChapterId, lessonId, difficulty, selectedSkillId, questionType, selectedGrade])
+
+  useEffect(() => {
+    checkCount()
+  }, [checkCount])
 
   const handleStart = () => {
-    if (availableCount === 0) return
+    if (!availableCount || availableCount === 0 || countError) return
     onStartSession({
-      subjectId: 'math',
-      chapterId: 'chap-math-12-01',
+      subjectId: selectedSubjectId,
+      chapterId: selectedChapterId || undefined,
       lessonId: lessonId || undefined,
+      skillId: selectedSkillId || undefined,
       skillIds: selectedSkillId ? [selectedSkillId] : undefined,
       questionType: (questionType as QuestionType) || undefined,
       difficulty: (difficulty as QuestionDifficulty) || undefined,
+      grade: selectedGrade || undefined,
       limit: Math.min(limit, availableCount),
+      mode: 'practice',
     })
   }
 
@@ -93,7 +137,7 @@ export const PracticeSetup: React.FC<PracticeSetupProps> = ({
           <Target size={14} aria-hidden />
           <span>LUYỆN TẬP XÁC ĐỊNH · GDPT 2018</span>
         </div>
-        <h2 className="setup-title">Thiết lập bài luyện tập Toán 12</h2>
+        <h2 className="setup-title">Thiết lập bài luyện tập môn Toán lớp {selectedGrade}</h2>
         <p className="setup-desc">
           Tạo lượt làm bài thực tế với dữ liệu từ Ngân hàng câu hỏi đã duyệt. Hệ thống tự động
           lưu nháp, chấm điểm xác định và phân tích mức độ thành thạo theo kỹ năng sau khi nộp.
@@ -101,6 +145,51 @@ export const PracticeSetup: React.FC<PracticeSetupProps> = ({
       </div>
 
       <div className="setup-form-grid">
+        {/* Grade Select */}
+        <div className="setup-field-group">
+          <label className="setup-field-label">
+            <BookOpen size={14} aria-hidden />
+            <span>Khối lớp</span>
+          </label>
+          <select
+            className="setup-select"
+            data-testid="grade-select"
+            value={selectedGrade}
+            onChange={(e) => {
+              setSelectedGrade(e.target.value)
+              setSelectedChapterId('')
+              setLessonId('')
+            }}
+          >
+            <option value="10">Toán lớp 10</option>
+            <option value="11">Toán lớp 11</option>
+            <option value="12">Toán lớp 12</option>
+          </select>
+        </div>
+
+        {/* Chapter Select */}
+        <div className="setup-field-group">
+          <label className="setup-field-label">
+            <BookOpen size={14} aria-hidden />
+            <span>Chương học</span>
+          </label>
+          <select
+            className="setup-select"
+            value={selectedChapterId}
+            onChange={(e) => {
+              setSelectedChapterId(e.target.value)
+              setLessonId('')
+            }}
+          >
+            <option value="">Tất cả chương</option>
+            {chapters.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.title}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {/* Lesson Select */}
         <div className="setup-field-group">
           <label className="setup-field-label">
@@ -112,9 +201,10 @@ export const PracticeSetup: React.FC<PracticeSetupProps> = ({
             value={lessonId}
             onChange={(e) => setLessonId(e.target.value)}
           >
-            {lessons.map((l) => (
+            <option value="">Tất cả bài học</option>
+            {availableLessons.map((l) => (
               <option key={l.id} value={l.id}>
-                {l.label}
+                {l.title}
               </option>
             ))}
           </select>
@@ -146,6 +236,7 @@ export const PracticeSetup: React.FC<PracticeSetupProps> = ({
           </label>
           <select
             className="setup-select"
+            data-testid="question-type-select"
             value={questionType}
             onChange={(e) => setQuestionType(e.target.value as QuestionType | '')}
           >
@@ -167,10 +258,10 @@ export const PracticeSetup: React.FC<PracticeSetupProps> = ({
             onChange={(e) => setDifficulty(e.target.value as QuestionDifficulty | '')}
           >
             <option value="">Tất cả độ khó</option>
-            <option value="easy">Dễ</option>
-            <option value="medium">Trung bình</option>
-            <option value="hard">Khó</option>
-            <option value="very_hard">Rất khó</option>
+            <option value="easy">Dễ (Nhận biết)</option>
+            <option value="medium">Trung bình (Thông hiểu)</option>
+            <option value="hard">Khó (Vận dụng)</option>
+            <option value="very_hard">Rất khó (Vận dụng cao)</option>
           </select>
         </div>
 
@@ -200,10 +291,23 @@ export const PracticeSetup: React.FC<PracticeSetupProps> = ({
           <CheckCircle size={16} className="count-icon" aria-hidden />
           <span className="count-text">
             {loadingCount ? (
-              'Đang kiểm tra câu hỏi sẵn có...'
-            ) : availableCount > 0 ? (
+              'Đang kiểm tra câu hỏi sẵn có từ máy chủ...'
+            ) : countError ? (
+              <span className="count-error-alert" style={{ color: '#ef4444', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                <AlertCircle size={16} aria-hidden />
+                <span>{countError}</span>
+                <button
+                  type="button"
+                  className="retry-count-btn"
+                  onClick={() => checkCount()}
+                  style={{ textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontWeight: 600 }}
+                >
+                  Thử lại
+                </button>
+              </span>
+            ) : availableCount !== null && availableCount > 0 ? (
               <>
-                Sẵn sàng: <strong>{availableCount} câu hỏi</strong> đã duyệt
+                Sẵn sàng: <strong>{availableCount} câu hỏi</strong> đã duyệt trong ngân hàng
               </>
             ) : (
               <span className="no-question-alert">
@@ -222,11 +326,12 @@ export const PracticeSetup: React.FC<PracticeSetupProps> = ({
           <button
             type="button"
             className="setup-start-btn"
-            disabled={loadingCount || availableCount === 0}
+            data-testid="practice-start-btn"
+            disabled={loadingCount || !!countError || !availableCount || availableCount === 0}
             onClick={handleStart}
           >
             <Play size={16} aria-hidden />
-            <span>Bắt đầu làm bài ({Math.min(limit, availableCount)} câu)</span>
+            <span>Bắt đầu làm bài ({availableCount ? Math.min(limit, availableCount) : 0} câu)</span>
           </button>
         </div>
       </div>

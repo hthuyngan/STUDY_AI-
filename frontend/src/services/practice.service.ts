@@ -1,4 +1,5 @@
 import { apiClient } from '@/lib/apiClient'
+import { getAccessToken } from '@/auth/authSession'
 import { calculateSkillBreakdown } from './scoringEngine'
 import {
   practiceRepository,
@@ -46,6 +47,8 @@ interface BackendSubmitResponse {
   resultId: string
   sessionId: string
   subjectId: string
+  chapterId?: string
+  lessonId?: string
   mode: string
   totalQuestions: number
   correctCount: number
@@ -55,6 +58,7 @@ interface BackendSubmitResponse {
   scoreScaled: number
   passed: boolean
   timeSpentSeconds: number
+  startedAt?: string
   completedAt: string
   questions: Array<{
     questionId: string
@@ -65,6 +69,10 @@ interface BackendSubmitResponse {
     isCorrect: boolean
     explanation?: string
     difficulty: string
+    type?: string
+    questionType?: string
+    skillIds?: string[]
+    cognitiveLevel?: string
   }>
   performanceByDifficulty: Record<string, number>
 }
@@ -119,6 +127,28 @@ export class PracticeService {
     this.qbRepo = qbRepo
   }
 
+  async getQuestionCount(params: {
+    subjectId: string
+    chapterId?: string
+    lessonId?: string
+    difficulty?: string
+    skillId?: string
+    questionType?: string
+    grade?: string
+  }): Promise<number> {
+    const query = new URLSearchParams()
+    query.set('subjectId', params.subjectId)
+    if (params.chapterId) query.set('chapterId', params.chapterId)
+    if (params.lessonId) query.set('lessonId', params.lessonId)
+    if (params.difficulty && params.difficulty !== 'all') query.set('difficulty', params.difficulty)
+    if (params.skillId) query.set('skillId', params.skillId)
+    if (params.questionType) query.set('questionType', params.questionType)
+    if (params.grade) query.set('grade', params.grade)
+
+    const res = await apiClient.get<{ count: number }>(`/api/v1/practice/question-count?${query.toString()}`)
+    return typeof res.count === 'number' ? res.count : 0
+  }
+
   async getAvailableQuestions(config: PracticeSetupConfig): Promise<QuestionItem[]> {
     const allApproved = await this.qbRepo.getApprovedOnly({
       subjectId: config.subjectId,
@@ -146,7 +176,11 @@ export class PracticeService {
           subjectId: config.subjectId,
           chapterId: config.chapterId,
           lessonId: config.lessonId,
+          skillId: config.skillId || config.skillIds?.[0],
+          skillIds: config.skillIds,
+          questionType: config.questionType,
           difficulty: config.difficulty,
+          grade: config.grade,
           questionCount: config.limit || 10,
           mode: config.mode || (config.lessonId ? 'lesson' : 'practice'),
           timeLimitMinutes: config.timeLimitMinutes,
@@ -278,32 +312,39 @@ export class PracticeService {
         const totalQ = Math.max(1, backendResult.totalQuestions)
         const scorePerQ = 10 / totalQ
 
-        const questionResults = backendResult.questions.map((q: any) => ({
-          questionId: q.questionId,
-          questionType: 'multiple_choice' as const,
-          difficulty: 'medium' as const,
-          cognitiveLevel: 'comprehension' as const,
-          skillIds: q.skillIds || ['SKILL-GENERAL'],
-          stem: q.prompt,
-          explanation: q.explanation || '',
-          studentAnswer: {
-            questionType: 'multiple_choice' as const,
-            selectedOption: (q.studentAnswer as any) || null,
-          },
-          correctAnswerDisplay: q.correctAnswer,
-          isFullyCorrect: q.isCorrect,
-          isPartiallyCorrect: false,
-          isUnanswered: !q.studentAnswer,
-          earnedPoints: q.isCorrect ? scorePerQ : 0,
-          maxPoints: scorePerQ,
-        }))
+        const questionResults = backendResult.questions.map((q: any) => {
+          const qType = (q.questionType || q.type || 'multiple_choice').replace('-', '_') as any
+          const diff = (q.difficulty || 'medium') as any
+          const cogLevel = (q.cognitiveLevel || 'comprehension') as any
+          const skillIds = Array.isArray(q.skillIds) && q.skillIds.length > 0 ? q.skillIds : ['SKILL-GENERAL']
+
+          return {
+            questionId: q.questionId,
+            questionType: qType,
+            difficulty: diff,
+            cognitiveLevel: cogLevel,
+            skillIds,
+            stem: q.prompt,
+            explanation: q.explanation || '',
+            studentAnswer: {
+              questionType: qType,
+              selectedOption: (q.studentAnswer as any) || null,
+            },
+            correctAnswerDisplay: q.correctAnswer,
+            isFullyCorrect: q.isCorrect,
+            isPartiallyCorrect: false,
+            isUnanswered: !q.studentAnswer,
+            earnedPoints: q.isCorrect ? scorePerQ : 0,
+            maxPoints: scorePerQ,
+          }
+        })
 
         const result: PracticeResult = {
           id: backendResult.resultId,
           sessionId: backendResult.sessionId,
           subjectId: backendResult.subjectId,
-          chapterId: session.chapterId,
-          lessonId: session.lessonId,
+          chapterId: backendResult.chapterId || session.chapterId,
+          lessonId: backendResult.lessonId || session.lessonId,
           questionResults,
           totalQuestions: totalQ,
           correctCount: backendResult.correctCount,
@@ -313,7 +354,7 @@ export class PracticeService {
           earnedPoints: backendResult.scoreScaled,
           maxPoints: 10,
           percentage: Math.round((backendResult.correctCount / totalQ) * 100),
-          startedAt: session.startedAt,
+          startedAt: backendResult.startedAt || session.startedAt,
           submittedAt: backendResult.completedAt,
           durationSeconds: backendResult.timeSpentSeconds,
           skillBreakdown: calculateSkillBreakdown(questionResults),
@@ -346,10 +387,144 @@ export class PracticeService {
   }
 
   async getResultById(resultId: string): Promise<PracticeResult | null> {
-    return this.practiceRepo.getResultById(resultId)
+    if (getAccessToken()) {
+      // Authenticated user: Backend is authoritative. Fail-closed on error.
+      const rawResultId = resultId.startsWith('res_') ? resultId : `res_${resultId}`
+      const backendResult = await apiClient.get<BackendSubmitResponse>(
+        `/api/v1/practice/results/${rawResultId}`
+      )
+      if (!backendResult || !backendResult.questions) {
+        throw new Error('Máy chủ không trả về kết quả hợp lệ.')
+      }
+
+      const totalQ = Math.max(1, backendResult.totalQuestions)
+      const scorePerQ = 10 / totalQ
+      const questionResults = backendResult.questions.map((q) => {
+        const qType = (q.questionType || q.type || 'multiple_choice').replace('-', '_') as any
+        const diff = (q.difficulty || 'medium') as any
+        const cogLevel = (q.cognitiveLevel || 'comprehension') as any
+        const skillIds = Array.isArray(q.skillIds) && q.skillIds.length > 0 ? q.skillIds : ['SKILL-GENERAL']
+
+        return {
+          questionId: q.questionId,
+          questionType: qType,
+          difficulty: diff,
+          cognitiveLevel: cogLevel,
+          skillIds,
+          stem: q.prompt,
+          explanation: q.explanation || '',
+          studentAnswer: {
+            questionType: qType,
+            selectedOption: (q.studentAnswer as any) || null,
+          },
+          correctAnswerDisplay: q.correctAnswer,
+          isFullyCorrect: q.isCorrect,
+          isPartiallyCorrect: false,
+          isUnanswered: !q.studentAnswer,
+          earnedPoints: q.isCorrect ? scorePerQ : 0,
+          maxPoints: scorePerQ,
+        }
+      })
+
+      const remoteResult: PracticeResult = {
+        id: backendResult.resultId,
+        sessionId: backendResult.sessionId,
+        subjectId: backendResult.subjectId,
+        chapterId: backendResult.chapterId || '',
+        lessonId: backendResult.lessonId,
+        questionResults,
+        totalQuestions: totalQ,
+        correctCount: backendResult.correctCount,
+        partialCount: 0,
+        incorrectCount: backendResult.incorrectCount,
+        unansweredCount: backendResult.unansweredCount,
+        earnedPoints: backendResult.scoreScaled,
+        maxPoints: 10,
+        percentage: Math.round((backendResult.correctCount / totalQ) * 100),
+        startedAt: backendResult.startedAt || backendResult.completedAt,
+        submittedAt: backendResult.completedAt,
+        durationSeconds: backendResult.timeSpentSeconds,
+        skillBreakdown: calculateSkillBreakdown(questionResults),
+        scoringVersion: 'GDPT_2018_V1',
+      }
+
+      await this.practiceRepo.saveResult(remoteResult)
+      return remoteResult
+    }
+
+    // Guest / Unauthenticated: Use scoped local cache
+    let localResult = await this.practiceRepo.getResultById(resultId)
+    if (!localResult && resultId.startsWith('res_')) {
+      localResult = await this.practiceRepo.getResultById(resultId.replace('res_', ''))
+    }
+    return localResult
   }
 
   async getResultBySessionId(sessionId: string): Promise<PracticeResult | null> {
+    if (getAccessToken()) {
+      // Authenticated user: Backend is authoritative. Fail-closed on error.
+      const backendResult = await apiClient.get<BackendSubmitResponse>(
+        `/api/v1/practice/sessions/${sessionId}/result`
+      )
+      if (!backendResult || !backendResult.questions) {
+        throw new Error('Máy chủ không trả về kết quả hợp lệ.')
+      }
+
+      const totalQ = Math.max(1, backendResult.totalQuestions)
+      const scorePerQ = 10 / totalQ
+      const questionResults = backendResult.questions.map((q) => {
+        const qType = (q.questionType || q.type || 'multiple_choice').replace('-', '_') as any
+        const diff = (q.difficulty || 'medium') as any
+        const cogLevel = (q.cognitiveLevel || 'comprehension') as any
+        const skillIds = Array.isArray(q.skillIds) && q.skillIds.length > 0 ? q.skillIds : ['SKILL-GENERAL']
+
+        return {
+          questionId: q.questionId,
+          questionType: qType,
+          difficulty: diff,
+          cognitiveLevel: cogLevel,
+          skillIds,
+          stem: q.prompt,
+          explanation: q.explanation || '',
+          studentAnswer: {
+            questionType: qType,
+            selectedOption: (q.studentAnswer as any) || null,
+          },
+          correctAnswerDisplay: q.correctAnswer,
+          isFullyCorrect: q.isCorrect,
+          isPartiallyCorrect: false,
+          isUnanswered: !q.studentAnswer,
+          earnedPoints: q.isCorrect ? scorePerQ : 0,
+          maxPoints: scorePerQ,
+        }
+      })
+
+      const remoteResult: PracticeResult = {
+        id: backendResult.resultId,
+        sessionId: backendResult.sessionId,
+        subjectId: backendResult.subjectId,
+        chapterId: backendResult.chapterId || '',
+        lessonId: backendResult.lessonId,
+        questionResults,
+        totalQuestions: totalQ,
+        correctCount: backendResult.correctCount,
+        partialCount: 0,
+        incorrectCount: backendResult.incorrectCount,
+        unansweredCount: backendResult.unansweredCount,
+        earnedPoints: backendResult.scoreScaled,
+        maxPoints: 10,
+        percentage: Math.round((backendResult.correctCount / totalQ) * 100),
+        startedAt: backendResult.startedAt || backendResult.completedAt,
+        submittedAt: backendResult.completedAt,
+        durationSeconds: backendResult.timeSpentSeconds,
+        skillBreakdown: calculateSkillBreakdown(questionResults),
+        scoringVersion: 'GDPT_2018_V1',
+      }
+
+      await this.practiceRepo.saveResult(remoteResult)
+      return remoteResult
+    }
+
     return this.practiceRepo.getResultBySessionId(sessionId)
   }
 

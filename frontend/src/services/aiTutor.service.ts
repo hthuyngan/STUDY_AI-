@@ -556,18 +556,17 @@ ${context.explanation ? `\n> **Giải thích chuẩn:** ${context.explanation}` 
     sessionId?: string,
     mode?: string
   ): Promise<HintResponse> {
-    try {
+    if (this.isAuthenticated()) {
       const url = `/api/v1/ai/hints${sessionId ? `?sessionId=${sessionId}` : ''}${mode ? `&mode=${mode}` : ''}`
       const res = await apiClient.post<HintResponse>(url, {
         questionId,
         hintLevel,
         studentAnswer,
       })
-      if (res) return res
-    } catch (err) {
-      if (err instanceof Error && err.message.includes('không được phép')) {
-        throw err
+      if (!res) {
+        throw new Error('Không nhận được phản hồi gợi ý từ máy chủ.')
       }
+      return res
     }
 
     const levelName =

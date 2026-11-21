@@ -90,7 +90,19 @@ public class AdaptiveLearningPathDto
     public string StageDescription { get; set; } = string.Empty;
     public List<string> ShortTermGoals { get; set; } = new();
     public List<AdaptiveStepDto> Steps { get; set; } = new();
+    public double TargetScore { get; set; } = 8.5;
+    public string TargetExamDate { get; set; } = "2027-06-25";
+    public int TargetDailyMinutes { get; set; } = 45;
+    public int Version { get; set; } = 1;
     public DateTimeOffset GeneratedAt { get; set; }
+}
+
+public class UpdateLearningPlanRequestDto
+{
+    public double TargetScore { get; set; } = 8.5;
+    public string TargetExamDate { get; set; } = "2027-06-25";
+    public int TargetDailyMinutes { get; set; } = 45;
+    public List<string>? CustomGoals { get; set; }
 }
 
 public class DifficultyBreakdownDto

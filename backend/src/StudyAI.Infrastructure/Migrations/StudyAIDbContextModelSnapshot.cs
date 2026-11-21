@@ -1323,6 +1323,8 @@ namespace StudyAI.Infrastructure.Migrations
 
                     b.HasIndex("TargetId");
 
+                    b.HasIndex("TargetType", "Action", "CreatedAt");
+
                     b.ToTable("staff_audit_logs", (string)null);
                 });
 

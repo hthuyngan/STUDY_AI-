@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using StudyAI.Application.Common.Interfaces;
@@ -246,6 +247,45 @@ public class LearningRecommendationService : ILearningRecommendationService
             shortTermGoals.Add("Duy trì tốc độ làm bài trung bình dưới 1.5 phút/câu trắc nghiệm.");
         }
 
+        // Check for persisted learning plan customizations
+        var planEvent = await _context.LearningEvents.AsNoTracking()
+            .Where(e => e.UserId == userId && e.Type == "learning_plan_goal")
+            .OrderByDescending(e => e.Timestamp)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        double targetScore = 8.5;
+        string targetExamDate = "2027-06-25";
+        int targetDailyMinutes = 45;
+        int planVersion = 1;
+
+        if (planEvent != null && !string.IsNullOrWhiteSpace(planEvent.PayloadJson))
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(planEvent.PayloadJson);
+                var root = doc.RootElement;
+                if (root.TryGetProperty("targetScore", out var ts)) targetScore = ts.GetDouble();
+                if (root.TryGetProperty("targetExamDate", out var ed)) targetExamDate = ed.GetString() ?? targetExamDate;
+                if (root.TryGetProperty("targetDailyMinutes", out var dm)) targetDailyMinutes = dm.GetInt32();
+                if (root.TryGetProperty("version", out var v)) planVersion = v.GetInt32();
+                if (root.TryGetProperty("customGoals", out var cg) && cg.ValueKind == JsonValueKind.Array)
+                {
+                    var customList = cg.EnumerateArray()
+                        .Select(x => x.GetString())
+                        .Where(x => !string.IsNullOrEmpty(x))
+                        .ToList();
+                    if (customList.Count > 0)
+                    {
+                        shortTermGoals.InsertRange(0, customList!);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to parse learning plan goal payload for user {UserId}", userId);
+            }
+        }
+
         return new AdaptiveLearningPathDto
         {
             Id = $"alp_{userId}_{effectiveSubjectId}",
@@ -255,8 +295,53 @@ public class LearningRecommendationService : ILearningRecommendationService
             StageDescription = stageDesc,
             ShortTermGoals = shortTermGoals,
             Steps = steps,
+            TargetScore = targetScore,
+            TargetExamDate = targetExamDate,
+            TargetDailyMinutes = targetDailyMinutes,
+            Version = planVersion,
             GeneratedAt = DateTimeOffset.UtcNow
         };
+    }
+
+    public async Task<AdaptiveLearningPathDto> UpdateLearningPlanAsync(
+        string userId,
+        UpdateLearningPlanRequestDto dto,
+        string? subjectId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var effectiveSubjectId = await ResolveEffectiveSubjectIdAsync(userId, subjectId, cancellationToken);
+
+        var existingPlan = await _context.LearningEvents
+            .Where(e => e.UserId == userId && e.Type == "learning_plan_goal")
+            .OrderByDescending(e => e.Timestamp)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        int nextVersion = (existingPlan?.SchemaVersion ?? 0) + 1;
+
+        var planPayload = new
+        {
+            targetScore = dto.TargetScore,
+            targetExamDate = dto.TargetExamDate,
+            targetDailyMinutes = dto.TargetDailyMinutes,
+            customGoals = dto.CustomGoals ?? new List<string>(),
+            version = nextVersion
+        };
+
+        var newEvent = new LearningEvent
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            UserId = userId,
+            SubjectId = effectiveSubjectId,
+            Type = "learning_plan_goal",
+            Timestamp = DateTimeOffset.UtcNow,
+            PayloadJson = JsonSerializer.Serialize(planPayload),
+            SchemaVersion = nextVersion
+        };
+
+        _context.LearningEvents.Add(newEvent);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return await GetLearningPathAsync(userId, effectiveSubjectId, cancellationToken);
     }
 
     public async Task<List<KnowledgeGapDto>> GetKnowledgeGapsAsync(

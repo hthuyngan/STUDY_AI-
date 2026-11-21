@@ -4,6 +4,7 @@
  */
 
 import { apiClient } from '@/lib/apiClient'
+import { getAccessToken } from '@/auth/authSession'
 import { getStorageKey } from '@/repositories/storageKeys'
 import type { KnowledgeGap } from '@/types/knowledgeGaps'
 import type {
@@ -319,6 +320,10 @@ export const smartReviewService = {
   },
 
   async fetchServerMistakes(subjectId?: string): Promise<SmartReviewItem[]> {
+    if (typeof window === 'undefined' || !getAccessToken()) {
+      return this.getAllItems()
+    }
+
     try {
       const query = subjectId ? `?subjectId=${subjectId}` : ''
       const mistakes = await apiClient.get<Array<{
@@ -334,38 +339,46 @@ export const smartReviewService = {
         status: string
       }>>(`/api/v1/practice/mistakes${query}`)
 
-      if (mistakes && mistakes.length > 0) {
-        const all = loadStoredItems()
-        for (const m of mistakes) {
+      if (Array.isArray(mistakes)) {
+        const mapped: SmartReviewItem[] = mistakes.map((m) => {
           const id = `rev_mst_${m.questionId}`
-          const existing = all.find((item) => item.id === id)
-          if (!existing) {
-            all.unshift({
-              id,
-              gapId: m.questionId,
-              knowledgePointId: m.questionId,
-              subjectId: m.subjectId,
-              subjectName: m.subjectId,
-              lessonId: 'lesson-review',
-              lessonTitle: 'Ôn tập câu sai',
-              title: `Ôn tập câu sai: ${m.prompt.slice(0, 45)}...`,
-              prompt: m.prompt,
-              dueDate: m.nextReviewDate,
-              reviewCount: m.mistakeCount,
-              intervalDays: m.reviewBox === 1 ? 1 : m.reviewBox === 2 ? 3 : 7,
-              status: m.status as any,
-              history: [],
-              createdAt: m.lastAttemptAt,
-              updatedAt: new Date().toISOString(),
-            })
+          return {
+            id,
+            gapId: m.questionId,
+            knowledgePointId: m.questionId,
+            subjectId: m.subjectId,
+            subjectName: m.subjectId.includes('10') ? 'Toán 10' : m.subjectId.includes('11') ? 'Toán 11' : 'Toán 12',
+            lessonId: 'lesson-review',
+            lessonTitle: 'Ôn tập câu sai',
+            title: `Ôn tập: ${m.prompt.slice(0, 45)}...`,
+            prompt: m.prompt,
+            dueDate: m.nextReviewDate,
+            reviewCount: m.mistakeCount,
+            intervalDays: m.reviewBox === 1 ? 1 : m.reviewBox === 2 ? 3 : 7,
+            status: m.status as any,
+            history: [],
+            createdAt: m.lastAttemptAt,
+            updatedAt: new Date().toISOString(),
           }
-        }
-        persistItems(all)
+        })
+
+        // Server is authoritative: replace items for this subject scope
+        const current = loadStoredItems()
+        const otherSubjects = (subjectId && subjectId !== 'all')
+          ? current.filter((item) => item.subjectId !== subjectId)
+          : []
+        const updated = [...otherSubjects, ...mapped]
+        persistItems(updated)
+        return mapped
       }
-      return this.getAllItems()
-    } catch {
-      return this.getAllItems()
+      return []
+    } catch (err: any) {
+      throw new Error(`Không thể tải danh sách ôn tập câu sai từ máy chủ: ${err?.message || 'Lỗi mạng'}`)
     }
+  },
+
+  async submitMistakeReview(questionId: string, answer: string): Promise<any> {
+    return apiClient.post<any>(`/api/v1/practice/mistakes/${questionId}/review`, { answer })
   },
 }
 

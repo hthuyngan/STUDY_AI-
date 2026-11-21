@@ -12,6 +12,7 @@ import {
   Target,
 } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useAuth } from '@/auth/useAuth'
 import { PracticeSetup } from '@/components/practice/PracticeSetup'
 import { Breadcrumb } from '@/components/ui/Breadcrumb'
 import { Button } from '@/components/ui/Button'
@@ -25,6 +26,8 @@ import './PracticeHubPage.css'
 export const PracticeHubPage: React.FC = () => {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
+  const { user } = useAuth()
+  const userGradeLabel = user?.grade ? `Toán ${user.grade}` : 'Toán 10–12'
   const initialTab = searchParams.get('tab') === 'mistakes'
     ? 'mistakes'
     : searchParams.get('tab') === 'history'
@@ -114,7 +117,7 @@ export const PracticeHubPage: React.FC = () => {
           <span>{isExamMode ? 'CHẾ ĐỘ THI THỬ CHUẨN HOÁ · GDPT 2018' : 'HỆ THỐNG LUYỆN TẬP XÁC ĐỊNH · GDPT 2018'}</span>
         </div>
         <h1 className="hub-hero-title">
-          {isExamMode ? 'Thi thử trực tuyến môn Toán 12' : 'Luyện tập & Đánh giá năng lực Toán 12'}
+          {isExamMode ? `Thi thử trực tuyến môn ${userGradeLabel}` : `Luyện tập & Đánh giá năng lực ${userGradeLabel}`}
         </h1>
         <p className="hub-hero-desc">
           {isExamMode
@@ -243,7 +246,7 @@ export const PracticeHubPage: React.FC = () => {
                   icon={Play}
                   onClick={() =>
                     handleStartSession({
-                      subjectId: 'sub_math12',
+                      subjectId: user?.grade === '10' ? 'sub_math10' : user?.grade === '11' ? 'sub_math11' : 'sub_math12',
                       mode: 'adaptive',
                       limit: 10,
                     })

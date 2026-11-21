@@ -129,9 +129,11 @@ export interface PracticeSetupConfig {
   subjectId: string
   chapterId?: string
   lessonId?: string
+  skillId?: string
   skillIds?: string[]
   questionType?: QuestionType
   difficulty?: QuestionDifficulty
+  grade?: string
   limit: number // e.g. 5, 10
   mode?: 'practice' | 'exam' | 'adaptive'
   timeLimitMinutes?: number

@@ -12,6 +12,10 @@ public class CreatePracticeSessionRequest
     public string Mode { get; set; } = "practice"; // "practice", "exam", "lesson", "smart_review"
     public int? TimeLimitMinutes { get; set; } // e.g. 50, 60, 90
     public string? BlueprintId { get; set; }
+    public string? SkillId { get; set; }
+    public List<string>? SkillIds { get; set; }
+    public string? QuestionType { get; set; }
+    public string? Grade { get; set; }
 }
 
 public class PracticeQuestionDto
@@ -79,6 +83,10 @@ public class QuestionResultItemDto
     public bool IsCorrect { get; set; }
     public string? Explanation { get; set; }
     public string Difficulty { get; set; } = string.Empty;
+    public string Type { get; set; } = "multiple-choice";
+    public string? QuestionType { get; set; }
+    public List<string> SkillIds { get; set; } = new();
+    public string? CognitiveLevel { get; set; }
 }
 
 public class PracticeResultDto
@@ -86,6 +94,8 @@ public class PracticeResultDto
     public string ResultId { get; set; } = string.Empty;
     public string SessionId { get; set; } = string.Empty;
     public string SubjectId { get; set; } = string.Empty;
+    public string? ChapterId { get; set; }
+    public string? LessonId { get; set; }
     public string Mode { get; set; } = "practice";
     public int TotalQuestions { get; set; }
     public int CorrectCount { get; set; }
@@ -95,6 +105,7 @@ public class PracticeResultDto
     public double ScoreScaled { get; set; } // Out of 10.0
     public bool Passed { get; set; }
     public int TimeSpentSeconds { get; set; }
+    public DateTimeOffset? StartedAt { get; set; }
     public DateTimeOffset CompletedAt { get; set; }
     public List<QuestionResultItemDto> Questions { get; set; } = new();
     public Dictionary<string, double> PerformanceByDifficulty { get; set; } = new();
@@ -142,6 +153,8 @@ public class LearnerDashboardStatsDto
     public int StreakDays { get; set; }
     public int TotalMistakes { get; set; }
     public int DueReviewsCount { get; set; }
+    public int TotalStudyMinutes { get; set; }
+    public int TotalSessions { get; set; }
     public List<SubjectDashboardProgressDto> SubjectProgress { get; set; } = new();
     public List<RecentPracticeAttemptDto> RecentAttempts { get; set; } = new();
 }

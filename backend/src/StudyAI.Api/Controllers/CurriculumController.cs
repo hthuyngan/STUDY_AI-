@@ -536,4 +536,57 @@ public class CurriculumController : ControllerBase
 
         return Ok(response);
     }
+
+    [HttpGet("materials")]
+    public async Task<IActionResult> GetMaterials(
+        [FromQuery] string? category = null,
+        [FromQuery] string? subjectId = null,
+        [FromQuery] string? search = null)
+    {
+        var query = _db.ContentLessons.AsNoTracking()
+            .Include(l => l.Chapter)
+            .ThenInclude(c => c!.Subject)
+            .Where(l => l.Status == "published");
+
+        if (!string.IsNullOrWhiteSpace(subjectId) && subjectId != "all")
+        {
+            query = query.Where(l => l.Chapter != null && (l.Chapter.SubjectId == subjectId || (l.Chapter.Subject != null && l.Chapter.Subject.Code == subjectId)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim().ToLower();
+            query = query.Where(l => l.Title.ToLower().Contains(s) || (l.Introduction != null && l.Introduction.ToLower().Contains(s)));
+        }
+
+        var lessons = await query
+            .OrderBy(l => l.Chapter!.OrderIndex)
+            .ThenBy(l => l.OrderIndex)
+            .ToListAsync();
+
+        var materials = lessons.Select(l =>
+        {
+            var hasFormulas = !string.IsNullOrWhiteSpace(l.FormulasJson) && l.FormulasJson != "[]";
+            var itemCategory = hasFormulas ? "Công thức" : "Tài liệu";
+
+            return new
+            {
+                id = l.Id,
+                title = l.Title,
+                category = itemCategory,
+                subjectId = l.Chapter?.SubjectId ?? "sub_math12",
+                subjectName = l.Chapter?.Subject?.Name ?? "Toán học",
+                snippet = !string.IsNullOrWhiteSpace(l.Introduction) ? l.Introduction : l.Title,
+                pagesCount = Math.Max(3, (l.DefinitionsJson?.Length ?? 0) / 50 + 2),
+                updatedAt = l.UpdatedAt.ToString("dd/MM/yyyy")
+            };
+        });
+
+        if (!string.IsNullOrWhiteSpace(category) && category != "all" && category != "Đã lưu")
+        {
+            materials = materials.Where(m => m.category == category);
+        }
+
+        return Ok(materials.ToList());
+    }
 }

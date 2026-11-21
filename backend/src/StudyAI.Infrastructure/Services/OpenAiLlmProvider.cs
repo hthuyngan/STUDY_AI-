@@ -88,6 +88,8 @@ public class OpenAiLlmProvider : ILlmProvider
 
     public async Task<LlmCompletionResponse> GenerateCompletionAsync(LlmCompletionRequest request)
     {
+        request.CancellationToken.ThrowIfCancellationRequested();
+
         var apiKey = _configuration["Llm:ApiKey"] ?? Environment.GetEnvironmentVariable("STUDY_AI_LLM_API_KEY");
         if (string.IsNullOrWhiteSpace(apiKey))
         {

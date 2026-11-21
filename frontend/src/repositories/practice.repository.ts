@@ -1,4 +1,5 @@
 import type { PracticeResult, PracticeSession } from '@/types/practice'
+import { getStorageKey, getCurrentIdentity } from './storageKeys'
 
 const SESSIONS_STORAGE_KEY = 'study_ai_practice_sessions_v1'
 const RESULTS_STORAGE_KEY = 'study_ai_practice_results_v1'
@@ -19,11 +20,13 @@ export interface IPracticeRepository {
 
   // Storage maintenance
   clearAll(): Promise<void>
+  clearCache(): void
 }
 
 export class PracticeRepository implements IPracticeRepository {
   private sessionsCache: PracticeSession[] | null = null
   private resultsCache: PracticeResult[] | null = null
+  private cachedIdentity: string | null = null
 
   private getLocalStorage(): Storage | null {
     if (typeof window !== 'undefined' && window.localStorage) {
@@ -32,7 +35,31 @@ export class PracticeRepository implements IPracticeRepository {
     return null
   }
 
+  private ensureIdentity(): void {
+    const currentId = getCurrentIdentity()
+    if (this.cachedIdentity !== currentId) {
+      this.sessionsCache = null
+      this.resultsCache = null
+      this.cachedIdentity = currentId
+    }
+  }
+
+  private getSessionsKey(): string {
+    return getStorageKey('practice_sessions')
+  }
+
+  private getResultsKey(): string {
+    return getStorageKey('practice_results')
+  }
+
+  public clearCache(): void {
+    this.sessionsCache = null
+    this.resultsCache = null
+    this.cachedIdentity = null
+  }
+
   private loadSessions(): PracticeSession[] {
+    this.ensureIdentity()
     if (this.sessionsCache) return this.sessionsCache
 
     const storage = this.getLocalStorage()
@@ -42,7 +69,11 @@ export class PracticeRepository implements IPracticeRepository {
     }
 
     try {
-      const raw = storage.getItem(SESSIONS_STORAGE_KEY)
+      const key = this.getSessionsKey()
+      let raw = storage.getItem(key)
+      if (!raw && this.cachedIdentity?.startsWith('guest_')) {
+        raw = storage.getItem(SESSIONS_STORAGE_KEY)
+      }
       if (raw) {
         const parsed = JSON.parse(raw)
         if (Array.isArray(parsed)) {
@@ -62,11 +93,12 @@ export class PracticeRepository implements IPracticeRepository {
   }
 
   private persistSessions(sessions: PracticeSession[]): void {
+    this.ensureIdentity()
     this.sessionsCache = sessions
     const storage = this.getLocalStorage()
     if (storage) {
       try {
-        storage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(sessions))
+        storage.setItem(this.getSessionsKey(), JSON.stringify(sessions))
       } catch {
         // Storage quota exceeded or disabled
       }
@@ -74,6 +106,7 @@ export class PracticeRepository implements IPracticeRepository {
   }
 
   private loadResults(): PracticeResult[] {
+    this.ensureIdentity()
     if (this.resultsCache) return this.resultsCache
 
     const storage = this.getLocalStorage()
@@ -83,7 +116,11 @@ export class PracticeRepository implements IPracticeRepository {
     }
 
     try {
-      const raw = storage.getItem(RESULTS_STORAGE_KEY)
+      const key = this.getResultsKey()
+      let raw = storage.getItem(key)
+      if (!raw && this.cachedIdentity?.startsWith('guest_')) {
+        raw = storage.getItem(RESULTS_STORAGE_KEY)
+      }
       if (raw) {
         const parsed = JSON.parse(raw)
         if (Array.isArray(parsed)) {
@@ -102,11 +139,12 @@ export class PracticeRepository implements IPracticeRepository {
   }
 
   private persistResults(results: PracticeResult[]): void {
+    this.ensureIdentity()
     this.resultsCache = results
     const storage = this.getLocalStorage()
     if (storage) {
       try {
-        storage.setItem(RESULTS_STORAGE_KEY, JSON.stringify(results))
+        storage.setItem(this.getResultsKey(), JSON.stringify(results))
       } catch {
         // Storage quota exceeded or disabled
       }
@@ -197,12 +235,17 @@ export class PracticeRepository implements IPracticeRepository {
   }
 
   async clearAll(): Promise<void> {
+    this.ensureIdentity()
     this.sessionsCache = []
     this.resultsCache = []
     const storage = this.getLocalStorage()
     if (storage) {
-      storage.removeItem(SESSIONS_STORAGE_KEY)
-      storage.removeItem(RESULTS_STORAGE_KEY)
+      storage.removeItem(this.getSessionsKey())
+      storage.removeItem(this.getResultsKey())
+      if (this.cachedIdentity?.startsWith('guest_')) {
+        storage.removeItem(SESSIONS_STORAGE_KEY)
+        storage.removeItem(RESULTS_STORAGE_KEY)
+      }
     }
   }
 }

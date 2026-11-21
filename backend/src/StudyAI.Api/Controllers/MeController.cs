@@ -127,8 +127,19 @@ public class MeController : ControllerBase
     [HttpPost("assessment-attempts")]
     public async Task<IActionResult> CreateMyAssessmentAttempt([FromBody] AssessmentAttemptCreateDto dto)
     {
-        var attempt = await SaveAttemptInternal(dto);
-        return StatusCode(201, FormatAttempt(attempt));
+        try
+        {
+            var attempt = await SaveAttemptInternal(dto);
+            return StatusCode(201, FormatAttempt(attempt));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { detail = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { detail = ex.Message });
+        }
     }
 
     [HttpPut("assessment-attempts/{attemptId}")]
@@ -136,8 +147,19 @@ public class MeController : ControllerBase
     public async Task<IActionResult> UpdateMyAssessmentAttempt(string attemptId, [FromBody] AssessmentAttemptCreateDto dto)
     {
         dto.Id = attemptId;
-        var attempt = await SaveAttemptInternal(dto);
-        return Ok(FormatAttempt(attempt));
+        try
+        {
+            var attempt = await SaveAttemptInternal(dto);
+            return Ok(FormatAttempt(attempt));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { detail = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { detail = ex.Message });
+        }
     }
 
     // ── Learning Events ──────────────────────────────────────────────────────────
@@ -355,6 +377,25 @@ public class MeController : ControllerBase
         }
         else
         {
+            if (attempt.CompletionStatus == "completed")
+            {
+                throw new InvalidOperationException("Phiên làm bài đã hoàn thành không thể chỉnh sửa.");
+            }
+
+            if (!string.IsNullOrEmpty(attempt.LessonId) && !string.IsNullOrEmpty(dto.LessonId) && attempt.LessonId != dto.LessonId)
+            {
+                throw new InvalidOperationException($"Không thể thay đổi bài học của phiên làm bài từ '{attempt.LessonId}' sang '{dto.LessonId}'.");
+            }
+
+            if (!string.IsNullOrEmpty(attempt.SubjectId) && !string.IsNullOrEmpty(dto.SubjectId) && attempt.SubjectId != dto.SubjectId)
+            {
+                throw new InvalidOperationException($"Không thể thay đổi môn học của phiên làm bài từ '{attempt.SubjectId}' sang '{dto.SubjectId}'.");
+            }
+
+            if (string.IsNullOrEmpty(attempt.LessonId) && !string.IsNullOrEmpty(dto.LessonId)) attempt.LessonId = dto.LessonId;
+            if (string.IsNullOrEmpty(attempt.SubjectId) && !string.IsNullOrEmpty(dto.SubjectId)) attempt.SubjectId = dto.SubjectId;
+            if (string.IsNullOrEmpty(attempt.AssessmentId) && !string.IsNullOrEmpty(dto.AssessmentId)) attempt.AssessmentId = dto.AssessmentId;
+
             attempt.LastActivityAt = dto.LastActivityAt == default ? DateTimeOffset.UtcNow : dto.LastActivityAt;
             attempt.CompletedAt = dto.CompletedAt ?? attempt.CompletedAt;
             attempt.CompletionStatus = dto.CompletionStatus ?? attempt.CompletionStatus;
@@ -492,4 +533,162 @@ public class MeController : ControllerBase
             Responses = respDict
         };
     }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // LIBRARY BOOKMARKS (PERSISTED IN LEARNING EVENTS)
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    [HttpGet("bookmarks")]
+    public async Task<IActionResult> GetBookmarks()
+    {
+        var bookmarks = await _db.LearningEvents.AsNoTracking()
+            .Where(e => e.UserId == CurrentUserId && e.Type == "library_bookmark")
+            .OrderByDescending(e => e.Timestamp)
+            .Select(e => new
+            {
+                id = e.Id,
+                itemId = e.LessonId,
+                subjectId = e.SubjectId,
+                createdAt = e.Timestamp,
+                payload = e.PayloadJson
+            })
+            .ToListAsync();
+
+        return Ok(bookmarks);
+    }
+
+    [HttpPost("bookmarks")]
+    public async Task<IActionResult> AddBookmark([FromBody] CreateBookmarkRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.ItemId))
+        {
+            return BadRequest(new { detail = "ItemId không được để trống." });
+        }
+
+        var existing = await _db.LearningEvents
+            .FirstOrDefaultAsync(e => e.UserId == CurrentUserId && e.Type == "library_bookmark" && e.LessonId == request.ItemId);
+
+        if (existing != null)
+        {
+            return Ok(new { success = true, itemId = request.ItemId, message = "Đã tồn tại đánh dấu." });
+        }
+
+        var bookmarkEvent = new LearningEvent
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            UserId = CurrentUserId,
+            Type = "library_bookmark",
+            LessonId = request.ItemId,
+            SubjectId = request.SubjectId ?? string.Empty,
+            Timestamp = DateTimeOffset.UtcNow,
+            PayloadJson = JsonSerializer.Serialize(new { title = request.Title ?? string.Empty }),
+            SchemaVersion = 1
+        };
+
+        _db.LearningEvents.Add(bookmarkEvent);
+        await _db.SaveChangesAsync();
+
+        return Ok(new { success = true, itemId = request.ItemId });
+    }
+
+    [HttpDelete("bookmarks/{itemId}")]
+    public async Task<IActionResult> RemoveBookmark(string itemId)
+    {
+        if (string.IsNullOrWhiteSpace(itemId))
+        {
+            return BadRequest(new { detail = "ItemId không được để trống." });
+        }
+
+        var existing = await _db.LearningEvents
+            .Where(e => e.UserId == CurrentUserId && e.Type == "library_bookmark" && e.LessonId == itemId)
+            .ToListAsync();
+
+        if (existing.Count > 0)
+        {
+            _db.LearningEvents.RemoveRange(existing);
+            await _db.SaveChangesAsync();
+        }
+
+        return Ok(new { success = true, itemId });
+    }
+
+    // ── User Preferences ─────────────────────────────────────────────────────────
+
+    [HttpGet("preferences")]
+    public async Task<IActionResult> GetUserPreferences(CancellationToken cancellationToken = default)
+    {
+        var prefEvent = await _db.LearningEvents.AsNoTracking()
+            .Where(e => e.UserId == CurrentUserId && e.Type == "user_preference")
+            .OrderByDescending(e => e.Timestamp)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (prefEvent != null && !string.IsNullOrWhiteSpace(prefEvent.PayloadJson))
+        {
+            try
+            {
+                var pref = JsonSerializer.Deserialize<UserPreferencesDto>(
+                    prefEvent.PayloadJson,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (pref != null) return Ok(pref);
+            }
+            catch
+            {
+                // fallback to default
+            }
+        }
+
+        return Ok(new UserPreferencesDto());
+    }
+
+    [HttpPut("preferences")]
+    public async Task<IActionResult> UpdateUserPreferences(
+        [FromBody] UserPreferencesDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        if (dto.DailyGoalMinutes < 5 || dto.DailyGoalMinutes > 480)
+        {
+            return BadRequest(new { detail = "DailyGoalMinutes phải từ 5 đến 480 phút." });
+        }
+
+        var prefEvent = await _db.LearningEvents
+            .FirstOrDefaultAsync(e => e.UserId == CurrentUserId && e.Type == "user_preference", cancellationToken);
+
+        if (prefEvent == null)
+        {
+            prefEvent = new LearningEvent
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                UserId = CurrentUserId,
+                Type = "user_preference",
+                Timestamp = DateTimeOffset.UtcNow,
+                PayloadJson = JsonSerializer.Serialize(dto),
+                SchemaVersion = 1
+            };
+            _db.LearningEvents.Add(prefEvent);
+        }
+        else
+        {
+            prefEvent.PayloadJson = JsonSerializer.Serialize(dto);
+            prefEvent.Timestamp = DateTimeOffset.UtcNow;
+            prefEvent.SchemaVersion += 1;
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
+        return Ok(dto);
+    }
 }
+
+public record CreateBookmarkRequest(string ItemId, string? SubjectId = null, string? Title = null);
+
+public class UserPreferencesDto
+{
+    public string Theme { get; set; } = "system";
+    public int DailyGoalMinutes { get; set; } = 45;
+    public bool StudyReminder { get; set; } = true;
+    public bool StreakAlert { get; set; } = true;
+    public bool CourseAlert { get; set; } = true;
+    public string AiResponseStyle { get; set; } = "balanced";
+    public string StudyGoal { get; set; } = "Chinh phục kỳ thi THPT Quốc Gia với điểm số 8.5+";
+    public double TargetScore { get; set; } = 8.5;
+}
+

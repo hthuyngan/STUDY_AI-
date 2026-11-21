@@ -1,23 +1,28 @@
 import React from 'react'
 import { ArrowRight, BookOpen, Play } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '@/auth/useAuth'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { usePersonalization } from '@/hooks/usePersonalization'
 
 export const AdaptiveLearningWidget: React.FC = () => {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { data: personalizationData } = usePersonalization()
 
   const path = personalizationData?.learningPath
   const nextStep = path?.steps?.find((s) => !s.isCompleted) || path?.steps?.[0]
+  const userGradeLabel = user?.grade ? `Toán ${user.grade}` : 'Toán 12'
+  const defaultSubjectId = user?.grade === '10' ? 'sub_math10' : user?.grade === '11' ? 'sub_math11' : 'sub_math12'
 
   const handleStartNextLesson = () => {
     if (nextStep) {
       if (nextStep.targetRoute) {
         navigate(nextStep.targetRoute)
       } else if (nextStep.lessonId) {
-        navigate(`/subjects/math/lessons/${nextStep.lessonId}`)
+        const subjectId = (nextStep as any).subjectId || defaultSubjectId
+        navigate(`/subjects/${subjectId}/lessons/${nextStep.lessonId}`)
       } else {
         navigate('/subjects')
       }
@@ -72,7 +77,7 @@ export const AdaptiveLearningWidget: React.FC = () => {
                   {nextStep.badgeText || 'Đề xuất tối ưu'}
                 </span>
                 <span style={{ fontSize: '0.8rem', color: '#64748B' }}>
-                  Bước {nextStep.stepNumber} · Toán 12
+                  Bước {nextStep.stepNumber} · {userGradeLabel}
                 </span>
               </div>
               <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0F172A', margin: '0 0 4px' }}>

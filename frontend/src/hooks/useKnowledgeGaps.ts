@@ -3,23 +3,38 @@ import {
   KNOWLEDGE_GAPS_CHANGED_EVENT,
   knowledgeGapsService,
 } from '@/services/knowledgeGaps.service'
+import { getAccessToken } from '@/auth/authSession'
 import type {
   KnowledgeGap,
   KnowledgeGapsSummary,
 } from '@/types/knowledgeGaps'
 
-export function useKnowledgeGaps() {
+export function useKnowledgeGaps(subjectId?: string) {
   const [gaps, setGaps] = useState<KnowledgeGap[]>(() =>
-    knowledgeGapsService.getAllGaps()
+    knowledgeGapsService.getAllGaps(subjectId ? { subjectId } : undefined)
   )
   const [summary, setSummary] = useState<KnowledgeGapsSummary>(() =>
     knowledgeGapsService.getSummary()
   )
 
   const refresh = useCallback(() => {
-    setGaps(knowledgeGapsService.getAllGaps())
+    setGaps(knowledgeGapsService.getAllGaps(subjectId ? { subjectId } : undefined))
     setSummary(knowledgeGapsService.getSummary())
-  }, [])
+  }, [subjectId])
+
+  useEffect(() => {
+    let active = true
+    if (getAccessToken()) {
+      knowledgeGapsService.syncFromBackend(subjectId).then(() => {
+        if (active) {
+          refresh()
+        }
+      })
+    }
+    return () => {
+      active = false
+    }
+  }, [subjectId, refresh])
 
   useEffect(() => {
     const handleGapsChanged = () => {

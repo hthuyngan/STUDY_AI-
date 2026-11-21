@@ -1,3 +1,5 @@
+> **CẬP NHẬT CHỈ ĐẠO 20/11/2026 (L02):** Chủ dự án đã yêu cầu **một BIG PHASE** hoàn thành liên tục các module P02–P10 trên một branch/Draft PR thay vì nhiều đợt sửa lẻ tẻ. Khi làm việc trên `feature/math10-12-integrated-learner-ai-fullstack`, hãy **ưu tiên prompt mới** tại [`ANTIGRAVITY_L02_BIG_PHASE_EXECUTION_PROMPT.md`](./ANTIGRAVITY_L02_BIG_PHASE_EXECUTION_PROMPT.md) và [kế hoạch L02](../plans/PHASE-L02-MATH10_12-INTEGRATED-DELIVERY.md). Tất cả nguyên tắc an toàn database/zero mock/B.E. review vẫn áp dụng. **HEAD P01 có Live Browser E2E thất bại; phải sửa đầu tiên.**
+
 # MASTER PROMPT CHO ANTIGRAVITY / ANTI CODE — STUDY_AI Math 10–12
 
 > Sao chép TOÀN BỘ nội dung từ mục "PROMPT" trở xuống vào Antigravity (AI coding agent). Đây là prompt điều phối nhiều phase, KHÔNG yêu cầu agent code tất cả cùng một lượt.

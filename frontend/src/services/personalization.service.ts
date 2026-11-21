@@ -7,6 +7,8 @@
 
 import { practiceRepository } from '@/repositories/practice.repository'
 import { questionBankRepository } from '@/repositories/questionBank.repository'
+import { apiClient } from '@/lib/apiClient'
+import { getAccessToken, getAuthUser } from '@/auth/authSession'
 import { aggregateSkillEvidence } from './evidenceAggregationEngine'
 import { analyzeSkillPerformances } from './skillPerformanceEngine'
 import { detectKnowledgeGaps } from './knowledgeGapDetectionEngine'
@@ -16,6 +18,7 @@ import {
   generateAdaptiveLearningPath,
 } from './adaptiveLearningPathService'
 import type {
+  ConfidenceLevel,
   KnowledgeGapItem,
   LearnerAnalyticsSummary,
   LearningRecommendation,
@@ -54,6 +57,129 @@ export const personalizationService = {
    * Retrieves full personalized analytics data based on actual practice records.
    */
   async getOverview(): Promise<PersonalizationOverview> {
+    const authUser = getAuthUser()
+    const token = getAccessToken()
+
+    if (authUser && token) {
+      try {
+        const [serverStats, serverRecs, serverGaps, serverPath] = await Promise.all([
+          apiClient.get<any>('/api/v1/practice/dashboard-stats'),
+          apiClient.get<any[]>('/api/v1/ai/recommendations'),
+          apiClient.get<any[]>('/api/v1/ai/knowledge-gaps'),
+          apiClient.get<any>('/api/v1/ai/learning-path'),
+        ])
+
+        const hasData = Boolean(serverStats && serverStats.totalQuestionsPracticed > 0)
+
+        const gaps: KnowledgeGapItem[] = (serverGaps || []).map((g: any) => {
+          const mistakes = Number(g.mistakeCount) || 1
+          const confidenceLevel: ConfidenceLevel = mistakes >= 3 ? 'high' : mistakes === 2 ? 'moderate' : 'low'
+          return {
+            id: g.id || `gap_${g.skillId}`,
+            skillId: g.skillId || 'unknown',
+            skillName: g.skillName || 'Kỹ năng cần ôn tập',
+            gapLevel: g.severity === 'critical' ? 'critical' : g.severity === 'minor' ? 'minor' : 'moderate',
+            scoreRatio: (g.accuracyPercent || 0) / 100,
+            evidenceSummary: g.evidenceSummary || 'Làm sai trong các bài luyện tập',
+            confidenceLevel,
+            relatedLessonIds: g.recommendedLessonId ? [g.recommendedLessonId] : [],
+            recommendedActions: g.actionSteps || [],
+            detectedAt: g.detectedAt || new Date().toISOString(),
+          }
+        })
+
+        const recommendations: LearningRecommendation[] = (serverRecs || []).map((r: any) => ({
+          id: r.id || `rec_${Math.random().toString(36).substring(2, 9)}`,
+          skillId: r.topicName || r.lessonId,
+          skillName: r.topicName || r.lessonTitle,
+          title: r.priority === 'high' ? `Khắc phục lỗ hổng: ${r.topicName}` : `Bài học tiếp theo: ${r.lessonTitle}`,
+          reason: r.reason,
+          evidence: r.reason,
+          actionType: r.priority === 'high' ? 'review_lesson' : 'continue_learning',
+          targetLessonId: r.lessonId,
+          targetSubjectId: r.subjectId || (authUser.grade === '10' ? 'sub_math10' : authUser.grade === '11' ? 'sub_math11' : 'sub_math12'),
+          priority: r.priority === 'high' ? 'high' : 'medium',
+          createdAt: new Date().toISOString(),
+        }))
+
+        const learningPath: PersonalizedLearningPath = serverPath?.steps && serverPath.steps.length > 0
+          ? {
+              id: serverPath.id || `alp_${authUser.id}`,
+              generatedAt: serverPath.generatedAt || new Date().toISOString(),
+              sourceResultIds: [],
+              steps: serverPath.steps.map((st: any) => ({
+                id: `step-${st.stepNumber}`,
+                stepNumber: st.stepNumber,
+                title: st.title,
+                objective: st.objective,
+                reason: st.objective,
+                actionType: st.actionType === 'diagnostic_practice' ? 'diagnostic_practice' : 'review_lesson',
+                targetRoute: st.targetRoute,
+                lessonId: st.lessonId,
+                isCompleted: st.isCompleted || false,
+                badgeText: st.priority === 'high' ? 'Cần củng cố' : 'Đề xuất',
+              })),
+              explanation: serverPath.stageDescription || 'Lộ trình tối ưu GDPT 2018',
+              status: 'active',
+            }
+          : {
+              id: `alp_${authUser.id}`,
+              generatedAt: new Date().toISOString(),
+              sourceResultIds: [],
+              steps: [],
+              explanation: 'Chưa có đủ kết quả đánh giá để xây dựng lộ trình thích ứng.',
+              status: 'empty',
+            }
+
+        const subjects: any[] = serverStats?.subjectProgress || []
+        const skillsEvaluatedCount = subjects.filter((s: any) => (s.questionsPracticed || 0) > 0).length
+        const skillsWithSufficientDataCount = subjects.filter((s: any) => (s.questionsPracticed || 0) >= 5).length
+        const skillsNeedingDataCount = subjects.filter((s: any) => (s.questionsPracticed || 0) > 0 && (s.questionsPracticed || 0) < 5).length
+
+        const summary: LearnerAnalyticsSummary = {
+          totalSessions: serverStats?.totalSessions ?? serverStats?.recentAttempts?.length ?? 0,
+          totalQuestionsAnswered: serverStats?.totalQuestionsPracticed || 0,
+          uniqueQuestionsAnswered: serverStats?.totalQuestionsPracticed || 0,
+          overallScoreRatio: (serverStats?.accuracyRate || 0) / 100,
+          skillsEvaluatedCount: skillsEvaluatedCount > 0 ? skillsEvaluatedCount : gaps.length,
+          skillsWithSufficientDataCount,
+          skillsNeedingDataCount,
+          knowledgeGapsCount: gaps.length,
+          firstSessionAt: serverStats?.recentAttempts?.[serverStats.recentAttempts.length - 1]?.completedAt || null,
+          lastSessionAt: serverStats?.recentAttempts?.[0]?.completedAt || null,
+        }
+
+        const performances: SkillPerformance[] = subjects.map((s: any) => {
+          const count = s.questionsPracticed || 0
+          const ratio = (s.accuracyPercent || 0) / 100
+          const conf: ConfidenceLevel = count >= 5 ? 'high' : count >= 3 ? 'moderate' : count >= 1 ? 'low' : 'insufficient'
+          return {
+            skillId: s.subjectId,
+            skillName: s.subjectName,
+            scoreRatio: ratio,
+            evidenceCount: count,
+            confidenceLevel: conf,
+            trend: 'stable' as const,
+            status: count === 0 ? 'no_data' : count < 3 ? 'insufficient_data' : ratio >= 0.8 ? 'proficient' : ratio >= 0.5 ? 'reinforcing' : 'needs_review',
+            lastPracticedAt: serverStats?.recentAttempts?.[0]?.completedAt || new Date().toISOString(),
+            relatedLessonIds: [],
+          }
+        })
+
+        return {
+          summary,
+          performances,
+          gaps,
+          recommendations,
+          learningPath,
+          evidenceMap: {},
+          hasData,
+        }
+      } catch (err: any) {
+        throw new Error(`Không thể tải dữ liệu phân tích cá nhân hóa từ máy chủ: ${err?.message || 'Lỗi mạng'}`)
+      }
+    }
+
     const results = await practiceRepository.getAllResults()
     const allQuestions = await questionBankRepository.getAll()
 

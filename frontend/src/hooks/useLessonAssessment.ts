@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useRef, useState } from 'react'
+import { AuthContext } from '@/auth/AuthContext'
+import { LEARNING_STATE_CHANGED_EVENT } from '@/services/learningStateEvents'
 import {
   getActiveUnfinishedAttempt,
   getLatestCompletedAttempt,
@@ -49,13 +51,40 @@ export function useLessonAssessment({
   const questions = assessment.questions
   const currentQuestion: AssessmentQuestion | undefined = questions[currentQuestionIndex]
 
-  // Sync state on lesson change
+  // Reactive auth user identity
+  const auth = useContext(AuthContext)
+  const currentUserId = auth?.user?.id
+
+  const refreshAttempts = useCallback(() => {
+    const targetLessonId = assessment.lessonId || ''
+    if (!targetLessonId) return
+    const unfinished = getActiveUnfinishedAttempt(targetLessonId)
+    setActiveAttempt(unfinished)
+    setLatestCompletedAttempt(getLatestCompletedAttempt(targetLessonId))
+  }, [assessment.lessonId])
+
+  // Sync state on lessonId change or auth user change
   const [trackedLessonId, setTrackedLessonId] = useState(assessment.lessonId)
   if (trackedLessonId !== assessment.lessonId) {
     setTrackedLessonId(assessment.lessonId)
-    setActiveAttempt(getActiveUnfinishedAttempt(assessment.lessonId))
-    setLatestCompletedAttempt(getLatestCompletedAttempt(assessment.lessonId))
+    refreshAttempts()
   }
+
+  useEffect(() => {
+    refreshAttempts()
+  }, [refreshAttempts, currentUserId])
+
+  // Re-sync on global learning state changes (e.g. background sync or save events)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const handleStateChange = () => {
+      refreshAttempts()
+    }
+    window.addEventListener(LEARNING_STATE_CHANGED_EVENT, handleStateChange)
+    return () => {
+      window.removeEventListener(LEARNING_STATE_CHANGED_EVENT, handleStateChange)
+    }
+  }, [refreshAttempts])
 
   // Accumulate time spent on current question
   const flushCurrentQuestionTime = useCallback(() => {
