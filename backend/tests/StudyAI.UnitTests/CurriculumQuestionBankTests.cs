@@ -15,7 +15,7 @@ namespace StudyAI.UnitTests;
 
 public class CurriculumQuestionBankTests
 {
-    private (CurriculumController controller, StudyAIDbContext db) CreateCurriculumController(string dbName)
+    private (CurriculumController controller, StudyAIDbContext db) CreateCurriculumController(string dbName, string? role = null)
     {
         var options = new DbContextOptionsBuilder<StudyAIDbContext>()
             .UseInMemoryDatabase(databaseName: dbName)
@@ -26,6 +26,19 @@ public class CurriculumQuestionBankTests
         var logger = NullLogger<CurriculumController>.Instance;
 
         var controller = new CurriculumController(context, memoryCache, logger);
+        if (role != null)
+        {
+            var userPrincipal = new ClaimsPrincipal(new ClaimsIdentity(new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, "usr_staff"),
+                new Claim(ClaimTypes.Role, role)
+            }, "TestAuth"));
+
+            controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext { User = userPrincipal }
+            };
+        }
         return (controller, context);
     }
 
@@ -225,7 +238,7 @@ public class CurriculumQuestionBankTests
     [Fact]
     public async Task GetQuestionBank_ReturnsProperDiscriminatedUnionFields_ForVariants()
     {
-        var (controller, db) = CreateCurriculumController(Guid.NewGuid().ToString());
+        var (controller, db) = CreateCurriculumController(Guid.NewGuid().ToString(), "content");
 
         db.ContentQuestions.AddRange(
             new ContentQuestion
@@ -302,6 +315,58 @@ public class CurriculumQuestionBankTests
         var acc = sa["acceptedAnswers"]?.AsArray();
         Assert.NotNull(acc);
         Assert.Equal(2, acc.Count);
+    }
+
+    [Fact]
+    public async Task GetQuestionBank_StripsAnswers_ForLearnersAndUnauthenticatedUsers()
+    {
+        var (controller, db) = CreateCurriculumController(Guid.NewGuid().ToString(), "learner");
+
+        db.ContentQuestions.AddRange(
+            new ContentQuestion
+            {
+                Id = "q_mcq_secret",
+                SubjectId = "sub_math12",
+                Grade = "12",
+                Prompt = "Câu hỏi trắc nghiệm bí mật",
+                Status = "published",
+                Type = "multiple-choice",
+                OptionsJson = "[\"Đáp án A\", \"Đáp án B\"]",
+                CorrectAnswer = "A",
+                Explanation = "Lời giải chi tiết câu hỏi"
+            },
+            new ContentQuestion
+            {
+                Id = "q_tfg_secret",
+                SubjectId = "sub_math12",
+                Grade = "12",
+                Prompt = "Câu đúng sai cụm bí mật",
+                Status = "published",
+                Type = "true_false_group",
+                OptionsJson = "[\"Mệnh đề 1\"]",
+                MetadataJson = "{\"subItems\":[{\"id\":\"a\",\"prompt\":\"Mệnh đề 1\",\"isCorrect\":true}]}"
+            }
+        );
+        await db.SaveChangesAsync();
+
+        var result = await controller.GetQuestionBank(subjectId: "sub_math12") as OkObjectResult;
+        Assert.NotNull(result);
+
+        var json = System.Text.Json.JsonSerializer.Serialize(result.Value);
+        var node = JsonNode.Parse(json);
+        var items = node?["items"]?.AsArray();
+        Assert.NotNull(items);
+
+        var mcq = items.FirstOrDefault(x => x?["id"]?.GetValue<string>() == "q_mcq_secret");
+        Assert.NotNull(mcq);
+        Assert.Null(mcq["correctAnswer"]);
+        Assert.Null(mcq["explanation"]);
+
+        var tfg = items.FirstOrDefault(x => x?["id"]?.GetValue<string>() == "q_tfg_secret");
+        Assert.NotNull(tfg);
+        var subItem = tfg["subItems"]?.AsArray()?.FirstOrDefault();
+        Assert.NotNull(subItem);
+        Assert.Null(subItem["isCorrect"]);
     }
 
     [Fact]

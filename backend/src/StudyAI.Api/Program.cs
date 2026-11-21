@@ -406,7 +406,10 @@ using (var scope = app.Services.CreateScope())
         if (app.Environment.IsDevelopment())
         {
             var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+            await DbInitializer.BootstrapAdminAsync(db, hasher, "admin@studyai.internal", "Admin@123456", "Integration Test Admin");
+            await DbInitializer.BootstrapLearnerAsync(db, hasher, "learner@studyai.internal", "Learner@123456", "Integration Test Learner", "12");
             await DbInitializer.BootstrapStaffAsync(db, hasher, "content@studyai.internal", "Content@123456", "content", "Biên tập viên Nội dung");
+            await DbInitializer.BootstrapStaffAsync(db, hasher, "content2@studyai.internal", "Content2@123456", "content", "Kiểm duyệt viên Nội dung");
         }
     }
     catch (Exception ex)

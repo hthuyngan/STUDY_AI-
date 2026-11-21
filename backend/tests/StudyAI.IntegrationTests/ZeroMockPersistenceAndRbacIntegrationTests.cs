@@ -155,7 +155,8 @@ public class ZeroMockPersistenceAndRbacIntegrationTests : IClassFixture<StudyAIA
     [Fact]
     public async Task Content_Revision_Rollback_Restores_Snapshot_And_Persists_To_SQL()
     {
-        var (contentToken, contentUserId, _) = await CreateAndLoginUserAsync("content", "Biên tập viên Toán");
+        var (authorToken, authorUserId, _) = await CreateAndLoginUserAsync("content", "Biên tập viên Toán");
+        var (reviewerToken, reviewerUserId, _) = await CreateAndLoginUserAsync("content", "Kiểm duyệt viên Toán");
 
         var qCode = $"Q_RB_{Guid.NewGuid():N}"[..12].ToUpperInvariant();
         var originalPrompt = "Cho hàm số f(x) = x^3 - 3x. Tìm số điểm cực trị.";
@@ -179,7 +180,7 @@ public class ZeroMockPersistenceAndRbacIntegrationTests : IClassFixture<StudyAIA
         {
             Content = JsonContent.Create(createPayload)
         };
-        createReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        createReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", authorToken);
         var createResp = await _client.SendAsync(createReq);
         Assert.Equal(HttpStatusCode.Created, createResp.StatusCode);
 
@@ -187,19 +188,25 @@ public class ZeroMockPersistenceAndRbacIntegrationTests : IClassFixture<StudyAIA
         Assert.NotNull(createdItem);
         var questionId = createdItem.Id;
 
-        // 2. Submit Review, Approve, and Publish (creates revision 1)
+        // 2. Submit Review (by Author), Approve & Publish (by Reviewer under Four-Eyes principle)
         var submitReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/questions/{questionId}/submit-review");
-        submitReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        submitReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", authorToken);
         var submitResp = await _client.SendAsync(submitReq);
         Assert.Equal(HttpStatusCode.OK, submitResp.StatusCode);
 
+        // Verify Author CANNOT self-approve (Four-Eyes enforcement)
+        var selfApproveReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/questions/{questionId}/approve");
+        selfApproveReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", authorToken);
+        var selfApproveResp = await _client.SendAsync(selfApproveReq);
+        Assert.Equal(HttpStatusCode.Forbidden, selfApproveResp.StatusCode);
+
         var approveReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/questions/{questionId}/approve");
-        approveReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        approveReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", reviewerToken);
         var approveResp = await _client.SendAsync(approveReq);
         Assert.Equal(HttpStatusCode.OK, approveResp.StatusCode);
 
         var pubReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/questions/{questionId}/publish");
-        pubReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        pubReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", reviewerToken);
         var pubResp = await _client.SendAsync(pubReq);
         Assert.Equal(HttpStatusCode.OK, pubResp.StatusCode);
 
@@ -220,11 +227,11 @@ public class ZeroMockPersistenceAndRbacIntegrationTests : IClassFixture<StudyAIA
         {
             Content = JsonContent.Create(updatePayload)
         };
-        updateReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        updateReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", authorToken);
         var updateResp = await _client.SendAsync(updateReq);
         Assert.Equal(HttpStatusCode.OK, updateResp.StatusCode);
 
-        // 4. Rollback to Revision 1
+        // 4. Rollback to Revision 1 (by Reviewer or Author)
         var rollbackPayload = new RollbackContentRequestDto
         {
             TargetVersion = 1,
@@ -234,7 +241,7 @@ public class ZeroMockPersistenceAndRbacIntegrationTests : IClassFixture<StudyAIA
         {
             Content = JsonContent.Create(rollbackPayload)
         };
-        rollbackReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        rollbackReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", reviewerToken);
         var rollbackResp = await _client.SendAsync(rollbackReq);
         Assert.Equal(HttpStatusCode.OK, rollbackResp.StatusCode);
 

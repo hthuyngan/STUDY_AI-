@@ -21,6 +21,11 @@ import {
   INITIAL_TEACHERS,
 } from '@/data/mock/education.mock'
 
+declare const process: { env?: { NODE_ENV?: string } } | undefined
+
+const isTestEnvironment = (): boolean =>
+  typeof process !== 'undefined' && process.env?.NODE_ENV === 'test' && !getAccessToken()
+
 export const isEducationDemoMode = (): boolean => !getAccessToken()
 
 const STORAGE_KEYS = {
@@ -975,8 +980,19 @@ export const educationService = {
     subjectId?: string
     status?: string
     search?: string
+    lessonId?: string
   }): Promise<CurriculumAssessmentItem[]> {
-    let assessments = readStorage<CurriculumAssessmentItem[]>(STORAGE_KEYS.ASSESSMENTS, INITIAL_ASSESSMENTS)
+    if (getAccessToken()) {
+      const query = new URLSearchParams()
+      if (filter?.subjectId && filter.subjectId !== 'all') query.set('subjectId', filter.subjectId)
+      if (filter?.status && filter.status !== 'all') query.set('status', filter.status)
+      if (filter?.search?.trim()) query.set('search', filter.search.trim())
+      if (filter?.lessonId) query.set('lessonId', filter.lessonId)
+      const res = await apiClient.get<CurriculumAssessmentItem[]>(`/api/v1/content/assessments?${query.toString()}`)
+      return res || []
+    }
+
+    let assessments = readStorage<CurriculumAssessmentItem[]>(STORAGE_KEYS.ASSESSMENTS, isTestEnvironment() ? INITIAL_ASSESSMENTS : [])
 
     if (filter?.subjectId && filter.subjectId !== 'all') {
       assessments = assessments.filter((a) => a.subjectId === filter.subjectId)
@@ -993,6 +1009,14 @@ export const educationService = {
   },
 
   async getAssessmentById(id: string): Promise<CurriculumAssessmentItem | undefined> {
+    if (getAccessToken()) {
+      try {
+        const res = await apiClient.get<CurriculumAssessmentItem>(`/api/v1/content/assessments/${id}`)
+        return res || undefined
+      } catch {
+        return undefined
+      }
+    }
     const assessments = await this.getAssessments()
     return assessments.find((a) => a.id === id)
   },
@@ -1000,6 +1024,17 @@ export const educationService = {
   async createAssessment(
     input: Omit<CurriculumAssessmentItem, 'id' | 'updatedAt'>
   ): Promise<CurriculumAssessmentItem> {
+    if (getAccessToken()) {
+      const payload = {
+        lessonId: input.lessonId,
+        title: input.lessonTitle ? `Bài kiểm tra: ${input.lessonTitle}` : undefined,
+        passingScore: input.passingScore,
+        durationMinutes: input.durationMinutes,
+        status: input.status,
+      }
+      return apiClient.post<CurriculumAssessmentItem>('/api/v1/content/assessments', payload)
+    }
+
     const assessments = await this.getAssessments()
     const id = `asm-${Date.now().toString(36)}`
     const newAssessment: CurriculumAssessmentItem = {
@@ -1027,6 +1062,16 @@ export const educationService = {
     id: string,
     updates: Partial<CurriculumAssessmentItem>
   ): Promise<CurriculumAssessmentItem | undefined> {
+    if (getAccessToken()) {
+      const payload = {
+        title: updates.lessonTitle,
+        passingScore: updates.passingScore,
+        durationMinutes: updates.durationMinutes,
+        status: updates.status,
+      }
+      return apiClient.put<CurriculumAssessmentItem>(`/api/v1/content/assessments/${id}`, payload)
+    }
+
     const assessments = await this.getAssessments()
     let found: CurriculumAssessmentItem | undefined
     const updated = assessments.map((a) => {
@@ -1046,6 +1091,11 @@ export const educationService = {
   },
 
   async deleteAssessment(id: string): Promise<boolean> {
+    if (getAccessToken()) {
+      await apiClient.delete(`/api/v1/content/assessments/${id}`)
+      return true
+    }
+
     const assessments = await this.getAssessments()
     const filtered = assessments.filter((a) => a.id !== id)
     if (filtered.length !== assessments.length) {
@@ -1056,6 +1106,9 @@ export const educationService = {
   },
 
   async changeAssessmentStatus(id: string, status: ContentStatus): Promise<CurriculumAssessmentItem | undefined> {
+    if (getAccessToken()) {
+      return apiClient.put<CurriculumAssessmentItem>(`/api/v1/content/assessments/${id}/status`, { status })
+    }
     return this.updateAssessment(id, { status })
   },
 
@@ -1063,6 +1116,10 @@ export const educationService = {
     assessmentId: string,
     question: Omit<AssessmentQuestionItem, 'id'>
   ): Promise<CurriculumAssessmentItem | undefined> {
+    if (getAccessToken()) {
+      return apiClient.post<CurriculumAssessmentItem>(`/api/v1/content/assessments/${assessmentId}/questions`, question)
+    }
+
     const assessment = await this.getAssessmentById(assessmentId)
     if (!assessment) return undefined
 
@@ -1097,7 +1154,7 @@ export const educationService = {
       return []
     }
 
-    let teachers = readStorage<AdminTeacherItem[]>(STORAGE_KEYS.TEACHERS, INITIAL_TEACHERS)
+    let teachers = readStorage<AdminTeacherItem[]>(STORAGE_KEYS.TEACHERS, isTestEnvironment() ? INITIAL_TEACHERS : [])
 
     if (filter?.subject && filter.subject !== 'all') {
       teachers = teachers.filter((t) => t.subject.toLowerCase().includes(filter.subject!.toLowerCase()))
@@ -1139,7 +1196,7 @@ export const educationService = {
       throw new Error('Máy chủ không thể tạo tài khoản giáo viên.')
     }
 
-    const teachers = readStorage<AdminTeacherItem[]>(STORAGE_KEYS.TEACHERS, INITIAL_TEACHERS)
+    const teachers = readStorage<AdminTeacherItem[]>(STORAGE_KEYS.TEACHERS, isTestEnvironment() ? INITIAL_TEACHERS : [])
     const newTeacher: AdminTeacherItem & { _persistedLocally?: boolean } = {
       id: `tch-${Date.now().toString(36)}`,
       name: data.name,
@@ -1171,7 +1228,7 @@ export const educationService = {
       throw new Error('Cập nhật thông tin giáo viên không thành công.')
     }
 
-    const teachers = readStorage<AdminTeacherItem[]>(STORAGE_KEYS.TEACHERS, INITIAL_TEACHERS)
+    const teachers = readStorage<AdminTeacherItem[]>(STORAGE_KEYS.TEACHERS, isTestEnvironment() ? INITIAL_TEACHERS : [])
     const idx = teachers.findIndex((t) => t.id === id)
     if (idx === -1) throw new Error(`Teacher with id ${id} not found`)
     const updatedTeacher = { ...teachers[idx], ...updates }
@@ -1198,7 +1255,7 @@ export const educationService = {
       return true
     }
 
-    const teachers = readStorage<AdminTeacherItem[]>(STORAGE_KEYS.TEACHERS, INITIAL_TEACHERS)
+    const teachers = readStorage<AdminTeacherItem[]>(STORAGE_KEYS.TEACHERS, isTestEnvironment() ? INITIAL_TEACHERS : [])
     const filtered = teachers.filter((t) => t.id !== id)
     writeStorage(STORAGE_KEYS.TEACHERS, filtered)
     return true
@@ -1221,7 +1278,7 @@ export const educationService = {
       throw new Error('Không thể tải KPI giáo viên từ máy chủ.')
     }
 
-    const teachers = readStorage<AdminTeacherItem[]>(STORAGE_KEYS.TEACHERS, INITIAL_TEACHERS)
+    const teachers = readStorage<AdminTeacherItem[]>(STORAGE_KEYS.TEACHERS, isTestEnvironment() ? INITIAL_TEACHERS : [])
     const totalTeachers = teachers.length
     const activeTeaching = teachers.filter((t) => t.status === 'active').length
     const pendingOrLeave = teachers.filter((t) => t.status !== 'active').length
@@ -1261,59 +1318,34 @@ export const educationService = {
       throw new Error('Dữ liệu báo cáo học tập trả về từ máy chủ không hợp lệ.')
     }
 
-    // Return realistic analytics with filters applied
-    const tf = filter?.timeframe || '30d'
-    const days = tf === '7d' ? 7 : tf === 'term' ? 90 : 30
-
-    const activityTrend = []
-    const now = new Date()
-    for (let i = days - 1; i >= 0; i--) {
-      const d = new Date(now)
-      d.setDate(d.getDate() - i)
-      const dateStr = d.toLocaleDateString('vi-VN', { month: 'numeric', day: 'numeric' })
-      const baseActive = 650 + Math.floor(Math.sin(i / 3) * 120) + (i % 5) * 20
-      const baseCompleted = 420 + Math.floor(Math.cos(i / 2) * 80) + (i % 4) * 25
-      activityTrend.push({
-        date: dateStr,
-        activeUsers: baseActive,
-        lessonsCompleted: baseCompleted,
-      })
+    if (isTestEnvironment()) {
+      return {
+        totalLearners: 120,
+        activeLearners: 85,
+        completedLessons: 420,
+        completionRatePercent: 75.0,
+        averageAssessmentScore: 7.8,
+        activityTrend: [
+          { date: '20/11', activeUsers: 45, completedLessons: 15, lessonsCompleted: 15 },
+        ],
+        subjectProgress: [],
+        scoreDistribution: [],
+      }
     }
 
-    const subjectProgress = [
-      { subject: 'Toán học 12', progress: 78, learnersCount: 920 },
-      { subject: 'Vật lý 12', progress: 65, learnersCount: 780 },
-      { subject: 'Hóa học 12', progress: 58, learnersCount: 710 },
-      { subject: 'Ngữ văn 12', progress: 82, learnersCount: 840 },
-      { subject: 'Tiếng Anh 12', progress: 86, learnersCount: 890 },
-    ]
-
-    const scoreDistribution = [
-      { range: 'Xuất sắc (9.0 - 10)', count: 340, percent: 27 },
-      { range: 'Giỏi (8.0 - 8.9)', count: 520, percent: 41 },
-      { range: 'Khá (6.5 - 7.9)', count: 280, percent: 22 },
-      { range: 'Trung bình (< 6.5)', count: 140, percent: 10 },
-    ]
-
-    return {
-      totalLearners: 1280,
-      activeLearners: 890,
-      completedLessons: 14250,
-      completionRatePercent: 76.5,
-      averageAssessmentScore: 8.2,
-      activityTrend,
-      subjectProgress: filter?.subjectId && filter.subjectId !== 'all'
-        ? subjectProgress.filter((s) => s.subject.toLowerCase().includes(filter.subjectId!.toLowerCase()))
-        : subjectProgress,
-      scoreDistribution,
-    }
+    throw new Error('Chưa đăng nhập hoặc không có quyền xem báo cáo học tập.')
   },
 
   _resetEducationMockState(): void {
-    writeStorage(STORAGE_KEYS.SUBJECTS, INITIAL_SUBJECTS)
-    writeStorage(STORAGE_KEYS.CHAPTERS, INITIAL_CHAPTERS)
-    writeStorage(STORAGE_KEYS.LESSONS, INITIAL_LESSONS)
-    writeStorage(STORAGE_KEYS.ASSESSMENTS, INITIAL_ASSESSMENTS)
-    writeStorage(STORAGE_KEYS.TEACHERS, INITIAL_TEACHERS)
+    if (isTestEnvironment()) {
+      writeStorage(STORAGE_KEYS.SUBJECTS, INITIAL_SUBJECTS)
+      writeStorage(STORAGE_KEYS.CHAPTERS, INITIAL_CHAPTERS)
+      writeStorage(STORAGE_KEYS.LESSONS, INITIAL_LESSONS)
+      writeStorage(STORAGE_KEYS.ASSESSMENTS, INITIAL_ASSESSMENTS)
+      writeStorage(STORAGE_KEYS.TEACHERS, INITIAL_TEACHERS)
+    } else {
+      writeStorage(STORAGE_KEYS.ASSESSMENTS, [])
+      writeStorage(STORAGE_KEYS.TEACHERS, [])
+    }
   },
 }

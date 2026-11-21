@@ -107,7 +107,10 @@ public class ContentAssessment
     public string LessonId { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public int PassScore { get; set; } = 80;
+    public string Status { get; set; } = "draft"; // draft, in-review, published, archived
+    public int DurationMinutes { get; set; } = 15;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public ContentLesson? Lesson { get; set; }
     public ICollection<ContentQuestion> Questions { get; set; } = new List<ContentQuestion>();

@@ -12,6 +12,7 @@ public class LearningAnalyticsService : ILearningAnalyticsService
 {
     private readonly StudyAIDbContext _context;
     private readonly IStudentMasteryService _masteryService;
+    private readonly ISubjectGradeResolver? _subjectResolver;
     private readonly ILlmProvider _llmProvider;
     private readonly ILogger<LearningAnalyticsService> _logger;
 
@@ -19,12 +20,14 @@ public class LearningAnalyticsService : ILearningAnalyticsService
         StudyAIDbContext context,
         IStudentMasteryService masteryService,
         ILlmProvider llmProvider,
-        ILogger<LearningAnalyticsService> logger)
+        ILogger<LearningAnalyticsService> logger,
+        ISubjectGradeResolver? subjectResolver = null)
     {
         _context = context;
         _masteryService = masteryService;
         _llmProvider = llmProvider;
         _logger = logger;
+        _subjectResolver = subjectResolver;
     }
 
     private async Task<string> ResolveEffectiveSubjectIdAsync(string userId, string? subjectId, CancellationToken cancellationToken)
@@ -37,10 +40,24 @@ public class LearningAnalyticsService : ILearningAnalyticsService
         if (!string.IsNullOrWhiteSpace(userId) && userId != "guest")
         {
             var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
-            var g = user?.Grade?.Trim();
-            if (g == "10" || g?.Contains("10") == true) return "sub_math10";
-            if (g == "11" || g?.Contains("11") == true) return "sub_math11";
-            if (g == "12" || g?.Contains("12") == true) return "sub_math12";
+            if (_subjectResolver != null)
+            {
+                var resolved = await _subjectResolver.ResolveSubjectAsync(
+                    requestedSubjectId: null,
+                    userGrade: user?.Grade,
+                    cancellationToken: cancellationToken);
+                if (resolved.Success && !string.IsNullOrEmpty(resolved.SubjectId))
+                {
+                    return resolved.SubjectId;
+                }
+            }
+            else
+            {
+                var g = user?.Grade?.Trim();
+                if (g == "10" || g?.Contains("10") == true) return "sub_math10";
+                if (g == "11" || g?.Contains("11") == true) return "sub_math11";
+                if (g == "12" || g?.Contains("12") == true) return "sub_math12";
+            }
 
             var latestAttemptSub = await _context.AssessmentAttempts.AsNoTracking()
                 .Where(a => a.UserId == userId && !string.IsNullOrEmpty(a.SubjectId))

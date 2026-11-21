@@ -223,8 +223,9 @@ public class QuestionBankIntegrationTests : IClassFixture<StudyAIApiFixture>
     [Fact]
     public async Task Workflow_ReviewQueue_Approve_Reject_Publish_Unpublish()
     {
-        var token = await GetTokenAsync("content@studyai.internal", "Content@123456");
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var authorToken = await GetTokenAsync("content@studyai.internal", "Content@123456");
+        var reviewerToken = await GetTokenAsync("content2@studyai.internal", "Content2@123456");
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authorToken);
 
         // 1. Create draft
         var createReq = new CreateQuestionRequestDto
@@ -244,7 +245,12 @@ public class QuestionBankIntegrationTests : IClassFixture<StudyAIApiFixture>
         var submitted = await subRes.Content.ReadFromJsonAsync<ContentQuestionItemDto>();
         Assert.Equal("in-review", submitted!.Status);
 
-        // 3. Reject with Reason
+        // Verify author cannot self-reject or self-approve (Four-Eyes enforcement)
+        var selfApproveRes = await _client.PostAsync($"/api/v1/content/questions/{qId}/approve", null);
+        Assert.Equal(HttpStatusCode.Forbidden, selfApproveRes.StatusCode);
+
+        // 3. Reject with Reason (by independent Reviewer)
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", reviewerToken);
         var rejectReq = new RejectQuestionRequestDto { Reason = "Cần bổ sung lời giải chi tiết theo chuẩn KaTeX." };
         var rejRes = await _client.PostAsJsonAsync($"/api/v1/content/questions/{qId}/reject", rejectReq);
         Assert.Equal(HttpStatusCode.OK, rejRes.StatusCode);
@@ -252,20 +258,25 @@ public class QuestionBankIntegrationTests : IClassFixture<StudyAIApiFixture>
         Assert.Equal("rejected", rejected!.Status);
         Assert.Equal(rejectReq.Reason, rejected.RejectionReason);
 
-        // 4. Update and Approve (Content Primacy: Content role can self-approve)
+        // 4. Update and Resubmit (by Author)
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", authorToken);
+        await _client.PostAsync($"/api/v1/content/questions/{qId}/submit-review", null);
+
+        // 5. Approve (by Reviewer under Four-Eyes)
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", reviewerToken);
         var approveRes = await _client.PostAsync($"/api/v1/content/questions/{qId}/approve", null);
         Assert.Equal(HttpStatusCode.OK, approveRes.StatusCode);
         var approved = await approveRes.Content.ReadFromJsonAsync<ContentQuestionItemDto>();
         Assert.Equal("approved", approved!.Status);
         Assert.Null(approved.RejectionReason);
 
-        // 5. Publish
+        // 6. Publish
         var pubRes = await _client.PostAsync($"/api/v1/content/questions/{qId}/publish", null);
         Assert.Equal(HttpStatusCode.OK, pubRes.StatusCode);
         var published = await pubRes.Content.ReadFromJsonAsync<ContentQuestionItemDto>();
         Assert.Equal("published", published!.Status);
 
-        // 6. Unpublish
+        // 7. Unpublish
         var unpubRes = await _client.PostAsync($"/api/v1/content/questions/{qId}/unpublish", null);
         Assert.Equal(HttpStatusCode.OK, unpubRes.StatusCode);
         var unpublished = await unpubRes.Content.ReadFromJsonAsync<ContentQuestionItemDto>();
@@ -338,7 +349,9 @@ public class QuestionBankIntegrationTests : IClassFixture<StudyAIApiFixture>
         });
         Assert.Equal(HttpStatusCode.BadRequest, bypassPatchRes.StatusCode);
 
-        // 5. Role Content has final editorial authority and CAN curate/publish the VNHSGE question in test DB
+        // 5. Role Content has final editorial authority and CAN curate/publish the VNHSGE question in test DB (via independent Reviewer)
+        var reviewerToken = await GetTokenAsync("content2@studyai.internal", "Content2@123456");
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", reviewerToken);
         var pubRes = await _client.PostAsync($"/api/v1/content/questions/{importedId}/publish", null);
         Assert.Equal(HttpStatusCode.OK, pubRes.StatusCode);
         var publishedItem = await pubRes.Content.ReadFromJsonAsync<ContentQuestionItemDto>();
@@ -384,8 +397,14 @@ public class QuestionBankIntegrationTests : IClassFixture<StudyAIApiFixture>
         var learnerApproveRes = await _client.PostAsync($"/api/v1/content/questions/{qId}/approve", null);
         Assert.Equal(HttpStatusCode.Forbidden, learnerApproveRes.StatusCode);
 
-        // 4. Content Specialist approves question -> 200 OK (Sole authority)
+        // 4. Author attempts to self-approve -> 403 Forbidden (Strict Four-Eyes Enforcement)
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        var selfApproveRes = await _client.PostAsync($"/api/v1/content/questions/{qId}/approve", null);
+        Assert.Equal(HttpStatusCode.Forbidden, selfApproveRes.StatusCode);
+
+        // 5. Independent Content Specialist approves question -> 200 OK (Sole editorial authority)
+        var reviewerToken = await GetTokenAsync("content2@studyai.internal", "Content2@123456");
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", reviewerToken);
         var contentApproveRes = await _client.PostAsync($"/api/v1/content/questions/{qId}/approve", null);
         Assert.Equal(HttpStatusCode.OK, contentApproveRes.StatusCode);
         var approvedItem = await contentApproveRes.Content.ReadFromJsonAsync<ContentQuestionItemDto>();

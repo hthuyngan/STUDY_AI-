@@ -532,4 +532,65 @@ public class CheckAnswerResponseDto
     public string Feedback { get; set; } = string.Empty;
 }
 
+public class AssessmentOptionDto
+{
+    public string Id { get; set; } = string.Empty;
+    public string Label { get; set; } = string.Empty;
+    public string Text { get; set; } = string.Empty;
+}
+
+public class AssessmentQuestionDto
+{
+    public string Id { get; set; } = string.Empty;
+    public string Prompt { get; set; } = string.Empty;
+    public string? Topic { get; set; }
+    public List<AssessmentOptionDto> Options { get; set; } = new();
+    public string CorrectOptionId { get; set; } = string.Empty;
+    public string Explanation { get; set; } = string.Empty;
+}
+
+public class ContentAssessmentItemDto
+{
+    public string Id { get; set; } = string.Empty;
+    public string LessonId { get; set; } = string.Empty;
+    public string LessonTitle { get; set; } = string.Empty;
+    public string SubjectId { get; set; } = string.Empty;
+    public string SubjectName { get; set; } = string.Empty;
+    public string? ChapterId { get; set; }
+    public string? ChapterName { get; set; }
+    public int QuestionCount { get; set; }
+    public int PassingScore { get; set; }
+    public int DurationMinutes { get; set; }
+    public string Status { get; set; } = "draft";
+    public string CreatedAt { get; set; } = string.Empty;
+    public string UpdatedAt { get; set; } = string.Empty;
+    public List<AssessmentQuestionDto> Questions { get; set; } = new();
+}
+
+public class CreateAssessmentRequestDto
+{
+    public string LessonId { get; set; } = string.Empty;
+    public string? Title { get; set; }
+    public int? PassingScore { get; set; }
+    public int? DurationMinutes { get; set; }
+    public string? Status { get; set; }
+}
+
+public class UpdateAssessmentRequestDto
+{
+    public string? Title { get; set; }
+    public int? PassingScore { get; set; }
+    public int? DurationMinutes { get; set; }
+    public string? Status { get; set; }
+}
+
+public class AddAssessmentQuestionRequestDto
+{
+    public string Prompt { get; set; } = string.Empty;
+    public string? Topic { get; set; }
+    public List<AssessmentOptionDto>? Options { get; set; }
+    public string CorrectOptionId { get; set; } = string.Empty;
+    public string? Explanation { get; set; }
+}
+
 #endregion

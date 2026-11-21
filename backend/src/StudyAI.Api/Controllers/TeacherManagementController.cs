@@ -219,8 +219,19 @@ public class TeacherManagementController : ControllerBase
 
         if (newAlertsToAdd.Count > 0)
         {
-            _db.ClassroomAlerts.AddRange(newAlertsToAdd);
-            await _db.SaveChangesAsync(cancellationToken);
+            try
+            {
+                _db.ClassroomAlerts.AddRange(newAlertsToAdd);
+                await _db.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException)
+            {
+                // Concurrency resilience: If concurrent requests generate alerts simultaneously, detach conflicting entries.
+                foreach (var entry in newAlertsToAdd)
+                {
+                    _db.Entry(entry).State = EntityState.Detached;
+                }
+            }
         }
 
         // 3. Query all alerts from classroom_alerts for the teacher's classrooms
@@ -250,11 +261,143 @@ public class TeacherManagementController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("grades")]
+    public async Task<IActionResult> GetGrades(
+        [FromQuery] string? classId = null,
+        [FromQuery] string? assignmentId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var teacherClassrooms = CurrentUserRole == "admin"
+            ? await _db.Classrooms.AsNoTracking().ToListAsync(cancellationToken)
+            : await _db.Classrooms.AsNoTracking().Where(c => c.TeacherId == CurrentUserId).ToListAsync(cancellationToken);
+
+        var classroomIds = teacherClassrooms.Select(c => c.Id).ToList();
+        if (!string.IsNullOrWhiteSpace(classId) && classId != "all")
+        {
+            if (CurrentUserRole != "admin" && !classroomIds.Contains(classId))
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Bạn không có quyền xem bảng điểm của lớp học này." });
+            }
+            classroomIds = classroomIds.Where(id => id == classId).ToList();
+        }
+
+        var query = _db.AssignmentSubmissions
+            .AsNoTracking()
+            .Include(s => s.Student)
+            .Include(s => s.Assignment)
+                .ThenInclude(a => a!.Classroom)
+            .Where(s => s.Assignment != null && classroomIds.Contains(s.Assignment.ClassroomId))
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(assignmentId) && assignmentId != "all")
+        {
+            query = query.Where(s => s.AssignmentId == assignmentId);
+        }
+
+        var submissions = await query
+            .OrderByDescending(s => s.SubmittedAt)
+            .Take(200)
+            .ToListAsync(cancellationToken);
+
+        var result = submissions.Select(sub => new
+        {
+            id = $"grd-{sub.Id}",
+            submissionId = sub.Id,
+            studentId = sub.StudentId,
+            studentName = sub.Student?.DisplayName ?? "Học sinh",
+            studentCode = sub.StudentId,
+            classId = sub.Assignment?.ClassroomId ?? "",
+            className = sub.Assignment?.Classroom?.Name ?? "",
+            subjectName = sub.Assignment?.Classroom?.Subject ?? "Toán học",
+            activityTitle = sub.Assignment?.Title ?? "Bài tập",
+            activityType = "assignment",
+            score = sub.Score ?? 0.0,
+            maxScore = 10.0,
+            passed = (sub.Score ?? 0.0) >= 5.0,
+            date = sub.SubmittedAt.ToString("o"),
+            feedback = sub.Feedback
+        }).ToList();
+
+        return Ok(result);
+    }
+
+    [HttpGet("submissions")]
+    public async Task<IActionResult> GetTeacherSubmissions(
+        [FromQuery] string? classId = null,
+        [FromQuery] string? assignmentId = null,
+        [FromQuery] string? status = null,
+        CancellationToken cancellationToken = default)
+    {
+        var teacherClassrooms = CurrentUserRole == "admin"
+            ? await _db.Classrooms.AsNoTracking().ToListAsync(cancellationToken)
+            : await _db.Classrooms.AsNoTracking().Where(c => c.TeacherId == CurrentUserId).ToListAsync(cancellationToken);
+
+        var classroomIds = teacherClassrooms.Select(c => c.Id).ToList();
+        if (!string.IsNullOrWhiteSpace(classId) && classId != "all")
+        {
+            if (CurrentUserRole != "admin" && !classroomIds.Contains(classId))
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Bạn không có quyền xem bài nộp của lớp học này." });
+            }
+            classroomIds = classroomIds.Where(id => id == classId).ToList();
+        }
+
+        var query = _db.AssignmentSubmissions
+            .AsNoTracking()
+            .Include(s => s.Student)
+            .Include(s => s.Assignment)
+                .ThenInclude(a => a!.Classroom)
+            .Where(s => s.Assignment != null && classroomIds.Contains(s.Assignment.ClassroomId))
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(assignmentId) && assignmentId != "all")
+        {
+            query = query.Where(s => s.AssignmentId == assignmentId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(status) && status != "all")
+        {
+            query = query.Where(s => s.Status == status);
+        }
+
+        var submissions = await query
+            .OrderByDescending(s => s.SubmittedAt)
+            .Take(200)
+            .ToListAsync(cancellationToken);
+
+        var result = submissions.Select(s => new
+        {
+            id = s.Id,
+            assignmentId = s.AssignmentId,
+            assignmentTitle = s.Assignment?.Title ?? "",
+            studentId = s.StudentId,
+            studentName = s.Student?.DisplayName ?? "Học sinh",
+            studentEmail = s.Student?.Email ?? "",
+            className = s.Assignment?.Classroom?.Name ?? "",
+            submittedAt = s.SubmittedAt.ToString("o"),
+            status = s.Status,
+            score = s.Score,
+            maxScore = 10.0,
+            feedback = s.Feedback,
+            gradedBy = s.GradedByTeacherId,
+            content = s.Content
+        }).ToList();
+
+        return Ok(result);
+    }
+
     [HttpPut("alerts/{alertId}")]
     public async Task<IActionResult> UpdateAlert(string alertId, [FromBody] System.Text.Json.Nodes.JsonObject payload, CancellationToken cancellationToken)
     {
         var status = payload["status"]?.ToString() ?? "resolved";
         var note = payload["resolutionNote"]?.ToString() ?? "Đã xử lý";
+
+        var validStatuses = new[] { "new", "pending", "in_progress", "resolved", "dismissed" };
+        var normalizedStatus = status.Trim().ToLowerInvariant();
+        if (!validStatuses.Contains(normalizedStatus))
+        {
+            return BadRequest(new { detail = $"Trạng thái cảnh báo '{status}' không hợp lệ. Giá trị cho phép: new, pending, in_progress, resolved, dismissed." });
+        }
 
         var alert = await _db.ClassroomAlerts
             .Include(a => a.Classroom)
@@ -270,10 +413,18 @@ public class TeacherManagementController : ControllerBase
             return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Bạn không có quyền xử lý cảnh báo của lớp học khác." });
         }
 
-        alert.Status = status;
+        alert.Status = normalizedStatus;
         alert.ResolutionNote = note;
-        alert.ResolvedByTeacherId = CurrentUserId;
-        alert.ResolvedAt = DateTimeOffset.UtcNow;
+        if (normalizedStatus == "resolved")
+        {
+            alert.ResolvedByTeacherId = CurrentUserId;
+            alert.ResolvedAt = DateTimeOffset.UtcNow;
+        }
+        else
+        {
+            alert.ResolvedByTeacherId = null;
+            alert.ResolvedAt = null;
+        }
         alert.UpdatedAt = DateTimeOffset.UtcNow;
 
         var log = new StaffAuditLog

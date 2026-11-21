@@ -11,14 +11,17 @@ namespace StudyAI.Infrastructure.Services;
 public class TeacherManagementService : ITeacherManagementService
 {
     private readonly StudyAIDbContext _context;
+    private readonly ISubjectGradeResolver? _subjectResolver;
     private readonly ILogger<TeacherManagementService> _logger;
 
     public TeacherManagementService(
         StudyAIDbContext context,
-        ILogger<TeacherManagementService> logger)
+        ILogger<TeacherManagementService> logger,
+        ISubjectGradeResolver? subjectResolver = null)
     {
         _context = context;
         _logger = logger;
+        _subjectResolver = subjectResolver;
     }
 
     public async Task<List<TeacherClassroomSummaryDto>> GetTeacherClassroomsAsync(
@@ -280,13 +283,29 @@ public class TeacherManagementService : ITeacherManagementService
         var targetStudentId = request.TargetStudentIds.First();
         var student = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == targetStudentId, cancellationToken);
 
-        string resolvedSubject = !string.IsNullOrWhiteSpace(request.SubjectId)
-            ? request.SubjectId
-            : (!string.IsNullOrWhiteSpace(classroom?.Grade)
+        string resolvedSubject;
+        if (!string.IsNullOrWhiteSpace(request.SubjectId))
+        {
+            resolvedSubject = request.SubjectId;
+        }
+        else if (_subjectResolver != null)
+        {
+            var res = await _subjectResolver.ResolveSubjectAsync(
+                requestedSubjectId: null,
+                userGrade: !string.IsNullOrWhiteSpace(classroom?.Grade) ? classroom.Grade : student?.Grade,
+                cancellationToken: cancellationToken);
+            resolvedSubject = res.Success && !string.IsNullOrEmpty(res.SubjectId)
+                ? res.SubjectId
+                : "sub_math10";
+        }
+        else
+        {
+            resolvedSubject = !string.IsNullOrWhiteSpace(classroom?.Grade)
                 ? (classroom.Grade.Contains("10") ? "sub_math10" : classroom.Grade.Contains("11") ? "sub_math11" : "sub_math12")
                 : (!string.IsNullOrWhiteSpace(student?.Grade)
                     ? (student.Grade.Contains("10") ? "sub_math10" : student.Grade.Contains("11") ? "sub_math11" : "sub_math12")
-                    : "sub_math10"));
+                    : "sub_math10");
+        }
 
         var mastery = await _context.StudentTopicMasteries.AsNoTracking()
             .FirstOrDefaultAsync(m => m.UserId == targetStudentId && (m.SubjectId == resolvedSubject || m.SubjectId == "sub_math") && m.TopicName.Contains(request.TargetTopic), cancellationToken);

@@ -600,35 +600,25 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
 
         // ContentAssessment
-
         modelBuilder.Entity<ContentAssessment>(entity =>
-
         {
-
             entity.ToTable("content_assessments");
-
             entity.HasKey(e => e.Id);
-
             entity.Property(e => e.Id).HasMaxLength(64);
-
             entity.Property(e => e.LessonId).HasMaxLength(64).IsRequired();
-
             entity.Property(e => e.Title).HasMaxLength(255).IsRequired();
-
-
+            entity.Property(e => e.Status).HasMaxLength(32).HasDefaultValue("draft");
+            entity.Property(e => e.DurationMinutes).HasDefaultValue(15);
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
 
             entity.HasIndex(e => e.LessonId);
-
-
+            entity.HasIndex(e => e.Status);
 
             entity.HasMany(e => e.Questions)
-
                 .WithOne(q => q.Assessment)
-
                 .HasForeignKey(q => q.AssessmentId)
-
                 .OnDelete(DeleteBehavior.Cascade);
-
         });
 
 
@@ -737,7 +727,7 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.SourceRevisionId).HasMaxLength(64);
             entity.Property(e => e.CreatedAt).IsRequired();
 
-            entity.HasIndex(e => new { e.ContentId, e.Version });
+            entity.HasIndex(e => new { e.ContentId, e.Version }).IsUnique();
             entity.HasIndex(e => e.CreatedAt);
         });
 

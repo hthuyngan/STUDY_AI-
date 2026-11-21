@@ -45,7 +45,12 @@ export class QuestionBankRepository implements IQuestionBankRepository {
       // Fallback to initial mock dataset if localStorage is unavailable
     }
 
-    this.inMemoryCache = [...mockQuestions]
+    if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test' && !getAccessToken()) {
+      this.inMemoryCache = [...mockQuestions]
+      return this.inMemoryCache
+    }
+
+    this.inMemoryCache = []
     return this.inMemoryCache
   }
 

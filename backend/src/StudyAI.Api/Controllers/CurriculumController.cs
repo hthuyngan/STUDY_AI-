@@ -671,7 +671,9 @@ public class CurriculumController : ControllerBase
             .Take(safePageSize)
             .ToListAsync();
 
-        var dtos = questions.Select(FormatQuestionBankItem).ToList();
+        var isStaffOrAuthorized = User?.Identity?.IsAuthenticated == true &&
+            (User.IsInRole("admin") || User.IsInRole("content") || User.IsInRole("content_admin") || User.IsInRole("teacher") || User.HasClaim("permission", "content.approve"));
+        var dtos = questions.Select(q => FormatQuestionBankItem(q, isStaffOrAuthorized)).ToList();
         return Ok(new { items = dtos, total, page = safePage, pageSize = safePageSize });
     }
 
@@ -754,10 +756,12 @@ public class CurriculumController : ControllerBase
         if (q == null)
             return NotFound(new { message = "Câu hỏi không tồn tại hoặc chưa được phê duyệt." });
 
-        return Ok(FormatQuestionBankItem(q));
+        var isStaffOrAuthorized = User?.Identity?.IsAuthenticated == true &&
+            (User.IsInRole("admin") || User.IsInRole("content") || User.IsInRole("content_admin") || User.IsInRole("teacher") || User.HasClaim("permission", "content.approve"));
+        return Ok(FormatQuestionBankItem(q, isStaffOrAuthorized));
     }
 
-    private static object FormatQuestionBankItem(ContentQuestion q)
+    private static object FormatQuestionBankItem(ContentQuestion q, bool isStaffOrAuthorized = false)
     {
         var letters = new[] { "A", "B", "C", "D" };
         var rawOptions = SafeDeserializeStringList(q.OptionsJson);
@@ -803,13 +807,25 @@ public class CurriculumController : ControllerBase
                             var sStatement = el.TryGetProperty("statement", out var statProp) ? statProp.GetString() ?? "" : "";
                             var sIsCorrect = el.TryGetProperty("isCorrect", out var corrProp) && corrProp.GetBoolean();
                             var sExplanation = el.TryGetProperty("explanation", out var expProp) ? expProp.GetString() : null;
-                            subItems.Add(new
+
+                            if (isStaffOrAuthorized)
                             {
-                                id = sId,
-                                statement = sStatement,
-                                isCorrect = sIsCorrect,
-                                explanation = sExplanation
-                            });
+                                subItems.Add(new
+                                {
+                                    id = sId,
+                                    statement = sStatement,
+                                    isCorrect = sIsCorrect,
+                                    explanation = sExplanation
+                                });
+                            }
+                            else
+                            {
+                                subItems.Add(new
+                                {
+                                    id = sId,
+                                    statement = sStatement
+                                });
+                            }
                         }
                         if (subItems.Count > 0)
                             hasMetadataSubItems = true;
@@ -830,14 +846,48 @@ public class CurriculumController : ControllerBase
                         var token = correctTokens[i].Trim().ToLowerInvariant();
                         isCorrect = token == "true" || token == "t" || token == "đ" || token == "dung" || token == "1";
                     }
-                    subItems.Add(new
+
+                    if (isStaffOrAuthorized)
                     {
-                        id = subId,
-                        statement = statement,
-                        isCorrect = isCorrect,
-                        explanation = (string?)null
-                    });
+                        subItems.Add(new
+                        {
+                            id = subId,
+                            statement = statement,
+                            isCorrect = isCorrect,
+                            explanation = (string?)null
+                        });
+                    }
+                    else
+                    {
+                        subItems.Add(new
+                        {
+                            id = subId,
+                            statement = statement
+                        });
+                    }
                 }
+            }
+
+            if (isStaffOrAuthorized)
+            {
+                return new
+                {
+                    id = q.Id,
+                    subjectId = resolvedSubjectId,
+                    chapterId = q.ChapterId ?? q.Lesson?.ChapterId ?? "",
+                    lessonId = q.LessonId ?? "",
+                    skillIds = new List<string> { q.Topic ?? "SKILL-GENERAL" },
+                    type = normalizedType,
+                    stem = q.Prompt,
+                    difficulty = q.Difficulty,
+                    cognitiveLevel = cognitiveLevel,
+                    subItems = subItems,
+                    explanation = q.Explanation ?? "",
+                    source = q.SourceType ?? "STUDY_AI Official",
+                    reviewStatus = q.Status == "published" ? "approved" : q.Status,
+                    createdAt = q.CreatedAt.ToString("o"),
+                    updatedAt = q.UpdatedAt.ToString("o")
+                };
             }
 
             return new
@@ -852,7 +902,6 @@ public class CurriculumController : ControllerBase
                 difficulty = q.Difficulty,
                 cognitiveLevel = cognitiveLevel,
                 subItems = subItems,
-                explanation = q.Explanation ?? "",
                 source = q.SourceType ?? "STUDY_AI Official",
                 reviewStatus = q.Status == "published" ? "approved" : q.Status,
                 createdAt = q.CreatedAt.ToString("o"),
@@ -917,6 +966,30 @@ public class CurriculumController : ControllerBase
                 displayAnswer = acceptedAnswers[0];
             }
 
+            if (isStaffOrAuthorized)
+            {
+                return new
+                {
+                    id = q.Id,
+                    subjectId = resolvedSubjectId,
+                    chapterId = q.ChapterId ?? q.Lesson?.ChapterId ?? "",
+                    lessonId = q.LessonId ?? "",
+                    skillIds = new List<string> { q.Topic ?? "SKILL-GENERAL" },
+                    type = normalizedType,
+                    stem = q.Prompt,
+                    difficulty = q.Difficulty,
+                    cognitiveLevel = cognitiveLevel,
+                    acceptedAnswers = acceptedAnswers,
+                    displayAnswer = displayAnswer,
+                    unit = unit,
+                    explanation = q.Explanation ?? "",
+                    source = q.SourceType ?? "STUDY_AI Official",
+                    reviewStatus = q.Status == "published" ? "approved" : q.Status,
+                    createdAt = q.CreatedAt.ToString("o"),
+                    updatedAt = q.UpdatedAt.ToString("o")
+                };
+            }
+
             return new
             {
                 id = q.Id,
@@ -928,9 +1001,29 @@ public class CurriculumController : ControllerBase
                 stem = q.Prompt,
                 difficulty = q.Difficulty,
                 cognitiveLevel = cognitiveLevel,
-                acceptedAnswers = acceptedAnswers,
-                displayAnswer = displayAnswer,
                 unit = unit,
+                source = q.SourceType ?? "STUDY_AI Official",
+                reviewStatus = q.Status == "published" ? "approved" : q.Status,
+                createdAt = q.CreatedAt.ToString("o"),
+                updatedAt = q.UpdatedAt.ToString("o")
+            };
+        }
+
+        if (isStaffOrAuthorized)
+        {
+            return new
+            {
+                id = q.Id,
+                subjectId = resolvedSubjectId,
+                chapterId = q.ChapterId ?? q.Lesson?.ChapterId ?? "",
+                lessonId = q.LessonId ?? "",
+                skillIds = new List<string> { q.Topic ?? "SKILL-GENERAL" },
+                type = normalizedType,
+                stem = q.Prompt,
+                difficulty = q.Difficulty,
+                cognitiveLevel = cognitiveLevel,
+                options = options,
+                correctAnswer = q.CorrectAnswer,
                 explanation = q.Explanation ?? "",
                 source = q.SourceType ?? "STUDY_AI Official",
                 reviewStatus = q.Status == "published" ? "approved" : q.Status,
@@ -951,8 +1044,6 @@ public class CurriculumController : ControllerBase
             difficulty = q.Difficulty,
             cognitiveLevel = cognitiveLevel,
             options = options,
-            correctAnswer = q.CorrectAnswer,
-            explanation = q.Explanation ?? "",
             source = q.SourceType ?? "STUDY_AI Official",
             reviewStatus = q.Status == "published" ? "approved" : q.Status,
             createdAt = q.CreatedAt.ToString("o"),

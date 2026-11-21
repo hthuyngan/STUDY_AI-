@@ -5,10 +5,10 @@ import path from 'path'
 import { resolveDotnet10Environment } from './utils/dotnetRuntime'
 import { assertSafeTestDatabase } from './utils/databaseSafetyGuard'
 
-const BACKEND_PORT = 5296
+const BACKEND_PORT = 8000
 const FRONTEND_PORT = 4179
-const BACKEND_URL = `http://127.0.0.1:${BACKEND_PORT}`
-const FRONTEND_URL = `http://127.0.0.1:${FRONTEND_PORT}`
+const BACKEND_URL = `http://localhost:${BACKEND_PORT}`
+const FRONTEND_URL = `http://localhost:${FRONTEND_PORT}`
 const QA_DIR = path.join('docs', 'visual-qa', 'p20-000')
 
 // Dedicated test database connection string to strictly protect StudyAIDb
@@ -120,7 +120,7 @@ async function run() {
   console.log(`Starting Frontend Preview Server on ${FRONTEND_URL}...`)
   const frontendProc: ChildProcess = spawn(
     'bun',
-    ['run', 'preview', '--', '--host', '127.0.0.1', '--port', String(FRONTEND_PORT), '--strictPort'],
+    ['run', 'preview', '--', '--host', '0.0.0.0', '--port', String(FRONTEND_PORT), '--strictPort'],
     {
       cwd: path.join(process.cwd(), 'frontend'),
       env: {
@@ -157,6 +157,15 @@ async function run() {
     })
 
     const page = await context.newPage()
+
+    page.on('console', (msg) => {
+      console.log(`[Browser Console ${msg.type()}] ${msg.text()}`)
+    })
+    page.on('response', (res) => {
+      if (res.url().includes('/api/v1/auth/')) {
+        console.log(`[Browser Auth Res] ${res.status()} ${res.url()}`)
+      }
+    })
 
     async function snap(name: string): Promise<string> {
       const filename = `${name}.png`

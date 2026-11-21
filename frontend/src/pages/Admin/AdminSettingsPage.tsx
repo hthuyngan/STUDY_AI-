@@ -20,6 +20,8 @@ import type { OperationalSettings } from '@/types/operations'
 import './AdminPages.css'
 import '@/components/admin/AdminComponents.css'
 
+declare const process: { env?: { NODE_ENV?: string } } | undefined
+
 export const AdminSettingsPage: React.FC = () => {
   const auth = useContext(AuthContext)
   const user = auth?.user
@@ -136,7 +138,12 @@ export const AdminSettingsPage: React.FC = () => {
 
   const handleClearCache = () => {
     if (window.confirm('Xác nhận xóa bộ nhớ đệm phía client?')) {
-      operationsService._resetMockState()
+      if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test') {
+        operationsService._resetMockState()
+      }
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.removeItem('study_ai_settings')
+      }
       showToast('Đã làm sạch bộ nhớ tạm (Đã đặt lại dữ liệu demo hệ thống)')
       setStorageUsage(computeStorageUsage())
     }

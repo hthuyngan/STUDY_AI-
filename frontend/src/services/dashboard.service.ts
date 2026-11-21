@@ -119,24 +119,11 @@ export async function fetchDashboardData(
         completedLessons: sp.completedLessons,
         totalLessons: sp.totalLessons,
       }))
-    : [
-        { id: 'sub_math10', name: 'Toán 10', icon: '📐', color: '#3b82f6', bgColor: '#eff6ff', progress: 0, completedLessons: 0, totalLessons: 1 },
-        { id: 'sub_math11', name: 'Toán 11', icon: '📐', color: '#3b82f6', bgColor: '#eff6ff', progress: 0, completedLessons: 0, totalLessons: 1 },
-        { id: 'sub_math12', name: 'Toán 12', icon: '📐', color: '#3b82f6', bgColor: '#eff6ff', progress: 0, completedLessons: 0, totalLessons: 3 },
-      ]
+    : []
 
   const dailyGoals: DailyGoalsData = {
     bonusXP: 0,
-    items: [
-      {
-        id: 'goal-1',
-        title: 'Luyện tập bài học mới hôm nay',
-        target: 1,
-        current: serverStats ? Math.min(1, serverStats.completedLessons) : 0,
-        unit: 'bài',
-        completed: serverStats ? serverStats.completedLessons >= 1 : false,
-      },
-    ],
+    items: [],
   }
 
   const streakDays = serverStats ? serverStats.streakDays : 0
@@ -172,22 +159,7 @@ export async function fetchDashboardData(
     increasePercent: 0,
   }
 
-  const continueLessons: ContinueLessonItem[] = serverStats?.recentAttempts && serverStats.recentAttempts.length > 0
-    ? serverStats.recentAttempts.slice(0, 2).map((a, idx) => ({
-        id: a.attemptId,
-        subjectId: a.subjectId,
-        subjectName: a.subjectId === 'sub_math10' ? 'Toán 10' : a.subjectId === 'sub_math11' ? 'Toán 11' : 'Toán 12',
-        subjectColor: '#3b82f6',
-        subjectBg: '#eff6ff',
-        subjectIcon: 'BookOpen',
-        chapter: 'Chương 1',
-        lessonTitle: a.subjectId === 'sub_math10' ? 'Toán 10 - Mệnh đề toán học' : a.subjectId === 'sub_math11' ? 'Toán 11 - Giá trị lượng giác' : 'Toán 12 - Ứng dụng đạo hàm',
-        progress: Math.round(a.scoreScaled * 10),
-        durationMinutes: 15,
-        lastActive: a.completedAt || 'Vừa xong',
-        isPrimary: idx === 0,
-      }))
-    : []
+  const continueLessons: ContinueLessonItem[] = []
 
   const totalXP = 0
   const leaderboard: LeaderboardUser[] = []

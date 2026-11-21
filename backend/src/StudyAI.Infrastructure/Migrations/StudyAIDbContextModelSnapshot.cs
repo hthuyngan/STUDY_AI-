@@ -697,6 +697,11 @@ namespace StudyAI.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<int>("DurationMinutes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(15);
+
                     b.Property<string>("LessonId")
                         .IsRequired()
                         .HasMaxLength(64)
@@ -705,14 +710,26 @@ namespace StudyAI.Infrastructure.Migrations
                     b.Property<int>("PassScore")
                         .HasColumnType("int");
 
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)")
+                        .HasDefaultValue("draft");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
                     b.HasKey("Id");
 
                     b.HasIndex("LessonId");
+
+                    b.HasIndex("Status");
 
                     b.ToTable("content_assessments", (string)null);
                 });
@@ -1162,7 +1179,8 @@ namespace StudyAI.Infrastructure.Migrations
 
                     b.HasIndex("CreatedAt");
 
-                    b.HasIndex("ContentId", "Version");
+                    b.HasIndex("ContentId", "Version")
+                        .IsUnique();
 
                     b.ToTable("content_revisions", (string)null);
                 });

@@ -17,6 +17,11 @@ const STORAGE_KEYS = {
   SETTINGS: 'study_ai_settings_v5',
 }
 
+declare const process: { env?: { NODE_ENV?: string } } | undefined
+
+const isTestEnvironment = (): boolean =>
+  typeof process !== 'undefined' && process.env?.NODE_ENV === 'test' && !getAccessToken()
+
 export const DEFAULT_SETTINGS: OperationalSettings = {
   systemName: 'STUDY_AI Educational Platform',
   systemDescription: 'Hệ sinh thái học tập và gia sư thông minh ứng dụng AI',
@@ -412,7 +417,7 @@ export const operationsService = {
       }))
     }
 
-    let logs = loadFromStorage<AuditLogEntry[]>(STORAGE_KEYS.AUDIT_LOGS, DEFAULT_AUDIT_LOGS)
+    let logs = loadFromStorage<AuditLogEntry[]>(STORAGE_KEYS.AUDIT_LOGS, isTestEnvironment() ? DEFAULT_AUDIT_LOGS : [])
     if (filterAction !== 'all') {
       logs = logs.filter((l) => l.action.toLowerCase().includes(filterAction.toLowerCase()))
     }
@@ -456,7 +461,7 @@ export const operationsService = {
       return res || []
     }
 
-    let list = loadFromStorage<ApprovalItem[]>(STORAGE_KEYS.APPROVALS, DEFAULT_APPROVALS)
+    let list = loadFromStorage<ApprovalItem[]>(STORAGE_KEYS.APPROVALS, isTestEnvironment() ? DEFAULT_APPROVALS : [])
     if (statusFilter !== 'all') {
       list = list.filter((a) => a.status === statusFilter)
     }
@@ -646,6 +651,19 @@ export const operationsService = {
     if (!reason.trim()) {
       throw new Error('Vui lòng nhập lý do từ chối nội dung')
     }
+
+    if (getAccessToken()) {
+      const cleanId = id.replace(/^apr_[lq]_/, '')
+      const isQuestion = id.startsWith('apr_q_')
+      const endpoint = isQuestion
+        ? `/api/v1/content/questions/${cleanId}/reject`
+        : `/api/v1/content/lessons/${cleanId}/reject`
+      await apiClient.post(endpoint, { reason })
+      const approvals = await this.getApprovals('all', 'all')
+      const found = approvals.find((a) => a.id === id || a.contentId === cleanId)
+      if (found) return found
+    }
+
     const list = await this.getApprovals()
     const idx = list.findIndex((a) => a.id === id)
     if (idx === -1) throw new Error('Không tìm thấy yêu cầu phê duyệt')
@@ -694,20 +712,9 @@ export const operationsService = {
         : `/api/v1/content/lessons/${cleanId}/publish`
       await apiClient.post(endpoint)
       const pubs = await this.getPublications('all')
-      const found = pubs.find((p) => p.contentId === cleanId || p.id === cleanId)
+      const found = pubs.find((p) => p.contentId === cleanId || p.id === cleanId || p.id === `pub_${cleanId}`)
       if (found) return found
-      return {
-        id: `pub_${cleanId}`,
-        contentId: cleanId,
-        contentType: isQuestion ? 'assessment' : 'lesson',
-        title: 'Đã xuất bản thành công',
-        subjectName: 'Toán học',
-        version: 'v1.0',
-        publishedBy: actor,
-        publishedAt: new Date().toISOString(),
-        status: 'active',
-        changelog: changelog || 'Nội dung chính thức được phê duyệt và phát hành.',
-      }
+      throw new Error('Nội dung đã được gửi lệnh xuất bản nhưng không tìm thấy bản ghi xuất bản.')
     }
 
     const list = await this.getApprovals()
@@ -789,7 +796,7 @@ export const operationsService = {
       }))
     }
 
-    let pubs = loadFromStorage<PublicationRecord[]>(STORAGE_KEYS.PUBLICATIONS, DEFAULT_PUBLICATIONS)
+    let pubs = loadFromStorage<PublicationRecord[]>(STORAGE_KEYS.PUBLICATIONS, isTestEnvironment() ? DEFAULT_PUBLICATIONS : [])
     if (typeFilter !== 'all') {
       pubs = pubs.filter((p) => p.contentType === typeFilter)
     }
@@ -887,7 +894,7 @@ export const operationsService = {
       }
     }
 
-    let list = loadFromStorage<AnnouncementItem[]>(STORAGE_KEYS.ANNOUNCEMENTS, DEFAULT_ANNOUNCEMENTS)
+    let list = loadFromStorage<AnnouncementItem[]>(STORAGE_KEYS.ANNOUNCEMENTS, isTestEnvironment() ? DEFAULT_ANNOUNCEMENTS : [])
     if (statusFilter !== 'all') {
       list = list.filter((a) => a.status === statusFilter)
     }
@@ -1064,6 +1071,12 @@ export const operationsService = {
   },
 
   _resetMockState(): void {
-    this.resetAllDemoData()
+    if (typeof window !== 'undefined' && window.localStorage) {
+      saveToStorage(STORAGE_KEYS.APPROVALS, DEFAULT_APPROVALS)
+      saveToStorage(STORAGE_KEYS.PUBLICATIONS, DEFAULT_PUBLICATIONS)
+      saveToStorage(STORAGE_KEYS.ANNOUNCEMENTS, DEFAULT_ANNOUNCEMENTS)
+      saveToStorage(STORAGE_KEYS.AUDIT_LOGS, DEFAULT_AUDIT_LOGS)
+      saveToStorage(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS)
+    }
   },
 }

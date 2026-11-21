@@ -47,24 +47,26 @@ public class ContentController : ControllerBase
     private async Task<bool> IsFourEyesRestrictedAsync(string? authorId)
     {
         if (string.IsNullOrEmpty(authorId)) return false;
-        if (CurrentUserId != authorId) return false;
-        if (IsAdminOrContentAdmin) return false;
-
-        if (User.IsInRole("author") || User.IsInRole("content_creator") || User.HasClaim("reviewer", "false"))
+        if (CurrentUserId == authorId)
+        {
+            // Strictly forbid self-approval, self-publishing, or self-rejection under four-eyes principle, regardless of role (no bypass for role content or admin)
             return true;
-
-        var authorUser = await _db.Users.FindAsync(authorId);
-        if (authorUser != null && (authorUser.Role == "author" || authorUser.Role == "content_creator"))
-            return true;
+        }
 
         return false;
     }
 
     private async Task<ContentRevision> CreateLessonRevisionAsync(ContentLesson les, string reason, string? sourceRevisionId = null)
     {
-        var count = await _db.ContentRevisions.CountAsync(r => r.ContentId == les.Id);
+        var maxVersion = await _db.ContentRevisions
+            .Where(r => r.ContentId == les.Id)
+            .Select(r => (int?)r.Version)
+            .MaxAsync() ?? 0;
+        var nextVersion = maxVersion + 1;
+
         var snapshot = new
         {
+            schemaVersion = 1,
             les.Id,
             les.ChapterId,
             les.TopicId,
@@ -87,7 +89,7 @@ public class ContentController : ControllerBase
             Id = $"rev_l_{Guid.NewGuid():N}",
             ContentId = les.Id,
             ContentType = "lesson",
-            Version = count + 1,
+            Version = nextVersion,
             Status = les.Status,
             Title = les.Title,
             SnapshotJson = JsonSerializer.Serialize(snapshot),
@@ -104,9 +106,15 @@ public class ContentController : ControllerBase
 
     private async Task<ContentRevision> CreateQuestionRevisionAsync(ContentQuestion q, string reason, string? sourceRevisionId = null)
     {
-        var count = await _db.ContentRevisions.CountAsync(r => r.ContentId == q.Id);
+        var maxVersion = await _db.ContentRevisions
+            .Where(r => r.ContentId == q.Id)
+            .Select(r => (int?)r.Version)
+            .MaxAsync() ?? 0;
+        var nextVersion = maxVersion + 1;
+
         var snapshot = new
         {
+            schemaVersion = 1,
             q.Id,
             q.Code,
             q.LessonId,
@@ -133,7 +141,7 @@ public class ContentController : ControllerBase
             Id = $"rev_q_{Guid.NewGuid():N}",
             ContentId = q.Id,
             ContentType = "question",
-            Version = count + 1,
+            Version = nextVersion,
             Status = q.Status,
             Title = q.Prompt.Length > 80 ? q.Prompt[..80] : q.Prompt,
             SnapshotJson = JsonSerializer.Serialize(snapshot),
@@ -2047,9 +2055,28 @@ public class ContentController : ControllerBase
         if (type == "all" || type == "lesson")
         {
             var lessons = await lessonQuery.OrderByDescending(l => l.UpdatedAt).Take(100).ToListAsync();
+            var lessonIds = lessons.Select(l => l.Id).ToList();
+            var lessonRevs = await _db.ContentRevisions
+                .AsNoTracking()
+                .Where(r => lessonIds.Contains(r.ContentId))
+                .OrderByDescending(r => r.Version)
+                .ToListAsync();
+
+            var revByLesson = lessonRevs.GroupBy(r => r.ContentId).ToDictionary(g => g.Key, g => g.First());
+
+            var reviewerIds = lessons.Select(l => l.ReviewedBy).Where(id => !string.IsNullOrEmpty(id)).Distinct().ToList();
+            var reviewerMap = await _db.Users.AsNoTracking().Where(u => reviewerIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.DisplayName);
+
             foreach (var l in lessons)
             {
-                var pubBy = !string.IsNullOrWhiteSpace(l.ReviewedBy) ? l.ReviewedBy : (l.Author?.DisplayName ?? "Quản trị viên");
+                var pubBy = (!string.IsNullOrWhiteSpace(l.ReviewedBy) && reviewerMap.TryGetValue(l.ReviewedBy, out var revName))
+                    ? revName
+                    : (l.Author?.DisplayName ?? "Ban biên tập");
+
+                revByLesson.TryGetValue(l.Id, out var rev);
+                var versionStr = rev != null ? $"v{rev.Version}.0" : "v1.0";
+                var changelogStr = rev?.Reason ?? "Xuất bản bài học chuẩn GDPT 2018";
+
                 results.Add(new
                 {
                     id = $"pub_{l.Id}",
@@ -2058,15 +2085,12 @@ public class ContentController : ControllerBase
                     title = l.Title,
                     subjectId = l.Chapter?.SubjectId ?? "",
                     subjectName = l.Chapter?.Subject?.Name ?? "",
-                    version = "v1.0",
+                    version = versionStr,
                     publishedAt = l.UpdatedAt.ToString("o"),
                     publisherName = pubBy,
                     publishedBy = pubBy,
                     status = "active",
-                    changelog = "Phiên bản chuẩn GDPT 2018",
-                    views = 120,
-                    rating = 4.9,
-                    activeUsers = 45
+                    changelog = changelogStr
                 });
             }
         }
@@ -2074,9 +2098,28 @@ public class ContentController : ControllerBase
         if (type == "all" || type == "assessment" || type == "question")
         {
             var questions = await questionQuery.OrderByDescending(q => q.UpdatedAt).Take(100).ToListAsync();
+            var questionIds = questions.Select(q => q.Id).ToList();
+            var questionRevs = await _db.ContentRevisions
+                .AsNoTracking()
+                .Where(r => questionIds.Contains(r.ContentId))
+                .OrderByDescending(r => r.Version)
+                .ToListAsync();
+
+            var revByQuestion = questionRevs.GroupBy(r => r.ContentId).ToDictionary(g => g.Key, g => g.First());
+
+            var reviewerIds = questions.Select(q => q.ReviewedBy).Where(id => !string.IsNullOrEmpty(id)).Distinct().ToList();
+            var reviewerMap = await _db.Users.AsNoTracking().Where(u => reviewerIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.DisplayName);
+
             foreach (var q in questions)
             {
-                var pubBy = !string.IsNullOrWhiteSpace(q.ReviewedBy) ? q.ReviewedBy : "Quản trị viên";
+                var pubBy = (!string.IsNullOrWhiteSpace(q.ReviewedBy) && reviewerMap.TryGetValue(q.ReviewedBy, out var revName))
+                    ? revName
+                    : "Ban biên tập";
+
+                revByQuestion.TryGetValue(q.Id, out var rev);
+                var versionStr = rev != null ? $"v{rev.Version}.0" : "v1.0";
+                var changelogStr = rev?.Reason ?? "Ngân hàng câu hỏi kiểm chứng";
+
                 results.Add(new
                 {
                     id = $"pub_{q.Id}",
@@ -2085,20 +2128,289 @@ public class ContentController : ControllerBase
                     title = q.Prompt.Length > 80 ? q.Prompt[..80] + "..." : q.Prompt,
                     subjectId = q.Lesson?.Chapter?.SubjectId ?? q.SubjectId ?? "",
                     subjectName = q.Lesson?.Chapter?.Subject?.Name ?? "Toán học",
-                    version = "v1.0",
+                    version = versionStr,
                     publishedAt = q.UpdatedAt.ToString("o"),
                     publisherName = pubBy,
                     publishedBy = pubBy,
                     status = "active",
-                    changelog = "Ngân hàng câu hỏi kiểm chứng",
-                    views = 85,
-                    rating = 4.8,
-                    activeUsers = 30
+                    changelog = changelogStr
                 });
             }
         }
 
         return Ok(results);
+    }
+
+    #endregion
+
+    #region Assessment Endpoints
+
+    [HttpGet("assessments")]
+    public async Task<IActionResult> ListAssessments(
+        [FromQuery] string? subjectId = null,
+        [FromQuery] string? status = null,
+        [FromQuery] string? search = null,
+        [FromQuery] string? lessonId = null)
+    {
+        var query = _db.ContentAssessments
+            .AsNoTracking()
+            .Include(a => a.Lesson)
+                .ThenInclude(l => l!.Chapter)
+                    .ThenInclude(c => c!.Subject)
+            .Include(a => a.Questions.Where(q => !q.IsDeleted))
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(lessonId))
+        {
+            query = query.Where(a => a.LessonId == lessonId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(status) && status != "all")
+        {
+            query = query.Where(a => a.Status == status);
+        }
+
+        if (!string.IsNullOrWhiteSpace(subjectId) && subjectId != "all")
+        {
+            query = query.Where(a => a.Lesson != null && a.Lesson.Chapter != null && a.Lesson.Chapter.SubjectId == subjectId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var q = search.Trim().ToLower();
+            query = query.Where(a => a.Title.ToLower().Contains(q) || (a.Lesson != null && a.Lesson.Title.ToLower().Contains(q)));
+        }
+
+        var list = await query.OrderByDescending(a => a.UpdatedAt).ToListAsync();
+        var dtos = list.Select(FormatAssessmentSummary).ToList();
+        return Ok(dtos);
+    }
+
+    [HttpGet("assessments/{id}")]
+    public async Task<IActionResult> GetAssessmentDetail(string id)
+    {
+        var a = await _db.ContentAssessments
+            .AsNoTracking()
+            .Include(x => x.Lesson)
+                .ThenInclude(l => l!.Chapter)
+                    .ThenInclude(c => c!.Subject)
+            .Include(x => x.Questions.Where(q => !q.IsDeleted))
+            .FirstOrDefaultAsync(x => x.Id == id);
+
+        if (a == null)
+            return NotFound(new { detail = "Bài kiểm tra / đánh giá không tồn tại." });
+
+        return Ok(FormatAssessmentDetail(a));
+    }
+
+    [HttpPost("assessments")]
+    public async Task<IActionResult> CreateAssessment([FromBody] CreateAssessmentRequestDto req)
+    {
+        if (string.IsNullOrWhiteSpace(req.LessonId))
+            return BadRequest(new { detail = "Bài học (LessonId) không được để trống." });
+
+        var lesson = await _db.ContentLessons
+            .Include(l => l.Chapter)
+                .ThenInclude(c => c!.Subject)
+            .FirstOrDefaultAsync(l => l.Id == req.LessonId);
+
+        if (lesson == null)
+            return NotFound(new { detail = "Bài học được liên kết không tồn tại." });
+
+        var existing = await _db.ContentAssessments.FirstOrDefaultAsync(a => a.LessonId == req.LessonId);
+        if (existing != null)
+            return Conflict(new { detail = "Bài học này đã có bài đánh giá. Vui lòng cập nhật bài đánh giá hiện có." });
+
+        var title = !string.IsNullOrWhiteSpace(req.Title) ? req.Title.Trim() : $"Bài kiểm tra: {lesson.Title}";
+        var assessment = new ContentAssessment
+        {
+            Id = $"asm_{Guid.NewGuid():N}",
+            LessonId = req.LessonId,
+            Title = title,
+            PassScore = req.PassingScore ?? 80,
+            DurationMinutes = req.DurationMinutes ?? 15,
+            Status = !string.IsNullOrWhiteSpace(req.Status) ? req.Status : "draft",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        _db.ContentAssessments.Add(assessment);
+
+        _db.StaffAuditLogs.Add(new StaffAuditLog
+        {
+            Id = $"log_{Guid.NewGuid():N}",
+            ActorUserId = CurrentUserId,
+            Action = "assessment_created",
+            TargetType = "content_assessment",
+            TargetId = assessment.Id,
+            Payload = JsonSerializer.Serialize(new { assessment.Id, assessment.LessonId, assessment.Title }),
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+
+        assessment.Lesson = lesson;
+        return StatusCode(StatusCodes.Status201Created, FormatAssessmentDetail(assessment));
+    }
+
+    [HttpPut("assessments/{id}")]
+    public async Task<IActionResult> UpdateAssessment(string id, [FromBody] UpdateAssessmentRequestDto req)
+    {
+        var assessment = await _db.ContentAssessments
+            .Include(a => a.Lesson)
+                .ThenInclude(l => l!.Chapter)
+                    .ThenInclude(c => c!.Subject)
+            .Include(a => a.Questions.Where(q => !q.IsDeleted))
+            .FirstOrDefaultAsync(a => a.Id == id);
+
+        if (assessment == null)
+            return NotFound(new { detail = "Bài kiểm tra / đánh giá không tồn tại." });
+
+        if (!string.IsNullOrWhiteSpace(req.Title))
+            assessment.Title = req.Title.Trim();
+
+        if (req.PassingScore.HasValue)
+            assessment.PassScore = req.PassingScore.Value;
+
+        if (req.DurationMinutes.HasValue)
+            assessment.DurationMinutes = req.DurationMinutes.Value;
+
+        if (!string.IsNullOrWhiteSpace(req.Status))
+            assessment.Status = req.Status.Trim();
+
+        assessment.UpdatedAt = DateTimeOffset.UtcNow;
+
+        _db.StaffAuditLogs.Add(new StaffAuditLog
+        {
+            Id = $"log_{Guid.NewGuid():N}",
+            ActorUserId = CurrentUserId,
+            Action = "assessment_updated",
+            TargetType = "content_assessment",
+            TargetId = assessment.Id,
+            Payload = JsonSerializer.Serialize(new { assessment.Id, assessment.Title, assessment.Status }),
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+        return Ok(FormatAssessmentDetail(assessment));
+    }
+
+    [HttpDelete("assessments/{id}")]
+    public async Task<IActionResult> DeleteAssessment(string id)
+    {
+        var assessment = await _db.ContentAssessments.FirstOrDefaultAsync(a => a.Id == id);
+        if (assessment == null)
+            return NotFound(new { detail = "Bài kiểm tra / đánh giá không tồn tại." });
+
+        _db.ContentAssessments.Remove(assessment);
+
+        _db.StaffAuditLogs.Add(new StaffAuditLog
+        {
+            Id = $"log_{Guid.NewGuid():N}",
+            ActorUserId = CurrentUserId,
+            Action = "assessment_deleted",
+            TargetType = "content_assessment",
+            TargetId = id,
+            Payload = JsonSerializer.Serialize(new { assessment.Id, assessment.Title }),
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+        return Ok(new { success = true, detail = "Đã xóa bài đánh giá thành công." });
+    }
+
+    [HttpPut("assessments/{id}/status")]
+    public async Task<IActionResult> UpdateAssessmentStatus(string id, [FromBody] JsonObject body)
+    {
+        var status = body?["status"]?.ToString();
+        if (string.IsNullOrWhiteSpace(status))
+            return BadRequest(new { detail = "Trạng thái mới không được để trống." });
+
+        var assessment = await _db.ContentAssessments
+            .Include(a => a.Lesson)
+                .ThenInclude(l => l!.Chapter)
+                    .ThenInclude(c => c!.Subject)
+            .Include(a => a.Questions.Where(q => !q.IsDeleted))
+            .FirstOrDefaultAsync(a => a.Id == id);
+
+        if (assessment == null)
+            return NotFound(new { detail = "Bài kiểm tra / đánh giá không tồn tại." });
+
+        assessment.Status = status.Trim();
+        assessment.UpdatedAt = DateTimeOffset.UtcNow;
+
+        _db.StaffAuditLogs.Add(new StaffAuditLog
+        {
+            Id = $"log_{Guid.NewGuid():N}",
+            ActorUserId = CurrentUserId,
+            Action = "assessment_status_changed",
+            TargetType = "content_assessment",
+            TargetId = assessment.Id,
+            Payload = JsonSerializer.Serialize(new { assessment.Id, status = assessment.Status }),
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+        return Ok(FormatAssessmentDetail(assessment));
+    }
+
+    [HttpPost("assessments/{id}/questions")]
+    public async Task<IActionResult> AddAssessmentQuestion(string id, [FromBody] AddAssessmentQuestionRequestDto req)
+    {
+        if (string.IsNullOrWhiteSpace(req.Prompt))
+            return BadRequest(new { detail = "Nội dung câu hỏi không được để trống." });
+
+        var assessment = await _db.ContentAssessments
+            .Include(a => a.Lesson)
+                .ThenInclude(l => l!.Chapter)
+                    .ThenInclude(c => c!.Subject)
+            .Include(a => a.Questions.Where(q => !q.IsDeleted))
+            .FirstOrDefaultAsync(a => a.Id == id);
+
+        if (assessment == null)
+            return NotFound(new { detail = "Bài kiểm tra / đánh giá không tồn tại." });
+
+        var optStrings = req.Options?.Select(o => o.Text).ToList() ?? new List<string>();
+        var optJson = req.Options != null ? JsonSerializer.Serialize(req.Options) : JsonSerializer.Serialize(optStrings);
+
+        var q = new ContentQuestion
+        {
+            Id = $"q_{Guid.NewGuid():N}",
+            AssessmentId = assessment.Id,
+            LessonId = assessment.LessonId,
+            SubjectId = assessment.Lesson?.Chapter?.SubjectId,
+            ChapterId = assessment.Lesson?.ChapterId,
+            Prompt = req.Prompt.Trim(),
+            Topic = req.Topic ?? assessment.Lesson?.Title,
+            OptionsJson = optJson,
+            CorrectAnswer = req.CorrectOptionId ?? "",
+            Explanation = req.Explanation,
+            Difficulty = "medium",
+            Type = "multiple-choice",
+            Status = "published",
+            AuthorId = CurrentUserId,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        _db.ContentQuestions.Add(q);
+        assessment.UpdatedAt = DateTimeOffset.UtcNow;
+
+        _db.StaffAuditLogs.Add(new StaffAuditLog
+        {
+            Id = $"log_{Guid.NewGuid():N}",
+            ActorUserId = CurrentUserId,
+            Action = "assessment_question_added",
+            TargetType = "content_question",
+            TargetId = q.Id,
+            Payload = JsonSerializer.Serialize(new { assessmentId = id, questionId = q.Id }),
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+
+        assessment.Questions.Add(q);
+        return StatusCode(StatusCodes.Status201Created, FormatAssessmentDetail(assessment));
     }
 
     #endregion
@@ -2630,11 +2942,11 @@ public class ContentController : ControllerBase
     [HttpPost("questions/{questionId}/reject")]
     public async Task<IActionResult> RejectQuestion(string questionId, [FromBody] RejectQuestionRequestDto? body = null)
     {
-        if (!User.IsInRole("content") && !User.IsInRole("content_admin") && !User.HasClaim("permission", "content.approve"))
+        if (!IsAuthorizedReviewer)
         {
             return StatusCode(StatusCodes.Status403Forbidden, new
             {
-                detail = "QUYỀN PHÊ DUYỆT: Role 'content' là người có thẩm quyền từ chối nội dung giáo dục cuối cùng."
+                detail = "QUYỀN PHÊ DUYỆT: Role 'content' hoặc 'admin' là người có thẩm quyền từ chối nội dung giáo dục cuối cùng."
             });
         }
 
@@ -2670,6 +2982,57 @@ public class ContentController : ControllerBase
             TargetType = "content_question",
             TargetId = questionId,
             Payload = JsonSerializer.Serialize(new { code = question.Code, reason }),
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+        return Ok(FormatQuestion(question));
+    }
+
+    [HttpPost("questions/{questionId}/request-changes")]
+    public async Task<IActionResult> RequestChangesQuestion(string questionId, [FromBody] JsonObject? body = null)
+    {
+        if (!IsAuthorizedReviewer)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                detail = "Chỉ Người kiểm duyệt nội dung (Content) hoặc Quản trị viên mới có quyền yêu cầu chỉnh sửa câu hỏi."
+            });
+        }
+
+        var question = await _db.ContentQuestions
+            .Include(q => q.Author)
+            .Include(q => q.Lesson)
+                .ThenInclude(l => l!.Chapter)
+                    .ThenInclude(c => c!.Subject)
+            .FirstOrDefaultAsync(q => q.Id == questionId);
+
+        if (question == null)
+            return NotFound(new { detail = "Câu hỏi không tồn tại." });
+
+        if (await IsFourEyesRestrictedAsync(question.AuthorId))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Quy tắc kiểm duyệt độc lập (four-eyes): Người biên soạn không thể tự yêu cầu chỉnh sửa câu hỏi của chính mình." });
+        }
+
+        var feedback = body?["feedback"]?.ToString() ?? body?["reason"]?.ToString();
+        var reason = !string.IsNullOrWhiteSpace(feedback)
+            ? feedback.Trim()
+            : "Nội dung câu hỏi cần chỉnh sửa trước khi phê duyệt.";
+
+        question.Status = "draft";
+        question.ReviewedBy = CurrentUserId;
+        question.RejectionReason = reason;
+        question.UpdatedAt = DateTimeOffset.UtcNow;
+
+        _db.StaffAuditLogs.Add(new StaffAuditLog
+        {
+            Id = $"log_{Guid.NewGuid():N}",
+            ActorUserId = CurrentUserId,
+            Action = "question_changes_requested",
+            TargetType = "content_question",
+            TargetId = questionId,
+            Payload = JsonSerializer.Serialize(new { code = question.Code, feedback = reason, authorId = question.AuthorId, reviewerId = CurrentUserId }),
             CreatedAt = DateTimeOffset.UtcNow
         });
 
@@ -3224,6 +3587,103 @@ public class ContentController : ControllerBase
             CreatedAt = q.CreatedAt.ToString("o"),
             UpdatedAt = q.UpdatedAt.ToString("o")
         };
+    }
+
+    private static ContentAssessmentItemDto FormatAssessmentSummary(ContentAssessment a)
+    {
+        return new ContentAssessmentItemDto
+        {
+            Id = a.Id,
+            LessonId = a.LessonId,
+            LessonTitle = a.Lesson?.Title ?? a.Title,
+            SubjectId = a.Lesson?.Chapter?.SubjectId ?? "",
+            SubjectName = a.Lesson?.Chapter?.Subject?.Name ?? "",
+            ChapterId = a.Lesson?.ChapterId,
+            ChapterName = a.Lesson?.Chapter?.Title,
+            QuestionCount = a.Questions.Count(q => !q.IsDeleted),
+            PassingScore = a.PassScore,
+            DurationMinutes = a.DurationMinutes,
+            Status = a.Status,
+            CreatedAt = a.CreatedAt.ToString("o"),
+            UpdatedAt = a.UpdatedAt.ToString("o"),
+            Questions = new List<AssessmentQuestionDto>()
+        };
+    }
+
+    private static ContentAssessmentItemDto FormatAssessmentDetail(ContentAssessment a)
+    {
+        var questions = a.Questions
+            .Where(q => !q.IsDeleted)
+            .OrderBy(q => q.OrderIndex)
+            .ThenBy(q => q.CreatedAt)
+            .Select(q =>
+            {
+                var options = ParseAssessmentOptions(q.OptionsJson);
+                return new AssessmentQuestionDto
+                {
+                    Id = q.Id,
+                    Prompt = q.Prompt,
+                    Topic = q.Topic,
+                    Options = options,
+                    CorrectOptionId = q.CorrectAnswer,
+                    Explanation = q.Explanation ?? ""
+                };
+            }).ToList();
+
+        return new ContentAssessmentItemDto
+        {
+            Id = a.Id,
+            LessonId = a.LessonId,
+            LessonTitle = a.Lesson?.Title ?? a.Title,
+            SubjectId = a.Lesson?.Chapter?.SubjectId ?? "",
+            SubjectName = a.Lesson?.Chapter?.Subject?.Name ?? "",
+            ChapterId = a.Lesson?.ChapterId,
+            ChapterName = a.Lesson?.Chapter?.Title,
+            QuestionCount = questions.Count,
+            PassingScore = a.PassScore,
+            DurationMinutes = a.DurationMinutes,
+            Status = a.Status,
+            CreatedAt = a.CreatedAt.ToString("o"),
+            UpdatedAt = a.UpdatedAt.ToString("o"),
+            Questions = questions
+        };
+    }
+
+    private static List<AssessmentOptionDto> ParseAssessmentOptions(string optionsJson)
+    {
+        var result = new List<AssessmentOptionDto>();
+        if (string.IsNullOrWhiteSpace(optionsJson)) return result;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(optionsJson);
+            if (doc.RootElement.ValueKind == JsonValueKind.Array)
+            {
+                int idx = 0;
+                var letters = new[] { "A", "B", "C", "D" };
+                foreach (var el in doc.RootElement.EnumerateArray())
+                {
+                    if (el.ValueKind == JsonValueKind.Object)
+                    {
+                        var id = el.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? $"opt-{idx}" : $"opt-{idx}";
+                        var label = el.TryGetProperty("label", out var lProp) ? lProp.GetString() ?? (idx < letters.Length ? letters[idx] : $"O{idx + 1}") : (idx < letters.Length ? letters[idx] : $"O{idx + 1}");
+                        var text = el.TryGetProperty("text", out var tProp) ? tProp.GetString() ?? "" : "";
+                        result.Add(new AssessmentOptionDto { Id = id, Label = label, Text = text });
+                    }
+                    else if (el.ValueKind == JsonValueKind.String)
+                    {
+                        var text = el.GetString() ?? "";
+                        var label = idx < letters.Length ? letters[idx] : $"O{idx + 1}";
+                        result.Add(new AssessmentOptionDto { Id = $"opt-{idx}", Label = label, Text = text });
+                    }
+                    idx++;
+                }
+            }
+        }
+        catch
+        {
+        }
+        return result;
     }
 
     #endregion
