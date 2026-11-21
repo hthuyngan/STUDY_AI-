@@ -59,6 +59,9 @@ Chương trình Toán cấp THPT (Lớp 10, 11, 12) bao gồm 3 mạch kiến th
 
 ## 5. Quy Chuẩn Nguồn Dữ Liệu & Bản Quyền (Provenance & Licensing)
 - **Nguồn quy chuẩn**: Thông tư 32/2018/TT-BGDĐT.
+- **Phạm vi triển khai L02 & Tính xác thực**:
+  - Cơ sở dữ liệu kiểm thử chuẩn (`StudyAIDb_E2E`) đã seed hoàn chỉnh các bài học tham chiếu chính thức cho Toán 10 (`sub_math10` - `les_math10_c1_b1`), Toán 11 (`sub_math11` - `les_math11_c1_b1`), và Toán 12 (`sub_math12` - `les_math12_c1_b1`, `l2`, `l3`) với ngân hàng câu hỏi chuẩn GDPT 2018 có đầy đủ metadata bản quyền và nguồn gốc.
+  - Các bài học được đánh dấu `In Preparation` hoặc `Planned` trong ma trận là phạm vi lộ trình mở rộng của các phase tiếp theo. Toàn bộ hệ thống tuân thủ nghiêm ngặt nguyên tắc **Zero-Mock**: không bao giờ tự tạo câu hỏi ngoài nguồn kiểm duyệt hoặc tạo dữ liệu giả trong môi trường đã đăng nhập.
 - **Quy trình kiểm duyệt**: Bản thảo câu hỏi ngân hàng đi qua 4 bước: Draft → Submitted for Review → Approved → Published bởi tài khoản có role `content` hoặc `admin`.
 - **Tránh vi phạm bản quyền SGK**:
   - Không sao chép các bài toán tình huống mang tính độc quyền của các bộ sách Cánh Diều, Kết Nối Tri Thức hay Chân Trời Sáng Tạo.

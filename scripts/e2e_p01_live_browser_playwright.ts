@@ -299,15 +299,63 @@ async function browserPracticeFlowGrades10_11_12(browser: Browser) {
     }, null, { timeout: 15000 })
     assert.ok(await startBtn.isEnabled(), 'Start button must be enabled when matching questions exist')
 
-    // 3. Start practice session
+    // 3. Start Grade 10 practice session
     const sessionPromise = page.waitForResponse(r =>
       r.url().includes('/api/v1/practice/sessions') && r.request().method() === 'POST', { timeout: 20000 })
     await startBtn.click()
     const sessionResp = await sessionPromise
     assert.equal(sessionResp.status(), 200, 'Real practice session created from SQL questions')
 
+    // 4. In Grade 10 session: Select answer, verify auto-save, submit, and read back server score
+    await page.waitForURL(url => url.pathname.includes('/practice/session/'), { timeout: 20000 })
+    await page.locator('.session-palette-card').waitFor({ state: 'visible', timeout: 20000 })
+
+    const answerPromise = page.waitForResponse(r =>
+      r.url().includes('/api/v1/practice/sessions/') && r.url().includes('/answer') && r.request().method() === 'POST', { timeout: 20000 })
+    await page.locator('.practice-mcq-btn').first().click()
+    const ansResp = await answerPromise
+    assert.equal(ansResp.status(), 200, 'Answer auto-saved to SQL AssessmentAttempt')
+
+    // Click Submit ("Nộp bài")
+    await page.getByRole('button', { name: 'Nộp bài' }).click()
+    await page.getByRole('button', { name: /Xác nhận nộp|Đang chấm/ }).waitFor({ state: 'visible', timeout: 15000 })
+    const submitPromise = page.waitForResponse(r =>
+      r.url().includes('/api/v1/practice/sessions/') && r.url().includes('/submit') && r.request().method() === 'POST', { timeout: 20000 })
+    await page.getByRole('button', { name: /Xác nhận nộp/ }).click()
+    const submitResp = await submitPromise
+    assert.equal(submitResp.status(), 200, 'Session submitted and scored by server')
+
+    // Wait for Result page
+    await page.waitForURL(url => url.pathname.includes('/practice/result/'), { timeout: 20000 })
+    await page.locator('.hero-score-card').waitFor({ state: 'visible', timeout: 20000 })
+
+    // 5. Verify Grade 11 Flow
+    await page.goto(`${baseUrl}/practice`)
+    await page.locator('.practice-setup-card').waitFor({ state: 'visible', timeout: 30000 })
+    const gradeSelect = page.locator('select[data-testid="grade-select"]')
+    await gradeSelect.selectOption('11')
+    await page.locator('.available-count-box').filter({ hasText: '2 câu hỏi' }).waitFor({ state: 'visible', timeout: 20000 })
+    const start11Promise = page.waitForResponse(r =>
+      r.url().includes('/api/v1/practice/sessions') && r.request().method() === 'POST', { timeout: 20000 })
+    await page.locator('button[data-testid="practice-start-btn"]').click()
+    const start11Resp = await start11Promise
+    assert.equal(start11Resp.status(), 200, 'Grade 11 session started with real SQL questions')
+    await page.waitForURL(url => url.pathname.includes('/practice/session/'), { timeout: 20000 })
+
+    // 6. Verify Grade 12 Flow
+    await page.goto(`${baseUrl}/practice`)
+    await page.locator('.practice-setup-card').waitFor({ state: 'visible', timeout: 30000 })
+    await page.locator('select[data-testid="grade-select"]').selectOption('12')
+    await page.locator('.available-count-box').filter({ hasText: '2 câu hỏi' }).waitFor({ state: 'visible', timeout: 20000 })
+    const start12Promise = page.waitForResponse(r =>
+      r.url().includes('/api/v1/practice/sessions') && r.request().method() === 'POST', { timeout: 20000 })
+    await page.locator('button[data-testid="practice-start-btn"]').click()
+    const start12Resp = await start12Promise
+    assert.equal(start12Resp.status(), 200, 'Grade 12 session started with real SQL questions')
+    await page.waitForURL(url => url.pathname.includes('/practice/session/'), { timeout: 20000 })
+
     await page.screenshot({ path: path.join(artifacts, 'practice-flow-real-api-pass.png'), fullPage: true })
-    console.log('[PASS] Live browser Practice: Filter zero-check disabled button, Grade 10 start & session persistence')
+    console.log('[PASS] Live browser Practice: Complete Grade 10/11/12 workflows, zero-match filter check, answer save, server grading & result verification')
   } finally {
     await ctx.close()
     const adminLogin = await fetch(`${backendUrl}/api/v1/auth/login`, {

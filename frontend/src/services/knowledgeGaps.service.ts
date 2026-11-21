@@ -96,7 +96,7 @@ export const knowledgeGapsService = {
     try {
       const url = `/api/v1/ai/knowledge-gaps${subjectId && subjectId !== 'all' ? `?subjectId=${subjectId}` : ''}`
       const remoteGaps = await apiClient.get<any[]>(url)
-      if (Array.isArray(remoteGaps) && remoteGaps.length > 0) {
+      if (Array.isArray(remoteGaps)) {
         const mapped: KnowledgeGap[] = remoteGaps.map((dto) => {
           const sev: KnowledgeGapSeverity =
             dto.severity === 'critical' ? 'high' : dto.severity === 'minor' ? 'low' : 'medium'
@@ -123,23 +123,19 @@ export const knowledgeGapsService = {
           }
         })
 
-        // Merge with existing local gaps
+        // Server is authoritative: replace gaps for this subject scope
         const current = loadStoredGaps()
-        const mergedMap = new Map<string, KnowledgeGap>()
-        for (const g of current) {
-          mergedMap.set(g.id, g)
-        }
-        for (const g of mapped) {
-          mergedMap.set(g.id, g)
-        }
-        const mergedList = Array.from(mergedMap.values())
-        persistGaps(mergedList)
+        const otherSubjects = (subjectId && subjectId !== 'all')
+          ? current.filter((g) => g.subjectId !== subjectId)
+          : []
+        const updated = [...otherSubjects, ...mapped]
+        persistGaps(updated)
+        return mapped
       }
-    } catch (err) {
-      console.warn('Could not sync remote knowledge gaps', err)
+      return []
+    } catch (err: any) {
+      throw new Error(`Không thể đồng bộ lỗ hổng kiến thức từ máy chủ: ${err?.message || 'Lỗi mạng'}`)
     }
-
-    return this.getAllGaps({ subjectId })
   },
 
   getAllGaps(filter?: {

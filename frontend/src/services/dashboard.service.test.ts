@@ -83,4 +83,39 @@ describe('DashboardService — Authenticated Zero-Mock & Fail-Closed Suite', () 
     expect(data!.recentActivities.length).toBe(1)
     expect(data!.recentActivities[0].id).toBe('att_01')
   })
+
+  it('renders truthful zero-evidence state for authenticated learner with no progress', async () => {
+    vi.mocked(getAuthUser).mockReturnValue({
+      id: 'usr_new_learner',
+      displayName: 'New Learner',
+      role: 'learner',
+      grade: '10',
+      createdAt: '2026-11-21T00:00:00Z',
+    })
+
+    vi.mocked(apiClient.get).mockResolvedValueOnce({
+      completedLessons: 0,
+      totalQuestionsPracticed: 0,
+      totalCorrectAnswers: 0,
+      accuracyRate: 0.0,
+      streakDays: 0,
+      totalMistakes: 0,
+      dueReviewsCount: 0,
+      totalStudyMinutes: 0,
+      subjectProgress: [],
+      recentAttempts: [],
+    })
+
+    const data = await fetchDashboardData()
+
+    expect(data).not.toBeNull()
+    expect(data!.stats.completedLessonsCount).toBe(0)
+    expect(data!.stats.streakDays).toBe(0)
+    expect(data!.stats.weeklyMinutes).toBe(0)
+    expect(data!.recentActivities).toEqual([])
+    expect(data!.continueLessons).toEqual([])
+    expect(data!.dailyGoals.items[0].current).toBe(0)
+    expect(data!.dailyGoals.items[0].completed).toBe(false)
+    expect(data!.subjects.every((s) => s.progress === 0 && s.completedLessons === 0)).toBe(true)
+  })
 })

@@ -180,7 +180,7 @@ public class PracticeController : ControllerBase
         List<ContentQuestion> selectedQuestions;
         if (request.Mode == "adaptive")
         {
-            selectedQuestions = await SelectAdaptiveQuestionsAsync(request, limit, CurrentUserId);
+            selectedQuestions = await SelectAdaptiveQuestionsAsync(query, request, limit, CurrentUserId);
             if (selectedQuestions.Count == 0)
             {
                 selectedQuestions = await query.OrderBy(q => Guid.NewGuid()).Take(limit).ToListAsync();
@@ -1101,6 +1101,11 @@ public class PracticeController : ControllerBase
             CompletedAt = a.CompletedAt ?? a.StartedAt
         }).ToList();
 
+        long totalSessionTimeMs = await _db.AssessmentAttempts.AsNoTracking()
+            .Where(a => a.UserId == userId)
+            .SumAsync(a => (long)a.SessionTimeMs);
+        int totalStudyMinutes = (int)(totalSessionTimeMs / 60000);
+
         return Ok(new LearnerDashboardStatsDto
         {
             CompletedLessons = completedLessons,
@@ -1110,6 +1115,7 @@ public class PracticeController : ControllerBase
             StreakDays = streak,
             TotalMistakes = totalMistakes,
             DueReviewsCount = dueCount,
+            TotalStudyMinutes = totalStudyMinutes,
             SubjectProgress = subjectProgressList,
             RecentAttempts = recentAttemptDtos
         });
@@ -1198,6 +1204,7 @@ public class PracticeController : ControllerBase
     }
 
     private async Task<List<ContentQuestion>> SelectAdaptiveQuestionsAsync(
+        IQueryable<ContentQuestion> eligibleQuery,
         CreatePracticeSessionRequest request,
         int limit,
         string currentUserId)
@@ -1220,19 +1227,7 @@ public class PracticeController : ControllerBase
             .Distinct()
             .ToListAsync();
 
-        var baseQuery = _db.ContentQuestions.AsNoTracking()
-            .Where(q => !q.IsDeleted && q.Status == "published" && !string.IsNullOrWhiteSpace(q.CorrectAnswer) && q.SubjectId == request.SubjectId);
-
-        if (!string.IsNullOrWhiteSpace(request.ChapterId))
-        {
-            baseQuery = baseQuery.Where(q => q.ChapterId == request.ChapterId);
-        }
-        if (!string.IsNullOrWhiteSpace(request.LessonId))
-        {
-            baseQuery = baseQuery.Where(q => q.LessonId == request.LessonId);
-        }
-
-        var allAvailable = await baseQuery.ToListAsync();
+        var allAvailable = await eligibleQuery.ToListAsync();
         if (allAvailable.Count == 0) return new List<ContentQuestion>();
 
         var status = profile?.OverallStatus ?? "insufficient_data";

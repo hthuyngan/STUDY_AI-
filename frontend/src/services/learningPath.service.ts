@@ -75,10 +75,10 @@ export async function getLearningPath(): Promise<LearningPathData> {
               keyTopics: [st.objective],
               primaryLessonId: st.lessonId,
             }))
-          : mockLearningPath.stages
+          : []
 
       const firstActionable = adaptive?.steps?.find((s) => !s.isCompleted) || adaptive?.steps?.[0]
-      const aiSuggestion: AISuggestion = firstActionable
+      const aiSuggestion: AISuggestion | null = firstActionable
         ? {
             id: `sug-${firstActionable.stepNumber}`,
             title: firstActionable.title,
@@ -86,20 +86,25 @@ export async function getLearningPath(): Promise<LearningPathData> {
             actionLabel: 'Bắt đầu',
             actionUrl: firstActionable.targetRoute,
             topic:
-              adaptive.currentStage === 'remediation'
+              adaptive?.currentStage === 'remediation'
                 ? 'Củng cố kiến thức hổng'
                 : 'Tiếp tục lộ trình chuẩn GDPT 2018',
           }
-        : mockLearningPath.aiSuggestion
+        : null
+
+      const now = new Date()
+      const targetYear = now.getMonth() >= 8 ? now.getFullYear() + 1 : now.getFullYear()
+      const examDate = new Date(targetYear, 5, 27)
+      const dynamicDaysRemaining = Math.max(0, Math.ceil((examDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
 
       return {
         goalTitle: `Mục tiêu điểm số THPT Lớp ${authUser.grade || '12'}`,
         targetExam: 'Kỳ thi Tốt nghiệp THPT Quốc gia',
-        daysRemaining: mockLearningPath.daysRemaining,
+        daysRemaining: dynamicDaysRemaining,
         overallProgress: progress,
         currentStreak: streak,
         stages,
-        aiSuggestion,
+        aiSuggestion: aiSuggestion as AISuggestion,
       }
     } catch {
       throw new Error('Không thể tải dữ liệu lộ trình học tập từ máy chủ. Vui lòng thử lại.')

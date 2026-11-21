@@ -113,10 +113,13 @@ export const PracticeSetup: React.FC<PracticeSetupProps> = ({
       subjectId: selectedSubjectId,
       chapterId: selectedChapterId || undefined,
       lessonId: lessonId || undefined,
+      skillId: selectedSkillId || undefined,
       skillIds: selectedSkillId ? [selectedSkillId] : undefined,
       questionType: (questionType as QuestionType) || undefined,
       difficulty: (difficulty as QuestionDifficulty) || undefined,
+      grade: selectedGrade || undefined,
       limit: Math.min(limit, availableCount),
+      mode: 'practice',
     })
   }
 
@@ -143,6 +146,7 @@ export const PracticeSetup: React.FC<PracticeSetupProps> = ({
           </label>
           <select
             className="setup-select"
+            data-testid="grade-select"
             value={selectedGrade}
             onChange={(e) => {
               setSelectedGrade(e.target.value)

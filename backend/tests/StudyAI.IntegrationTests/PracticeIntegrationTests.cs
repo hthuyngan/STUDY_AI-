@@ -493,5 +493,51 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
         Assert.NotEmpty(first.GetProperty("category").GetString()!);
         Assert.Equal("sub_math12", first.GetProperty("subjectId").GetString());
     }
+
+    [Fact]
+    public async Task AdaptiveMode_AdheresToAllFilters_And_NeverReturnsQuestionsOutsideFilter()
+    {
+        var token = await GetLearnerTokenAsync();
+
+        // 1. Adaptive mode with short_answer on sub_math10 (where 0 short_answer questions exist) -> 404 NotFound
+        var req1 = new HttpRequestMessage(HttpMethod.Post, "/api/v1/practice/sessions")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreatePracticeSessionRequest
+            {
+                SubjectId = "sub_math10",
+                QuestionType = "short_answer",
+                Mode = "adaptive",
+                QuestionCount = 5
+            }), Encoding.UTF8, MediaTypeHeaderValue.Parse("application/json"))
+        };
+        req1.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var resp1 = await _client.SendAsync(req1);
+        Assert.Equal(HttpStatusCode.NotFound, resp1.StatusCode);
+
+        // 2. Adaptive mode with multiple-choice on sub_math10 -> 200 OK, all returned questions must be multiple-choice
+        var req2 = new HttpRequestMessage(HttpMethod.Post, "/api/v1/practice/sessions")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new CreatePracticeSessionRequest
+            {
+                SubjectId = "sub_math10",
+                QuestionType = "multiple_choice",
+                Mode = "adaptive",
+                QuestionCount = 5
+            }), Encoding.UTF8, MediaTypeHeaderValue.Parse("application/json"))
+        };
+        req2.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var resp2 = await _client.SendAsync(req2);
+        Assert.Equal(HttpStatusCode.OK, resp2.StatusCode);
+        var body2 = await resp2.Content.ReadAsStringAsync();
+        using var doc2 = JsonDocument.Parse(body2);
+        var questions = doc2.RootElement.GetProperty("questions").EnumerateArray().ToList();
+        Assert.True(questions.Count > 0);
+        foreach (var q in questions)
+        {
+            Assert.Equal("sub_math10", q.GetProperty("subjectId").GetString());
+            var qType = q.GetProperty("type").GetString();
+            Assert.True(qType == "multiple-choice" || qType == "multiple_choice", $"Expected multiple-choice, got {qType}");
+        }
+    }
 }
 
