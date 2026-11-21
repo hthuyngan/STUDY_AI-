@@ -30,7 +30,6 @@ import {
 const STORAGE_KEY_USERS = 'study_ai_admin_users_v2'
 const STORAGE_KEY_ACTIVITIES = 'study_ai_admin_activities_v2'
 const STORAGE_KEY_ATTENTION = 'study_ai_admin_attention_v2'
-const STORAGE_KEY_ROLE_SIM = 'study_ai_admin_role_sim_v2'
 
 function safeGetStorage<T>(key: string, fallback: T): T {
   try {
@@ -57,16 +56,11 @@ function safeSetStorage<T>(key: string, value: T): void {
 let mockUsers: AdminUserItem[] = safeGetStorage<AdminUserItem[]>(STORAGE_KEY_USERS, [...INITIAL_MOCK_USERS])
 let mockActivities: AdminActivityItem[] = safeGetStorage<AdminActivityItem[]>(STORAGE_KEY_ACTIVITIES, [...INITIAL_MOCK_ACTIVITIES])
 const mockAttentionItems: AdminAttentionItem[] = safeGetStorage<AdminAttentionItem[]>(STORAGE_KEY_ATTENTION, [...INITIAL_MOCK_ATTENTION_ITEMS])
-let mockRoleSim: Record<UserRole, RolePermission[]> = safeGetStorage<Record<UserRole, RolePermission[]>>(
-  STORAGE_KEY_ROLE_SIM,
-  JSON.parse(JSON.stringify(ROLE_PERMISSIONS))
-)
 
 function persistAll() {
   safeSetStorage(STORAGE_KEY_USERS, mockUsers)
   safeSetStorage(STORAGE_KEY_ACTIVITIES, mockActivities)
   safeSetStorage(STORAGE_KEY_ATTENTION, mockAttentionItems)
-  safeSetStorage(STORAGE_KEY_ROLE_SIM, mockRoleSim)
 }
 
 interface BackendUserDto {
@@ -640,24 +634,16 @@ export const adminService = {
   },
 
   async getRolePermissionsSimulation(): Promise<Record<UserRole, RolePermission[]>> {
-    return JSON.parse(JSON.stringify(mockRoleSim))
+    return JSON.parse(JSON.stringify(ROLE_PERMISSIONS))
   },
 
-  async toggleRolePermissionSimulation(role: UserRole, permission: RolePermission): Promise<Record<UserRole, RolePermission[]>> {
-    const current = mockRoleSim[role] || []
-    if (current.includes(permission)) {
-      mockRoleSim[role] = current.filter((p) => p !== permission)
-    } else {
-      mockRoleSim[role] = [...current, permission]
-    }
-    persistAll()
-    return JSON.parse(JSON.stringify(mockRoleSim))
+  async toggleRolePermissionSimulation(_role: UserRole, _permission: RolePermission): Promise<Record<UserRole, RolePermission[]>> {
+    // RBAC is immutable and code-defined; returns authoritative permissions matrix
+    return JSON.parse(JSON.stringify(ROLE_PERMISSIONS))
   },
 
   async resetRolePermissionsSimulation(): Promise<Record<UserRole, RolePermission[]>> {
-    mockRoleSim = JSON.parse(JSON.stringify(ROLE_PERMISSIONS))
-    persistAll()
-    return JSON.parse(JSON.stringify(mockRoleSim))
+    return JSON.parse(JSON.stringify(ROLE_PERMISSIONS))
   },
 
   exportUsersCSV(users: AdminUserItem[]): string {
@@ -731,13 +717,11 @@ export const adminService = {
   _resetMockState(): void {
     mockUsers = [...INITIAL_MOCK_USERS]
     mockActivities = [...INITIAL_MOCK_ACTIVITIES]
-    mockRoleSim = JSON.parse(JSON.stringify(ROLE_PERMISSIONS))
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.removeItem(STORAGE_KEY_USERS)
         window.localStorage.removeItem(STORAGE_KEY_ACTIVITIES)
         window.localStorage.removeItem(STORAGE_KEY_ATTENTION)
-        window.localStorage.removeItem(STORAGE_KEY_ROLE_SIM)
       }
     } catch {
       // Ignore

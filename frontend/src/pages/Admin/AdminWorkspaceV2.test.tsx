@@ -213,8 +213,8 @@ describe('Admin Workspace V2 UI Tests', () => {
     })
   })
 
-  describe('AdminRolesPage (Matrix & Simulation Sandbox)', () => {
-    it('renders permission matrix, simulation sandbox, and role explanations', async () => {
+  describe('AdminRolesPage (Code-Defined RBAC Matrix)', () => {
+    it('renders code-defined permission matrix, security notice, and role explanations', async () => {
       render(
         <MemoryRouter>
           <AdminRolesPage />
@@ -222,15 +222,10 @@ describe('Admin Workspace V2 UI Tests', () => {
       )
 
       expect(screen.getByText('Ma trận phân quyền & Vai trò')).toBeInTheDocument()
+      expect(screen.getByText(/Chính sách phân quyền bảo mật cấp mã nguồn/i)).toBeInTheDocument()
       expect(screen.getByRole('tab', { name: /Ma trận quyền chuẩn/i })).toBeInTheDocument()
-      expect(screen.getByRole('tab', { name: /Mô phỏng cấu hình quyền/i })).toBeInTheDocument()
       expect(screen.getByRole('tab', { name: /Giải thích chi tiết 5 vai trò/i })).toBeInTheDocument()
-
-      // Switch to simulator tab
-      fireEvent.click(screen.getByRole('tab', { name: /Mô phỏng cấu hình quyền/i }))
-      await waitFor(() => {
-        expect(screen.getByText(/Chế độ mô phỏng cấu hình quyền \(Prototype Sandbox\)/i)).toBeInTheDocument()
-      })
+      expect(screen.queryByRole('tab', { name: /Mô phỏng cấu hình quyền/i })).not.toBeInTheDocument()
 
       // Switch to explanation tab
       fireEvent.click(screen.getByRole('tab', { name: /Giải thích chi tiết 5 vai trò/i }))

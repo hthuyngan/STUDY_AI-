@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Check,
   ShieldAlert,
@@ -6,6 +6,8 @@ import {
   X,
 } from 'lucide-react';
 import { teacherManagementService } from '@/services/teacherManagement.service';
+import { operationsService } from '@/services/operations.service';
+import { getAccessToken } from '@/auth/authSession';
 import type {
   AiContentQualityAuditResponse,
 } from '@/types/teacherManagement';
@@ -61,9 +63,45 @@ const INITIAL_ITEMS: MockModerationItem[] = [
 ];
 
 export const ContentGovernanceWorkspace: React.FC = () => {
-  const [items, setItems] = useState<MockModerationItem[]>(INITIAL_ITEMS);
+  const [items, setItems] = useState<MockModerationItem[]>(() =>
+    getAccessToken() ? [] : INITIAL_ITEMS
+  );
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedItem, setSelectedItem] = useState<MockModerationItem | null>(null);
+
+  useEffect(() => {
+    if (getAccessToken()) {
+      operationsService
+        .getApprovals()
+        .then((approvals) => {
+          const mapped: MockModerationItem[] = approvals.map((a) => ({
+            id: a.contentId || a.id,
+            type: (a.contentType as string) === 'question' ? 'question' : 'lesson',
+            title: a.title,
+            topic: a.chapterName || a.subjectName,
+            authorId: a.authorName,
+            authorName: a.authorName,
+            content:
+              a.contentPreview?.summary ||
+              a.contentPreview?.introduction ||
+              a.title,
+            status:
+              a.status === 'pending'
+                ? 'in-review'
+                : a.status === 'approved'
+                ? 'approved'
+                : a.status === 'published'
+                ? 'published'
+                : 'rejected',
+            createdAt: a.submittedAt || new Date().toISOString(),
+          }));
+          setItems(mapped);
+        })
+        .catch(() => {
+          setItems([]);
+        });
+    }
+  }, []);
 
   // AI Audit State
   const [isAuditing, setIsAuditing] = useState<boolean>(false);

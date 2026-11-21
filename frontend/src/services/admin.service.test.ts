@@ -125,15 +125,15 @@ describe('adminService V2 (Mock Engine & Persistence)', () => {
     expect(analyticsMonth.trends.length).toBeGreaterThan(0)
   })
 
-  it('handles role permissions simulation sandbox', async () => {
+  it('handles code-defined role permissions matrix immutably', async () => {
     const initialSim = await adminService.getRolePermissionsSimulation()
     expect(initialSim.admin.length).toBeGreaterThan(0)
 
-    // Toggle a permission
+    // Toggle is a no-op because RBAC is immutable and code-defined
     const updated = await adminService.toggleRolePermissionSimulation('learner', 'view_classes')
-    expect(updated.learner).toContain('view_classes')
+    expect(updated.learner).not.toContain('view_classes')
 
-    // Reset back
+    // Reset returns authoritative matrix
     const reset = await adminService.resetRolePermissionsSimulation()
     expect(reset.learner).not.toContain('view_classes')
   })
