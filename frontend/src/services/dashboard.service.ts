@@ -8,6 +8,7 @@ import type {
   DailyGoalItem,
   DailyGoalsData,
   DashboardData,
+  LeaderboardUser,
   RecentActivityItem,
   SubjectProgressItemData,
 } from '@/types/dashboard'
@@ -200,7 +201,39 @@ export async function fetchDashboardData(
         : [])
     : learning.continueLearning
 
-  // Merge authoritative data with layout base
+  const totalXP = serverStats ? serverStats.totalCorrectAnswers * 10 : 0
+
+  if (authUser && serverStats) {
+    const leaderboard: LeaderboardUser[] = [
+      {
+        rank: 1,
+        id: user.id,
+        name: user.name,
+        avatar: user.avatar,
+        xp: totalXP,
+        isCurrentUser: true,
+      },
+    ]
+
+    return {
+      user,
+      stats: {
+        streakDays,
+        longestStreak: streakDays,
+        totalXP,
+        weeklyMinutes,
+        completedLessonsCount,
+      },
+      activity,
+      dailyGoals,
+      continueLessons,
+      subjects,
+      recentActivities,
+      leaderboard,
+    }
+  }
+
+  // Fallback for unauthenticated guest demo preview
   return {
     ...base,
     user,

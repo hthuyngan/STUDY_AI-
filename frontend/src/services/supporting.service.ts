@@ -1,5 +1,6 @@
 import { apiClient } from '@/lib/apiClient'
 import { getAuthUser } from '@/auth/authSession'
+import { getStorageKey } from '@/repositories/storageKeys'
 import {
   mockAchievements,
   mockExercises,
@@ -19,6 +20,12 @@ export async function getExercises(filters?: {
   subjectId?: string
   status?: string
 }): Promise<ExerciseItem[]> {
+  const authUser = getAuthUser()
+  if (authUser) {
+    // Authenticated learner: return honest empty exercises until classroom assignments exist
+    return []
+  }
+
   await new Promise((resolve) => setTimeout(resolve, 150))
   let list = [...mockExercises]
   if (filters?.subjectId && filters.subjectId !== 'all') {
@@ -77,6 +84,61 @@ export async function getLibraryItems(filters?: {
 }
 
 export async function getAchievements(): Promise<AchievementItem[]> {
+  const authUser = getAuthUser()
+  if (authUser) {
+    try {
+      const stats = await apiClient.get<any>('/api/v1/practice/dashboard-stats')
+      return [
+        {
+          id: 'ach-01',
+          title: 'Khởi đầu nan',
+          description: 'Hoàn thành bài luyện tập đầu tiên',
+          icon: '🎯',
+          progress: Math.min(1, stats?.totalQuestionsPracticed || 0),
+          target: 1,
+          isUnlocked: (stats?.totalQuestionsPracticed || 0) > 0,
+          unlockedDate: stats?.recentAttempts?.[0]?.completedAt || undefined,
+          xpReward: 50,
+        },
+        {
+          id: 'ach-02',
+          title: 'Chiến binh kiên trì',
+          description: 'Học tập liên tục 3 ngày',
+          icon: '🔥',
+          progress: Math.min(3, stats?.streakDays || 0),
+          target: 3,
+          isUnlocked: (stats?.streakDays || 0) >= 3,
+          unlockedDate: (stats?.streakDays || 0) >= 3 ? new Date().toISOString() : undefined,
+          xpReward: 100,
+        },
+        {
+          id: 'ach-03',
+          title: 'Bách phát bách trúng',
+          description: 'Đạt độ chính xác từ 80% trở lên',
+          icon: '⭐',
+          progress: Math.min(80, Math.round(stats?.accuracyRate || 0)),
+          target: 80,
+          isUnlocked: (stats?.accuracyRate || 0) >= 80 && (stats?.totalQuestionsPracticed || 0) >= 5,
+          unlockedDate: (stats?.accuracyRate || 0) >= 80 && (stats?.totalQuestionsPracticed || 0) >= 5 ? new Date().toISOString() : undefined,
+          xpReward: 150,
+        },
+        {
+          id: 'ach-04',
+          title: 'Chinh phục bài học',
+          description: 'Hoàn thành 1 bài học lý thuyết hoặc chuyên đề',
+          icon: '📚',
+          progress: Math.min(1, stats?.completedLessons || 0),
+          target: 1,
+          isUnlocked: (stats?.completedLessons || 0) >= 1,
+          unlockedDate: (stats?.completedLessons || 0) >= 1 ? new Date().toISOString() : undefined,
+          xpReward: 80,
+        },
+      ]
+    } catch {
+      return []
+    }
+  }
+
   await new Promise((resolve) => setTimeout(resolve, 150))
   return [...mockAchievements]
 }
@@ -85,18 +147,31 @@ export async function getUserProfile(): Promise<UserProfileData> {
   await new Promise((resolve) => setTimeout(resolve, 50))
   const authUser = getAuthUser()
   if (authUser) {
+    let stats: any = null
+    try {
+      stats = await apiClient.get<any>('/api/v1/practice/dashboard-stats')
+    } catch {
+      // ignore
+    }
+
     return {
       id: authUser.id,
       name: authUser.displayName || 'Học viên',
-      avatar: mockUserProfile.avatar,
+      avatar: '',
       grade: authUser.grade ? `Lớp ${authUser.grade}` : 'Lớp 12',
       school: 'THPT',
-      studyGoal: mockUserProfile.studyGoal,
-      streakDays: 0,
-      totalXP: 0,
-      studyHours: 0,
-      completedLessons: 0,
-      subjectStats: [],
+      studyGoal: 'Chinh phục kỳ thi THPT Quốc Gia với điểm số 8.5+',
+      streakDays: stats?.streakDays ?? 0,
+      totalXP: stats ? (stats.totalCorrectAnswers || 0) * 10 : 0,
+      studyHours: stats ? Math.round(((stats.totalStudyMinutes || 0) / 60) * 10) / 10 : 0,
+      completedLessons: stats?.completedLessons ?? 0,
+      subjectStats: stats?.subjectProgress?.map((s: any) => ({
+        subjectId: s.subjectId,
+        subjectName: s.subjectName,
+        completedLessons: s.completedLessons,
+        totalLessons: s.totalLessons,
+        progress: s.progressPercent,
+      })) || [],
     }
   }
   return { ...mockUserProfile }
@@ -104,7 +179,8 @@ export async function getUserProfile(): Promise<UserProfileData> {
 
 export async function getUserSettings(): Promise<UserSettingsData> {
   await new Promise((resolve) => setTimeout(resolve, 150))
-  const saved = localStorage.getItem('study_ai_settings')
+  const storageKey = getStorageKey('user_settings')
+  const saved = typeof window !== 'undefined' ? localStorage.getItem(storageKey) : null
   if (saved) {
     try {
       return JSON.parse(saved)
@@ -119,10 +195,13 @@ export async function updateUserSettings(settings: Partial<UserSettingsData>): P
   await new Promise((resolve) => setTimeout(resolve, 150))
   const current = await getUserSettings()
   const updated = { ...current, ...settings }
-  localStorage.setItem('study_ai_settings', JSON.stringify(updated))
-  if (updated.theme) {
-    document.documentElement.setAttribute('data-theme', updated.theme)
-    localStorage.setItem('study_ai_theme', updated.theme)
+  const storageKey = getStorageKey('user_settings')
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(storageKey, JSON.stringify(updated))
+    if (updated.theme) {
+      document.documentElement.setAttribute('data-theme', updated.theme)
+      localStorage.setItem('study_ai_theme', updated.theme)
+    }
   }
   return updated
 }

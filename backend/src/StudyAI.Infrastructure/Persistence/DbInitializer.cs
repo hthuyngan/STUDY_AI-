@@ -93,15 +93,15 @@ public static class DbInitializer
             await context.SaveChangesAsync();
         }
 
-        var math10Questions = await context.ContentQuestions.AnyAsync(q => q.LessonId == "les_math10_c1_b1");
+        var math10Questions = await context.ContentQuestions.AnyAsync(q => q.LessonId == math10Lesson.Id);
         if (!math10Questions)
         {
             context.ContentQuestions.AddRange(
                 new ContentQuestion
                 {
                     Id = "qst_math10_c1_b1_q1",
-                    LessonId = "les_math10_c1_b1",
-                    ChapterId = "chp_math10_c1",
+                    LessonId = math10Lesson.Id,
+                    ChapterId = math10Chapter.Id,
                     SubjectId = "sub_math10",
                     Grade = "10",
                     Prompt = "Trong các câu sau, câu nào là mệnh đề toán học?",
@@ -123,8 +123,8 @@ public static class DbInitializer
                 new ContentQuestion
                 {
                     Id = "qst_math10_c1_b1_q2",
-                    LessonId = "les_math10_c1_b1",
-                    ChapterId = "chp_math10_c1",
+                    LessonId = math10Lesson.Id,
+                    ChapterId = math10Chapter.Id,
                     SubjectId = "sub_math10",
                     Grade = "10",
                     Prompt = "Mệnh đề phủ định của mệnh đề $P: \"\\forall x \\in \\mathbb{R}, x^2 + 1 > 0\"$ là:",
@@ -204,15 +204,15 @@ public static class DbInitializer
             await context.SaveChangesAsync();
         }
 
-        var math11Questions = await context.ContentQuestions.AnyAsync(q => q.LessonId == "les_math11_c1_b1");
+        var math11Questions = await context.ContentQuestions.AnyAsync(q => q.LessonId == math11Lesson.Id);
         if (!math11Questions)
         {
             context.ContentQuestions.AddRange(
                 new ContentQuestion
                 {
                     Id = "qst_math11_c1_b1_q1",
-                    LessonId = "les_math11_c1_b1",
-                    ChapterId = "chp_math11_c1",
+                    LessonId = math11Lesson.Id,
+                    ChapterId = math11Chapter.Id,
                     SubjectId = "sub_math11",
                     Grade = "11",
                     Prompt = "Đổi số đo góc $60^\\circ$ sang đơn vị radian ta được:",
@@ -234,8 +234,8 @@ public static class DbInitializer
                 new ContentQuestion
                 {
                     Id = "qst_math11_c1_b1_q2",
-                    LessonId = "les_math11_c1_b1",
-                    ChapterId = "chp_math11_c1",
+                    LessonId = math11Lesson.Id,
+                    ChapterId = math11Chapter.Id,
                     SubjectId = "sub_math11",
                     Grade = "11",
                     Prompt = "Cho góc $\\alpha$ thỏa mãn $\\frac{\\pi}{2} < \\alpha < \\pi$. Khẳng định nào sau đây là đúng?",
