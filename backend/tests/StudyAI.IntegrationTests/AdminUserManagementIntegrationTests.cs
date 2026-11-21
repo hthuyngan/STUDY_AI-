@@ -710,6 +710,53 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
     }
 
     [Fact]
+    public async Task Admin_UpdateSettings_ConcurrentParallelRequests_NeverThrowsDeadlock1205_ReturnsConflictForStaleTokens()
+    {
+        var adminToken = await GetAdminTokenAsync();
+
+        // 1. Fetch current settings to get baseline version
+        var getReq = new HttpRequestMessage(HttpMethod.Get, "/api/v1/admin/settings");
+        getReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var getResp = await _client.SendAsync(getReq);
+        var current = JsonSerializer.Deserialize<OperationalSettingsDto>(await getResp.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        // 2. Launch 6 concurrent update requests all presenting the SAME version token
+        var tasks = Enumerable.Range(1, 6).Select(async i =>
+        {
+            var updateSettings = new OperationalSettingsDto
+            {
+                SystemName = $"STUDY_AI Parallel Test {i}",
+                SystemDescription = $"Concurrency test iteration {i}",
+                Language = "vi-VN",
+                PassingScoreThreshold = 6.0 + (i * 0.1),
+                LowScoreAlertThreshold = 5.0,
+                AttentionProgressThreshold = 60,
+                Version = current.Version // Same token across all parallel workers
+            };
+
+            var putReq = new HttpRequestMessage(HttpMethod.Put, "/api/v1/admin/settings")
+            {
+                Content = new StringContent(JsonSerializer.Serialize(updateSettings), Encoding.UTF8, "application/json")
+            };
+            putReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+
+            return await _client.SendAsync(putReq);
+        }).ToList();
+
+        var responses = await Task.WhenAll(tasks);
+
+        // Exactly one request should succeed (200 OK) with the initial token, and all others must receive 409 Conflict
+        // NONE should fail with 500 Internal Server Error or SqlException 1205 deadlock victim!
+        int okCount = responses.Count(r => r.StatusCode == HttpStatusCode.OK);
+        int conflictCount = responses.Count(r => r.StatusCode == HttpStatusCode.Conflict);
+        int errorCount = responses.Count(r => (int)r.StatusCode >= 500);
+
+        Assert.Equal(0, errorCount);
+        Assert.Equal(1, okCount);
+        Assert.Equal(5, conflictCount);
+    }
+
+    [Fact]
     public async Task Admin_CreateAnnouncement_TargetedToRecipients_PersistsAndDeliversCorrectly()
     {
         var token = await GetAdminTokenAsync();

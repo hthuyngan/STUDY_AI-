@@ -758,6 +758,19 @@ public class PracticeController : ControllerBase
             });
         }
 
+        var perfByDiff = new Dictionary<string, (int correct, int total)>();
+        foreach (var qDto in detailedResults)
+        {
+            var diff = string.IsNullOrWhiteSpace(qDto.Difficulty) ? "medium" : qDto.Difficulty.ToLowerInvariant();
+            if (!perfByDiff.ContainsKey(diff)) perfByDiff[diff] = (0, 0);
+            perfByDiff[diff] = (perfByDiff[diff].correct + (qDto.IsCorrect ? 1 : 0), perfByDiff[diff].total + 1);
+        }
+
+        var diffStats = perfByDiff.ToDictionary(
+            kvp => kvp.Key,
+            kvp => kvp.Value.total > 0 ? Math.Round((double)kvp.Value.correct / kvp.Value.total * 100.0, 1) : 0.0
+        );
+
         return Ok(new PracticeResultDto
         {
             ResultId = $"res_{attempt.Id}",
@@ -773,8 +786,61 @@ public class PracticeController : ControllerBase
             Passed = (attempt.ScoreScaled ?? 0) >= 5.0,
             TimeSpentSeconds = attempt.SessionTimeMs / 1000,
             CompletedAt = attempt.CompletedAt ?? DateTimeOffset.UtcNow,
-            Questions = detailedResults
+            Questions = detailedResults,
+            PerformanceByDifficulty = diffStats
         });
+    }
+
+    [HttpGet("sessions/{sessionId}/result")]
+    public async Task<IActionResult> GetSessionResult(string sessionId)
+    {
+        var attempt = await _db.AssessmentAttempts
+            .Include(a => a.Responses)
+            .FirstOrDefaultAsync(a => a.Id == sessionId);
+
+        if (attempt == null)
+        {
+            return NotFound(new { detail = $"Không tìm thấy phiên làm bài '{sessionId}'." });
+        }
+
+        if (attempt.UserId != CurrentUserId && !IsStaffOrAdmin)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Bạn không có quyền xem kết quả làm bài của học sinh khác." });
+        }
+
+        if (attempt.CompletionStatus != "completed")
+        {
+            return BadRequest(new { detail = "Phiên làm bài chưa hoàn thành hoặc chưa được nộp để chấm điểm." });
+        }
+
+        return await BuildCompletedResult(attempt);
+    }
+
+    [HttpGet("results/{resultId}")]
+    public async Task<IActionResult> GetResultById(string resultId)
+    {
+        var normalizedId = resultId.StartsWith("res_") ? resultId.Substring(4) : resultId;
+
+        var attempt = await _db.AssessmentAttempts
+            .Include(a => a.Responses)
+            .FirstOrDefaultAsync(a => a.Id == normalizedId || a.Id == resultId);
+
+        if (attempt == null)
+        {
+            return NotFound(new { detail = $"Không tìm thấy kết quả làm bài '{resultId}'." });
+        }
+
+        if (attempt.UserId != CurrentUserId && !IsStaffOrAdmin)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Bạn không có quyền xem kết quả làm bài của học sinh khác." });
+        }
+
+        if (attempt.CompletionStatus != "completed")
+        {
+            return BadRequest(new { detail = "Phiên làm bài chưa hoàn thành hoặc chưa được nộp để chấm điểm." });
+        }
+
+        return await BuildCompletedResult(attempt);
     }
 
     // ─────────────────────────────────────────────────────────────────────────────

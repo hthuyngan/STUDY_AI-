@@ -176,7 +176,7 @@ export const PracticeResultPage: React.FC = () => {
       </div>
 
       {/* Hero Score Banner */}
-      <div className="result-hero-card">
+      <div className="result-hero-card" data-testid="practice-result-summary">
         <div className="hero-score-badge">
           <Award size={18} aria-hidden />
           <span>KẾT QUẢ ĐÃ CHẤM XÁC ĐỊNH</span>
@@ -200,10 +200,10 @@ export const PracticeResultPage: React.FC = () => {
 
           <div className="hero-score-right">
             <div className="score-circle">
-              <span className="score-number">
+              <span className="score-number" data-testid="score-number">
                 {result.earnedPoints} <small>/ {result.maxPoints}</small>
               </span>
-              <span className="score-percent">{result.percentage}% điểm đạt</span>
+              <span className="score-percent" data-testid="score-percent">{result.percentage}% điểm đạt</span>
             </div>
           </div>
         </div>

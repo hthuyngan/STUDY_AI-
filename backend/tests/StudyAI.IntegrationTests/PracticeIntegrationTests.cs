@@ -539,5 +539,101 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
             Assert.True(qType == "multiple-choice" || qType == "multiple_choice", $"Expected multiple-choice, got {qType}");
         }
     }
+
+    private async Task<string> RegisterOtherLearnerTokenAsync()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8];
+        var regDto = new UserRegisterRequestDto
+        {
+            Email = $"other.learner.{suffix}@studyai.internal",
+            Password = "Learner@123456",
+            DisplayName = $"Other Learner {suffix}",
+            Grade = "10"
+        };
+        var content = new StringContent(JsonSerializer.Serialize(regDto), Encoding.UTF8, "application/json");
+        var response = await _client.PostAsync("/api/v1/auth/register", content);
+        response.EnsureSuccessStatusCode();
+
+        var body = await response.Content.ReadAsStringAsync();
+        var result = JsonSerializer.Deserialize<AuthResponseDto>(body, _jsonOptions);
+        return result!.AccessToken;
+    }
+
+    [Fact]
+    public async Task GetSessionResult_Lifecycle_Auth_Ownership_And_ResultPersistence()
+    {
+        var token = await GetLearnerTokenAsync();
+        var otherToken = await RegisterOtherLearnerTokenAsync();
+
+        // 1. Create a session
+        var createReq = new CreatePracticeSessionRequest
+        {
+            SubjectId = "sub_math10",
+            QuestionCount = 2,
+            Mode = "practice"
+        };
+        var postMsg = new HttpRequestMessage(HttpMethod.Post, "/api/v1/practice/sessions")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(createReq), Encoding.UTF8, "application/json")
+        };
+        postMsg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var createResp = await _client.SendAsync(postMsg);
+        Assert.Equal(HttpStatusCode.OK, createResp.StatusCode);
+        var session = JsonSerializer.Deserialize<PracticeSessionResponseDto>(await createResp.Content.ReadAsStringAsync(), _jsonOptions)!;
+
+        // 2. Unauthenticated GET /sessions/{id}/result -> 401
+        var unauthReq = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/practice/sessions/{session.SessionId}/result");
+        var unauthResp = await _client.SendAsync(unauthReq);
+        Assert.Equal(HttpStatusCode.Unauthorized, unauthResp.StatusCode);
+
+        // 3. Other student GET /sessions/{id}/result -> 403 Forbidden
+        var otherReq = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/practice/sessions/{session.SessionId}/result");
+        otherReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", otherToken);
+        var otherResp = await _client.SendAsync(otherReq);
+        Assert.Equal(HttpStatusCode.Forbidden, otherResp.StatusCode);
+
+        // 4. In-progress session GET /sessions/{id}/result -> 400 Bad Request (prevents answer leakage prior to submission)
+        var inProgressReq = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/practice/sessions/{session.SessionId}/result");
+        inProgressReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var inProgressResp = await _client.SendAsync(inProgressReq);
+        Assert.Equal(HttpStatusCode.BadRequest, inProgressResp.StatusCode);
+
+        // 5. Submit session
+        var submitReq = new SubmitPracticeSessionRequest
+        {
+            Answers = new Dictionary<string, string> { { session.Questions[0].Id, session.Questions[0].Options[0] } },
+            SessionTimeMs = 15000
+        };
+        var submitMsg = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/practice/sessions/{session.SessionId}/submit")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(submitReq), Encoding.UTF8, "application/json")
+        };
+        submitMsg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var submitResp = await _client.SendAsync(submitMsg);
+        Assert.Equal(HttpStatusCode.OK, submitResp.StatusCode);
+
+        // 6. After completion: GET /sessions/{id}/result -> 200 OK with full score & explanations
+        var resultReq = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/practice/sessions/{session.SessionId}/result");
+        resultReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var resultResp = await _client.SendAsync(resultReq);
+        Assert.Equal(HttpStatusCode.OK, resultResp.StatusCode);
+        var resultDto = JsonSerializer.Deserialize<PracticeResultDto>(await resultResp.Content.ReadAsStringAsync(), _jsonOptions)!;
+        Assert.Equal(session.SessionId, resultDto.SessionId);
+        Assert.Equal(2, resultDto.TotalQuestions);
+        Assert.NotNull(resultDto.Questions);
+        Assert.True(resultDto.Questions.Count > 0);
+        Assert.NotEmpty(resultDto.Questions[0].CorrectAnswer);
+
+        // 7. GET /results/{resultId} (with 'res_' prefix and raw ID) -> 200 OK
+        var resIdReq = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/practice/results/res_{session.SessionId}");
+        resIdReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var resIdResp = await _client.SendAsync(resIdReq);
+        Assert.Equal(HttpStatusCode.OK, resIdResp.StatusCode);
+
+        var rawIdReq = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/practice/results/{session.SessionId}");
+        rawIdReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var rawIdResp = await _client.SendAsync(rawIdReq);
+        Assert.Equal(HttpStatusCode.OK, rawIdResp.StatusCode);
+    }
 }
 

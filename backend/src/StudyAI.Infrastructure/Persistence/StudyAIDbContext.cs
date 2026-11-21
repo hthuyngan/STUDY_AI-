@@ -193,6 +193,8 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
             entity.HasIndex(e => e.CreatedAt);
 
+            entity.HasIndex(e => new { e.TargetType, e.Action, e.CreatedAt });
+
         });
 
 

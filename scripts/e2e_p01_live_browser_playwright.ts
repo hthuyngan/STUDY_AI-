@@ -327,7 +327,23 @@ async function browserPracticeFlowGrades10_11_12(browser: Browser) {
 
     // Wait for Result page
     await page.waitForURL(url => url.pathname.includes('/practice/result/'), { timeout: 20000 })
-    await page.locator('.hero-score-card').waitFor({ state: 'visible', timeout: 20000 })
+    await page.locator('[data-testid="practice-result-summary"], .result-hero-card').waitFor({ state: 'visible', timeout: 20000 })
+
+    // Validate score number and percent
+    const scoreEl = page.locator('[data-testid="score-number"], .score-number')
+    await scoreEl.waitFor({ state: 'visible', timeout: 15000 })
+    const scoreText = await scoreEl.innerText()
+    assert.ok(scoreText.includes('/'), `Score text must display points scale, found: ${scoreText}`)
+
+    const percentEl = page.locator('[data-testid="score-percent"], .score-percent')
+    await percentEl.waitFor({ state: 'visible', timeout: 15000 })
+    const percentText = await percentEl.innerText()
+    assert.ok(percentText.includes('%'), `Percentage must display valid percent, found: ${percentText}`)
+
+    // Test rehydration on reload from server GET result API
+    await page.reload()
+    await page.locator('[data-testid="practice-result-summary"], .result-hero-card').waitFor({ state: 'visible', timeout: 20000 })
+    assert.ok((await scoreEl.innerText()).includes('/'), 'Result score persists upon hard reload from server API')
 
     // 5. Verify Grade 11 Flow
     await page.goto(`${baseUrl}/practice`)
@@ -341,6 +357,19 @@ async function browserPracticeFlowGrades10_11_12(browser: Browser) {
     const start11Resp = await start11Promise
     assert.equal(start11Resp.status(), 200, 'Grade 11 session started with real SQL questions')
     await page.waitForURL(url => url.pathname.includes('/practice/session/'), { timeout: 20000 })
+    await page.locator('.session-palette-card').waitFor({ state: 'visible', timeout: 20000 })
+
+    // Answer and submit Grade 11 session
+    await page.locator('.practice-mcq-btn').first().click()
+    await page.getByRole('button', { name: 'Nộp bài' }).click()
+    await page.getByRole('button', { name: /Xác nhận nộp|Đang chấm/ }).waitFor({ state: 'visible', timeout: 15000 })
+    const submit11Promise = page.waitForResponse(r =>
+      r.url().includes('/api/v1/practice/sessions/') && r.url().includes('/submit') && r.request().method() === 'POST', { timeout: 20000 })
+    await page.getByRole('button', { name: /Xác nhận nộp/ }).click()
+    const submit11Resp = await submit11Promise
+    assert.equal(submit11Resp.status(), 200, 'Grade 11 session submitted and scored by server')
+    await page.waitForURL(url => url.pathname.includes('/practice/result/'), { timeout: 20000 })
+    await page.locator('[data-testid="practice-result-summary"], .result-hero-card').waitFor({ state: 'visible', timeout: 20000 })
 
     // 6. Verify Grade 12 Flow
     await page.goto(`${baseUrl}/practice`)
@@ -353,6 +382,28 @@ async function browserPracticeFlowGrades10_11_12(browser: Browser) {
     const start12Resp = await start12Promise
     assert.equal(start12Resp.status(), 200, 'Grade 12 session started with real SQL questions')
     await page.waitForURL(url => url.pathname.includes('/practice/session/'), { timeout: 20000 })
+    await page.locator('.session-palette-card').waitFor({ state: 'visible', timeout: 20000 })
+
+    // Answer and submit Grade 12 session
+    await page.locator('.practice-mcq-btn').first().click()
+    await page.getByRole('button', { name: 'Nộp bài' }).click()
+    await page.getByRole('button', { name: /Xác nhận nộp|Đang chấm/ }).waitFor({ state: 'visible', timeout: 15000 })
+    const submit12Promise = page.waitForResponse(r =>
+      r.url().includes('/api/v1/practice/sessions/') && r.url().includes('/submit') && r.request().method() === 'POST', { timeout: 20000 })
+    await page.getByRole('button', { name: /Xác nhận nộp/ }).click()
+    const submit12Resp = await submit12Promise
+    assert.equal(submit12Resp.status(), 200, 'Grade 12 session submitted and scored by server')
+    await page.waitForURL(url => url.pathname.includes('/practice/result/'), { timeout: 20000 })
+    await page.locator('[data-testid="practice-result-summary"], .result-hero-card').waitFor({ state: 'visible', timeout: 20000 })
+
+    // 7. Verify all 3 completed attempts in SQL Server via authenticated API
+    const attemptsResp = await fetch(`${backendUrl}/api/v1/me/assessment-attempts`, {
+      headers: { Authorization: `Bearer ${registered.accessToken}` }
+    })
+    assert.equal(attemptsResp.status(), 200, 'Assessment attempts fetched from server')
+    const attempts = await attemptsResp.json() as Array<{ subjectId: string, completionStatus: string, scoreScaled: number }>
+    const completedPracAttempts = attempts.filter(a => a.completionStatus === 'completed')
+    assert.ok(completedPracAttempts.length >= 3, `Must have at least 3 completed practice sessions across Grade 10, 11, 12, found ${completedPracAttempts.length}`)
 
     await page.screenshot({ path: path.join(artifacts, 'practice-flow-real-api-pass.png'), fullPage: true })
     console.log('[PASS] Live browser Practice: Complete Grade 10/11/12 workflows, zero-match filter check, answer save, server grading & result verification')
