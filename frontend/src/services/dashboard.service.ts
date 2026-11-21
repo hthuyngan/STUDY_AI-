@@ -28,6 +28,7 @@ interface ServerDashboardStats {
   totalMistakes: number
   dueReviewsCount: number
   totalStudyMinutes?: number
+  totalSessions?: number
   subjectProgress: Array<{
     subjectId: string
     subjectName: string

@@ -155,6 +155,58 @@ public class AdaptiveLearningIntegrationTests : IClassFixture<StudyAIApiFixture>
     [Fact]
     public async Task TwoUserIsolation_LearnerBHasIndependentZeroData()
     {
+        // 1. Learner A registers and completes a practice session with mistakes
+        var learnerAToken = await RegisterOtherLearnerTokenAsync();
+        var createReq = new CreatePracticeSessionRequest
+        {
+            SubjectId = "sub_math12",
+            QuestionCount = 2,
+            Mode = "practice"
+        };
+        var createMsg = new HttpRequestMessage(HttpMethod.Post, "/api/v1/practice/sessions")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(createReq), Encoding.UTF8, "application/json")
+        };
+        createMsg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", learnerAToken);
+        var createResp = await _client.SendAsync(createMsg);
+        Assert.Equal(HttpStatusCode.OK, createResp.StatusCode);
+        var sessionA = JsonSerializer.Deserialize<PracticeSessionResponseDto>(
+            await createResp.Content.ReadAsStringAsync(), _jsonOptions);
+        Assert.NotNull(sessionA);
+
+        // Learner A submits wrong answers to record attempts and mistakes
+        var wrongAnswers = new Dictionary<string, string>();
+        foreach (var q in sessionA.Questions)
+        {
+            wrongAnswers[q.Id] = "WRONG_ANSWER_CHOICE_FOR_TEST";
+        }
+        var submitReq = new SubmitPracticeSessionRequest
+        {
+            Answers = wrongAnswers,
+            SessionTimeMs = 12000
+        };
+        var submitMsg = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/practice/sessions/{sessionA.SessionId}/submit")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(submitReq), Encoding.UTF8, "application/json")
+        };
+        submitMsg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", learnerAToken);
+        var submitResp = await _client.SendAsync(submitMsg);
+        Assert.Equal(HttpStatusCode.OK, submitResp.StatusCode);
+
+        // Verify Learner A has 1 session and questions practiced
+        var statsMsgA = new HttpRequestMessage(HttpMethod.Get, "/api/v1/practice/dashboard-stats");
+        statsMsgA.Headers.Authorization = new AuthenticationHeaderValue("Bearer", learnerAToken);
+        var statsRespA = await _client.SendAsync(statsMsgA);
+        Assert.Equal(HttpStatusCode.OK, statsRespA.StatusCode);
+        var statsA = JsonSerializer.Deserialize<LearnerDashboardStatsDto>(
+            await statsRespA.Content.ReadAsStringAsync(), _jsonOptions);
+        Assert.NotNull(statsA);
+        Assert.Equal(1, statsA.TotalSessions);
+        Assert.Equal(2, statsA.TotalQuestionsPracticed);
+        Assert.True(statsA.TotalMistakes > 0);
+        Assert.Single(statsA.RecentAttempts);
+
+        // 2. Learner B registers fresh
         var learnerBToken = await RegisterOtherLearnerTokenAsync();
 
         // Learner B: 0 attempts -> 0 gaps
@@ -187,11 +239,138 @@ public class AdaptiveLearningIntegrationTests : IClassFixture<StudyAIApiFixture>
         var stats = JsonSerializer.Deserialize<LearnerDashboardStatsDto>(
             await statsResp.Content.ReadAsStringAsync(), _jsonOptions);
         Assert.NotNull(stats);
+        Assert.Equal(0, stats.TotalSessions);
         Assert.Equal(0, stats.CompletedLessons);
         Assert.Equal(0, stats.TotalQuestionsPracticed);
         Assert.Equal(0, stats.StreakDays);
         Assert.Equal(0, stats.TotalMistakes);
         Assert.Empty(stats.RecentAttempts);
+
+        // 3. Re-verify Learner A: state is intact and isolated
+        var recheckMsgA = new HttpRequestMessage(HttpMethod.Get, "/api/v1/practice/dashboard-stats");
+        recheckMsgA.Headers.Authorization = new AuthenticationHeaderValue("Bearer", learnerAToken);
+        var recheckRespA = await _client.SendAsync(recheckMsgA);
+        Assert.Equal(HttpStatusCode.OK, recheckRespA.StatusCode);
+        var recheckStatsA = JsonSerializer.Deserialize<LearnerDashboardStatsDto>(
+            await recheckRespA.Content.ReadAsStringAsync(), _jsonOptions);
+        Assert.NotNull(recheckStatsA);
+        Assert.Equal(1, recheckStatsA.TotalSessions);
+        Assert.Equal(2, recheckStatsA.TotalQuestionsPracticed);
+
+        // 4. Re-verify Learner B: still 0 sessions
+        var recheckMsgB = new HttpRequestMessage(HttpMethod.Get, "/api/v1/practice/dashboard-stats");
+        recheckMsgB.Headers.Authorization = new AuthenticationHeaderValue("Bearer", learnerBToken);
+        var recheckRespB = await _client.SendAsync(recheckMsgB);
+        Assert.Equal(HttpStatusCode.OK, recheckRespB.StatusCode);
+        var recheckStatsB = JsonSerializer.Deserialize<LearnerDashboardStatsDto>(
+            await recheckRespB.Content.ReadAsStringAsync(), _jsonOptions);
+        Assert.NotNull(recheckStatsB);
+        Assert.Equal(0, recheckStatsB.TotalSessions);
+    }
+
+    [Fact]
+    public async Task AdaptiveLearning_UpdateLearningPlan_PersistsAndReturnsUpdatedPath()
+    {
+        var token = await RegisterOtherLearnerTokenAsync();
+
+        var updateReq = new UpdateLearningPlanRequestDto
+        {
+            TargetScore = 9.2,
+            TargetExamDate = "2027-06-28",
+            TargetDailyMinutes = 60,
+            CustomGoals = new List<string> { "Chinh phục hình học không gian Oxyz" }
+        };
+
+        var putMsg = new HttpRequestMessage(HttpMethod.Put, "/api/v1/ai/learning-path/plan?subjectId=sub_math12")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(updateReq), Encoding.UTF8, "application/json")
+        };
+        putMsg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var putResp = await _client.SendAsync(putMsg);
+        Assert.Equal(HttpStatusCode.OK, putResp.StatusCode);
+
+        var path = JsonSerializer.Deserialize<AdaptiveLearningPathDto>(
+            await putResp.Content.ReadAsStringAsync(), _jsonOptions);
+        Assert.NotNull(path);
+        Assert.Equal(9.2, path.TargetScore);
+        Assert.Equal("2027-06-28", path.TargetExamDate);
+        Assert.Equal(60, path.TargetDailyMinutes);
+        Assert.True(path.Version >= 1);
+        Assert.Contains(path.ShortTermGoals, g => g.Contains("Chinh phục hình học không gian Oxyz"));
+
+        // GET confirms persistence
+        var getMsg = new HttpRequestMessage(HttpMethod.Get, "/api/v1/ai/learning-path?subjectId=sub_math12");
+        getMsg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var getResp = await _client.SendAsync(getMsg);
+        Assert.Equal(HttpStatusCode.OK, getResp.StatusCode);
+        var persisted = JsonSerializer.Deserialize<AdaptiveLearningPathDto>(
+            await getResp.Content.ReadAsStringAsync(), _jsonOptions);
+        Assert.NotNull(persisted);
+        Assert.Equal(9.2, persisted.TargetScore);
+        Assert.Equal("2027-06-28", persisted.TargetExamDate);
+        Assert.Equal(60, persisted.TargetDailyMinutes);
+
+        // Validation: TargetScore > 10.0 -> BadRequest
+        var invalidReq = new UpdateLearningPlanRequestDto { TargetScore = 12.0 };
+        var badMsg = new HttpRequestMessage(HttpMethod.Put, "/api/v1/ai/learning-path/plan")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(invalidReq), Encoding.UTF8, "application/json")
+        };
+        badMsg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var badResp = await _client.SendAsync(badMsg);
+        Assert.Equal(HttpStatusCode.BadRequest, badResp.StatusCode);
+    }
+
+    [Fact]
+    public async Task Me_Preferences_GetAndUpdate_Succeeds()
+    {
+        var token = await RegisterOtherLearnerTokenAsync();
+
+        // 1. Default GET
+        var getMsg1 = new HttpRequestMessage(HttpMethod.Get, "/api/v1/me/preferences");
+        getMsg1.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var getResp1 = await _client.SendAsync(getMsg1);
+        Assert.Equal(HttpStatusCode.OK, getResp1.StatusCode);
+
+        // 2. PUT update
+        var updateDto = new
+        {
+            Theme = "dark",
+            DailyGoalMinutes = 60,
+            StudyReminder = false,
+            StreakAlert = true,
+            CourseAlert = true,
+            AiResponseStyle = "concise",
+            StudyGoal = "Chinh phục điểm 9 môn Toán",
+            TargetScore = 9.0
+        };
+        var putMsg = new HttpRequestMessage(HttpMethod.Put, "/api/v1/me/preferences")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(updateDto), Encoding.UTF8, "application/json")
+        };
+        putMsg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var putResp = await _client.SendAsync(putMsg);
+        Assert.Equal(HttpStatusCode.OK, putResp.StatusCode);
+
+        // 3. GET verify
+        var getMsg2 = new HttpRequestMessage(HttpMethod.Get, "/api/v1/me/preferences");
+        getMsg2.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var getResp2 = await _client.SendAsync(getMsg2);
+        Assert.Equal(HttpStatusCode.OK, getResp2.StatusCode);
+        using var doc = JsonDocument.Parse(await getResp2.Content.ReadAsStringAsync());
+        Assert.Equal("dark", doc.RootElement.GetProperty("theme").GetString());
+        Assert.Equal(60, doc.RootElement.GetProperty("dailyGoalMinutes").GetInt32());
+        Assert.Equal("Chinh phục điểm 9 môn Toán", doc.RootElement.GetProperty("studyGoal").GetString());
+
+        // 4. Validation: DailyGoalMinutes < 5 -> BadRequest
+        var invalidDto = new { DailyGoalMinutes = 2 };
+        var badMsg = new HttpRequestMessage(HttpMethod.Put, "/api/v1/me/preferences")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(invalidDto), Encoding.UTF8, "application/json")
+        };
+        badMsg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var badResp = await _client.SendAsync(badMsg);
+        Assert.Equal(HttpStatusCode.BadRequest, badResp.StatusCode);
     }
 
     [Fact]

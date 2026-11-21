@@ -18,5 +18,11 @@ public interface ILearningRecommendationService
         string userId,
         string? subjectId = null,
         CancellationToken cancellationToken = default);
+
+    Task<AdaptiveLearningPathDto> UpdateLearningPlanAsync(
+        string userId,
+        UpdateLearningPlanRequestDto dto,
+        string? subjectId = null,
+        CancellationToken cancellationToken = default);
 }
 

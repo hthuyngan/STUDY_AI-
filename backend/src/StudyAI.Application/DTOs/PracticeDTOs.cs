@@ -154,6 +154,7 @@ public class LearnerDashboardStatsDto
     public int TotalMistakes { get; set; }
     public int DueReviewsCount { get; set; }
     public int TotalStudyMinutes { get; set; }
+    public int TotalSessions { get; set; }
     public List<SubjectDashboardProgressDto> SubjectProgress { get; set; } = new();
     public List<RecentPracticeAttemptDto> RecentAttempts { get; set; } = new();
 }

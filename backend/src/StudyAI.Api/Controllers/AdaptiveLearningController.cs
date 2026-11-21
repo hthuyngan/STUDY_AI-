@@ -145,6 +145,25 @@ public class AdaptiveLearningController : ControllerBase
         return Ok(result);
     }
 
+    [HttpPut("learning-path/plan")]
+    public async Task<IActionResult> UpdateLearningPlan(
+        [FromBody] UpdateLearningPlanRequestDto dto,
+        [FromQuery] string? subjectId = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (dto.TargetScore < 1.0 || dto.TargetScore > 10.0)
+        {
+            return BadRequest(new { detail = "TargetScore phải nằm trong khoảng từ 1.0 đến 10.0." });
+        }
+        if (dto.TargetDailyMinutes < 5 || dto.TargetDailyMinutes > 480)
+        {
+            return BadRequest(new { detail = "TargetDailyMinutes phải từ 5 đến 480 phút." });
+        }
+
+        var result = await _recommendationService.UpdateLearningPlanAsync(CurrentUserId, dto, subjectId, cancellationToken);
+        return Ok(result);
+    }
+
     // ─────────────────────────────────────────────────────────────────────────────
     // 5. RECOMMENDED LESSONS (ĐỀ XUẤT BÀI HỌC TIẾP THEO & ÔN TẬP)
     // ─────────────────────────────────────────────────────────────────────────────

@@ -611,7 +611,84 @@ public class MeController : ControllerBase
 
         return Ok(new { success = true, itemId });
     }
+
+    // ── User Preferences ─────────────────────────────────────────────────────────
+
+    [HttpGet("preferences")]
+    public async Task<IActionResult> GetUserPreferences(CancellationToken cancellationToken = default)
+    {
+        var prefEvent = await _db.LearningEvents.AsNoTracking()
+            .Where(e => e.UserId == CurrentUserId && e.Type == "user_preference")
+            .OrderByDescending(e => e.Timestamp)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (prefEvent != null && !string.IsNullOrWhiteSpace(prefEvent.PayloadJson))
+        {
+            try
+            {
+                var pref = JsonSerializer.Deserialize<UserPreferencesDto>(
+                    prefEvent.PayloadJson,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (pref != null) return Ok(pref);
+            }
+            catch
+            {
+                // fallback to default
+            }
+        }
+
+        return Ok(new UserPreferencesDto());
+    }
+
+    [HttpPut("preferences")]
+    public async Task<IActionResult> UpdateUserPreferences(
+        [FromBody] UserPreferencesDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        if (dto.DailyGoalMinutes < 5 || dto.DailyGoalMinutes > 480)
+        {
+            return BadRequest(new { detail = "DailyGoalMinutes phải từ 5 đến 480 phút." });
+        }
+
+        var prefEvent = await _db.LearningEvents
+            .FirstOrDefaultAsync(e => e.UserId == CurrentUserId && e.Type == "user_preference", cancellationToken);
+
+        if (prefEvent == null)
+        {
+            prefEvent = new LearningEvent
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                UserId = CurrentUserId,
+                Type = "user_preference",
+                Timestamp = DateTimeOffset.UtcNow,
+                PayloadJson = JsonSerializer.Serialize(dto),
+                SchemaVersion = 1
+            };
+            _db.LearningEvents.Add(prefEvent);
+        }
+        else
+        {
+            prefEvent.PayloadJson = JsonSerializer.Serialize(dto);
+            prefEvent.Timestamp = DateTimeOffset.UtcNow;
+            prefEvent.SchemaVersion += 1;
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
+        return Ok(dto);
+    }
 }
 
 public record CreateBookmarkRequest(string ItemId, string? SubjectId = null, string? Title = null);
+
+public class UserPreferencesDto
+{
+    public string Theme { get; set; } = "system";
+    public int DailyGoalMinutes { get; set; } = 45;
+    public bool StudyReminder { get; set; } = true;
+    public bool StreakAlert { get; set; } = true;
+    public bool CourseAlert { get; set; } = true;
+    public string AiResponseStyle { get; set; } = "balanced";
+    public string StudyGoal { get; set; } = "Chinh phục kỳ thi THPT Quốc Gia với điểm số 8.5+";
+    public double TargetScore { get; set; } = 8.5;
+}
 

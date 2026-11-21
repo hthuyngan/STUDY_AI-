@@ -18,6 +18,7 @@ import {
   generateAdaptiveLearningPath,
 } from './adaptiveLearningPathService'
 import type {
+  ConfidenceLevel,
   KnowledgeGapItem,
   LearnerAnalyticsSummary,
   LearningRecommendation,
@@ -63,25 +64,29 @@ export const personalizationService = {
       try {
         const [serverStats, serverRecs, serverGaps, serverPath] = await Promise.all([
           apiClient.get<any>('/api/v1/practice/dashboard-stats'),
-          apiClient.get<any[]>('/api/v1/ai/recommendations').catch(() => []),
-          apiClient.get<any[]>('/api/v1/ai/knowledge-gaps').catch(() => []),
-          apiClient.get<any>('/api/v1/ai/learning-path').catch(() => null),
+          apiClient.get<any[]>('/api/v1/ai/recommendations'),
+          apiClient.get<any[]>('/api/v1/ai/knowledge-gaps'),
+          apiClient.get<any>('/api/v1/ai/learning-path'),
         ])
 
         const hasData = Boolean(serverStats && serverStats.totalQuestionsPracticed > 0)
 
-        const gaps: KnowledgeGapItem[] = (serverGaps || []).map((g: any) => ({
-          id: g.id || `gap_${g.skillId}`,
-          skillId: g.skillId || 'unknown',
-          skillName: g.skillName || 'Kỹ năng cần ôn tập',
-          gapLevel: g.severity === 'critical' ? 'critical' : g.severity === 'minor' ? 'minor' : 'moderate',
-          scoreRatio: (g.accuracyPercent || 0) / 100,
-          evidenceSummary: g.evidenceSummary || 'Làm sai trong các bài luyện tập',
-          confidenceLevel: 'high',
-          relatedLessonIds: g.recommendedLessonId ? [g.recommendedLessonId] : [],
-          recommendedActions: g.actionSteps || [],
-          detectedAt: g.detectedAt || new Date().toISOString(),
-        }))
+        const gaps: KnowledgeGapItem[] = (serverGaps || []).map((g: any) => {
+          const mistakes = Number(g.mistakeCount) || 1
+          const confidenceLevel: ConfidenceLevel = mistakes >= 3 ? 'high' : mistakes === 2 ? 'moderate' : 'low'
+          return {
+            id: g.id || `gap_${g.skillId}`,
+            skillId: g.skillId || 'unknown',
+            skillName: g.skillName || 'Kỹ năng cần ôn tập',
+            gapLevel: g.severity === 'critical' ? 'critical' : g.severity === 'minor' ? 'minor' : 'moderate',
+            scoreRatio: (g.accuracyPercent || 0) / 100,
+            evidenceSummary: g.evidenceSummary || 'Làm sai trong các bài luyện tập',
+            confidenceLevel,
+            relatedLessonIds: g.recommendedLessonId ? [g.recommendedLessonId] : [],
+            recommendedActions: g.actionSteps || [],
+            detectedAt: g.detectedAt || new Date().toISOString(),
+          }
+        })
 
         const recommendations: LearningRecommendation[] = (serverRecs || []).map((r: any) => ({
           id: r.id || `rec_${Math.random().toString(36).substring(2, 9)}`,
@@ -126,22 +131,44 @@ export const personalizationService = {
               status: 'empty',
             }
 
+        const subjects: any[] = serverStats?.subjectProgress || []
+        const skillsEvaluatedCount = subjects.filter((s: any) => (s.questionsPracticed || 0) > 0).length
+        const skillsWithSufficientDataCount = subjects.filter((s: any) => (s.questionsPracticed || 0) >= 5).length
+        const skillsNeedingDataCount = subjects.filter((s: any) => (s.questionsPracticed || 0) > 0 && (s.questionsPracticed || 0) < 5).length
+
         const summary: LearnerAnalyticsSummary = {
-          totalSessions: serverStats?.recentAttempts?.length || 0,
+          totalSessions: serverStats?.totalSessions ?? serverStats?.recentAttempts?.length ?? 0,
           totalQuestionsAnswered: serverStats?.totalQuestionsPracticed || 0,
           uniqueQuestionsAnswered: serverStats?.totalQuestionsPracticed || 0,
           overallScoreRatio: (serverStats?.accuracyRate || 0) / 100,
-          skillsEvaluatedCount: gaps.length + (hasData ? 1 : 0),
-          skillsWithSufficientDataCount: (serverStats?.totalQuestionsPracticed || 0) >= 5 ? 1 : 0,
-          skillsNeedingDataCount: (serverStats?.totalQuestionsPracticed || 0) < 5 ? 1 : 0,
+          skillsEvaluatedCount: skillsEvaluatedCount > 0 ? skillsEvaluatedCount : gaps.length,
+          skillsWithSufficientDataCount,
+          skillsNeedingDataCount,
           knowledgeGapsCount: gaps.length,
           firstSessionAt: serverStats?.recentAttempts?.[serverStats.recentAttempts.length - 1]?.completedAt || null,
           lastSessionAt: serverStats?.recentAttempts?.[0]?.completedAt || null,
         }
 
+        const performances: SkillPerformance[] = subjects.map((s: any) => {
+          const count = s.questionsPracticed || 0
+          const ratio = (s.accuracyPercent || 0) / 100
+          const conf: ConfidenceLevel = count >= 5 ? 'high' : count >= 3 ? 'moderate' : count >= 1 ? 'low' : 'insufficient'
+          return {
+            skillId: s.subjectId,
+            skillName: s.subjectName,
+            scoreRatio: ratio,
+            evidenceCount: count,
+            confidenceLevel: conf,
+            trend: 'stable' as const,
+            status: count === 0 ? 'no_data' : count < 3 ? 'insufficient_data' : ratio >= 0.8 ? 'proficient' : ratio >= 0.5 ? 'reinforcing' : 'needs_review',
+            lastPracticedAt: serverStats?.recentAttempts?.[0]?.completedAt || new Date().toISOString(),
+            relatedLessonIds: [],
+          }
+        })
+
         return {
           summary,
-          performances: [],
+          performances,
           gaps,
           recommendations,
           learningPath,

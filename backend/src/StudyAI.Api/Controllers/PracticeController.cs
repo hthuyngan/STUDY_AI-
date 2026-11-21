@@ -1280,6 +1280,8 @@ public class PracticeController : ControllerBase
             .Where(a => a.UserId == userId)
             .SumAsync(a => (long)a.SessionTimeMs);
         int totalStudyMinutes = (int)(totalSessionTimeMs / 60000);
+        int totalLifetimeSessions = await _db.AssessmentAttempts.AsNoTracking()
+            .CountAsync(a => a.UserId == userId && a.CompletionStatus == "completed");
 
         return Ok(new LearnerDashboardStatsDto
         {
@@ -1291,6 +1293,7 @@ public class PracticeController : ControllerBase
             TotalMistakes = totalMistakes,
             DueReviewsCount = dueCount,
             TotalStudyMinutes = totalStudyMinutes,
+            TotalSessions = totalLifetimeSessions,
             SubjectProgress = subjectProgressList,
             RecentAttempts = recentAttemptDtos
         });

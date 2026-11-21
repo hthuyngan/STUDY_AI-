@@ -40,7 +40,32 @@ interface AdaptiveLearningPathServerDto {
   stageDescription: string
   shortTermGoals: string[]
   steps: AdaptiveStepServerDto[]
+  targetScore?: number
+  targetExamDate?: string
+  targetDailyMinutes?: number
+  version?: number
   generatedAt: string
+}
+
+export interface UpdateLearningPlanRequest {
+  targetScore: number
+  targetExamDate: string
+  targetDailyMinutes: number
+  customGoals?: string[]
+}
+
+export async function updateLearningPlan(
+  req: UpdateLearningPlanRequest,
+  subjectId?: string
+): Promise<AdaptiveLearningPathServerDto> {
+  const authUser = getAuthUser()
+  if (!authUser) {
+    throw new Error('Chưa đăng nhập.')
+  }
+  const url = subjectId
+    ? `/api/v1/ai/learning-path/plan?subjectId=${encodeURIComponent(subjectId)}`
+    : '/api/v1/ai/learning-path/plan'
+  return await apiClient.put<AdaptiveLearningPathServerDto>(url, req)
 }
 
 /**
@@ -93,12 +118,17 @@ export async function getLearningPath(): Promise<LearningPathData> {
         : null
 
       const now = new Date()
-      const targetYear = now.getMonth() >= 8 ? now.getFullYear() + 1 : now.getFullYear()
-      const examDate = new Date(targetYear, 5, 27)
+      const examDate = adaptive?.targetExamDate
+        ? new Date(adaptive.targetExamDate)
+        : (() => {
+            const targetYear = now.getMonth() >= 8 ? now.getFullYear() + 1 : now.getFullYear()
+            return new Date(targetYear, 5, 27)
+          })()
       const dynamicDaysRemaining = Math.max(0, Math.ceil((examDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+      const targetScoreStr = adaptive?.targetScore ? `${adaptive.targetScore}` : '8.5'
 
       return {
-        goalTitle: `Mục tiêu điểm số THPT Lớp ${authUser.grade || '12'}`,
+        goalTitle: `Mục tiêu điểm số ${targetScoreStr} - THPT Lớp ${authUser.grade || '12'}`,
         targetExam: 'Kỳ thi Tốt nghiệp THPT Quốc gia',
         daysRemaining: dynamicDaysRemaining,
         overallProgress: progress,
