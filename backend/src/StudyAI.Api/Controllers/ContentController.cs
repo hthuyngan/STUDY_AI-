@@ -10,7 +10,7 @@ using StudyAI.Infrastructure.Persistence;
 
 namespace StudyAI.Api.Controllers;
 
-[Authorize(Roles = "content,admin,content_admin,content_creator,author")]
+[Authorize(Policy = "ContentAuthor")]
 [ApiController]
 [Route("api/v1/content")]
 public class ContentController : ControllerBase
@@ -24,6 +24,8 @@ public class ContentController : ControllerBase
 
     private string CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub") ?? string.Empty;
 
+    private bool IsAdminOrContentAdmin => User.IsInRole("admin") || User.IsInRole("content_admin");
+
     private bool IsAuthorizedReviewer =>
         !User.HasClaim("reviewer", "false") &&
         (User.IsInRole("content") ||
@@ -32,6 +34,13 @@ public class ContentController : ControllerBase
          User.IsInRole("reviewer") ||
          User.HasClaim("permission", "content.approve") ||
          User.HasClaim("reviewer", "true"));
+
+    private bool CanManageContent(string? authorId)
+    {
+        if (IsAdminOrContentAdmin) return true;
+        if (string.IsNullOrEmpty(CurrentUserId)) return false;
+        return !string.IsNullOrEmpty(authorId) && authorId == CurrentUserId;
+    }
 
     #region Subject Endpoints
 
@@ -132,6 +141,7 @@ public class ContentController : ControllerBase
         });
     }
 
+    [Authorize(Policy = "ContentAdminOnly")]
     [HttpPost("subjects")]
     public async Task<IActionResult> CreateSubject([FromBody] CreateSubjectRequestDto req)
     {
@@ -187,6 +197,7 @@ public class ContentController : ControllerBase
         });
     }
 
+    [Authorize(Policy = "ContentAdminOnly")]
     [HttpPut("subjects/{subjectId}")]
     [HttpPatch("subjects/{subjectId}")]
     public async Task<IActionResult> UpdateSubject(string subjectId, [FromBody] UpdateSubjectRequestDto req)
@@ -241,6 +252,7 @@ public class ContentController : ControllerBase
         });
     }
 
+    [Authorize(Policy = "ContentAdminOnly")]
     [HttpDelete("subjects/{subjectId}")]
     public async Task<IActionResult> DeleteSubject(string subjectId)
     {
@@ -357,6 +369,7 @@ public class ContentController : ControllerBase
         });
     }
 
+    [Authorize(Policy = "ContentAdminOnly")]
     [HttpPost("chapters")]
     public async Task<IActionResult> CreateChapter([FromBody] CreateChapterRequestDto req)
     {
@@ -409,6 +422,7 @@ public class ContentController : ControllerBase
         });
     }
 
+    [Authorize(Policy = "ContentAdminOnly")]
     [HttpPut("chapters/{chapterId}")]
     [HttpPatch("chapters/{chapterId}")]
     public async Task<IActionResult> UpdateChapter(string chapterId, [FromBody] UpdateChapterRequestDto req)
@@ -454,6 +468,7 @@ public class ContentController : ControllerBase
         });
     }
 
+    [Authorize(Policy = "ContentAdminOnly")]
     [HttpPost("chapters/reorder")]
     public async Task<IActionResult> ReorderChapters([FromBody] ReorderChaptersRequestDto req)
     {
@@ -532,6 +547,7 @@ public class ContentController : ControllerBase
         }
     }
 
+    [Authorize(Policy = "ContentAdminOnly")]
     [HttpDelete("chapters/{chapterId}")]
     public async Task<IActionResult> DeleteChapter(string chapterId)
     {
@@ -635,6 +651,7 @@ public class ContentController : ControllerBase
         });
     }
 
+    [Authorize(Policy = "ContentAdminOnly")]
     [HttpPost("topics")]
     public async Task<IActionResult> CreateTopic([FromBody] CreateTopicRequestDto req)
     {
@@ -687,6 +704,7 @@ public class ContentController : ControllerBase
         });
     }
 
+    [Authorize(Policy = "ContentAdminOnly")]
     [HttpPatch("topics/{topicId}")]
     public async Task<IActionResult> UpdateTopic(string topicId, [FromBody] UpdateTopicRequestDto req)
     {
@@ -731,6 +749,7 @@ public class ContentController : ControllerBase
         });
     }
 
+    [Authorize(Policy = "ContentAdminOnly")]
     [HttpDelete("topics/{topicId}")]
     public async Task<IActionResult> DeleteTopic(string topicId)
     {
@@ -1386,6 +1405,11 @@ public class ContentController : ControllerBase
         if (les == null)
             return NotFound(new { detail = "Bài học không tồn tại." });
 
+        if (!CanManageContent(les.AuthorId))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Bạn không có quyền chỉnh sửa bài học của tác giả khác." });
+        }
+
         if (req.ChapterId != null) les.ChapterId = req.ChapterId;
         if (req.TopicId != null) les.TopicId = string.IsNullOrWhiteSpace(req.TopicId) ? null : req.TopicId;
         if (req.Title != null) les.Title = req.Title.Trim();
@@ -1423,6 +1447,11 @@ public class ContentController : ControllerBase
         var les = await _db.ContentLessons.FindAsync(lessonId);
         if (les == null)
             return NotFound(new { detail = "Bài học không tồn tại." });
+
+        if (!CanManageContent(les.AuthorId))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Bạn không có quyền xóa bài học của tác giả khác." });
+        }
 
         // Safety Invariant: Check if students have started or completed this lesson
         var progressExists = await _db.LessonProgresses.AnyAsync(p => p.LessonId == lessonId);
@@ -1462,6 +1491,11 @@ public class ContentController : ControllerBase
         if (les == null)
             return NotFound(new { detail = "Bài học không tồn tại." });
 
+        if (!CanManageContent(les.AuthorId))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Bạn không có quyền gửi duyệt bài học của tác giả khác." });
+        }
+
         if (les.Status != "draft")
             return BadRequest(new { detail = $"Chỉ có bài học trạng thái 'draft' mới có thể gửi duyệt. Trạng thái hiện tại: {les.Status}" });
 
@@ -1494,6 +1528,11 @@ public class ContentController : ControllerBase
         var les = await _db.ContentLessons.Include(l => l.Author).FirstOrDefaultAsync(l => l.Id == lessonId);
         if (les == null)
             return NotFound(new { detail = "Bài học không tồn tại." });
+
+        if (!IsAdminOrContentAdmin && les.AuthorId == CurrentUserId)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Quy tắc kiểm duyệt độc lập (four-eyes): Người biên soạn không được tự phê duyệt bài học của chính mình." });
+        }
 
         if (les.Status != "in-review" && les.Status != "draft")
             return BadRequest(new { detail = $"Chỉ có bài học đang chờ duyệt ('in-review') hoặc bản nháp ('draft') mới có thể phê duyệt xuất bản. Trạng thái hiện tại: {les.Status}" });
@@ -1574,6 +1613,11 @@ public class ContentController : ControllerBase
         var les = await _db.ContentLessons.Include(l => l.Author).FirstOrDefaultAsync(l => l.Id == lessonId);
         if (les == null)
             return NotFound(new { detail = "Bài học không tồn tại." });
+
+        if (!IsAdminOrContentAdmin && les.AuthorId == CurrentUserId)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Quy tắc kiểm duyệt độc lập (four-eyes): Người biên soạn không thể tự từ chối bài học của chính mình." });
+        }
 
         les.Status = "draft";
         les.UpdatedAt = DateTimeOffset.UtcNow;
@@ -2098,6 +2142,10 @@ public class ContentController : ControllerBase
             ? req.Code.Trim()
             : $"Q-{DateTime.UtcNow:yyMMdd}-{Guid.NewGuid():N}"[..16].ToUpperInvariant();
 
+        var defaultStatus = IsAdminOrContentAdmin
+            ? (string.IsNullOrWhiteSpace(req.Status) ? "published" : req.Status)
+            : "draft";
+
         var question = new ContentQuestion
         {
             Id = $"qst_{Guid.NewGuid():N}",
@@ -2113,12 +2161,12 @@ public class ContentController : ControllerBase
             Topic = req.Topic?.Trim(),
             Difficulty = string.IsNullOrWhiteSpace(req.Difficulty) ? "medium" : req.Difficulty,
             Type = qType,
-            Status = string.IsNullOrWhiteSpace(req.Status) ? "published" : req.Status,
+            Status = defaultStatus,
             OrderIndex = req.OrderIndex,
             ImageUrl = req.ImageUrl,
             MetadataJson = req.MetadataJson,
             AuthorId = CurrentUserId,
-            ReviewedBy = User.IsInRole("content") && req.Status == "published" ? CurrentUserId : null,
+            ReviewedBy = IsAdminOrContentAdmin && defaultStatus == "published" ? CurrentUserId : null,
             SourceType = string.IsNullOrWhiteSpace(req.SourceType) ? "manual" : req.SourceType,
             SourceBatchId = req.SourceBatchId,
             SourceUrl = req.SourceUrl,
@@ -2176,6 +2224,11 @@ public class ContentController : ControllerBase
 
         if (question == null)
             return NotFound(new { detail = "Câu hỏi không tồn tại." });
+
+        if (!CanManageContent(question.AuthorId))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Bạn không có quyền chỉnh sửa câu hỏi của tác giả khác." });
+        }
 
         if (req.Code != null) question.Code = req.Code.Trim();
         if (req.Prompt != null) question.Prompt = req.Prompt.Trim();
@@ -2241,6 +2294,11 @@ public class ContentController : ControllerBase
         if (question == null)
             return NotFound(new { detail = "Câu hỏi không tồn tại." });
 
+        if (!CanManageContent(question.AuthorId))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Bạn không có quyền xóa câu hỏi của tác giả khác." });
+        }
+
         question.IsDeleted = true;
         question.DeletedAt = DateTimeOffset.UtcNow;
         question.DeletedBy = CurrentUserId;
@@ -2279,6 +2337,11 @@ public class ContentController : ControllerBase
         if (question == null)
             return NotFound(new { detail = "Câu hỏi không tồn tại." });
 
+        if (!CanManageContent(question.AuthorId))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Bạn không có quyền khôi phục câu hỏi của tác giả khác." });
+        }
+
         if (!question.IsDeleted)
             return BadRequest(new { detail = "Câu hỏi này đang hoạt động, không ở trạng thái đã xóa." });
 
@@ -2316,6 +2379,11 @@ public class ContentController : ControllerBase
         if (question == null)
             return NotFound(new { detail = "Câu hỏi không tồn tại." });
 
+        if (!CanManageContent(question.AuthorId))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Bạn không có quyền gửi duyệt câu hỏi của tác giả khác." });
+        }
+
         question.Status = "in-review";
         question.UpdatedAt = DateTimeOffset.UtcNow;
 
@@ -2337,11 +2405,11 @@ public class ContentController : ControllerBase
     [HttpPost("questions/{questionId}/approve")]
     public async Task<IActionResult> ApproveQuestion(string questionId)
     {
-        if (!User.IsInRole("content"))
+        if (!IsAuthorizedReviewer)
         {
             return StatusCode(StatusCodes.Status403Forbidden, new
             {
-                detail = "QUYỀN PHÊ DUYỆT: Role 'content' là người có thẩm quyền phê duyệt nội dung giáo dục cuối cùng. Admin hoặc vai trò khác không được phép phê duyệt câu hỏi."
+                detail = "Chỉ Người kiểm duyệt nội dung (Content) hoặc Quản trị viên mới có quyền phê duyệt câu hỏi."
             });
         }
 
@@ -2354,6 +2422,11 @@ public class ContentController : ControllerBase
 
         if (question == null)
             return NotFound(new { detail = "Câu hỏi không tồn tại." });
+
+        if (!IsAdminOrContentAdmin && question.AuthorId == CurrentUserId)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Quy tắc kiểm duyệt độc lập (four-eyes): Người biên soạn không được tự phê duyệt câu hỏi của chính mình." });
+        }
 
         question.Status = "approved";
         question.ReviewedBy = CurrentUserId;
@@ -2378,11 +2451,11 @@ public class ContentController : ControllerBase
     [HttpPost("questions/{questionId}/reject")]
     public async Task<IActionResult> RejectQuestion(string questionId, [FromBody] RejectQuestionRequestDto? body = null)
     {
-        if (!User.IsInRole("content"))
+        if (!IsAuthorizedReviewer)
         {
             return StatusCode(StatusCodes.Status403Forbidden, new
             {
-                detail = "QUYỀN PHÊ DUYỆT: Role 'content' là người có thẩm quyền từ chối nội dung giáo dục cuối cùng."
+                detail = "Chỉ Người kiểm duyệt nội dung (Content) hoặc Quản trị viên mới có quyền từ chối câu hỏi."
             });
         }
 
@@ -2395,6 +2468,11 @@ public class ContentController : ControllerBase
 
         if (question == null)
             return NotFound(new { detail = "Câu hỏi không tồn tại." });
+
+        if (!IsAdminOrContentAdmin && question.AuthorId == CurrentUserId)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Quy tắc kiểm duyệt độc lập (four-eyes): Người biên soạn không thể tự từ chối câu hỏi của chính mình." });
+        }
 
         var reason = !string.IsNullOrWhiteSpace(body?.Reason)
             ? body.Reason.Trim()
@@ -2423,11 +2501,11 @@ public class ContentController : ControllerBase
     [HttpPost("questions/{questionId}/publish")]
     public async Task<IActionResult> PublishQuestion(string questionId)
     {
-        if (!User.IsInRole("content"))
+        if (!IsAuthorizedReviewer)
         {
             return StatusCode(StatusCodes.Status403Forbidden, new
             {
-                detail = "QUYỀN PHÊ DUYỆT: Role 'content' là người có thẩm quyền xuất bản nội dung giáo dục cuối cùng."
+                detail = "Chỉ Người kiểm duyệt nội dung (Content) hoặc Quản trị viên mới có quyền xuất bản câu hỏi."
             });
         }
 
@@ -2440,6 +2518,11 @@ public class ContentController : ControllerBase
 
         if (question == null)
             return NotFound(new { detail = "Câu hỏi không tồn tại." });
+
+        if (!IsAdminOrContentAdmin && question.AuthorId == CurrentUserId)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Quy tắc kiểm duyệt độc lập (four-eyes): Người biên soạn không được tự xuất bản câu hỏi của chính mình." });
+        }
 
         question.Status = "published";
         question.UpdatedAt = DateTimeOffset.UtcNow;
@@ -2462,11 +2545,11 @@ public class ContentController : ControllerBase
     [HttpPost("questions/{questionId}/unpublish")]
     public async Task<IActionResult> UnpublishQuestion(string questionId)
     {
-        if (!User.IsInRole("content"))
+        if (!IsAuthorizedReviewer)
         {
             return StatusCode(StatusCodes.Status403Forbidden, new
             {
-                detail = "QUYỀN PHÊ DUYỆT: Role 'content' là người có thẩm quyền gỡ xuất bản nội dung giáo dục."
+                detail = "Chỉ Người kiểm duyệt nội dung (Content) hoặc Quản trị viên mới có quyền gỡ xuất bản câu hỏi."
             });
         }
 

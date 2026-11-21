@@ -211,6 +211,17 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("admin"));
     options.AddPolicy("StaffOnly", policy => policy.RequireRole("admin", "teacher", "content"));
     options.AddPolicy("ContentStaff", policy => policy.RequireRole("admin", "content"));
+    options.AddPolicy("ContentAdminOnly", policy => policy.RequireRole("admin", "content_admin"));
+    options.AddPolicy("ContentAuthor", policy => policy.RequireRole("admin", "content_admin", "content", "content_creator", "author"));
+    options.AddPolicy("ContentReviewer", policy => policy.RequireAssertion(ctx =>
+        ctx.User.IsInRole("admin") ||
+        ctx.User.IsInRole("content_admin") ||
+        ctx.User.IsInRole("content") ||
+        ctx.User.HasClaim("permission", "content.approve")));
+    options.AddPolicy("ContentPublisher", policy => policy.RequireAssertion(ctx =>
+        ctx.User.IsInRole("admin") ||
+        ctx.User.IsInRole("content_admin") ||
+        ctx.User.HasClaim("permission", "content.publish")));
 });
 
 // 5. CORS

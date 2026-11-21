@@ -30,15 +30,18 @@ public class ContentModerationWorkflowTests
         };
         context.Users.Add(author);
 
-        var reviewer = new User
+        if (userId != "usr_author_1")
         {
-            Id = userId,
-            Email = "reviewer@studyai.edu.vn",
-            DisplayName = "Kiểm duyệt Lê Văn B",
-            Role = role,
-            PasswordHash = "hash"
-        };
-        context.Users.Add(reviewer);
+            var reviewer = new User
+            {
+                Id = userId,
+                Email = $"{userId}@studyai.edu.vn",
+                DisplayName = "Kiểm duyệt Lê Văn B",
+                Role = role,
+                PasswordHash = "hash"
+            };
+            context.Users.Add(reviewer);
+        }
 
         var subject = new ContentSubject
         {
@@ -130,7 +133,7 @@ public class ContentModerationWorkflowTests
     [Fact]
     public async Task SubmitReview_TransitionsDraftLessonToInReview()
     {
-        var (context, controller) = CreateContextAndController();
+        var (context, controller) = CreateContextAndController(role: "author", userId: "usr_author_1");
 
         var result = await controller.SubmitReview("les_draft_1");
 
@@ -147,7 +150,7 @@ public class ContentModerationWorkflowTests
     [Fact]
     public async Task SubmitReview_OnNonDraftLesson_ReturnsBadRequest()
     {
-        var (_, controller) = CreateContextAndController();
+        var (_, controller) = CreateContextAndController(role: "author", userId: "usr_author_1");
 
         var result = await controller.SubmitReview("les_published_1");
 
