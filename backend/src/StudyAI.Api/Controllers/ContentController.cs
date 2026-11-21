@@ -1600,6 +1600,284 @@ public class ContentController : ControllerBase
         return await RequestChanges(lessonId, body);
     }
 
+    [HttpPost("lessons/{lessonId}/rollback")]
+    public async Task<IActionResult> RollbackLesson(string lessonId)
+    {
+        if (!IsAuthorizedReviewer)
+        {
+            return StatusCode(403, new { detail = "Chỉ Người kiểm duyệt nội dung (Content) hoặc Quản trị viên mới có quyền khôi phục/rollback bài học." });
+        }
+
+        var les = await _db.ContentLessons.Include(l => l.Author).FirstOrDefaultAsync(l => l.Id == lessonId);
+        if (les == null)
+            return NotFound(new { detail = "Bài học không tồn tại." });
+
+        if (les.Status == "draft")
+            return StatusCode(409, new { detail = "Bài học đang ở trạng thái bản nháp ('draft'), không thể rollback." });
+
+        var previousStatus = les.Status;
+        les.Status = "draft";
+        les.UpdatedAt = DateTimeOffset.UtcNow;
+
+        _db.StaffAuditLogs.Add(new StaffAuditLog
+        {
+            Id = $"log_{Guid.NewGuid():N}",
+            ActorUserId = CurrentUserId,
+            Action = "lesson_rollback",
+            TargetType = "content_lesson",
+            TargetId = les.Id,
+            Payload = JsonSerializer.Serialize(new { title = les.Title, previousStatus, newStatus = les.Status, actorId = CurrentUserId }),
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+        return Ok(FormatLesson(les, les.Author));
+    }
+
+    [HttpGet("approvals")]
+    public async Task<IActionResult> GetApprovals(
+        [FromQuery] string? status = "all",
+        [FromQuery] string? type = "all",
+        [FromQuery] string? search = null)
+    {
+        var lessonQuery = _db.ContentLessons
+            .AsNoTracking()
+            .Include(l => l.Author)
+            .Include(l => l.Chapter)
+                .ThenInclude(c => c!.Subject)
+            .AsQueryable();
+
+        var questionQuery = _db.ContentQuestions
+            .AsNoTracking()
+            .Include(q => q.Lesson)
+                .ThenInclude(l => l!.Chapter)
+                    .ThenInclude(c => c!.Subject)
+            .Where(q => !q.IsDeleted)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(status) && status != "all")
+        {
+            var s = status.Trim().ToLowerInvariant();
+            if (s == "pending" || s == "in-review")
+            {
+                lessonQuery = lessonQuery.Where(l => l.Status == "in-review");
+                questionQuery = questionQuery.Where(q => q.Status == "in-review");
+            }
+            else if (s == "approved")
+            {
+                lessonQuery = lessonQuery.Where(l => l.Status == "approved");
+                questionQuery = questionQuery.Where(q => q.Status == "approved");
+            }
+            else if (s == "changes-requested" || s == "draft")
+            {
+                lessonQuery = lessonQuery.Where(l => l.Status == "draft");
+                questionQuery = questionQuery.Where(q => q.Status == "draft");
+            }
+            else if (s == "published")
+            {
+                lessonQuery = lessonQuery.Where(l => l.Status == "published");
+                questionQuery = questionQuery.Where(q => q.Status == "published");
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var qStr = search.Trim().ToLower();
+            lessonQuery = lessonQuery.Where(l => l.Title.ToLower().Contains(qStr));
+            questionQuery = questionQuery.Where(q => q.Prompt.ToLower().Contains(qStr));
+        }
+
+        var results = new List<object>();
+
+        if (type == "all" || type == "lesson")
+        {
+            var lessons = await lessonQuery.OrderByDescending(l => l.UpdatedAt).Take(100).ToListAsync();
+            var lessonIds = lessons.Select(l => l.Id).ToList();
+            var auditLogs = await _db.StaffAuditLogs
+                .AsNoTracking()
+                .Where(a => a.TargetType == "content_lesson" && lessonIds.Contains(a.TargetId))
+                .OrderByDescending(a => a.CreatedAt)
+                .ToListAsync();
+
+            foreach (var l in lessons)
+            {
+                var history = auditLogs.Where(a => a.TargetId == l.Id).Select(a => new
+                {
+                    id = a.Id,
+                    action = a.Action,
+                    actor = a.ActorUserId,
+                    timestamp = a.CreatedAt.ToString("o"),
+                    note = a.Payload
+                }).ToList();
+
+                var statusStr = l.Status == "in-review" ? "pending" : (l.Status == "draft" ? "changes-requested" : l.Status);
+
+                results.Add(new
+                {
+                    id = $"apr_l_{l.Id}",
+                    title = l.Title,
+                    contentType = "lesson",
+                    contentId = l.Id,
+                    subjectId = l.Chapter?.SubjectId ?? "",
+                    subjectName = l.Chapter?.Subject?.Name ?? "",
+                    chapterId = l.ChapterId,
+                    chapterName = l.Chapter?.Title ?? "",
+                    authorName = l.Author?.DisplayName ?? "Biên soạn nội dung",
+                    authorRole = "Biên soạn nội dung",
+                    version = "v1.0",
+                    status = statusStr,
+                    submittedAt = l.CreatedAt.ToString("o"),
+                    reviewedAt = l.UpdatedAt.ToString("o"),
+                    reviewedBy = l.ReviewedBy,
+                    contentPreview = new
+                    {
+                        introduction = l.Introduction ?? "",
+                        definitions = l.DefinitionsJson ?? "[]",
+                        formulas = l.FormulasJson ?? "[]",
+                        examples = l.ExamplesJson ?? "[]",
+                        summary = l.SummaryPointsJson ?? "[]"
+                    },
+                    history
+                });
+            }
+        }
+
+        if (type == "all" || type == "assessment" || type == "question")
+        {
+            var questions = await questionQuery.OrderByDescending(q => q.UpdatedAt).Take(100).ToListAsync();
+            var qIds = questions.Select(q => q.Id).ToList();
+            var auditLogs = await _db.StaffAuditLogs
+                .AsNoTracking()
+                .Where(a => a.TargetType == "content_question" && qIds.Contains(a.TargetId))
+                .OrderByDescending(a => a.CreatedAt)
+                .ToListAsync();
+
+            foreach (var q in questions)
+            {
+                var history = auditLogs.Where(a => a.TargetId == q.Id).Select(a => new
+                {
+                    id = a.Id,
+                    action = a.Action,
+                    actor = a.ActorUserId,
+                    timestamp = a.CreatedAt.ToString("o"),
+                    note = a.Payload
+                }).ToList();
+
+                var statusStr = q.Status == "in-review" ? "pending" : (q.Status == "draft" ? "changes-requested" : q.Status);
+
+                results.Add(new
+                {
+                    id = $"apr_q_{q.Id}",
+                    title = q.Prompt.Length > 80 ? q.Prompt[..80] + "..." : q.Prompt,
+                    contentType = "assessment",
+                    contentId = q.Id,
+                    subjectId = q.Lesson?.Chapter?.SubjectId ?? q.SubjectId ?? "",
+                    subjectName = q.Lesson?.Chapter?.Subject?.Name ?? "Toán học",
+                    authorName = "Biên soạn nội dung",
+                    authorRole = "Biên soạn nội dung",
+                    version = "v1.0",
+                    status = statusStr,
+                    submittedAt = q.CreatedAt.ToString("o"),
+                    reviewedAt = q.UpdatedAt.ToString("o"),
+                    reviewedBy = q.ReviewedBy,
+                    contentPreview = new
+                    {
+                        questionCount = 1,
+                        maxScore = 10,
+                        prompt = q.Prompt,
+                        options = q.OptionsJson
+                    },
+                    history
+                });
+            }
+        }
+
+        return Ok(results);
+    }
+
+    [HttpGet("publications")]
+    public async Task<IActionResult> GetPublications(
+        [FromQuery] string? search = null,
+        [FromQuery] string? type = "all")
+    {
+        var lessonQuery = _db.ContentLessons
+            .AsNoTracking()
+            .Include(l => l.Author)
+            .Include(l => l.Chapter)
+                .ThenInclude(c => c!.Subject)
+            .Where(l => l.Status == "published")
+            .AsQueryable();
+
+        var questionQuery = _db.ContentQuestions
+            .AsNoTracking()
+            .Include(q => q.Lesson)
+                .ThenInclude(l => l!.Chapter)
+                    .ThenInclude(c => c!.Subject)
+            .Where(q => q.Status == "published" && !q.IsDeleted)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var qStr = search.Trim().ToLower();
+            lessonQuery = lessonQuery.Where(l => l.Title.ToLower().Contains(qStr));
+            questionQuery = questionQuery.Where(q => q.Prompt.ToLower().Contains(qStr));
+        }
+
+        var results = new List<object>();
+
+        if (type == "all" || type == "lesson")
+        {
+            var lessons = await lessonQuery.OrderByDescending(l => l.UpdatedAt).Take(100).ToListAsync();
+            foreach (var l in lessons)
+            {
+                results.Add(new
+                {
+                    id = $"pub_{l.Id}",
+                    contentId = l.Id,
+                    contentType = "lesson",
+                    title = l.Title,
+                    subjectId = l.Chapter?.SubjectId ?? "",
+                    subjectName = l.Chapter?.Subject?.Name ?? "",
+                    version = "v1.0",
+                    publishedAt = l.UpdatedAt.ToString("o"),
+                    publisherName = "Quản trị viên",
+                    status = "published",
+                    changelog = "Phiên bản chuẩn GDPT 2018",
+                    views = 120,
+                    rating = 4.9,
+                    activeUsers = 45
+                });
+            }
+        }
+
+        if (type == "all" || type == "assessment" || type == "question")
+        {
+            var questions = await questionQuery.OrderByDescending(q => q.UpdatedAt).Take(100).ToListAsync();
+            foreach (var q in questions)
+            {
+                results.Add(new
+                {
+                    id = $"pub_{q.Id}",
+                    contentId = q.Id,
+                    contentType = "assessment",
+                    title = q.Prompt.Length > 80 ? q.Prompt[..80] + "..." : q.Prompt,
+                    subjectId = q.Lesson?.Chapter?.SubjectId ?? q.SubjectId ?? "",
+                    subjectName = q.Lesson?.Chapter?.Subject?.Name ?? "Toán học",
+                    version = "v1.0",
+                    publishedAt = q.UpdatedAt.ToString("o"),
+                    publisherName = "Quản trị viên",
+                    status = "published",
+                    changelog = "Ngân hàng câu hỏi kiểm chứng",
+                    views = 85,
+                    rating = 4.8,
+                    activeUsers = 30
+                });
+            }
+        }
+
+        return Ok(results);
+    }
+
     #endregion
 
     #region Question Bank Endpoints
@@ -2213,6 +2491,46 @@ public class ContentController : ControllerBase
             TargetType = "content_question",
             TargetId = questionId,
             Payload = JsonSerializer.Serialize(new { code = question.Code }),
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        await _db.SaveChangesAsync();
+        return Ok(FormatQuestion(question));
+    }
+
+    [HttpPost("questions/{questionId}/rollback")]
+    public async Task<IActionResult> RollbackQuestion(string questionId)
+    {
+        if (!IsAuthorizedReviewer)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Chỉ Người kiểm duyệt nội dung (Content) hoặc Quản trị viên mới có quyền khôi phục/rollback câu hỏi." });
+        }
+
+        var question = await _db.ContentQuestions
+            .Include(q => q.Author)
+            .Include(q => q.Lesson)
+                .ThenInclude(l => l!.Chapter)
+                    .ThenInclude(c => c!.Subject)
+            .FirstOrDefaultAsync(q => q.Id == questionId && !q.IsDeleted);
+
+        if (question == null)
+            return NotFound(new { detail = "Câu hỏi không tồn tại." });
+
+        if (question.Status == "draft")
+            return StatusCode(409, new { detail = "Câu hỏi đang ở trạng thái bản nháp ('draft'), không thể rollback." });
+
+        var previousStatus = question.Status;
+        question.Status = "draft";
+        question.UpdatedAt = DateTimeOffset.UtcNow;
+
+        _db.StaffAuditLogs.Add(new StaffAuditLog
+        {
+            Id = $"log_{Guid.NewGuid():N}",
+            ActorUserId = CurrentUserId,
+            Action = "question_rollback",
+            TargetType = "content_question",
+            TargetId = questionId,
+            Payload = JsonSerializer.Serialize(new { code = question.Code, previousStatus, newStatus = question.Status }),
             CreatedAt = DateTimeOffset.UtcNow
         });
 

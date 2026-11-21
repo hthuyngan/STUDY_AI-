@@ -137,4 +137,80 @@ describe('Fail-Closed Operations Service (Announcements & Settings)', () => {
 
     await expect(operationsService.getAuditLogs()).rejects.toThrow('500 Internal Server Error')
   })
+
+  it('getApprovals calls backend /api/v1/content/approvals and fails closed on error', async () => {
+    vi.spyOn(authSession, 'getAccessToken').mockReturnValue('mock_access_token')
+    vi.spyOn(apiClient, 'get').mockRejectedValue(new Error('500 Server Error'))
+
+    await expect(operationsService.getApprovals()).rejects.toThrow('500 Server Error')
+  })
+
+  it('getApprovals returns genuine data from backend when authenticated', async () => {
+    vi.spyOn(authSession, 'getAccessToken').mockReturnValue('mock_access_token')
+    const mockApprovals = [
+      {
+        id: 'apr_l_101',
+        title: 'Mệnh đề toán học',
+        contentType: 'lesson',
+        contentId: 'les_101',
+        subjectId: 'sub_math10',
+        subjectName: 'Toán học 10',
+        authorName: 'Nguyễn Văn A',
+        status: 'pending',
+        submittedAt: new Date().toISOString(),
+        history: [],
+      },
+    ]
+    vi.spyOn(apiClient, 'get').mockResolvedValue(mockApprovals)
+
+    const result = await operationsService.getApprovals('pending')
+    expect(result).toHaveLength(1)
+    expect(result[0].id).toBe('apr_l_101')
+    expect(result[0].title).toBe('Mệnh đề toán học')
+  })
+
+  it('approveContent calls backend endpoint when authenticated', async () => {
+    vi.spyOn(authSession, 'getAccessToken').mockReturnValue('mock_access_token')
+    vi.spyOn(apiClient, 'post').mockResolvedValue({ success: true })
+    vi.spyOn(apiClient, 'get').mockResolvedValue([
+      {
+        id: 'apr_l_les_101',
+        contentId: 'les_101',
+        title: 'Mệnh đề toán học',
+        status: 'approved',
+        history: [],
+      },
+    ])
+
+    const res = await operationsService.approveContent('apr_l_les_101', 'Phê duyệt chuẩn GDPT 2018')
+    expect(apiClient.post).toHaveBeenCalledWith('/api/v1/content/lessons/les_101/approve')
+    expect(res.status).toBe('approved')
+  })
+
+  it('requestChanges calls backend request-changes endpoint when authenticated', async () => {
+    vi.spyOn(authSession, 'getAccessToken').mockReturnValue('mock_access_token')
+    vi.spyOn(apiClient, 'post').mockResolvedValue({ success: true })
+    vi.spyOn(apiClient, 'get').mockResolvedValue([
+      {
+        id: 'apr_l_les_101',
+        contentId: 'les_101',
+        title: 'Mệnh đề toán học',
+        status: 'changes-requested',
+        history: [],
+      },
+    ])
+
+    const res = await operationsService.requestChanges('apr_l_les_101', 'Bổ sung ví dụ thực tế')
+    expect(apiClient.post).toHaveBeenCalledWith('/api/v1/content/lessons/les_101/request-changes', {
+      feedback: 'Bổ sung ví dụ thực tế',
+    })
+    expect(res.status).toBe('changes-requested')
+  })
+
+  it('getPublications calls backend /api/v1/content/publications and fails closed on error', async () => {
+    vi.spyOn(authSession, 'getAccessToken').mockReturnValue('mock_access_token')
+    vi.spyOn(apiClient, 'get').mockRejectedValue(new Error('500 Server Error'))
+
+    await expect(operationsService.getPublications()).rejects.toThrow('500 Server Error')
+  })
 })

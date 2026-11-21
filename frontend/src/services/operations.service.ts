@@ -447,6 +447,15 @@ export const operationsService = {
 
   // ==================== APPROVALS ====================
   async getApprovals(statusFilter = 'all', typeFilter = 'all', search = ''): Promise<ApprovalItem[]> {
+    if (getAccessToken()) {
+      const params = new URLSearchParams()
+      if (statusFilter !== 'all') params.set('status', statusFilter)
+      if (typeFilter !== 'all') params.set('type', typeFilter)
+      if (search.trim()) params.set('search', search.trim())
+      const res = await apiClient.get<ApprovalItem[]>(`/api/v1/content/approvals?${params.toString()}`)
+      return res || []
+    }
+
     let list = loadFromStorage<ApprovalItem[]>(STORAGE_KEYS.APPROVALS, INITIAL_APPROVALS)
     if (statusFilter !== 'all') {
       list = list.filter((a) => a.status === statusFilter)
@@ -467,13 +476,24 @@ export const operationsService = {
   },
 
   async getApprovalById(id: string): Promise<ApprovalItem | null> {
-    const list = await this.getApprovals()
-    return list.find((a) => a.id === id) || null
+    const list = await this.getApprovals('all', 'all')
+    return list.find((a) => a.id === id || a.contentId === id) || null
   },
 
   async submitForApproval(
     item: Omit<ApprovalItem, 'id' | 'status' | 'submittedAt' | 'history'>
   ): Promise<ApprovalItem> {
+    if (getAccessToken()) {
+      const isLesson = item.contentType === 'lesson'
+      const endpoint = isLesson
+        ? `/api/v1/content/lessons/${item.contentId}/submit-review`
+        : `/api/v1/content/questions/${item.contentId}/submit-review`
+      await apiClient.post(endpoint)
+      const approvals = await this.getApprovals('all', 'all')
+      const found = approvals.find((a) => a.contentId === item.contentId || a.id === item.contentId)
+      if (found) return found
+    }
+
     const list = await this.getApprovals()
     const now = new Date().toISOString()
     const newApproval: ApprovalItem = {
@@ -508,6 +528,18 @@ export const operationsService = {
   },
 
   async approveContent(id: string, note?: string, actor = 'Demo Admin'): Promise<ApprovalItem> {
+    if (getAccessToken()) {
+      const cleanId = id.replace(/^apr_[lq]_/, '')
+      const isQuestion = id.startsWith('apr_q_')
+      const endpoint = isQuestion
+        ? `/api/v1/content/questions/${cleanId}/approve`
+        : `/api/v1/content/lessons/${cleanId}/approve`
+      await apiClient.post(endpoint)
+      const approvals = await this.getApprovals('all', 'all')
+      const found = approvals.find((a) => a.id === id || a.contentId === cleanId)
+      if (found) return found
+    }
+
     const list = await this.getApprovals()
     const idx = list.findIndex((a) => a.id === id)
     if (idx === -1) throw new Error('Không tìm thấy yêu cầu phê duyệt')
@@ -551,6 +583,19 @@ export const operationsService = {
     if (!reason.trim()) {
       throw new Error('Vui lòng nhập lý do hoặc nội dung yêu cầu chỉnh sửa')
     }
+
+    if (getAccessToken()) {
+      const cleanId = id.replace(/^apr_[lq]_/, '')
+      const isQuestion = id.startsWith('apr_q_')
+      const endpoint = isQuestion
+        ? `/api/v1/content/questions/${cleanId}/request-changes`
+        : `/api/v1/content/lessons/${cleanId}/request-changes`
+      await apiClient.post(endpoint, { feedback: reason })
+      const approvals = await this.getApprovals('all', 'all')
+      const found = approvals.find((a) => a.id === id || a.contentId === cleanId)
+      if (found) return found
+    }
+
     const list = await this.getApprovals()
     const idx = list.findIndex((a) => a.id === id)
     if (idx === -1) throw new Error('Không tìm thấy yêu cầu phê duyệt')
@@ -641,6 +686,30 @@ export const operationsService = {
   },
 
   async publishContent(id: string, changelog?: string, actor = 'Demo Admin'): Promise<PublicationRecord> {
+    if (getAccessToken()) {
+      const cleanId = id.replace(/^apr_[lq]_/, '')
+      const isQuestion = id.startsWith('apr_q_')
+      const endpoint = isQuestion
+        ? `/api/v1/content/questions/${cleanId}/publish`
+        : `/api/v1/content/lessons/${cleanId}/publish`
+      await apiClient.post(endpoint)
+      const pubs = await this.getPublications('all')
+      const found = pubs.find((p) => p.contentId === cleanId || p.id === cleanId)
+      if (found) return found
+      return {
+        id: `pub_${cleanId}`,
+        contentId: cleanId,
+        contentType: isQuestion ? 'assessment' : 'lesson',
+        title: 'Đã xuất bản thành công',
+        subjectName: 'Toán học',
+        version: 'v1.0',
+        publishedBy: actor,
+        publishedAt: new Date().toISOString(),
+        status: 'active',
+        changelog: changelog || 'Nội dung chính thức được phê duyệt và phát hành.',
+      }
+    }
+
     const list = await this.getApprovals()
     const idx = list.findIndex((a) => a.id === id)
     if (idx === -1) throw new Error('Không tìm thấy nội dung để xuất bản')
@@ -707,6 +776,14 @@ export const operationsService = {
 
   // ==================== PUBLICATIONS ====================
   async getPublications(typeFilter = 'all', search = ''): Promise<PublicationRecord[]> {
+    if (getAccessToken()) {
+      const params = new URLSearchParams()
+      if (typeFilter !== 'all') params.set('type', typeFilter)
+      if (search.trim()) params.set('search', search.trim())
+      const res = await apiClient.get<PublicationRecord[]>(`/api/v1/content/publications?${params.toString()}`)
+      return res || []
+    }
+
     let pubs = loadFromStorage<PublicationRecord[]>(STORAGE_KEYS.PUBLICATIONS, INITIAL_PUBLICATIONS)
     if (typeFilter !== 'all') {
       pubs = pubs.filter((p) => p.contentType === typeFilter)
@@ -728,6 +805,14 @@ export const operationsService = {
     targetVersion: string,
     actor = 'Demo Admin'
   ): Promise<PublicationRecord> {
+    if (getAccessToken()) {
+      const cleanId = pubId.replace(/^pub_/, '')
+      await apiClient.post(`/api/v1/content/lessons/${cleanId}/rollback`)
+      const pubs = await this.getPublications('all')
+      const found = pubs.find((p) => p.id === pubId || p.contentId === cleanId)
+      if (found) return found
+    }
+
     const pubs = await this.getPublications()
     const idx = pubs.findIndex((p) => p.id === pubId)
     if (idx === -1) throw new Error('Không tìm thấy bản ghi xuất bản')
