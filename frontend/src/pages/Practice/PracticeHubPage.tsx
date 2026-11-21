@@ -20,6 +20,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { practiceService } from '@/services/practice.service'
 import { useSmartReview } from '@/hooks/useSmartReview'
+import { resolveSubjectId } from '@/lib/subjectResolver'
 import type { PracticeResult, PracticeSession, PracticeSetupConfig } from '@/types/practice'
 import './PracticeHubPage.css'
 
@@ -246,7 +247,7 @@ export const PracticeHubPage: React.FC = () => {
                   icon={Play}
                   onClick={() =>
                     handleStartSession({
-                      subjectId: user?.grade === '10' ? 'sub_math10' : user?.grade === '11' ? 'sub_math11' : 'sub_math12',
+                      subjectId: resolveSubjectId({ grade: user?.grade }) || 'sub_math10',
                       mode: 'adaptive',
                       limit: 10,
                     })

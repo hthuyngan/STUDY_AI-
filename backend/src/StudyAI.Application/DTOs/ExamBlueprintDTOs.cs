@@ -8,8 +8,8 @@ public class ExamBlueprintDto
 {
     public string BlueprintId { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
-    public string SubjectId { get; set; } = "sub_math12";
-    public string SubjectName { get; set; } = "Toán 12";
+    public string SubjectId { get; set; } = string.Empty;
+    public string SubjectName { get; set; } = string.Empty;
     public string Version { get; set; } = "1.0";
     public int ApplicableYear { get; set; } = 2025;
     

@@ -23,7 +23,7 @@ public class RevisionPlannerService : IRevisionPlannerService
 
     public async Task<RevisionPlanDto> GetRevisionPlanAsync(
         string userId,
-        string subjectId = "sub_math12",
+        string subjectId,
         CancellationToken cancellationToken = default)
     {
         var latestPlanEvent = await _context.LearningEvents.AsNoTracking()

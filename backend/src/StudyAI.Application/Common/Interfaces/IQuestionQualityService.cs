@@ -5,7 +5,7 @@ namespace StudyAI.Application.Common.Interfaces;
 public interface IQuestionQualityService
 {
     Task<QuestionQualityAuditReportDto> AuditQuestionsQualityAsync(
-        string subjectId = "sub_math12",
+        string subjectId,
         CancellationToken cancellationToken = default);
 
     bool ValidateLatexSyntax(string text, out string? errorReason);

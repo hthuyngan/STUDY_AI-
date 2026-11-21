@@ -106,8 +106,8 @@ public class LearningRiskDto
 public class ExamMatrixRequestDto
 {
     public string? BlueprintId { get; set; } // e.g. "moet_thpt_2025_official", "moet_thpt_legacy_50q", "chapter_mastery_revision"
-    public string SubjectId { get; set; } = "sub_math12";
-    public string Title { get; set; } = "Đề thi thử tốt nghiệp THPT - Toán 12";
+    public string SubjectId { get; set; } = string.Empty;
+    public string Title { get; set; } = "Đề thi thử tốt nghiệp THPT";
     public int DurationMinutes { get; set; } = 90;
     public int TotalQuestions { get; set; } = 50;
     public string? ChapterId { get; set; } // Optional filter for chapter exam
@@ -153,8 +153,8 @@ public class AiLearningReportDto
 {
     public string ReportId { get; set; } = string.Empty;
     public string UserId { get; set; } = string.Empty;
-    public string SubjectId { get; set; } = "sub_math12";
-    public string SubjectName { get; set; } = "Toán 12";
+    public string SubjectId { get; set; } = string.Empty;
+    public string SubjectName { get; set; } = string.Empty;
     public DateTimeOffset GeneratedAt { get; set; } = DateTimeOffset.UtcNow;
 
     // Computed Analytics

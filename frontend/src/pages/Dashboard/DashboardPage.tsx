@@ -18,6 +18,7 @@ import { KnowledgeGapsWidget } from '@/components/dashboard/KnowledgeGapsWidget'
 import { AdaptiveLearningWidget } from '@/components/dashboard/AdaptiveLearningWidget'
 import { useAuth } from '@/auth/useAuth'
 import { useDashboard } from '@/hooks/useDashboard'
+import { resolveSubjectId } from '@/lib/subjectResolver'
 import './DashboardPage.css'
 
 export function DashboardPage() {
@@ -95,7 +96,7 @@ export function DashboardPage() {
             lessons={data.continueLessons}
             onContinueLesson={(lessonId, sectionId) => {
               const lesson = data.continueLessons.find((l) => l.id === lessonId)
-              const defaultSubjectId = user?.grade === '10' ? 'sub_math10' : user?.grade === '11' ? 'sub_math11' : 'sub_math12'
+              const defaultSubjectId = resolveSubjectId({ grade: user?.grade }) || 'sub_math10'
               const subjectId = lesson?.subjectId || defaultSubjectId
               const hash = sectionId ? `#${sectionId}` : ''
               navigate(`/subjects/${subjectId}/lessons/${lessonId}${hash}`)

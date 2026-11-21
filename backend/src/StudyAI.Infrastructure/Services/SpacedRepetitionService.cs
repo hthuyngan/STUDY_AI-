@@ -68,7 +68,7 @@ public class SpacedRepetitionService : ISpacedRepetitionService
 
     public async Task<SpacedRepetitionQueueDto> GetUserSpacedRepetitionQueueAsync(
         string userId,
-        string subjectId = "sub_math12",
+        string subjectId,
         CancellationToken cancellationToken = default)
     {
         var masteries = await _context.StudentTopicMasteries.AsNoTracking()

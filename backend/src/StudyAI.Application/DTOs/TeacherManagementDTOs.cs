@@ -97,7 +97,7 @@ public class AiContentQualityAuditRequestDto
     public string Title { get; set; } = string.Empty;
     public string BodyText { get; set; } = string.Empty;
     public string? FormulasOrOptionsJson { get; set; }
-    public string? SubjectId { get; set; } = "sub_math12";
+    public string? SubjectId { get; set; }
 }
 
 public class ContentQualitySuggestionItemDto
@@ -123,10 +123,10 @@ public class AiContentQualityAuditResponseDto
 
 public class LessonAuthoringOutlineRequestDto
 {
-    public string SubjectName { get; set; } = "Toán 12";
+    public string SubjectName { get; set; } = string.Empty;
     public string ChapterTitle { get; set; } = string.Empty;
     public string LessonTitle { get; set; } = string.Empty;
-    public string TargetGrade { get; set; } = "12";
+    public string TargetGrade { get; set; } = string.Empty;
 }
 
 public class LessonAuthoringOutlineResponseDto
@@ -142,7 +142,7 @@ public class LessonAuthoringOutlineResponseDto
 
 public class GenerateCheckpointQuestionsRequestDto
 {
-    public string SubjectId { get; set; } = "sub_math12";
+    public string SubjectId { get; set; } = string.Empty;
     public string TopicName { get; set; } = string.Empty;
     public int QuestionCount { get; set; } = 3;
     public string TargetDifficulty { get; set; } = "thong_hieu"; // nhan_biet, thong_hieu, van_dung, van_dung_cao

@@ -23,7 +23,7 @@ public class QuestionQualityService : IQuestionQualityService
     }
 
     public async Task<QuestionQualityAuditReportDto> AuditQuestionsQualityAsync(
-        string subjectId = "sub_math12",
+        string subjectId,
         CancellationToken cancellationToken = default)
     {
         var questions = await _context.ContentQuestions.AsNoTracking()

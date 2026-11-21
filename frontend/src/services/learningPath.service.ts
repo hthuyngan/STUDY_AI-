@@ -7,6 +7,7 @@ import { apiClient } from '@/lib/apiClient'
 import { getAuthUser } from '@/auth/authSession'
 import { mockLearningPath } from '@/data/learningPath.mock'
 import { mockSubjectDetails, mockSubjectsSummary } from '@/data/subjects.mock'
+import { resolveSubjectId } from '@/lib/subjectResolver'
 import { learningProgressRepository } from '@/repositories/learningProgress.repository'
 import type {
   ContinueLearningTarget,
@@ -287,7 +288,7 @@ export function getContinueLearningTarget(): ContinueLearningTarget | null {
 
   // If no lesson is currently in-progress, pick the recommended next lesson based on learner's grade
   const authUser = getAuthUser()
-  const defaultSubjectId = authUser?.grade === '10' ? 'sub_math10' : authUser?.grade === '11' ? 'sub_math11' : (mockSubjectDetails['sub_math12'] ? 'sub_math12' : 'math')
+  const defaultSubjectId = resolveSubjectId({ grade: authUser?.grade }) || 'sub_math10'
   const path = getSubjectLearningPath(defaultSubjectId)
   if (path.recommendedLesson) {
     return {
@@ -310,7 +311,8 @@ export function getContinueLearningTarget(): ContinueLearningTarget | null {
  */
 export async function fetchAdaptiveLearningPath(subjectId?: string): Promise<any> {
   const authUser = getAuthUser()
-  const targetSubject = subjectId || (authUser?.grade === '10' ? 'sub_math10' : authUser?.grade === '11' ? 'sub_math11' : 'sub_math12')
+  const targetSubject = resolveSubjectId({ subjectId, grade: authUser?.grade })
+  if (!targetSubject) return null
   try {
     const res = await apiClient.get<any>(`/api/v1/ai/learning-path?subjectId=${targetSubject}`)
     if (res) return res

@@ -5,6 +5,7 @@ import { useAuth } from '@/auth/useAuth'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { usePersonalization } from '@/hooks/usePersonalization'
+import { resolveSubjectId } from '@/lib/subjectResolver'
 
 export const AdaptiveLearningWidget: React.FC = () => {
   const navigate = useNavigate()
@@ -13,8 +14,8 @@ export const AdaptiveLearningWidget: React.FC = () => {
 
   const path = personalizationData?.learningPath
   const nextStep = path?.steps?.find((s) => !s.isCompleted) || path?.steps?.[0]
-  const userGradeLabel = user?.grade ? `Toán ${user.grade}` : 'Toán 12'
-  const defaultSubjectId = user?.grade === '10' ? 'sub_math10' : user?.grade === '11' ? 'sub_math11' : 'sub_math12'
+  const userGradeLabel = user?.grade ? `Toán ${user.grade}` : 'Toán học'
+  const defaultSubjectId = resolveSubjectId({ grade: user?.grade }) || 'sub_math10'
 
   const handleStartNextLesson = () => {
     if (nextStep) {

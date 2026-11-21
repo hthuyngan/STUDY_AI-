@@ -9,6 +9,7 @@ import { practiceRepository } from '@/repositories/practice.repository'
 import { questionBankRepository } from '@/repositories/questionBank.repository'
 import { apiClient } from '@/lib/apiClient'
 import { getAccessToken, getAuthUser } from '@/auth/authSession'
+import { getSubjectName, resolveSubjectId } from '@/lib/subjectResolver'
 import { aggregateSkillEvidence } from './evidenceAggregationEngine'
 import { analyzeSkillPerformances } from './skillPerformanceEngine'
 import { detectKnowledgeGaps } from './knowledgeGapDetectionEngine'
@@ -92,7 +93,7 @@ export const personalizationService = {
           evidence: r.reason,
           actionType: r.priority === 'high' ? 'review_lesson' : 'continue_learning',
           targetLessonId: r.lessonId,
-          targetSubjectId: r.subjectId || (authUser.grade === '10' ? 'sub_math10' : authUser.grade === '11' ? 'sub_math11' : 'sub_math12'),
+          targetSubjectId: r.subjectId || resolveSubjectId({ grade: authUser.grade }) || 'sub_math10',
           priority: r.priority === 'high' ? 'high' : 'medium',
           createdAt: new Date().toISOString(),
         }))
@@ -213,11 +214,13 @@ export const personalizationService = {
    * Fetches authentic Student Knowledge Profile from backend API.
    * Gracefully falls back to locally computed profile if offline.
    */
-  async getKnowledgeProfile(subjectId = 'sub_math12'): Promise<import('@/types/personalization').StudentKnowledgeProfile> {
+  async getKnowledgeProfile(subjectId?: string): Promise<import('@/types/personalization').StudentKnowledgeProfile> {
+    const authUser = getAuthUser()
+    const targetSubject = resolveSubjectId({ subjectId, grade: authUser?.grade }) || 'sub_math10'
     try {
       const { apiClient } = await import('@/lib/apiClient')
       const profile = await apiClient.get<import('@/types/personalization').StudentKnowledgeProfile>(
-        `/api/v1/ai/knowledge-profile?subjectId=${subjectId}`
+        `/api/v1/ai/knowledge-profile?subjectId=${targetSubject}`
       )
       if (profile && profile.userId) {
         return profile
@@ -231,7 +234,7 @@ export const personalizationService = {
     const weakList: import('@/types/personalization').TopicMasteryDetail[] = overview.gaps.map((g) => ({
       topicId: g.id,
       topicName: g.skillName,
-      subjectId,
+      subjectId: targetSubject,
       attemptCount: 3,
       correctCount: Math.round(3 * g.scoreRatio),
       incorrectCount: Math.max(0, 3 - Math.round(3 * g.scoreRatio)),
@@ -245,8 +248,8 @@ export const personalizationService = {
 
     return {
       userId: 'local_learner',
-      subjectId,
-      subjectName: 'Toán học 12',
+      subjectId: targetSubject,
+      subjectName: getSubjectName(targetSubject),
       overallMasteryScore: Math.round(summary.overallScoreRatio * 100),
       overallStatus: summary.overallScoreRatio >= 0.85 ? 'mastered' : summary.overallScoreRatio >= 0.7 ? 'proficient' : summary.overallScoreRatio >= 0.5 ? 'progressing' : 'needs_reinforcement',
       overallStatusLabel: summary.overallScoreRatio >= 0.85 ? 'Thành thạo' : summary.overallScoreRatio >= 0.7 ? 'Đạt yêu cầu' : summary.overallScoreRatio >= 0.5 ? 'Cần củng cố' : 'Chưa nắm vững',

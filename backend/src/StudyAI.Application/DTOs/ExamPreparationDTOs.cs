@@ -11,7 +11,7 @@ public class QuestionQualityIssueDto
 
 public class QuestionQualityAuditReportDto
 {
-    public string SubjectId { get; set; } = "sub_math12";
+    public string SubjectId { get; set; } = string.Empty;
     public DateTimeOffset AuditedAt { get; set; } = DateTimeOffset.UtcNow;
     public int TotalQuestions { get; set; }
     public int ValidCount { get; set; }
@@ -39,7 +39,7 @@ public class SpacedRepetitionItemDto
 
 public class SpacedRepetitionQueueDto
 {
-    public string SubjectId { get; set; } = "sub_math12";
+    public string SubjectId { get; set; } = string.Empty;
     public List<SpacedRepetitionItemDto> DueToday { get; set; } = new();
     public List<SpacedRepetitionItemDto> Upcoming { get; set; } = new();
     public List<SpacedRepetitionItemDto> CompletedToday { get; set; } = new();
@@ -52,7 +52,7 @@ public class SpacedRepetitionReviewRequestDto
 {
     public string ItemId { get; set; } = string.Empty;
     public string TopicName { get; set; } = string.Empty;
-    public string SubjectId { get; set; } = "sub_math12";
+    public string SubjectId { get; set; } = string.Empty;
     public int QualityScore { get; set; } // 0 to 5
 }
 
@@ -88,7 +88,7 @@ public class RevisionPlanDto
 {
     public string PlanId { get; set; } = string.Empty;
     public string UserId { get; set; } = string.Empty;
-    public string SubjectId { get; set; } = "sub_math12";
+    public string SubjectId { get; set; } = string.Empty;
     public double TargetScore { get; set; } = 8.0;
     public int DailyStudyMinutes { get; set; } = 45;
     public DateTimeOffset ExamDate { get; set; }
@@ -102,7 +102,7 @@ public class RevisionPlanDto
 
 public class CreateRevisionPlanRequestDto
 {
-    public string SubjectId { get; set; } = "sub_math12";
+    public string SubjectId { get; set; } = string.Empty;
     public double TargetScore { get; set; } = 8.0;
     public int DailyStudyMinutes { get; set; } = 45;
     public DateTimeOffset ExamDate { get; set; }
@@ -111,7 +111,7 @@ public class CreateRevisionPlanRequestDto
 public class ExamReadinessDto
 {
     public string UserId { get; set; } = string.Empty;
-    public string SubjectId { get; set; } = "sub_math12";
+    public string SubjectId { get; set; } = string.Empty;
     public DateTimeOffset AssessedAt { get; set; } = DateTimeOffset.UtcNow;
     public double ReadinessScorePercent { get; set; }
     public string ReadinessTier { get; set; } = "insufficient_data"; // insufficient_data, needs_reinforcement, progressing, exam_ready

@@ -6,7 +6,7 @@ public interface ISpacedRepetitionService
 {
     Task<SpacedRepetitionQueueDto> GetUserSpacedRepetitionQueueAsync(
         string userId,
-        string subjectId = "sub_math12",
+        string subjectId,
         CancellationToken cancellationToken = default);
 
     Task<SpacedRepetitionReviewResultDto> RecordReviewOutcomeAsync(

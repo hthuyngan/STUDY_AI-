@@ -3,6 +3,7 @@ import { AlertCircle, BookOpen, CheckCircle, Filter, Play, Target } from 'lucide
 import { useAuth } from '@/auth/useAuth'
 import { curriculumService, type LearnerChapter } from '@/services/curriculum.service'
 import { practiceService } from '@/services/practice.service'
+import { resolveSubjectId } from '@/lib/subjectResolver'
 import type { PracticeSetupConfig } from '@/types/practice'
 import type { QuestionDifficulty, QuestionType } from '@/types/questionBank'
 import './PracticeSetup.css'
@@ -50,7 +51,7 @@ export const PracticeSetup: React.FC<PracticeSetupProps> = ({
   const [countError, setCountError] = useState<string | null>(null)
 
   const selectedSubjectId =
-    selectedGrade === '10' ? 'sub_math10' : selectedGrade === '11' ? 'sub_math11' : 'sub_math12'
+    resolveSubjectId({ grade: selectedGrade }) || 'sub_math10'
 
   // Fetch real curriculum chapters whenever selected grade/subject changes
   useEffect(() => {

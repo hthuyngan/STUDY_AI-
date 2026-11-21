@@ -6,7 +6,7 @@ public interface IExamReadinessService
 {
     Task<ExamReadinessDto> AssessReadinessAsync(
         string userId,
-        string subjectId = "sub_math12",
+        string subjectId,
         CancellationToken cancellationToken = default);
 }
 

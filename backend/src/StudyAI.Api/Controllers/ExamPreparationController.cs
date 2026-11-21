@@ -16,6 +16,7 @@ public class ExamPreparationController : ControllerBase
     private readonly ISpacedRepetitionService _spacedRepetitionService;
     private readonly IRevisionPlannerService _revisionPlannerService;
     private readonly IExamReadinessService _readinessService;
+    private readonly ISubjectGradeResolver _subjectResolver;
     private readonly ILogger<ExamPreparationController> _logger;
 
     public ExamPreparationController(
@@ -24,6 +25,7 @@ public class ExamPreparationController : ControllerBase
         ISpacedRepetitionService spacedRepetitionService,
         IRevisionPlannerService revisionPlannerService,
         IExamReadinessService readinessService,
+        ISubjectGradeResolver subjectResolver,
         ILogger<ExamPreparationController> logger)
     {
         _blueprintService = blueprintService;
@@ -31,6 +33,7 @@ public class ExamPreparationController : ControllerBase
         _spacedRepetitionService = spacedRepetitionService;
         _revisionPlannerService = revisionPlannerService;
         _readinessService = readinessService;
+        _subjectResolver = subjectResolver;
         _logger = logger;
     }
 
@@ -41,12 +44,29 @@ public class ExamPreparationController : ControllerBase
             ?? throw new UnauthorizedAccessException("Không xác định được danh tính người dùng.");
     }
 
+    private string? GetCurrentUserGrade()
+    {
+        return User.FindFirst("grade")?.Value;
+    }
+
     [HttpGet("blueprints")]
     public async Task<ActionResult<List<ExamBlueprintDto>>> GetBlueprints(
         [FromQuery] string? subjectId = null,
         CancellationToken cancellationToken = default)
     {
-        var blueprints = await _blueprintService.GetAvailableBlueprintsAsync(subjectId, cancellationToken);
+        var resolvedSubjectId = subjectId;
+        if (string.IsNullOrWhiteSpace(resolvedSubjectId))
+        {
+            var res = await _subjectResolver.ResolveSubjectAsync(
+                userGrade: GetCurrentUserGrade(),
+                cancellationToken: cancellationToken);
+            if (res.Success)
+            {
+                resolvedSubjectId = res.SubjectId;
+            }
+        }
+
+        var blueprints = await _blueprintService.GetAvailableBlueprintsAsync(resolvedSubjectId, cancellationToken);
         return Ok(blueprints);
     }
 
@@ -68,21 +88,41 @@ public class ExamPreparationController : ControllerBase
 
     [HttpGet("readiness")]
     public async Task<ActionResult<ExamReadinessDto>> GetReadiness(
-        [FromQuery] string subjectId = "sub_math12",
+        [FromQuery] string? subjectId = null,
         CancellationToken cancellationToken = default)
     {
+        var resolved = await _subjectResolver.ResolveSubjectAsync(
+            requestedSubjectId: subjectId,
+            userGrade: GetCurrentUserGrade(),
+            cancellationToken: cancellationToken);
+
+        if (!resolved.Success)
+        {
+            return BadRequest(new { message = resolved.ErrorMessage ?? "Không thể xác định môn học hợp lệ." });
+        }
+
         var userId = GetCurrentUserId();
-        var readiness = await _readinessService.AssessReadinessAsync(userId, subjectId, cancellationToken);
+        var readiness = await _readinessService.AssessReadinessAsync(userId, resolved.SubjectId!, cancellationToken);
         return Ok(readiness);
     }
 
     [HttpGet("revision-plan")]
     public async Task<ActionResult<RevisionPlanDto>> GetRevisionPlan(
-        [FromQuery] string subjectId = "sub_math12",
+        [FromQuery] string? subjectId = null,
         CancellationToken cancellationToken = default)
     {
+        var resolved = await _subjectResolver.ResolveSubjectAsync(
+            requestedSubjectId: subjectId,
+            userGrade: GetCurrentUserGrade(),
+            cancellationToken: cancellationToken);
+
+        if (!resolved.Success)
+        {
+            return BadRequest(new { message = resolved.ErrorMessage ?? "Không thể xác định môn học hợp lệ." });
+        }
+
         var userId = GetCurrentUserId();
-        var plan = await _revisionPlannerService.GetRevisionPlanAsync(userId, subjectId, cancellationToken);
+        var plan = await _revisionPlannerService.GetRevisionPlanAsync(userId, resolved.SubjectId!, cancellationToken);
         return Ok(plan);
     }
 
@@ -101,6 +141,17 @@ public class ExamPreparationController : ControllerBase
             return BadRequest(new { message = "Thời gian học mỗi ngày phải từ 15 đến 300 phút." });
         }
 
+        var resolved = await _subjectResolver.ResolveSubjectAsync(
+            requestedSubjectId: request.SubjectId,
+            userGrade: GetCurrentUserGrade(),
+            cancellationToken: cancellationToken);
+
+        if (!resolved.Success)
+        {
+            return BadRequest(new { message = resolved.ErrorMessage ?? "Mã môn học trong kế hoạch không hợp lệ." });
+        }
+
+        request.SubjectId = resolved.SubjectId!;
         var userId = GetCurrentUserId();
         var plan = await _revisionPlannerService.CreateOrUpdateRevisionPlanAsync(userId, request, cancellationToken);
         return Ok(plan);
@@ -108,11 +159,21 @@ public class ExamPreparationController : ControllerBase
 
     [HttpGet("spaced-repetition")]
     public async Task<ActionResult<SpacedRepetitionQueueDto>> GetSpacedRepetitionQueue(
-        [FromQuery] string subjectId = "sub_math12",
+        [FromQuery] string? subjectId = null,
         CancellationToken cancellationToken = default)
     {
+        var resolved = await _subjectResolver.ResolveSubjectAsync(
+            requestedSubjectId: subjectId,
+            userGrade: GetCurrentUserGrade(),
+            cancellationToken: cancellationToken);
+
+        if (!resolved.Success)
+        {
+            return BadRequest(new { message = resolved.ErrorMessage ?? "Không thể xác định môn học hợp lệ." });
+        }
+
         var userId = GetCurrentUserId();
-        var queue = await _spacedRepetitionService.GetUserSpacedRepetitionQueueAsync(userId, subjectId, cancellationToken);
+        var queue = await _spacedRepetitionService.GetUserSpacedRepetitionQueueAsync(userId, resolved.SubjectId!, cancellationToken);
         return Ok(queue);
     }
 
@@ -126,6 +187,17 @@ public class ExamPreparationController : ControllerBase
             return BadRequest(new { message = "Chỉ số đánh giá độ hiểu (QualityScore) phải từ 0 đến 5." });
         }
 
+        var resolved = await _subjectResolver.ResolveSubjectAsync(
+            requestedSubjectId: request.SubjectId,
+            userGrade: GetCurrentUserGrade(),
+            cancellationToken: cancellationToken);
+
+        if (!resolved.Success)
+        {
+            return BadRequest(new { message = resolved.ErrorMessage ?? "Mã môn học trong lượt ôn tập không hợp lệ." });
+        }
+
+        request.SubjectId = resolved.SubjectId!;
         var userId = GetCurrentUserId();
         var result = await _spacedRepetitionService.RecordReviewOutcomeAsync(userId, request, cancellationToken);
         return Ok(result);
@@ -133,10 +205,20 @@ public class ExamPreparationController : ControllerBase
 
     [HttpGet("question-quality")]
     public async Task<ActionResult<QuestionQualityAuditReportDto>> AuditQuestionQuality(
-        [FromQuery] string subjectId = "sub_math12",
+        [FromQuery] string? subjectId = null,
         CancellationToken cancellationToken = default)
     {
-        var report = await _qualityService.AuditQuestionsQualityAsync(subjectId, cancellationToken);
+        var resolved = await _subjectResolver.ResolveSubjectAsync(
+            requestedSubjectId: subjectId,
+            userGrade: GetCurrentUserGrade(),
+            cancellationToken: cancellationToken);
+
+        if (!resolved.Success)
+        {
+            return BadRequest(new { message = resolved.ErrorMessage ?? "Không thể xác định môn học hợp lệ." });
+        }
+
+        var report = await _qualityService.AuditQuestionsQualityAsync(resolved.SubjectId!, cancellationToken);
         return Ok(report);
     }
 }

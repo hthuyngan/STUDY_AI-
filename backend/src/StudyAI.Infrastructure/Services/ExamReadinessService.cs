@@ -12,14 +12,35 @@ public class ExamReadinessService : IExamReadinessService
     private readonly StudyAIDbContext _context;
     private readonly ILogger<ExamReadinessService> _logger;
 
-    private static readonly string[] CriticalMath12Topics = new[]
+    private static readonly Dictionary<string, string[]> GradeCriticalTopics = new()
     {
-        "Tính đơn điệu của hàm số",
-        "Cực trị của hàm số",
-        "Giá trị lớn nhất và nhỏ nhất của hàm số",
-        "Khảo sát sự biến thiên và vẽ đồ thị hàm số",
-        "Vectơ trong không gian",
-        "Toạ độ của điểm và vectơ trong không gian"
+        ["10"] = new[]
+        {
+            "Mệnh đề và tập hợp",
+            "Bất phương trình bậc nhất hai ẩn",
+            "Hàm số bậc hai",
+            "Hệ thức lượng trong tam giác",
+            "Vectơ",
+            "Thống kê"
+        },
+        ["11"] = new[]
+        {
+            "Hàm số lượng giác",
+            "Dãy số, cấp số cộng, cấp số nhân",
+            "Giới hạn, hàm số liên tục",
+            "Đạo hàm",
+            "Quan hệ vuông góc trong không gian",
+            "Xác suất"
+        },
+        ["12"] = new[]
+        {
+            "Tính đơn điệu của hàm số",
+            "Cực trị của hàm số",
+            "Giá trị lớn nhất và nhỏ nhất của hàm số",
+            "Khảo sát sự biến thiên và vẽ đồ thị hàm số",
+            "Vectơ trong không gian",
+            "Toạ độ của điểm và vectơ trong không gian"
+        }
     };
 
     public ExamReadinessService(
@@ -32,7 +53,7 @@ public class ExamReadinessService : IExamReadinessService
 
     public async Task<ExamReadinessDto> AssessReadinessAsync(
         string userId,
-        string subjectId = "sub_math12",
+        string subjectId,
         CancellationToken cancellationToken = default)
     {
         // 1. Fetch user topic masteries
@@ -52,9 +73,12 @@ public class ExamReadinessService : IExamReadinessService
         curriculumCoverage = Math.Clamp(curriculumCoverage, 0.0, 100.0);
 
         // 2. Critical Topics Mastery
+        var gradeKey = subjectId.Contains("10") ? "10" : subjectId.Contains("11") ? "11" : "12";
+        var criticalTopics = GradeCriticalTopics.TryGetValue(gradeKey, out var topics) ? topics : GradeCriticalTopics["12"];
+
         var criticalDict = new Dictionary<string, double>();
         double criticalSum = 0.0;
-        foreach (var critTopic in CriticalMath12Topics)
+        foreach (var critTopic in criticalTopics)
         {
             var match = masteries.FirstOrDefault(m => m.TopicName.Contains(critTopic, StringComparison.OrdinalIgnoreCase) ||
                                                       critTopic.Contains(m.TopicName, StringComparison.OrdinalIgnoreCase));
@@ -62,7 +86,7 @@ public class ExamReadinessService : IExamReadinessService
             criticalDict[critTopic] = Math.Round(score, 1);
             criticalSum += score;
         }
-        double criticalAvg = CriticalMath12Topics.Length > 0 ? criticalSum / CriticalMath12Topics.Length : 0.0;
+        double criticalAvg = criticalTopics.Length > 0 ? criticalSum / criticalTopics.Length : 0.0;
 
         // 3. Exam Score Stability & History
         var completedExams = await _context.AssessmentAttempts.AsNoTracking()

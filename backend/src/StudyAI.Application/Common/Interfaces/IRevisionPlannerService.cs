@@ -6,7 +6,7 @@ public interface IRevisionPlannerService
 {
     Task<RevisionPlanDto> GetRevisionPlanAsync(
         string userId,
-        string subjectId = "sub_math12",
+        string subjectId,
         CancellationToken cancellationToken = default);
 
     Task<RevisionPlanDto> CreateOrUpdateRevisionPlanAsync(
