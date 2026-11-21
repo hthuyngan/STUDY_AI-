@@ -149,7 +149,7 @@ function mapBackendUser(u: BackendUserDetailDto): AdminUserItem {
     displayName: u.displayName || '',
     role: (u.role as UserRole) || 'learner',
     status: (u.status as AccountStatus) || 'active',
-    className: u.grade || (u.role === 'learner' ? 'Khối 12' : undefined),
+    className: u.grade,
     grade: u.grade,
     isDeleted: u.isDeleted,
     deletedAt: u.deletedAt,
@@ -157,12 +157,7 @@ function mapBackendUser(u: BackendUserDetailDto): AdminUserItem {
     lastLoginAt: u.lastLoginAt,
     totalCompletedLessons: u.totalCompletedLessons ?? (u.role === 'learner' ? 0 : undefined),
     averageScore: u.averageScore ?? (u.role === 'learner' ? 0 : undefined),
-    learningProgress: u.learningProgress ?? (u.role === 'learner' ? {
-      completedLessons: 0,
-      totalLessons: 32,
-      streakDays: 0,
-      recentSubjects: [{ name: 'Toán học 12', progress: 0, lastStudied: u.createdAt }]
-    } : undefined),
+    learningProgress: u.learningProgress,
     assessments: (u.assessments || []).map((a) => ({
       id: a.id,
       title: a.title,
@@ -179,19 +174,29 @@ export const adminService = {
   async getMetrics(): Promise<AdminSystemMetrics> {
     const token = getAccessToken()
     if (token) {
-      const data = await apiClient.get<BackendDashboardResponse>('/api/v1/admin/dashboard')
+      const [data, health] = await Promise.all([
+        apiClient.get<BackendDashboardResponse>('/api/v1/admin/dashboard'),
+        apiClient.get<{
+          database?: { status?: string; latencyMs?: number }
+          environment?: string
+          backendVersion?: string
+        }>('/api/v1/admin/system/health'),
+      ])
       if (data?.metrics) {
+        const databaseConnected = health?.database?.status === 'connected'
         return {
           totalUsers: data.metrics.totalUsers,
           activeLearners: data.metrics.learnersCount,
           staffAccounts: data.metrics.staffAccounts ?? (data.metrics.totalUsers - data.metrics.learnersCount),
           completedLessonsTotal: data.metrics.completedLessonsTotal ?? 0,
-          systemStatus: (data.metrics.systemStatus as 'healthy' | 'degraded' | 'maintenance') || 'healthy',
-          apiLatencyMs: 14,
-          databaseStatus: 'connected',
-          frontendVersion: '1.4.0',
-          backendVersion: '1.0.0 (ASP.NET Core 10 + SQL Server)',
-          environment: 'development',
+          systemStatus: databaseConnected
+            ? ((data.metrics.systemStatus as 'healthy' | 'degraded' | 'maintenance') || 'healthy')
+            : 'degraded',
+          apiLatencyMs: health?.database?.latencyMs ?? -1,
+          databaseStatus: databaseConnected ? 'connected' : 'error',
+          frontendVersion: import.meta.env.VITE_APP_VERSION || 'unknown',
+          backendVersion: health?.backendVersion || 'unknown',
+          environment: health?.environment || 'unknown',
           isPrototypeMode: false,
         }
       }
@@ -369,10 +374,7 @@ export const adminService = {
         payload
       )
       if (res?.user) {
-        const mapped = mapBackendUser(res.user)
-        mockUsers.unshift(mapped)
-        persistAll()
-        return mapped
+        return mapBackendUser(res.user)
       }
     }
 
@@ -426,11 +428,7 @@ export const adminService = {
     if (token) {
       const res = await apiClient.patch<BackendUserDto>(`/api/v1/admin/users/${userId}`, input)
       if (res) {
-        const mapped = mapBackendUser(res)
-        const idx = mockUsers.findIndex((u) => u.id === userId)
-        if (idx !== -1) mockUsers[idx] = mapped
-        persistAll()
-        return mapped
+        return mapBackendUser(res)
       }
     }
 
@@ -449,11 +447,6 @@ export const adminService = {
     const token = getAccessToken()
     if (token) {
       await apiClient.patch(`/api/v1/admin/users/${userId}/role`, { role: newRole })
-      const user = mockUsers.find((u) => u.id === userId)
-      if (user) {
-        user.role = newRole as UserRole
-        persistAll()
-      }
       return true
     }
 
@@ -486,11 +479,6 @@ export const adminService = {
     const token = getAccessToken()
     if (token) {
       await apiClient.patch(`/api/v1/admin/users/${userId}/status`, { status: newStatus })
-      const user = mockUsers.find((u) => u.id === userId)
-      if (user) {
-        user.status = newStatus
-        persistAll()
-      }
       return true
     }
 
@@ -504,7 +492,7 @@ export const adminService = {
   },
 
   async toggleUserStatus(userId: string): Promise<boolean> {
-    const user = mockUsers.find((u) => u.id === userId)
+    const user = await this.getUserById(userId)
     if (user) {
       const nextStatus = user.status === 'active' ? 'suspended' : 'active'
       return this.updateUserStatus(userId, nextStatus)
@@ -516,16 +504,6 @@ export const adminService = {
     const token = getAccessToken()
     if (token) {
       await apiClient.post(`/api/v1/admin/users/${userId}/revoke-sessions`)
-      const user = mockUsers.find((u) => u.id === userId)
-      if (user) {
-        if (!user.activities) user.activities = []
-        user.activities.unshift({
-          id: `uact-${Date.now()}`,
-          action: 'Thu hồi toàn bộ phiên đăng nhập của tài khoản',
-          timestamp: new Date().toISOString(),
-        })
-        persistAll()
-      }
       return true
     }
 
@@ -573,6 +551,7 @@ export const adminService = {
     const token = getAccessToken()
     if (token) {
       await apiClient.delete(`/api/v1/admin/users/${userId}`)
+      return true
     }
 
     const idx = mockUsers.findIndex((u) => u.id === userId)
@@ -746,21 +725,7 @@ export const adminService = {
       }
       throw new Error('Dữ liệu trạng thái hệ thống từ máy chủ không hợp lệ.')
     }
-    const isPersisted = typeof window !== 'undefined' && !!window.localStorage?.getItem(STORAGE_KEY_USERS)
-    return {
-      apiStatus: 'ASP.NET Core 10 Web API (Operational)',
-      database: { status: 'Microsoft SQL Server (Connected)', latencyMs: 12 },
-      environment: 'development / production',
-      backendVersion: 'v1.0.0 (ASP.NET Core 10)',
-      checkedAt: new Date().toISOString(),
-      prototypeMode: false,
-      storageStats: {
-        usersCount: mockUsers.length,
-        activitiesCount: mockActivities.length,
-        attentionCount: mockAttentionItems.length,
-        isLocalStoragePersisted: isPersisted,
-      },
-    }
+    throw new Error('Cần đăng nhập bằng tài khoản quản trị để xem trạng thái hệ thống.')
   },
 
   _resetMockState(): void {

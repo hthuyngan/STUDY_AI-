@@ -472,10 +472,5 @@ export function useAdminSystemHealth() {
     }
   }, [])
 
-  const resetDemoData = async () => {
-    adminService._resetMockState()
-    await loadHealth()
-  }
-
-  return { health, loading, error, resetDemoData, refresh: loadHealth }
+  return { health, loading, error, refresh: loadHealth }
 }

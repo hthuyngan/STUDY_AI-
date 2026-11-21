@@ -1,9 +1,15 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { adminService } from './admin.service'
+import * as authSession from '@/auth/authSession'
+import { apiClient } from '@/lib/apiClient'
 
 describe('adminService V2 (Mock Engine & Persistence)', () => {
   beforeEach(() => {
     adminService._resetMockState()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
 
   it('calculates metrics properly based on current users', async () => {
@@ -151,5 +157,32 @@ describe('adminService V2 (Mock Engine & Persistence)', () => {
     // Verify local mock state was NOT mutated
     const checkUser = await adminService.getUserById(target.id)
     expect(checkUser?.role).toBe(originalRole)
+  })
+
+  it('toggles an API-loaded user without depending on the mock user array', async () => {
+    vi.spyOn(authSession, 'getAccessToken').mockReturnValue('real-admin-token')
+    vi.spyOn(apiClient, 'get').mockResolvedValue({
+      id: 'db-user-not-in-mock-state',
+      email: 'db-user@study.ai',
+      displayName: 'Người dùng CSDL',
+      role: 'learner',
+      status: 'active',
+      createdAt: '2026-11-21T00:00:00Z',
+    })
+    const patchSpy = vi.spyOn(apiClient, 'patch').mockResolvedValue(undefined)
+
+    await expect(adminService.toggleUserStatus('db-user-not-in-mock-state')).resolves.toBe(true)
+    expect(apiClient.get).toHaveBeenCalledWith('/api/v1/admin/users/db-user-not-in-mock-state')
+    expect(patchSpy).toHaveBeenCalledWith('/api/v1/admin/users/db-user-not-in-mock-state/status', {
+      status: 'suspended',
+    })
+  })
+
+  it('reports a successful API deletion even when the user is absent from mock state', async () => {
+    vi.spyOn(authSession, 'getAccessToken').mockReturnValue('real-admin-token')
+    const deleteSpy = vi.spyOn(apiClient, 'delete').mockResolvedValue(undefined)
+
+    await expect(adminService.deleteUser('db-user-not-in-mock-state')).resolves.toBe(true)
+    expect(deleteSpy).toHaveBeenCalledWith('/api/v1/admin/users/db-user-not-in-mock-state')
   })
 })

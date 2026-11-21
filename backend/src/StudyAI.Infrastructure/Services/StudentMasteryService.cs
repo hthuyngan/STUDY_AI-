@@ -400,8 +400,23 @@ public class StudentMasteryService : IStudentMasteryService
             {
                 var student = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
                 var g = student?.Grade?.Trim();
-                subjectId = g == "10" ? "sub_math10" : g == "11" ? "sub_math11" : "sub_math12";
+                if (!string.IsNullOrWhiteSpace(g))
+                {
+                    subjectId = await _context.ContentSubjects.AsNoTracking()
+                        .Where(s => s.IsActive && s.Grade == g)
+                        .OrderBy(s => s.OrderIndex)
+                        .Select(s => s.Id)
+                        .FirstOrDefaultAsync(cancellationToken);
+                }
             }
+        }
+
+        if (string.IsNullOrWhiteSpace(subjectId))
+        {
+            _logger.LogWarning(
+                "Cannot update mastery for attempt {AttemptId}: no subject is linked to the attempt, its questions, or the student's grade.",
+                attemptId);
+            return;
         }
 
         // Group responses by Topic
@@ -475,11 +490,6 @@ public class StudentMasteryService : IStudentMasteryService
             .Include(r => r.Attempt)
             .Where(r => r.Attempt != null && r.Attempt.UserId == userId && r.Attempt.CompletionStatus == "completed");
 
-        if (!string.IsNullOrWhiteSpace(subjectId) && subjectId != "all")
-        {
-            responsesQuery = responsesQuery.Where(r => r.Attempt!.SubjectId == subjectId);
-        }
-
         var responses = await responsesQuery.ToListAsync(cancellationToken);
         if (responses.Count == 0) return;
 
@@ -488,31 +498,70 @@ public class StudentMasteryService : IStudentMasteryService
             .Where(q => questionIds.Contains(q.Id))
             .ToDictionaryAsync(q => q.Id, cancellationToken);
 
-        var effectiveSubjectId = subjectId;
-        if (string.IsNullOrWhiteSpace(effectiveSubjectId))
+        var requestedSubjectId = !string.IsNullOrWhiteSpace(subjectId) && subjectId != "all"
+            ? subjectId
+            : null;
+
+        string? gradeSubjectId = null;
+        if (responses.Any(r => string.IsNullOrWhiteSpace(r.Attempt?.SubjectId)) || requestedSubjectId == null)
         {
             var student = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
             var g = student?.Grade?.Trim();
-            effectiveSubjectId = g == "10" ? "sub_math10" : g == "11" ? "sub_math11" : "sub_math12";
+            if (!string.IsNullOrWhiteSpace(g))
+            {
+                gradeSubjectId = await _context.ContentSubjects.AsNoTracking()
+                    .Where(s => s.IsActive && s.Grade == g)
+                    .OrderBy(s => s.OrderIndex)
+                    .Select(s => s.Id)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
         }
-        var completedAttemptIds = responses.Select(r => r.AttemptId).Distinct().ToList();
 
-        var groups = responses
-            .GroupBy(r => questions.TryGetValue(r.QuestionId, out var q) && !string.IsNullOrWhiteSpace(q.Topic)
-                ? q.Topic
-                : "Kiến thức trọng tâm");
+        var resolvedResponses = responses
+            .Select(response =>
+            {
+                questions.TryGetValue(response.QuestionId, out var question);
+                var resolvedSubjectId = !string.IsNullOrWhiteSpace(response.Attempt?.SubjectId)
+                    ? response.Attempt.SubjectId
+                    : !string.IsNullOrWhiteSpace(question?.SubjectId)
+                        ? question.SubjectId
+                        : gradeSubjectId;
+                var topicName = !string.IsNullOrWhiteSpace(question?.Topic)
+                    ? question.Topic
+                    : "Kiến thức trọng tâm";
+
+                return new { Response = response, SubjectId = resolvedSubjectId, TopicName = topicName };
+            })
+            .Where(item => !string.IsNullOrWhiteSpace(item.SubjectId))
+            .Where(item => requestedSubjectId == null || item.SubjectId == requestedSubjectId)
+            .ToList();
+
+        if (resolvedResponses.Count == 0)
+        {
+            _logger.LogWarning(
+                "Cannot compute mastery for user {UserId} and subject {SubjectId}: no matching subject could be resolved from attempts, questions, or grade.",
+                userId,
+                requestedSubjectId ?? "all");
+            return;
+        }
+
+        var groups = resolvedResponses.GroupBy(item => new
+        {
+            SubjectId = item.SubjectId!,
+            item.TopicName
+        });
 
         foreach (var group in groups)
         {
-            var topicName = group.Key;
-            var groupQuestionIds = group.Select(r => r.QuestionId).ToList();
+            var groupQuestionIds = group.Select(item => item.Response.QuestionId).Distinct().ToList();
+            var completedAttemptIds = group.Select(item => item.Response.AttemptId).Distinct().ToList();
 
             // Count hints strictly scoped to these completed attempts
             int hintCount = await _context.AiHintUsages
                 .CountAsync(h => h.UserId == userId && h.SessionId != null && completedAttemptIds.Contains(h.SessionId) && groupQuestionIds.Contains(h.QuestionId), cancellationToken);
 
             int total = group.Count();
-            int correct = group.Count(r => r.IsCorrect == true);
+            int correct = group.Count(item => item.Response.IsCorrect == true);
 
             var (score, status) = CalculateScoreAndStatus(total, correct, hintCount);
 
@@ -520,14 +569,14 @@ public class StudentMasteryService : IStudentMasteryService
             {
                 Id = $"mst_{Guid.NewGuid():N}",
                 UserId = userId,
-                SubjectId = effectiveSubjectId,
-                TopicName = topicName,
+                SubjectId = group.Key.SubjectId,
+                TopicName = group.Key.TopicName,
                 AttemptCount = total,
                 CorrectCount = correct,
                 HintCount = hintCount,
                 MasteryScore = score,
                 Status = status,
-                LastAttemptAt = responses.Max(r => r.LastAnsweredAt ?? r.FirstAnsweredAt) ?? DateTimeOffset.UtcNow,
+                LastAttemptAt = group.Max(item => item.Response.LastAnsweredAt ?? item.Response.FirstAnsweredAt) ?? DateTimeOffset.UtcNow,
                 UpdatedAt = DateTimeOffset.UtcNow
             };
 

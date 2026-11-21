@@ -227,6 +227,8 @@ public class LessonRedesignAndContextAiTests
         var ctxA = await service.GetLessonAiContextAsync("usr_1", "learner", "les_A");
         var ctxB = await service.GetLessonAiContextAsync("usr_1", "learner", "les_B");
 
+        Assert.NotNull(ctxA);
+        Assert.NotNull(ctxB);
         Assert.Equal("les_A", ctxA.LessonId);
         Assert.Equal("Tính đơn điệu", ctxA.LessonTitle);
         Assert.Equal("les_B", ctxB.LessonId);

@@ -14,7 +14,10 @@ public class GeminiLiveVerificationTests
 
     public GeminiLiveVerificationTests()
     {
-        var dict = new Dictionary<string, string?>();
+        // Microsoft.Extensions.Configuration treats keys case-insensitively. Linux
+        // environments can expose both HTTPS_PROXY and https_proxy, so normalize
+        // here before passing the collection to the configuration provider.
+        var dict = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
 
         var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         var secretsPath = Path.Combine(appData, "Microsoft", "UserSecrets", "d55765d9-064d-4e2f-80ea-e211a6d3c2aa", "secrets.json");

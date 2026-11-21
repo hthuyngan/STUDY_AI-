@@ -240,8 +240,8 @@ describe('Admin Workspace V2 UI Tests', () => {
     })
   })
 
-  describe('AdminSystemPage (Honest Prototype Status)', () => {
-    it('displays honest prototype mode indicator and module list', async () => {
+  describe('AdminSystemPage (Real API Status)', () => {
+    it('fails closed without an admin session and never presents mock health as real', async () => {
       render(
         <MemoryRouter>
           <AdminSystemPage />
@@ -252,10 +252,12 @@ describe('Admin Workspace V2 UI Tests', () => {
         expect(screen.getByText('Trạng thái hệ thống & Hạ tầng')).toBeInTheDocument()
       })
 
-      expect(screen.getByText('FE Prototype Standalone')).toBeInTheDocument()
-      expect(screen.getByText(/Hệ thống đang chạy hoàn toàn ở chế độ/i)).toBeInTheDocument()
-      expect(screen.getByText('Chưa nối máy chủ')).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: /Đặt lại dữ liệu demo/i })).toBeInTheDocument()
+      expect(screen.getByRole('alert')).toHaveTextContent(/Cần đăng nhập bằng tài khoản quản trị/i)
+      expect(screen.queryByText('FE Prototype Standalone')).not.toBeInTheDocument()
+      expect(screen.queryByText(/Dữ liệu mô phỏng/i)).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /Đặt lại dữ liệu demo/i })).not.toBeInTheDocument()
+      expect(screen.getByText('Cơ sở dữ liệu')).toBeInTheDocument()
+      expect(screen.getByText('Máy chủ (Backend)')).toBeInTheDocument()
       expect(screen.getByText('Các module giao diện đã triển khai')).toBeInTheDocument()
     })
   })

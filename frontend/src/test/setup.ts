@@ -31,3 +31,16 @@ Object.defineProperty(window, 'IntersectionObserver', {
   configurable: true,
   value: MockIntersectionObserver as unknown as typeof IntersectionObserver,
 })
+
+// Unit/component tests must never reach a developer machine or a CI service on
+// localhost. Individual API tests replace this stub with their own response.
+// A deterministic 503 keeps application providers fail-closed without noisy
+// ECONNREFUSED/AbortError output from happy-dom during teardown.
+vi.stubGlobal(
+  'fetch',
+  vi.fn(async () =>
+    new Response(JSON.stringify({ detail: 'Backend unavailable in frontend unit tests' }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json' },
+    }))
+)

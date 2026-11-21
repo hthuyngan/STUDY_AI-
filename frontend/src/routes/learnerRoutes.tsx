@@ -5,8 +5,6 @@ import DashboardPage from '@/pages/Dashboard/DashboardPage'
 import SubjectsPage from '@/pages/Subjects/SubjectsPage'
 import SubjectDetailPage from '@/pages/Subjects/SubjectDetailPage'
 import LessonPage from '@/pages/Lesson/LessonPage'
-import QuizPage from '@/pages/Quiz/QuizPage'
-import QuizResultPage from '@/pages/Quiz/QuizResultPage'
 import LearningPathPage from '@/pages/LearningPath/LearningPathPage'
 import MyNotesPage from '@/pages/MyNotes/MyNotesPage'
 import KnowledgeGapsPage from '@/pages/KnowledgeGaps/KnowledgeGapsPage'
@@ -104,23 +102,10 @@ export function LearnerRoutes() {
       {/* Legacy /learn redirect */}
       <Route path="/learn/:courseId/:lessonId" element={<LegacyLearnRedirect />} />
 
-      {/* Quiz Flow */}
-      <Route
-        path="/quiz/:quizId"
-        element={
-          <AppShell>
-            <QuizPage />
-          </AppShell>
-        }
-      />
-      <Route
-        path="/quiz/:quizId/result"
-        element={
-          <AppShell>
-            <QuizResultPage />
-          </AppShell>
-        }
-      />
+      {/* Legacy quiz pages used an in-browser mock engine. Route all old links to
+          the persisted practice workflow instead of presenting synthetic results. */}
+      <Route path="/quiz/:quizId" element={<Navigate to="/practice" replace />} />
+      <Route path="/quiz/:quizId/result" element={<Navigate to="/practice" replace />} />
 
       {/* Legacy AI Tutor Redirects: seamlessly route to /subjects with zero dead links & active Floating AI Chatbot */}
       {LegacyAiTutorRoutes()}

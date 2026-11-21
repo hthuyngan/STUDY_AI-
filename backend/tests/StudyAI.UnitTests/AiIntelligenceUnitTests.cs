@@ -410,6 +410,82 @@ public class AiIntelligenceUnitTests
     }
 
     [Fact]
+    public async Task StudentMasteryService_DoesNotMisclassifyUnknownSubjectAsMath12()
+    {
+        using var db = CreateInMemoryDb(nameof(StudentMasteryService_DoesNotMisclassifyUnknownSubjectAsMath12));
+        var masteryService = new StudentMasteryService(db, NullLogger<StudentMasteryService>.Instance);
+
+        db.ContentQuestions.Add(new ContentQuestion
+        {
+            Id = "q_unknown_subject",
+            Topic = "Chủ đề chưa xác định",
+            Difficulty = "medium"
+        });
+        db.AssessmentAttempts.Add(new AssessmentAttempt
+        {
+            Id = "att_unknown_subject",
+            UserId = "usr_without_grade",
+            SubjectId = string.Empty,
+            CompletionStatus = "completed",
+            ScoreScaled = 10.0,
+            Responses = new List<AssessmentResponse>
+            {
+                new() { QuestionId = "q_unknown_subject", IsCorrect = true }
+            }
+        });
+        await db.SaveChangesAsync();
+
+        await masteryService.UpdateMasteryFromAttemptAsync("usr_without_grade", "att_unknown_subject");
+
+        Assert.Empty(await db.StudentTopicMasteries.ToListAsync());
+        var attempt = await db.AssessmentAttempts.SingleAsync(a => a.Id == "att_unknown_subject");
+        Assert.DoesNotContain("masteryProcessed", attempt.SuspendDataJson ?? string.Empty);
+    }
+
+    [Fact]
+    public async Task StudentMasteryService_ComputesAllSubjectsWithoutMixingTheirResponses()
+    {
+        using var db = CreateInMemoryDb(nameof(StudentMasteryService_ComputesAllSubjectsWithoutMixingTheirResponses));
+        var masteryService = new StudentMasteryService(db, NullLogger<StudentMasteryService>.Instance);
+
+        db.ContentQuestions.AddRange(
+            new ContentQuestion { Id = "q_math10", SubjectId = "sub_math10", Topic = "Mệnh đề" },
+            new ContentQuestion { Id = "q_math11", SubjectId = "sub_math11", Topic = "Lượng giác" });
+        db.AssessmentAttempts.AddRange(
+            new AssessmentAttempt
+            {
+                Id = "att_math10",
+                UserId = "usr_multi_subject",
+                SubjectId = "sub_math10",
+                CompletionStatus = "completed",
+                ScoreScaled = 10,
+                Responses = new List<AssessmentResponse>
+                {
+                    new() { QuestionId = "q_math10", IsCorrect = true }
+                }
+            },
+            new AssessmentAttempt
+            {
+                Id = "att_math11",
+                UserId = "usr_multi_subject",
+                SubjectId = "sub_math11",
+                CompletionStatus = "completed",
+                ScoreScaled = 0,
+                Responses = new List<AssessmentResponse>
+                {
+                    new() { QuestionId = "q_math11", IsCorrect = false }
+                }
+            });
+        await db.SaveChangesAsync();
+
+        var result = await masteryService.GetStudentMasteryAsync("usr_multi_subject", "all");
+
+        Assert.Equal(2, result.SkillsEvaluated);
+        Assert.Contains(result.Skills, skill => skill.SubjectId == "sub_math10" && skill.SkillName == "Mệnh đề" && skill.TotalCorrect == 1);
+        Assert.Contains(result.Skills, skill => skill.SubjectId == "sub_math11" && skill.SkillName == "Lượng giác" && skill.TotalCorrect == 0);
+    }
+
+    [Fact]
     public async Task StudentMasteryService_CalculatesDeterministicMasteryLevels()
     {
         using var db = CreateInMemoryDb(nameof(StudentMasteryService_CalculatesDeterministicMasteryLevels));

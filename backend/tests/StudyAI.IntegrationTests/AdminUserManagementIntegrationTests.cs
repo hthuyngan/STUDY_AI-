@@ -795,8 +795,9 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
             var log = await db.StaffAuditLogs.FirstOrDefaultAsync(l => l.TargetType == "announcement" && l.TargetId == created.Id);
             Assert.NotNull(log);
             Assert.Equal(created.Id, log.TargetId);
+            Assert.False(string.IsNullOrWhiteSpace(log.Payload));
 
-            var persisted = JsonSerializer.Deserialize<AnnouncementDto>(log.Payload, JsonOpts);
+            var persisted = JsonSerializer.Deserialize<AnnouncementDto>(log.Payload!, JsonOpts);
             Assert.NotNull(persisted);
             Assert.Equal(created.Title, persisted.Title);
             Assert.Equal("learner", persisted.Audience);
