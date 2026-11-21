@@ -34,41 +34,41 @@ interface SearchResult {
   url: string
 }
 
-const MOCK_SEARCH_ITEMS: SearchResult[] = [
+const QUICK_SEARCH_SUGGESTIONS: SearchResult[] = [
   {
     category: 'Bài học',
     icon: BookOpen,
     title: 'Khảo sát sự biến thiên và vẽ đồ thị hàm số',
-    subtitle: 'Toán học 12 · Bài 08',
-    url: '/subjects/math/lessons/lesson-math-08',
+    subtitle: 'Toán học · Đại số & Giải tích',
+    url: '/subjects/math',
   },
   {
     category: 'Bài học',
     icon: BookOpen,
     title: 'Cực trị của hàm số',
-    subtitle: 'Toán học 12 · Bài 02',
-    url: '/subjects/math/lessons/lesson-math-02',
+    subtitle: 'Toán học · Khảo sát hàm số',
+    url: '/subjects/math',
   },
   {
     category: 'Môn học',
     icon: Layers,
-    title: 'Toán học · Lớp 12',
-    subtitle: 'Giáo trình SGK · 32 bài học',
+    title: 'Chương trình Toán học THPT',
+    subtitle: 'Giáo trình chuẩn GDPT 2018',
     url: '/subjects/math',
   },
   {
-    category: 'Bài học',
+    category: 'Tài liệu',
     icon: FileText,
     title: 'Sổ tay Công thức Đạo hàm & Bảng biến thiên',
-    subtitle: 'Toán học 12 · Tóm tắt lý thuyết',
+    subtitle: 'Toán học · Tóm tắt lý thuyết',
     url: '/subjects/math',
   },
   {
-    category: 'Môn học',
+    category: 'AI Tutor',
     icon: Bot,
-    title: 'Hỏi AI về phương pháp giải tiệm cận đứng',
-    subtitle: 'Toán 12 · Hỗ trợ bởi Floating AI Tutor',
-    url: '/subjects/math',
+    title: 'Hỏi AI về phương pháp giải toán',
+    subtitle: 'Hỗ trợ bởi Floating AI Tutor',
+    url: '/ai-tutor',
   },
 ]
 
@@ -81,33 +81,6 @@ interface NotificationItem {
   url: string
 }
 
-const INITIAL_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: 'notif-1',
-    title: 'Bài tập duy trì streak 12 ngày',
-    subtitle: 'Khảo sát hàm số (Toán 12) cần hoàn thành hôm nay',
-    time: '25 phút trước',
-    unread: true,
-    url: '/exercises',
-  },
-  {
-    id: 'notif-2',
-    title: 'Gợi ý mới từ AI Tutor',
-    subtitle: 'Bạn nên ôn lại phần Tiệm cận trước khi học bài mới',
-    time: '2 giờ trước',
-    unread: true,
-    url: '/learning-path',
-  },
-  {
-    id: 'notif-3',
-    title: 'Kỷ lục điểm số bài luyện tập mới',
-    subtitle: 'Chúc mừng bạn đạt điểm tối đa phần Tính đơn điệu!',
-    time: '1 ngày trước',
-    unread: false,
-    url: '/practice',
-  },
-]
-
 export function Topbar({ onOpenMobileMenu }: TopbarProps) {
   const navigate = useNavigate()
   const { user, isAuthenticated, state, logout } = useAuth()
@@ -118,7 +91,7 @@ export function Topbar({ onOpenMobileMenu }: TopbarProps) {
 
   const [query, setQuery] = useState('')
   const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS)
+  const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
 
@@ -185,12 +158,12 @@ export function Topbar({ onOpenMobileMenu }: TopbarProps) {
   }
 
   const filteredResults = query.trim()
-    ? MOCK_SEARCH_ITEMS.filter(
+    ? QUICK_SEARCH_SUGGESTIONS.filter(
         (item) =>
           item.title.toLowerCase().includes(query.toLowerCase()) ||
           item.subtitle.toLowerCase().includes(query.toLowerCase())
       )
-    : MOCK_SEARCH_ITEMS.slice(0, 4)
+    : QUICK_SEARCH_SUGGESTIONS.slice(0, 4)
 
   const handleSelectResult = (url: string) => {
     setIsSearchOpen(false)
@@ -407,27 +380,33 @@ export function Topbar({ onOpenMobileMenu }: TopbarProps) {
                 )}
               </div>
               <div className="notifications-list scrollbar-clean">
-                {notifications.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className={`notification-item ${item.unread ? 'is-unread' : ''}`}
-                    onClick={() => {
-                      setNotifications((prev) =>
-                        prev.map((n) => (n.id === item.id ? { ...n, unread: false } : n))
-                      )
-                      setIsNotificationsOpen(false)
-                      navigate(item.url)
-                    }}
-                  >
-                    <div className="notification-dot" aria-hidden />
-                    <div className="notification-content">
-                      <span className="notification-item-title">{item.title}</span>
-                      <p className="notification-item-subtitle">{item.subtitle}</p>
-                      <span className="notification-item-time">{item.time}</span>
-                    </div>
-                  </button>
-                ))}
+                {notifications.length === 0 ? (
+                  <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 'var(--text-xs)' }}>
+                    Không có thông báo mới
+                  </div>
+                ) : (
+                  notifications.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`notification-item ${item.unread ? 'is-unread' : ''}`}
+                      onClick={() => {
+                        setNotifications((prev) =>
+                          prev.map((n) => (n.id === item.id ? { ...n, unread: false } : n))
+                        )
+                        setIsNotificationsOpen(false)
+                        navigate(item.url)
+                      }}
+                    >
+                      <div className="notification-dot" aria-hidden />
+                      <div className="notification-content">
+                        <span className="notification-item-title">{item.title}</span>
+                        <p className="notification-item-subtitle">{item.subtitle}</p>
+                        <span className="notification-item-time">{item.time}</span>
+                      </div>
+                    </button>
+                  ))
+                )}
               </div>
             </div>
           )}
