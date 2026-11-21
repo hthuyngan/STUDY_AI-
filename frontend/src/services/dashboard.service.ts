@@ -150,7 +150,7 @@ export async function fetchDashboardData(
         id: authUser.id,
         name: authUser.displayName || 'Học viên',
         greetingName: (authUser.displayName || 'Bạn').split(' ').pop() || 'Bạn',
-        avatar: base.user.avatar,
+        avatar: '',
         grade: authUser.grade ? `Lớp ${authUser.grade}` : base.user.grade,
       }
     : base.user
@@ -204,16 +204,37 @@ export async function fetchDashboardData(
   const totalXP = serverStats ? serverStats.totalCorrectAnswers * 10 : 0
 
   if (authUser && serverStats) {
-    const leaderboard: LeaderboardUser[] = [
-      {
-        rank: 1,
-        id: user.id,
-        name: user.name,
-        avatar: user.avatar,
-        xp: totalXP,
-        isCurrentUser: true,
-      },
-    ]
+    let leaderboard: LeaderboardUser[] = []
+    try {
+      const realLeaderboard = await apiClient.get<LeaderboardUser[]>('/api/v1/practice/leaderboard?limit=5')
+      if (Array.isArray(realLeaderboard) && realLeaderboard.length > 0) {
+        leaderboard = realLeaderboard
+      } else if (totalXP > 0) {
+        leaderboard = [
+          {
+            rank: 1,
+            id: user.id,
+            name: user.name,
+            avatar: user.avatar,
+            xp: totalXP,
+            isCurrentUser: true,
+          },
+        ]
+      }
+    } catch {
+      if (totalXP > 0) {
+        leaderboard = [
+          {
+            rank: 1,
+            id: user.id,
+            name: user.name,
+            avatar: user.avatar,
+            xp: totalXP,
+            isCurrentUser: true,
+          },
+        ]
+      }
+    }
 
     return {
       user,

@@ -1,3 +1,5 @@
+import { apiClient } from '@/lib/apiClient'
+import { getAccessToken } from '@/auth/authSession'
 import { mockQuestions } from '@/data/questionBank.data'
 import type {
   QuestionBankStats,
@@ -57,6 +59,12 @@ export class QuestionBankRepository implements IQuestionBankRepository {
   }
 
   async getAll(): Promise<QuestionItem[]> {
+    if (getAccessToken()) {
+      const res = await apiClient.get<{ items: QuestionItem[]; total: number }>(
+        '/api/v1/curriculum/question-bank?pageSize=100'
+      )
+      return res.items || []
+    }
     return [...this.loadFromStorage()]
   }
 
@@ -65,12 +73,36 @@ export class QuestionBankRepository implements IQuestionBankRepository {
    * INVARIANT: Never fallbacks to a different question when ID does not exist.
    */
   async getById(id: string): Promise<QuestionItem | null> {
+    if (getAccessToken()) {
+      try {
+        const item = await apiClient.get<QuestionItem>(`/api/v1/curriculum/question-bank/${id}`)
+        return item
+      } catch {
+        return null
+      }
+    }
     const items = this.loadFromStorage()
     const found = items.find((q) => q.id === id)
     return found ? { ...found } : null
   }
 
   async filter(criteria: QuestionFilterCriteria): Promise<QuestionItem[]> {
+    if (getAccessToken()) {
+      const query = new URLSearchParams()
+      if (criteria.subjectId) query.set('subjectId', criteria.subjectId)
+      if (criteria.chapterId) query.set('chapterId', criteria.chapterId)
+      if (criteria.lessonId) query.set('lessonId', criteria.lessonId)
+      if (criteria.difficulty && (criteria.difficulty as string) !== 'all') query.set('difficulty', criteria.difficulty)
+      if (criteria.type) query.set('type', criteria.type)
+      if (criteria.search) query.set('search', criteria.search)
+      query.set('pageSize', '100')
+
+      const res = await apiClient.get<{ items: QuestionItem[]; total: number }>(
+        `/api/v1/curriculum/question-bank?${query.toString()}`
+      )
+      return res.items || []
+    }
+
     const items = this.loadFromStorage()
 
     return items.filter((q) => {
@@ -108,6 +140,10 @@ export class QuestionBankRepository implements IQuestionBankRepository {
   }
 
   async getStats(): Promise<QuestionBankStats> {
+    if (getAccessToken()) {
+      return apiClient.get<QuestionBankStats>('/api/v1/curriculum/question-bank/statistics')
+    }
+
     const items = this.loadFromStorage()
 
     const stats: QuestionBankStats = {

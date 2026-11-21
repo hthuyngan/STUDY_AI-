@@ -1296,6 +1296,46 @@ public class PracticeController : ControllerBase
         });
     }
 
+    [HttpGet("leaderboard")]
+    public async Task<IActionResult> GetLeaderboard([FromQuery] int limit = 10)
+    {
+        var topUsers = await _db.AssessmentResponses.AsNoTracking()
+            .Include(r => r.Attempt)
+            .Where(r => r.IsCorrect == true && r.Attempt != null)
+            .GroupBy(r => r.Attempt!.UserId)
+            .Select(g => new { UserId = g.Key, CorrectCount = g.Count() })
+            .OrderByDescending(x => x.CorrectCount)
+            .Take(Math.Clamp(limit, 1, 50))
+            .ToListAsync();
+
+        if (!topUsers.Any())
+        {
+            return Ok(new List<object>());
+        }
+
+        var userIds = topUsers.Select(u => u.UserId).ToList();
+        var users = await _db.Users.AsNoTracking()
+            .Where(u => userIds.Contains(u.Id) && !u.IsDeleted)
+            .ToDictionaryAsync(u => u.Id, u => u.DisplayName ?? "Học viên");
+
+        var currentUserId = CurrentUserId;
+        var rank = 1;
+        var result = topUsers
+            .Where(u => users.ContainsKey(u.UserId))
+            .Select(u => new
+            {
+                rank = rank++,
+                id = u.UserId,
+                name = users[u.UserId],
+                avatar = (string?)null,
+                xp = u.CorrectCount * 10,
+                isCurrentUser = !string.IsNullOrEmpty(currentUserId) && u.UserId == currentUserId
+            })
+            .ToList();
+
+        return Ok(result);
+    }
+
     // ─────────────────────────────────────────────────────────────────────────────
     // HELPERS
     // ─────────────────────────────────────────────────────────────────────────────

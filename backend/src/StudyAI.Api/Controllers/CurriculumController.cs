@@ -574,7 +574,7 @@ public class CurriculumController : ControllerBase
                 id = l.Id,
                 title = l.Title,
                 category = itemCategory,
-                subjectId = l.Chapter?.SubjectId ?? "sub_math12",
+                subjectId = l.Chapter?.SubjectId ?? (l.Chapter?.Subject?.Code != null ? $"sub_{l.Chapter.Subject.Code.ToLowerInvariant()}" : "sub_math10"),
                 subjectName = l.Chapter?.Subject?.Name ?? "Toán học",
                 snippet = !string.IsNullOrWhiteSpace(l.Introduction) ? l.Introduction : l.Title,
                 pagesCount = Math.Max(3, (l.DefinitionsJson?.Length ?? 0) / 50 + 2),
@@ -589,4 +589,196 @@ public class CurriculumController : ControllerBase
 
         return Ok(materials.ToList());
     }
+
+    #region Question Bank (Learner-Facing Verified Assessment Items)
+
+    [HttpGet("question-bank")]
+    public async Task<IActionResult> GetQuestionBank(
+        [FromQuery] string? subjectId = null,
+        [FromQuery] string? chapterId = null,
+        [FromQuery] string? lessonId = null,
+        [FromQuery] string? grade = null,
+        [FromQuery] string? difficulty = null,
+        [FromQuery] string? type = null,
+        [FromQuery] string? search = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50)
+    {
+        var query = _db.ContentQuestions.AsNoTracking()
+            .Include(q => q.Lesson)
+                .ThenInclude(l => l!.Chapter)
+                    .ThenInclude(c => c!.Subject)
+            .Where(q => !q.IsDeleted && (q.Status == "published" || q.Status == "approved"));
+
+        if (!string.IsNullOrWhiteSpace(subjectId) && subjectId != "all")
+        {
+            query = query.Where(q => q.SubjectId == subjectId || (q.Lesson != null && q.Lesson.Chapter != null && q.Lesson.Chapter.SubjectId == subjectId));
+        }
+
+        if (!string.IsNullOrWhiteSpace(chapterId) && chapterId != "all")
+        {
+            query = query.Where(q => q.ChapterId == chapterId || (q.Lesson != null && q.Lesson.ChapterId == chapterId));
+        }
+
+        if (!string.IsNullOrWhiteSpace(lessonId) && lessonId != "all")
+        {
+            query = query.Where(q => q.LessonId == lessonId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(grade) && grade != "all")
+        {
+            query = query.Where(q => q.Grade == grade || (q.Lesson != null && q.Lesson.Chapter != null && q.Lesson.Chapter.Subject != null && q.Lesson.Chapter.Subject.Grade == grade));
+        }
+
+        if (!string.IsNullOrWhiteSpace(difficulty) && difficulty != "all")
+        {
+            var diffNormalized = difficulty.ToLowerInvariant();
+            query = query.Where(q => q.Difficulty.ToLower() == diffNormalized);
+        }
+
+        if (!string.IsNullOrWhiteSpace(type) && type != "all")
+        {
+            var norm1 = type.Replace("_", "-").ToLowerInvariant();
+            var norm2 = type.Replace("-", "_").ToLowerInvariant();
+            query = query.Where(q => q.Type.ToLower() == norm1 || q.Type.ToLower() == norm2);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLower();
+            query = query.Where(q => q.Prompt.ToLower().Contains(term) || q.Id.ToLower().Contains(term) || (q.Topic != null && q.Topic.ToLower().Contains(term)));
+        }
+
+        var total = await query.CountAsync();
+        var safePage = Math.Max(1, page);
+        var safePageSize = Math.Clamp(pageSize, 1, 100);
+
+        var questions = await query
+            .OrderBy(q => q.OrderIndex)
+            .ThenBy(q => q.Id)
+            .Skip((safePage - 1) * safePageSize)
+            .Take(safePageSize)
+            .ToListAsync();
+
+        var dtos = questions.Select(FormatQuestionBankItem).ToList();
+        return Ok(new { items = dtos, total, page = safePage, pageSize = safePageSize });
+    }
+
+    [HttpGet("question-bank/statistics")]
+    public async Task<IActionResult> GetQuestionBankStats(
+        [FromQuery] string? subjectId = null,
+        [FromQuery] string? grade = null)
+    {
+        var query = _db.ContentQuestions.AsNoTracking()
+            .Include(q => q.Lesson)
+                .ThenInclude(l => l!.Chapter)
+                    .ThenInclude(c => c!.Subject)
+            .Where(q => !q.IsDeleted);
+
+        if (!string.IsNullOrWhiteSpace(subjectId) && subjectId != "all")
+        {
+            query = query.Where(q => q.SubjectId == subjectId || (q.Lesson != null && q.Lesson.Chapter != null && q.Lesson.Chapter.SubjectId == subjectId));
+        }
+
+        if (!string.IsNullOrWhiteSpace(grade) && grade != "all")
+        {
+            query = query.Where(q => q.Grade == grade || (q.Lesson != null && q.Lesson.Chapter != null && q.Lesson.Chapter.Subject != null && q.Lesson.Chapter.Subject.Grade == grade));
+        }
+
+        var allItems = await query.ToListAsync();
+
+        var total = allItems.Count(q => q.Status == "published" || q.Status == "approved");
+        var approvedCount = total;
+        var needsReviewCount = allItems.Count(q => q.Status == "in-review");
+        var draftCount = allItems.Count(q => q.Status == "draft");
+        var rejectedCount = allItems.Count(q => q.Status == "rejected");
+
+        var byType = new Dictionary<string, int>
+        {
+            ["multiple_choice"] = allItems.Count(q => (q.Status == "published" || q.Status == "approved") && (q.Type == "multiple_choice" || q.Type == "multiple-choice")),
+            ["true_false_group"] = allItems.Count(q => (q.Status == "published" || q.Status == "approved") && (q.Type == "true_false_group" || q.Type == "true-false-group")),
+            ["short_answer"] = allItems.Count(q => (q.Status == "published" || q.Status == "approved") && (q.Type == "short_answer" || q.Type == "short-answer"))
+        };
+
+        var byCognitiveLevel = new Dictionary<string, int>
+        {
+            ["recognition"] = allItems.Count(q => (q.Status == "published" || q.Status == "approved") && (q.Difficulty == "easy" || q.Difficulty == "nhan_biet")),
+            ["comprehension"] = allItems.Count(q => (q.Status == "published" || q.Status == "approved") && (q.Difficulty == "medium" || q.Difficulty == "thong_hieu")),
+            ["application"] = allItems.Count(q => (q.Status == "published" || q.Status == "approved") && (q.Difficulty == "hard" || q.Difficulty == "van_dung")),
+            ["high_application"] = allItems.Count(q => (q.Status == "published" || q.Status == "approved") && (q.Difficulty == "very_hard" || q.Difficulty == "van_dung_cao"))
+        };
+
+        return Ok(new
+        {
+            total,
+            approvedCount,
+            needsReviewCount,
+            draftCount,
+            rejectedCount,
+            byType,
+            byCognitiveLevel
+        });
+    }
+
+    [HttpGet("question-bank/{questionId}")]
+    public async Task<IActionResult> GetQuestionBankDetail(string questionId)
+    {
+        var q = await _db.ContentQuestions.AsNoTracking()
+            .Include(x => x.Lesson)
+                .ThenInclude(l => l!.Chapter)
+                    .ThenInclude(c => c!.Subject)
+            .FirstOrDefaultAsync(x => x.Id == questionId && !x.IsDeleted && (x.Status == "published" || x.Status == "approved"));
+
+        if (q == null)
+            return NotFound(new { message = "Câu hỏi không tồn tại hoặc chưa được phê duyệt." });
+
+        return Ok(FormatQuestionBankItem(q));
+    }
+
+    private static object FormatQuestionBankItem(ContentQuestion q)
+    {
+        var letters = new[] { "A", "B", "C", "D" };
+        var rawOptions = SafeDeserializeStringList(q.OptionsJson);
+        var options = rawOptions.Select((text, idx) => new
+        {
+            id = idx < letters.Length ? letters[idx] : $"O{idx + 1}",
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"^[A-Da-d][.:)\s]+", "").Trim()
+        }).ToList();
+
+        var normalizedType = q.Type == "multiple-choice" ? "multiple_choice"
+            : q.Type == "true-false-group" ? "true_false_group"
+            : q.Type == "short-answer" ? "short_answer"
+            : q.Type;
+
+        var cognitiveLevel = q.Difficulty switch
+        {
+            "easy" or "nhan_biet" => "recognition",
+            "medium" or "thong_hieu" => "comprehension",
+            "hard" or "van_dung" => "application",
+            "very_hard" or "van_dung_cao" => "high_application",
+            _ => "comprehension"
+        };
+
+        return new
+        {
+            id = q.Id,
+            subjectId = q.SubjectId ?? q.Lesson?.Chapter?.SubjectId ?? "sub_math10",
+            chapterId = q.ChapterId ?? q.Lesson?.ChapterId ?? "",
+            lessonId = q.LessonId ?? "",
+            skillIds = new List<string> { q.Topic ?? "SKILL-GENERAL" },
+            type = normalizedType,
+            stem = q.Prompt,
+            difficulty = q.Difficulty,
+            cognitiveLevel = cognitiveLevel,
+            options = options,
+            correctAnswer = q.CorrectAnswer,
+            explanation = q.Explanation ?? "",
+            source = q.SourceType ?? "STUDY_AI Official",
+            reviewStatus = q.Status == "published" ? "approved" : q.Status,
+            createdAt = q.CreatedAt.ToString("o"),
+            updatedAt = q.UpdatedAt.ToString("o")
+        };
+    }
+
+    #endregion
 }
