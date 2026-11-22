@@ -45,9 +45,11 @@
     - `LearnerProgressService`, `LearnerAssessmentService`, `LearnerEventsService`, `LearnerProfileService`, `LearnerPracticeService`, `AdminOperationsService`.
   - Bảo đảm an toàn dữ liệu: Ngăn chặn cross-tenant access, hỗ trợ đồng bộ dữ liệu `sync/bootstrap` không làm hỏng tiến trình, Leitner review box 1..5 và adaptive practice chống lặp câu hỏi.
   - Test gates: 258/258 Backend Unit Tests pass, 3/3 ArchitectureTests pass (0 DbContext injection), 0 oxlint warnings, Vite build success, 544/544 Frontend Vitest pass.
-- [ ] **Phase 6: AI Tutor và Support**
-  - Tách Orchestration & LLM provider adapters.
-  - Support workspace permissions.
+- [x] **Phase 6: AI Tutor và Support**
+  - Tổ chức lại `AiChatController` thành `LearnerAiChatController` tại `StudyAI.Api/Features/Learner/` và `AiAdminController` thành `AdminAiController` tại `StudyAI.Api/Features/Admin/`.
+  - Tách bạch hoàn toàn Orchestration (`IAiTutorService`, `IAiUsageService`) với LLM Provider Adapters (`OpenAiLlmProvider`, `FakeLlmProvider`, `UnconfiguredLlmProvider`).
+  - Phân quyền Support workspace (`Permissions.UsersRead`, `Permissions.AuditRead`, `Permissions.ContentRead`).
+  - Test gates: 258/258 Backend Unit Tests pass, 3/3 ArchitectureTests pass (0 DbContext injection), 0 oxlint warnings, Vite build success, 544/544 Frontend Vitest pass.
 - [ ] **Phase 7: Cleanup & Final Verification**
   - Loại bỏ hoàn toàn DbContext injection trong controllers (Mục tiêu: 0).
   - Toàn bộ test gates pass (Unit, Integration, Lint, Build, Vitest, E2E).

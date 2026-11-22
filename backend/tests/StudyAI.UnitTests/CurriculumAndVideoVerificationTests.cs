@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
-using StudyAI.Api.Controllers;
 using StudyAI.Api.Features.Content;
 using StudyAI.Api.Features.Learner;
 using StudyAI.Application.Common.Interfaces;

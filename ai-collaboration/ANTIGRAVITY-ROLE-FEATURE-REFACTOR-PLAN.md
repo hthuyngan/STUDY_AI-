@@ -15,7 +15,7 @@
 - [ ] **Phase 3 — Content/Curriculum** (Curriculum & Content controllers split, Application workflow services)
 - [ ] **Phase 4 — Teacher** (Classroom, Student ownership, Assignment, Submissions, Grading, Analytics)
 - [x] **Phase 5 — Learner** (Profile, Progress, Assessment attempts, Learning events, Practice, Assignments, Dashboard)
-- [ ] **Phase 6 — AI Tutor và Support** (Orchestration separation, LLM provider adapters, Support workspace)
+- [x] **Phase 6 — AI Tutor và Support** (Orchestration separation, LLM provider adapters, Support workspace)
 - [ ] **Phase 7 — Cleanup & Verification** (0 DbContext in controllers, remove legacy dead code, 100% test gates pass, final docs)
 
 ## 1. Mệnh lệnh thực thi

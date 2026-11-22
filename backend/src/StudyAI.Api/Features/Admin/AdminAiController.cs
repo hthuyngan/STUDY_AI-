@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using StudyAI.Application.Common.Interfaces;
 using StudyAI.Application.DTOs;
 
-namespace StudyAI.Api.Controllers;
+namespace StudyAI.Api.Features.Admin;
 
 [Authorize(Roles = "admin")]
 [ApiController]
