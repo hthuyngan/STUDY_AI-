@@ -1,3 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.ActionConstraints;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
@@ -11,12 +16,30 @@ using Xunit;
 namespace StudyAI.UnitTests;
 
 /// <summary>
-/// Prevents compatibility types from being registered as duplicate HTTP endpoints.
-/// They remain available to existing code and tests, but only canonical controllers
-/// should participate in MVC controller discovery.
+/// Prevents compatibility types from being registered as duplicate HTTP endpoints
+/// and strictly guards against API contract regression by verifying all 236 baseline endpoints.
 /// </summary>
 public class ControllerRouteDiscoveryTests
 {
+    private static string FindRepositoryRoot()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir != null)
+        {
+            if (File.Exists(Path.Combine(dir.FullName, "docs", "refactor", "route-contract-map.md")))
+            {
+                return dir.FullName;
+            }
+            if (Directory.Exists(Path.Combine(dir.FullName, ".git")))
+            {
+                return dir.FullName;
+            }
+            dir = dir.Parent;
+        }
+
+        throw new InvalidOperationException("Could not find repository root containing docs/refactor/route-contract-map.md or .git");
+    }
+
     [Fact]
     public void LegacyControllerAliases_MustNotBeDiscoveredByMvc()
     {
@@ -95,7 +118,7 @@ public class ControllerRouteDiscoveryTests
         foreach (var action in actionDescriptors)
         {
             var rawTemplate = action.AttributeRouteInfo?.Template?.Trim('/') ?? "";
-            var normalizedTemplate = System.Text.RegularExpressions.Regex.Replace(rawTemplate, @"\{[a-zA-Z0-9_?]+\}", "{param}");
+            var normalizedTemplate = Regex.Replace(rawTemplate, @"\{[a-zA-Z0-9_?]+\}", "{param}");
 
             var httpMethods = action.ActionConstraints?.OfType<HttpMethodActionConstraint>()
                 .SelectMany(c => c.HttpMethods)
@@ -135,8 +158,32 @@ public class ControllerRouteDiscoveryTests
     }
 
     [Fact]
-    public void GenerateAndVerifyEndpointInventory()
+    public void BaselineRouteContract_All236EndpointsMustBePresentAndMatchExactly()
     {
+        var repoRoot = FindRepositoryRoot();
+        var routeContractPath = Path.Combine(repoRoot, "docs", "refactor", "route-contract-map.md");
+        Assert.True(File.Exists(routeContractPath), $"Route contract baseline file not found at: {routeContractPath}");
+
+        var contractLines = File.ReadAllLines(routeContractPath);
+        var baselineEndpoints = new Dictionary<string, string>(); // Key: "METHOD normalized_route", Value: raw route
+
+        var tableRowRegex = new Regex(@"^\|\s*\d+\s*\|\s*`([A-Z]+)`\s*\|\s*`([^`]+)`", RegexOptions.Compiled);
+
+        foreach (var line in contractLines)
+        {
+            var match = tableRowRegex.Match(line);
+            if (match.Success)
+            {
+                var method = match.Groups[1].Value.ToUpperInvariant();
+                var rawRoute = match.Groups[2].Value.Trim('/');
+                var normalizedRoute = Regex.Replace(rawRoute, @"\{[a-zA-Z0-9_?]+\}", "{param}").ToLowerInvariant();
+                var key = $"{method} {normalizedRoute}";
+                baselineEndpoints[key] = match.Groups[2].Value;
+            }
+        }
+
+        Assert.Equal(236, baselineEndpoints.Count);
+
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddControllers().AddApplicationPart(typeof(StudentPracticeController).Assembly);
@@ -145,48 +192,60 @@ public class ControllerRouteDiscoveryTests
         var actionDescriptors = provider.GetRequiredService<IActionDescriptorCollectionProvider>()
             .ActionDescriptors.Items
             .OfType<ControllerActionDescriptor>()
-            .OrderBy(a => a.ControllerTypeInfo.Namespace)
-            .ThenBy(a => a.ControllerName)
-            .ThenBy(a => a.AttributeRouteInfo?.Template)
             .ToList();
 
-        var sb = new System.Text.StringBuilder();
-        sb.AppendLine("# Endpoint Inventory (Generated automatically from ASP.NET Core ActionDescriptors)");
-        sb.AppendLine();
-        sb.AppendLine($"Total registered action descriptors: **{actionDescriptors.Count}**");
-        sb.AppendLine();
-        sb.AppendLine("| # | Module | Controller | Action | Method | Route Template | Auth |");
-        sb.AppendLine("|---|---|---|---|---|---|---|");
+        var registeredEndpoints = new HashSet<string>();
 
-        int index = 1;
         foreach (var action in actionDescriptors)
         {
-            var module = action.ControllerTypeInfo.Namespace?.Replace("StudyAI.Features.", "") ?? "Unknown";
-            var controller = action.ControllerName;
-            var actionName = action.MethodInfo.Name;
-            var route = action.AttributeRouteInfo?.Template ?? "(none)";
+            var rawTemplate = action.AttributeRouteInfo?.Template?.Trim('/') ?? "";
+            var normalizedTemplate = Regex.Replace(rawTemplate, @"\{[a-zA-Z0-9_?]+\}", "{param}").ToLowerInvariant();
 
-            var httpMethod = action.ActionConstraints?.OfType<HttpMethodActionConstraint>()
+            var httpMethods = action.ActionConstraints?.OfType<HttpMethodActionConstraint>()
                 .SelectMany(c => c.HttpMethods)
-                .FirstOrDefault() ??
-                action.MethodInfo.GetCustomAttributes(true).OfType<HttpMethodAttribute>().FirstOrDefault()?.HttpMethods.FirstOrDefault() ??
-                "ANY";
+                .Distinct()
+                .ToList();
 
-            var isAllowAnon = action.MethodInfo.GetCustomAttributes(true).OfType<AllowAnonymousAttribute>().Any() ||
-                              action.ControllerTypeInfo.GetCustomAttributes(true).OfType<AllowAnonymousAttribute>().Any();
-            var authAttr = action.MethodInfo.GetCustomAttributes(true).OfType<AuthorizeAttribute>().FirstOrDefault() ??
-                           action.ControllerTypeInfo.GetCustomAttributes(true).OfType<AuthorizeAttribute>().FirstOrDefault();
+            if (httpMethods == null || !httpMethods.Any())
+            {
+                var methodAttr = action.MethodInfo.GetCustomAttributes(true).OfType<HttpMethodAttribute>().FirstOrDefault();
+                if (methodAttr != null && methodAttr.HttpMethods.Any())
+                {
+                    httpMethods = methodAttr.HttpMethods.ToList();
+                }
+                else
+                {
+                    httpMethods = new List<string> { "ANY" };
+                }
+            }
 
-            string authInfo = isAllowAnon ? "AllowAnonymous" :
-                (authAttr != null ? (string.IsNullOrEmpty(authAttr.Roles) && string.IsNullOrEmpty(authAttr.Policy) ? "Authorize" : $"Auth({authAttr.Roles ?? authAttr.Policy})") : "Implicit");
-
-            sb.AppendLine($"| {index++} | `{module}` | `{controller}` | `{actionName}` | `{httpMethod.ToUpperInvariant()}` | `{route}` | {authInfo} |");
+            foreach (var method in httpMethods)
+            {
+                registeredEndpoints.Add($"{method.ToUpperInvariant()} {normalizedTemplate}");
+            }
         }
 
-        var dir = @"D:\TN\docs\audit";
-        if (!System.IO.Directory.Exists(dir)) System.IO.Directory.CreateDirectory(dir);
-        System.IO.File.WriteAllText(System.IO.Path.Combine(dir, "endpoint_inventory.md"), sb.ToString(), System.Text.Encoding.UTF8);
+        // Verify total registered count is exactly 236
+        Assert.Equal(236, actionDescriptors.Count);
 
-        Assert.True(actionDescriptors.Count > 100, $"Expected > 100 endpoints, but found {actionDescriptors.Count}");
+        // Verify no baseline endpoints are missing from registered descriptors
+        var missingEndpoints = baselineEndpoints
+            .Where(b => !registeredEndpoints.Contains(b.Key))
+            .Select(b => $"Missing: [{b.Key}] (from baseline: {b.Value})")
+            .ToList();
+
+        Assert.True(missingEndpoints.Count == 0,
+            $"API Contract Regression! {missingEndpoints.Count} baseline endpoint(s) missing from assembly:\n" +
+            string.Join("\n", missingEndpoints));
+
+        // Verify no unexpected extra endpoints outside baseline
+        var extraEndpoints = registeredEndpoints
+            .Where(r => !baselineEndpoints.ContainsKey(r))
+            .Select(r => $"Extra: [{r}]")
+            .ToList();
+
+        Assert.True(extraEndpoints.Count == 0,
+            $"API Contract Regression! {extraEndpoints.Count} unexpected extra endpoint(s) detected in assembly:\n" +
+            string.Join("\n", extraEndpoints));
     }
 }

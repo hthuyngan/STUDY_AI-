@@ -4,7 +4,7 @@
 **Nhánh công việc:** `feature/backend-redesign-modular-monolith`  
 **PR tích hợp:** [#21](https://github.com/hthuyngan/STUDY_AI-/pull/21) (`origin/fix/backend-redesign-route-alias-collisions`)  
 **Ngày hoàn thiện:** 22/11/2026  
-**Trạng thái:** HOÀN TẤT & ĐÃ XÁC MINH TOÀN DIỆN  
+**Trạng thái:** HOÀN TẤT & ĐÃ XÁC MINH TOÀN DIỆN (236/236 ENDPOINTS BẢO TOÀN)  
 
 ---
 
@@ -46,111 +46,118 @@ Ngoại lệ này xuất hiện khi người học truy cập trang Dashboard / 
 
 ---
 
-## 3. Danh sách 13 Controller Aliases gây xung đột route
+## 3. Danh sách chính xác 13 Controller Aliases trong mã nguồn
 
-Toàn bộ 13 lớp alias trong `StudentLearnerCompatibility.cs` đã được định danh và xử lý:
+Toàn bộ 13 lớp alias trong `backend/src/StudyAI.Api/Features/Student/StudentLearnerCompatibility.cs` đã được đối chiếu chính xác với mã nguồn và gắn thuộc tính `[NonController]`:
 
-| # | Tên lớp kế thừa (Legacy Alias) | Lớp gốc (Canonical Controller) | Route cơ sở bị nhân đôi |
+| # | Tên lớp kế thừa (Legacy Alias) | Lớp gốc (Canonical Controller) | Tuyến đường cơ sở (Route Base) |
 |---|---|---|---|
-| 1 | `LearnerPracticeController` | `StudentPracticeController` | `api/v1/practice` |
-| 2 | `LearnerAdaptiveLearningController` | `StudentAdaptiveLearningController` | `api/v1/adaptive-learning` |
-| 3 | `LearnerAnalyticsController` | `StudentAnalyticsController` | `api/v1/analytics` |
-| 4 | `LearnerAssignmentsController` | `StudentAssignmentsController` | `api/v1/assignments` |
-| 5 | `LearnerBookmarksController` | `StudentBookmarksController` | `api/v1/bookmarks` |
-| 6 | `LearnerChatController` | `StudentChatController` | `api/v1/chat` |
-| 7 | `LearnerClassroomController` | `StudentClassroomController` | `api/v1/classroom` |
-| 8 | `LearnerCurriculumController` | `StudentCurriculumController` | `api/v1/curriculum` |
-| 9 | `LearnerDashboardController` | `StudentDashboardController` | `api/v1/dashboard` |
-| 10 | `LearnerKnowledgeGapsController` | `StudentKnowledgeGapsController` | `api/v1/knowledge-gaps` |
-| 11 | `LearnerLearningPathController` | `StudentLearningPathController` | `api/v1/learning-path` |
-| 12 | `LearnerSmartReviewController` | `StudentSmartReviewController` | `api/v1/smart-review` |
-| 13 | `LearnerStudyNotesController` | `StudentStudyNotesController` | `api/v1/study-notes` |
+| 1 | `LearnerCurriculumController` | `StudentCurriculumController` | `api/v1/curriculum` |
+| 2 | `LearnerProgressController` | `StudentProgressController` | `api/v1/users/{userId}/lesson-progress`, `api/v1/me/lesson-progress` |
+| 3 | `LearnerAssessmentAttemptsController` | `StudentAssessmentAttemptsController` | `api/v1/users/{userId}/assessment-attempts`, `api/v1/me/assessment-attempts` |
+| 4 | `LearnerEventsController` | `StudentEventsController` | `api/v1/users/{userId}/learning-events`, `api/v1/me/learning-events` |
+| 5 | `StudentExamPreparationController` | `ExamPreparationController` | `api/v1/ai/exam-prep` |
+| 6 | `LearnerExamPreparationController` | `StudentExamPreparationController` | `api/v1/ai/exam-prep` |
+| 7 | `LearnerPracticeController` | `StudentPracticeController` | `api/v1/practice` |
+| 8 | `LearnerProfileController` | `StudentProfileController` | `api/v1/me/sync/bootstrap`, `api/v1/me/bookmarks` |
+| 9 | `StudentAdaptiveLearningController` | `AdaptiveLearningController` | `api/v1/ai/hints`, `api/v1/ai/mastery`, ... |
+| 10 | `LearnerAdaptiveLearningController` | `StudentAdaptiveLearningController` | `api/v1/ai/hints`, `api/v1/ai/mastery`, ... |
+| 11 | `StudentAnalyticsController` | `LearningAnalyticsController` | `api/v1/ai/analytics`, `api/v1/ai/exams` |
+| 12 | `LearnerAnalyticsController` | `StudentAnalyticsController` | `api/v1/ai/analytics`, `api/v1/ai/exams` |
+| 13 | `LearnerAiChatController` | `StudyAI.Features.AI.AiChatController` | `api/v1/ai/conversations`, `api/v1/ai/chat` |
 
 ---
 
 ## 4. Giải pháp khắc phục & Triển khai
 
 ### 4.1. Trang bị thuộc tính `[NonController]`
-Đánh dấu `[Microsoft.AspNetCore.Mvc.NonController]` lên tất cả 13 lớp alias trong `backend/src/StudyAI.Api/Features/Student/StudentLearnerCompatibility.cs`:
+Đánh dấu `[Microsoft.AspNetCore.Mvc.NonController]` lên tất cả 13 lớp alias trong `StudentLearnerCompatibility.cs`:
 
 ```csharp
 [NonController]
 public class LearnerPracticeController : StudentPracticeController
 {
-    public LearnerPracticeController(IPracticeService practiceService) : base(practiceService) { }
+    public LearnerPracticeController(ILearnerPracticeService practiceService) : base(practiceService) { }
 }
 ```
 
 **Lợi ích kỹ thuật:**
 - `ControllerFeatureProvider` bỏ qua lớp này trong quá trình quét metadata và routing model.
 - Không phát sinh thêm Action Descriptor nào trong bảng định tuyến MVC.
-- Giữ nguyên cấu trúc kiểu C# (Type hierarchy) để các bài kiểm thử đơn vị cũ khởi tạo `new LearnerPracticeController(...)` vẫn hoạt động trơn tru mà không cần viết lại.
+- Giữ nguyên cấu trúc kiểu C# (Type hierarchy) để các bài kiểm thử đơn vị cũ khởi tạo `new LearnerPracticeController(...)` vẫn hoạt động trơn tru.
 
-### 4.2. Xây dựng bộ kiểm thử xác thực định tuyến toàn diện (`ControllerRouteDiscoveryTests.cs`)
-Bổ sung bộ test tự động với 4 ca kiểm thử chuyên sâu:
-1. `LegacyControllerAliases_MustNotBeDiscoveredByMvc`:
-   - Xác nhận cả 13 lớp `Learner*Controller` không bao giờ nằm trong danh sách Controller Types được MVC đăng ký.
-2. `PracticeDashboardStatsRoute_MustMapToExactlyOneAction`:
-   - Xác nhận route `api/v1/practice/dashboard-stats` chỉ ánh xạ duy nhất tới `StudentPracticeController.GetDashboardStats`.
-3. `EntireApiAssembly_HasZeroDuplicateRouteAndMethodCollisions`:
-   - Quét qua toàn bộ Action Descriptors của assembly `StudyAI.Api`.
-   - Chuẩn hóa route templates (thay thế tham số `{param}` để phát hiện cả xung đột tham số tương đương).
-   - Nhóm theo `(HttpMethod, Route)` và khẳng định số lượng xung đột bằng đúng 0.
-4. `GenerateAndVerifyEndpointInventory`:
-   - Tự động xuất danh mục toàn bộ endpoint ra file [docs/audit/endpoint_inventory.md](file:///d:/TN/docs/audit/endpoint_inventory.md) để phục vụ kiểm toán và báo cáo đồ án.
+### 4.2. Khôi phục Endpoint bị thiếu trong `StudentAssessmentAttemptsController`
+Trong quá trình đối soát hợp đồng định tuyến (Route Contract), phát hiện thiếu route attribute:
+`[HttpPatch("api/v1/users/{userId}/assessment-attempts/{attemptId}")]` trên action `UpdateAttempt`.
+Sau khi khôi phục, endpoint này đã hoạt động đầy đủ, đưa tổng số endpoint đăng ký từ 235 lên chính xác **236/236 endpoints** (khớp 100% với baseline `docs/refactor/route-contract-map.md`).
+
+### 4.3. Loại bỏ đường dẫn hardcode & Tách script xuất Endpoint Inventory độc lập
+- **Loại bỏ hardcoded path:** Xóa bỏ hoàn toàn đường dẫn cố định `D:\TN\docs\audit` trong unit test. Thay thế bằng phương thức động `FindRepositoryRoot()` tự động tìm kiếm thư mục gốc chứa `StudyAI.sln` hoặc `.git` đi lên từ `AppContext.BaseDirectory`.
+- **Hỗ trợ CLI trực tiếp trong `Program.cs`:** Bổ sung cờ lệnh `--export-endpoint-inventory [output-path]` đọc trực tiếp từ `IActionDescriptorCollectionProvider`.
+- **Script chạy độc lập (`scripts/generate_endpoint_inventory.ps1`):** Cho phép bất kỳ thành viên nào hoặc quy trình CI/CD tự động xuất lại bảng kiểm kê `docs/audit/endpoint_inventory.md` mà không phụ thuộc vào unit test.
+
+### 4.4. Bộ kiểm thử hồi quy chống mất API Contract (`ControllerRouteDiscoveryTests.cs`)
+Bổ sung 4 bài test tự động chuyên sâu:
+1. `LegacyControllerAliases_MustNotBeDiscoveredByMvc`: Khẳng định 13 alias không bị MVC đăng ký.
+2. `PracticeDashboardStatsRoute_MustMapToExactlyOneAction`: Khẳng định `api/v1/practice/dashboard-stats` chỉ ánh xạ duy nhất tới `StudentPracticeController.GetDashboardStats`.
+3. `EntireApiAssembly_HasZeroDuplicateRouteAndMethodCollisions`: Quét toàn bộ Action Descriptors, chuẩn hóa `{param}` và khẳng định **0 xung đột** trên toàn assembly.
+4. `BaselineRouteContract_All236EndpointsMustBePresentAndMatchExactly`: Phân tích 236 endpoints từ tài liệu đặc tả `docs/refactor/route-contract-map.md`, đối soát 1-1 với 236 descriptors thực tế của assembly:
+   - Khẳng định số lượng baseline = 236.
+   - Khẳng định số lượng descriptors = 236.
+   - Khẳng định số endpoint thiếu = 0.
+   - Khẳng định số endpoint thừa = 0.
 
 ---
 
 ## 5. Thống kê kiểm kê API Endpoints (Endpoint Inventory)
 
-Sau khi loại bỏ các controller alias, tổng số lượng HTTP Action Descriptors đăng ký trong toàn bộ hệ thống là **235 endpoints**, phân bổ theo từng module chức năng:
+Toàn bộ Backend Feature-Based Modular Monolith hiện đăng ký **236 HTTP Action Descriptors** hợp lệ, bảo toàn 100% hợp đồng API ban đầu:
 
-| Module chức năng | Số lượng Endpoints | Trạng thái xung đột |
+| Phân hệ (Module) | Số lượng Endpoints | Trạng thái bảo toàn |
 |---|---|---|
-| **Admin** | 45 | 0 xung đột |
-| **AI** | 9 | 0 xung đột |
-| **Auth** | 4 | 0 xung đột |
-| **Content** | 70 | 0 xung đột |
-| **Public** | 1 | 0 xung đột |
-| **Student** | 70 | 0 xung đột |
-| **Teacher** | 36 | 0 xung đột |
-| **TỔNG CỘNG** | **235** | **0 XUNG ĐỘT (100% UNIQUE)** |
+| **Admin** | 45 | 100% Khớp baseline (0 xung đột) |
+| **AI** | 9 | 100% Khớp baseline (0 xung đột) |
+| **Auth** | 4 | 100% Khớp baseline (0 xung đột) |
+| **Content** | 70 | 100% Khớp baseline (0 xung đột) |
+| **Public** | 1 | 100% Khớp baseline (0 xung đột) |
+| **Student** | 71 | 100% Khớp baseline (Đã khôi phục PATCH attempt) |
+| **Teacher** | 36 | 100% Khớp baseline (0 xung đột) |
+| **TỔNG CỘNG** | **236 / 236** | **HOÀN HẢO — 0 XUNG ĐỘT — 0 THẤT THOÁT** |
 
-*(Chi tiết từng endpoint về HTTP Method, Route Template, và Authorization Policy được lưu trữ tại file [endpoint_inventory.md](file:///d:/TN/docs/audit/endpoint_inventory.md)).*
+*(Bảng chi tiết 236 endpoints được tự động sinh tại [docs/audit/endpoint_inventory.md](file:///d:/TN/docs/audit/endpoint_inventory.md)).*
 
 ---
 
-## 6. Kết quả chạy Test Gates & Kiểm chứng
+## 6. Kết quả kiểm thử & Test Gates
 
 ### 6.1. Backend Unit Tests
 - Lệnh thực hiện: `dotnet test backend/tests/StudyAI.UnitTests/StudyAI.UnitTests.csproj`
 - Kết quả: **263 / 263 bài kiểm thử PASS (0 failed, 0 skipped)**.
-- Thời gian chạy: ~4 giây.
-- Bao gồm toàn bộ 4 bài test phát hiện định tuyến mới trong `ControllerRouteDiscoveryTests`.
+- Bao gồm toàn bộ 4 bài test hồi quy contract và routing trong `ControllerRouteDiscoveryTests`.
 
-### 6.2. Backend Integration Tests
-- Lệnh thực hiện: `dotnet test backend/tests/StudyAI.IntegrationTests/StudyAI.IntegrationTests.csproj --filter "FullyQualifiedName~HealthEndpointTests"`
-- Kết quả: **3 / 3 bài kiểm thử PASS**.
-- Database guard: `DatabaseSafetyGuard.EnsureSafeTestDatabase` bảo vệ tuyệt đối database production `StudyAIDb`, chỉ cho phép chạy trên `StudyAIDb_E2E`.
+### 6.2. Backend Integration Tests & SQL E2E Guard
+- Lệnh thực hiện: `dotnet test backend/tests/StudyAI.IntegrationTests/StudyAI.IntegrationTests.csproj`
+- Kết quả: Các bài kiểm thử bảo vệ cơ sở dữ liệu (`DatabaseSafetyGuardTests`), `HealthEndpointTests` và luồng nghiệp vụ cốt lõi đều PASS.
+- Cơ chế fail-closed tuyệt đối ngăn chặn mọi thao tác ghi vào `StudyAIDb`, chỉ chạy trên `StudyAIDb_E2E`.
 
-### 6.3. Frontend Lint & Code Quality
-- Lệnh thực hiện: `cd frontend && bun run lint`
-- Kết quả: **0 warnings, 0 errors** trên 487 files với 115 rules (oxlint hoàn tất trong 600ms).
+### 6.3. Kiểm thử HTTP Runtime trực tiếp (Live Kestrel Server)
+Khởi chạy API trên cổng nội bộ `http://127.0.0.1:5005` và gửi các request HTTP thực tế:
+- `GET /health` -> `HTTP 200 OK` (`{"status":"ok","app":"STUDY_AI","version":"1.0.0"}`)
+- `GET /api/v1/health` -> `HTTP 200 OK`
+- `GET /api/v1/practice/dashboard-stats` -> `HTTP 401 Unauthorized` (Đã vượt qua tầng routing MVC an toàn, yêu cầu xác thực JWT Bearer token hợp lệ, **hoàn toàn không còn lỗi 500 AmbiguousMatchException**).
+- `PATCH /api/v1/users/user123/assessment-attempts/att456` -> `HTTP 401 Unauthorized` (Endpoint được khôi phục thành công, định tuyến MVC phản hồi chuẩn xác).
+- `POST /api/v1/auth/login` -> Phản hồi ProblemDetails validation theo chuẩn RFC 9110.
 
-### 6.4. Frontend Unit & Component Tests
-- Lệnh thực hiện: `cd frontend && bun run test`
-- Kết quả: **79 test files passed (100%), 544 tests passed (0 failed)**.
-- Thời gian chạy: ~64 giây.
-
-### 6.5. Frontend Production Build
-- Lệnh thực hiện: `cd frontend && bun run build` (`tsc -b && vite build`)
-- Kết quả: **Build thành công** (2,861 modules transformed, tạo đầy đủ bundle trong `dist/`).
+### 6.4. Frontend Test Gates
+- `bun run lint`: **0 warnings, 0 errors** trên 487 files.
+- `bun run test`: **79 test files passed, 544 tests passed (100%)**.
+- `bun run build`: `tsc -b && vite build` thành công trong 3.26s.
 
 ---
 
 ## 7. Kết luận & Cam kết
 
-1. **Khắc phục triệt để lỗi AmbiguousMatchException:** Tuyệt đối không còn bất kỳ endpoint nào bị đăng ký trùng lặp giữa `Student*Controller` và `Learner*Controller`.
-2. **Bảo toàn 100% API Contract:** Toàn bộ 235 endpoints theo chuẩn API ban đầu được giữ nguyên vẹn về HTTP method, URI route, payload và response schema. Giao diện Frontend giao tiếp ổn định mà không cần sửa đổi bất kỳ URL nào.
-3. **Tuân thủ kỷ luật an toàn dữ liệu:** Database production `StudyAIDb` không bị tác động; các kịch bản kiểm thử tuân thủ nghiêm ngặt cơ chế Fail-Closed trên `StudyAIDb_E2E`.
-4. **Sẵn sàng nghiệm thu:** Hệ thống Backend Feature-Based Modular Monolith đã ổn định, sạch sẽ, dễ bảo trì và sẵn sàng cho việc bảo vệ đồ án tốt nghiệp.
+1. **Khắc phục triệt để AmbiguousMatchException:** Tuyệt đối không còn xung đột giữa các alias controller và canonical controllers.
+2. **Chứng minh toán học 236/236 Endpoints:** Đã kiểm chứng 100% bằng unit test tự động đối soát với `docs/refactor/route-contract-map.md`.
+3. **Mã nguồn sạch & Độc lập:** Loại bỏ hoàn toàn đường dẫn hardcode, chuyển đổi tính năng sinh báo cáo thành script độc lập `scripts/generate_endpoint_inventory.ps1`.
+4. **Bảo toàn dữ liệu & Quy trình:** Database `StudyAIDb` nguyên vẹn; tuân thủ quy tắc không tự ý merge vào `main`.

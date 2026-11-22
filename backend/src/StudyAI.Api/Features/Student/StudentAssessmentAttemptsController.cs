@@ -74,6 +74,7 @@ public class StudentAssessmentAttemptsController : ControllerBase
 
     [HttpPut("api/v1/users/{userId}/assessment-attempts/{attemptId}")]
     [HttpPut("api/v1/me/assessment-attempts/{attemptId}")]
+    [HttpPatch("api/v1/users/{userId}/assessment-attempts/{attemptId}")]
     [HttpPatch("api/v1/me/assessment-attempts/{attemptId}")]
     public async Task<IActionResult> UpdateAttempt(
         string attemptId,

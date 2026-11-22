@@ -385,6 +385,71 @@ builder.Services.AddOpenApi("v1", options =>
 
 var app = builder.Build();
 
+// CLI Export Endpoint Inventory Support: --export-endpoint-inventory [output-path]
+if (args.Contains("--export-endpoint-inventory"))
+{
+    var outputPath = "docs/audit/endpoint_inventory.md";
+    for (int i = 0; i < args.Length; i++)
+    {
+        if (args[i].Equals("--export-endpoint-inventory", StringComparison.OrdinalIgnoreCase) && i + 1 < args.Length && !args[i + 1].StartsWith("--"))
+        {
+            outputPath = args[i + 1];
+        }
+    }
+
+    var provider = app.Services.GetRequiredService<Microsoft.AspNetCore.Mvc.Infrastructure.IActionDescriptorCollectionProvider>();
+    var actionDescriptors = provider.ActionDescriptors.Items
+        .OfType<Microsoft.AspNetCore.Mvc.Controllers.ControllerActionDescriptor>()
+        .OrderBy(a => a.ControllerTypeInfo.Namespace)
+        .ThenBy(a => a.ControllerName)
+        .ThenBy(a => a.AttributeRouteInfo?.Template)
+        .ToList();
+
+    var sb = new StringBuilder();
+    sb.AppendLine("# Endpoint Inventory (Generated automatically from ASP.NET Core ActionDescriptors)");
+    sb.AppendLine();
+    sb.AppendLine($"Total registered action descriptors: **{actionDescriptors.Count}**");
+    sb.AppendLine();
+    sb.AppendLine("| # | Module | Controller | Action | Method | Route Template | Auth |");
+    sb.AppendLine("|---|---|---|---|---|---|---|");
+
+    int index = 1;
+    foreach (var action in actionDescriptors)
+    {
+        var module = action.ControllerTypeInfo.Namespace?.Replace("StudyAI.Features.", "") ?? "Unknown";
+        var controller = action.ControllerName;
+        var actionName = action.MethodInfo.Name;
+        var route = action.AttributeRouteInfo?.Template ?? "(none)";
+
+        var httpMethod = action.ActionConstraints?.OfType<Microsoft.AspNetCore.Mvc.ActionConstraints.HttpMethodActionConstraint>()
+            .SelectMany(c => c.HttpMethods)
+            .FirstOrDefault() ??
+            action.MethodInfo.GetCustomAttributes(true).OfType<Microsoft.AspNetCore.Mvc.Routing.HttpMethodAttribute>().FirstOrDefault()?.HttpMethods.FirstOrDefault() ??
+            "ANY";
+
+        var isAllowAnon = action.MethodInfo.GetCustomAttributes(true).OfType<Microsoft.AspNetCore.Authorization.AllowAnonymousAttribute>().Any() ||
+                          action.ControllerTypeInfo.GetCustomAttributes(true).OfType<Microsoft.AspNetCore.Authorization.AllowAnonymousAttribute>().Any();
+        var authAttr = action.MethodInfo.GetCustomAttributes(true).OfType<Microsoft.AspNetCore.Authorization.AuthorizeAttribute>().FirstOrDefault() ??
+                       action.ControllerTypeInfo.GetCustomAttributes(true).OfType<Microsoft.AspNetCore.Authorization.AuthorizeAttribute>().FirstOrDefault();
+
+        string authInfo = isAllowAnon ? "AllowAnonymous" :
+            (authAttr != null ? (string.IsNullOrEmpty(authAttr.Roles) && string.IsNullOrEmpty(authAttr.Policy) ? "Authorize" : $"Auth({authAttr.Roles ?? authAttr.Policy})") : "Implicit");
+
+        sb.AppendLine($"| {index++} | `{module}` | `{controller}` | `{actionName}` | `{httpMethod.ToUpperInvariant()}` | `{route}` | {authInfo} |");
+    }
+
+    var fullPath = Path.IsPathRooted(outputPath) ? outputPath : Path.Combine(Directory.GetCurrentDirectory(), outputPath);
+    var parentDir = Path.GetDirectoryName(fullPath);
+    if (!string.IsNullOrEmpty(parentDir) && !Directory.Exists(parentDir))
+    {
+        Directory.CreateDirectory(parentDir);
+    }
+
+    File.WriteAllText(fullPath, sb.ToString(), Encoding.UTF8);
+    Console.WriteLine($"[ENDPOINT INVENTORY] Successfully generated {actionDescriptors.Count} endpoints into: {fullPath}");
+    return;
+}
+
 // CLI Bootstrap Admin Command Support: --bootstrap-admin
 if (args.Contains("--bootstrap-admin"))
 {
