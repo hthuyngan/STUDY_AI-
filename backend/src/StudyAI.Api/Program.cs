@@ -5,14 +5,20 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
-using StudyAI.Application.Common.Authorization;
-using StudyAI.Application.Common.Interfaces;
-using StudyAI.Application.Services;
-using StudyAI.Infrastructure.Authentication;
-using StudyAI.Infrastructure.Persistence;
-using StudyAI.Infrastructure.Security;
-using StudyAI.Infrastructure.Services;
-using StudyAI.Api.Middleware;
+using StudyAI.Models;
+using StudyAI.Data;
+using StudyAI.Common.Authorization;
+using StudyAI.Common.Exceptions;
+using StudyAI.Common.Security;
+using StudyAI.Common.Utilities;
+using StudyAI.Common.Middleware;
+using StudyAI.Features.Auth;
+using StudyAI.Features.Public;
+using StudyAI.Features.Content;
+using StudyAI.Features.Teacher;
+using StudyAI.Features.Student;
+using StudyAI.Features.Admin;
+using StudyAI.Features.AI;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,66 +38,103 @@ builder.Services.AddDbContext<StudyAIDbContext>(options =>
 });
 
 builder.Services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<StudyAIDbContext>());
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // 2. Security & Token Services
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<IPasswordHasher, Argon2PasswordHasher>();
 builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
-builder.Services.AddScoped<ICurriculumImportParser, CurriculumImportParser>();
-builder.Services.AddScoped<ICurriculumImportValidator, CurriculumImportValidator>();
-builder.Services.AddScoped<ICurriculumImportConfirmService, CurriculumImportConfirmService>();
 
-// Common Foundation Services (Role + Feature Architecture)
+// Common Foundation Services (Modular Monolith)
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddSingleton<IClock, SystemClock>();
 builder.Services.AddSingleton<IIdGenerator, IdGenerator>();
 builder.Services.AddScoped<IAuditWriter, AuditWriter>();
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-builder.Services.AddScoped<StudyAI.Application.Features.Public.Auth.IAuthService, StudyAI.Application.Features.Public.Auth.AuthService>();
-builder.Services.AddScoped<StudyAI.Application.Features.Public.Health.IHealthService, StudyAI.Application.Features.Public.Health.HealthService>();
+builder.Services.AddScoped<ISubjectGradeResolver, SubjectGradeResolver>();
 
-// Admin Services (Role + Feature Architecture)
-builder.Services.AddScoped<StudyAI.Application.Features.Admin.Dashboard.IAdminDashboardService, StudyAI.Application.Features.Admin.Dashboard.AdminDashboardService>();
-builder.Services.AddScoped<StudyAI.Application.Features.Admin.Users.IAdminUsersService, StudyAI.Application.Features.Admin.Users.AdminUsersService>();
-builder.Services.AddScoped<StudyAI.Application.Features.Admin.Teachers.IAdminTeachersService, StudyAI.Application.Features.Admin.Teachers.AdminTeachersService>();
-builder.Services.AddScoped<StudyAI.Application.Features.Admin.AuditLogs.IAdminAuditService, StudyAI.Application.Features.Admin.AuditLogs.AdminAuditService>();
-builder.Services.AddScoped<StudyAI.Application.Features.Admin.Announcements.IAdminAnnouncementsService, StudyAI.Application.Features.Admin.Announcements.AdminAnnouncementsService>();
-builder.Services.AddScoped<StudyAI.Application.Features.Admin.Settings.IAdminSettingsService, StudyAI.Application.Features.Admin.Settings.AdminSettingsService>();
-builder.Services.AddScoped<StudyAI.Application.Features.Admin.Operations.IAdminOperationsService, StudyAI.Application.Features.Admin.Operations.AdminOperationsService>();
-builder.Services.AddScoped<StudyAI.Application.Features.Admin.System.IAdminSystemService, StudyAI.Application.Features.Admin.System.AdminSystemService>();
+// Auth & Public Services
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IHealthService, HealthService>();
 
-// Content Services (Role + Feature Architecture)
-builder.Services.AddScoped<StudyAI.Application.Features.Content.Subjects.IContentSubjectsService, StudyAI.Application.Features.Content.Subjects.ContentSubjectsService>();
-builder.Services.AddScoped<StudyAI.Application.Features.Content.Chapters.IContentChaptersService, StudyAI.Application.Features.Content.Chapters.ContentChaptersService>();
-builder.Services.AddScoped<StudyAI.Application.Features.Content.Topics.IContentTopicsService, StudyAI.Application.Features.Content.Topics.ContentTopicsService>();
-builder.Services.AddScoped<StudyAI.Application.Features.Content.Videos.IContentVideosService, StudyAI.Application.Features.Content.Videos.ContentVideosService>();
-builder.Services.AddScoped<StudyAI.Application.Features.Content.Lessons.IContentLessonsService, StudyAI.Application.Features.Content.Lessons.ContentLessonsService>();
-builder.Services.AddScoped<StudyAI.Application.Features.Content.Questions.IContentQuestionsService, StudyAI.Application.Features.Content.Questions.ContentQuestionsService>();
-builder.Services.AddScoped<StudyAI.Application.Features.Content.Assessments.IContentAssessmentsService, StudyAI.Application.Features.Content.Assessments.ContentAssessmentsService>();
-builder.Services.AddScoped<StudyAI.Application.Features.Content.ReviewQueue.IContentReviewService, StudyAI.Application.Features.Content.ReviewQueue.ContentReviewService>();
-builder.Services.AddScoped<StudyAI.Application.Features.Content.CurriculumImport.IContentImportService, StudyAI.Application.Features.Content.CurriculumImport.ContentImportService>();
+// Admin Services
+builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
+builder.Services.AddScoped<IAdminUsersService, AdminUsersService>();
+builder.Services.AddScoped<IAdminTeachersService, AdminTeachersService>();
+builder.Services.AddScoped<IAdminAuditService, AdminAuditService>();
+builder.Services.AddScoped<IAdminAnnouncementsService, AdminAnnouncementsService>();
+builder.Services.AddScoped<IAdminSettingsService, AdminSettingsService>();
+builder.Services.AddScoped<IAdminOperationsService, AdminOperationsService>();
+builder.Services.AddScoped<IAdminSystemService, AdminSystemService>();
+builder.Services.AddScoped<ISystemHealthService, SystemHealthService>();
+builder.Services.AddScoped<IAiCostOptimizationService, AiCostOptimizationService>();
+builder.Services.AddScoped<IAiQualityEvaluationService, AiQualityEvaluationService>();
+builder.Services.AddScoped<IContentQualityMonitoringService, ContentQualityMonitoringService>();
+builder.Services.AddScoped<ILearningDataConsistencyService, LearningDataConsistencyService>();
 
-// Learner Services (Role + Feature Architecture)
-builder.Services.AddScoped<StudyAI.Application.Features.Learner.Curriculum.ILearnerCurriculumService, StudyAI.Application.Features.Learner.Curriculum.LearnerCurriculumService>();
-builder.Services.AddScoped<StudyAI.Application.Features.Learner.Progress.ILearnerProgressService, StudyAI.Application.Features.Learner.Progress.LearnerProgressService>();
-builder.Services.AddScoped<StudyAI.Application.Features.Learner.Assessments.ILearnerAssessmentService, StudyAI.Application.Features.Learner.Assessments.LearnerAssessmentService>();
-builder.Services.AddScoped<StudyAI.Application.Features.Learner.Events.ILearnerEventsService, StudyAI.Application.Features.Learner.Events.LearnerEventsService>();
-builder.Services.AddScoped<StudyAI.Application.Features.Learner.Profile.ILearnerProfileService, StudyAI.Application.Features.Learner.Profile.LearnerProfileService>();
-builder.Services.AddScoped<StudyAI.Application.Features.Learner.Practice.ILearnerPracticeService, StudyAI.Application.Features.Learner.Practice.LearnerPracticeService>();
+// Content Services
+builder.Services.AddScoped<IContentSubjectsService, ContentSubjectsService>();
+builder.Services.AddScoped<IContentChaptersService, ContentChaptersService>();
+builder.Services.AddScoped<IContentTopicsService, ContentTopicsService>();
+builder.Services.AddScoped<IContentVideosService, ContentVideosService>();
+builder.Services.AddScoped<IContentLessonsService, ContentLessonsService>();
+builder.Services.AddScoped<IContentQuestionsService, ContentQuestionsService>();
+builder.Services.AddScoped<IContentAssessmentsService, ContentAssessmentsService>();
+builder.Services.AddScoped<IContentReviewService, ContentReviewService>();
+builder.Services.AddScoped<IContentImportService, ContentImportService>();
+builder.Services.AddScoped<IContentGovernanceService, ContentGovernanceService>();
+builder.Services.AddScoped<ICurriculumImportParser, CurriculumImportParser>();
+builder.Services.AddScoped<ICurriculumImportValidator, CurriculumImportValidator>();
+builder.Services.AddScoped<ICurriculumImportConfirmService, CurriculumImportConfirmService>();
+builder.Services.AddScoped<IQuestionQualityService, QuestionQualityService>();
+builder.Services.AddHttpClient<IVideoVerificationService, VideoVerificationService>();
 
-// Teacher Services (Role + Feature Architecture)
-builder.Services.AddScoped<StudyAI.Application.Features.Teacher.Classrooms.ITeacherClassroomsService, StudyAI.Application.Features.Teacher.Classrooms.TeacherClassroomsService>();
-builder.Services.AddScoped<StudyAI.Application.Features.Teacher.Students.ITeacherStudentsService, StudyAI.Application.Features.Teacher.Students.TeacherStudentsService>();
-builder.Services.AddScoped<StudyAI.Application.Features.Teacher.Assignments.ITeacherAssignmentsService, StudyAI.Application.Features.Teacher.Assignments.TeacherAssignmentsService>();
-builder.Services.AddScoped<StudyAI.Application.Features.Teacher.Submissions.ITeacherSubmissionsService, StudyAI.Application.Features.Teacher.Submissions.TeacherSubmissionsService>();
-builder.Services.AddScoped<StudyAI.Application.Features.Teacher.Analytics.ITeacherAnalyticsService, StudyAI.Application.Features.Teacher.Analytics.TeacherAnalyticsService>();
+// Student Services (Modular Monolith with backward compatibility)
+builder.Services.AddScoped<StudentCurriculumService>();
+builder.Services.AddScoped<IStudentCurriculumService>(sp => sp.GetRequiredService<StudentCurriculumService>());
+builder.Services.AddScoped<ILearnerCurriculumService>(sp => sp.GetRequiredService<StudentCurriculumService>());
 
-// 2.1 LLM Provider & AI Tutor Service
+builder.Services.AddScoped<StudentProgressService>();
+builder.Services.AddScoped<IStudentProgressService>(sp => sp.GetRequiredService<StudentProgressService>());
+builder.Services.AddScoped<ILearnerProgressService>(sp => sp.GetRequiredService<StudentProgressService>());
+
+builder.Services.AddScoped<StudentAssessmentService>();
+builder.Services.AddScoped<IStudentAssessmentService>(sp => sp.GetRequiredService<StudentAssessmentService>());
+builder.Services.AddScoped<ILearnerAssessmentService>(sp => sp.GetRequiredService<StudentAssessmentService>());
+
+builder.Services.AddScoped<StudentEventsService>();
+builder.Services.AddScoped<IStudentEventsService>(sp => sp.GetRequiredService<StudentEventsService>());
+builder.Services.AddScoped<ILearnerEventsService>(sp => sp.GetRequiredService<StudentEventsService>());
+
+builder.Services.AddScoped<StudentProfileService>();
+builder.Services.AddScoped<IStudentProfileService>(sp => sp.GetRequiredService<StudentProfileService>());
+builder.Services.AddScoped<ILearnerProfileService>(sp => sp.GetRequiredService<StudentProfileService>());
+
+builder.Services.AddScoped<StudentPracticeService>();
+builder.Services.AddScoped<IStudentPracticeService>(sp => sp.GetRequiredService<StudentPracticeService>());
+builder.Services.AddScoped<ILearnerPracticeService>(sp => sp.GetRequiredService<StudentPracticeService>());
+builder.Services.AddScoped<IStudentMasteryService, StudentMasteryService>();
+builder.Services.AddScoped<IExamBlueprintService, ExamBlueprintService>();
+builder.Services.AddScoped<IRevisionPlannerService, RevisionPlannerService>();
+builder.Services.AddScoped<ISpacedRepetitionService, SpacedRepetitionService>();
+builder.Services.AddScoped<ILearningAnalyticsService, LearningAnalyticsService>();
+builder.Services.AddScoped<ILearningRecommendationService, LearningRecommendationService>();
+builder.Services.AddScoped<IIntelligentExamService, IntelligentExamService>();
+builder.Services.AddScoped<IExamReadinessService, ExamReadinessService>();
+
+// Teacher Services
+builder.Services.AddScoped<ITeacherClassroomsService, TeacherClassroomsService>();
+builder.Services.AddScoped<ITeacherStudentsService, TeacherStudentsService>();
+builder.Services.AddScoped<ITeacherAssignmentsService, TeacherAssignmentsService>();
+builder.Services.AddScoped<ITeacherSubmissionsService, TeacherSubmissionsService>();
+builder.Services.AddScoped<ITeacherAnalyticsService, TeacherAnalyticsService>();
+builder.Services.AddScoped<ITeacherManagementService, TeacherManagementService>();
+builder.Services.AddScoped<ITeachingRecommendationService, TeachingRecommendationService>();
+
+// AI Tutor Services
 builder.Services.AddHttpClient();
-builder.Services.AddHttpClient<StudyAI.Infrastructure.Services.OpenAiLlmProvider>(client =>
+builder.Services.AddHttpClient<OpenAiLlmProvider>(client =>
 {
-    // The per-request CancellationTokenSource with CancelAfter manages timeouts explicitly
     client.Timeout = Timeout.InfiniteTimeSpan;
 });
 var llmProviderConfig = (configuration["Llm:Provider"] ?? configuration["Llm:ProviderName"])?.Trim().ToLowerInvariant();
@@ -107,7 +150,7 @@ if (builder.Environment.IsProduction())
             throw new InvalidOperationException(
                 $"FATAL: LLM provider is explicitly configured as '{llmProviderConfig}' in production but 'Llm:ApiKey' (or STUDY_AI_LLM_API_KEY) is missing or empty.");
         }
-        builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILlmProvider>(sp => sp.GetRequiredService<StudyAI.Infrastructure.Services.OpenAiLlmProvider>());
+        builder.Services.AddScoped<ILlmProvider>(sp => sp.GetRequiredService<OpenAiLlmProvider>());
     }
     else if (llmProviderConfig == "fake")
     {
@@ -116,64 +159,42 @@ if (builder.Environment.IsProduction())
             throw new InvalidOperationException(
                 "FATAL: Fake LLM provider is strictly forbidden in production unless explicitly authorized via 'Llm:AllowDemoInProduction=true'.");
         }
-        builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILlmProvider, StudyAI.Infrastructure.Services.FakeLlmProvider>();
+        builder.Services.AddScoped<ILlmProvider, FakeLlmProvider>();
     }
     else
     {
-        // In production, unconfigured or unknown provider fails closed via UnconfiguredLlmProvider without silent fallback
-        builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILlmProvider, StudyAI.Infrastructure.Services.UnconfiguredLlmProvider>();
+        builder.Services.AddScoped<ILlmProvider, UnconfiguredLlmProvider>();
     }
 }
 else
 {
-    // Development / Test / Demo environments
     if (llmProviderConfig is "openai" or "gemini" or "custom" || (!string.IsNullOrWhiteSpace(llmApiKey) && llmProviderConfig != "fake" && llmProviderConfig != "none"))
     {
         if (string.IsNullOrWhiteSpace(llmApiKey))
         {
-            builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILlmProvider, StudyAI.Infrastructure.Services.UnconfiguredLlmProvider>();
+            builder.Services.AddScoped<ILlmProvider, UnconfiguredLlmProvider>();
         }
         else
         {
-            builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILlmProvider>(sp => sp.GetRequiredService<StudyAI.Infrastructure.Services.OpenAiLlmProvider>());
+            builder.Services.AddScoped<ILlmProvider>(sp => sp.GetRequiredService<OpenAiLlmProvider>());
         }
     }
     else if (llmProviderConfig is "none" or "unconfigured")
     {
-        builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILlmProvider, StudyAI.Infrastructure.Services.UnconfiguredLlmProvider>();
+        builder.Services.AddScoped<ILlmProvider, UnconfiguredLlmProvider>();
     }
     else
     {
-        // Default to FakeLlmProvider for local dev and automated testing
-        builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILlmProvider, StudyAI.Infrastructure.Services.FakeLlmProvider>();
+        builder.Services.AddScoped<ILlmProvider, FakeLlmProvider>();
     }
 }
 
-builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IAiModelRouter, StudyAI.Infrastructure.Services.AiModelRouter>();
-builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IAiTutorService, StudyAI.Infrastructure.Services.AiTutorService>();
-builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IAiUsageService, StudyAI.Infrastructure.Services.AiUsageService>();
-builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IAiHintService, StudyAI.Infrastructure.Services.AiHintService>();
-builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IAiAnalysisService, StudyAI.Infrastructure.Services.AiAnalysisService>();
-builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IStudentMasteryService, StudyAI.Infrastructure.Services.StudentMasteryService>();
-builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILearningRecommendationService, StudyAI.Infrastructure.Services.LearningRecommendationService>();
-builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILearningAnalyticsService, StudyAI.Infrastructure.Services.LearningAnalyticsService>();
-builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IExamBlueprintService, StudyAI.Infrastructure.Services.ExamBlueprintService>();
-builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IIntelligentExamService, StudyAI.Infrastructure.Services.IntelligentExamService>();
-builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IQuestionQualityService, StudyAI.Infrastructure.Services.QuestionQualityService>();
-builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ISpacedRepetitionService, StudyAI.Infrastructure.Services.SpacedRepetitionService>();
-builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IRevisionPlannerService, StudyAI.Infrastructure.Services.RevisionPlannerService>();
-builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IExamReadinessService, StudyAI.Infrastructure.Services.ExamReadinessService>();
-builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ITeacherManagementService, StudyAI.Infrastructure.Services.TeacherManagementService>();
-builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ITeachingRecommendationService, StudyAI.Infrastructure.Services.TeachingRecommendationService>();
-builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IContentGovernanceService, StudyAI.Infrastructure.Services.ContentGovernanceService>();
-builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IAiLessonAuthoringService, StudyAI.Infrastructure.Services.AiLessonAuthoringService>();
-builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ISystemHealthService, StudyAI.Infrastructure.Services.SystemHealthService>();
-builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IAiQualityEvaluationService, StudyAI.Infrastructure.Services.AiQualityEvaluationService>();
-builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IAiCostOptimizationService, StudyAI.Infrastructure.Services.AiCostOptimizationService>();
-builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IContentQualityMonitoringService, StudyAI.Infrastructure.Services.ContentQualityMonitoringService>();
-builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILearningDataConsistencyService, StudyAI.Infrastructure.Services.LearningDataConsistencyService>();
-builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ISubjectGradeResolver, StudyAI.Infrastructure.Services.SubjectGradeResolver>();
-builder.Services.AddHttpClient<StudyAI.Application.Common.Interfaces.IVideoVerificationService, StudyAI.Infrastructure.Services.VideoVerificationService>();
+builder.Services.AddScoped<IAiModelRouter, AiModelRouter>();
+builder.Services.AddScoped<IAiTutorService, AiTutorService>();
+builder.Services.AddScoped<IAiUsageService, AiUsageService>();
+builder.Services.AddScoped<IAiHintService, AiHintService>();
+builder.Services.AddScoped<IAiAnalysisService, AiAnalysisService>();
+builder.Services.AddScoped<IAiLessonAuthoringService, AiLessonAuthoringService>();
 
 // 3. JWT Secret Validation & Authentication
 var jwtSecret = configuration["Jwt:SecretKey"]
@@ -231,7 +252,6 @@ builder.Services.AddAuthentication(options =>
     {
         OnTokenValidated = async context =>
         {
-            // Verify token type claim
             var tokenType = context.Principal?.FindFirst("type")?.Value;
             if (tokenType != "access")
             {
@@ -239,7 +259,6 @@ builder.Services.AddAuthentication(options =>
                 return;
             }
 
-            // Verify account status directly from database
             var userId = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value
                          ?? context.Principal?.FindFirst("sub")?.Value;
 
@@ -369,7 +388,6 @@ var app = builder.Build();
 // CLI Bootstrap Admin Command Support: --bootstrap-admin
 if (args.Contains("--bootstrap-admin"))
 {
-    // Security check: never accept passwords via command-line arguments to avoid process table exposure
     if (args.Any(a => a.StartsWith("--admin-password", StringComparison.OrdinalIgnoreCase)))
     {
         Console.Error.WriteLine("SECURITY ERROR: Passing passwords via command-line arguments is forbidden because it exposes credentials in process listings. Use the ADMIN_BOOTSTRAP_PASSWORD environment variable or enter it securely via the interactive console prompt.");
@@ -433,7 +451,6 @@ using (var scope = app.Services.CreateScope())
         var shouldMigrate = resolvedConfiguration.GetValue<bool>("Database:ApplyMigrationsOnStartup", applyMigrationsDefault);
         var shouldSeed = resolvedConfiguration.GetValue<bool>("Database:SeedReferenceData", applyMigrationsDefault);
 
-        // Security Guard: Prevent any non-production process, development server, or migration/seed from targeting StudyAIDb
         if (app.Environment.IsDevelopment() || shouldMigrate || shouldSeed || DatabaseSafetyGuard.IsTestExecutionContext)
         {
             DatabaseSafetyGuard.EnsureSafeDatabaseForDevelopmentOrMigration(
@@ -448,7 +465,6 @@ using (var scope = app.Services.CreateScope())
             await db.Database.MigrateAsync();
         }
 
-        // Only seed reference data in Development/Testing, or when explicitly enabled via configuration
         var seedReferenceDefault = !app.Environment.IsProduction();
         if (shouldSeed)
         {
@@ -504,7 +520,6 @@ app.MapControllers();
 
 app.Run();
 
-// Masked password reader helper for interactive CLI
 static string ReadMaskedPassword()
 {
     var sb = new StringBuilder();
