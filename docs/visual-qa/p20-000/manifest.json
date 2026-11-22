@@ -1,16 +1,16 @@
 {
-  "timestamp": "2026-11-21T17:40:11.702Z",
+  "timestamp": "2026-11-22T03:57:32.224Z",
   "task": "P20-000",
   "totalScenarios": 5,
   "passed": 5,
   "failed": 0,
-  "totalDurationMs": 16933,
+  "totalDurationMs": 17762,
   "scenarios": [
     {
       "id": 1,
       "name": "Unauthenticated Guest State & Clean Header",
       "status": "PASS",
-      "durationMs": 1471,
+      "durationMs": 1775,
       "screenshots": [
         "p20_000_01_guest_navigation.png"
       ],
@@ -20,7 +20,7 @@
       "id": 2,
       "name": "Learner Login & Unified Account Dropdown",
       "status": "PASS",
-      "durationMs": 1872,
+      "durationMs": 1745,
       "screenshots": [
         "p20_000_02_learner_authenticated_dropdown.png"
       ],
@@ -30,7 +30,7 @@
       "id": 3,
       "name": "Real Authenticated API Request & AI Tutor",
       "status": "PASS",
-      "durationMs": 954,
+      "durationMs": 928,
       "screenshots": [
         "p20_000_03_authenticated_api_aitutor.png"
       ],
@@ -40,7 +40,7 @@
       "id": 4,
       "name": "Page Reload & Session Restore",
       "status": "PASS",
-      "durationMs": 843,
+      "durationMs": 755,
       "screenshots": [
         "p20_000_04_session_restored_after_reload.png"
       ],
@@ -50,7 +50,7 @@
       "id": 5,
       "name": "Logout & Admin Workspace Navigation",
       "status": "PASS",
-      "durationMs": 6451,
+      "durationMs": 6958,
       "screenshots": [
         "p20_000_05_admin_authenticated_workspace.png",
         "p20_000_06_admin_dropdown_in_appshell.png"

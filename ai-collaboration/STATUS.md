@@ -23,4 +23,5 @@
   - Truthful Learner Dashboard without fabricated statistics or synthetic cards
   - Centralized `ISubjectGradeResolver` injected across all backend domain services
 - Protected Database: `StudyAIDb` (100% untouched; verified zero writes); all executions run exclusively on `StudyAIDb_E2E`.
-- Last handoff: 2026-11-22 00:44 UTC+7 by Antigravity (Task P20-002 complete; full-stack zero-mock remediation verified).
+- Database Resolution: Verified `StudyAIDb_E2E` resolved across User Secrets, .env, and appsettings; Startup Guard strictly verifies database safety without error.
+- Last handoff: 2026-11-22 10:58 UTC+7 by Antigravity (P20-002 complete; verified commit 0e5fdb5, local dev database aligned with E2E safety guard, all test gates passing).
