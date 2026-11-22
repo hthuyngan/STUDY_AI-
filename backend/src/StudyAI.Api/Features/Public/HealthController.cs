@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using StudyAI.Application.Features.Public.Health;
 
-namespace StudyAI.Api.Features.Public;
+namespace StudyAI.Features.Public;
 
 [ApiController]
 public class HealthController : ControllerBase

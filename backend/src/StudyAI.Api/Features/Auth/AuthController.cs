@@ -2,10 +2,8 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
-using StudyAI.Application.DTOs;
-using StudyAI.Application.Features.Public.Auth;
 
-namespace StudyAI.Api.Features.Public;
+namespace StudyAI.Features.Auth;
 
 [ApiController]
 [Route("api/v1/auth")]
