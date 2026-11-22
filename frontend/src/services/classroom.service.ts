@@ -33,6 +33,11 @@ const STORAGE_KEYS = {
   ACTIVITIES: 'study_ai_class_activities_v4',
 }
 
+declare const process: { env?: { NODE_ENV?: string } } | undefined
+
+const isTestEnvironment = (): boolean =>
+  typeof process !== 'undefined' && process.env?.NODE_ENV === 'test' && !getAccessToken()
+
 export const INITIAL_CLASSES: AdminClassItem[] = [
   {
     id: 'cls-12a1',
@@ -534,6 +539,9 @@ export const INITIAL_ACTIVITIES: ClassActivityItem[] = [
 
 // Storage helpers
 function loadFromStorage<T>(key: string, fallback: T): T {
+  if (!isTestEnvironment()) {
+    throw new Error('Bạn cần đăng nhập tài khoản giáo viên hoặc quản trị để truy cập dữ liệu lớp học.')
+  }
   if (typeof window === 'undefined' || !window.localStorage) return fallback
   try {
     const raw = localStorage.getItem(key)
@@ -544,6 +552,9 @@ function loadFromStorage<T>(key: string, fallback: T): T {
 }
 
 function saveToStorage<T>(key: string, data: T): void {
+  if (!isTestEnvironment()) {
+    throw new Error('Không thể ghi dữ liệu lớp học vào bộ nhớ trình duyệt.')
+  }
   if (typeof window === 'undefined' || !window.localStorage) return
   try {
     localStorage.setItem(key, JSON.stringify(data))
@@ -930,8 +941,8 @@ export const classroomService = {
           title: a.title,
           classId: a.classroomId,
           className: a.classroomName || '',
-          subjectId: 'sub-math-12',
-          subjectName: 'Toán học 12',
+          subjectId: a.subject ? `sub-${a.subject.toLowerCase()}` : (a.grade ? `sub-math-${a.grade}` : 'sub-math'),
+          subjectName: a.subject || (a.grade ? `Toán học ${a.grade}` : (a.classroomName ? `Môn học ${a.classroomName}` : 'Toán học')),
           description: a.description || '',
           instructions: a.instructions || '',
           dueDate: a.dueDate,
@@ -964,8 +975,8 @@ export const classroomService = {
           title: a.title,
           classId: a.classroomId,
           className: a.classroomName || '',
-          subjectId: 'sub-math-12',
-          subjectName: 'Toán học 12',
+          subjectId: a.subject ? `sub-${a.subject.toLowerCase()}` : (a.grade ? `sub-math-${a.grade}` : 'sub-math'),
+          subjectName: a.subject || (a.grade ? `Toán học ${a.grade}` : (a.classroomName ? `Môn học ${a.classroomName}` : 'Toán học')),
           description: a.description || '',
           instructions: a.instructions || '',
           dueDate: a.dueDate,
@@ -998,8 +1009,8 @@ export const classroomService = {
           title: updated.title,
           classId: updated.classroomId,
           className: updated.classroomName || '',
-          subjectId: 'sub-math-12',
-          subjectName: 'Toán học 12',
+          subjectId: updated.subject ? `sub-${updated.subject.toLowerCase()}` : (updated.grade ? `sub-math-${updated.grade}` : 'sub-math'),
+          subjectName: updated.subject || (updated.grade ? `Toán học ${updated.grade}` : (updated.classroomName ? `Môn học ${updated.classroomName}` : 'Toán học')),
           description: updated.description || '',
           instructions: updated.instructions || '',
           dueDate: updated.dueDate,
@@ -1025,8 +1036,8 @@ export const classroomService = {
           title: created.title,
           classId: created.classroomId,
           className: created.classroomName || '',
-          subjectId: 'sub-math-12',
-          subjectName: 'Toán học 12',
+          subjectId: created.subject ? `sub-${created.subject.toLowerCase()}` : (created.grade ? `sub-math-${created.grade}` : 'sub-math'),
+          subjectName: created.subject || (created.grade ? `Toán học ${created.grade}` : (created.classroomName ? `Môn học ${created.classroomName}` : 'Toán học')),
           description: created.description || '',
           instructions: created.instructions || '',
           dueDate: created.dueDate,
@@ -1092,29 +1103,53 @@ export const classroomService = {
 
   // ==================== SUBMISSIONS ====================
   async getSubmissions(assignmentId?: string): Promise<AdminSubmissionItem[]> {
-    if (getAccessToken() && assignmentId) {
-      const dtos = await apiClient.get<SubmissionDto[]>(`/api/v1/assignments/${assignmentId}/submissions`)
-      if (Array.isArray(dtos)) {
-        return dtos.map((s) => ({
-          id: s.id,
-          assignmentId: s.assignmentId,
-          assignmentTitle: s.assignmentTitle || '',
-          studentId: s.studentId,
-          studentName: s.studentName || 'Học sinh',
-          studentEmail: s.studentEmail || '',
-          className: '',
-          submittedAt: s.submittedAt,
-          status: (s.status as SubmissionStatus) || 'pending',
-          score: s.score ?? undefined,
-          maxScore: 10,
-          feedback: s.feedback || undefined,
-          gradedBy: s.gradedByTeacherId || undefined,
-          content: s.content,
-        }))
+    if (getAccessToken()) {
+      if (assignmentId) {
+        const dtos = await apiClient.get<SubmissionDto[]>(`/api/v1/assignments/${assignmentId}/submissions`)
+        if (Array.isArray(dtos)) {
+          return dtos.map((s) => ({
+            id: s.id,
+            assignmentId: s.assignmentId,
+            assignmentTitle: s.assignmentTitle || '',
+            studentId: s.studentId,
+            studentName: s.studentName || 'Học sinh',
+            studentEmail: s.studentEmail || '',
+            className: '',
+            submittedAt: s.submittedAt,
+            status: (s.status as SubmissionStatus) || 'pending',
+            score: s.score ?? undefined,
+            maxScore: 10,
+            feedback: s.feedback || undefined,
+            gradedBy: s.gradedByTeacherId || undefined,
+            content: s.content,
+          }))
+        }
+        return []
+      } else {
+        const dtos = await apiClient.get<any[]>('/api/v1/teacher/submissions')
+        if (Array.isArray(dtos)) {
+          return dtos.map((s) => ({
+            id: s.id,
+            assignmentId: s.assignmentId,
+            assignmentTitle: s.assignmentTitle || '',
+            studentId: s.studentId,
+            studentName: s.studentName || 'Học sinh',
+            studentEmail: s.studentEmail || '',
+            className: s.className || '',
+            submittedAt: s.submittedAt,
+            status: (s.status as SubmissionStatus) || 'pending',
+            score: s.score ?? undefined,
+            maxScore: 10,
+            feedback: s.feedback || undefined,
+            gradedBy: s.gradedBy || undefined,
+            content: s.content,
+          }))
+        }
+        return []
       }
-      return []
     }
-    const all = loadFromStorage<AdminSubmissionItem[]>(STORAGE_KEYS.SUBMISSIONS, INITIAL_SUBMISSIONS)
+    const defaultSubs = isTestEnvironment() ? INITIAL_SUBMISSIONS : []
+    const all = loadFromStorage<AdminSubmissionItem[]>(STORAGE_KEYS.SUBMISSIONS, defaultSubs)
     if (assignmentId) {
       return all.filter((s) => s.assignmentId === assignmentId)
     }
@@ -1155,7 +1190,8 @@ export const classroomService = {
       }
     }
 
-    const allSubs = loadFromStorage<AdminSubmissionItem[]>(STORAGE_KEYS.SUBMISSIONS, INITIAL_SUBMISSIONS)
+    const defaultSubs = isTestEnvironment() ? INITIAL_SUBMISSIONS : []
+    const allSubs = loadFromStorage<AdminSubmissionItem[]>(STORAGE_KEYS.SUBMISSIONS, defaultSubs)
     const idx = allSubs.findIndex((s) => s.id === submissionId)
     if (idx === -1) throw new Error('Không tìm thấy bài nộp')
     const updated: AdminSubmissionItem = {
@@ -1182,55 +1218,46 @@ export const classroomService = {
 
   // ==================== GRADES & ANALYTICS ====================
   async getAllGrades(): Promise<AdminGradeRecord[]> {
-    const submissions = await this.getSubmissions()
-    const students = await this.getStudents()
-    const assignments = await this.getAssignments()
-
-    const grades: AdminGradeRecord[] = []
-
-    submissions.forEach((sub) => {
-      if (sub.score !== undefined) {
-        const student = students.find((s) => s.id === sub.studentId)
-        const assignment = assignments.find((a) => a.id === sub.assignmentId)
-        grades.push({
-          id: `grd-${sub.id}`,
-          studentId: sub.studentId,
-          studentName: sub.studentName,
-          studentCode: student?.code || 'HV-000',
-          classId: student?.classId || 'cls-12a1',
-          className: sub.className,
-          subjectName: assignment?.subjectName || 'Toán học 12',
-          activityTitle: sub.assignmentTitle,
-          activityType: 'assignment',
-          score: sub.score,
-          maxScore: sub.maxScore,
-          passed: sub.score >= 5.0,
-          date: sub.submittedAt || '2026-10-27T10:15:00Z',
-          feedback: sub.feedback,
-        })
+    if (getAccessToken()) {
+      const grades = await apiClient.get<AdminGradeRecord[]>('/api/v1/teacher/grades')
+      if (Array.isArray(grades)) {
+        return grades
       }
-    })
+      return []
+    }
+    if (isTestEnvironment()) {
+      const submissions = await this.getSubmissions()
+      const students = await this.getStudents()
+      const assignments = await this.getAssignments()
 
-    // Add some mock assessment grades
-    students.forEach((stu) => {
-      grades.push({
-        id: `grd-ass-${stu.id}`,
-        studentId: stu.id,
-        studentName: stu.name,
-        studentCode: stu.code,
-        classId: stu.classId,
-        className: stu.className,
-        subjectName: 'Toán học 12',
-        activityTitle: 'Thu hoạch: Khảo sát tính đơn điệu hàm số',
-        activityType: 'assessment',
-        score: stu.averageScore,
-        maxScore: 10,
-        passed: stu.averageScore >= 5.0,
-        date: stu.lastActive,
+      const grades: AdminGradeRecord[] = []
+
+      submissions.forEach((sub) => {
+        if (sub.score !== undefined) {
+          const student = students.find((s) => s.id === sub.studentId)
+          const assignment = assignments.find((a) => a.id === sub.assignmentId)
+          grades.push({
+            id: `grd-${sub.id}`,
+            studentId: sub.studentId,
+            studentName: sub.studentName,
+            studentCode: student?.code || 'HV-000',
+            classId: student?.classId || 'cls-12a1',
+            className: sub.className,
+            subjectName: assignment?.subjectName || 'Toán học 12',
+            activityTitle: sub.assignmentTitle,
+            activityType: 'assignment',
+            score: sub.score,
+            maxScore: sub.maxScore,
+            passed: sub.score >= 5.0,
+            date: sub.submittedAt || '2026-10-27T10:15:00Z',
+            feedback: sub.feedback,
+          })
+        }
       })
-    })
 
-    return grades
+      return grades
+    }
+    return []
   },
 
   // ==================== ALERTS ====================

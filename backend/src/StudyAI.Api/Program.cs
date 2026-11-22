@@ -5,10 +5,14 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using StudyAI.Application.Common.Authorization;
 using StudyAI.Application.Common.Interfaces;
 using StudyAI.Application.Services;
+using StudyAI.Infrastructure.Authentication;
 using StudyAI.Infrastructure.Persistence;
 using StudyAI.Infrastructure.Security;
+using StudyAI.Infrastructure.Services;
+using StudyAI.Api.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -36,6 +40,52 @@ builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<ICurriculumImportParser, CurriculumImportParser>();
 builder.Services.AddScoped<ICurriculumImportValidator, CurriculumImportValidator>();
 builder.Services.AddScoped<ICurriculumImportConfirmService, CurriculumImportConfirmService>();
+
+// Common Foundation Services (Role + Feature Architecture)
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+builder.Services.AddSingleton<IClock, SystemClock>();
+builder.Services.AddSingleton<IIdGenerator, IdGenerator>();
+builder.Services.AddScoped<IAuditWriter, AuditWriter>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<StudyAI.Application.Features.Public.Auth.IAuthService, StudyAI.Application.Features.Public.Auth.AuthService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Public.Health.IHealthService, StudyAI.Application.Features.Public.Health.HealthService>();
+
+// Admin Services (Role + Feature Architecture)
+builder.Services.AddScoped<StudyAI.Application.Features.Admin.Dashboard.IAdminDashboardService, StudyAI.Application.Features.Admin.Dashboard.AdminDashboardService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Admin.Users.IAdminUsersService, StudyAI.Application.Features.Admin.Users.AdminUsersService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Admin.Teachers.IAdminTeachersService, StudyAI.Application.Features.Admin.Teachers.AdminTeachersService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Admin.AuditLogs.IAdminAuditService, StudyAI.Application.Features.Admin.AuditLogs.AdminAuditService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Admin.Announcements.IAdminAnnouncementsService, StudyAI.Application.Features.Admin.Announcements.AdminAnnouncementsService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Admin.Settings.IAdminSettingsService, StudyAI.Application.Features.Admin.Settings.AdminSettingsService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Admin.Operations.IAdminOperationsService, StudyAI.Application.Features.Admin.Operations.AdminOperationsService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Admin.System.IAdminSystemService, StudyAI.Application.Features.Admin.System.AdminSystemService>();
+
+// Content Services (Role + Feature Architecture)
+builder.Services.AddScoped<StudyAI.Application.Features.Content.Subjects.IContentSubjectsService, StudyAI.Application.Features.Content.Subjects.ContentSubjectsService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Content.Chapters.IContentChaptersService, StudyAI.Application.Features.Content.Chapters.ContentChaptersService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Content.Topics.IContentTopicsService, StudyAI.Application.Features.Content.Topics.ContentTopicsService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Content.Videos.IContentVideosService, StudyAI.Application.Features.Content.Videos.ContentVideosService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Content.Lessons.IContentLessonsService, StudyAI.Application.Features.Content.Lessons.ContentLessonsService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Content.Questions.IContentQuestionsService, StudyAI.Application.Features.Content.Questions.ContentQuestionsService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Content.Assessments.IContentAssessmentsService, StudyAI.Application.Features.Content.Assessments.ContentAssessmentsService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Content.ReviewQueue.IContentReviewService, StudyAI.Application.Features.Content.ReviewQueue.ContentReviewService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Content.CurriculumImport.IContentImportService, StudyAI.Application.Features.Content.CurriculumImport.ContentImportService>();
+
+// Learner Services (Role + Feature Architecture)
+builder.Services.AddScoped<StudyAI.Application.Features.Learner.Curriculum.ILearnerCurriculumService, StudyAI.Application.Features.Learner.Curriculum.LearnerCurriculumService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Learner.Progress.ILearnerProgressService, StudyAI.Application.Features.Learner.Progress.LearnerProgressService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Learner.Assessments.ILearnerAssessmentService, StudyAI.Application.Features.Learner.Assessments.LearnerAssessmentService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Learner.Events.ILearnerEventsService, StudyAI.Application.Features.Learner.Events.LearnerEventsService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Learner.Profile.ILearnerProfileService, StudyAI.Application.Features.Learner.Profile.LearnerProfileService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Learner.Practice.ILearnerPracticeService, StudyAI.Application.Features.Learner.Practice.LearnerPracticeService>();
+
+// Teacher Services (Role + Feature Architecture)
+builder.Services.AddScoped<StudyAI.Application.Features.Teacher.Classrooms.ITeacherClassroomsService, StudyAI.Application.Features.Teacher.Classrooms.TeacherClassroomsService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Teacher.Students.ITeacherStudentsService, StudyAI.Application.Features.Teacher.Students.TeacherStudentsService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Teacher.Assignments.ITeacherAssignmentsService, StudyAI.Application.Features.Teacher.Assignments.TeacherAssignmentsService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Teacher.Submissions.ITeacherSubmissionsService, StudyAI.Application.Features.Teacher.Submissions.TeacherSubmissionsService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Teacher.Analytics.ITeacherAnalyticsService, StudyAI.Application.Features.Teacher.Analytics.TeacherAnalyticsService>();
 
 // 2.1 LLM Provider & AI Tutor Service
 builder.Services.AddHttpClient();
@@ -123,6 +173,7 @@ builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IAiCostOptimiza
 builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IContentQualityMonitoringService, StudyAI.Infrastructure.Services.ContentQualityMonitoringService>();
 builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILearningDataConsistencyService, StudyAI.Infrastructure.Services.LearningDataConsistencyService>();
 builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ISubjectGradeResolver, StudyAI.Infrastructure.Services.SubjectGradeResolver>();
+builder.Services.AddHttpClient<StudyAI.Application.Common.Interfaces.IVideoVerificationService, StudyAI.Infrastructure.Services.VideoVerificationService>();
 
 // 3. JWT Secret Validation & Authentication
 var jwtSecret = configuration["Jwt:SecretKey"]
@@ -211,6 +262,17 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("admin"));
     options.AddPolicy("StaffOnly", policy => policy.RequireRole("admin", "teacher", "content"));
     options.AddPolicy("ContentStaff", policy => policy.RequireRole("admin", "content"));
+    options.AddPolicy("ContentAdminOnly", policy => policy.RequireRole("admin", "content_admin", "content"));
+    options.AddPolicy("ContentAuthor", policy => policy.RequireRole("admin", "content_admin", "content", "content_creator", "author"));
+    options.AddPolicy("ContentReviewer", policy => policy.RequireAssertion(ctx =>
+        ctx.User.IsInRole("admin") ||
+        ctx.User.IsInRole("content_admin") ||
+        ctx.User.IsInRole("content") ||
+        ctx.User.HasClaim("permission", "content.approve")));
+    options.AddPolicy("ContentPublisher", policy => policy.RequireAssertion(ctx =>
+        ctx.User.IsInRole("admin") ||
+        ctx.User.IsInRole("content_admin") ||
+        ctx.User.HasClaim("permission", "content.publish")));
 });
 
 // 5. CORS
@@ -395,7 +457,10 @@ using (var scope = app.Services.CreateScope())
         if (app.Environment.IsDevelopment())
         {
             var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+            await DbInitializer.BootstrapAdminAsync(db, hasher, "admin@studyai.internal", "Admin@123456", "Integration Test Admin");
+            await DbInitializer.BootstrapLearnerAsync(db, hasher, "learner@studyai.internal", "Learner@123456", "Integration Test Learner", "12");
             await DbInitializer.BootstrapStaffAsync(db, hasher, "content@studyai.internal", "Content@123456", "content", "Biên tập viên Nội dung");
+            await DbInitializer.BootstrapStaffAsync(db, hasher, "content2@studyai.internal", "Content2@123456", "content", "Kiểm duyệt viên Nội dung");
         }
     }
     catch (Exception ex)
@@ -427,6 +492,8 @@ else
 }
 
 app.UseCors("DefaultCorsPolicy");
+
+app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
 app.UseStaticFiles();
 

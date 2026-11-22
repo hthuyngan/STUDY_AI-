@@ -11,7 +11,7 @@ import {
   learningContextService,
   LEARNING_CONTEXT_CHANGED_EVENT,
 } from '../services/learningContext.service'
-import { SUGGESTED_PROMPTS } from '../data/aiTutor.mock'
+import { SUGGESTED_PROMPTS } from '../config/aiTutorOptions'
 
 export function useAITutor() {
   const [searchParams, setSearchParams] = useSearchParams()

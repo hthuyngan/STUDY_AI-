@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   ArrowLeft,
   CheckCircle2,
@@ -9,13 +9,13 @@ import {
 } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
 import { classroomService } from '@/services/classroom.service'
-import { learningAnalyticsService } from '@/services/learningAnalytics.service'
 import type {
   AdminClassItem,
   AdminGradeRecord,
   AdminStudentItem,
   AdminSubmissionItem,
 } from '@/types/classroom'
+import type { StudentAcademicDetail } from '@/types/teacher'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import './TeacherPages.css'
@@ -33,16 +33,13 @@ export const TeacherStudentProfilePage: React.FC = () => {
   const [classes, setClasses] = useState<AdminClassItem[]>([])
   const [submissions, setSubmissions] = useState<AdminSubmissionItem[]>([])
   const [grades, setGrades] = useState<AdminGradeRecord[]>([])
+  const [academicDetail, setAcademicDetail] = useState<StudentAcademicDetail | null>(null)
   const [loading, setLoading] = useState(true)
 
   // Move Modal
   const [isMoveOpen, setIsMoveOpen] = useState(false)
   const [targetClassId, setTargetClassId] = useState('')
   const [toastMessage, setToastMessage] = useState<string | null>(null)
-
-  const teacherAnalytics = useMemo(() => {
-    return learningAnalyticsService.getTeacherStudentAnalytics(studentId || 'demo', student?.name)
-  }, [studentId, student?.name])
 
   const showToast = (msg: string) => {
     setToastMessage(msg)
@@ -57,12 +54,14 @@ export const TeacherStudentProfilePage: React.FC = () => {
       classroomService.getClasses(),
       classroomService.getSubmissions(),
       classroomService.getAllGrades(),
+      classroomService.getStudentAcademicDetail(studentId),
     ])
-      .then(([stu, clsList, subList, grdList]) => {
+      .then(([stu, clsList, subList, grdList, detail]) => {
         setStudent(stu)
         setClasses(clsList)
         setSubmissions(subList.filter((s) => s.studentId === studentId))
         setGrades(grdList.filter((g) => g.studentId === studentId))
+        setAcademicDetail(detail)
         setLoading(false)
       })
       .catch((err) => {
@@ -79,13 +78,15 @@ export const TeacherStudentProfilePage: React.FC = () => {
       classroomService.getClasses(),
       classroomService.getSubmissions(),
       classroomService.getAllGrades(),
+      classroomService.getStudentAcademicDetail(studentId),
     ])
-      .then(([stu, clsList, subList, grdList]) => {
+      .then(([stu, clsList, subList, grdList, detail]) => {
         if (active) {
           setStudent(stu)
           setClasses(clsList)
           setSubmissions(subList.filter((s) => s.studentId === studentId))
           setGrades(grdList.filter((g) => g.studentId === studentId))
+          setAcademicDetail(detail)
           setLoading(false)
         }
       })
@@ -116,39 +117,17 @@ export const TeacherStudentProfilePage: React.FC = () => {
   }
 
   // Subjects progress for the student
-  const studentSubjects = useMemo(() => {
-    if (!student) return []
-    const gradeNum = student.grade?.includes('10') ? '10' : student.grade?.includes('11') ? '11' : '12'
-    return [
-      {
-        id: `sub_math${gradeNum}`,
-        name: `Toán học ${gradeNum}`,
-        lessonsCompleted: student.lessonsCompleted,
-        totalLessons: 24,
-        progress: student.progress,
-        score: student.averageScore,
-        status: student.progress >= 70 ? 'Tốt' : 'Cần cố gắng',
-      },
-      {
-        id: 'sub-phys-12',
-        name: 'Vật lý 12',
-        lessonsCompleted: Math.max(2, student.lessonsCompleted - 4),
-        totalLessons: 20,
-        progress: Math.max(20, student.progress - 15),
-        score: Number((student.averageScore * 0.95).toFixed(1)),
-        status: 'Đạt chuẩn',
-      },
-      {
-        id: 'sub-chem-12',
-        name: 'Hóa học 12',
-        lessonsCompleted: Math.max(3, student.lessonsCompleted - 5),
-        totalLessons: 22,
-        progress: Math.max(15, student.progress - 20),
-        score: Number((student.averageScore * 0.9).toFixed(1)),
-        status: 'Đạt chuẩn',
-      },
-    ]
-  }, [student])
+  // The current teacher API exposes an aggregate academic detail, not a
+  // per-subject breakdown. Keep this tab empty instead of fabricating subjects.
+  const studentSubjects: Array<{
+    id: string
+    name: string
+    lessonsCompleted: number
+    totalLessons: number
+    progress: number
+    score: number
+    status: string
+  }> = []
 
   if (loading) {
     return (
@@ -553,66 +532,40 @@ export const TeacherStudentProfilePage: React.FC = () => {
       {/* Tab 5: Analytics */}
       {activeTab === 'analytics' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          {/* Disclaimer banner */}
-          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, background: '#2563eb', color: '#fff', padding: '2px 8px', borderRadius: 4, textTransform: 'uppercase' }}>Dữ liệu mẫu</span>
-            <span style={{ fontSize: '0.86rem', color: '#1e3a8a' }}>{teacherAnalytics.disclaimer}</span>
-          </div>
-
-          {/* 4 KPIs */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
-            <div className="admin-card" style={{ padding: 16, textAlign: 'center' }}>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#102a43' }}>{teacherAnalytics.summary.totalLessonsCompleted}</div>
-              <div style={{ fontSize: '0.82rem', color: '#627d98', marginTop: 4 }}>Bài hoàn thành</div>
-            </div>
-            <div className="admin-card" style={{ padding: 16, textAlign: 'center' }}>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#047857' }}>
-                {teacherAnalytics.summary.averageAssessmentScore !== null ? `${teacherAnalytics.summary.averageAssessmentScore}%` : 'N/A'}
+          {academicDetail ? (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+                <div className="admin-card" style={{ padding: 16, textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#102a43' }}>{academicDetail.overallProgress}%</div>
+                  <div style={{ fontSize: '0.82rem', color: '#627d98', marginTop: 4 }}>Tiến độ tổng thể</div>
+                </div>
+                <div className="admin-card" style={{ padding: 16, textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#047857' }}>{academicDetail.averageAssessmentScore}%</div>
+                  <div style={{ fontSize: '0.82rem', color: '#627d98', marginTop: 4 }}>Điểm đánh giá trung bình</div>
+                </div>
+                <div className="admin-card" style={{ padding: 16, textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#d97706' }}>{academicDetail.weakAreas.length}</div>
+                  <div style={{ fontSize: '0.82rem', color: '#627d98', marginTop: 4 }}>Nội dung cần củng cố</div>
+                </div>
+                <div className="admin-card" style={{ padding: 16, textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#2563eb' }}>{academicDetail.totalLearningMinutes} ph</div>
+                  <div style={{ fontSize: '0.82rem', color: '#627d98', marginTop: 4 }}>Thời gian học ghi nhận</div>
+                </div>
               </div>
-              <div style={{ fontSize: '0.82rem', color: '#627d98', marginTop: 4 }}>Điểm thu hoạch TB</div>
-            </div>
-            <div className="admin-card" style={{ padding: 16, textAlign: 'center' }}>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#d97706' }}>{teacherAnalytics.summary.activeKnowledgeGapsCount}</div>
-              <div style={{ fontSize: '0.82rem', color: '#627d98', marginTop: 4 }}>Điểm kiến thức cần củng cố</div>
-            </div>
-            <div className="admin-card" style={{ padding: 16, textAlign: 'center' }}>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#2563eb' }}>{teacherAnalytics.summary.estimatedStudyTimeMinutes} ph</div>
-              <div style={{ fontSize: '0.82rem', color: '#627d98', marginTop: 4 }}>Thời gian học thực tế</div>
-            </div>
-          </div>
-
-          {/* Subject Performance & Interventions Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
-            {/* Subject Breakdown */}
-            <div className="admin-card" style={{ padding: 20 }}>
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#102a43', marginBottom: 14 }}>
-                Năng lực học thuật theo môn
-              </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {teacherAnalytics.subjectAnalytics.map((s) => (
-                  <div key={s.subjectId} style={{ padding: '10px 12px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                      <strong style={{ color: '#102a43' }}>{s.subjectName}</strong>
-                      <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#2563eb' }}>{s.completionPercent}% tiến độ</span>
-                    </div>
-                    <div style={{ fontSize: '0.82rem', color: '#486581' }}>{s.qualitativeAssessment}</div>
-                  </div>
-                ))}
+              <div className="admin-card" style={{ padding: 20 }}>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#102a43', marginBottom: 14 }}>Nội dung cần củng cố</h3>
+                {academicDetail.weakAreas.length > 0 ? (
+                  <ul style={{ margin: 0, paddingLeft: 18, color: '#334e68', fontSize: '0.88rem', lineHeight: 1.6 }}>
+                    {academicDetail.weakAreas.map((area) => <li key={area}>{area}</li>)}
+                  </ul>
+                ) : (
+                  <p style={{ margin: 0, color: '#627d98' }}>Máy chủ chưa ghi nhận nội dung cần củng cố.</p>
+                )}
               </div>
-            </div>
-
-            {/* Recommended Interventions */}
-            <div className="admin-card" style={{ padding: 20 }}>
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#102a43', marginBottom: 14 }}>
-                Khuyến nghị sư phạm & Hướng hỗ trợ
-              </h3>
-              <ul style={{ margin: 0, paddingLeft: 18, color: '#334e68', fontSize: '0.88rem', lineHeight: 1.6 }}>
-                {teacherAnalytics.recommendedInterventions.map((rec, idx) => (
-                  <li key={idx} style={{ marginBottom: 8 }}>{rec}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
+            </>
+          ) : (
+            <EmptyState title="Chưa có dữ liệu phân tích" description="Không thể tải dữ liệu học tập đã lưu của học viên từ máy chủ." />
+          )}
         </div>
       )}
 

@@ -141,13 +141,17 @@ public class AdminContentAccountProvisioningTests : IClassFixture<StudyAIApiFixt
         string lessonPrefix,
         string lessonTitle,
         string lessonIntroduction,
-        string lessonStatus = "draft")
+        string lessonStatus = "draft",
+        string? authorId = null)
     {
         await EnsureProvisionedAccountsExistAsync();
 
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
-        var contentUser = await db.Users.FirstAsync(u => u.EmailNormalized == "CONTENT@GMAIL.COM");
+        var authorUser = authorId != null 
+            ? await db.Users.FirstOrDefaultAsync(u => u.Id == authorId)
+            : await db.Users.FirstOrDefaultAsync(u => u.EmailNormalized == "CONTENT@STUDYAI.INTERNAL");
+        var effectiveAuthorId = authorUser?.Id ?? "usr_author_independent";
 
         string uniqueSuffix = Guid.NewGuid().ToString("N");
         string subjectId = $"sub_fix_{uniqueSuffix}"[..32];
@@ -186,7 +190,7 @@ public class AdminContentAccountProvisioningTests : IClassFixture<StudyAIApiFixt
             Title = lessonTitle,
             Slug = lessonSlug,
             Status = lessonStatus,
-            AuthorId = contentUser.Id,
+            AuthorId = effectiveAuthorId,
             Introduction = lessonIntroduction,
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow

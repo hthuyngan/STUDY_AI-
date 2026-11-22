@@ -593,6 +593,72 @@ namespace StudyAI.Infrastructure.Migrations
                     b.ToTable("classrooms", (string)null);
                 });
 
+            modelBuilder.Entity("StudyAI.Domain.Entities.ClassroomAlert", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("ClassroomId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("ResolutionNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTimeOffset?>("ResolvedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ResolvedByTeacherId")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("StudentId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClassroomId");
+
+                    b.HasIndex("ResolvedByTeacherId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("StudentId");
+
+                    b.ToTable("classroom_alerts", (string)null);
+                });
+
             modelBuilder.Entity("StudyAI.Domain.Entities.ClassroomStudent", b =>
                 {
                     b.Property<string>("Id")
@@ -631,6 +697,11 @@ namespace StudyAI.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<int>("DurationMinutes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(15);
+
                     b.Property<string>("LessonId")
                         .IsRequired()
                         .HasMaxLength(64)
@@ -639,14 +710,26 @@ namespace StudyAI.Infrastructure.Migrations
                     b.Property<int>("PassScore")
                         .HasColumnType("int");
 
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)")
+                        .HasDefaultValue("draft");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
                     b.HasKey("Id");
 
                     b.HasIndex("LessonId");
+
+                    b.HasIndex("Status");
 
                     b.ToTable("content_assessments", (string)null);
                 });
@@ -672,6 +755,21 @@ namespace StudyAI.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasDefaultValue(0);
+
+                    b.Property<string>("SourceName")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("SourceUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)")
+                        .HasDefaultValue("published");
 
                     b.Property<string>("SubjectId")
                         .IsRequired()
@@ -744,6 +842,18 @@ namespace StudyAI.Infrastructure.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
+                    b.Property<string>("SourceLicense")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("SourceName")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("SourceUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -785,6 +895,14 @@ namespace StudyAI.Infrastructure.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
+                    b.Property<string>("AttributionText")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("ChannelName")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -805,6 +923,11 @@ namespace StudyAI.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<bool>("IsPrimary")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<bool>("IsPublished")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -816,6 +939,9 @@ namespace StudyAI.Infrastructure.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("nvarchar(16)")
                         .HasDefaultValue("vi");
+
+                    b.Property<DateTimeOffset?>("LastVerifiedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("LessonId")
                         .IsRequired()
@@ -1036,6 +1162,70 @@ namespace StudyAI.Infrastructure.Migrations
                     b.HasIndex("SubjectId");
 
                     b.ToTable("content_questions", (string)null);
+                });
+
+            modelBuilder.Entity("StudyAI.Domain.Entities.ContentRevision", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("AuthorId")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("ContentId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("SnapshotJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SourceRevisionId")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("ContentId", "Version")
+                        .IsUnique();
+
+                    b.ToTable("content_revisions", (string)null);
                 });
 
             modelBuilder.Entity("StudyAI.Domain.Entities.ContentSubject", b =>
@@ -1638,6 +1828,31 @@ namespace StudyAI.Infrastructure.Migrations
                     b.Navigation("Teacher");
                 });
 
+            modelBuilder.Entity("StudyAI.Domain.Entities.ClassroomAlert", b =>
+                {
+                    b.HasOne("StudyAI.Domain.Entities.Classroom", "Classroom")
+                        .WithMany()
+                        .HasForeignKey("ClassroomId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("StudyAI.Domain.Entities.User", "ResolvedByTeacher")
+                        .WithMany()
+                        .HasForeignKey("ResolvedByTeacherId");
+
+                    b.HasOne("StudyAI.Domain.Entities.User", "Student")
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Classroom");
+
+                    b.Navigation("ResolvedByTeacher");
+
+                    b.Navigation("Student");
+                });
+
             modelBuilder.Entity("StudyAI.Domain.Entities.ClassroomStudent", b =>
                 {
                     b.HasOne("StudyAI.Domain.Entities.Classroom", "Classroom")
@@ -1737,6 +1952,15 @@ namespace StudyAI.Infrastructure.Migrations
                     b.Navigation("Author");
 
                     b.Navigation("Lesson");
+                });
+
+            modelBuilder.Entity("StudyAI.Domain.Entities.ContentRevision", b =>
+                {
+                    b.HasOne("StudyAI.Domain.Entities.User", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId");
+
+                    b.Navigation("Author");
                 });
 
             modelBuilder.Entity("StudyAI.Domain.Entities.ContentTopic", b =>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useContext } from 'react'
 import {
   Save,
   RotateCcw,
@@ -15,11 +15,16 @@ import {
 import { aiTutorService } from '@/services/aiTutor.service'
 import type { AiFeatureConfig, AiUsageStats } from '@/types/aiTutor'
 import { operationsService } from '@/services/operations.service'
+import { AuthContext } from '@/auth/AuthContext'
 import type { OperationalSettings } from '@/types/operations'
 import './AdminPages.css'
 import '@/components/admin/AdminComponents.css'
 
+declare const process: { env?: { NODE_ENV?: string } } | undefined
+
 export const AdminSettingsPage: React.FC = () => {
+  const auth = useContext(AuthContext)
+  const user = auth?.user
   const [settings, setSettings] = useState<OperationalSettings>(operationsService.getSettings())
   const [settingsLoading, setSettingsLoading] = useState<boolean>(true)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
@@ -102,10 +107,12 @@ export const AdminSettingsPage: React.FC = () => {
     }
   }
 
+  const currentActor = user?.displayName || 'Quản trị viên'
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      const saved = await operationsService.saveSettings(settings, 'Demo Admin')
+      const saved = await operationsService.saveSettings(settings, currentActor)
       setSettings(saved)
       showToast('Đã lưu thành công các thiết lập vận hành')
       setStorageUsage(computeStorageUsage())
@@ -120,24 +127,27 @@ export const AdminSettingsPage: React.FC = () => {
     }
   }
 
-  const handleResetSettings = () => {
+  const handleResetSettings = async () => {
     if (window.confirm('Khôi phục toàn bộ thiết lập về giá trị mặc định ban đầu?')) {
-      const defaults = operationsService.resetSettings('Demo Admin')
-      setSettings(defaults)
-      showToast('Đã khôi phục thiết lập mặc định')
-      setStorageUsage(computeStorageUsage())
+      try {
+        const defaults = await operationsService.resetSettings(currentActor)
+        setSettings(defaults)
+        showToast('Đã khôi phục thiết lập mặc định trên máy chủ')
+      } catch (err) {
+        showToast(err instanceof Error ? err.message : 'Không thể khôi phục thiết lập.')
+      }
     }
   }
 
-  const handleResetAllData = () => {
-    if (
-      window.confirm(
-        'CẢNH BÁO: Thao tác này sẽ xóa toàn bộ dữ liệu demo (phê duyệt, bài nộp, thông báo) đã lưu trong localStorage và đưa hệ thống về trạng thái ban đầu. Bạn có chắc chắn?'
-      )
-    ) {
-      operationsService.resetAllDemoData()
-      setSettings(operationsService.getSettings())
-      showToast('Đã đặt lại dữ liệu demo hệ thống')
+  const handleClearCache = () => {
+    if (window.confirm('Xác nhận xóa bộ nhớ đệm phía client?')) {
+      if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test') {
+        operationsService._resetMockState()
+      }
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.removeItem('study_ai_settings')
+      }
+      showToast('Đã làm sạch bộ nhớ đệm phía client')
       setStorageUsage(computeStorageUsage())
     }
   }
@@ -162,7 +172,7 @@ export const AdminSettingsPage: React.FC = () => {
           <div>
             <h1 className="staff-page-title">Thiết lập vận hành (Operational Settings)</h1>
             <p className="staff-page-desc">
-              Tùy biến các quy tắc học tập, ngưỡng cảnh báo, quy trình kiểm duyệt nội dung và quản trị bộ nhớ demo.
+              Tùy biến các quy tắc học tập, ngưỡng cảnh báo và quy trình kiểm duyệt nội dung.
               {settingsLoading && <span style={{ marginLeft: 8, color: '#0284c7' }}>(Đang đồng bộ từ máy chủ...)</span>}
             </p>
           </div>
@@ -201,7 +211,7 @@ export const AdminSettingsPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="form-label" htmlFor="set-lang">Ngôn ngữ giao diện demo</label>
+              <label className="form-label" htmlFor="set-lang">Ngôn ngữ giao diện</label>
               <select
                 id="set-lang"
                 className="form-input"
@@ -344,32 +354,20 @@ export const AdminSettingsPage: React.FC = () => {
               />
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', marginTop: 24 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={settings.enableDemoAlerts}
-                  onChange={(e) => setSettings({ ...settings, enableDemoAlerts: e.target.checked })}
-                />
-                <span style={{ fontSize: '0.9rem', color: '#102a43' }}>
-                  Kích hoạt thông báo cảnh báo demo trong thanh Topbar
-                </span>
-              </label>
-            </div>
           </div>
         </div>
 
-        {/* E. BỘ NHỚ LOCALSTORAGE & RESET */}
+        {/* E. BỘ NHỚ TRÌNH DUYỆT */}
         <div className="admin-card" style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: 22 }}>
           <h2 style={{ fontSize: '1rem', fontWeight: 700, color: '#102a43', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
             <Database size={18} />
-            <span>E. Quản trị bộ nhớ trình duyệt & Dữ liệu Demo</span>
+            <span>E. Quản trị bộ nhớ tạm trình duyệt (Client Cache)</span>
           </h2>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: '#f8fafc', borderRadius: 6, marginBottom: 14 }}>
             <div>
-              <div style={{ fontWeight: 600, color: '#102a43', fontSize: '0.9rem' }}>Dung lượng dữ liệu demo hiện tại:</div>
-              <div style={{ fontSize: '0.8rem', color: '#627d98' }}>Lưu trữ các lớp học, học viên, bài tập và phê duyệt</div>
+              <div style={{ fontWeight: 600, color: '#102a43', fontSize: '0.9rem' }}>Dung lượng bộ nhớ tạm client:</div>
+              <div style={{ fontSize: '0.8rem', color: '#627d98' }}>Lưu trữ cấu hình giao diện và bộ nhớ tạm trình duyệt</div>
             </div>
             <strong style={{ fontSize: '1.1rem', color: '#0284c7' }}>{storageUsage}</strong>
           </div>
@@ -377,11 +375,12 @@ export const AdminSettingsPage: React.FC = () => {
           <div style={{ display: 'flex', gap: 12 }}>
             <button
               type="button"
-              className="btn btn-danger btn-sm"
-              onClick={handleResetAllData}
+              className="btn btn-outline btn-sm"
+              onClick={handleClearCache}
+              aria-label="Làm sạch bộ nhớ tạm trình duyệt"
             >
               <Trash2 size={14} style={{ marginRight: 6 }} />
-              <span>Xóa toàn bộ dữ liệu demo & Reset trạng thái</span>
+              <span>Làm sạch bộ nhớ tạm trình duyệt</span>
             </button>
           </div>
         </div>

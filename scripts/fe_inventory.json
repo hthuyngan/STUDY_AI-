@@ -1,0 +1,722 @@
+{
+  "largeFiles": [
+    {
+      "file": "services/classroom.service.ts",
+      "lines": 1458
+    },
+    {
+      "file": "services/education.service.ts",
+      "lines": 1351
+    },
+    {
+      "file": "pages/Content/ContentQuestionBankPage.tsx",
+      "lines": 1300
+    },
+    {
+      "file": "pages/Content/ContentLessonsPage.tsx",
+      "lines": 1245
+    },
+    {
+      "file": "data/curriculum.data.ts",
+      "lines": 1204
+    },
+    {
+      "file": "pages/Admin/AdminClassDetailPage.tsx",
+      "lines": 1116
+    },
+    {
+      "file": "services/operations.service.ts",
+      "lines": 1093
+    },
+    {
+      "file": "pages/Admin/AdminLessonsPage.tsx",
+      "lines": 1061
+    },
+    {
+      "file": "pages/Content/ContentAssessmentsPage.tsx",
+      "lines": 1023
+    },
+    {
+      "file": "pages/Content/ContentChaptersPage.tsx",
+      "lines": 934
+    },
+    {
+      "file": "pages/Admin/AdminAssessmentsPage.tsx",
+      "lines": 897
+    },
+    {
+      "file": "pages/Admin/AdminOperationsDashboard.tsx",
+      "lines": 812
+    },
+    {
+      "file": "pages/Content/ContentSubjectsPage.tsx",
+      "lines": 783
+    },
+    {
+      "file": "pages/Teacher/TeacherClassesPage.tsx",
+      "lines": 754
+    },
+    {
+      "file": "mocks/student.ts",
+      "lines": 723
+    },
+    {
+      "file": "pages/Content/ContentImportPage.tsx",
+      "lines": 721
+    },
+    {
+      "file": "pages/Admin/AdminClassesPage.tsx",
+      "lines": 712
+    },
+    {
+      "file": "pages/Admin/AdminChaptersPage.tsx",
+      "lines": 710
+    },
+    {
+      "file": "pages/Admin/AdminStudentProfilePage.tsx",
+      "lines": 691
+    },
+    {
+      "file": "pages/DesignSystem/DesignSystemPage.tsx",
+      "lines": 689
+    },
+    {
+      "file": "services/aiTutor.service.ts",
+      "lines": 682
+    },
+    {
+      "file": "services/personalization.test.ts",
+      "lines": 679
+    },
+    {
+      "file": "pages/Teacher/TeacherStudentProfilePage.tsx",
+      "lines": 641
+    },
+    {
+      "file": "pages/Teacher/TeacherClassDetailPage.tsx",
+      "lines": 637
+    },
+    {
+      "file": "features/question-bank/components/QuestionTable.tsx",
+      "lines": 636
+    },
+    {
+      "file": "data/questionBank.data.ts",
+      "lines": 628
+    },
+    {
+      "file": "pages/Teacher/TeacherAssignmentsPage.tsx",
+      "lines": 625
+    },
+    {
+      "file": "pages/Practice/PracticeResultPage.tsx",
+      "lines": 620
+    },
+    {
+      "file": "pages/Teacher/ContentGovernanceWorkspace.tsx",
+      "lines": 606
+    },
+    {
+      "file": "pages/Admin/AdminAssignmentsPage.tsx",
+      "lines": 588
+    },
+    {
+      "file": "pages/Admin/AdminStudentsPage.tsx",
+      "lines": 574
+    },
+    {
+      "file": "pages/Admin/AdminAnnouncementsPage.tsx",
+      "lines": 565
+    },
+    {
+      "file": "pages/Teacher/TeacherStudentsPage.tsx",
+      "lines": 563
+    },
+    {
+      "file": "components/layout/Topbar.tsx",
+      "lines": 559
+    },
+    {
+      "file": "pages/Content/ContentImportPage.test.tsx",
+      "lines": 557
+    },
+    {
+      "file": "pages/Lesson/LessonPage.tsx",
+      "lines": 541
+    },
+    {
+      "file": "services/practice.service.ts",
+      "lines": 541
+    },
+    {
+      "file": "pages/Teacher/TeacherAnalyticsDashboard.tsx",
+      "lines": 540
+    },
+    {
+      "file": "services/learningState.service.ts",
+      "lines": 540
+    },
+    {
+      "file": "selectors/learningAnalytics.selectors.ts",
+      "lines": 537
+    },
+    {
+      "file": "services/assessment.service.ts",
+      "lines": 536
+    },
+    {
+      "file": "pages/Admin/AdminSettingsPage.tsx",
+      "lines": 525
+    },
+    {
+      "file": "pages/Admin/AdminApprovalDetailPage.tsx",
+      "lines": 520
+    },
+    {
+      "file": "pages/Admin/AdminUsersPage.tsx",
+      "lines": 515
+    },
+    {
+      "file": "pages/Content/ContentApprovalDetailPage.tsx",
+      "lines": 515
+    },
+    {
+      "file": "hooks/useAITutor.ts",
+      "lines": 514
+    },
+    {
+      "file": "pages/Teacher/TeacherAssignmentDetailPage.tsx",
+      "lines": 514
+    },
+    {
+      "file": "components/dashboard/IntelligentAnalyticsDashboard.tsx",
+      "lines": 513
+    },
+    {
+      "file": "pages/Teacher/TeacherAlertsPage.tsx",
+      "lines": 511
+    },
+    {
+      "file": "data/subjects.mock.ts",
+      "lines": 503
+    },
+    {
+      "file": "pages/Admin/components/teachers/TeacherDetailDrawer.tsx",
+      "lines": 486
+    },
+    {
+      "file": "pages/Admin/AdminApprovalsPage.tsx",
+      "lines": 485
+    },
+    {
+      "file": "hooks/useAdmin.ts",
+      "lines": 477
+    },
+    {
+      "file": "pages/Admin/AdminTeachersPage.tsx",
+      "lines": 476
+    },
+    {
+      "file": "pages/Subjects/SubjectDetailPage.tsx",
+      "lines": 473
+    },
+    {
+      "file": "pages/KnowledgeGaps/KnowledgeGapsPage.tsx",
+      "lines": 470
+    },
+    {
+      "file": "pages/Admin/AdminSubjectsPage.tsx",
+      "lines": 467
+    },
+    {
+      "file": "components/exam/ExamRevisionDashboard.tsx",
+      "lines": 466
+    },
+    {
+      "file": "pages/SmartReview/SmartReviewPage.tsx",
+      "lines": 462
+    },
+    {
+      "file": "components/ai-tutor/AssistantMessage.tsx",
+      "lines": 459
+    },
+    {
+      "file": "pages/Practice/PracticeEngine.test.tsx",
+      "lines": 458
+    },
+    {
+      "file": "pages/Admin/AdminAlertsPage.tsx",
+      "lines": 451
+    },
+    {
+      "file": "services/admin.service.ts",
+      "lines": 446
+    },
+    {
+      "file": "pages/Admin/AdminGradesPage.tsx",
+      "lines": 445
+    },
+    {
+      "file": "pages/Content/ContentReviewPage.tsx",
+      "lines": 438
+    },
+    {
+      "file": "data/staff/admin.mock.ts",
+      "lines": 435
+    },
+    {
+      "file": "features/question-bank/components/QuestionFormModal.tsx",
+      "lines": 435
+    },
+    {
+      "file": "pages/Admin/AdminAssignmentDetailPage.tsx",
+      "lines": 430
+    },
+    {
+      "file": "pages/Practice/PracticeHubPage.tsx",
+      "lines": 427
+    },
+    {
+      "file": "components/personalization/PersonalizedAnalyticsView.tsx",
+      "lines": 425
+    },
+    {
+      "file": "pages/Admin/AdminWorkspaceV4.test.tsx",
+      "lines": 425
+    },
+    {
+      "file": "pages/Teacher/TeacherGradesPage.tsx",
+      "lines": 424
+    },
+    {
+      "file": "features/question-bank/components/QuestionPreviewPanel.tsx",
+      "lines": 422
+    },
+    {
+      "file": "pages/Assignments/LearnerAssignmentsPage.tsx",
+      "lines": 421
+    },
+    {
+      "file": "data/mock/education.mock.ts",
+      "lines": 420
+    },
+    {
+      "file": "services/learningState.service.test.ts",
+      "lines": 419
+    },
+    {
+      "file": "pages/Lesson/LessonAssessment.test.tsx",
+      "lines": 416
+    },
+    {
+      "file": "components/lesson/LessonNotesPanel.tsx",
+      "lines": 413
+    },
+    {
+      "file": "pages/MyNotes/MyNotesPage.tsx",
+      "lines": 409
+    },
+    {
+      "file": "pages/Admin/AdminDashboardPage.tsx",
+      "lines": 408
+    },
+    {
+      "file": "components/assessment/AssessmentModal.tsx",
+      "lines": 407
+    },
+    {
+      "file": "components/practice/PracticeQuestionCard.tsx",
+      "lines": 405
+    },
+    {
+      "file": "components/admin/AdminDetailTabs.tsx",
+      "lines": 401
+    },
+    {
+      "file": "pages/Admin/AdminWorkspaceV3.test.tsx",
+      "lines": 397
+    },
+    {
+      "file": "components/layout/WorkspaceShell.tsx",
+      "lines": 391
+    },
+    {
+      "file": "pages/Content/ContentCurriculumPage.tsx",
+      "lines": 390
+    },
+    {
+      "file": "services/smartReview.service.ts",
+      "lines": 385
+    },
+    {
+      "file": "pages/Admin/AdminReportsPage.tsx",
+      "lines": 382
+    },
+    {
+      "file": "hooks/useLessonAssessment.ts",
+      "lines": 381
+    },
+    {
+      "file": "pages/Content/ContentLessonEditorPage.tsx",
+      "lines": 367
+    },
+    {
+      "file": "pages/Teacher/AiLessonAuthoringTool.tsx",
+      "lines": 365
+    },
+    {
+      "file": "context/AiChatContext.tsx",
+      "lines": 363
+    },
+    {
+      "file": "features/question-bank/hooks/useQuestionBank.ts",
+      "lines": 363
+    },
+    {
+      "file": "hooks/useAITutor.test.tsx",
+      "lines": 363
+    },
+    {
+      "file": "data/assessments.mock.ts",
+      "lines": 355
+    },
+    {
+      "file": "components/layout/WorkspaceAppLauncher.tsx",
+      "lines": 353
+    },
+    {
+      "file": "components/assessment/LessonAssessmentCard.tsx",
+      "lines": 350
+    },
+    {
+      "file": "components/lesson/FunctionGraph.tsx",
+      "lines": 346
+    },
+    {
+      "file": "services/knowledgeGaps.service.ts",
+      "lines": 343
+    },
+    {
+      "file": "components/practice/PracticeSetup.tsx",
+      "lines": 342
+    },
+    {
+      "file": "services/scoringEngine.ts",
+      "lines": 336
+    },
+    {
+      "file": "pages/Admin/components/teachers/CreateTeacherModal.tsx",
+      "lines": 331
+    },
+    {
+      "file": "services/lesson.service.ts",
+      "lines": 328
+    },
+    {
+      "file": "pages/Admin/AdminWorkspaceV2.test.tsx",
+      "lines": 325
+    },
+    {
+      "file": "test/phaseAi03LearningAnalytics.test.tsx",
+      "lines": 325
+    },
+    {
+      "file": "services/evidenceAggregationEngine.ts",
+      "lines": 319
+    },
+    {
+      "file": "pages/Settings/SettingsPage.tsx",
+      "lines": 318
+    },
+    {
+      "file": "components/layout/workspaceNavigation.ts",
+      "lines": 316
+    },
+    {
+      "file": "test/phaseAi06AdminOperations.test.tsx",
+      "lines": 315
+    },
+    {
+      "file": "pages/Teacher/TeacherDashboardPage.tsx",
+      "lines": 314
+    },
+    {
+      "file": "components/subjects/SubjectIconSvg.tsx",
+      "lines": 312
+    },
+    {
+      "file": "services/learningAnalytics.service.test.ts",
+      "lines": 312
+    },
+    {
+      "file": "features/question-bank/pages/ModernQuestionBankPage.tsx",
+      "lines": 311
+    },
+    {
+      "file": "pages/Admin/AdminWorkspaceV5.test.tsx",
+      "lines": 310
+    },
+    {
+      "file": "pages/Admin/AdminUserDetailPage.tsx",
+      "lines": 309
+    },
+    {
+      "file": "routes/learnerRoutes.tsx",
+      "lines": 306
+    },
+    {
+      "file": "services/knowledgeGaps.service.test.ts",
+      "lines": 306
+    },
+    {
+      "file": "test/phaseAi05TeacherManagement.test.tsx",
+      "lines": 306
+    },
+    {
+      "file": "pages/Practice/PracticeSessionPage.tsx",
+      "lines": 301
+    }
+  ],
+  "services": [
+    {
+      "file": "services/classroom.service.ts",
+      "lines": 1458
+    },
+    {
+      "file": "services/education.service.ts",
+      "lines": 1351
+    },
+    {
+      "file": "services/operations.service.ts",
+      "lines": 1093
+    },
+    {
+      "file": "services/aiTutor.service.ts",
+      "lines": 682
+    },
+    {
+      "file": "services/personalization.test.ts",
+      "lines": 679
+    },
+    {
+      "file": "services/practice.service.ts",
+      "lines": 541
+    },
+    {
+      "file": "services/learningState.service.ts",
+      "lines": 540
+    },
+    {
+      "file": "services/assessment.service.ts",
+      "lines": 536
+    },
+    {
+      "file": "services/admin.service.ts",
+      "lines": 446
+    },
+    {
+      "file": "services/learningState.service.test.ts",
+      "lines": 419
+    },
+    {
+      "file": "services/smartReview.service.ts",
+      "lines": 385
+    },
+    {
+      "file": "services/knowledgeGaps.service.ts",
+      "lines": 343
+    },
+    {
+      "file": "services/scoringEngine.ts",
+      "lines": 336
+    },
+    {
+      "file": "services/lesson.service.ts",
+      "lines": 328
+    },
+    {
+      "file": "services/evidenceAggregationEngine.ts",
+      "lines": 319
+    },
+    {
+      "file": "services/learningAnalytics.service.test.ts",
+      "lines": 312
+    },
+    {
+      "file": "services/knowledgeGaps.service.test.ts",
+      "lines": 306
+    },
+    {
+      "file": "services/learningPath.service.ts",
+      "lines": 296
+    },
+    {
+      "file": "lib/apiClient.ts",
+      "lines": 283
+    },
+    {
+      "file": "services/personalization.service.ts",
+      "lines": 279
+    },
+    {
+      "file": "services/subjects.service.ts",
+      "lines": 264
+    },
+    {
+      "file": "services/aiTutor.api.test.ts",
+      "lines": 224
+    },
+    {
+      "file": "services/adaptiveLearningPathService.ts",
+      "lines": 223
+    },
+    {
+      "file": "services/admin.service.test.ts",
+      "lines": 221
+    },
+    {
+      "file": "services/learningContext.service.ts",
+      "lines": 206
+    },
+    {
+      "file": "services/contentQuestionBank.service.ts",
+      "lines": 204
+    },
+    {
+      "file": "services/lessonProgress.service.ts",
+      "lines": 196
+    },
+    {
+      "file": "services/learningAnalytics.service.ts",
+      "lines": 193
+    },
+    {
+      "file": "services/dashboard.service.ts",
+      "lines": 184
+    },
+    {
+      "file": "services/studyNotes.service.ts",
+      "lines": 182
+    },
+    {
+      "file": "lib/apiClient.test.ts",
+      "lines": 170
+    },
+    {
+      "file": "services/recommendationEngine.ts",
+      "lines": 168
+    },
+    {
+      "file": "services/skillPerformanceEngine.ts",
+      "lines": 166
+    },
+    {
+      "file": "services/content.service.ts",
+      "lines": 163
+    },
+    {
+      "file": "services/questionBank.service.ts",
+      "lines": 159
+    },
+    {
+      "file": "services/curriculum.service.ts",
+      "lines": 158
+    },
+    {
+      "file": "services/sectionBookmarks.service.ts",
+      "lines": 146
+    },
+    {
+      "file": "services/dashboard.service.test.ts",
+      "lines": 139
+    },
+    {
+      "file": "services/studyNotes.service.test.ts",
+      "lines": 133
+    },
+    {
+      "file": "services/aiTutor.service.test.ts",
+      "lines": 126
+    },
+    {
+      "file": "services/supporting.service.ts",
+      "lines": 122
+    },
+    {
+      "file": "services/classroom.service.test.ts",
+      "lines": 118
+    },
+    {
+      "file": "services/practice.service.test.ts",
+      "lines": 114
+    },
+    {
+      "file": "services/mathAnswerNormalizer.ts",
+      "lines": 113
+    },
+    {
+      "file": "services/teacher.service.ts",
+      "lines": 111
+    },
+    {
+      "file": "services/learningPath.service.test.ts",
+      "lines": 107
+    },
+    {
+      "file": "services/learningContext.service.test.ts",
+      "lines": 106
+    },
+    {
+      "file": "services/curriculumImport.service.ts",
+      "lines": 103
+    },
+    {
+      "file": "services/sectionBookmarks.service.test.ts",
+      "lines": 99
+    },
+    {
+      "file": "services/quiz.service.ts",
+      "lines": 96
+    },
+    {
+      "file": "services/teacherManagement.service.ts",
+      "lines": 94
+    },
+    {
+      "file": "services/libraryBookmark.service.ts",
+      "lines": 92
+    },
+    {
+      "file": "auth/auth.service.ts",
+      "lines": 89
+    },
+    {
+      "file": "services/smartReview.service.test.ts",
+      "lines": 89
+    },
+    {
+      "file": "services/knowledgeGapDetectionEngine.ts",
+      "lines": 86
+    },
+    {
+      "file": "features/question-bank/api/questionBankApi.ts",
+      "lines": 85
+    },
+    {
+      "file": "services/learningTracking.service.ts",
+      "lines": 68
+    },
+    {
+      "file": "services/adminOperations.service.ts",
+      "lines": 64
+    },
+    {
+      "file": "services/examPrep.service.ts",
+      "lines": 62
+    },
+    {
+      "file": "services/learningStateEvents.ts",
+      "lines": 15
+    }
+  ]
+}

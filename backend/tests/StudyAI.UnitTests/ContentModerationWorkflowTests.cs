@@ -2,16 +2,21 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using StudyAI.Api.Controllers;
+using StudyAI.Api.Features.Content;
+using StudyAI.Application.Features.Content.Lessons;
+using StudyAI.Application.Features.Content.ReviewQueue;
 using StudyAI.Domain.Entities;
+using StudyAI.Infrastructure.Authentication;
 using StudyAI.Infrastructure.Persistence;
+using StudyAI.Infrastructure.Services;
 using Xunit;
 
 namespace StudyAI.UnitTests;
 
 public class ContentModerationWorkflowTests
 {
-    private (StudyAIDbContext Context, ContentController Controller) CreateContextAndController(string role = "content", string userId = "usr_reviewer_1")
+    private (StudyAIDbContext Context, ContentLessonsController LessonsController, ContentReviewController ReviewController)
+        CreateControllers(string role = "content", string userId = "usr_reviewer_1")
     {
         var options = new DbContextOptionsBuilder<StudyAIDbContext>()
             .UseInMemoryDatabase(databaseName: $"StudyAI_ContentMod_Test_{Guid.NewGuid():N}")
@@ -30,15 +35,18 @@ public class ContentModerationWorkflowTests
         };
         context.Users.Add(author);
 
-        var reviewer = new User
+        if (userId != "usr_author_1")
         {
-            Id = userId,
-            Email = "reviewer@studyai.edu.vn",
-            DisplayName = "Kiểm duyệt Lê Văn B",
-            Role = role,
-            PasswordHash = "hash"
-        };
-        context.Users.Add(reviewer);
+            var reviewer = new User
+            {
+                Id = userId,
+                Email = $"{userId}@studyai.edu.vn",
+                DisplayName = "Kiểm duyệt Lê Văn B",
+                Role = role,
+                PasswordHash = "hash"
+            };
+            context.Users.Add(reviewer);
+        }
 
         var subject = new ContentSubject
         {
@@ -106,8 +114,6 @@ public class ContentModerationWorkflowTests
 
         context.SaveChanges();
 
-        var controller = new ContentController(context);
-
         var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, userId),
@@ -118,19 +124,34 @@ public class ContentModerationWorkflowTests
 
         var identity = new ClaimsIdentity(claims, "TestAuth");
         var claimsPrincipal = new ClaimsPrincipal(identity);
+        var httpContext = new DefaultHttpContext { User = claimsPrincipal };
+        var httpContextAccessor = new HttpContextAccessor { HttpContext = httpContext };
 
-        controller.ControllerContext = new ControllerContext
+        var clock = new SystemClock();
+        var idGenerator = new IdGenerator();
+        var currentUser = new CurrentUser(httpContextAccessor);
+        var auditWriter = new AuditWriter(context, currentUser, clock, idGenerator);
+
+        var lessonsService = new ContentLessonsService(context, auditWriter, clock, idGenerator);
+        var reviewService = new ContentReviewService(context);
+
+        var lessonsController = new ContentLessonsController(lessonsService)
         {
-            HttpContext = new DefaultHttpContext { User = claimsPrincipal }
+            ControllerContext = new ControllerContext { HttpContext = httpContext }
         };
 
-        return (context, controller);
+        var reviewController = new ContentReviewController(reviewService)
+        {
+            ControllerContext = new ControllerContext { HttpContext = httpContext }
+        };
+
+        return (context, lessonsController, reviewController);
     }
 
     [Fact]
     public async Task SubmitReview_TransitionsDraftLessonToInReview()
     {
-        var (context, controller) = CreateContextAndController();
+        var (context, controller, _) = CreateControllers(role: "author", userId: "usr_author_1");
 
         var result = await controller.SubmitReview("les_draft_1");
 
@@ -147,7 +168,7 @@ public class ContentModerationWorkflowTests
     [Fact]
     public async Task SubmitReview_OnNonDraftLesson_ReturnsBadRequest()
     {
-        var (_, controller) = CreateContextAndController();
+        var (_, controller, _) = CreateControllers(role: "author", userId: "usr_author_1");
 
         var result = await controller.SubmitReview("les_published_1");
 
@@ -157,7 +178,7 @@ public class ContentModerationWorkflowTests
     [Fact]
     public async Task ApproveLesson_ByAuthorizedReviewer_TransitionsToPublished()
     {
-        var (context, controller) = CreateContextAndController(role: "content");
+        var (context, controller, _) = CreateControllers(role: "content");
 
         // Put lesson into in-review first
         var lesson = await context.ContentLessons.FindAsync("les_draft_1");
@@ -178,7 +199,7 @@ public class ContentModerationWorkflowTests
     [Fact]
     public async Task ApproveLesson_ByUnauthorizedUser_ReturnsForbidden()
     {
-        var (_, controller) = CreateContextAndController(role: "student");
+        var (_, controller, _) = CreateControllers(role: "student");
 
         var result = await controller.ApproveLesson("les_draft_1");
 
@@ -187,42 +208,42 @@ public class ContentModerationWorkflowTests
     }
 
     [Fact]
-    public async Task RollbackLesson_OnPublishedLesson_RevertsToDraftAndLogsAudit()
+    public async Task RollbackLesson_WithoutHistoricalRevision_ReturnsConflictWithoutMutation()
     {
-        var (context, controller) = CreateContextAndController(role: "content");
+        var (context, controller, _) = CreateControllers(role: "content");
 
         var result = await controller.RollbackLesson("les_published_1");
 
-        Assert.IsType<OkObjectResult>(result);
+        Assert.IsType<ConflictObjectResult>(result);
         var updated = await context.ContentLessons.FindAsync("les_published_1");
         Assert.NotNull(updated);
-        Assert.Equal("draft", updated.Status);
+        Assert.Equal("published", updated.Status);
 
         var rollbackLog = await context.StaffAuditLogs.FirstOrDefaultAsync(l => l.TargetId == "les_published_1" && l.Action == "lesson_rollback");
-        Assert.NotNull(rollbackLog);
+        Assert.Null(rollbackLog);
     }
 
     [Fact]
     public async Task RollbackLesson_OnDraftLesson_ReturnsConflict()
     {
-        var (_, controller) = CreateContextAndController(role: "content");
+        var (_, controller, _) = CreateControllers(role: "content");
 
         var result = await controller.RollbackLesson("les_draft_1");
 
-        var objResult = Assert.IsType<ObjectResult>(result);
+        var objResult = Assert.IsType<ConflictObjectResult>(result);
         Assert.Equal(409, objResult.StatusCode);
     }
 
     [Fact]
     public async Task GetApprovals_ReturnsReviewQueueWithHistory()
     {
-        var (context, controller) = CreateContextAndController(role: "content");
+        var (context, _, reviewController) = CreateControllers(role: "content");
 
         var lesson = await context.ContentLessons.FindAsync("les_draft_1");
         lesson!.Status = "in-review";
         await context.SaveChangesAsync();
 
-        var result = await controller.GetApprovals(status: "pending");
+        var result = await reviewController.GetApprovals(status: "pending");
 
         var okResult = Assert.IsType<OkObjectResult>(result);
         var items = Assert.IsAssignableFrom<System.Collections.IEnumerable>(okResult.Value);
@@ -232,12 +253,93 @@ public class ContentModerationWorkflowTests
     [Fact]
     public async Task GetPublications_ReturnsPublishedLessonsAndQuestions()
     {
-        var (_, controller) = CreateContextAndController(role: "content");
+        var (_, _, reviewController) = CreateControllers(role: "content");
 
-        var result = await controller.GetPublications();
+        var result = await reviewController.GetPublications();
 
         var okResult = Assert.IsType<OkObjectResult>(result);
         var items = Assert.IsAssignableFrom<System.Collections.IEnumerable>(okResult.Value);
         Assert.NotEmpty(items);
+    }
+
+    [Fact]
+    public async Task GetPublications_ReturnsPublishedBy_AndActiveStatus()
+    {
+        var (_, _, reviewController) = CreateControllers(role: "content");
+
+        var result = await reviewController.GetPublications();
+
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var json = System.Text.Json.JsonSerializer.Serialize(okResult.Value);
+        using var doc = System.Text.Json.JsonDocument.Parse(json);
+        var array = doc.RootElement.EnumerateArray().ToList();
+        Assert.NotEmpty(array);
+
+        var first = array[0];
+        Assert.True(first.TryGetProperty("publishedBy", out var publishedByProp));
+        Assert.False(string.IsNullOrWhiteSpace(publishedByProp.GetString()));
+        Assert.True(first.TryGetProperty("status", out var statusProp));
+        Assert.Equal("active", statusProp.GetString());
+    }
+
+    [Fact]
+    public async Task RollbackLesson_WithTargetVersion_RestoresHistoricalSnapshot()
+    {
+        var (context, controller, _) = CreateControllers(role: "content");
+
+        // Seed a historical revision for les_published_1
+        var snapshot = new
+        {
+            Id = "les_published_1",
+            Title = "Bài 2: Tập hợp - Bản gốc v1",
+            Introduction = "Giới thiệu phiên bản cũ",
+            DefinitionsJson = "[\"Định nghĩa v1\"]",
+            FormulasJson = "[]",
+            ExamplesJson = "[]",
+            SummaryPointsJson = "[]"
+        };
+
+        context.ContentRevisions.Add(new ContentRevision
+        {
+            Id = "rev_l_historical_1",
+            ContentId = "les_published_1",
+            ContentType = "lesson",
+            Version = 1,
+            Status = "published",
+            Title = "Bài 2: Tập hợp - Bản gốc v1",
+            SnapshotJson = System.Text.Json.JsonSerializer.Serialize(snapshot),
+            AuthorId = "usr_author_1",
+            CreatedBy = "usr_author_1",
+            CreatedAt = DateTimeOffset.UtcNow.AddDays(-10)
+        });
+        await context.SaveChangesAsync();
+
+        // Mutate current title
+        var lesson = await context.ContentLessons.FindAsync("les_published_1");
+        lesson!.Title = "Bài 2: Tập hợp - Đã sửa đổi";
+        await context.SaveChangesAsync();
+
+        var rollbackReq = new StudyAI.Application.DTOs.RollbackContentRequestDto
+        {
+            TargetVersion = 1,
+            Reason = "Khôi phục phiên bản v1"
+        };
+
+        var result = await controller.RollbackLesson("les_published_1", rollbackReq);
+
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var updated = await context.ContentLessons.FindAsync("les_published_1");
+        Assert.NotNull(updated);
+        Assert.Equal("draft", updated.Status);
+        Assert.Equal("Bài 2: Tập hợp - Bản gốc v1", updated.Title);
+        Assert.Equal("Giới thiệu phiên bản cũ", updated.Introduction);
+
+        // Verify revision was recorded
+        var latestRev = await context.ContentRevisions
+            .Where(r => r.ContentId == "les_published_1")
+            .OrderByDescending(r => r.CreatedAt)
+            .FirstOrDefaultAsync();
+        Assert.NotNull(latestRev);
+        Assert.Equal("rev_l_historical_1", latestRev.SourceRevisionId);
     }
 }

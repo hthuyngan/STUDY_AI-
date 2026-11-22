@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import {
   selectAnalyticsSummary,
   selectDailyActivities,
@@ -7,6 +7,7 @@ import {
   selectLearningHistory,
   normalizeSubjectId,
 } from '@/selectors/learningAnalytics.selectors'
+import { apiClient } from '@/lib/apiClient'
 import { learningAnalyticsService } from './learningAnalytics.service'
 import type {
   LearningAttempt,
@@ -19,6 +20,15 @@ import type { SmartReviewItem } from '@/types/smartReview'
 describe('learningAnalytics.selectors & service', () => {
   beforeEach(() => {
     localStorage.clear()
+    vi.restoreAllMocks()
+  })
+
+  it('fails closed when the analytics API is unavailable', async () => {
+    vi.spyOn(apiClient, 'get').mockRejectedValue(new Error('Backend unavailable'))
+
+    await expect(learningAnalyticsService.getAnalyticsOverview()).rejects.toThrow('Backend unavailable')
+    await expect(learningAnalyticsService.getLearningRisks()).rejects.toThrow('Backend unavailable')
+    await expect(learningAnalyticsService.getAiLearningReport()).rejects.toThrow('Backend unavailable')
   })
 
   it('normalizes subject IDs correctly', () => {
@@ -297,12 +307,5 @@ describe('learningAnalytics.selectors & service', () => {
     expect(timeline[1].id).toBe('hist_att_att-old')
   })
 
-  it('generates Teacher Student Analytics safely with demo attribution', () => {
-    const teacherData = learningAnalyticsService.getTeacherStudentAnalytics('stu-001', 'Nguyễn Văn A')
-    expect(teacherData.studentId).toBe('stu-001')
-    expect(teacherData.isDemoProfile).toBe(true)
-    expect(teacherData.disclaimer).toContain('Nguyễn Văn A')
-    expect(teacherData.recommendedInterventions.length).toBeGreaterThan(0)
-  })
 })
 

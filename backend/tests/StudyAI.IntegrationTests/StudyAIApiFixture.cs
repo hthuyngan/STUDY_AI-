@@ -174,6 +174,18 @@ public class StudyAIApiFixture : WebApplicationFactory<Program>
             DbInitializer.BootstrapStaffAsync(db, hasher, "content@studyai.internal", "Content@123456", "content", "Integration Test Content Staff").GetAwaiter().GetResult();
         }
 
+        var contentStaff2 = db.Users.FirstOrDefault(u => u.EmailNormalized == "content2@studyai.internal");
+        if (contentStaff2 != null)
+        {
+            contentStaff2.Role = "content";
+            contentStaff2.Status = "active";
+            contentStaff2.PasswordHash = hasher.HashPassword("Content2@123456");
+        }
+        else
+        {
+            DbInitializer.BootstrapStaffAsync(db, hasher, "content2@studyai.internal", "Content2@123456", "content", "Integration Test Content Reviewer").GetAwaiter().GetResult();
+        }
+
         db.SaveChanges();
 
         return host;

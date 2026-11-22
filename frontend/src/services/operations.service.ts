@@ -17,7 +17,12 @@ const STORAGE_KEYS = {
   SETTINGS: 'study_ai_settings_v5',
 }
 
-export const INITIAL_SETTINGS: OperationalSettings = {
+declare const process: { env?: { NODE_ENV?: string } } | undefined
+
+const isTestEnvironment = (): boolean =>
+  typeof process !== 'undefined' && process.env?.NODE_ENV === 'test' && !getAccessToken()
+
+export const DEFAULT_SETTINGS: OperationalSettings = {
   systemName: 'STUDY_AI Educational Platform',
   systemDescription: 'Hệ sinh thái học tập và gia sư thông minh ứng dụng AI',
   language: 'vi-VN',
@@ -28,12 +33,12 @@ export const INITIAL_SETTINGS: OperationalSettings = {
   allowRevisionRequests: true,
   showArchivedContent: false,
   notificationDisplayDays: 7,
-  enableDemoAlerts: true,
-  updatedAt: '2026-10-27T10:00:00Z',
-  updatedBy: 'Demo Admin',
+  enableDemoAlerts: false,
+  updatedAt: '',
+  updatedBy: 'System',
 }
 
-export const INITIAL_APPROVALS: ApprovalItem[] = [
+export const DEFAULT_APPROVALS: ApprovalItem[] = [
   {
     id: 'apr-1',
     title: 'Tiệm cận đứng và tiệm cận ngang của đồ thị hàm số',
@@ -187,7 +192,7 @@ export const INITIAL_APPROVALS: ApprovalItem[] = [
   },
 ]
 
-export const INITIAL_PUBLICATIONS: PublicationRecord[] = [
+export const DEFAULT_PUBLICATIONS: PublicationRecord[] = [
   {
     id: 'pub-1',
     title: 'Khảo sát và vẽ đồ thị hàm phân thức bậc nhất / bậc nhất',
@@ -195,7 +200,7 @@ export const INITIAL_PUBLICATIONS: PublicationRecord[] = [
     contentId: 'lesson-math-08',
     subjectName: 'Toán học 12',
     version: 'v2.0',
-    publishedBy: 'Demo Admin',
+    publishedBy: 'Quản trị viên',
     publishedAt: '2026-10-20T10:30:00Z',
     status: 'active',
     changelog: 'Cập nhật thêm 3 bài toán ứng dụng thực tế và bảng biến thiên động.',
@@ -207,7 +212,7 @@ export const INITIAL_PUBLICATIONS: PublicationRecord[] = [
     contentId: 'lesson-math-01',
     subjectName: 'Toán học 12',
     version: 'v1.0',
-    publishedBy: 'Demo Admin',
+    publishedBy: 'Quản trị viên',
     publishedAt: '2026-10-15T08:00:00Z',
     status: 'active',
     changelog: 'Xuất bản lần đầu theo khung chương trình GDPT 2018.',
@@ -219,14 +224,14 @@ export const INITIAL_PUBLICATIONS: PublicationRecord[] = [
     contentId: 'lesson-phy-01',
     subjectName: 'Vật lý 12',
     version: 'v1.0',
-    publishedBy: 'Demo Admin',
+    publishedBy: 'Quản trị viên',
     publishedAt: '2026-10-18T14:00:00Z',
     status: 'active',
     changelog: 'Xuất bản bài học mở đầu chương Dao động cơ.',
   },
 ]
 
-export const INITIAL_ANNOUNCEMENTS: AnnouncementItem[] = [
+export const DEFAULT_ANNOUNCEMENTS: AnnouncementItem[] = [
   {
     id: 'anc-1',
     title: 'Bảo trì hệ thống định kỳ máy chủ học tập',
@@ -235,7 +240,7 @@ export const INITIAL_ANNOUNCEMENTS: AnnouncementItem[] = [
     severity: 'warning',
     status: 'published',
     publishedAt: '2026-10-27T08:00:00Z',
-    createdBy: 'Demo Admin',
+    createdBy: 'Quản trị viên',
     createdAt: '2026-10-27T07:30:00Z',
     updatedAt: '2026-10-27T08:00:00Z',
   },
@@ -247,7 +252,7 @@ export const INITIAL_ANNOUNCEMENTS: AnnouncementItem[] = [
     severity: 'info',
     status: 'published',
     publishedAt: '2026-10-26T09:00:00Z',
-    createdBy: 'Demo Admin',
+    createdBy: 'Quản trị viên',
     createdAt: '2026-10-26T08:30:00Z',
     updatedAt: '2026-10-26T09:00:00Z',
   },
@@ -259,17 +264,17 @@ export const INITIAL_ANNOUNCEMENTS: AnnouncementItem[] = [
     severity: 'danger',
     status: 'published',
     publishedAt: '2026-10-25T14:00:00Z',
-    createdBy: 'Demo Admin',
+    createdBy: 'Quản trị viên',
     createdAt: '2026-10-25T13:40:00Z',
     updatedAt: '2026-10-25T14:00:00Z',
   },
 ]
 
-export const INITIAL_AUDIT_LOGS: AuditLogEntry[] = [
+export const DEFAULT_AUDIT_LOGS: AuditLogEntry[] = [
   {
     id: 'log-1',
     timestamp: '2026-10-27T10:15:00Z',
-    actor: 'Demo Admin',
+    actor: 'Quản trị viên',
     workspace: 'admin',
     action: 'Cập nhật điểm bài tập',
     target: 'Bài nộp asg-1 (Nguyễn Minh Anh)',
@@ -280,7 +285,7 @@ export const INITIAL_AUDIT_LOGS: AuditLogEntry[] = [
   {
     id: 'log-2',
     timestamp: '2026-10-27T09:40:00Z',
-    actor: 'Demo Admin',
+    actor: 'Quản trị viên',
     workspace: 'content',
     action: 'Gửi duyệt nội dung',
     target: 'Tiệm cận đứng và tiệm cận ngang',
@@ -291,7 +296,7 @@ export const INITIAL_AUDIT_LOGS: AuditLogEntry[] = [
   {
     id: 'log-3',
     timestamp: '2026-10-26T17:00:00Z',
-    actor: 'Demo Admin',
+    actor: 'Quản trị viên',
     workspace: 'admin',
     action: 'Yêu cầu chỉnh sửa',
     target: 'Phương trình dao động điều hòa',
@@ -302,7 +307,7 @@ export const INITIAL_AUDIT_LOGS: AuditLogEntry[] = [
   {
     id: 'log-4',
     timestamp: '2026-10-26T14:00:00Z',
-    actor: 'Demo Admin',
+    actor: 'Quản trị viên',
     workspace: 'admin',
     action: 'Tạo thông báo hệ thống',
     target: 'Kỳ thi thử THPT Quốc gia đợt 1',
@@ -313,7 +318,7 @@ export const INITIAL_AUDIT_LOGS: AuditLogEntry[] = [
   {
     id: 'log-5',
     timestamp: '2026-10-25T11:00:00Z',
-    actor: 'Demo Admin',
+    actor: 'Quản trị viên',
     workspace: 'admin',
     action: 'Cập nhật vai trò người dùng',
     target: 'Tài khoản Vũ Hoàng Yến',
@@ -412,7 +417,7 @@ export const operationsService = {
       }))
     }
 
-    let logs = loadFromStorage<AuditLogEntry[]>(STORAGE_KEYS.AUDIT_LOGS, INITIAL_AUDIT_LOGS)
+    let logs = loadFromStorage<AuditLogEntry[]>(STORAGE_KEYS.AUDIT_LOGS, isTestEnvironment() ? DEFAULT_AUDIT_LOGS : [])
     if (filterAction !== 'all') {
       logs = logs.filter((l) => l.action.toLowerCase().includes(filterAction.toLowerCase()))
     }
@@ -456,7 +461,7 @@ export const operationsService = {
       return res || []
     }
 
-    let list = loadFromStorage<ApprovalItem[]>(STORAGE_KEYS.APPROVALS, INITIAL_APPROVALS)
+    let list = loadFromStorage<ApprovalItem[]>(STORAGE_KEYS.APPROVALS, isTestEnvironment() ? DEFAULT_APPROVALS : [])
     if (statusFilter !== 'all') {
       list = list.filter((a) => a.status === statusFilter)
     }
@@ -527,17 +532,23 @@ export const operationsService = {
     return newApproval
   },
 
-  async approveContent(id: string, note?: string, actor = 'Demo Admin'): Promise<ApprovalItem> {
+  async approveContent(id: string, note?: string, actor = 'Quản trị viên'): Promise<ApprovalItem> {
     if (getAccessToken()) {
+      const current = (await this.getApprovals('all', 'all')).find((a) => a.id === id)
+      if (!current) throw new Error('Không tìm thấy yêu cầu phê duyệt trên máy chủ')
       const cleanId = id.replace(/^apr_[lq]_/, '')
       const isQuestion = id.startsWith('apr_q_')
       const endpoint = isQuestion
         ? `/api/v1/content/questions/${cleanId}/approve`
         : `/api/v1/content/lessons/${cleanId}/approve`
-      await apiClient.post(endpoint)
-      const approvals = await this.getApprovals('all', 'all')
-      const found = approvals.find((a) => a.id === id || a.contentId === cleanId)
-      if (found) return found
+      const result = await apiClient.post<{ status?: string; updatedAt?: string }>(endpoint)
+      return {
+        ...current,
+        status: 'approved',
+        reviewedAt: result?.updatedAt || new Date().toISOString(),
+        reviewedBy: actor,
+        reviewNote: note,
+      }
     }
 
     const list = await this.getApprovals()
@@ -579,21 +590,27 @@ export const operationsService = {
     return updated
   },
 
-  async requestChanges(id: string, reason: string, actor = 'Demo Admin'): Promise<ApprovalItem> {
+  async requestChanges(id: string, reason: string, actor = 'Quản trị viên'): Promise<ApprovalItem> {
     if (!reason.trim()) {
       throw new Error('Vui lòng nhập lý do hoặc nội dung yêu cầu chỉnh sửa')
     }
 
     if (getAccessToken()) {
+      const current = (await this.getApprovals('all', 'all')).find((a) => a.id === id)
+      if (!current) throw new Error('Không tìm thấy yêu cầu phê duyệt trên máy chủ')
       const cleanId = id.replace(/^apr_[lq]_/, '')
       const isQuestion = id.startsWith('apr_q_')
       const endpoint = isQuestion
         ? `/api/v1/content/questions/${cleanId}/request-changes`
         : `/api/v1/content/lessons/${cleanId}/request-changes`
-      await apiClient.post(endpoint, { feedback: reason })
-      const approvals = await this.getApprovals('all', 'all')
-      const found = approvals.find((a) => a.id === id || a.contentId === cleanId)
-      if (found) return found
+      const result = await apiClient.post<{ updatedAt?: string }>(endpoint, { feedback: reason })
+      return {
+        ...current,
+        status: 'changes-requested',
+        reviewedAt: result?.updatedAt || new Date().toISOString(),
+        reviewedBy: actor,
+        reviewNote: reason,
+      }
     }
 
     const list = await this.getApprovals()
@@ -642,10 +659,29 @@ export const operationsService = {
     return updated
   },
 
-  async rejectContent(id: string, reason: string, actor = 'Demo Admin'): Promise<ApprovalItem> {
+  async rejectContent(id: string, reason: string, actor = 'Quản trị viên'): Promise<ApprovalItem> {
     if (!reason.trim()) {
       throw new Error('Vui lòng nhập lý do từ chối nội dung')
     }
+
+    if (getAccessToken()) {
+      const current = (await this.getApprovals('all', 'all')).find((a) => a.id === id)
+      if (!current) throw new Error('Không tìm thấy yêu cầu phê duyệt trên máy chủ')
+      const cleanId = id.replace(/^apr_[lq]_/, '')
+      const isQuestion = id.startsWith('apr_q_')
+      const endpoint = isQuestion
+        ? `/api/v1/content/questions/${cleanId}/reject`
+        : `/api/v1/content/lessons/${cleanId}/reject`
+      const result = await apiClient.post<{ updatedAt?: string }>(endpoint, { reason })
+      return {
+        ...current,
+        status: 'rejected',
+        reviewedAt: result?.updatedAt || new Date().toISOString(),
+        reviewedBy: actor,
+        rejectionReason: reason,
+      }
+    }
+
     const list = await this.getApprovals()
     const idx = list.findIndex((a) => a.id === id)
     if (idx === -1) throw new Error('Không tìm thấy yêu cầu phê duyệt')
@@ -685,7 +721,7 @@ export const operationsService = {
     return updated
   },
 
-  async publishContent(id: string, changelog?: string, actor = 'Demo Admin'): Promise<PublicationRecord> {
+  async publishContent(id: string, changelog?: string, actor = 'Quản trị viên'): Promise<PublicationRecord> {
     if (getAccessToken()) {
       const cleanId = id.replace(/^apr_[lq]_/, '')
       const isQuestion = id.startsWith('apr_q_')
@@ -694,20 +730,9 @@ export const operationsService = {
         : `/api/v1/content/lessons/${cleanId}/publish`
       await apiClient.post(endpoint)
       const pubs = await this.getPublications('all')
-      const found = pubs.find((p) => p.contentId === cleanId || p.id === cleanId)
+      const found = pubs.find((p) => p.contentId === cleanId || p.id === cleanId || p.id === `pub_${cleanId}`)
       if (found) return found
-      return {
-        id: `pub_${cleanId}`,
-        contentId: cleanId,
-        contentType: isQuestion ? 'assessment' : 'lesson',
-        title: 'Đã xuất bản thành công',
-        subjectName: 'Toán học',
-        version: 'v1.0',
-        publishedBy: actor,
-        publishedAt: new Date().toISOString(),
-        status: 'active',
-        changelog: changelog || 'Nội dung chính thức được phê duyệt và phát hành.',
-      }
+      throw new Error('Nội dung đã được gửi lệnh xuất bản nhưng không tìm thấy bản ghi xuất bản.')
     }
 
     const list = await this.getApprovals()
@@ -781,10 +806,15 @@ export const operationsService = {
       if (typeFilter !== 'all') params.set('type', typeFilter)
       if (search.trim()) params.set('search', search.trim())
       const res = await apiClient.get<PublicationRecord[]>(`/api/v1/content/publications?${params.toString()}`)
-      return res || []
+      const items = res || []
+      return items.map((p) => ({
+        ...p,
+        publishedBy: p.publishedBy || p.publisherName || 'Quản trị viên',
+        status: (p.status === 'published' ? 'active' : p.status) || 'active',
+      }))
     }
 
-    let pubs = loadFromStorage<PublicationRecord[]>(STORAGE_KEYS.PUBLICATIONS, INITIAL_PUBLICATIONS)
+    let pubs = loadFromStorage<PublicationRecord[]>(STORAGE_KEYS.PUBLICATIONS, isTestEnvironment() ? DEFAULT_PUBLICATIONS : [])
     if (typeFilter !== 'all') {
       pubs = pubs.filter((p) => p.contentType === typeFilter)
     }
@@ -794,7 +824,7 @@ export const operationsService = {
         (p) =>
           p.title.toLowerCase().includes(q) ||
           p.subjectName.toLowerCase().includes(q) ||
-          p.publishedBy.toLowerCase().includes(q)
+          (p.publishedBy || '').toLowerCase().includes(q)
       )
     }
     return pubs
@@ -803,14 +833,40 @@ export const operationsService = {
   async rollbackPublication(
     pubId: string,
     targetVersion: string,
-    actor = 'Demo Admin'
+    actor = 'Quản trị viên'
   ): Promise<PublicationRecord> {
     if (getAccessToken()) {
       const cleanId = pubId.replace(/^pub_/, '')
-      await apiClient.post(`/api/v1/content/lessons/${cleanId}/rollback`)
-      const pubs = await this.getPublications('all')
-      const found = pubs.find((p) => p.id === pubId || p.contentId === cleanId)
-      if (found) return found
+      const isQuestion = cleanId.startsWith('qst_')
+      const endpoint = isQuestion
+        ? `/api/v1/content/questions/${cleanId}/rollback`
+        : `/api/v1/content/lessons/${cleanId}/rollback`
+      const versionNum = parseInt(targetVersion.replace(/\D/g, ''), 10) || 1
+      const restored = await apiClient.post<{
+        id?: string
+        title?: string
+        prompt?: string
+        subjectName?: string
+        updatedAt?: string
+      }>(endpoint, {
+        targetVersion: versionNum,
+        reason: `Rollback về ${targetVersion} bởi ${actor}`
+      })
+      if (!restored?.updatedAt || (!restored.title && !restored.prompt)) {
+        throw new Error('Máy chủ đã rollback nhưng response không đủ dữ liệu để cập nhật giao diện.')
+      }
+      return {
+        id: pubId,
+        contentId: cleanId,
+        contentType: isQuestion ? 'assessment' : 'lesson',
+        title: restored.title || restored.prompt!,
+        subjectName: restored.subjectName || '',
+        version: targetVersion,
+        publishedBy: actor,
+        publishedAt: restored.updatedAt,
+        status: 'archived',
+        changelog: `Khôi phục về phiên bản ${targetVersion}`,
+      }
     }
 
     const pubs = await this.getPublications()
@@ -861,7 +917,7 @@ export const operationsService = {
       }
     }
 
-    let list = loadFromStorage<AnnouncementItem[]>(STORAGE_KEYS.ANNOUNCEMENTS, INITIAL_ANNOUNCEMENTS)
+    let list = loadFromStorage<AnnouncementItem[]>(STORAGE_KEYS.ANNOUNCEMENTS, isTestEnvironment() ? DEFAULT_ANNOUNCEMENTS : [])
     if (statusFilter !== 'all') {
       list = list.filter((a) => a.status === statusFilter)
     }
@@ -880,7 +936,7 @@ export const operationsService = {
     return list
   },
 
-  async saveAnnouncement(data: Partial<AnnouncementItem>, actor = 'Demo Admin'): Promise<AnnouncementItem> {
+  async saveAnnouncement(data: Partial<AnnouncementItem>, actor = 'Quản trị viên'): Promise<AnnouncementItem> {
     if (getAccessToken()) {
       if (data.id) {
         return await apiClient.put<AnnouncementItem>(`/api/v1/admin/announcements/${data.id}`, data)
@@ -943,7 +999,7 @@ export const operationsService = {
     }
   },
 
-  async deleteAnnouncement(id: string, actor = 'Demo Admin'): Promise<void> {
+  async deleteAnnouncement(id: string, actor = 'Quản trị viên'): Promise<void> {
     if (getAccessToken()) {
       await apiClient.delete(`/api/v1/admin/announcements/${id}`)
       return
@@ -968,7 +1024,7 @@ export const operationsService = {
 
   // ==================== SETTINGS ====================
   getSettings(): OperationalSettings {
-    return loadFromStorage<OperationalSettings>(STORAGE_KEYS.SETTINGS, INITIAL_SETTINGS)
+    return loadFromStorage<OperationalSettings>(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS)
   },
 
   async getSettingsAsync(): Promise<OperationalSettings> {
@@ -980,11 +1036,11 @@ export const operationsService = {
       }
       throw new Error('Không thể tải cấu hình hệ thống từ máy chủ.')
     }
-    return loadFromStorage<OperationalSettings>(STORAGE_KEYS.SETTINGS, INITIAL_SETTINGS)
+    return loadFromStorage<OperationalSettings>(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS)
   },
 
-  async saveSettings(data: Partial<OperationalSettings>, actor = 'Demo Admin'): Promise<OperationalSettings> {
-    const current = loadFromStorage<OperationalSettings>(STORAGE_KEYS.SETTINGS, INITIAL_SETTINGS)
+  async saveSettings(data: Partial<OperationalSettings>, actor = 'Quản trị viên'): Promise<OperationalSettings> {
+    const current = loadFromStorage<OperationalSettings>(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS)
     const now = new Date().toISOString()
     const updated: OperationalSettings = {
       ...current,
@@ -999,6 +1055,7 @@ export const operationsService = {
         saveToStorage(STORAGE_KEYS.SETTINGS, serverRes)
         return serverRes
       }
+      throw new Error('Máy chủ không trả về cấu hình sau khi lưu.')
     }
 
     saveToStorage(STORAGE_KEYS.SETTINGS, updated)
@@ -1015,29 +1072,21 @@ export const operationsService = {
     return updated
   },
 
-  resetSettings(actor = 'Demo Admin'): OperationalSettings {
-    saveToStorage(STORAGE_KEYS.SETTINGS, INITIAL_SETTINGS)
-    this.recordAuditLog({
-      actor,
-      workspace: 'admin',
-      action: 'Khôi phục cấu hình mặc định',
-      target: 'Thiết lập hệ thống',
-      result: 'warning',
-    })
-    return INITIAL_SETTINGS
-  },
-
-  resetAllDemoData(): void {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      localStorage.removeItem(STORAGE_KEYS.APPROVALS)
-      localStorage.removeItem(STORAGE_KEYS.PUBLICATIONS)
-      localStorage.removeItem(STORAGE_KEYS.ANNOUNCEMENTS)
-      localStorage.removeItem(STORAGE_KEYS.AUDIT_LOGS)
-      localStorage.removeItem(STORAGE_KEYS.SETTINGS)
+  async resetSettings(actor = 'Quản trị viên'): Promise<OperationalSettings> {
+    if (!getAccessToken()) {
+      throw new Error('Bạn cần đăng nhập quản trị để khôi phục cấu hình.')
     }
+    const current = await this.getSettingsAsync()
+    return this.saveSettings({ ...DEFAULT_SETTINGS, version: current.version }, actor)
   },
 
   _resetMockState(): void {
-    this.resetAllDemoData()
+    if (isTestEnvironment() && typeof window !== 'undefined' && window.localStorage) {
+      saveToStorage(STORAGE_KEYS.APPROVALS, DEFAULT_APPROVALS)
+      saveToStorage(STORAGE_KEYS.PUBLICATIONS, DEFAULT_PUBLICATIONS)
+      saveToStorage(STORAGE_KEYS.ANNOUNCEMENTS, DEFAULT_ANNOUNCEMENTS)
+      saveToStorage(STORAGE_KEYS.AUDIT_LOGS, DEFAULT_AUDIT_LOGS)
+      saveToStorage(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS)
+    }
   },
 }

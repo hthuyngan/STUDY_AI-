@@ -1,27 +1,52 @@
 import { renderHook, act, waitFor } from '@testing-library/react'
-import { describe, it, expect, vi, afterEach } from 'vitest'
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { useAITutor } from './useAITutor'
-import { aiTutorService } from '../services/aiTutor.service'
-import type { ChatMessage } from '../types/aiTutor'
+import { aiTutorService, LEGACY_AI_CONVERSATIONS_KEY } from '../services/aiTutor.service'
+import type { ChatMessage, ChatConversation } from '../types/aiTutor'
 
 function wrapper({ children }: { children: ReactNode }) {
   return <MemoryRouter>{children}</MemoryRouter>
 }
 
+const TEST_INITIAL_CONVERSATION: ChatConversation = {
+  id: 'conv-test-init',
+  title: 'Cuộc trò chuyện khởi tạo',
+  subject: 'toan-12',
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  messages: [],
+}
+
 describe('useAITutor Hook', () => {
+  beforeEach(() => {
+    localStorage.setItem(LEGACY_AI_CONVERSATIONS_KEY, JSON.stringify([TEST_INITIAL_CONVERSATION]))
+    localStorage.setItem('study_ai_guest_ai_conversations', JSON.stringify([TEST_INITIAL_CONVERSATION]))
+  })
+
   afterEach(() => {
+    localStorage.clear()
     vi.restoreAllMocks()
   })
 
-  it('initializes with mock conversations and first active conversation', async () => {
+  it('initializes with existing conversations and first active conversation', async () => {
     const { result } = renderHook(() => useAITutor(), { wrapper })
 
     await waitFor(() => {
       expect(result.current.conversations.length).toBeGreaterThan(0)
       expect(result.current.activeConversation).not.toBeNull()
     }, { timeout: 3000 })
+  })
+
+  it('initializes cleanly with empty state when no saved conversations exist', async () => {
+    localStorage.clear()
+    const { result } = renderHook(() => useAITutor(), { wrapper })
+
+    await waitFor(() => {
+      expect(result.current.conversations).toEqual([])
+      expect(result.current.activeConversation).toBeNull()
+    })
   })
 
   it('allows starting a new conversation', async () => {

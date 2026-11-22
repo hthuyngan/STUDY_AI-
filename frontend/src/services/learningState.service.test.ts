@@ -50,16 +50,13 @@ describe('Learning State Engine — Single Source of Truth', () => {
       expect(selectWeeklyActivity().totalMinutes).toBe(0)
 
 
-      // Subject progress is zeroed without fake completed percentages
-      const math = selectSubjectLearningState('math')
-      expect(math?.progress).toBe(0)
-      expect(math?.completedLessons).toBe(0)
-      expect(math?.startedLessons).toBe(0)
+      // No subject is invented until persisted learner evidence exists.
+      expect(selectSubjectLearningState('math')).toBeNull()
     })
   })
 
   describe('Chapter and Subject Progress Aggregation (Arithmetic Mean)', () => {
-    it('calculates chapter progress as arithmetic average of lessons (e.g. 100 + 60 + 0 = 53%)', () => {
+    it('does not invent chapter metadata when progress records do not contain a chapter id', () => {
       // Mock 3 lessons in a single chapter
       const now = new Date().toISOString()
       const progressMap: Record<string, LessonProgressState> = {
@@ -86,13 +83,7 @@ describe('Learning State Engine — Single Source of Truth', () => {
 
       localStorage.setItem(LESSON_PROGRESS_STORAGE_KEY, JSON.stringify(progressMap))
 
-      const chap1 = selectChapterLearningState('math-chap-1')
-      expect(chap1).toBeDefined()
-      // Math chapter 1 has 7 total lessons in mock.
-      // (100 + 60 + 0 + 0 + 0 + 0 + 0) / 7 = 160 / 7 = 22.85 -> 23%
-      expect(chap1?.completedLessons).toBe(1)
-      expect(chap1?.startedLessons).toBe(2)
-      expect(chap1?.progress).toBe(Math.round(160 / chap1!.lessonCount))
+      expect(selectChapterLearningState('math-chap-1')).toBeNull()
     })
 
     it('derives subject progress as average of all lessons across chapters', () => {
@@ -124,8 +115,8 @@ describe('Learning State Engine — Single Source of Truth', () => {
       expect(math).toBeDefined()
       expect(math?.completedLessons).toBe(1)
       expect(math?.startedLessons).toBe(2)
-      // 150 / 12 total lessons in math chapters = 12.5 -> 13%
-      expect(math?.progress).toBe(Math.round(150 / 12))
+      // Only persisted learner records participate; no mock syllabus denominator.
+      expect(math?.progress).toBe(75)
     })
   })
 

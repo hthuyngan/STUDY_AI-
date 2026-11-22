@@ -5,10 +5,9 @@
 
 import { apiClient } from '@/lib/apiClient'
 import { getAuthUser } from '@/auth/authSession'
-import { mockLearningPath } from '@/data/learningPath.mock'
-import { mockSubjectDetails, mockSubjectsSummary } from '@/data/subjects.mock'
 import { resolveSubjectId } from '@/lib/subjectResolver'
 import { learningProgressRepository } from '@/repositories/learningProgress.repository'
+import { curriculumService } from '@/services/curriculum.service'
 import type {
   ContinueLearningTarget,
 } from '@/types/studyNotes'
@@ -111,19 +110,27 @@ export async function getLearningPath(): Promise<LearningPathData> {
       throw new Error('Không thể tải dữ liệu lộ trình học tập từ máy chủ. Vui lòng thử lại.')
     }
   }
-  return { ...mockLearningPath }
+
+  return {
+    goalTitle: 'Lộ trình chuẩn GDPT 2018',
+    targetExam: 'Kỳ thi Tốt nghiệp THPT',
+    daysRemaining: 0,
+    overallProgress: 0,
+    currentStreak: 0,
+    stages: [],
+    aiSuggestion: null as unknown as AISuggestion,
+  }
 }
 
 /**
  * Returns a personalized learning path for a given subject.
  */
-export function getSubjectLearningPath(subjectId: string): SubjectLearningPath {
-  const detail = mockSubjectDetails[subjectId]
-  const summary = mockSubjectsSummary.find((s) => s.id === subjectId)
-  const subjectName = detail?.name || summary?.name || 'Môn học'
-  const grade = detail?.grade || summary?.grade || 'Lớp 12'
+export async function getSubjectLearningPath(subjectId: string): Promise<SubjectLearningPath> {
+  const detail = await curriculumService.getSubject(subjectId)
+  const subjectName = detail.name
+  const grade = detail.grade
 
-  if (!detail || !detail.chapters || detail.chapters.length === 0) {
+  if (!detail.chapters || detail.chapters.length === 0) {
     return {
       subjectId,
       subjectName,
@@ -148,7 +155,7 @@ export function getSubjectLearningPath(subjectId: string): SubjectLearningPath {
     const chapLessons: LearningPathLessonItem[] = chap.lessons.map((les, lesIdx) => {
       totalLessonCount++
       const progressRecord = allProgress[les.id]
-      const progress = progressRecord ? progressRecord.overallProgress : (les.status === 'completed' ? 100 : les.progress || 0)
+      const progress = progressRecord?.overallProgress ?? 0
       
       let status: LessonPathStatus = 'not-started'
       if (progress >= 100) {
@@ -166,8 +173,8 @@ export function getSubjectLearningPath(subjectId: string): SubjectLearningPath {
         chapterTitle: chap.title,
         title: les.title,
         order: (chapIdx + 1) * 100 + (lesIdx + 1),
-        durationMinutes: les.durationMinutes || 30,
-        xp: les.durationMinutes ? les.durationMinutes * 2 : 50,
+        durationMinutes: 0,
+        xp: 0,
         status,
         progress,
         lastActiveSectionId: progressRecord?.lastActiveSectionId,
@@ -256,50 +263,15 @@ export function getContinueLearningTarget(): ContinueLearningTarget | null {
 
   if (inProgressRecords.length > 0) {
     const record = inProgressRecords[0]
-    const subject = mockSubjectDetails[record.subjectId] || mockSubjectsSummary.find((s) => s.id === record.subjectId)
-    const subjectName = subject?.name || 'Môn học'
-
-    // Find lesson metadata
-    let lessonTitle = record.lessonId
-    let chapterTitle = ''
-    if (mockSubjectDetails[record.subjectId]) {
-      for (const chap of mockSubjectDetails[record.subjectId].chapters) {
-        const les = chap.lessons.find((l) => l.id === record.lessonId)
-        if (les) {
-          lessonTitle = les.title
-          chapterTitle = chap.title
-          break
-        }
-      }
-    }
-
     return {
       lessonId: record.lessonId,
       subjectId: record.subjectId,
-      lessonTitle,
-      subjectName,
-      chapterTitle: chapterTitle || undefined,
+      lessonTitle: record.lastActiveSectionTitle || record.lessonId,
+      subjectName: record.subjectId,
       sectionId: record.lastActiveSectionId,
       sectionTitle: record.lastActiveSectionTitle,
       progress: record.overallProgress,
       lastActivityAt: record.updatedAt || new Date().toISOString(),
-    }
-  }
-
-  // If no lesson is currently in-progress, pick the recommended next lesson based on learner's grade
-  const authUser = getAuthUser()
-  const defaultSubjectId = resolveSubjectId({ grade: authUser?.grade }) || 'sub_math10'
-  const path = getSubjectLearningPath(defaultSubjectId)
-  if (path.recommendedLesson) {
-    return {
-      lessonId: path.recommendedLesson.id,
-      subjectId: defaultSubjectId,
-      lessonTitle: path.recommendedLesson.title,
-      subjectName: path.subjectName,
-      chapterTitle: path.recommendedLesson.chapterTitle,
-      sectionId: path.recommendedLesson.lastActiveSectionId,
-      progress: path.recommendedLesson.progress,
-      lastActivityAt: new Date().toISOString(),
     }
   }
 

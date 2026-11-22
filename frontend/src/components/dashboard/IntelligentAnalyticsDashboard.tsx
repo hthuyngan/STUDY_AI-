@@ -37,12 +37,15 @@ export const IntelligentAnalyticsDashboard: React.FC<IntelligentAnalyticsDashboa
   const [report, setReport] = useState<AiLearningReport | null>(null)
   const [showReportModal, setShowReportModal] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [reportError, setReportError] = useState<string | null>(null)
   const [timeframe, setTimeframe] = useState<'7d' | '30d' | 'all'>('all')
 
   useEffect(() => {
     let active = true
     const fetchData = async () => {
       setLoading(true)
+      setLoadError(null)
       try {
         const [ovData, riskData] = await Promise.all([
           learningAnalyticsService.getAnalyticsOverview(subjectId, timeframe),
@@ -51,6 +54,12 @@ export const IntelligentAnalyticsDashboard: React.FC<IntelligentAnalyticsDashboa
         if (active) {
           setOverview(ovData)
           setRisks(riskData)
+        }
+      } catch {
+        if (active) {
+          setOverview(null)
+          setRisks([])
+          setLoadError('Không thể tải dữ liệu phân tích học tập từ máy chủ.')
         }
       } finally {
         if (active) {
@@ -67,8 +76,13 @@ export const IntelligentAnalyticsDashboard: React.FC<IntelligentAnalyticsDashboa
   const handleOpenAiReport = async () => {
     setShowReportModal(true)
     if (!report) {
-      const rep = await learningAnalyticsService.getAiLearningReport(subjectId)
-      setReport(rep)
+      setReportError(null)
+      try {
+        const rep = await learningAnalyticsService.getAiLearningReport(subjectId)
+        setReport(rep)
+      } catch {
+        setReportError('Không thể tải báo cáo AI từ máy chủ.')
+      }
     }
   }
 
@@ -94,6 +108,15 @@ export const IntelligentAnalyticsDashboard: React.FC<IntelligentAnalyticsDashboa
       <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>
         <RotateCw className="animate-spin" style={{ margin: '0 auto 12px', width: 28, height: 28 }} />
         <p>Đang tổng hợp dữ liệu phân tích học tập thông minh...</p>
+      </div>
+    )
+  }
+
+  if (loadError && !overview) {
+    return (
+      <div role="alert" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+        <AlertTriangle style={{ margin: '0 auto 12px', width: 28, height: 28, color: '#f59e0b' }} />
+        <p>{loadError}</p>
       </div>
     )
   }
@@ -470,6 +493,10 @@ export const IntelligentAnalyticsDashboard: React.FC<IntelligentAnalyticsDashboa
                     ))}
                   </div>
                 </div>
+              </div>
+            ) : reportError ? (
+              <div role="alert" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
+                {reportError}
               </div>
             ) : (
               <div style={{ textAlign: 'center', padding: '24px' }}>

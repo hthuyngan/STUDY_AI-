@@ -240,4 +240,28 @@ public class SubjectGradeResolverTests
         Assert.Null(result.SubjectId);
         Assert.NotNull(result.ErrorMessage);
     }
+
+    [Fact]
+    public async Task ResolveSubjectAsync_TwoUsersWithDifferentGrades_RemainCompletelyIsolated()
+    {
+        var context = CreateInMemoryDbContext();
+        var resolver = new SubjectGradeResolver(context);
+
+        // User A is Grade 10
+        var userAResult = await resolver.ResolveSubjectAsync(userGrade: "10");
+        Assert.True(userAResult.Success);
+        Assert.Equal("sub_math10", userAResult.SubjectId);
+        Assert.Equal("10", userAResult.Grade);
+
+        // User B is Grade 11
+        var userBResult = await resolver.ResolveSubjectAsync(userGrade: "11");
+        Assert.True(userBResult.Success);
+        Assert.Equal("sub_math11", userBResult.SubjectId);
+        Assert.Equal("11", userBResult.Grade);
+
+        // Ensure user A does not leak or fallback to user B or grade 12
+        Assert.NotEqual(userAResult.SubjectId, userBResult.SubjectId);
+        Assert.NotEqual("sub_math12", userAResult.SubjectId);
+        Assert.NotEqual("sub_math12", userBResult.SubjectId);
+    }
 }

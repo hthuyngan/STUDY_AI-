@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useContext } from 'react'
 import {
   ArrowLeft,
   CheckCircle2,
@@ -9,6 +9,7 @@ import {
   Send,
 } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
+import { AuthContext } from '@/auth/AuthContext'
 import { operationsService } from '@/services/operations.service'
 import type {
   ApprovalItem,
@@ -21,6 +22,8 @@ import '@/components/admin/AdminComponents.css'
 type TabType = 'content' | 'publishing' | 'feedback' | 'history'
 
 export const AdminApprovalDetailPage: React.FC = () => {
+  const auth = useContext(AuthContext)
+  const user = auth?.user
   const { approvalId } = useParams<{ approvalId: string }>()
   const [activeTab, setActiveTab] = useState<TabType>('content')
   const [approval, setApproval] = useState<ApprovalItem | null>(null)
@@ -72,6 +75,8 @@ export const AdminApprovalDetailPage: React.FC = () => {
     }
   }, [approvalId])
 
+  const currentActor = user?.displayName || 'Quản trị viên'
+
   const handleApprove = async () => {
     if (!approval) return
     if (window.confirm(`Xác nhận phê duyệt nội dung "${approval.title}"?`)) {
@@ -79,7 +84,7 @@ export const AdminApprovalDetailPage: React.FC = () => {
         const updated = await operationsService.approveContent(
           approval.id,
           'Phê duyệt đạt chuẩn chương trình',
-          'Demo Admin'
+          currentActor
         )
         setApproval(updated)
         showToast('Đã phê duyệt nội dung thành công')
@@ -101,15 +106,15 @@ export const AdminApprovalDetailPage: React.FC = () => {
 
     try {
       if (modalMode === 'changes') {
-        const updated = await operationsService.requestChanges(approval.id, actionNote, 'Demo Admin')
+        const updated = await operationsService.requestChanges(approval.id, actionNote, currentActor)
         setApproval(updated)
         showToast('Đã gửi yêu cầu chỉnh sửa tới tác giả')
       } else if (modalMode === 'reject') {
-        const updated = await operationsService.rejectContent(approval.id, actionNote, 'Demo Admin')
+        const updated = await operationsService.rejectContent(approval.id, actionNote, currentActor)
         setApproval(updated)
         showToast('Đã từ chối phê duyệt nội dung')
       } else if (modalMode === 'publish') {
-        await operationsService.publishContent(approval.id, actionNote, 'Demo Admin')
+        await operationsService.publishContent(approval.id, actionNote, currentActor)
         showToast('Nội dung đã được xuất bản chính thức!')
         loadData()
       }

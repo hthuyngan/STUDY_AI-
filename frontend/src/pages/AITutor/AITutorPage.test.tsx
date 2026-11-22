@@ -6,6 +6,7 @@ import { aiTutorService } from '../../services/aiTutor.service'
 
 describe('AITutorPage Component', () => {
   beforeEach(() => {
+    vi.restoreAllMocks()
     localStorage.clear()
     vi.spyOn(aiTutorService, 'getProviderStatus').mockResolvedValue({
       provider: 'fake',
@@ -28,6 +29,24 @@ describe('AITutorPage Component', () => {
   })
 
   it('allows clicking new chat to show empty state with suggestion prompts', async () => {
+    vi.spyOn(aiTutorService, 'getConversations').mockResolvedValue([
+      {
+        id: 'conv-test-1',
+        title: 'Đạo hàm cực trị & tiếp tuyến',
+        subject: 'toan-12',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        messages: [
+          {
+            id: 'm-1',
+            role: 'user',
+            content: 'Chào AI Tutor',
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      },
+    ])
+
     render(
       <MemoryRouter>
         <AITutorPage />

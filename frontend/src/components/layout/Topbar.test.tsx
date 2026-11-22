@@ -60,6 +60,22 @@ describe('Topbar Header & Authentication Navigation (P20-000)', () => {
       expect(screen.queryByRole('link', { name: /Trang quản trị/i })).not.toBeInTheDocument()
       expect(screen.queryByRole('combobox', { name: /Chuyển nhanh workspace/i })).not.toBeInTheDocument()
     })
+
+    it('shows zero fake notifications and displays empty notifications dropdown when clicked', () => {
+      mockAuthState(null)
+
+      render(
+        <MemoryRouter>
+          <Topbar />
+        </MemoryRouter>
+      )
+
+      const notifBtn = screen.getByLabelText('Thông báo học tập')
+      fireEvent.click(notifBtn)
+
+      expect(screen.getByText('Không có thông báo mới')).toBeInTheDocument()
+      expect(screen.queryByText(/streak 12 ngày/i)).not.toBeInTheDocument()
+    })
   })
 
   describe('Initializing Auth State', () => {

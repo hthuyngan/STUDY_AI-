@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
+import { useAuth } from '@/auth/useAuth'
 import { type DashboardFetchOptions, fetchDashboardData } from '@/services/dashboard.service'
 import type { DashboardData } from '@/types/dashboard'
 
 export function useDashboard(options: DashboardFetchOptions = {}) {
+  const { user, isAuthenticated, state } = useAuth()
   const [data, setData] = useState<DashboardData | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
@@ -11,7 +13,20 @@ export function useDashboard(options: DashboardFetchOptions = {}) {
   const { simulateEmpty, simulateError, delayMs } = options
 
   useEffect(() => {
+    if (state === 'initializing') {
+      return
+    }
+
     let isMounted = true
+
+    if (!isAuthenticated || !user) {
+      setData(null)
+      setIsLoading(false)
+      return
+    }
+
+    setIsLoading(true)
+    setError(null)
 
     fetchDashboardData({ simulateEmpty, simulateError, delayMs })
       .then((result) => {
@@ -45,11 +60,11 @@ export function useDashboard(options: DashboardFetchOptions = {}) {
       window.removeEventListener('study_ai:learning_state_changed', handleLearningStateChanged)
       window.removeEventListener('storage', handleLearningStateChanged)
     }
-  }, [simulateEmpty, simulateError, delayMs, reloadKey])
+  }, [state, isAuthenticated, user, simulateEmpty, simulateError, delayMs, reloadKey])
 
   return {
     data,
-    isLoading,
+    isLoading: state === 'initializing' || isLoading,
     error,
     reload: () => {
       setIsLoading(true)

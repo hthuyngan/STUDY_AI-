@@ -1,0 +1,59 @@
+# Migration Progress — Role + Feature Refactor
+
+## Tiến Độ Từng Phase
+
+- [x] **Phase 0: Inventory và Architecture Guard**
+  - Baseline report: `docs/refactor/role-feature-baseline.md`
+  - Route contract map: `docs/refactor/route-contract-map.md`
+  - Architecture decisions: `docs/refactor/architecture-decisions.md`
+  - Architecture tests: `backend/tests/StudyAI.UnitTests/ArchitectureTests.cs`
+  - Baseline test gates: All passed.
+- [x] **Phase 1: Common Foundation**
+  - Application Common: Authorization (Permissions, RolePermissionMap, ICurrentUser), Exceptions (ValidationException, NotFoundException, ForbiddenException, ConflictException), Results (Result, Result<T>), Pagination (PageRequest, PagedResult), Interfaces (IAuditWriter, IUnitOfWork, IClock, IIdGenerator).
+  - Infrastructure Common: CurrentUser, SystemClock, IdGenerator, AuditWriter, UnitOfWork.
+  - Api: Global Exception Handler Middleware (RFC 7807 problem details / uniform error formatting).
+  - Test gates: 20/20 new CommonFoundationTests pass, 258/258 total Unit Tests pass, 0 oxlint warnings, Vite build success.
+- [x] **Phase 2: Public và Identity/Admin Users**
+  - Public Features: `AuthController` và `HealthController` được tổ chức lại tại `StudyAI.Api/Features/Public/` và `StudyAI.Application/Features/Public/Auth/` với `IAuthService` và `AuthService`.
+  - Admin Features: Tách hoàn toàn `AdminController` (1962 dòng) thành 7 controllers độc lập (`AdminDashboardController`, `AdminUsersController`, `AdminTeachersController`, `AdminAuditLogsController`, `AdminAnnouncementsController`, `AdminSettingsController`, `AdminSystemController`).
+  - Application Services: `AdminDashboardService`, `AdminUsersService`, `AdminTeachersService`, `AdminAuditService`, `AdminAnnouncementsService`, `AdminSettingsService`.
+  - Toàn bộ 9 controller mới không còn inject `StudyAIDbContext` (được bảo vệ bởi `ArchitectureTests`).
+  - Test gates: 258/258 Backend Unit Tests pass, 0 oxlint warnings, Vite build success, 544/544 Frontend Vitest pass.
+- [x] **Phase 3: Content / Curriculum**
+  - Tách hoàn toàn hai monolithic controllers: `ContentController.cs` (4521 dòng) và `CurriculumController.cs` (1242 dòng) thành 10 thin controllers:
+    - Content: `ContentSubjectsController`, `ContentChaptersController`, `ContentTopicsController`, `ContentVideosController`, `ContentLessonsController`, `ContentQuestionsController`, `ContentAssessmentsController`, `ContentReviewController`, `ContentCurriculumImportController`.
+    - Learner: `LearnerCurriculumController`.
+  - Triển khai 10 Application Services chuyên biệt theo role/feature:
+    - Content: `ContentSubjectsService`, `ContentChaptersService`, `ContentTopicsService`, `ContentVideosService`, `ContentLessonsService`, `ContentQuestionsService`, `ContentAssessmentsService`, `ContentReviewService`, `ContentImportService`.
+    - Learner: `LearnerCurriculumService`.
+  - Quy tắc bảo mật giáo dục: Independent Review (nguyên tắc 4 mắt), bản quyền VNHSGE, bảo vệ đáp án đối với học sinh/người dùng chưa đăng nhập.
+  - Test gates: 258/258 Backend Unit Tests pass, 3/3 ArchitectureTests pass (0 DbContext injection trong controller mới), 0 oxlint warnings, Vite build success, 544/544 Frontend Vitest pass.
+- [x] **Phase 4: Teacher**
+  - Tách hoàn toàn ba controllers cũ: `ClassroomsController.cs` (825 dòng), `AssignmentsController.cs` (758 dòng) và `TeacherManagementController.cs` (585 dòng) thành 6 thin controllers:
+    - `TeacherClassroomsController`, `TeacherStudentsController`, `TeacherAssignmentsController`, `TeacherSubmissionsController`, `TeacherGradingController`, `TeacherAnalyticsController`.
+  - Triển khai 5 Application Services chuyên biệt theo role/feature:
+    - `TeacherClassroomsService`, `TeacherStudentsService`, `TeacherAssignmentsService`, `TeacherSubmissionsService`, `TeacherAnalyticsService`.
+  - Kiểm soát quyền sở hữu chặt chẽ (Ownership enforcement): Giáo viên chỉ quản lý lớp học/bài tập/học sinh/cảnh báo của mình; Học sinh chỉ nộp bài trong lớp đã tham gia; Tự động cập nhật StudentTopicMastery chuẩn hóa khi chấm bài và ghi vết StaffAuditLog đầy đủ.
+  - Test gates: 258/258 Backend Unit Tests pass, 3/3 ArchitectureTests pass (0 DbContext injection), 0 oxlint warnings, Vite build success, 544/544 Frontend Vitest pass.
+- [x] **Phase 5: Learner**
+  - Tách hoàn toàn các controllers cựu: `PracticeController.cs` (1521 dòng), `MeController.cs` (605 dòng), `LearningDataControllers.cs` (453 dòng), và `LearningOperationsController.cs` (125 dòng).
+  - Triển khai các thin controllers theo role/feature:
+    - Learner: `LearnerProgressController`, `LearnerAssessmentAttemptsController`, `LearnerEventsController`, `LearnerProfileController`, `LearnerPracticeController`, `LearnerAdaptiveLearningController`, `LearnerExamPreparationController`, `LearnerAnalyticsController`.
+    - Admin Operations: `AdminOperationsController`.
+    - Content: di chuyển `ContentGovernanceController` và `CurriculumImportController` về `StudyAI.Api/Features/Content/`.
+  - Triển khai 6 Application Services chuyên biệt:
+    - `LearnerProgressService`, `LearnerAssessmentService`, `LearnerEventsService`, `LearnerProfileService`, `LearnerPracticeService`, `AdminOperationsService`.
+  - Bảo đảm an toàn dữ liệu: Ngăn chặn cross-tenant access, hỗ trợ đồng bộ dữ liệu `sync/bootstrap` không làm hỏng tiến trình, Leitner review box 1..5 và adaptive practice chống lặp câu hỏi.
+  - Test gates: 258/258 Backend Unit Tests pass, 3/3 ArchitectureTests pass (0 DbContext injection), 0 oxlint warnings, Vite build success, 544/544 Frontend Vitest pass.
+- [x] **Phase 6: AI Tutor và Support**
+  - Tổ chức lại `AiChatController` thành `LearnerAiChatController` tại `StudyAI.Api/Features/Learner/` và `AiAdminController` thành `AdminAiController` tại `StudyAI.Api/Features/Admin/`.
+  - Tách bạch hoàn toàn Orchestration (`IAiTutorService`, `IAiUsageService`) với LLM Provider Adapters (`OpenAiLlmProvider`, `FakeLlmProvider`, `UnconfiguredLlmProvider`).
+  - Phân quyền Support workspace (`Permissions.UsersRead`, `Permissions.AuditRead`, `Permissions.ContentRead`).
+  - Test gates: 258/258 Backend Unit Tests pass, 3/3 ArchitectureTests pass (0 DbContext injection), 0 oxlint warnings, Vite build success, 544/544 Frontend Vitest pass.
+- [x] **Phase 7: Cleanup & Final Verification**
+  - Xóa bỏ hoàn toàn thư mục cũ `backend/src/StudyAI.Api/Controllers/`.
+  - 100% (38/38) Controllers được tổ chức trong `backend/src/StudyAI.Api/Features/{Role}/`.
+  - Loại bỏ hoàn toàn DbContext injection trong controllers: 0 controller inject `StudyAIDbContext` hoặc `IApplicationDbContext`.
+  - Bổ sung kiểm thử kiến trúc `ArchitectureTests.cs` (4 bài kiểm tra tự động khóa chặt vi phạm kiến trúc).
+  - Nghiệm thu báo cáo toàn diện tại `docs/refactor/final-verification.md`.
+  - Toàn bộ test gates pass: 259/259 Backend Unit Tests pass, 4/4 ArchitectureTests pass, 0 oxlint warnings/errors, Vite build pass, 544/544 Frontend Vitest pass.

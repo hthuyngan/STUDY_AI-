@@ -13,16 +13,19 @@ public class IntelligentExamService : IIntelligentExamService
 {
     private readonly StudyAIDbContext _context;
     private readonly IExamBlueprintService _blueprintService;
+    private readonly ISubjectGradeResolver? _subjectResolver;
     private readonly ILogger<IntelligentExamService> _logger;
 
     public IntelligentExamService(
         StudyAIDbContext context,
         ILogger<IntelligentExamService> logger,
-        IExamBlueprintService? blueprintService = null)
+        IExamBlueprintService? blueprintService = null,
+        ISubjectGradeResolver? subjectResolver = null)
     {
         _context = context;
         _logger = logger;
         _blueprintService = blueprintService ?? new ExamBlueprintService();
+        _subjectResolver = subjectResolver;
     }
 
     public async Task<PracticeSessionResponseDto> GenerateMatrixExamAsync(
@@ -30,9 +33,29 @@ public class IntelligentExamService : IIntelligentExamService
         ExamMatrixRequestDto request,
         CancellationToken cancellationToken = default)
     {
-        var effectiveSubjectId = string.IsNullOrWhiteSpace(request.SubjectId)
-            ? "sub_math12"
-            : request.SubjectId;
+        string effectiveSubjectId = request.SubjectId;
+        if (string.IsNullOrWhiteSpace(effectiveSubjectId))
+        {
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+            if (_subjectResolver != null)
+            {
+                var resolved = await _subjectResolver.ResolveSubjectAsync(
+                    requestedSubjectId: request.SubjectId,
+                    userGrade: user?.Grade,
+                    cancellationToken: cancellationToken);
+                effectiveSubjectId = resolved.Success && !string.IsNullOrEmpty(resolved.SubjectId)
+                    ? resolved.SubjectId
+                    : "sub_math10";
+            }
+            else
+            {
+                var g = user?.Grade?.Trim();
+                if (g == "10" || g?.Contains("10") == true) effectiveSubjectId = "sub_math10";
+                else if (g == "11" || g?.Contains("11") == true) effectiveSubjectId = "sub_math11";
+                else if (g == "12" || g?.Contains("12") == true) effectiveSubjectId = "sub_math12";
+                else effectiveSubjectId = "sub_math10";
+            }
+        }
 
         // Resolve blueprint
         ExamBlueprintDto? blueprint = null;

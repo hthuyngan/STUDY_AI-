@@ -118,4 +118,42 @@ describe('QuestionBankRepository — Authenticated Fail-Closed & Zero-Mock Suite
 
     await expect(questionBankRepository.getAll()).rejects.toThrow('Server error 500')
   })
+
+  it('queries backend public endpoint when unauthenticated (guest)', async () => {
+    vi.mocked(getAccessToken).mockReturnValue(null)
+    vi.mocked(apiClient.get).mockResolvedValueOnce({
+      items: [
+        {
+          id: 'q_guest_01',
+          subjectId: 'sub_math10',
+          chapterId: 'chap_1',
+          lessonId: 'les_1',
+          skillIds: ['SKILL-10'],
+          type: 'multiple_choice' as const,
+          stem: 'Guest question stem',
+          difficulty: 'easy' as const,
+          cognitiveLevel: 'recognition' as const,
+          explanation: '',
+          reviewStatus: 'approved' as const,
+          createdAt: '',
+          updatedAt: '',
+          options: [
+            { id: 'A' as const, text: 'A' },
+            { id: 'B' as const, text: 'B' },
+            { id: 'C' as const, text: 'C' },
+            { id: 'D' as const, text: 'D' },
+          ],
+          correctAnswer: 'A' as const,
+        },
+      ],
+      total: 1,
+      page: 1,
+      pageSize: 100,
+    })
+
+    const questions = await questionBankRepository.getAll()
+    expect(apiClient.get).toHaveBeenCalledWith('/api/v1/curriculum/question-bank?pageSize=100')
+    expect(questions.length).toBe(1)
+    expect(questions[0].id).toBe('q_guest_01')
+  })
 })

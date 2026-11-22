@@ -4,7 +4,6 @@ import {
   Download,
   CheckCircle2,
   Clock,
-  Shield,
 } from 'lucide-react'
 import { operationsService } from '@/services/operations.service'
 import type { AuditLogEntry } from '@/types/operations'
@@ -165,25 +164,6 @@ export const AdminAuditLogsPage: React.FC = () => {
 
       {/* 4 KPIs Summary Strip */}
       <AdminSummaryStrip items={auditKPIs} ariaLabel="Thống kê nhanh nhật ký quản trị" />
-
-      {/* Demo Sandbox Banner */}
-      <div
-        style={{
-          padding: '12px 18px',
-          background: 'rgba(2, 132, 199, 0.08)',
-          border: '1px solid rgba(2, 132, 199, 0.2)',
-          borderRadius: 8,
-          marginBottom: 20,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-        }}
-      >
-        <Shield size={20} color="#0284c7" style={{ flexShrink: 0 }} />
-        <div style={{ fontSize: '0.85rem', color: '#0369a1', lineHeight: 1.45 }}>
-          <strong>Nhật ký demo:</strong> Toàn bộ thao tác mutation (phê duyệt, giao bài, đổi cài đặt) được lưu vết trên trình duyệt để kiểm tra quy trình vận hành và kiểm soát chất lượng, không phải hệ thống audit bảo mật production.
-        </div>
-      </div>
 
       {/* Filter Bar */}
       <div className="admin-filter-bar">

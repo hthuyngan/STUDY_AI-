@@ -1,5 +1,4 @@
 import { Route, Navigate, useParams } from 'react-router-dom'
-import { LegacyAiTutorRoutes } from './legacyRedirectRoutes'
 import { AppShell } from '@/components/layout/AppShell'
 import DashboardPage from '@/pages/Dashboard/DashboardPage'
 import SubjectsPage from '@/pages/Subjects/SubjectsPage'
@@ -22,6 +21,7 @@ import DesignSystemPage from '@/pages/DesignSystem/DesignSystemPage'
 import { LearnerAssignmentsPage } from '@/pages/Assignments/LearnerAssignmentsPage'
 import { ExamPreparationPage } from '@/pages/Exam/ExamPreparationPage'
 import { SchedulePage } from '@/pages/Schedule/SchedulePage'
+import AITutorPage from '@/pages/AITutor/AITutorPage'
 
 export function LegacyCoursesRedirect() {
   const { courseId } = useParams<{ courseId?: string }>()
@@ -107,8 +107,23 @@ export function LearnerRoutes() {
       <Route path="/quiz/:quizId" element={<Navigate to="/practice" replace />} />
       <Route path="/quiz/:quizId/result" element={<Navigate to="/practice" replace />} />
 
-      {/* Legacy AI Tutor Redirects: seamlessly route to /subjects with zero dead links & active Floating AI Chatbot */}
-      {LegacyAiTutorRoutes()}
+      {/* AI Tutor */}
+      <Route
+        path="/ai-tutor"
+        element={
+          <AppShell>
+            <AITutorPage />
+          </AppShell>
+        }
+      />
+      <Route
+        path="/ai-tutor/:conversationId"
+        element={
+          <AppShell>
+            <AITutorPage />
+          </AppShell>
+        }
+      />
 
       {/* Learning Path */}
       <Route

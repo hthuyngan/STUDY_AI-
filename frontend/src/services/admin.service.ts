@@ -16,52 +16,8 @@ import type { RolePermission } from '@/auth/permissions'
 import { ROLE_PERMISSIONS } from '@/auth/permissions'
 import type { UserRole } from '@/auth/auth.types'
 import { apiClient } from '@/lib/apiClient'
+
 import { getAccessToken } from '@/auth/authSession'
-import {
-  INITIAL_MOCK_ACTIVITIES,
-  INITIAL_MOCK_ATTENTION_ITEMS,
-  INITIAL_MOCK_METRICS,
-  INITIAL_MOCK_USERS,
-  MOCK_TRENDS_7D,
-  MOCK_TRENDS_30D,
-  MOCK_TRENDS_MONTH,
-} from '@/data/staff/admin.mock'
-
-const STORAGE_KEY_USERS = 'study_ai_admin_users_v2'
-const STORAGE_KEY_ACTIVITIES = 'study_ai_admin_activities_v2'
-const STORAGE_KEY_ATTENTION = 'study_ai_admin_attention_v2'
-
-function safeGetStorage<T>(key: string, fallback: T): T {
-  try {
-    if (typeof window === 'undefined' || !window.localStorage) return fallback
-    const raw = window.localStorage.getItem(key)
-    if (!raw) return fallback
-    return JSON.parse(raw) as T
-  } catch {
-    return fallback
-  }
-}
-
-function safeSetStorage<T>(key: string, value: T): void {
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem(key, JSON.stringify(value))
-    }
-  } catch {
-    // Ignore storage quota or disabled errors
-  }
-}
-
-// In-memory state synchronized with localStorage (fallback for offline/mock test runs)
-let mockUsers: AdminUserItem[] = safeGetStorage<AdminUserItem[]>(STORAGE_KEY_USERS, [...INITIAL_MOCK_USERS])
-let mockActivities: AdminActivityItem[] = safeGetStorage<AdminActivityItem[]>(STORAGE_KEY_ACTIVITIES, [...INITIAL_MOCK_ACTIVITIES])
-const mockAttentionItems: AdminAttentionItem[] = safeGetStorage<AdminAttentionItem[]>(STORAGE_KEY_ATTENTION, [...INITIAL_MOCK_ATTENTION_ITEMS])
-
-function persistAll() {
-  safeSetStorage(STORAGE_KEY_USERS, mockUsers)
-  safeSetStorage(STORAGE_KEY_ACTIVITIES, mockActivities)
-  safeSetStorage(STORAGE_KEY_ATTENTION, mockAttentionItems)
-}
 
 interface BackendUserDto {
   id: string
@@ -166,77 +122,57 @@ function mapBackendUser(u: BackendUserDetailDto): AdminUserItem {
 
 export const adminService = {
   async getMetrics(): Promise<AdminSystemMetrics> {
-    const token = getAccessToken()
-    if (token) {
-      const [data, health] = await Promise.all([
-        apiClient.get<BackendDashboardResponse>('/api/v1/admin/dashboard'),
-        apiClient.get<{
-          database?: { status?: string; latencyMs?: number }
-          environment?: string
-          backendVersion?: string
-        }>('/api/v1/admin/system/health'),
-      ])
-      if (data?.metrics) {
-        const databaseConnected = health?.database?.status === 'connected'
-        return {
-          totalUsers: data.metrics.totalUsers,
-          activeLearners: data.metrics.learnersCount,
-          staffAccounts: data.metrics.staffAccounts ?? (data.metrics.totalUsers - data.metrics.learnersCount),
-          completedLessonsTotal: data.metrics.completedLessonsTotal ?? 0,
-          systemStatus: databaseConnected
-            ? ((data.metrics.systemStatus as 'healthy' | 'degraded' | 'maintenance') || 'healthy')
-            : 'degraded',
-          apiLatencyMs: health?.database?.latencyMs ?? -1,
-          databaseStatus: databaseConnected ? 'connected' : 'error',
-          frontendVersion: import.meta.env.VITE_APP_VERSION || 'unknown',
-          backendVersion: health?.backendVersion || 'unknown',
-          environment: health?.environment || 'unknown',
-          isPrototypeMode: false,
-        }
-      }
-    }
+    const [data, health] = await Promise.all([
+      apiClient.get<BackendDashboardResponse>('/api/v1/admin/dashboard'),
+      apiClient.get<{
+        database?: { status?: string; latencyMs?: number }
+        environment?: string
+        backendVersion?: string
+      }>('/api/v1/admin/system/health'),
+    ])
 
-    const totalUsers = mockUsers.length
-    const activeLearners = mockUsers.filter((u) => u.role === 'learner' && u.status === 'active').length
-    const staffAccounts = mockUsers.filter((u) => u.role !== 'learner').length
+    const databaseConnected = health?.database?.status === 'connected'
+    const totalUsers = data?.metrics?.totalUsers ?? 0
+    const activeLearners = data?.metrics?.learnersCount ?? 0
+    const staffAccounts = data?.metrics?.staffAccounts ?? Math.max(0, totalUsers - activeLearners)
 
     return {
-      ...INITIAL_MOCK_METRICS,
       totalUsers,
       activeLearners,
       staffAccounts,
-      isPrototypeMode: true,
+      completedLessonsTotal: data?.metrics?.completedLessonsTotal ?? 0,
+      systemStatus: databaseConnected
+        ? ((data?.metrics?.systemStatus as 'healthy' | 'degraded' | 'maintenance') || 'healthy')
+        : 'degraded',
+      apiLatencyMs: health?.database?.latencyMs ?? -1,
+      databaseStatus: databaseConnected ? 'connected' : 'error',
+      frontendVersion: import.meta.env.VITE_APP_VERSION || 'unknown',
+      backendVersion: health?.backendVersion || 'unknown',
+      environment: health?.environment || 'unknown',
+      isPrototypeMode: false,
     }
   },
 
   async getAttentionItems(): Promise<AdminAttentionItem[]> {
-    const token = getAccessToken()
-    if (token) {
-      const data = await apiClient.get<BackendDashboardResponse>('/api/v1/admin/dashboard')
-      if (data?.attentionItems && data.attentionItems.length > 0) {
-        return data.attentionItems
-      }
-      return []
+    const data = await apiClient.get<BackendDashboardResponse>('/api/v1/admin/dashboard')
+    if (data?.attentionItems && data.attentionItems.length > 0) {
+      return data.attentionItems
     }
-    return [...mockAttentionItems]
+    return []
   },
 
   async getRecentActivities(): Promise<AdminActivityItem[]> {
-    const token = getAccessToken()
-    if (token) {
-      const data = await apiClient.get<BackendDashboardResponse>('/api/v1/admin/dashboard')
-      if (data?.recentActivities) {
-        return data.recentActivities.map((a) => ({
-          id: a.id,
-          actorName: a.actor || 'Quản trị viên',
-          action: a.action,
-          target: `${a.targetType} ${a.targetId}`,
-          timestamp: a.timestamp,
-        }))
-      }
-      return []
+    const data = await apiClient.get<BackendDashboardResponse>('/api/v1/admin/dashboard')
+    if (data?.recentActivities) {
+      return data.recentActivities.map((a) => ({
+        id: a.id,
+        actorName: a.actor || 'Quản trị viên',
+        action: a.action,
+        target: `${a.targetType} ${a.targetId}`,
+        timestamp: a.timestamp,
+      }))
     }
-    return [...mockActivities]
+    return []
   },
 
   async getUsers(
@@ -246,39 +182,18 @@ export const adminService = {
     page = 1,
     pageSize = 50
   ): Promise<AdminUserItem[]> {
-    const token = getAccessToken()
-    if (token) {
-      const params = new URLSearchParams()
-      if (search.trim()) params.set('search', search.trim())
-      if (roleFilter && roleFilter !== 'all') params.set('role', roleFilter)
-      if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter)
-      params.set('page', String(page))
-      params.set('pageSize', String(pageSize))
+    const params = new URLSearchParams()
+    if (search.trim()) params.set('search', search.trim())
+    if (roleFilter && roleFilter !== 'all') params.set('role', roleFilter)
+    if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter)
+    params.set('page', String(page))
+    params.set('pageSize', String(pageSize))
 
-      const res = await apiClient.get<BackendUsersResponse>(`/api/v1/admin/users?${params.toString()}`)
-      if (res?.items) {
-        return res.items.map(mapBackendUser)
-      }
-      return []
+    const res = await apiClient.get<BackendUsersResponse>(`/api/v1/admin/users?${params.toString()}`)
+    if (res?.items) {
+      return res.items.map(mapBackendUser)
     }
-
-    let result = [...mockUsers]
-    if (search.trim()) {
-      const q = search.trim().toLowerCase()
-      result = result.filter(
-        (u) =>
-          u.displayName.toLowerCase().includes(q) ||
-          u.email.toLowerCase().includes(q) ||
-          (u.className && u.className.toLowerCase().includes(q))
-      )
-    }
-    if (roleFilter && roleFilter !== 'all') {
-      result = result.filter((u) => u.role === roleFilter)
-    }
-    if (statusFilter && statusFilter !== 'all') {
-      result = result.filter((u) => u.status === statusFilter)
-    }
-    return result
+    return []
   },
 
   async getUsersPaginated(
@@ -290,199 +205,84 @@ export const adminService = {
     sortBy = 'createdAt',
     sortOrder = 'desc'
   ): Promise<PaginatedAdminUsers> {
-    const token = getAccessToken()
-    if (token) {
-      const params = new URLSearchParams()
-      if (search.trim()) params.set('search', search.trim())
-      if (roleFilter && roleFilter !== 'all') params.set('role', roleFilter)
-      if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter)
-      params.set('page', String(page))
-      params.set('pageSize', String(pageSize))
-      params.set('sortBy', sortBy)
-      params.set('sortOrder', sortOrder)
+    const params = new URLSearchParams()
+    if (search.trim()) params.set('search', search.trim())
+    if (roleFilter && roleFilter !== 'all') params.set('role', roleFilter)
+    if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter)
+    params.set('page', String(page))
+    params.set('pageSize', String(pageSize))
+    params.set('sortBy', sortBy)
+    params.set('sortOrder', sortOrder)
 
-      const res = await apiClient.get<BackendUsersResponse>(`/api/v1/admin/users?${params.toString()}`)
-      if (res?.items) {
-        return {
-          items: res.items.map(mapBackendUser),
-          page: res.page,
-          pageSize: res.pageSize,
-          total: res.total,
-          totalPages: res.totalPages,
-        }
-      }
+    const res = await apiClient.get<BackendUsersResponse>(`/api/v1/admin/users?${params.toString()}`)
+    if (res?.items) {
       return {
-        items: [],
-        page,
-        pageSize,
-        total: 0,
-        totalPages: 0,
+        items: res.items.map(mapBackendUser),
+        page: res.page,
+        pageSize: res.pageSize,
+        total: res.total,
+        totalPages: res.totalPages,
       }
     }
-
-    const all = await this.getUsers(search, roleFilter, statusFilter)
-    const startIndex = (page - 1) * pageSize
-    const paginated = all.slice(startIndex, startIndex + pageSize)
     return {
-      items: paginated,
+      items: [],
       page,
       pageSize,
-      total: all.length,
-      totalPages: Math.max(1, Math.ceil(all.length / pageSize)),
+      total: 0,
+      totalPages: 0,
     }
   },
 
   async getUserById(userId: string): Promise<AdminUserItem | null> {
-    const token = getAccessToken()
-    if (token) {
-      try {
-        const u = await apiClient.get<BackendUserDetailDto>(`/api/v1/admin/users/${userId}`)
-        if (u) {
-          return mapBackendUser(u)
-        }
-      } catch (err: any) {
-        if (err?.status === 404 || err?.response?.status === 404) {
-          return null
-        }
-        throw err
+    try {
+      const u = await apiClient.get<BackendUserDetailDto>(`/api/v1/admin/users/${userId}`)
+      if (u) {
+        return mapBackendUser(u)
       }
+      return null
+    } catch (err: any) {
+      if (err?.status === 404 || err?.response?.status === 404) {
+        return null
+      }
+      throw err
     }
-
-    const user = mockUsers.find((u) => u.id === userId)
-    return user ? JSON.parse(JSON.stringify(user)) : null
   },
 
   async createUser(input: CreateDemoUserInput): Promise<AdminUserItem> {
-    const token = getAccessToken()
-    if (token) {
-      const payload = {
-        email: input.email.trim(),
-        displayName: input.displayName.trim(),
-        role: input.role,
-        status: input.status,
-        grade: input.className || input.grade,
-        password: input.password,
-      }
-      const res = await apiClient.post<{ user: BackendUserDto; temporaryPassword?: string }>(
-        '/api/v1/admin/users',
-        payload
-      )
-      if (res?.user) {
-        return mapBackendUser(res.user)
-      }
-    }
-
-    const newId = `usr-${Date.now().toString().slice(-4)}`
-    const isLearner = input.role === 'learner'
-
-    const newUser: AdminUserItem = {
-      id: newId,
+    const payload = {
       email: input.email.trim(),
       displayName: input.displayName.trim(),
       role: input.role,
       status: input.status,
-      className: input.className?.trim() || (isLearner ? 'Khối 12' : undefined),
-      createdAt: new Date().toISOString(),
-      lastLoginAt: undefined,
-      totalCompletedLessons: isLearner ? 0 : undefined,
-      averageScore: isLearner ? 0 : undefined,
-      learningProgress: isLearner
-        ? {
-            completedLessons: 0,
-            totalLessons: 32,
-            streakDays: 0,
-            recentSubjects: [{ name: 'Toán học 12', progress: 0, lastStudied: new Date().toISOString() }],
-          }
-        : undefined,
-      assessments: [],
-      activities: [
-        {
-          id: `uact-${Date.now()}`,
-          action: 'Tài khoản được tạo thủ công bởi Quản trị viên',
-          timestamp: new Date().toISOString(),
-        },
-      ],
+      grade: input.className || input.grade,
+      password: input.password,
     }
-
-    mockUsers.unshift(newUser)
-    mockActivities.unshift({
-      id: `act-${Date.now()}`,
-      actorName: 'Quản trị viên Hệ thống',
-      action: 'thêm tài khoản mới',
-      target: `${newUser.displayName} (${newUser.role})`,
-      timestamp: new Date().toISOString(),
-    })
-
-    persistAll()
-    return newUser
+    const res = await apiClient.post<{ user: BackendUserDto; temporaryPassword?: string }>(
+      '/api/v1/admin/users',
+      payload
+    )
+    if (res?.user) {
+      return mapBackendUser(res.user)
+    }
+    throw new Error('Không thể tạo người dùng trên hệ thống.')
   },
 
   async updateUser(userId: string, input: UpdateUserInput): Promise<AdminUserItem> {
-    const token = getAccessToken()
-    if (token) {
-      const res = await apiClient.patch<BackendUserDto>(`/api/v1/admin/users/${userId}`, input)
-      if (res) {
-        return mapBackendUser(res)
-      }
+    const res = await apiClient.patch<BackendUserDto>(`/api/v1/admin/users/${userId}`, input)
+    if (res) {
+      return mapBackendUser(res)
     }
-
-    const user = mockUsers.find((u) => u.id === userId)
-    if (!user) throw new Error('Không tìm thấy người dùng')
-
-    if (input.displayName) user.displayName = input.displayName.trim()
-    if (input.role) user.role = input.role
-    if (input.status) user.status = input.status
-    if (input.grade) user.className = input.grade
-    persistAll()
-    return user
+    throw new Error('Không thể cập nhật thông tin người dùng.')
   },
 
   async updateUserRole(userId: string, newRole: string): Promise<boolean> {
-    const token = getAccessToken()
-    if (token) {
-      await apiClient.patch(`/api/v1/admin/users/${userId}/role`, { role: newRole })
-      return true
-    }
-
-    const user = mockUsers.find((u) => u.id === userId)
-    if (user) {
-      const oldRole = user.role
-      user.role = newRole as UserRole
-
-      if (!user.activities) user.activities = []
-      user.activities.unshift({
-        id: `uact-${Date.now()}`,
-        action: `Vai trò được cập nhật từ ${oldRole} sang ${newRole}`,
-        timestamp: new Date().toISOString(),
-      })
-
-      mockActivities.unshift({
-        id: `act-${Date.now()}`,
-        actorName: 'Quản trị viên Hệ thống',
-        action: 'cập nhật vai trò thành công cho',
-        target: `${user.displayName} (${user.role})`,
-        timestamp: new Date().toISOString(),
-      })
-      persistAll()
-      return true
-    }
-    return false
+    await apiClient.patch(`/api/v1/admin/users/${userId}/role`, { role: newRole })
+    return true
   },
 
   async updateUserStatus(userId: string, newStatus: AccountStatus): Promise<boolean> {
-    const token = getAccessToken()
-    if (token) {
-      await apiClient.patch(`/api/v1/admin/users/${userId}/status`, { status: newStatus })
-      return true
-    }
-
-    const user = mockUsers.find((u) => u.id === userId)
-    if (user) {
-      user.status = newStatus
-      persistAll()
-      return true
-    }
-    return false
+    await apiClient.patch(`/api/v1/admin/users/${userId}/status`, { status: newStatus })
+    return true
   },
 
   async toggleUserStatus(userId: string): Promise<boolean> {
@@ -495,66 +295,21 @@ export const adminService = {
   },
 
   async revokeUserSessions(userId: string): Promise<boolean> {
-    const token = getAccessToken()
-    if (token) {
-      await apiClient.post(`/api/v1/admin/users/${userId}/revoke-sessions`)
-      return true
-    }
-
-    const user = mockUsers.find((u) => u.id === userId)
-    if (user) {
-      if (!user.activities) user.activities = []
-      user.activities.unshift({
-        id: `uact-${Date.now()}`,
-        action: 'Thu hồi toàn bộ phiên đăng nhập của tài khoản',
-        timestamp: new Date().toISOString(),
-      })
-
-      mockActivities.unshift({
-        id: `act-${Date.now()}`,
-        actorName: 'Quản trị viên Hệ thống',
-        action: 'thu hồi phiên đăng nhập của',
-        target: `${user.displayName}`,
-        timestamp: new Date().toISOString(),
-      })
-      persistAll()
-      return true
-    }
-    return false
+    await apiClient.post(`/api/v1/admin/users/${userId}/revoke-sessions`)
+    return true
   },
 
   async resetPassword(userId: string, newPassword?: string): Promise<ResetPasswordResult> {
-    const token = getAccessToken()
-    if (token) {
-      const res = await apiClient.post<ResetPasswordResult>(
-        `/api/v1/admin/users/${userId}/reset-password`,
-        { newPassword }
-      )
-      return res
-    }
-
-    return {
-      success: true,
-      userId,
-      temporaryPassword: newPassword || 'StudyAI@2026',
-      message: 'Mật khẩu đã được đặt lại thành công (Mô phỏng).',
-    }
+    const res = await apiClient.post<ResetPasswordResult>(
+      `/api/v1/admin/users/${userId}/reset-password`,
+      { newPassword }
+    )
+    return res
   },
 
   async deleteUser(userId: string): Promise<boolean> {
-    const token = getAccessToken()
-    if (token) {
-      await apiClient.delete(`/api/v1/admin/users/${userId}`)
-      return true
-    }
-
-    const idx = mockUsers.findIndex((u) => u.id === userId)
-    if (idx !== -1) {
-      mockUsers.splice(idx, 1)
-      persistAll()
-      return true
-    }
-    return false
+    await apiClient.delete(`/api/v1/admin/users/${userId}`)
+    return true
   },
 
   async bulkUpdateStatus(userIds: string[], newStatus: AccountStatus): Promise<{ updatedCount: number }> {
@@ -589,48 +344,17 @@ export const adminService = {
     roleDistribution: UserDistributionItem[]
     statusDistribution: UserDistributionItem[]
   }> {
-    const token = getAccessToken()
-    if (token) {
-      const data = await apiClient.get<{
-        trends: AnalyticsTrendPoint[]
-        roleDistribution: UserDistributionItem[]
-        statusDistribution: UserDistributionItem[]
-      }>(`/api/v1/admin/analytics?range=${range}`)
-      if (data?.trends && data?.roleDistribution && data?.statusDistribution) {
-        return data
-      }
+    const data = await apiClient.get<{
+      trends: AnalyticsTrendPoint[]
+      roleDistribution: UserDistributionItem[]
+      statusDistribution: UserDistributionItem[]
+    }>(`/api/v1/admin/analytics?range=${range}`)
+
+    return {
+      trends: data?.trends || [],
+      roleDistribution: data?.roleDistribution || [],
+      statusDistribution: data?.statusDistribution || [],
     }
-
-    let trends = MOCK_TRENDS_7D
-    if (range === '30d') trends = MOCK_TRENDS_30D
-    else if (range === 'month') trends = MOCK_TRENDS_MONTH
-
-    const total = mockUsers.length || 1
-    const learnerCount = mockUsers.filter((u) => u.role === 'learner').length
-    const teacherCount = mockUsers.filter((u) => u.role === 'teacher').length
-    const contentCount = mockUsers.filter((u) => u.role === 'content').length
-    const adminCount = mockUsers.filter((u) => u.role === 'admin').length
-
-    const roleDistribution: UserDistributionItem[] = [
-      { name: 'Học viên (Learner)', key: 'learner', count: learnerCount, percentage: Math.round((learnerCount / total) * 100), color: '#0284c7' },
-      { name: 'Giáo viên (Teacher)', key: 'teacher', count: teacherCount, percentage: Math.round((teacherCount / total) * 100), color: '#8b5cf6' },
-      { name: 'Nội dung (Content)', key: 'content', count: contentCount, percentage: Math.round((contentCount / total) * 100), color: '#f59e0b' },
-      { name: 'Quản trị (Admin)', key: 'admin', count: adminCount, percentage: Math.round((adminCount / total) * 100), color: '#ef4444' },
-    ]
-
-    const activeCount = mockUsers.filter((u) => u.status === 'active').length
-    const pendingCount = mockUsers.filter((u) => u.status === 'pending').length
-    const suspendedCount = mockUsers.filter((u) => u.status === 'suspended').length
-    const disabledCount = mockUsers.filter((u) => u.status === 'disabled').length
-
-    const statusDistribution: UserDistributionItem[] = [
-      { name: 'Đang hoạt động', key: 'active', count: activeCount, percentage: Math.round((activeCount / total) * 100), color: '#16a34a' },
-      { name: 'Chờ duyệt', key: 'pending', count: pendingCount, percentage: Math.round((pendingCount / total) * 100), color: '#eab308' },
-      { name: 'Tạm khóa', key: 'suspended', count: suspendedCount, percentage: Math.round((suspendedCount / total) * 100), color: '#f97316' },
-      { name: 'Vô hiệu hóa', key: 'disabled', count: disabledCount, percentage: Math.round((disabledCount / total) * 100), color: '#dc2626' },
-    ]
-
-    return { trends, roleDistribution, statusDistribution }
   },
 
   async getRolePermissionsSimulation(): Promise<Record<UserRole, RolePermission[]>> {
@@ -688,43 +412,34 @@ export const adminService = {
     }
   }> {
     const token = getAccessToken()
-    if (token) {
-      const res = await apiClient.get<any>('/api/v1/admin/system/health')
-      if (res) {
-        return {
-          apiStatus: res.apiStatus === 'operational' ? 'ASP.NET Core 10 Web API (Operational)' : res.apiStatus || 'Operational',
-          database: {
-            status: res.database?.status === 'connected' ? 'Microsoft SQL Server (Connected)' : 'Microsoft SQL Server (Disconnected)',
-            latencyMs: res.database?.latencyMs ?? -1,
-          },
-          environment: res.environment || 'development',
-          backendVersion: res.backendVersion ? `v${res.backendVersion} (ASP.NET Core 10)` : 'v1.0.0 (ASP.NET Core 10)',
-          checkedAt: res.checkedAt || new Date().toISOString(),
-          prototypeMode: false,
-          storageStats: {
-            usersCount: res.storageStats?.usersCount ?? 0,
-            activitiesCount: res.storageStats?.activitiesCount ?? 0,
-            attentionCount: res.storageStats?.attentionCount ?? 0,
-            isLocalStoragePersisted: false,
-          },
-        }
-      }
-      throw new Error('Dữ liệu trạng thái hệ thống từ máy chủ không hợp lệ.')
+    if (!token) {
+      throw new Error('Cần đăng nhập bằng tài khoản quản trị để xem trạng thái hệ thống.')
     }
-    throw new Error('Cần đăng nhập bằng tài khoản quản trị để xem trạng thái hệ thống.')
+
+    const res = await apiClient.get<any>('/api/v1/admin/system/health')
+    if (res) {
+      return {
+        apiStatus: res.apiStatus === 'operational' ? 'ASP.NET Core 10 Web API (Operational)' : res.apiStatus || 'Operational',
+        database: {
+          status: res.database?.status === 'connected' ? 'Microsoft SQL Server (Connected)' : 'Microsoft SQL Server (Disconnected)',
+          latencyMs: res.database?.latencyMs ?? -1,
+        },
+        environment: res.environment || 'development',
+        backendVersion: res.backendVersion ? `v${res.backendVersion} (ASP.NET Core 10)` : 'v1.0.0 (ASP.NET Core 10)',
+        checkedAt: res.checkedAt || new Date().toISOString(),
+        prototypeMode: false,
+        storageStats: {
+          usersCount: res.storageStats?.usersCount ?? 0,
+          activitiesCount: res.storageStats?.activitiesCount ?? 0,
+          attentionCount: res.storageStats?.attentionCount ?? 0,
+          isLocalStoragePersisted: false,
+        },
+      }
+    }
+    throw new Error('Dữ liệu trạng thái hệ thống từ máy chủ không hợp lệ.')
   },
 
   _resetMockState(): void {
-    mockUsers = [...INITIAL_MOCK_USERS]
-    mockActivities = [...INITIAL_MOCK_ACTIVITIES]
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        window.localStorage.removeItem(STORAGE_KEY_USERS)
-        window.localStorage.removeItem(STORAGE_KEY_ACTIVITIES)
-        window.localStorage.removeItem(STORAGE_KEY_ATTENTION)
-      }
-    } catch {
-      // Ignore
-    }
+    // No-op in real backend architecture
   },
 }

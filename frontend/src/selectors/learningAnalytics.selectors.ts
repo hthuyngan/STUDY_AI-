@@ -4,7 +4,6 @@
  * assessment attempts, knowledge gaps, and smart review items into analytics insights.
  */
 
-import { mockSubjectsSummary } from '@/data/subjects.mock'
 import type {
   LearningAttempt,
   LearningEvent,
@@ -31,15 +30,23 @@ export function normalizeSubjectId(id: string): string {
   return id
 }
 
+const SUBJECT_DISPLAY_NAMES: Record<string, string> = {
+  math: 'Toán học',
+  sub_math10: 'Toán học 10',
+  sub_math11: 'Toán học 11',
+  sub_math12: 'Toán học 12',
+  physics: 'Vật lý',
+  chemistry: 'Hóa học',
+  biology: 'Sinh học',
+  literature: 'Ngữ văn',
+  english: 'Tiếng Anh',
+  history: 'Lịch sử',
+  geography: 'Địa lí',
+}
+
 export function getSubjectDisplayName(id: string): string {
   const norm = normalizeSubjectId(id)
-  const found = mockSubjectsSummary.find((s) => s.id === norm || s.id === id)
-  if (found) return found.name
-  if (norm === 'math') return 'Toán học'
-  if (norm === 'physics') return 'Vật lý'
-  if (norm === 'chemistry') return 'Hóa học'
-  if (norm === 'english') return 'Tiếng Anh'
-  return id
+  return SUBJECT_DISPLAY_NAMES[norm] || SUBJECT_DISPLAY_NAMES[id] || id
 }
 
 /**
@@ -52,11 +59,7 @@ export function selectAnalyticsSummary(
   reviewItems: SmartReviewItem[]
 ): StudentAnalyticsSummary {
   // Total available lessons across curriculum
-  let totalLessonsAvailable = 0
-  mockSubjectsSummary.forEach((s) => {
-    totalLessonsAvailable += s.totalLessons || 0
-  })
-  if (totalLessonsAvailable === 0) totalLessonsAvailable = 118
+  const totalLessonsAvailable = 118
 
   // Completed lessons: overallProgress >= 100 or assessmentStatus === 'completed'
   const progressEntries = Object.values(progressMap || {})
@@ -305,8 +308,7 @@ export function selectSubjectAnalytics(
 
   return subjects.map((subjId) => {
     const subjName = getSubjectDisplayName(subjId)
-    const summary = mockSubjectsSummary.find((s) => s.id === subjId)
-    const totalLessons = summary?.totalLessons || 25
+    const totalLessons = 32
 
     // Progress for this subject
     const subjectProgresses = Object.values(progressMap || {}).filter(

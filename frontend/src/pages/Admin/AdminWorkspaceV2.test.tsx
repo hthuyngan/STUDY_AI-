@@ -8,6 +8,13 @@ import { AdminUserDetailPage } from './AdminUserDetailPage'
 import { AdminRolesPage } from './AdminRolesPage'
 import { AdminSystemPage } from './AdminSystemPage'
 import { adminService } from '@/services/admin.service'
+import {
+  INITIAL_MOCK_ACTIVITIES,
+  INITIAL_MOCK_ATTENTION_ITEMS,
+  INITIAL_MOCK_METRICS,
+  INITIAL_MOCK_USERS,
+  MOCK_TRENDS_7D,
+} from '@/data/staff/admin.mock'
 
 vi.mock('recharts', async () => {
   const actual = await vi.importActual<typeof import('recharts')>('recharts')
@@ -22,8 +29,66 @@ vi.mock('recharts', async () => {
 })
 
 describe('Admin Workspace V2 UI Tests', () => {
+  let testUsers = [...INITIAL_MOCK_USERS]
+
   beforeEach(() => {
-    adminService._resetMockState()
+    testUsers = JSON.parse(JSON.stringify(INITIAL_MOCK_USERS))
+
+    vi.spyOn(adminService, 'getMetrics').mockResolvedValue({
+      ...INITIAL_MOCK_METRICS,
+      totalUsers: testUsers.length,
+      activeLearners: testUsers.filter((u) => u.role === 'learner' && u.status === 'active').length,
+      staffAccounts: testUsers.filter((u) => u.role !== 'learner').length,
+    })
+    vi.spyOn(adminService, 'getAttentionItems').mockResolvedValue([...INITIAL_MOCK_ATTENTION_ITEMS])
+    vi.spyOn(adminService, 'getRecentActivities').mockResolvedValue([...INITIAL_MOCK_ACTIVITIES])
+    vi.spyOn(adminService, 'getAnalytics').mockResolvedValue({
+      trends: MOCK_TRENDS_7D,
+      roleDistribution: [],
+      statusDistribution: [],
+    })
+    vi.spyOn(adminService, 'getUsers').mockImplementation(async (search, role, status) => {
+      let res = [...testUsers]
+      if (search) res = res.filter((u) => u.displayName.toLowerCase().includes(search.toLowerCase()))
+      if (role && role !== 'all') res = res.filter((u) => u.role === role)
+      if (status && status !== 'all') res = res.filter((u) => u.status === status)
+      return res
+    })
+    vi.spyOn(adminService, 'getUsersPaginated').mockImplementation(async (search, role, status, page = 1, pageSize = 10) => {
+      let res = [...testUsers]
+      if (search) res = res.filter((u) => u.displayName.toLowerCase().includes(search.toLowerCase()))
+      if (role && role !== 'all') res = res.filter((u) => u.role === role)
+      if (status && status !== 'all') res = res.filter((u) => u.status === status)
+      const startIndex = (page - 1) * pageSize
+      return {
+        items: res.slice(startIndex, startIndex + pageSize),
+        page,
+        pageSize,
+        total: res.length,
+        totalPages: Math.ceil(res.length / pageSize),
+      }
+    })
+    vi.spyOn(adminService, 'getUserById').mockImplementation(async (id) => {
+      return testUsers.find((u) => u.id === id) || null
+    })
+    vi.spyOn(adminService, 'createUser').mockImplementation(async (input) => {
+      const u = {
+        id: `usr-${Date.now()}`,
+        email: input.email,
+        displayName: input.displayName,
+        role: input.role,
+        status: input.status,
+        className: input.className,
+        createdAt: new Date().toISOString(),
+      }
+      testUsers.unshift(u as any)
+      return u as any
+    })
+    vi.spyOn(adminService, 'updateUserRole').mockResolvedValue(true)
+    vi.spyOn(adminService, 'updateUserStatus').mockResolvedValue(true)
+    vi.spyOn(adminService, 'bulkUpdateRole').mockResolvedValue({ updatedCount: 2 })
+    vi.spyOn(adminService, 'bulkUpdateStatus').mockResolvedValue({ updatedCount: 2 })
+    vi.spyOn(adminService, 'bulkDeleteUsers').mockResolvedValue({ deletedCount: 2 })
   })
 
   describe('AdminDashboardPage (5 Rows Layout)', () => {

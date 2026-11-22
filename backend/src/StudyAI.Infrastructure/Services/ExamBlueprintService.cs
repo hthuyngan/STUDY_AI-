@@ -172,12 +172,13 @@ public class ExamBlueprintService : IExamBlueprintService
         string? subjectId = null,
         CancellationToken cancellationToken = default)
     {
-        var effectiveSubject = string.IsNullOrWhiteSpace(subjectId) || subjectId == "all"
-            ? "sub_math12"
-            : subjectId;
+        if (string.IsNullOrWhiteSpace(subjectId) || subjectId == "all")
+        {
+            return Task.FromResult(DefaultBlueprints.ToList());
+        }
 
         var result = DefaultBlueprints
-            .Where(b => b.SubjectId == effectiveSubject)
+            .Where(b => b.SubjectId.Equals(subjectId, StringComparison.OrdinalIgnoreCase))
             .ToList();
 
         return Task.FromResult(result);

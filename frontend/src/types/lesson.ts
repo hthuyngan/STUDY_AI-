@@ -111,6 +111,10 @@ export interface LessonDetail {
     sourceUrl: string
     embedUrl?: string | null
     youTubeVideoId?: string | null
+    channelName?: string | null
+    isPrimary?: boolean
+    attributionText?: string | null
+    embedAllowed?: boolean
     durationSeconds?: number | null
     thumbnailUrl?: string | null
   }>

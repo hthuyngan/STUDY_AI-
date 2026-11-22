@@ -31,7 +31,11 @@ export interface LearnerVideo {
   provider: string
   sourceUrl: string
   embedUrl?: string
+  youtubeVideoId?: string
   youTubeVideoId?: string
+  channelName?: string
+  isPrimary?: boolean
+  attributionText?: string
   durationSeconds: number
   thumbnailUrl?: string
   embedAllowed: boolean
@@ -118,6 +122,18 @@ export const curriculumService = {
 
   async getSubjectChapters(subjectId: string): Promise<LearnerChapter[]> {
     return apiClient.get<LearnerChapter[]>(`/api/v1/curriculum/subjects/${subjectId}/chapters`)
+  },
+
+  async getChapter(chapterId: string): Promise<LearnerChapter> {
+    return apiClient.get<LearnerChapter>(`/api/v1/curriculum/chapters/${chapterId}`)
+  },
+
+  async getTopic(topicId: string): Promise<LearnerTopic> {
+    return apiClient.get<LearnerTopic>(`/api/v1/curriculum/topics/${topicId}`)
+  },
+
+  async getLessonVideos(lessonId: string): Promise<LearnerVideo[]> {
+    return apiClient.get<LearnerVideo[]>(`/api/v1/curriculum/lessons/${lessonId}/videos`)
   },
 
   async getLesson(lessonId: string): Promise<LearnerLessonDetail> {

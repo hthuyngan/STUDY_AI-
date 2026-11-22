@@ -51,6 +51,8 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
     public DbSet<ContentQuestion> ContentQuestions => Set<ContentQuestion>();
 
+    public DbSet<ContentRevision> ContentRevisions => Set<ContentRevision>();
+
     public DbSet<AiConversation> AiConversations => Set<AiConversation>();
 
     public DbSet<AiMessage> AiMessages => Set<AiMessage>();
@@ -62,6 +64,8 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
     public DbSet<Assignment> Assignments => Set<Assignment>();
 
     public DbSet<AssignmentSubmission> AssignmentSubmissions => Set<AssignmentSubmission>();
+
+    public DbSet<ClassroomAlert> ClassroomAlerts => Set<ClassroomAlert>();
 
     public DbSet<AiUsageLog> AiUsageLogs => Set<AiUsageLog>();
 
@@ -399,6 +403,12 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
             entity.Property(e => e.IsActive).HasDefaultValue(true);
 
+            entity.Property(e => e.Status).HasMaxLength(32).HasDefaultValue("published");
+
+            entity.Property(e => e.SourceName).HasMaxLength(255);
+
+            entity.Property(e => e.SourceUrl).HasMaxLength(500);
+
             entity.Property(e => e.CreatedAt).IsRequired();
 
             entity.Property(e => e.UpdatedAt).IsRequired();
@@ -501,6 +511,12 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
             entity.Property(e => e.ReviewedBy).HasMaxLength(64);
 
+            entity.Property(e => e.SourceName).HasMaxLength(255);
+
+            entity.Property(e => e.SourceUrl).HasMaxLength(500);
+
+            entity.Property(e => e.SourceLicense).HasMaxLength(255);
+
 
 
             entity.HasIndex(e => e.ChapterId);
@@ -569,6 +585,12 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
             entity.Property(e => e.YouTubeVideoId).HasMaxLength(64);
 
+            entity.Property(e => e.ChannelName).HasMaxLength(255);
+
+            entity.Property(e => e.IsPrimary).HasDefaultValue(false);
+
+            entity.Property(e => e.AttributionText).HasMaxLength(500);
+
             entity.Property(e => e.Language).HasMaxLength(16).HasDefaultValue("vi");
 
             entity.Property(e => e.DurationSeconds).HasDefaultValue(0);
@@ -580,6 +602,10 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.EmbedAllowed).HasDefaultValue(true);
 
             entity.Property(e => e.VerificationStatus).HasMaxLength(32).HasDefaultValue("verified");
+
+            entity.Property(e => e.VerifiedAt);
+
+            entity.Property(e => e.LastVerifiedAt);
 
             entity.Property(e => e.IsPublished).HasDefaultValue(true);
 
@@ -596,35 +622,25 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
 
         // ContentAssessment
-
         modelBuilder.Entity<ContentAssessment>(entity =>
-
         {
-
             entity.ToTable("content_assessments");
-
             entity.HasKey(e => e.Id);
-
             entity.Property(e => e.Id).HasMaxLength(64);
-
             entity.Property(e => e.LessonId).HasMaxLength(64).IsRequired();
-
             entity.Property(e => e.Title).HasMaxLength(255).IsRequired();
-
-
+            entity.Property(e => e.Status).HasMaxLength(32).HasDefaultValue("draft");
+            entity.Property(e => e.DurationMinutes).HasDefaultValue(15);
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
 
             entity.HasIndex(e => e.LessonId);
-
-
+            entity.HasIndex(e => e.Status);
 
             entity.HasMany(e => e.Questions)
-
                 .WithOne(q => q.Assessment)
-
                 .HasForeignKey(q => q.AssessmentId)
-
                 .OnDelete(DeleteBehavior.Cascade);
-
         });
 
 
@@ -716,6 +732,25 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
             entity.HasIndex(e => e.IsDeleted);
 
             entity.HasIndex(e => e.SourceType);
+        });
+
+        modelBuilder.Entity<ContentRevision>(entity =>
+        {
+            entity.ToTable("content_revisions");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.ContentId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.ContentType).HasMaxLength(32).IsRequired();
+            entity.Property(e => e.Status).HasMaxLength(32).IsRequired();
+            entity.Property(e => e.Title).HasMaxLength(256).IsRequired();
+            entity.Property(e => e.AuthorId).HasMaxLength(64);
+            entity.Property(e => e.CreatedBy).HasMaxLength(64);
+            entity.Property(e => e.Reason).HasMaxLength(500);
+            entity.Property(e => e.SourceRevisionId).HasMaxLength(64);
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            entity.HasIndex(e => new { e.ContentId, e.Version }).IsUnique();
+            entity.HasIndex(e => e.CreatedAt);
         });
 
         // AiConversation
@@ -878,6 +913,37 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
             entity.HasOne(e => e.Assignment)
                 .WithMany(a => a.Submissions)
                 .HasForeignKey(e => e.AssignmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Student)
+                .WithMany()
+                .HasForeignKey(e => e.StudentId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ClassroomAlert>(entity =>
+        {
+            entity.ToTable("classroom_alerts");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.ClassroomId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.StudentId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.Type).HasMaxLength(32).IsRequired();
+            entity.Property(e => e.Severity).HasMaxLength(16).IsRequired();
+            entity.Property(e => e.Message).HasMaxLength(500).IsRequired();
+            entity.Property(e => e.Status).HasMaxLength(32).IsRequired();
+            entity.Property(e => e.ResolutionNote).HasMaxLength(500);
+            entity.Property(e => e.ResolvedByTeacherId).HasMaxLength(64);
+            entity.Property(e => e.CreatedAt).IsRequired();
+            entity.Property(e => e.UpdatedAt).IsRequired();
+
+            entity.HasIndex(e => e.ClassroomId);
+            entity.HasIndex(e => e.StudentId);
+            entity.HasIndex(e => e.Status);
+
+            entity.HasOne(e => e.Classroom)
+                .WithMany()
+                .HasForeignKey(e => e.ClassroomId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(e => e.Student)

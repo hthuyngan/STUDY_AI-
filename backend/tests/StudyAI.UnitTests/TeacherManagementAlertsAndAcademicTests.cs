@@ -4,16 +4,67 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
-using StudyAI.Api.Controllers;
+using StudyAI.Api.Features.Teacher;
+using StudyAI.Application.Features.Teacher.Analytics;
+using StudyAI.Application.Features.Teacher.Classrooms;
 using StudyAI.Domain.Entities;
+using StudyAI.Infrastructure.Authentication;
 using StudyAI.Infrastructure.Persistence;
+using StudyAI.Infrastructure.Services;
 using Xunit;
 
 namespace StudyAI.UnitTests;
 
 public class TeacherManagementAlertsAndAcademicTests
 {
-    private (StudyAIDbContext Context, TeacherManagementController Controller, ClassroomsController ClassroomsController)
+    private static (TeacherAnalyticsController teacherController, TeacherClassroomsController classroomsController)
+        CreateControllers(StudyAIDbContext context, string teacherId, string role)
+    {
+        var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.NameIdentifier, teacherId),
+            new Claim("sub", teacherId),
+            new Claim(ClaimTypes.Role, role),
+            new Claim("role", role)
+        };
+        var identity = new ClaimsIdentity(claims, "TestAuth");
+        var principal = new ClaimsPrincipal(identity);
+        var httpContext = new DefaultHttpContext { User = principal };
+        var httpContextAccessor = new HttpContextAccessor { HttpContext = httpContext };
+        var currentUser = new CurrentUser(httpContextAccessor);
+        var clock = new SystemClock();
+        var idGenerator = new IdGenerator();
+        var auditWriter = new AuditWriter(context, currentUser, clock, idGenerator);
+
+        var analyticsService = new TeacherAnalyticsService(
+            context,
+            null!,
+            null!,
+            auditWriter,
+            clock,
+            idGenerator);
+
+        var teacherController = new TeacherAnalyticsController(analyticsService)
+        {
+            ControllerContext = new ControllerContext { HttpContext = httpContext }
+        };
+
+        var classroomsService = new TeacherClassroomsService(
+            context,
+            auditWriter,
+            clock,
+            idGenerator,
+            NullLogger<TeacherClassroomsService>.Instance);
+
+        var classroomsController = new TeacherClassroomsController(classroomsService)
+        {
+            ControllerContext = new ControllerContext { HttpContext = httpContext }
+        };
+
+        return (teacherController, classroomsController);
+    }
+
+    private (StudyAIDbContext Context, TeacherAnalyticsController Controller, TeacherClassroomsController ClassroomsController)
         CreateContextAndControllers(string teacherId = "usr_teacher_A", string role = "teacher")
     {
         var options = new DbContextOptionsBuilder<StudyAIDbContext>()
@@ -102,35 +153,7 @@ public class TeacherManagementAlertsAndAcademicTests
 
         context.SaveChanges();
 
-        var teacherController = new TeacherManagementController(
-            null!,
-            null!,
-            context,
-            NullLogger<TeacherManagementController>.Instance);
-
-        var classroomsController = new ClassroomsController(
-            context,
-            NullLogger<ClassroomsController>.Instance);
-
-        var claims = new List<Claim>
-        {
-            new Claim(ClaimTypes.NameIdentifier, teacherId),
-            new Claim("sub", teacherId),
-            new Claim(ClaimTypes.Role, role),
-            new Claim("role", role)
-        };
-        var identity = new ClaimsIdentity(claims, "TestAuth");
-        var principal = new ClaimsPrincipal(identity);
-
-        teacherController.ControllerContext = new ControllerContext
-        {
-            HttpContext = new DefaultHttpContext { User = principal }
-        };
-        classroomsController.ControllerContext = new ControllerContext
-        {
-            HttpContext = new DefaultHttpContext { User = principal }
-        };
-
+        var (teacherController, classroomsController) = CreateControllers(context, teacherId, role);
         return (context, teacherController, classroomsController);
     }
 
@@ -204,5 +227,110 @@ public class TeacherManagementAlertsAndAcademicTests
         var okGet = Assert.IsType<OkObjectResult>(getResult);
         var list = Assert.IsAssignableFrom<System.Collections.IEnumerable>(okGet.Value);
         Assert.NotEmpty(list);
+    }
+
+    [Fact]
+    public async Task UpdateAlert_PersistsResolvedStatus_AcrossSubsequentQueries()
+    {
+        var (context, controller, _) = CreateContextAndControllers(teacherId: "usr_teacher_A");
+
+        // 1. Get alerts (this populates and persists ClassroomAlerts from low score attempts)
+        var initialResult = await controller.GetAlerts(CancellationToken.None);
+        var initialOk = Assert.IsType<OkObjectResult>(initialResult);
+        var initialAlerts = Assert.IsAssignableFrom<System.Collections.IEnumerable>(initialOk.Value);
+        Assert.NotEmpty(initialAlerts);
+
+        var firstAlertId = "alt_asmt_att_low_1";
+
+        // 2. Resolve alert
+        var updatePayload = new JsonObject
+        {
+            ["status"] = "resolved",
+            ["resolutionNote"] = "Đã hướng dẫn lại kiến thức"
+        };
+        var updateResult = await controller.UpdateAlert(firstAlertId, updatePayload, CancellationToken.None);
+        Assert.IsType<OkObjectResult>(updateResult);
+
+        // 3. Query again (simulating reload)
+        var reloadResult = await controller.GetAlerts(CancellationToken.None);
+        var reloadOk = Assert.IsType<OkObjectResult>(reloadResult);
+        var json = System.Text.Json.JsonSerializer.Serialize(reloadOk.Value);
+        using var doc = System.Text.Json.JsonDocument.Parse(json);
+        var array = doc.RootElement.EnumerateArray().ToList();
+        var targetAlert = array.FirstOrDefault(a => a.GetProperty("id").GetString() == firstAlertId);
+        Assert.True(targetAlert.ValueKind != System.Text.Json.JsonValueKind.Undefined);
+        Assert.Equal("resolved", targetAlert.GetProperty("status").GetString());
+        Assert.Equal("Đã hướng dẫn lại kiến thức", targetAlert.GetProperty("resolutionNote").GetString());
+    }
+
+    [Fact]
+    public async Task UpdateAlert_ByDifferentTeacher_Returns403()
+    {
+        var (context, controllerA, _) = CreateContextAndControllers(teacherId: "usr_teacher_A");
+        await controllerA.GetAlerts(CancellationToken.None);
+
+        // Teacher B tries to resolve alert in Teacher A's classroom on the same database
+        var (controllerB, _) = CreateControllers(context, "usr_teacher_B", "teacher");
+
+        var updatePayload = new JsonObject
+        {
+            ["status"] = "resolved",
+            ["resolutionNote"] = "Unauthorized resolve"
+        };
+
+        var result = await controllerB.UpdateAlert("alt_asmt_att_low_1", updatePayload, CancellationToken.None);
+        var statusResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(StatusCodes.Status403Forbidden, statusResult.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateAlert_UnknownId_Returns404()
+    {
+        var (_, controller, _) = CreateContextAndControllers(teacherId: "usr_teacher_A");
+        var updatePayload = new JsonObject
+        {
+            ["status"] = "resolved"
+        };
+
+        var result = await controller.UpdateAlert("nonexistent_alert_id", updatePayload, CancellationToken.None);
+        Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task ResolveAllAlerts_ResolvesOnlyTeacherOwnedAlerts()
+    {
+        var (context, controllerA, _) = CreateContextAndControllers(teacherId: "usr_teacher_A");
+
+        // Seed alert in class B
+        context.ClassroomAlerts.Add(new ClassroomAlert
+        {
+            Id = "alt_class_b_1",
+            ClassroomId = "cls_B",
+            StudentId = "usr_student_2",
+            Type = "low_score",
+            Severity = "medium",
+            Message = "Alert in class B",
+            Status = "new",
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+        await context.SaveChangesAsync();
+
+        // Populate class A alerts
+        await controllerA.GetAlerts(CancellationToken.None);
+
+        // Teacher A calls ResolveAllAlerts
+        var result = await controllerA.ResolveAllAlerts(CancellationToken.None);
+        Assert.IsType<OkObjectResult>(result);
+
+        // Verify Class A alert is resolved
+        var classAAlert = await context.ClassroomAlerts.FindAsync("alt_asmt_att_low_1");
+        Assert.NotNull(classAAlert);
+        Assert.Equal("resolved", classAAlert.Status);
+
+        // Verify Class B alert remains "new"
+        var classBAlert = await context.ClassroomAlerts.FindAsync("alt_class_b_1");
+        Assert.NotNull(classBAlert);
+        Assert.Equal("new", classBAlert.Status);
     }
 }

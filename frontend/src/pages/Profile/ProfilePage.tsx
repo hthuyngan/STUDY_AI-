@@ -1,6 +1,5 @@
-import { useState } from 'react'
-import { BookOpen, Clock, Flame, GraduationCap, Sparkles, X } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { BookOpen, Clock, Flame, Sparkles } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 import { Avatar } from '@/components/ui/Avatar'
 import { Breadcrumb } from '@/components/ui/Breadcrumb'
 import { Button } from '@/components/ui/Button'
@@ -8,27 +7,40 @@ import { Card } from '@/components/ui/Card'
 import { PageErrorState } from '@/components/ui/PageErrorState'
 import { Progress } from '@/components/ui/Progress'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { useAuth } from '@/auth/useAuth'
 import { useUserProfile } from '@/hooks/useSupporting'
 import './ProfilePage.css'
 
 export function ProfilePage() {
+  const navigate = useNavigate()
+  const { user, isAuthenticated, state } = useAuth()
   const { profile, isLoading, error, reload } = useUserProfile()
 
-  const [isEditing, setIsEditing] = useState(false)
-  const [editedName, setEditedName] = useState('')
-  const [editedGrade, setEditedGrade] = useState('')
-  const [editedGoal, setEditedGoal] = useState('')
-  const [customProfile, setCustomProfile] = useState<{
-    name?: string
-    grade?: string
-    studyGoal?: string
-  }>({})
-
-  if (isLoading) {
+  if (state === 'initializing' || isLoading) {
     return (
       <div className="profile-page-root">
         <Skeleton variant="text" width={200} height={28} />
         <Skeleton variant="rect" width="100%" height={160} />
+      </div>
+    )
+  }
+
+  if (!isAuthenticated || !user) {
+    return (
+      <div className="profile-page-root" data-testid="guest-profile-gate">
+        <Breadcrumb items={[{ label: 'Hồ sơ cá nhân' }]} />
+        <div style={{ textAlign: 'center', padding: '48px 24px', background: 'var(--surface-card, #ffffff)', border: '1px solid var(--border-default, #e2e8f0)', borderRadius: '12px' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '8px' }}>Vui lòng đăng nhập</h2>
+          <p style={{ color: 'var(--text-secondary, #64748b)', marginBottom: '24px' }}>Bạn cần đăng nhập tài khoản học viên để xem và quản lý hồ sơ cá nhân.</p>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+            <Button variant="primary" onClick={() => navigate('/login')}>
+              Đăng nhập
+            </Button>
+            <Button variant="outline" onClick={() => navigate('/register')}>
+              Đăng ký tài khoản
+            </Button>
+          </div>
+        </div>
       </div>
     )
   }
@@ -42,26 +54,8 @@ export function ProfilePage() {
     )
   }
 
-  const currentName = customProfile.name || profile.name
-  const currentGrade = customProfile.grade || profile.grade
-  const currentGoal = customProfile.studyGoal || profile.studyGoal
-
-  const handleOpenEdit = () => {
-    setEditedName(currentName)
-    setEditedGrade(currentGrade)
-    setEditedGoal(currentGoal)
-    setIsEditing(true)
-  }
-
-  const handleSaveEdit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setCustomProfile({
-      name: editedName.trim() || currentName,
-      grade: editedGrade.trim() || currentGrade,
-      studyGoal: editedGoal.trim() || currentGoal,
-    })
-    setIsEditing(false)
-  }
+  const currentName = profile.name
+  const currentGrade = profile.grade
 
   return (
     <div className="profile-page-root">
@@ -77,17 +71,7 @@ export function ProfilePage() {
           <h1 className="profile-student-name">{currentName}</h1>
           <div className="profile-school-tags">
             <span className="profile-grade-tag">{currentGrade}</span>
-            <span className="profile-school-name">
-              <GraduationCap size={14} aria-hidden /> {profile.school}
-            </span>
           </div>
-          <p className="profile-goal-desc">{currentGoal}</p>
-        </div>
-
-        <div className="profile-actions-wrap">
-          <Button variant="outline" onClick={handleOpenEdit}>
-            Chỉnh sửa hồ sơ
-          </Button>
         </div>
       </div>
 
@@ -167,84 +151,6 @@ export function ProfilePage() {
         </div>
       </div>
 
-      {/* Profile Edit Dialog Modal */}
-      {isEditing && (
-        <div className="profile-modal-backdrop" onClick={() => setIsEditing(false)}>
-          <div
-            className="profile-modal-content"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="edit-profile-title"
-          >
-            <div className="profile-modal-header">
-              <h2 id="edit-profile-title" className="profile-modal-title">
-                Chỉnh sửa hồ sơ học sinh
-              </h2>
-              <button
-                type="button"
-                className="profile-modal-close"
-                onClick={() => setIsEditing(false)}
-                aria-label="Đóng cửa sổ"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveEdit} className="profile-modal-form">
-              <div className="profile-form-group">
-                <label htmlFor="edit-name" className="profile-form-label">
-                  Họ và tên
-                </label>
-                <input
-                  id="edit-name"
-                  type="text"
-                  value={editedName}
-                  onChange={(e) => setEditedName(e.target.value)}
-                  className="profile-form-input"
-                  required
-                />
-              </div>
-
-              <div className="profile-form-group">
-                <label htmlFor="edit-grade" className="profile-form-label">
-                  Lớp / Khối học
-                </label>
-                <input
-                  id="edit-grade"
-                  type="text"
-                  value={editedGrade}
-                  onChange={(e) => setEditedGrade(e.target.value)}
-                  className="profile-form-input"
-                  required
-                />
-              </div>
-
-              <div className="profile-form-group">
-                <label htmlFor="edit-goal" className="profile-form-label">
-                  Mục tiêu ôn tập
-                </label>
-                <textarea
-                  id="edit-goal"
-                  rows={3}
-                  value={editedGoal}
-                  onChange={(e) => setEditedGoal(e.target.value)}
-                  className="profile-form-textarea"
-                />
-              </div>
-
-              <div className="profile-modal-actions">
-                <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>
-                  Hủy
-                </Button>
-                <Button type="submit" variant="primary">
-                  Lưu thay đổi
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

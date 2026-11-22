@@ -14,6 +14,7 @@ public class AiTutorService : IAiTutorService
     private readonly IApplicationDbContext _context;
     private readonly ILlmProvider _llmProvider;
     private readonly IStudentMasteryService? _masteryService;
+    private readonly ISubjectGradeResolver? _subjectResolver;
     private readonly ILogger<AiTutorService> _logger;
     private readonly IConfiguration? _configuration;
 
@@ -25,13 +26,15 @@ public class AiTutorService : IAiTutorService
         ILlmProvider llmProvider,
         ILogger<AiTutorService> logger,
         IConfiguration? configuration = null,
-        IStudentMasteryService? masteryService = null)
+        IStudentMasteryService? masteryService = null,
+        ISubjectGradeResolver? subjectResolver = null)
     {
         _context = context;
         _llmProvider = llmProvider;
         _logger = logger;
         _configuration = configuration;
         _masteryService = masteryService;
+        _subjectResolver = subjectResolver;
     }
 
     public AiProviderStatusDto GetProviderStatus()
@@ -376,20 +379,26 @@ public class AiTutorService : IAiTutorService
             try
             {
                 string effectiveSubject = lesson?.Chapter?.SubjectId ?? string.Empty;
-                if (string.IsNullOrWhiteSpace(effectiveSubject) && !string.IsNullOrWhiteSpace(conv.Subject))
+                if (string.IsNullOrWhiteSpace(effectiveSubject) && _subjectResolver != null)
                 {
-                    var s = conv.Subject.ToLowerInvariant();
-                    if (s.Contains("10")) effectiveSubject = "sub_math10";
-                    else if (s.Contains("11")) effectiveSubject = "sub_math11";
-                    else if (s.Contains("12")) effectiveSubject = "sub_math12";
+                    var student = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+                    var res = await _subjectResolver.ResolveSubjectAsync(
+                        requestedSubjectId: conv.Subject,
+                        userGrade: student?.Grade,
+                        lessonId: lesson?.Id,
+                        cancellationToken: cancellationToken);
+                    if (res.Success && !string.IsNullOrEmpty(res.SubjectId))
+                    {
+                        effectiveSubject = res.SubjectId;
+                    }
                 }
                 if (string.IsNullOrWhiteSpace(effectiveSubject))
                 {
-                    var student = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
-                    var grade = student?.Grade?.Trim();
-                    if (grade == "10") effectiveSubject = "sub_math10";
-                    else if (grade == "11") effectiveSubject = "sub_math11";
-                    else effectiveSubject = "sub_math12";
+                    var studentSubject = await _context.StudentTopicMasteries.AsNoTracking()
+                        .Where(m => m.UserId == userId && !string.IsNullOrEmpty(m.SubjectId))
+                        .Select(m => m.SubjectId)
+                        .FirstOrDefaultAsync(cancellationToken);
+                    effectiveSubject = !string.IsNullOrEmpty(studentSubject) ? studentSubject : "sub_math10";
                 }
 
                 profile = await _masteryService.GetStudentKnowledgeProfileAsync(userId, effectiveSubject, cancellationToken);

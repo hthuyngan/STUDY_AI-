@@ -1,17 +1,27 @@
 # Collaboration status
 
 - Repository: `hthuyngan/STUDY_AI-`
-- Last verified baseline before bridge: `ca13e4d33d469c1a83325d4aa1edb4643d916bd7`
-- Bridge setup commit: `f5e27d08894d382c7e5efa1c74194783653cc50a`
-- Phase 18: COMPLETED
-- Phase 19: COMPLETED & HARDENED (OpenAI live smoke test NOT RUN — no key)
-- Phase 20: COMPLETED & HARDENED (P20-001-FIX fully verified; 494 Vitest PASS, 156 .NET Unit PASS, 150 .NET Integration PASS on StudyAIDb_E2E, 0/0 Oxlint, FE Build PASS).
-- DATA-001 (VNHSGE Ingestion & Governance): COMPLETED & VERIFIED (Branch: `feature/data-vnhsge-import`; parser, dry-run, UI, docs, tests all pass).
-- ADMIN-REAL-DATA-001: COMPLETED & VERIFIED (Branch: `feature/admin-real-data`; All Admin modules migrated to real Backend endpoints; 491 Vitest PASS, 315 .NET Unit & Integration PASS, 0 Oxlint, FE Build PASS; report in `ai-collaboration/DATA-001-ADMIN-REAL-DATA-REPORT.md`).
-- Content Role Primacy & Account Provisioning: COMPLETED & VERIFIED (Content specialist is final approver for learning content; direct publish/unpublish/reject without Admin dependency; VNHSGE copyright gate strictly enforced; admin@gmail.com and content@gmail.com provisioned with Argon2id on StudyAIDb_E2E and 100% verified via integration tests).
-- Bridge setup: COMPLETED & APPROVED (BRIDGE-001 approved by ChatGPT in commit `88c693b`)
-- Active task: Full-Stack Audit & P20-001-FIX Hardening — COMPLETED & AUDITED (Awaiting ChatGPT / Tech Lead review)
-- Final audit report: `docs/reports/2026-11-19-full-stack-audit.md` (494 Vitest PASS, 156 .NET Unit PASS, 150 .NET Integration PASS, full functionality matrix established).
-- Next action: ChatGPT reviews final audit report in `docs/reports/2026-11-19-full-stack-audit.md`, inspects artifacts, records decision in `REVIEW.md`, and approves before starting Phase 21.
-- Protected database: `StudyAIDb` (100% untouched; verified zero writes); tests run exclusively on `StudyAIDb_E2E`.
-- Last handoff: 2026-11-19 21:35 UTC+7 by Antigravity (`docs/reports/2026-11-19-full-stack-audit.md`, F01-F04 bug fixes, 150 .NET Integration PASS, 494 Vitest PASS).
+- Active branch: `antigravity/post-l02-zero-mock-remediation`
+- Target PR: [PR #20](https://github.com/hthuyngan/STUDY_AI-/pull/20)
+- Task ID: `P20-002-COMPLETE-REMEDIATION`
+- Status: **COMPLETED_READY_FOR_PR_UPDATE**
+- Baseline SHA: `9307c53ddd902b20c217f23b5e4a45628706190e`
+- Test Quality Gates:
+  - Frontend Vitest: **544/544 PASS** (79 test files)
+  - Frontend Linter: **0 warnings, 0 errors** (487 files)
+  - Frontend Production Build: **PASS** (`tsc -b && vite build`)
+  - Backend Unit Tests: **227/227 PASS**
+  - Backend Integration Tests: **210/210 PASS** (against `StudyAIDb_E2E`)
+  - Playwright Browser E2E: **5/5 PASS** (`scripts/e2e_p20_000_playwright.ts`)
+- Key Accomplishments:
+  - Full CRUD & Persistence for Assessments (`/api/v1/content/assessments`)
+  - Fail-closed Admin Reports with real database aggregations
+  - Teacher Grades & Submissions with ownership checks and alert concurrency handling
+  - Independent Moderation Workflow enforcing dual control (four-eyes principle; self-approval prohibited)
+  - Pre-submission Answer Disclosure Guard (correct answers and explanations stripped for non-staff)
+  - Concurrency-safe content revisioning with unique index `(ContentId, Version)` and rollback integrity
+  - Truthful Learner Dashboard without fabricated statistics or synthetic cards
+  - Centralized `ISubjectGradeResolver` injected across all backend domain services
+- Protected Database: `StudyAIDb` (100% untouched; verified zero writes); all executions run exclusively on `StudyAIDb_E2E`.
+- Database Resolution: Verified `StudyAIDb_E2E` resolved across User Secrets, .env, and appsettings; Startup Guard strictly verifies database safety without error.
+- Last handoff: 2026-11-22 10:58 UTC+7 by Antigravity (P20-002 complete; verified commit 0e5fdb5, local dev database aligned with E2E safety guard, all test gates passing).

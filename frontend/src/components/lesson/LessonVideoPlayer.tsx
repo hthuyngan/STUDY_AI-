@@ -8,10 +8,15 @@ export interface VideoItemOption {
   description?: string
   provider: string
   sourceUrl: string
-  embedUrl?: string
-  youTubeVideoId?: string
-  durationSeconds?: number
-  thumbnailUrl?: string
+  embedUrl?: string | null
+  youTubeVideoId?: string | null
+  channelName?: string | null
+  isPrimary?: boolean
+  attributionText?: string | null
+  durationSeconds?: number | null
+  thumbnailUrl?: string | null
+  embedAllowed?: boolean
+  verificationStatus?: string
 }
 
 export interface LessonVideoPlayerProps {
@@ -68,10 +73,66 @@ export const LessonVideoPlayer: React.FC<LessonVideoPlayerProps> = ({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }
 
-  // CASE 1: Valid Video to play
+  // CASE 1: Khan Academy or Non-Embeddable Video -> Show official external partner button
+  const isKhan = currentVideo?.provider === 'khan_academy' || (effectiveRefUrl && /khanacademy\.org/i.test(effectiveRefUrl))
+  if (currentVideo && (!currentVideo.embedAllowed || isKhan)) {
+    const khanUrl = currentVideo.sourceUrl || effectiveRefUrl || 'https://vi.khanacademy.org'
+    return (
+      <section className="lesson-video-container" aria-label="Bài giảng Khan Academy">
+        <div className="video-card-header">
+          <div className="video-card-header-left">
+            <Tv size={17} className="video-header-icon" aria-hidden />
+            <h2 className="video-card-title">Bài giảng Khan Academy Vietnam</h2>
+          </div>
+        </div>
+        <div className="video-ref-compact-card" style={{ padding: '1.5rem', margin: '0' }}>
+          <div className="video-ref-left" style={{ alignItems: 'flex-start' }}>
+            <div className="video-ref-icon" style={{ backgroundColor: 'rgba(20, 163, 139, 0.1)', color: '#14a38b' }}>
+              <Tv size={24} aria-hidden />
+            </div>
+            <div>
+              <h4 className="video-ref-title" style={{ fontSize: '1rem', fontWeight: 600 }}>
+                {currentVideo.title || lessonTitle}
+              </h4>
+              <p className="video-ref-desc" style={{ marginTop: '0.25rem', color: 'var(--color-text-secondary, #64748b)' }}>
+                {currentVideo.attributionText || 'Nguồn: Khan Academy Vietnam (Bản quyền giáo dục mở CC BY-NC-SA 4.0)'}
+              </p>
+            </div>
+          </div>
+          <div className="video-ref-actions" style={{ marginTop: '1rem' }}>
+            <a
+              href={khanUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-khan-ref"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                backgroundColor: '#14a38b',
+                color: '#ffffff',
+                padding: '0.6rem 1.2rem',
+                borderRadius: '8px',
+                fontWeight: 600,
+                textDecoration: 'none'
+              }}
+            >
+              <ExternalLink size={16} aria-hidden />
+              <span>Xem trên Khan Academy</span>
+            </a>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  // CASE 2: Valid Video to play with Embed
   if (currentVideo && (currentVideo.youTubeVideoId || currentVideo.embedUrl)) {
     const isYouTube = currentVideo.provider === 'youtube' || !!currentVideo.youTubeVideoId
     const ytId = currentVideo.youTubeVideoId || (currentVideo.embedUrl?.match(/embed\/([\w-]{11})/)?.[1])
+    const channelAttribution = currentVideo.channelName
+      ? `Kênh: ${currentVideo.channelName}`
+      : currentVideo.attributionText || (isYouTube ? 'YouTube GDPT 2018' : 'STUDY_AI Official')
 
     return (
       <section className="lesson-video-container" aria-label="Video bài giảng">
@@ -116,7 +177,7 @@ export const LessonVideoPlayer: React.FC<LessonVideoPlayerProps> = ({
           <div className="video-info-left">
             <span className="video-provider-badge">
               <Play size={11} aria-hidden style={{ fill: 'currentColor' }} />
-              {isYouTube ? 'YouTube GDPT 2018' : 'Bài giảng STUDY_AI'}
+              {channelAttribution}
             </span>
             <span className="video-license-note">{currentVideo.title || lessonTitle}</span>
           </div>

@@ -553,7 +553,7 @@ export const AdminLessonsPage: React.FC = () => {
                           className="admin-btn-outline"
                           style={{ color: '#047857', fontSize: '0.75rem', padding: '4px 8px' }}
                           onClick={() => handleStatusChange(l.id, 'published', l.title)}
-                          title="Xuất bản demo ngay"
+                          title="Xuất bản ngay"
                           aria-label={`Xuất bản ${l.title}`}
                         >
                           <Globe size={13} />

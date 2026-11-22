@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo, useContext } from 'react'
 import {
   Search,
   CheckCircle2,
@@ -11,6 +11,7 @@ import {
   BookOpen,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { AuthContext } from '@/auth/AuthContext'
 import { operationsService } from '@/services/operations.service'
 import type {
   ApprovalContentType,
@@ -23,8 +24,12 @@ import './AdminPages.css'
 import '@/components/admin/AdminComponents.css'
 
 export const AdminApprovalsPage: React.FC = () => {
+  const auth = useContext(AuthContext)
+  const user = auth?.user
   const [approvals, setApprovals] = useState<ApprovalItem[]>([])
   const [loading, setLoading] = useState(true)
+
+  const currentActor = user?.displayName || 'Quản trị viên'
 
   // Filters
   const [search, setSearch] = useState('')
@@ -107,7 +112,7 @@ export const AdminApprovalsPage: React.FC = () => {
   const handleQuickApprove = async (item: ApprovalItem) => {
     if (window.confirm(`Xác nhận phê duyệt nội dung: "${item.title}"?`)) {
       try {
-        await operationsService.approveContent(item.id, 'Phê duyệt nhanh từ danh sách', 'Demo Admin')
+        await operationsService.approveContent(item.id, 'Phê duyệt nhanh từ danh sách', currentActor)
         showToast(`Đã phê duyệt nội dung: ${item.title}`)
         loadData()
       } catch (err: unknown) {
@@ -133,10 +138,10 @@ export const AdminApprovalsPage: React.FC = () => {
 
     try {
       if (modalMode === 'reject') {
-        await operationsService.rejectContent(selectedItem.id, actionReason, 'Demo Admin')
+        await operationsService.rejectContent(selectedItem.id, actionReason, currentActor)
         showToast(`Đã từ chối nội dung: ${selectedItem.title}`)
       } else {
-        await operationsService.requestChanges(selectedItem.id, actionReason, 'Demo Admin')
+        await operationsService.requestChanges(selectedItem.id, actionReason, currentActor)
         showToast(`Đã gửi yêu cầu chỉnh sửa: ${selectedItem.title}`)
       }
       setIsModalOpen(false)

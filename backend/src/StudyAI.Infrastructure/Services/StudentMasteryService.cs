@@ -11,14 +11,17 @@ public class StudentMasteryService : IStudentMasteryService
 {
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, SemaphoreSlim> AttemptLocks = new();
     private readonly IApplicationDbContext _context;
+    private readonly ISubjectGradeResolver? _subjectResolver;
     private readonly ILogger<StudentMasteryService> _logger;
 
     public StudentMasteryService(
         IApplicationDbContext context,
-        ILogger<StudentMasteryService> logger)
+        ILogger<StudentMasteryService> logger,
+        ISubjectGradeResolver? subjectResolver = null)
     {
         _context = context;
         _logger = logger;
+        _subjectResolver = subjectResolver;
     }
 
     public async Task<SkillMasteryResponseDto> GetStudentMasteryAsync(
@@ -87,9 +90,43 @@ public class StudentMasteryService : IStudentMasteryService
         string? subjectId = null,
         CancellationToken cancellationToken = default)
     {
-        var effectiveSubjectId = string.IsNullOrWhiteSpace(subjectId) || subjectId == "all"
-            ? "sub_math12"
-            : subjectId;
+        string effectiveSubjectId = subjectId ?? "";
+        if (string.IsNullOrWhiteSpace(effectiveSubjectId) || effectiveSubjectId == "all")
+        {
+            if (!string.IsNullOrWhiteSpace(userId) && userId != "guest")
+            {
+                var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+                if (_subjectResolver != null)
+                {
+                    var resolved = await _subjectResolver.ResolveSubjectAsync(
+                        requestedSubjectId: null,
+                        userGrade: user?.Grade,
+                        cancellationToken: cancellationToken);
+                    if (resolved.Success && !string.IsNullOrEmpty(resolved.SubjectId))
+                    {
+                        effectiveSubjectId = resolved.SubjectId;
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(effectiveSubjectId))
+                {
+                    var studentSubject = await _context.StudentTopicMasteries.AsNoTracking()
+                        .Where(m => m.UserId == userId && !string.IsNullOrEmpty(m.SubjectId))
+                        .Select(m => m.SubjectId)
+                        .FirstOrDefaultAsync(cancellationToken);
+                    if (!string.IsNullOrEmpty(studentSubject))
+                    {
+                        effectiveSubjectId = studentSubject;
+                    }
+                }
+            }
+            if (string.IsNullOrWhiteSpace(effectiveSubjectId))
+            {
+                effectiveSubjectId = "sub_math10";
+            }
+        }
+
+        var dynamicSubjectName = effectiveSubjectId == "sub_math10" ? "Toán học 10" : effectiveSubjectId == "sub_math11" ? "Toán học 11" : effectiveSubjectId == "sub_math12" ? "Toán học 12" : effectiveSubjectId;
 
         if (string.IsNullOrWhiteSpace(userId))
         {
@@ -97,7 +134,7 @@ public class StudentMasteryService : IStudentMasteryService
             {
                 UserId = "guest",
                 SubjectId = effectiveSubjectId,
-                SubjectName = "Toán học 12",
+                SubjectName = dynamicSubjectName,
                 ScoringExplanation = GetScoringExplanation()
             };
         }

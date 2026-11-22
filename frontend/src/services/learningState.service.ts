@@ -1,4 +1,3 @@
-import { mockSubjectDetails, mockSubjectsSummary } from '@/data/subjects.mock'
 import type { LearningAttempt, LearningEvent, LessonProgressState } from '@/types/assessment'
 import type { ContinueLessonItem, RecentActivityItem } from '@/types/dashboard'
 import type {
@@ -110,171 +109,123 @@ export function buildLearningStateSnapshot(): LearningStateSnapshot {
   // Meaningful active dates set for Streak
   const activeDatesSet = new Set<string>()
 
-  // 1. Process all subjects and chapters in curriculum
-  const subjectIds = Object.keys(mockSubjectDetails)
+  // 1. Derive learner state only from persisted evidence. Curriculum titles and
+  // hierarchy are supplied by the curriculum API at the page boundary; this
+  // synchronous snapshot must never manufacture official curriculum records.
+  const lessonIds = new Set([
+    ...Object.keys(progressMap),
+    ...attempts.map((attempt) => attempt.lessonId),
+  ])
+  totalLessonsOverall = lessonIds.size
 
-  for (const subjectId of subjectIds) {
-    const subjectDetail = mockSubjectDetails[subjectId]
-    const summary = mockSubjectsSummary.find((s) => s.id === subjectId)
+  for (const lessonId of lessonIds) {
+    const lessonProgress = progressMap[lessonId]
+    const lessonAttempts = attempts.filter((a) => a.lessonId === lessonId)
+    const latestLessonAttempt = [...lessonAttempts].sort((a, b) => b.attemptNumber - a.attemptNumber)[0]
+    const subjectId = lessonProgress?.subjectId || latestLessonAttempt?.subjectId
+    if (!subjectId) continue
 
-    const subjectLessonStates: LessonLearningState[] = []
-    let subjectLatestActivity: string | undefined
-    let subjectActiveLessonId: string | undefined
-    let subjectActiveChapterId: string | undefined
+    const chapterId = latestLessonAttempt?.chapterId || ''
+    const overallProgress = lessonProgress?.overallProgress ?? 0
+    const contentProgress = lessonProgress?.contentProgress ?? 0
+    const completedAttempts = lessonAttempts.filter((a) => a.status === 'completed')
+    const latestAttempt = [...completedAttempts].sort((a, b) => b.attemptNumber - a.attemptNumber)[0]
+    const lastActivityAt =
+      lessonProgress?.updatedAt ||
+      lessonAttempts[lessonAttempts.length - 1]?.lastActivityAt ||
+      lessonAttempts[lessonAttempts.length - 1]?.startedAt ||
+      nowIso
 
-    for (const chapter of subjectDetail.chapters) {
-      const chapterLessons: LessonLearningState[] = []
-      let chapterLatestActivity: string | undefined
+    const status: LessonLearningState['status'] =
+      overallProgress >= 100 ? 'completed' : overallProgress > 0 ? 'in-progress' : 'not-started'
 
-      for (const curLesson of chapter.lessons) {
-        totalLessonsOverall += 1
-        const lessonProgress = progressMap[curLesson.id]
-        const lessonAttempts = attempts.filter((a) => a.lessonId === curLesson.id)
+    if (status === 'completed') totalCompletedLessons += 1
+    if (status === 'in-progress') totalInProgressLessons += 1
+    if (overallProgress > 0 || lessonAttempts.length > 0) activeDatesSet.add(getLocalDateKey(lastActivityAt))
 
-        const overallProgress = lessonProgress?.overallProgress ?? 0
-        const contentProgress = lessonProgress?.contentProgress ?? 0
+    const totalLearningTimeMs = lessonAttempts.reduce((sum, item) => sum + (item.sessionTimeMs || 0), 0)
+    const latestScore = latestAttempt ? Math.round(latestAttempt.scoreScaled * 100) : undefined
+    const bestScore = completedAttempts.length > 0
+      ? Math.max(...completedAttempts.map((item) => Math.round(item.scoreScaled * 100)))
+      : undefined
 
-        let status: 'not-started' | 'in-progress' | 'completed' | 'locked'
-        if (overallProgress === 100) {
-          status = 'completed'
-          totalCompletedLessons += 1
-        } else if (overallProgress > 0) {
-          status = 'in-progress'
-          totalInProgressLessons += 1
-        } else if (curLesson.status === 'locked') {
-          status = 'locked'
-        } else {
-          status = 'not-started'
-        }
+    lessons[lessonId] = {
+      lessonId,
+      subjectId,
+      chapterId,
+      title: lessonId,
+      overallProgress,
+      contentProgress,
+      status,
+      lastActivityAt,
+      completedAt: status === 'completed' ? lastActivityAt : undefined,
+      assessmentStatus: lessonProgress?.assessmentStatus || latestLessonAttempt?.completionStatus || 'not-attempted',
+      latestScore,
+      bestScore,
+      attemptCount: lessonAttempts.length,
+      totalLearningTimeMs,
+      lastActiveSectionId: lessonProgress?.lastActiveSectionId,
+      lastActiveSectionTitle: lessonProgress?.lastActiveSectionTitle,
+    }
 
-        // Attempt score statistics
-        const completedAttempts = lessonAttempts.filter((a) => a.status === 'completed')
-        const sortedCompleted = [...completedAttempts].sort(
-          (a, b) => b.attemptNumber - a.attemptNumber
-        )
-        const latestAttempt = sortedCompleted[0]
-        const latestScore = latestAttempt ? Math.round(latestAttempt.scoreScaled * 100) : undefined
-
-        let bestScore: number | undefined
-        if (completedAttempts.length > 0) {
-          bestScore = Math.max(
-            ...completedAttempts.map((a) => Math.round(a.scoreScaled * 100))
-          )
-        }
-
-        const totalLearningTimeMs = lessonAttempts.reduce(
-          (acc, a) => acc + (a.sessionTimeMs || 0),
-          0
-        )
-
-        // Activity timestamps
-        const lastActivityAt =
-          lessonProgress?.updatedAt ||
-          lessonAttempts[lessonAttempts.length - 1]?.lastActivityAt ||
-          lessonAttempts[lessonAttempts.length - 1]?.startedAt ||
-          nowIso
-
-        if (overallProgress > 0 || lessonAttempts.length > 0) {
-          activeDatesSet.add(getLocalDateKey(lastActivityAt))
-        }
-
-        if (
-          !globalLatestActivityAt ||
-          new Date(lastActivityAt).getTime() > new Date(globalLatestActivityAt).getTime()
-        ) {
-          if (overallProgress > 0) {
-            globalLatestActivityAt = lastActivityAt
-            globalLatestLessonId = curLesson.id
-            globalLatestSubjectId = subjectId
-          }
-        }
-
-        if (
-          !chapterLatestActivity ||
-          new Date(lastActivityAt).getTime() > new Date(chapterLatestActivity).getTime()
-        ) {
-          chapterLatestActivity = lastActivityAt
-        }
-
-        if (
-          !subjectLatestActivity ||
-          new Date(lastActivityAt).getTime() > new Date(subjectLatestActivity).getTime()
-        ) {
-          subjectLatestActivity = lastActivityAt
-        }
-
-        if (overallProgress > 0 && overallProgress < 100) {
-          subjectActiveLessonId = curLesson.id
-          subjectActiveChapterId = chapter.id
-        }
-
-        const lessonState: LessonLearningState = {
-          lessonId: curLesson.id,
+    if (chapterId) {
+      const currentChapter = chapters[chapterId]
+      if (!currentChapter) {
+        chapters[chapterId] = {
+          chapterId,
           subjectId,
-          chapterId: chapter.id,
-          title: curLesson.title,
-          overallProgress,
-          contentProgress,
-          status,
+          title: chapterId,
+          lessonCount: 1,
+          startedLessons: overallProgress > 0 || lessonAttempts.length > 0 ? 1 : 0,
+          completedLessons: status === 'completed' ? 1 : 0,
+          progress: overallProgress,
           lastActivityAt,
-          completedAt: overallProgress === 100 ? lastActivityAt : undefined,
-          assessmentStatus: lessonProgress?.assessmentStatus || 'not-attempted',
-          latestScore,
-          bestScore,
-          attemptCount: lessonAttempts.length,
-          totalLearningTimeMs,
-          lastActiveSectionId: lessonProgress?.lastActiveSectionId,
-          lastActiveSectionTitle: lessonProgress?.lastActiveSectionTitle,
         }
-
-        lessons[curLesson.id] = lessonState
-        chapterLessons.push(lessonState)
-        subjectLessonStates.push(lessonState)
-      }
-
-      // Calculate chapter state: arithmetic average of lessons in chapter
-      const chapterTotal = chapterLessons.length
-      const chapterSumProgress = chapterLessons.reduce((acc, l) => acc + l.overallProgress, 0)
-      const chapterAvgProgress =
-        chapterTotal > 0 ? Math.round(chapterSumProgress / chapterTotal) : 0
-      const chapterStarted = chapterLessons.filter((l) => l.overallProgress > 0).length
-      const chapterCompleted = chapterLessons.filter((l) => l.overallProgress === 100).length
-
-      chapters[chapter.id] = {
-        chapterId: chapter.id,
-        subjectId,
-        title: chapter.title,
-        lessonCount: chapterTotal,
-        startedLessons: chapterStarted,
-        completedLessons: chapterCompleted,
-        progress: chapterAvgProgress,
-        lastActivityAt: chapterLatestActivity,
+      } else {
+        const previousTotal = currentChapter.lessonCount
+        currentChapter.lessonCount += 1
+        currentChapter.startedLessons += overallProgress > 0 || lessonAttempts.length > 0 ? 1 : 0
+        currentChapter.completedLessons += status === 'completed' ? 1 : 0
+        currentChapter.progress = Math.round((currentChapter.progress * previousTotal + overallProgress) / currentChapter.lessonCount)
+        if (!currentChapter.lastActivityAt || new Date(lastActivityAt) > new Date(currentChapter.lastActivityAt)) {
+          currentChapter.lastActivityAt = lastActivityAt
+        }
       }
     }
 
-    // Calculate subject state: arithmetic average of all lessons across all chapters in subject
-    const subjectTotalLessons = subjectLessonStates.length
-    const subjectSumProgress = subjectLessonStates.reduce((acc, l) => acc + l.overallProgress, 0)
-    const subjectAvgProgress =
-      subjectTotalLessons > 0 ? Math.round(subjectSumProgress / subjectTotalLessons) : 0
-    const subjectStartedLessons = subjectLessonStates.filter((l) => l.overallProgress > 0).length
-    const subjectCompletedLessons = subjectLessonStates.filter(
-      (l) => l.overallProgress === 100
-    ).length
+    const currentSubject = subjects[subjectId]
+    if (!currentSubject) {
+      subjects[subjectId] = {
+        id: subjectId,
+        name: subjectId,
+        icon: 'BookOpen',
+        color: 'var(--color-primary)',
+        bgColor: 'var(--color-primary-light)',
+        progress: overallProgress,
+        completedLessons: status === 'completed' ? 1 : 0,
+        totalLessons: 1,
+        startedLessons: overallProgress > 0 || lessonAttempts.length > 0 ? 1 : 0,
+        lastActivityAt,
+        currentLessonId: lessonId,
+        currentChapterId: chapterId || undefined,
+      }
+    } else {
+      const previousTotal = currentSubject.totalLessons
+      currentSubject.totalLessons += 1
+      currentSubject.completedLessons += status === 'completed' ? 1 : 0
+      currentSubject.startedLessons += overallProgress > 0 || lessonAttempts.length > 0 ? 1 : 0
+      currentSubject.progress = Math.round((currentSubject.progress * previousTotal + overallProgress) / currentSubject.totalLessons)
+      if (!currentSubject.lastActivityAt || new Date(lastActivityAt) > new Date(currentSubject.lastActivityAt)) {
+        currentSubject.lastActivityAt = lastActivityAt
+        currentSubject.currentLessonId = lessonId
+        currentSubject.currentChapterId = chapterId || undefined
+      }
+    }
 
-    subjects[subjectId] = {
-      id: subjectId,
-      name: summary?.name || subjectDetail.name,
-      icon: summary?.icon || subjectDetail.icon || '📚',
-      color: summary?.color || subjectDetail.color || 'var(--color-primary)',
-      bgColor: summary?.bgColor || subjectDetail.bgColor || 'var(--color-primary-light)',
-      progress: subjectAvgProgress,
-      completedLessons: subjectCompletedLessons,
-      totalLessons: subjectTotalLessons,
-      startedLessons: subjectStartedLessons,
-      lastActivityAt: subjectLatestActivity,
-      currentLessonId: subjectActiveLessonId || subjectLessonStates[0]?.lessonId,
-      currentChapterId: subjectActiveChapterId || subjectDetail.chapters[0]?.id,
+    if (!globalLatestActivityAt || new Date(lastActivityAt) > new Date(globalLatestActivityAt)) {
+      globalLatestActivityAt = lastActivityAt
+      globalLatestLessonId = lessonId
+      globalLatestSubjectId = subjectId
     }
   }
 
@@ -309,7 +260,7 @@ export function buildLearningStateSnapshot(): LearningStateSnapshot {
       chapter: chap?.title || 'Chương học',
       lessonTitle: l.title,
       progress: l.overallProgress,
-      durationMinutes: 45,
+      durationMinutes: 0,
       lastActive: formatTimeAgo(l.lastActivityAt),
       isPrimary: index === 0,
       lastActiveSectionId: l.lastActiveSectionId,
@@ -425,7 +376,7 @@ export function buildLearningStateSnapshot(): LearningStateSnapshot {
     points,
     totalMinutes: weeklyTotalMinutes,
     weeklyHours,
-    increasePercent: weeklyTotalMinutes > 0 ? 12 : 0,
+    increasePercent: 0,
   }
 
   // 6. Derive Meaningful Recent Activities (filter out raw telemetry)
@@ -459,9 +410,8 @@ export function buildLearningStateSnapshot(): LearningStateSnapshot {
 
       recentActivities.push({
         id: ev.id,
-        userAvatar:
-          'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-        userName: 'Ngân',
+        userAvatar: '',
+        userName: 'Bạn',
         action: actionText,
         targetName: lesson?.title || 'Bài học',
         targetUrl: `/subjects/${ev.subjectId}/lessons/${ev.lessonId}`,
@@ -480,20 +430,19 @@ export function buildLearningStateSnapshot(): LearningStateSnapshot {
       const subj = subjects[l.subjectId]
       recentActivities.push({
         id: `act_${l.lessonId}`,
-        userAvatar:
-          'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-        userName: 'Ngân',
+        userAvatar: '',
+        userName: 'Bạn',
         action: l.overallProgress === 100 ? 'hoàn thành bài học' : 'đang học bài',
         targetName: l.title,
         targetUrl: `/subjects/${l.subjectId}/lessons/${l.lessonId}`,
-        subjectOrModule: subj?.name || 'Toán 12',
+        subjectOrModule: subj?.name || l.subjectId,
         timeAgo: formatTimeAgo(l.lastActivityAt),
       })
     })
   }
 
   // 7. Calculate XP and Summary
-  const totalXP = totalCompletedLessons * 60 + totalInProgressLessons * 15
+  const totalXP = 0
 
   const snapshot: LearningStateSnapshot = {
     generatedAt: nowIso,

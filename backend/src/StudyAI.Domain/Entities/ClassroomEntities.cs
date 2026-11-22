@@ -68,3 +68,23 @@ public class AssignmentSubmission
     public User? Student { get; set; }
 }
 
+public class ClassroomAlert
+{
+    public string Id { get; set; } = string.Empty;
+    public string ClassroomId { get; set; } = string.Empty;
+    public string StudentId { get; set; } = string.Empty;
+    public string Type { get; set; } = "low_score"; // "falling_behind", "low_score", "inactivity"
+    public string Severity { get; set; } = "medium"; // "low", "medium", "high"
+    public string Message { get; set; } = string.Empty;
+    public string Status { get; set; } = "new"; // "new", "in_progress", "resolved"
+    public string? ResolutionNote { get; set; }
+    public string? ResolvedByTeacherId { get; set; }
+    public DateTimeOffset? ResolvedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    public Classroom? Classroom { get; set; }
+    public User? Student { get; set; }
+    public User? ResolvedByTeacher { get; set; }
+}
+

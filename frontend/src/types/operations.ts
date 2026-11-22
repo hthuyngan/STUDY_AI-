@@ -54,8 +54,9 @@ export interface PublicationRecord {
   subjectName: string
   version: string
   publishedBy: string
+  publisherName?: string
   publishedAt: string
-  status: 'active' | 'archived' | 'superseded'
+  status: 'active' | 'archived' | 'superseded' | 'published'
   changelog?: string
 }
 

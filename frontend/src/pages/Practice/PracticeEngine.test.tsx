@@ -94,7 +94,20 @@ vi.mock('@/lib/apiClient', () => ({
       }
       return Promise.resolve({})
     }),
-    get: vi.fn().mockResolvedValue([]),
+    get: vi.fn((endpoint: string) => {
+      if (endpoint?.includes('/question-bank/')) {
+        const id = endpoint.split('/').pop()
+        return Promise.resolve({
+          id,
+          reviewStatus: 'approved',
+          type: 'multiple_choice',
+          stem: 'Test question',
+          difficulty: 'medium',
+          options: [{ id: 'A', text: 'Option A' }],
+        })
+      }
+      return Promise.resolve([])
+    }),
   },
 }))
 

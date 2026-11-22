@@ -5,15 +5,10 @@ import type {
   CurriculumSubjectItem,
   LessonEditorData,
 } from '@/types/content'
-import {
-  INITIAL_MOCK_LESSON_CONTENT,
-} from '@/data/staff/content.mock'
 import { educationService } from './education.service'
 import { operationsService } from './operations.service'
 import { apiClient } from '@/lib/apiClient'
 import { getAccessToken } from '@/auth/authSession'
-
-const mockLessonContents: Record<string, LessonEditorData> = { ...INITIAL_MOCK_LESSON_CONTENT }
 
 export const contentService = {
   async getDashboardSummary(): Promise<{
@@ -76,28 +71,7 @@ export const contentService = {
         }
       }
     }
-
-    if (mockLessonContents[lessonId]) {
-      return { ...mockLessonContents[lessonId] }
-    }
-    const lesson = await educationService.getLessonById(lessonId)
-    const editorData: LessonEditorData = {
-      id: lessonId,
-      title: lesson ? lesson.title : 'Bài học mới',
-      subjectId: lesson ? lesson.subjectId : 'math',
-      chapterId: lesson ? lesson.chapterId : 'ch-01',
-      status: lesson ? lesson.status : 'draft',
-      introduction: 'Giới thiệu tổng quan nội dung và mục tiêu cần đạt của bài học theo khung chương trình GDPT.',
-      definitions: 'Các định nghĩa, khái niệm then chốt cần nắm vững trước khi đi vào giải bài tập.',
-      formulas: 'Công thức toán học và biểu thức liên quan quan trọng cần ghi nhớ.',
-      examples: 'Ví dụ mẫu minh họa phương pháp giải toán từng bước chi tiết và rõ ràng.',
-      notes: 'Lưu ý những lỗi sai phổ biến học sinh thường gặp trong quá trình làm bài.',
-      summary: 'Tóm tắt các kiến thức cốt lõi của bài học và dạng bài tập trọng tâm.',
-      assessmentId: 'asm-math-08',
-      lastSavedAt: new Date().toISOString(),
-    }
-    mockLessonContents[lessonId] = editorData
-    return { ...editorData }
+    throw new Error(`Không tìm thấy bài học ${lessonId} hoặc phiên làm việc đã hết hạn.`)
   },
 
   async saveLessonEditor(data: LessonEditorData): Promise<LessonEditorData> {
@@ -124,45 +98,7 @@ export const contentService = {
         lastSavedAt: new Date().toISOString(),
       }
     }
-
-    const updated: LessonEditorData = {
-      ...data,
-      lastSavedAt: new Date().toISOString(),
-    }
-    mockLessonContents[data.id] = updated
-
-    // Update in shared education service
-    await educationService.updateLesson(data.id, {
-      title: data.title,
-      status: data.status,
-    })
-
-    // If status is in-review, ensure an approval item exists in operationsService
-    if (data.status === 'in-review') {
-      const approvals = await operationsService.getApprovals()
-      const existing = approvals.find((a) => a.contentId === data.id)
-      if (!existing) {
-        await operationsService.submitForApproval({
-          title: data.title,
-          contentType: 'lesson',
-          contentId: data.id,
-          subjectId: data.subjectId,
-          subjectName: data.subjectId === 'math' ? 'Toán học 12' : 'Vật lý 12',
-          authorName: 'Biên soạn nội dung',
-          authorRole: 'Content Specialist',
-          version: 'v1.0',
-          contentPreview: {
-            introduction: data.introduction,
-            definitions: data.definitions,
-            formulas: data.formulas,
-            examples: data.examples,
-            summary: data.summary,
-          },
-        })
-      }
-    }
-
-    return updated
+    throw new Error('Yêu cầu đăng nhập chuyên viên nội dung để lưu bài học.')
   },
 
   async getAssessments(): Promise<ContentAssessmentSummary[]> {

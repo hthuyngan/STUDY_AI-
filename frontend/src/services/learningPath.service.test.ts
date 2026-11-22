@@ -1,17 +1,45 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { learningProgressRepository } from '@/repositories/learningProgress.repository'
 import {
   getContinueLearningTarget,
   getSubjectLearningPath,
 } from './learningPath.service'
 
+vi.mock('@/services/curriculum.service', () => ({
+  curriculumService: {
+    getSubject: vi.fn(async (subjectId: string) => ({
+      id: subjectId,
+      name: 'Toán học',
+      code: 'MATH',
+      grade: '12',
+      description: '',
+      orderIndex: 1,
+      chapterCount: 1,
+      lessonCount: 3,
+      chapters: [
+        {
+          id: 'chapter-1',
+          title: 'Chương 1',
+          description: '',
+          orderIndex: 1,
+          lessons: [
+            { id: 'lesson-math-01', title: 'Bài 1', slug: 'bai-1', orderIndex: 1, status: 'published' },
+            { id: 'lesson-math-04', title: 'Bài 4', slug: 'bai-4', orderIndex: 2, status: 'published' },
+            { id: 'lesson-phy-02', title: 'Bài vật lý', slug: 'bai-vat-ly', orderIndex: 3, status: 'published' },
+          ],
+        },
+      ],
+    })),
+  },
+}))
+
 describe('learningPath.service', () => {
   beforeEach(() => {
     localStorage.clear()
   })
 
-  it('builds a sequential subject learning path with chapters and lessons', () => {
-    const path = getSubjectLearningPath('math')
+  it('builds a sequential subject learning path with chapters and lessons', async () => {
+    const path = await getSubjectLearningPath('math')
     expect(path.subjectId).toBe('math')
     expect(path.subjectName).toBe('Toán học')
     expect(path.chapters.length).toBeGreaterThan(0)
@@ -22,7 +50,7 @@ describe('learningPath.service', () => {
     expect(firstChap.order).toBe(1)
   })
 
-  it('recommends an in-progress lesson as Priority 1', () => {
+  it('recommends an in-progress lesson as Priority 1', async () => {
     // Save progress for lesson-math-04: in-progress (60%)
     learningProgressRepository.save({
       lessonId: 'lesson-math-04',
@@ -37,7 +65,7 @@ describe('learningPath.service', () => {
       updatedAt: new Date().toISOString(),
     })
 
-    const path = getSubjectLearningPath('math')
+    const path = await getSubjectLearningPath('math')
     expect(path.recommendedLesson).not.toBeNull()
     expect(path.recommendedLesson!.id).toBe('lesson-math-04')
     expect(path.recommendedLesson!.status).toBe('in-progress')
@@ -45,8 +73,8 @@ describe('learningPath.service', () => {
     expect(path.recommendedLesson!.lastActiveSectionId).toBe('formulas')
   })
 
-  it('recommends next unstarted lesson in syllabus if none is in progress (Priority 2)', () => {
-    const path = getSubjectLearningPath('math')
+  it('recommends next unstarted lesson in syllabus if none is in progress (Priority 2)', async () => {
+    const path = await getSubjectLearningPath('math')
     expect(path.recommendedLesson).not.toBeNull()
     // It should pick a valid lesson in syllabus
     expect(path.recommendedLesson!.isRecommendedNext).toBe(true)

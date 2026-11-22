@@ -1,0 +1,2008 @@
+{
+  "summaries": [
+    {
+      "file": "ContentController.cs",
+      "lines": 4521,
+      "injectsDbContext": true,
+      "endpointCount": 70
+    },
+    {
+      "file": "AdminController.cs",
+      "lines": 1962,
+      "injectsDbContext": true,
+      "endpointCount": 28
+    },
+    {
+      "file": "PracticeController.cs",
+      "lines": 1516,
+      "injectsDbContext": true,
+      "endpointCount": 12
+    },
+    {
+      "file": "CurriculumController.cs",
+      "lines": 1242,
+      "injectsDbContext": true,
+      "endpointCount": 13
+    },
+    {
+      "file": "ClassroomsController.cs",
+      "lines": 826,
+      "injectsDbContext": true,
+      "endpointCount": 13
+    },
+    {
+      "file": "AssignmentsController.cs",
+      "lines": 759,
+      "injectsDbContext": true,
+      "endpointCount": 8
+    },
+    {
+      "file": "MeController.cs",
+      "lines": 618,
+      "injectsDbContext": true,
+      "endpointCount": 14
+    },
+    {
+      "file": "TeacherManagementController.cs",
+      "lines": 586,
+      "injectsDbContext": true,
+      "endpointCount": 11
+    },
+    {
+      "file": "LearningDataControllers.cs",
+      "lines": 479,
+      "injectsDbContext": true,
+      "endpointCount": 10
+    },
+    {
+      "file": "AuthController.cs",
+      "lines": 385,
+      "injectsDbContext": true,
+      "endpointCount": 5
+    },
+    {
+      "file": "AiChatController.cs",
+      "lines": 337,
+      "injectsDbContext": false,
+      "endpointCount": 9
+    },
+    {
+      "file": "ExamPreparationController.cs",
+      "lines": 226,
+      "injectsDbContext": false,
+      "endpointCount": 8
+    },
+    {
+      "file": "CurriculumImportController.cs",
+      "lines": 214,
+      "injectsDbContext": false,
+      "endpointCount": 2
+    },
+    {
+      "file": "AdaptiveLearningController.cs",
+      "lines": 174,
+      "injectsDbContext": false,
+      "endpointCount": 7
+    },
+    {
+      "file": "LearningOperationsController.cs",
+      "lines": 139,
+      "injectsDbContext": false,
+      "endpointCount": 8
+    },
+    {
+      "file": "ContentGovernanceController.cs",
+      "lines": 114,
+      "injectsDbContext": false,
+      "endpointCount": 5
+    },
+    {
+      "file": "LearningAnalyticsController.cs",
+      "lines": 111,
+      "injectsDbContext": false,
+      "endpointCount": 5
+    },
+    {
+      "file": "AiAdminController.cs",
+      "lines": 77,
+      "injectsDbContext": false,
+      "endpointCount": 4
+    },
+    {
+      "file": "HealthController.cs",
+      "lines": 56,
+      "injectsDbContext": true,
+      "endpointCount": 4
+    }
+  ],
+  "routes": [
+    {
+      "controller": "AdaptiveLearningController",
+      "file": "AdaptiveLearningController.cs",
+      "verb": "POST",
+      "path": "api/v1/ai/hints",
+      "lines": 174,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "AdaptiveLearningController",
+      "file": "AdaptiveLearningController.cs",
+      "verb": "POST",
+      "path": "api/v1/ai/error-analysis",
+      "lines": 174,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "AdaptiveLearningController",
+      "file": "AdaptiveLearningController.cs",
+      "verb": "GET",
+      "path": "api/v1/ai/mastery",
+      "lines": 174,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "AdaptiveLearningController",
+      "file": "AdaptiveLearningController.cs",
+      "verb": "GET",
+      "path": "api/v1/ai/knowledge-profile",
+      "lines": 174,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "AdaptiveLearningController",
+      "file": "AdaptiveLearningController.cs",
+      "verb": "GET",
+      "path": "api/v1/ai/learning-path",
+      "lines": 174,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "AdaptiveLearningController",
+      "file": "AdaptiveLearningController.cs",
+      "verb": "GET",
+      "path": "api/v1/ai/recommendations",
+      "lines": 174,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "AdaptiveLearningController",
+      "file": "AdaptiveLearningController.cs",
+      "verb": "GET",
+      "path": "api/v1/ai/knowledge-gaps",
+      "lines": 174,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "AdminController",
+      "file": "AdminController.cs",
+      "verb": "GET",
+      "path": "api/v1/admin/dashboard",
+      "lines": 1962,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AdminController",
+      "file": "AdminController.cs",
+      "verb": "GET",
+      "path": "api/v1/admin/users",
+      "lines": 1962,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AdminController",
+      "file": "AdminController.cs",
+      "verb": "GET",
+      "path": "api/v1/admin/users/{userId}",
+      "lines": 1962,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AdminController",
+      "file": "AdminController.cs",
+      "verb": "POST",
+      "path": "api/v1/admin/users",
+      "lines": 1962,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AdminController",
+      "file": "AdminController.cs",
+      "verb": "PATCH",
+      "path": "api/v1/admin/users/{userId}",
+      "lines": 1962,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AdminController",
+      "file": "AdminController.cs",
+      "verb": "PUT",
+      "path": "api/v1/admin/users/{userId}",
+      "lines": 1962,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AdminController",
+      "file": "AdminController.cs",
+      "verb": "PATCH",
+      "path": "api/v1/admin/users/{userId}/role",
+      "lines": 1962,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AdminController",
+      "file": "AdminController.cs",
+      "verb": "PATCH",
+      "path": "api/v1/admin/users/{userId}/status",
+      "lines": 1962,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AdminController",
+      "file": "AdminController.cs",
+      "verb": "POST",
+      "path": "api/v1/admin/users/{userId}/revoke-sessions",
+      "lines": 1962,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AdminController",
+      "file": "AdminController.cs",
+      "verb": "POST",
+      "path": "api/v1/admin/users/{userId}/reset-password",
+      "lines": 1962,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AdminController",
+      "file": "AdminController.cs",
+      "verb": "DELETE",
+      "path": "api/v1/admin/users/{userId}",
+      "lines": 1962,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AdminController",
+      "file": "AdminController.cs",
+      "verb": "GET",
+      "path": "api/v1/admin/audit-logs",
+      "lines": 1962,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AdminController",
+      "file": "AdminController.cs",
+      "verb": "GET",
+      "path": "api/v1/admin/system/health",
+      "lines": 1962,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AdminController",
+      "file": "AdminController.cs",
+      "verb": "GET",
+      "path": "api/v1/admin/analytics",
+      "lines": 1962,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AdminController",
+      "file": "AdminController.cs",
+      "verb": "GET",
+      "path": "api/v1/admin/teachers",
+      "lines": 1962,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AdminController",
+      "file": "AdminController.cs",
+      "verb": "GET",
+      "path": "api/v1/admin/teachers/kpis",
+      "lines": 1962,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AdminController",
+      "file": "AdminController.cs",
+      "verb": "POST",
+      "path": "api/v1/admin/teachers",
+      "lines": 1962,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AdminController",
+      "file": "AdminController.cs",
+      "verb": "PATCH",
+      "path": "api/v1/admin/teachers/{id}",
+      "lines": 1962,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AdminController",
+      "file": "AdminController.cs",
+      "verb": "PUT",
+      "path": "api/v1/admin/teachers/{id}",
+      "lines": 1962,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AdminController",
+      "file": "AdminController.cs",
+      "verb": "DELETE",
+      "path": "api/v1/admin/teachers/{id}",
+      "lines": 1962,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AdminController",
+      "file": "AdminController.cs",
+      "verb": "GET",
+      "path": "api/v1/admin/reports",
+      "lines": 1962,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AdminController",
+      "file": "AdminController.cs",
+      "verb": "GET",
+      "path": "api/v1/admin/announcements",
+      "lines": 1962,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AdminController",
+      "file": "AdminController.cs",
+      "verb": "POST",
+      "path": "api/v1/admin/announcements",
+      "lines": 1962,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AdminController",
+      "file": "AdminController.cs",
+      "verb": "PUT",
+      "path": "api/v1/admin/announcements/{id}",
+      "lines": 1962,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AdminController",
+      "file": "AdminController.cs",
+      "verb": "DELETE",
+      "path": "api/v1/admin/announcements/{id}",
+      "lines": 1962,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AdminController",
+      "file": "AdminController.cs",
+      "verb": "GET",
+      "path": "api/v1/admin/settings",
+      "lines": 1962,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AdminController",
+      "file": "AdminController.cs",
+      "verb": "PUT",
+      "path": "api/v1/admin/settings",
+      "lines": 1962,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AdminController",
+      "file": "AdminController.cs",
+      "verb": "GET",
+      "path": "api/v1/admin/roles",
+      "lines": 1962,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AiAdminController",
+      "file": "AiAdminController.cs",
+      "verb": "GET",
+      "path": "api/v1/admin/ai/status",
+      "lines": 77,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "AiAdminController",
+      "file": "AiAdminController.cs",
+      "verb": "GET",
+      "path": "api/v1/admin/ai/usage-stats",
+      "lines": 77,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "AiAdminController",
+      "file": "AiAdminController.cs",
+      "verb": "GET",
+      "path": "api/v1/admin/ai/logs",
+      "lines": 77,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "AiAdminController",
+      "file": "AiAdminController.cs",
+      "verb": "POST",
+      "path": "api/v1/admin/ai/feature-toggle",
+      "lines": 77,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "AiChatController",
+      "file": "AiChatController.cs",
+      "verb": "GET",
+      "path": "api/v1/ai/status",
+      "lines": 337,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "AiChatController",
+      "file": "AiChatController.cs",
+      "verb": "GET",
+      "path": "api/v1/ai/conversations",
+      "lines": 337,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "AiChatController",
+      "file": "AiChatController.cs",
+      "verb": "POST",
+      "path": "api/v1/ai/conversations",
+      "lines": 337,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "AiChatController",
+      "file": "AiChatController.cs",
+      "verb": "GET",
+      "path": "api/v1/ai/conversations/{conversationId}",
+      "lines": 337,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "AiChatController",
+      "file": "AiChatController.cs",
+      "verb": "PATCH",
+      "path": "api/v1/ai/conversations/{conversationId}",
+      "lines": 337,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "AiChatController",
+      "file": "AiChatController.cs",
+      "verb": "DELETE",
+      "path": "api/v1/ai/conversations/{conversationId}",
+      "lines": 337,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "AiChatController",
+      "file": "AiChatController.cs",
+      "verb": "POST",
+      "path": "api/v1/ai/conversations/{conversationId}/messages",
+      "lines": 337,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "AiChatController",
+      "file": "AiChatController.cs",
+      "verb": "POST",
+      "path": "api/v1/ai/chat",
+      "lines": 337,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "AiChatController",
+      "file": "AiChatController.cs",
+      "verb": "GET",
+      "path": "api/v1/ai/context/lesson/{lessonId}",
+      "lines": 337,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "AssignmentsController",
+      "file": "AssignmentsController.cs",
+      "verb": "GET",
+      "path": "api/v1/assignments",
+      "lines": 759,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AssignmentsController",
+      "file": "AssignmentsController.cs",
+      "verb": "GET",
+      "path": "api/v1/assignments/{id}",
+      "lines": 759,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AssignmentsController",
+      "file": "AssignmentsController.cs",
+      "verb": "PUT",
+      "path": "api/v1/assignments/{id}",
+      "lines": 759,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AssignmentsController",
+      "file": "AssignmentsController.cs",
+      "verb": "POST",
+      "path": "api/v1/assignments/{id}/submissions",
+      "lines": 759,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AssignmentsController",
+      "file": "AssignmentsController.cs",
+      "verb": "GET",
+      "path": "api/v1/assignments/{id}/my-submission",
+      "lines": 759,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AssignmentsController",
+      "file": "AssignmentsController.cs",
+      "verb": "GET",
+      "path": "api/v1/assignments/{id}/submissions",
+      "lines": 759,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AssignmentsController",
+      "file": "AssignmentsController.cs",
+      "verb": "POST",
+      "path": "api/v1/assignments/{id}/submissions/{submissionId}/grade",
+      "lines": 759,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AssignmentsController",
+      "file": "AssignmentsController.cs",
+      "verb": "DELETE",
+      "path": "api/v1/assignments/{id}",
+      "lines": 759,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AuthController",
+      "file": "AuthController.cs",
+      "verb": "POST",
+      "path": "api/v1/auth/register",
+      "lines": 385,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AuthController",
+      "file": "AuthController.cs",
+      "verb": "POST",
+      "path": "api/v1/auth/login",
+      "lines": 385,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AuthController",
+      "file": "AuthController.cs",
+      "verb": "POST",
+      "path": "api/v1/auth/refresh",
+      "lines": 385,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AuthController",
+      "file": "AuthController.cs",
+      "verb": "POST",
+      "path": "api/v1/auth/logout",
+      "lines": 385,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AuthController",
+      "file": "AuthController.cs",
+      "verb": "GET",
+      "path": "api/v1/auth/me",
+      "lines": 385,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ClassroomsController",
+      "file": "ClassroomsController.cs",
+      "verb": "GET",
+      "path": "api/v1/classrooms",
+      "lines": 826,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ClassroomsController",
+      "file": "ClassroomsController.cs",
+      "verb": "POST",
+      "path": "api/v1/classrooms",
+      "lines": 826,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ClassroomsController",
+      "file": "ClassroomsController.cs",
+      "verb": "GET",
+      "path": "api/v1/classrooms/{id}",
+      "lines": 826,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ClassroomsController",
+      "file": "ClassroomsController.cs",
+      "verb": "PUT",
+      "path": "api/v1/classrooms/{id}",
+      "lines": 826,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ClassroomsController",
+      "file": "ClassroomsController.cs",
+      "verb": "GET",
+      "path": "api/v1/classrooms/{id}/students",
+      "lines": 826,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ClassroomsController",
+      "file": "ClassroomsController.cs",
+      "verb": "POST",
+      "path": "api/v1/classrooms/{id}/students",
+      "lines": 826,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ClassroomsController",
+      "file": "ClassroomsController.cs",
+      "verb": "DELETE",
+      "path": "api/v1/classrooms/{id}/students/{studentId}",
+      "lines": 826,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ClassroomsController",
+      "file": "ClassroomsController.cs",
+      "verb": "POST",
+      "path": "api/v1/classrooms/{id}/transfer-student",
+      "lines": 826,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ClassroomsController",
+      "file": "ClassroomsController.cs",
+      "verb": "GET",
+      "path": "api/v1/classrooms/{id}/assignments",
+      "lines": 826,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ClassroomsController",
+      "file": "ClassroomsController.cs",
+      "verb": "POST",
+      "path": "api/v1/classrooms/{id}/assignments",
+      "lines": 826,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ClassroomsController",
+      "file": "ClassroomsController.cs",
+      "verb": "DELETE",
+      "path": "api/v1/classrooms/{id}",
+      "lines": 826,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ClassroomsController",
+      "file": "ClassroomsController.cs",
+      "verb": "GET",
+      "path": "api/v1/classrooms/{id}/activities",
+      "lines": 826,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ClassroomsController",
+      "file": "ClassroomsController.cs",
+      "verb": "POST",
+      "path": "api/v1/classrooms/{id}/activities",
+      "lines": 826,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "GET",
+      "path": "api/v1/content/subjects",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "GET",
+      "path": "api/v1/content/subjects/{subjectId}",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/subjects",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "PUT",
+      "path": "api/v1/content/subjects/{subjectId}",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "PATCH",
+      "path": "api/v1/content/subjects/{subjectId}",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "DELETE",
+      "path": "api/v1/content/subjects/{subjectId}",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "GET",
+      "path": "api/v1/content/chapters",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "GET",
+      "path": "api/v1/content/chapters/{chapterId}",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/chapters",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "PUT",
+      "path": "api/v1/content/chapters/{chapterId}",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "PATCH",
+      "path": "api/v1/content/chapters/{chapterId}",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/chapters/reorder",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "DELETE",
+      "path": "api/v1/content/chapters/{chapterId}",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "GET",
+      "path": "api/v1/content/topics",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "GET",
+      "path": "api/v1/content/topics/{topicId}",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/topics",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "PATCH",
+      "path": "api/v1/content/topics/{topicId}",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "DELETE",
+      "path": "api/v1/content/topics/{topicId}",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/topics/reorder",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "GET",
+      "path": "api/v1/content/lessons/{lessonId}/videos",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/lessons/{lessonId}/videos",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "PATCH",
+      "path": "api/v1/content/videos/{videoId}",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/videos/{videoId}/verify",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/videos/{videoId}/reject",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/videos/{videoId}/publish",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/videos/{videoId}/unpublish",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "DELETE",
+      "path": "api/v1/content/videos/{videoId}",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/videos/reorder",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/videos/preview-metadata",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "GET",
+      "path": "api/v1/content/lessons",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "GET",
+      "path": "api/v1/content/lessons/{lessonId}",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/lessons",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "PATCH",
+      "path": "api/v1/content/lessons/{lessonId}",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "DELETE",
+      "path": "api/v1/content/lessons/{lessonId}",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/lessons/reorder",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/lessons/{lessonId}/submit-review",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/lessons/{lessonId}/approve",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/lessons/{lessonId}/publish",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/lessons/{lessonId}/unpublish",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/lessons/{lessonId}/request-changes",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/lessons/{lessonId}/reject",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/lessons/{lessonId}/rollback",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "GET",
+      "path": "api/v1/content/approvals",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "GET",
+      "path": "api/v1/content/publications",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "GET",
+      "path": "api/v1/content/assessments",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "GET",
+      "path": "api/v1/content/assessments/{id}",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/assessments",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "PUT",
+      "path": "api/v1/content/assessments/{id}",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "DELETE",
+      "path": "api/v1/content/assessments/{id}",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "PUT",
+      "path": "api/v1/content/assessments/{id}/status",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/assessments/{id}/questions",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "GET",
+      "path": "api/v1/content/questions",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "GET",
+      "path": "api/v1/content/questions/statistics",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "GET",
+      "path": "api/v1/content/questions/{questionId}",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/questions",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "PUT",
+      "path": "api/v1/content/questions/{questionId}",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "PATCH",
+      "path": "api/v1/content/questions/{questionId}",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "DELETE",
+      "path": "api/v1/content/questions/{questionId}",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/questions/{questionId}/restore",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/questions/{questionId}/submit-review",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/questions/{questionId}/approve",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/questions/{questionId}/reject",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/questions/{questionId}/request-changes",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/questions/{questionId}/publish",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/questions/{questionId}/unpublish",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/questions/{questionId}/rollback",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/questions/import",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/curriculum/dry-run",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/curriculum/apply",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentController",
+      "file": "ContentController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/curriculum/audit-cleanup",
+      "lines": 4521,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "ContentGovernanceController",
+      "file": "ContentGovernanceController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/governance/workflow",
+      "lines": 114,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "ContentGovernanceController",
+      "file": "ContentGovernanceController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/governance/ai-audit",
+      "lines": 114,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "ContentGovernanceController",
+      "file": "ContentGovernanceController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/governance/ai-authoring/outline",
+      "lines": 114,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "ContentGovernanceController",
+      "file": "ContentGovernanceController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/governance/ai-authoring/questions",
+      "lines": 114,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "ContentGovernanceController",
+      "file": "ContentGovernanceController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/governance/questions/{questionId}/flag",
+      "lines": 114,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "CurriculumController",
+      "file": "CurriculumController.cs",
+      "verb": "GET",
+      "path": "api/v1/curriculum/subjects",
+      "lines": 1242,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "CurriculumController",
+      "file": "CurriculumController.cs",
+      "verb": "GET",
+      "path": "api/v1/curriculum/subjects/{subjectId}",
+      "lines": 1242,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "CurriculumController",
+      "file": "CurriculumController.cs",
+      "verb": "GET",
+      "path": "api/v1/curriculum/subjects/{subjectId}/chapters",
+      "lines": 1242,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "CurriculumController",
+      "file": "CurriculumController.cs",
+      "verb": "GET",
+      "path": "api/v1/curriculum/chapters/{chapterId}",
+      "lines": 1242,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "CurriculumController",
+      "file": "CurriculumController.cs",
+      "verb": "GET",
+      "path": "api/v1/curriculum/topics/{topicId}",
+      "lines": 1242,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "CurriculumController",
+      "file": "CurriculumController.cs",
+      "verb": "GET",
+      "path": "api/v1/curriculum/lessons/{lessonId}/videos",
+      "lines": 1242,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "CurriculumController",
+      "file": "CurriculumController.cs",
+      "verb": "GET",
+      "path": "api/v1/curriculum/lessons/{lessonId}",
+      "lines": 1242,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "CurriculumController",
+      "file": "CurriculumController.cs",
+      "verb": "GET",
+      "path": "api/v1/curriculum/lessons/{lessonId}/questions",
+      "lines": 1242,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "CurriculumController",
+      "file": "CurriculumController.cs",
+      "verb": "POST",
+      "path": "api/v1/curriculum/lessons/{lessonId}/questions/{questionId}/check",
+      "lines": 1242,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "CurriculumController",
+      "file": "CurriculumController.cs",
+      "verb": "GET",
+      "path": "api/v1/curriculum/materials",
+      "lines": 1242,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "CurriculumController",
+      "file": "CurriculumController.cs",
+      "verb": "GET",
+      "path": "api/v1/curriculum/question-bank",
+      "lines": 1242,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "CurriculumController",
+      "file": "CurriculumController.cs",
+      "verb": "GET",
+      "path": "api/v1/curriculum/question-bank/statistics",
+      "lines": 1242,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "CurriculumController",
+      "file": "CurriculumController.cs",
+      "verb": "GET",
+      "path": "api/v1/curriculum/question-bank/{questionId}",
+      "lines": 1242,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "CurriculumImportController",
+      "file": "CurriculumImportController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/import/preview",
+      "lines": 214,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "CurriculumImportController",
+      "file": "CurriculumImportController.cs",
+      "verb": "POST",
+      "path": "api/v1/content/import/confirm",
+      "lines": 214,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "ExamPreparationController",
+      "file": "ExamPreparationController.cs",
+      "verb": "GET",
+      "path": "api/v1/ai/exam-prep/blueprints",
+      "lines": 226,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "ExamPreparationController",
+      "file": "ExamPreparationController.cs",
+      "verb": "GET",
+      "path": "api/v1/ai/exam-prep/blueprints/{blueprintId}",
+      "lines": 226,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "ExamPreparationController",
+      "file": "ExamPreparationController.cs",
+      "verb": "GET",
+      "path": "api/v1/ai/exam-prep/readiness",
+      "lines": 226,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "ExamPreparationController",
+      "file": "ExamPreparationController.cs",
+      "verb": "GET",
+      "path": "api/v1/ai/exam-prep/revision-plan",
+      "lines": 226,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "ExamPreparationController",
+      "file": "ExamPreparationController.cs",
+      "verb": "POST",
+      "path": "api/v1/ai/exam-prep/revision-plan",
+      "lines": 226,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "ExamPreparationController",
+      "file": "ExamPreparationController.cs",
+      "verb": "GET",
+      "path": "api/v1/ai/exam-prep/spaced-repetition",
+      "lines": 226,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "ExamPreparationController",
+      "file": "ExamPreparationController.cs",
+      "verb": "POST",
+      "path": "api/v1/ai/exam-prep/spaced-repetition/review",
+      "lines": 226,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "ExamPreparationController",
+      "file": "ExamPreparationController.cs",
+      "verb": "GET",
+      "path": "api/v1/ai/exam-prep/question-quality",
+      "lines": 226,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "HealthController",
+      "file": "HealthController.cs",
+      "verb": "GET",
+      "path": "/health",
+      "lines": 56,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "HealthController",
+      "file": "HealthController.cs",
+      "verb": "GET",
+      "path": "/api/v1/health",
+      "lines": 56,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "HealthController",
+      "file": "HealthController.cs",
+      "verb": "GET",
+      "path": "/health/db",
+      "lines": 56,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "HealthController",
+      "file": "HealthController.cs",
+      "verb": "GET",
+      "path": "/api/v1/health/db",
+      "lines": 56,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "LearningAnalyticsController",
+      "file": "LearningAnalyticsController.cs",
+      "verb": "GET",
+      "path": "api/v1/ai/analytics/overview",
+      "lines": 111,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "LearningAnalyticsController",
+      "file": "LearningAnalyticsController.cs",
+      "verb": "GET",
+      "path": "api/v1/ai/analytics/risks",
+      "lines": 111,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "LearningAnalyticsController",
+      "file": "LearningAnalyticsController.cs",
+      "verb": "GET",
+      "path": "api/v1/ai/analytics/report",
+      "lines": 111,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "LearningAnalyticsController",
+      "file": "LearningAnalyticsController.cs",
+      "verb": "POST",
+      "path": "api/v1/ai/exams/matrix",
+      "lines": 111,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "LearningAnalyticsController",
+      "file": "LearningAnalyticsController.cs",
+      "verb": "GET",
+      "path": "api/v1/ai/exams/{sessionId}/review-analytics",
+      "lines": 111,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "LearningProgressController",
+      "file": "LearningDataControllers.cs",
+      "verb": "GET",
+      "path": "api/v1/users/{userId}/lesson-progress",
+      "lines": 479,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "LearningProgressController",
+      "file": "LearningDataControllers.cs",
+      "verb": "GET",
+      "path": "api/v1/users/{userId}/lesson-progress/{lessonId}",
+      "lines": 479,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "LearningProgressController",
+      "file": "LearningDataControllers.cs",
+      "verb": "PUT",
+      "path": "api/v1/users/{userId}/lesson-progress/{lessonId}",
+      "lines": 479,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AssessmentAttemptsController",
+      "file": "LearningDataControllers.cs",
+      "verb": "GET",
+      "path": "api/v1/users/{userId}/assessment-attempts",
+      "lines": 479,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AssessmentAttemptsController",
+      "file": "LearningDataControllers.cs",
+      "verb": "GET",
+      "path": "api/v1/users/{userId}/assessment-attempts/{attemptId}",
+      "lines": 479,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AssessmentAttemptsController",
+      "file": "LearningDataControllers.cs",
+      "verb": "POST",
+      "path": "api/v1/users/{userId}/assessment-attempts",
+      "lines": 479,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AssessmentAttemptsController",
+      "file": "LearningDataControllers.cs",
+      "verb": "PUT",
+      "path": "api/v1/users/{userId}/assessment-attempts/{attemptId}",
+      "lines": 479,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "AssessmentAttemptsController",
+      "file": "LearningDataControllers.cs",
+      "verb": "PATCH",
+      "path": "api/v1/users/{userId}/assessment-attempts/{attemptId}",
+      "lines": 479,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "LearningEventsController",
+      "file": "LearningDataControllers.cs",
+      "verb": "POST",
+      "path": "api/v1/users/{userId}/learning-events/batch",
+      "lines": 479,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "LearningEventsController",
+      "file": "LearningDataControllers.cs",
+      "verb": "GET",
+      "path": "api/v1/users/{userId}/learning-events",
+      "lines": 479,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "LearningOperationsController",
+      "file": "LearningOperationsController.cs",
+      "verb": "GET",
+      "path": "api/v1/admin/operations/health",
+      "lines": 139,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "LearningOperationsController",
+      "file": "LearningOperationsController.cs",
+      "verb": "POST",
+      "path": "api/v1/admin/operations/benchmark/run",
+      "lines": 139,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "LearningOperationsController",
+      "file": "LearningOperationsController.cs",
+      "verb": "GET",
+      "path": "api/v1/admin/operations/benchmark/latest",
+      "lines": 139,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "LearningOperationsController",
+      "file": "LearningOperationsController.cs",
+      "verb": "GET",
+      "path": "api/v1/admin/operations/ai-cost",
+      "lines": 139,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "LearningOperationsController",
+      "file": "LearningOperationsController.cs",
+      "verb": "GET",
+      "path": "api/v1/admin/operations/content-quality",
+      "lines": 139,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "LearningOperationsController",
+      "file": "LearningOperationsController.cs",
+      "verb": "GET",
+      "path": "api/v1/admin/operations/data-consistency",
+      "lines": 139,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "LearningOperationsController",
+      "file": "LearningOperationsController.cs",
+      "verb": "POST",
+      "path": "api/v1/admin/operations/data-consistency/repair",
+      "lines": 139,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "LearningOperationsController",
+      "file": "LearningOperationsController.cs",
+      "verb": "GET",
+      "path": "api/v1/admin/operations/audit-logs",
+      "lines": 139,
+      "injectsDbContext": false
+    },
+    {
+      "controller": "MeController",
+      "file": "MeController.cs",
+      "verb": "GET",
+      "path": "api/v1/me/lesson-progress",
+      "lines": 618,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "MeController",
+      "file": "MeController.cs",
+      "verb": "GET",
+      "path": "api/v1/me/lesson-progress/{lessonId}",
+      "lines": 618,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "MeController",
+      "file": "MeController.cs",
+      "verb": "PUT",
+      "path": "api/v1/me/lesson-progress/{lessonId}",
+      "lines": 618,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "MeController",
+      "file": "MeController.cs",
+      "verb": "GET",
+      "path": "api/v1/me/assessment-attempts",
+      "lines": 618,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "MeController",
+      "file": "MeController.cs",
+      "verb": "GET",
+      "path": "api/v1/me/assessment-attempts/{attemptId}",
+      "lines": 618,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "MeController",
+      "file": "MeController.cs",
+      "verb": "POST",
+      "path": "api/v1/me/assessment-attempts",
+      "lines": 618,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "MeController",
+      "file": "MeController.cs",
+      "verb": "PUT",
+      "path": "api/v1/me/assessment-attempts/{attemptId}",
+      "lines": 618,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "MeController",
+      "file": "MeController.cs",
+      "verb": "PATCH",
+      "path": "api/v1/me/assessment-attempts/{attemptId}",
+      "lines": 618,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "MeController",
+      "file": "MeController.cs",
+      "verb": "POST",
+      "path": "api/v1/me/learning-events/batch",
+      "lines": 618,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "MeController",
+      "file": "MeController.cs",
+      "verb": "GET",
+      "path": "api/v1/me/learning-events",
+      "lines": 618,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "MeController",
+      "file": "MeController.cs",
+      "verb": "POST",
+      "path": "api/v1/me/sync/bootstrap",
+      "lines": 618,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "MeController",
+      "file": "MeController.cs",
+      "verb": "GET",
+      "path": "api/v1/me/bookmarks",
+      "lines": 618,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "MeController",
+      "file": "MeController.cs",
+      "verb": "POST",
+      "path": "api/v1/me/bookmarks",
+      "lines": 618,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "MeController",
+      "file": "MeController.cs",
+      "verb": "DELETE",
+      "path": "api/v1/me/bookmarks/{itemId}",
+      "lines": 618,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "PracticeController",
+      "file": "PracticeController.cs",
+      "verb": "GET",
+      "path": "api/v1/practice/question-count",
+      "lines": 1516,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "PracticeController",
+      "file": "PracticeController.cs",
+      "verb": "POST",
+      "path": "api/v1/practice/sessions",
+      "lines": 1516,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "PracticeController",
+      "file": "PracticeController.cs",
+      "verb": "GET",
+      "path": "api/v1/practice/sessions/{sessionId}",
+      "lines": 1516,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "PracticeController",
+      "file": "PracticeController.cs",
+      "verb": "POST",
+      "path": "api/v1/practice/sessions/{sessionId}/answer",
+      "lines": 1516,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "PracticeController",
+      "file": "PracticeController.cs",
+      "verb": "POST",
+      "path": "api/v1/practice/sessions/{sessionId}/check-question",
+      "lines": 1516,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "PracticeController",
+      "file": "PracticeController.cs",
+      "verb": "POST",
+      "path": "api/v1/practice/sessions/{sessionId}/submit",
+      "lines": 1516,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "PracticeController",
+      "file": "PracticeController.cs",
+      "verb": "GET",
+      "path": "api/v1/practice/sessions/{sessionId}/result",
+      "lines": 1516,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "PracticeController",
+      "file": "PracticeController.cs",
+      "verb": "GET",
+      "path": "api/v1/practice/results/{resultId}",
+      "lines": 1516,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "PracticeController",
+      "file": "PracticeController.cs",
+      "verb": "GET",
+      "path": "api/v1/practice/mistakes",
+      "lines": 1516,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "PracticeController",
+      "file": "PracticeController.cs",
+      "verb": "POST",
+      "path": "api/v1/practice/mistakes/{questionId}/review",
+      "lines": 1516,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "PracticeController",
+      "file": "PracticeController.cs",
+      "verb": "GET",
+      "path": "api/v1/practice/dashboard-stats",
+      "lines": 1516,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "PracticeController",
+      "file": "PracticeController.cs",
+      "verb": "GET",
+      "path": "api/v1/practice/leaderboard",
+      "lines": 1516,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "TeacherManagementController",
+      "file": "TeacherManagementController.cs",
+      "verb": "GET",
+      "path": "api/v1/teacher/classrooms",
+      "lines": 586,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "TeacherManagementController",
+      "file": "TeacherManagementController.cs",
+      "verb": "GET",
+      "path": "api/v1/teacher/classrooms/{classroomId}/analytics",
+      "lines": 586,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "TeacherManagementController",
+      "file": "TeacherManagementController.cs",
+      "verb": "GET",
+      "path": "api/v1/teacher/classrooms/{classroomId}/recommendations",
+      "lines": 586,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "TeacherManagementController",
+      "file": "TeacherManagementController.cs",
+      "verb": "POST",
+      "path": "api/v1/teacher/interventions",
+      "lines": 586,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "TeacherManagementController",
+      "file": "TeacherManagementController.cs",
+      "verb": "GET",
+      "path": "api/v1/teacher/classrooms/{classroomId}/interventions",
+      "lines": 586,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "TeacherManagementController",
+      "file": "TeacherManagementController.cs",
+      "verb": "GET",
+      "path": "api/v1/teacher/alerts",
+      "lines": 586,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "TeacherManagementController",
+      "file": "TeacherManagementController.cs",
+      "verb": "GET",
+      "path": "api/v1/teacher/grades",
+      "lines": 586,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "TeacherManagementController",
+      "file": "TeacherManagementController.cs",
+      "verb": "GET",
+      "path": "api/v1/teacher/submissions",
+      "lines": 586,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "TeacherManagementController",
+      "file": "TeacherManagementController.cs",
+      "verb": "PUT",
+      "path": "api/v1/teacher/alerts/{alertId}",
+      "lines": 586,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "TeacherManagementController",
+      "file": "TeacherManagementController.cs",
+      "verb": "POST",
+      "path": "api/v1/teacher/alerts/resolve-all",
+      "lines": 586,
+      "injectsDbContext": true
+    },
+    {
+      "controller": "TeacherManagementController",
+      "file": "TeacherManagementController.cs",
+      "verb": "GET",
+      "path": "api/v1/teacher/students/{studentId}/academic-detail",
+      "lines": 586,
+      "injectsDbContext": true
+    }
+  ]
+}

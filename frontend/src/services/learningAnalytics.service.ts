@@ -41,17 +41,6 @@ import type {
 
 export const LEARNING_ANALYTICS_CHANGED_EVENT = 'study_ai:learning_analytics_changed'
 
-export interface TeacherStudentAnalyticsData {
-  studentId: string
-  isDemoProfile: boolean
-  disclaimer: string
-  summary: StudentAnalyticsSummary
-  subjectAnalytics: SubjectAnalyticsItem[]
-  competencies: TopicCompetencyItem[]
-  assessmentTrends: AssessmentTrendItem[]
-  recommendedInterventions: string[]
-}
-
 export const learningAnalyticsService = {
   /**
    * Retrieves complete learner analytics data.
@@ -155,156 +144,33 @@ export const learningAnalyticsService = {
   },
 
   /**
-   * Generates Teacher Student Analytics for a student profile.
-   * Differentiates real device data from demo data, without claiming fake cross-device sync.
-   */
-  getTeacherStudentAnalytics(
-    studentId: string,
-    studentName?: string
-  ): TeacherStudentAnalyticsData {
-    // Current local learner data if matches, else demo academic baseline
-    const data = this.getAnalyticsData()
-
-    const recommendedInterventions: string[] = []
-    if (data.summary.activeKnowledgeGapsCount > 0) {
-      recommendedInterventions.push(
-        `Cần ôn luyện ${data.summary.activeKnowledgeGapsCount} điểm kiến thức còn hổng trước khi làm bài kiểm tra tiếp theo.`
-      )
-    }
-    if (data.summary.averageAssessmentScore !== null && data.summary.averageAssessmentScore < 60) {
-      recommendedInterventions.push(
-        'Điểm bài thu hoạch dưới ngưỡng chuẩn (60%), đề xuất giáo viên giao thêm bài củng cố lý thuyết.'
-      )
-    }
-    if (data.summary.totalReviewSessionsCompleted === 0) {
-      recommendedInterventions.push(
-        'Học sinh chưa thực hiện phiên ôn tập ngắt quãng Spaced Repetition nào, cần nhắc nhở chuyên cần.'
-      )
-    }
-    if (recommendedInterventions.length === 0) {
-      recommendedInterventions.push(
-        'Học sinh duy trì tiến độ học tập xuất sắc, nắm chắc kiến thức cơ bản và hoàn thành tốt bài thu hoạch.'
-      )
-    }
-
-    return {
-      studentId,
-      isDemoProfile: true,
-      disclaimer: `Dữ liệu phân tích học thuật mẫu cho hồ sơ học viên ${studentName || studentId}`,
-      summary: data.summary,
-      subjectAnalytics: data.subjectAnalytics,
-      competencies: data.competencies,
-      assessmentTrends: data.assessmentTrends,
-      recommendedInterventions,
-    }
-  },
-
-  /**
    * Retrieves student learning analytics overview (GDPT 2018 metrics).
    */
   async getAnalyticsOverview(
     subjectId = 'sub_math12',
     timeframe: '7d' | '30d' | 'all' = 'all'
   ): Promise<LearningAnalyticsOverview> {
-    try {
-      const response = await apiClient.get<LearningAnalyticsOverview>(
-        `/api/v1/ai/analytics/overview?subjectId=${encodeURIComponent(subjectId)}&timeframe=${encodeURIComponent(timeframe)}`
-      )
-      if (response) return response
-    } catch {
-      // Fallback to local default analytics state
-    }
-
-    return {
-      userId: 'local_learner',
-      subjectId,
-      subjectName: 'Toán 12',
-      timeframe,
-      totalQuestionsAttempted: 0,
-      totalCorrect: 0,
-      totalIncorrect: 0,
-      overallAccuracyPercent: 0,
-      totalTimeSpentSeconds: 0,
-      totalSessionsCompleted: 0,
-      curriculumProgressPercent: 0,
-      currentMasteryTier: 'insufficient_data',
-      currentMasteryLabel: 'Chưa đủ dữ liệu',
-      overallMasteryScore: 0,
-      difficultyAccuracy: {},
-      chapterMasteries: [],
-      topStrengths: [],
-      topWeaknesses: [],
-      progressionTimeline: [],
-      reviewFrequency: {
-        sessionsLast7Days: 0,
-        sessionsLast30Days: 0,
-        activeStreakDays: 0,
-      },
-      examSummary: {
-        examsCompletedCount: 0,
-        averageExamScoreScaled: 0,
-        highestExamScoreScaled: 0,
-        latestExamScoreScaled: 0,
-      },
-    }
+    return apiClient.get<LearningAnalyticsOverview>(
+      `/api/v1/ai/analytics/overview?subjectId=${encodeURIComponent(subjectId)}&timeframe=${encodeURIComponent(timeframe)}`
+    )
   },
 
   /**
    * Retrieves active learning risks and knowledge gap traps.
    */
   async getLearningRisks(subjectId = 'sub_math12'): Promise<LearningRisk[]> {
-    try {
-      const response = await apiClient.get<LearningRisk[]>(
-        `/api/v1/ai/analytics/risks?subjectId=${encodeURIComponent(subjectId)}`
-      )
-      if (response) return response
-    } catch {
-      // Return empty list on failure
-    }
-    return []
+    return apiClient.get<LearningRisk[]>(
+      `/api/v1/ai/analytics/risks?subjectId=${encodeURIComponent(subjectId)}`
+    )
   },
 
   /**
    * Retrieves holistic AI learning report.
    */
   async getAiLearningReport(subjectId = 'sub_math12'): Promise<AiLearningReport> {
-    try {
-      const response = await apiClient.get<AiLearningReport>(
-        `/api/v1/ai/analytics/report?subjectId=${encodeURIComponent(subjectId)}`
-      )
-      if (response) return response
-    } catch {
-      // Local fallback report
-    }
-
-    return {
-      reportId: 'rep_local_fallback',
-      userId: 'local_learner',
-      subjectId,
-      subjectName: 'Toán 12',
-      generatedAt: new Date().toISOString(),
-      overallMasteryScore: 0,
-      currentCompetencyTier: 'Chưa đủ dữ liệu',
-      accuracyPercent: 0,
-      totalQuestionsAttempted: 0,
-      curriculumProgressPercent: 0,
-      overallEvaluation: 'Hệ thống đang theo dõi và tổng hợp tiến trình học tập của bạn.',
-      keyStrengths: [],
-      criticalGaps: [],
-      recentProgressSummary: 'Chưa có hoạt động học tập ghi nhận.',
-      commonMistakePatterns: [],
-      recommendedGoals: [
-        'Hoàn thành bài học đầu tiên trong chương 1',
-        'Làm 10 câu hỏi luyện tập nhận biết',
-      ],
-      shortTermStudyPlan: [
-        'Học lý thuyết và xem video bài giảng Bài 1',
-        'Làm bài tập thích ứng',
-      ],
-      pedagogicalNarrative: 'Hãy bắt đầu bằng việc xem bài giảng và luyện tập các câu hỏi cơ bản để hình thành nền tảng kiến thức vững chắc.',
-      provider: 'LocalPedagogicalEngine',
-      isFallbackNarrative: true,
-    }
+    return apiClient.get<AiLearningReport>(
+      `/api/v1/ai/analytics/report?subjectId=${encodeURIComponent(subjectId)}`
+    )
   },
 
   /**

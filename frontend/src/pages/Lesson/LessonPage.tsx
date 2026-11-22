@@ -12,6 +12,15 @@ import { AssessmentModal } from '@/components/assessment/AssessmentModal'
 import { LessonAssessmentCard } from '@/components/assessment/LessonAssessmentCard'
 import { LessonProgressBar } from '@/components/lesson/LessonProgressBar'
 import { LessonVideoPlayer } from '@/components/lesson/LessonVideoPlayer'
+import {
+  LessonHeading,
+  LessonParagraph,
+  DefinitionBlock,
+  FormulaBlock,
+  ExampleBlock,
+  ImportantNote,
+  LessonSummaryBlock,
+} from '@/components/lesson/LessonBlocks'
 import { Breadcrumb } from '@/components/ui/Breadcrumb'
 import { Button } from '@/components/ui/Button'
 import { PageErrorState } from '@/components/ui/PageErrorState'
@@ -206,7 +215,7 @@ export function LessonPage() {
   const primaryVideo = useMemo(() => {
     if (!lesson) return null
     if (lesson.videos && lesson.videos.length > 0) {
-      const v = lesson.videos[0]
+      const v = lesson.videos.find((item) => item.isPrimary) || lesson.videos[0]
       return {
         id: v.id,
         title: v.title,
@@ -215,6 +224,10 @@ export function LessonPage() {
         sourceUrl: v.sourceUrl,
         embedUrl: v.embedUrl || undefined,
         youTubeVideoId: v.youTubeVideoId || undefined,
+        channelName: v.channelName || undefined,
+        isPrimary: v.isPrimary,
+        attributionText: v.attributionText || undefined,
+        embedAllowed: v.embedAllowed,
         durationSeconds: v.durationSeconds || undefined,
         thumbnailUrl: v.thumbnailUrl || undefined,
       }
@@ -319,6 +332,7 @@ export function LessonPage() {
           {primaryVideo ? (
             <LessonVideoPlayer
               video={primaryVideo}
+              videos={lesson.videos}
               lessonTitle={lesson.title}
               sourceReferenceUrl={lesson.sourceReferenceUrl}
               onVideoCompleted={markVideoCompleted}
@@ -332,6 +346,65 @@ export function LessonPage() {
             </div>
           )}
         </section>
+
+        {/* ============================================================ */}
+        {/* 4.5 NỘI DUNG LÝ THUYẾT & CÔNG THỨC TOÁN (KaTeX & Pedagogical Blocks) */}
+        {/* ============================================================ */}
+        {lesson.content && (
+          <section className="lesson-theory-section" aria-label="Nội dung lý thuyết và công thức" style={{ marginTop: '24px' }}>
+            {lesson.content.introduction && (
+              <div className="theory-block-intro" style={{ marginBottom: '20px' }}>
+                <LessonHeading>Đặt vấn đề & Mở đầu</LessonHeading>
+                <LessonParagraph>{lesson.content.introduction}</LessonParagraph>
+              </div>
+            )}
+
+            {lesson.content.definitions && lesson.content.definitions.length > 0 && (
+              <div className="theory-block-definitions" style={{ marginBottom: '20px' }}>
+                <LessonHeading>Khái niệm & Định lý cốt lõi</LessonHeading>
+                <div style={{ display: 'grid', gap: '12px' }}>
+                  {lesson.content.definitions.map((def, idx) => (
+                    <DefinitionBlock key={idx} term={def.term} content={def.content} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {lesson.content.formulas && lesson.content.formulas.length > 0 && (
+              <div className="theory-block-formulas" style={{ marginBottom: '20px' }}>
+                <LessonHeading>Công thức toán học & Quy tắc</LessonHeading>
+                <div style={{ display: 'grid', gap: '12px' }}>
+                  {lesson.content.formulas.map((form) => (
+                    <FormulaBlock key={form.id} formula={form} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {lesson.content.examples && lesson.content.examples.length > 0 && (
+              <div className="theory-block-examples" style={{ marginBottom: '20px' }}>
+                <LessonHeading>Ví dụ minh họa chi tiết</LessonHeading>
+                <div style={{ display: 'grid', gap: '16px' }}>
+                  {lesson.content.examples.map((ex) => (
+                    <ExampleBlock key={ex.id} example={ex} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {lesson.content.importantNotes && lesson.content.importantNotes.length > 0 && (
+              <div className="theory-block-notes" style={{ marginBottom: '20px' }}>
+                <ImportantNote notes={lesson.content.importantNotes} />
+              </div>
+            )}
+
+            {lesson.content.summaryPoints && lesson.content.summaryPoints.length > 0 && (
+              <div className="theory-block-summary" style={{ marginBottom: '20px' }}>
+                <LessonSummaryBlock points={lesson.content.summaryPoints} />
+              </div>
+            )}
+          </section>
+        )}
 
         {/* ============================================================ */}
         {/* 5. BÀI TẬP THU HOẠCH (Collapsible Accordion, Mặc định thu gọn) */}

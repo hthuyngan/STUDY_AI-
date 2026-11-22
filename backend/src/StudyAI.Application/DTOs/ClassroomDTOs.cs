@@ -70,6 +70,8 @@ public class AssignmentDto
     public string Id { get; set; } = string.Empty;
     public string ClassroomId { get; set; } = string.Empty;
     public string? ClassroomName { get; set; }
+    public string? Subject { get; set; }
+    public string? Grade { get; set; }
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string? Instructions { get; set; }

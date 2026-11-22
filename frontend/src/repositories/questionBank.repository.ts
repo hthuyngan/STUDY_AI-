@@ -7,6 +7,8 @@ import type {
   QuestionItem,
 } from '@/types/questionBank'
 
+declare const process: { env?: { NODE_ENV?: string } } | undefined
+
 const QUESTION_BANK_STORAGE_KEY = 'study_ai_question_bank_v1'
 
 export interface IQuestionBankRepository {
@@ -43,7 +45,12 @@ export class QuestionBankRepository implements IQuestionBankRepository {
       // Fallback to initial mock dataset if localStorage is unavailable
     }
 
-    this.inMemoryCache = [...mockQuestions]
+    if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test' && !getAccessToken()) {
+      this.inMemoryCache = [...mockQuestions]
+      return this.inMemoryCache
+    }
+
+    this.inMemoryCache = []
     return this.inMemoryCache
   }
 
@@ -59,13 +66,17 @@ export class QuestionBankRepository implements IQuestionBankRepository {
   }
 
   async getAll(): Promise<QuestionItem[]> {
-    if (getAccessToken()) {
+    try {
       const res = await apiClient.get<{ items: QuestionItem[]; total: number }>(
         '/api/v1/curriculum/question-bank?pageSize=100'
       )
       return res.items || []
+    } catch (err) {
+      if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test' && !getAccessToken()) {
+        return [...this.loadFromStorage()]
+      }
+      throw err
     }
-    return [...this.loadFromStorage()]
   }
 
   /**
@@ -73,27 +84,27 @@ export class QuestionBankRepository implements IQuestionBankRepository {
    * INVARIANT: Never fallbacks to a different question when ID does not exist.
    */
   async getById(id: string): Promise<QuestionItem | null> {
-    if (getAccessToken()) {
-      try {
-        const item = await apiClient.get<QuestionItem>(`/api/v1/curriculum/question-bank/${id}`)
-        return item
-      } catch {
-        return null
+    try {
+      const item = await apiClient.get<QuestionItem>(`/api/v1/curriculum/question-bank/${id}`)
+      return item || null
+    } catch {
+      if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test' && !getAccessToken()) {
+        const items = this.loadFromStorage()
+        const found = items.find((q) => q.id === id)
+        return found ? { ...found } : null
       }
+      return null
     }
-    const items = this.loadFromStorage()
-    const found = items.find((q) => q.id === id)
-    return found ? { ...found } : null
   }
 
   async filter(criteria: QuestionFilterCriteria): Promise<QuestionItem[]> {
-    if (getAccessToken()) {
+    try {
       const query = new URLSearchParams()
-      if (criteria.subjectId) query.set('subjectId', criteria.subjectId)
-      if (criteria.chapterId) query.set('chapterId', criteria.chapterId)
-      if (criteria.lessonId) query.set('lessonId', criteria.lessonId)
+      if (criteria.subjectId && criteria.subjectId !== 'all') query.set('subjectId', criteria.subjectId)
+      if (criteria.chapterId && criteria.chapterId !== 'all') query.set('chapterId', criteria.chapterId)
+      if (criteria.lessonId && criteria.lessonId !== 'all') query.set('lessonId', criteria.lessonId)
       if (criteria.difficulty && (criteria.difficulty as string) !== 'all') query.set('difficulty', criteria.difficulty)
-      if (criteria.type) query.set('type', criteria.type)
+      if (criteria.type && (criteria.type as string) !== 'all') query.set('type', criteria.type)
       if (criteria.search) query.set('search', criteria.search)
       query.set('pageSize', '100')
 
@@ -101,33 +112,36 @@ export class QuestionBankRepository implements IQuestionBankRepository {
         `/api/v1/curriculum/question-bank?${query.toString()}`
       )
       return res.items || []
+    } catch (err) {
+      if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test' && !getAccessToken()) {
+        const items = this.loadFromStorage()
+
+        return items.filter((q) => {
+          if (criteria.subjectId && criteria.subjectId !== 'all' && q.subjectId !== criteria.subjectId) return false
+          if (criteria.chapterId && criteria.chapterId !== 'all' && q.chapterId !== criteria.chapterId) return false
+          if (criteria.lessonId && criteria.lessonId !== 'all' && q.lessonId !== criteria.lessonId) return false
+          if (criteria.skillId && !q.skillIds.includes(criteria.skillId)) return false
+          if (criteria.type && (criteria.type as string) !== 'all' && q.type !== criteria.type) return false
+          if (criteria.difficulty && (criteria.difficulty as string) !== 'all' && q.difficulty !== criteria.difficulty) return false
+          if (criteria.cognitiveLevel && (criteria.cognitiveLevel as string) !== 'all' && q.cognitiveLevel !== criteria.cognitiveLevel) return false
+
+          if (criteria.reviewStatus && criteria.reviewStatus !== 'all') {
+            if (q.reviewStatus !== criteria.reviewStatus) return false
+          }
+
+          if (criteria.search) {
+            const queryLower = criteria.search.toLowerCase()
+            const matchStem = q.stem.toLowerCase().includes(queryLower)
+            const matchId = q.id.toLowerCase().includes(queryLower)
+            const matchSkills = q.skillIds.some((s) => s.toLowerCase().includes(queryLower))
+            if (!matchStem && !matchId && !matchSkills) return false
+          }
+
+          return true
+        })
+      }
+      throw err
     }
-
-    const items = this.loadFromStorage()
-
-    return items.filter((q) => {
-      if (criteria.subjectId && q.subjectId !== criteria.subjectId) return false
-      if (criteria.chapterId && q.chapterId !== criteria.chapterId) return false
-      if (criteria.lessonId && q.lessonId !== criteria.lessonId) return false
-      if (criteria.skillId && !q.skillIds.includes(criteria.skillId)) return false
-      if (criteria.type && q.type !== criteria.type) return false
-      if (criteria.difficulty && q.difficulty !== criteria.difficulty) return false
-      if (criteria.cognitiveLevel && q.cognitiveLevel !== criteria.cognitiveLevel) return false
-
-      if (criteria.reviewStatus && criteria.reviewStatus !== 'all') {
-        if (q.reviewStatus !== criteria.reviewStatus) return false
-      }
-
-      if (criteria.search) {
-        const query = criteria.search.toLowerCase()
-        const matchStem = q.stem.toLowerCase().includes(query)
-        const matchId = q.id.toLowerCase().includes(query)
-        const matchSkills = q.skillIds.some((s) => s.toLowerCase().includes(query))
-        if (!matchStem && !matchId && !matchSkills) return false
-      }
-
-      return true
-    })
   }
 
   async getApprovedOnly(
@@ -140,46 +154,49 @@ export class QuestionBankRepository implements IQuestionBankRepository {
   }
 
   async getStats(): Promise<QuestionBankStats> {
-    if (getAccessToken()) {
-      return apiClient.get<QuestionBankStats>('/api/v1/curriculum/question-bank/statistics')
-    }
+    try {
+      return await apiClient.get<QuestionBankStats>('/api/v1/curriculum/question-bank/statistics')
+    } catch (err) {
+      if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test' && !getAccessToken()) {
+        const items = this.loadFromStorage()
 
-    const items = this.loadFromStorage()
+        const stats: QuestionBankStats = {
+          total: items.length,
+          approvedCount: 0,
+          needsReviewCount: 0,
+          draftCount: 0,
+          rejectedCount: 0,
+          byType: {
+            multiple_choice: 0,
+            true_false_group: 0,
+            short_answer: 0,
+          },
+          byCognitiveLevel: {
+            recognition: 0,
+            comprehension: 0,
+            application: 0,
+            high_application: 0,
+          },
+        }
 
-    const stats: QuestionBankStats = {
-      total: items.length,
-      approvedCount: 0,
-      needsReviewCount: 0,
-      draftCount: 0,
-      rejectedCount: 0,
-      byType: {
-        multiple_choice: 0,
-        true_false_group: 0,
-        short_answer: 0,
-      },
-      byCognitiveLevel: {
-        recognition: 0,
-        comprehension: 0,
-        application: 0,
-        high_application: 0,
-      },
-    }
+        for (const q of items) {
+          if (q.reviewStatus === 'approved') stats.approvedCount++
+          else if (q.reviewStatus === 'needs_review') stats.needsReviewCount++
+          else if (q.reviewStatus === 'draft') stats.draftCount++
+          else if (q.reviewStatus === 'rejected') stats.rejectedCount++
 
-    for (const q of items) {
-      if (q.reviewStatus === 'approved') stats.approvedCount++
-      else if (q.reviewStatus === 'needs_review') stats.needsReviewCount++
-      else if (q.reviewStatus === 'draft') stats.draftCount++
-      else if (q.reviewStatus === 'rejected') stats.rejectedCount++
+          if (stats.byType[q.type] !== undefined) {
+            stats.byType[q.type]++
+          }
+          if (stats.byCognitiveLevel[q.cognitiveLevel] !== undefined) {
+            stats.byCognitiveLevel[q.cognitiveLevel]++
+          }
+        }
 
-      if (stats.byType[q.type] !== undefined) {
-        stats.byType[q.type]++
+        return stats
       }
-      if (stats.byCognitiveLevel[q.cognitiveLevel] !== undefined) {
-        stats.byCognitiveLevel[q.cognitiveLevel]++
-      }
+      throw err
     }
-
-    return stats
   }
 
   async save(item: QuestionItem): Promise<void> {

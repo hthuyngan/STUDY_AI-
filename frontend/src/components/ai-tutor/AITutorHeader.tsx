@@ -2,7 +2,7 @@ import { ArrowLeft, History, Plus } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
-import { SUBJECT_OPTIONS } from '../../data/aiTutor.mock'
+import { SUBJECT_OPTIONS } from '../../config/aiTutorOptions'
 import type { AiProviderStatus } from '../../services/aiTutor.service'
 
 interface AITutorHeaderProps {

@@ -43,6 +43,19 @@ public class ContentManagementIntegrationTests : IClassFixture<StudyAIApiFixture
         return json.GetProperty("accessToken").GetString()!;
     }
 
+    private async Task<string> GetReviewerStaffTokenAsync()
+    {
+        var loginResponse = await _client.PostAsJsonAsync("/api/v1/auth/login", new
+        {
+            email = "content2@studyai.internal",
+            password = "Content2@123456"
+        });
+
+        loginResponse.EnsureSuccessStatusCode();
+        var json = await loginResponse.Content.ReadFromJsonAsync<JsonElement>();
+        return json.GetProperty("accessToken").GetString()!;
+    }
+
     private async Task<string> GetLearnerTokenAsync()
     {
         var loginResponse = await _client.PostAsJsonAsync("/api/v1/auth/login", new
@@ -60,10 +73,12 @@ public class ContentManagementIntegrationTests : IClassFixture<StudyAIApiFixture
     public async Task Independent_Moderation_Workflow_Enforces_RBAC_And_Dual_Control()
     {
         var contentToken = await GetContentStaffTokenAsync();
+        var reviewerToken = await GetReviewerStaffTokenAsync();
         var adminToken = await GetAdminTokenAsync();
         var learnerToken = await GetLearnerTokenAsync();
 
         var contentAuthHeader = new AuthenticationHeaderValue("Bearer", contentToken);
+        var reviewerAuthHeader = new AuthenticationHeaderValue("Bearer", reviewerToken);
         var adminAuthHeader = new AuthenticationHeaderValue("Bearer", adminToken);
         var learnerAuthHeader = new AuthenticationHeaderValue("Bearer", learnerToken);
 
@@ -175,14 +190,22 @@ public class ContentManagementIntegrationTests : IClassFixture<StudyAIApiFixture
         var submitData = await submitReviewRes.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal("in-review", submitData.GetProperty("status").GetString());
 
-        // 7. CONTENT WORKFLOW: Content specialist is the final approver and can self-approve valid content -> 200 OK
+        // 7. FOUR-EYES GUARD: Author cannot self-approve -> 403 Forbidden
         var selfApproveMsg = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lessonId}/approve")
         {
             Headers = { Authorization = contentAuthHeader }
         };
         var selfApproveRes = await _client.SendAsync(selfApproveMsg);
-        Assert.Equal(HttpStatusCode.OK, selfApproveRes.StatusCode);
-        var selfApprovedData = await selfApproveRes.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.Forbidden, selfApproveRes.StatusCode);
+
+        // Independent Content Reviewer approves valid content -> 200 OK
+        var reviewerApproveMsg = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lessonId}/approve")
+        {
+            Headers = { Authorization = reviewerAuthHeader }
+        };
+        var reviewerApproveRes = await _client.SendAsync(reviewerApproveMsg);
+        Assert.Equal(HttpStatusCode.OK, reviewerApproveRes.StatusCode);
+        var selfApprovedData = await reviewerApproveRes.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal("published", selfApprovedData.GetProperty("status").GetString());
 
         // 8. SECURITY GUARD: Learner cannot approve -> 403 Forbidden
@@ -238,16 +261,33 @@ public class ContentManagementIntegrationTests : IClassFixture<StudyAIApiFixture
         var submit2Res = await _client.SendAsync(submit2Msg);
         Assert.Equal(HttpStatusCode.OK, submit2Res.StatusCode);
 
-        // Content Staff can reject / request changes in review queue -> 200 OK & Status = 'draft'
+        // Verify author CANNOT request changes or reject on their own content (Four-Eyes)
         var selfReqChangesMsg = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lesson2Id}/request-changes")
         {
             Headers = { Authorization = contentAuthHeader },
             Content = JsonContent.Create(new { feedback = "Cần chỉnh sửa lại phần mở đầu bài 2." })
         };
         var selfReqChangesRes = await _client.SendAsync(selfReqChangesMsg);
-        Assert.Equal(HttpStatusCode.OK, selfReqChangesRes.StatusCode);
-        var selfReqData = await selfReqChangesRes.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal("draft", selfReqData.GetProperty("status").GetString());
+        Assert.Equal(HttpStatusCode.Forbidden, selfReqChangesRes.StatusCode);
+
+        // Independent Reviewer can reject / request changes in review queue -> 200 OK & Status = 'draft'
+        var reviewerReqChangesMsg = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lesson2Id}/request-changes")
+        {
+            Headers = { Authorization = reviewerAuthHeader },
+            Content = JsonContent.Create(new { feedback = "Cần chỉnh sửa lại phần mở đầu bài 2." })
+        };
+        var reviewerReqChangesRes = await _client.SendAsync(reviewerReqChangesMsg);
+        Assert.Equal(HttpStatusCode.OK, reviewerReqChangesRes.StatusCode);
+        var reviewerReqData = await reviewerReqChangesRes.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("draft", reviewerReqData.GetProperty("status").GetString());
+
+        // Resubmit for review
+        var resubmit2Msg = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lesson2Id}/submit-review")
+        {
+            Headers = { Authorization = contentAuthHeader }
+        };
+        var resubmit2Res = await _client.SendAsync(resubmit2Msg);
+        Assert.Equal(HttpStatusCode.OK, resubmit2Res.StatusCode);
 
         // SECURITY GUARD: Learner cannot request changes -> 403 Forbidden
         var learnerReqChangesMsg = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lesson2Id}/request-changes")

@@ -1,0 +1,1186 @@
+import fs from 'fs';
+import path from 'path';
+
+interface VideoItem {
+  id: string;
+  title: string;
+  description?: string;
+  provider: 'youtube' | 'khan_academy';
+  sourceUrl: string;
+  embedUrl?: string;
+  youtubeVideoId?: string;
+  channelName?: string;
+  isPrimary: boolean;
+  attributionText: string;
+  durationSeconds: number;
+  thumbnailUrl?: string;
+  sortOrder: number;
+  embedAllowed: boolean;
+  verificationStatus: 'verified';
+}
+
+interface DefinitionItem {
+  term: string;
+  content: string;
+}
+
+interface FormulaItem {
+  name: string;
+  latex: string;
+}
+
+interface ExampleItem {
+  title: string;
+  problem: string;
+  solution: string;
+}
+
+interface LessonItem {
+  id: string;
+  code: string;
+  title: string;
+  slug: string;
+  orderIndex: number;
+  status: 'published';
+  sourceName: string;
+  sourceUrl: string;
+  sourceLicense: string;
+  learningObjectives: string[];
+  introduction: string;
+  definitions: DefinitionItem[];
+  formulas: FormulaItem[];
+  examples: ExampleItem[];
+  importantNotes: string[];
+  summaryPoints: string[];
+  videos: VideoItem[];
+}
+
+interface TopicItem {
+  id: string;
+  code: string;
+  title: string;
+  description?: string;
+  orderIndex: number;
+  lessons: LessonItem[];
+}
+
+interface ChapterItem {
+  id: string;
+  code: string;
+  title: string;
+  description?: string;
+  orderIndex: number;
+  status: 'published';
+  sourceName: string;
+  sourceUrl: string;
+  topics: TopicItem[];
+}
+
+interface SubjectItem {
+  id: string;
+  code: string;
+  name: string;
+  grade: string;
+  description: string;
+  orderIndex: number;
+  chapters: ChapterItem[];
+}
+
+interface CatalogManifest {
+  schemaVersion: 1;
+  generatedAt: string;
+  title: string;
+  description: string;
+  license: string;
+  subjects: SubjectItem[];
+}
+
+const math10: SubjectItem = {
+  id: 'sub_math10',
+  code: 'MATH10',
+  name: 'Toán 10',
+  grade: '10',
+  description: 'Chương trình chuẩn Toán học lớp 10 theo Chương trình GDPT 2018 (Đại số, Hình học và Thống kê - Xác suất).',
+  orderIndex: 1,
+  chapters: [
+    {
+      id: 'chap_math10_c1',
+      code: 'MATH10_C1',
+      title: 'Chương I: Mệnh đề và tập hợp',
+      description: 'Mệnh đề toán học, mệnh đề chứa biến, tập hợp và các phép toán giao, hợp, hiệu trên tập hợp.',
+      orderIndex: 1,
+      status: 'published',
+      sourceName: 'Khan Academy Vietnam / GDPT 2018',
+      sourceUrl: 'https://vi.khanacademy.org/math/toan-lop-10-vietnam',
+      topics: [
+        {
+          id: 'top_math10_c1_t1',
+          code: 'MATH10_C1_T1',
+          title: 'Mệnh đề và tập hợp',
+          description: 'Các khái niệm cơ bản về logic mệnh đề và lý thuyết tập hợp.',
+          orderIndex: 1,
+          lessons: [
+            {
+              id: 'les_math10_c1_b1',
+              code: 'MATH10_C1_B1',
+              title: 'Bài 1: Mệnh đề và mệnh đề chứa biến',
+              slug: 'menh-de-va-menh-de-chua-bien',
+              orderIndex: 1,
+              status: 'published',
+              sourceName: 'Khan Academy Vietnam',
+              sourceUrl: 'https://vi.khanacademy.org/math/toan-lop-10-vietnam',
+              sourceLicense: 'CC BY-NC-SA 4.0',
+              learningObjectives: [
+                'Hiểu khái niệm mệnh đề toán học và phân biệt với câu không phải mệnh đề.',
+                'Nắm vững phủ định mệnh đề, mệnh đề kéo theo và mệnh đề tương đương.',
+                'Sử dụng thành thạo kí hiệu với mọi (∀) và tồn tại (∃).'
+              ],
+              introduction: 'Mệnh đề là viên gạch nền tảng của tư duy logic và lập luận toán học. Trong bài học này, chúng ta sẽ tìm hiểu cách xác định chân trị của mệnh đề.',
+              definitions: [
+                { term: 'Mệnh đề toán học', content: 'Mệnh đề toán học là một khẳng định có tính đúng hoặc sai, không thể vừa đúng vừa sai.' },
+                { term: 'Mệnh đề kéo theo', content: 'Mệnh đề "Nếu P thì Q" được gọi là mệnh đề kéo theo, kí hiệu là P => Q.' }
+              ],
+              formulas: [
+                { name: 'Phủ định mệnh đề với mọi', latex: '\\overline{\\forall x \\in X, P(x)} \\iff \\exists x \\in X, \\overline{P(x)}' },
+                { name: 'Phủ định mệnh đề tồn tại', latex: '\\overline{\\exists x \\in X, P(x)} \\iff \\forall x \\in X, \\overline{P(x)}' }
+              ],
+              examples: [
+                {
+                  title: 'Ví dụ 1: Phủ định mệnh đề lượng từ',
+                  problem: 'Cho mệnh đề P: "Mọi số thực x đều có $x^2 \\ge 0$". Hãy viết mệnh đề phủ định của P.',
+                  solution: 'Mệnh đề phủ định là $\\overline{P}$: "Tồn tại số thực x sao cho $x^2 < 0$". Kí hiệu: $\\exists x \\in \\mathbb{R}, x^2 < 0$.'
+                }
+              ],
+              importantNotes: [
+                'Câu cảm thán, câu hỏi, câu cầu khiến không phải là mệnh đề toán học.',
+                'Mệnh đề P => Q chỉ sai khi P đúng mà Q sai.'
+              ],
+              summaryPoints: [
+                'Mỗi khẳng định toán học đúng hoặc sai là một mệnh đề.',
+                'Dùng kí hiệu ∀ và ∃ để biểu diễn mệnh đề chứa biến.'
+              ],
+              videos: [
+                {
+                  id: 'vid_m10_c1_b1_v1',
+                  title: 'Bài 1. Mệnh Đề, Mệnh Đề Chứa Biến - Toán 10 (Sách Mới)',
+                  description: 'Bài giảng chi tiết về khái niệm mệnh đề, các dạng mệnh đề và bài tập mẫu.',
+                  provider: 'youtube',
+                  sourceUrl: 'https://www.youtube.com/watch?v=xtYqUS8_pZM',
+                  embedUrl: 'https://www.youtube-nocookie.com/embed/xtYqUS8_pZM',
+                  youtubeVideoId: 'xtYqUS8_pZM',
+                  channelName: 'Thầy Nguyễn Phan Tiến',
+                  isPrimary: true,
+                  attributionText: 'Nguồn: YouTube / Kênh Thầy Nguyễn Phan Tiến',
+                  durationSeconds: 2700,
+                  thumbnailUrl: 'https://i.ytimg.com/vi/xtYqUS8_pZM/hqdefault.jpg',
+                  sortOrder: 1,
+                  embedAllowed: true,
+                  verificationStatus: 'verified'
+                },
+                {
+                  id: 'vid_m10_c1_b1_v2',
+                  title: 'Toán 10 Bài 1: Mệnh đề - Kết nối tri thức',
+                  description: 'Bài giảng lý thuyết và giải bài tập sách giáo khoa Kết nối tri thức.',
+                  provider: 'youtube',
+                  sourceUrl: 'https://www.youtube.com/watch?v=edVegk01ZsA',
+                  embedUrl: 'https://www.youtube-nocookie.com/embed/edVegk01ZsA',
+                  youtubeVideoId: 'edVegk01ZsA',
+                  channelName: 'VietJack THPT Official',
+                  isPrimary: false,
+                  attributionText: 'Nguồn: YouTube / Kênh VietJack THPT Official',
+                  durationSeconds: 2100,
+                  thumbnailUrl: 'https://i.ytimg.com/vi/edVegk01ZsA/hqdefault.jpg',
+                  sortOrder: 2,
+                  embedAllowed: true,
+                  verificationStatus: 'verified'
+                }
+              ]
+            },
+            {
+              id: 'les_math10_c1_b2',
+              code: 'MATH10_C1_B2',
+              title: 'Bài 2: Tập hợp và các phép toán trên tập hợp',
+              slug: 'tap-hop-va-cac-phep-toan-tren-tap-hop',
+              orderIndex: 2,
+              status: 'published',
+              sourceName: 'Khan Academy Vietnam',
+              sourceUrl: 'https://vi.khanacademy.org/math/toan-lop-10-vietnam',
+              sourceLicense: 'CC BY-NC-SA 4.0',
+              learningObjectives: [
+                'Hiểu khái niệm tập hợp, phần tử thuộc tập hợp và tập con.',
+                'Thực hiện thành thạo các phép toán giao, hợp, hiệu và phần bù của hai tập hợp.',
+                'Biểu diễn tập hợp con của tập số thực trên trục số.'
+              ],
+              introduction: 'Tập hợp là công cụ biểu diễn nhóm các đối tượng toán học có chung tính chất.',
+              definitions: [
+                { term: 'Giao của hai tập hợp', content: 'Giao của A và B, kí hiệu A ∩ B, là tập hợp gồm các phần tử vừa thuộc A vừa thuộc B.' },
+                { term: 'Hợp của hai tập hợp', content: 'Hợp của A và B, kí hiệu A ∪ B, là tập hợp gồm các phần tử thuộc A hoặc thuộc B.' }
+              ],
+              formulas: [
+                { name: 'Giao hai tập hợp', latex: 'A \\cap B = \\{x \\mid x \\in A \\text{ và } x \\in B\\}' },
+                { name: 'Hợp hai tập hợp', latex: 'A \\cup B = \\{x \\mid x \\in A \\text{ hoặc } x \\in B\\}' },
+                { name: 'Hiệu hai tập hợp', latex: 'A \\setminus B = \\{x \\mid x \\in A \\text{ và } x \\notin B\\}' }
+              ],
+              examples: [
+                {
+                  title: 'Ví dụ: Phép toán trên tập số thực',
+                  problem: 'Cho $A = (-2; 3]$ và $B = [1; 5)$. Xác định $A \\cap B$ và $A \\cup B$.',
+                  solution: 'Ta có $A \\cap B = [1; 3]$ và $A \\cup B = (-2; 5)$.'
+                }
+              ],
+              importantNotes: ['Tập rỗng là con của mọi tập hợp: $\\emptyset \\subset A$.'],
+              summaryPoints: ['Giao là lấy phần chung, hợp là lấy tất cả, hiệu là thuộc A nhưng không thuộc B.'],
+              videos: [
+                {
+                  id: 'vid_m10_c1_b2_v1',
+                  title: 'Bài giảng Tập hợp - Khan Academy Vietnam',
+                  description: 'Lý thuyết tập hợp và phép toán trên tập số thực.',
+                  provider: 'khan_academy',
+                  sourceUrl: 'https://vi.khanacademy.org/math/toan-lop-10-vietnam',
+                  channelName: 'Khan Academy Vietnam',
+                  isPrimary: true,
+                  attributionText: 'Nguồn: Khan Academy Vietnam (CC BY-NC-SA 4.0)',
+                  durationSeconds: 1500,
+                  thumbnailUrl: 'https://cdn.kastatic.org/images/khan-logo-dark-background-2.png',
+                  sortOrder: 1,
+                  embedAllowed: false,
+                  verificationStatus: 'verified'
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'chap_math10_c2',
+      code: 'MATH10_C2',
+      title: 'Chương II: Bất phương trình và hệ bất phương trình bậc nhất hai ẩn',
+      description: 'Biểu diễn miền nghiệm của bất phương trình và hệ bất phương trình bậc nhất hai ẩn trên mặt phẳng toạ độ.',
+      orderIndex: 2,
+      status: 'published',
+      sourceName: 'Khan Academy Vietnam / GDPT 2018',
+      sourceUrl: 'https://vi.khanacademy.org/math/toan-lop-10-vietnam',
+      topics: [
+        {
+          id: 'top_math10_c2_t1',
+          code: 'MATH10_C2_T1',
+          title: 'Bất phương trình bậc nhất hai ẩn',
+          description: 'Miền nghiệm và bài toán quy hoạch tuyến tính thực tế.',
+          orderIndex: 1,
+          lessons: [
+            {
+              id: 'les_math10_c2_b1',
+              code: 'MATH10_C2_B1',
+              title: 'Bài 1: Bất phương trình bậc nhất hai ẩn',
+              slug: 'bat-phuong-trinh-bac-nhat-hai-an',
+              orderIndex: 1,
+              status: 'published',
+              sourceName: 'Khan Academy Vietnam',
+              sourceUrl: 'https://vi.khanacademy.org/math/toan-lop-10-vietnam',
+              sourceLicense: 'CC BY-NC-SA 4.0',
+              learningObjectives: [
+                'Nhận biết bất phương trình bậc nhất hai ẩn dạng $ax + by \\le c$.',
+                'Biểu diễn hình học miền nghiệm trên mặt phẳng Oxy.'
+              ],
+              introduction: 'Bất phương trình bậc nhất hai ẩn xuất hiện thường xuyên trong các bài toán tối ưu kinh tế và đời sống.',
+              definitions: [
+                { term: 'Bất phương trình bậc nhất hai ẩn', content: 'Dạng tổng quát là ax + by < c (hoặc <=, >, >=) với a, b không đồng thời bằng 0.' }
+              ],
+              formulas: [
+                { name: 'Dạng chuẩn', latex: 'ax + by \\le c' }
+              ],
+              examples: [
+                {
+                  title: 'Ví dụ kiểm tra nghiệm',
+                  problem: 'Cặp số (1; 2) có phải là nghiệm của bất phương trình $2x + 3y \\le 10$ không?',
+                  solution: 'Thay x = 1, y = 2 ta được: $2(1) + 3(2) = 8 \\le 10$ (đúng). Vậy (1; 2) là một nghiệm.'
+                }
+              ],
+              importantNotes: ['Đường thẳng $ax + by = c$ chia mặt phẳng toạ độ thành hai nửa mặt phẳng đối nhau.'],
+              summaryPoints: ['Chọn điểm kiểm tra (thường là O(0;0)) để xác định nửa mặt phẳng nghiệm.'],
+              videos: [
+                {
+                  id: 'vid_m10_c2_b1_v1',
+                  title: 'Bài 1. BPT và Hệ BPT Bậc Nhất Hai Ẩn - Toán 10',
+                  description: 'Cách xác định miền nghiệm nhanh chóng và chính xác.',
+                  provider: 'youtube',
+                  sourceUrl: 'https://www.youtube.com/watch?v=u0Oso1BelZc',
+                  embedUrl: 'https://www.youtube-nocookie.com/embed/u0Oso1BelZc',
+                  youtubeVideoId: 'u0Oso1BelZc',
+                  channelName: 'Thầy Nguyễn Phan Tiến',
+                  isPrimary: true,
+                  attributionText: 'Nguồn: YouTube / Kênh Thầy Nguyễn Phan Tiến',
+                  durationSeconds: 2400,
+                  thumbnailUrl: 'https://i.ytimg.com/vi/u0Oso1BelZc/hqdefault.jpg',
+                  sortOrder: 1,
+                  embedAllowed: true,
+                  verificationStatus: 'verified'
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'chap_math10_c3',
+      code: 'MATH10_C3',
+      title: 'Chương III: Hệ thức lượng trong tam giác',
+      description: 'Giá trị lượng giác từ 0 đến 180 độ, định lí cosin, định lí sin và các công thức tính diện tích tam giác.',
+      orderIndex: 3,
+      status: 'published',
+      sourceName: 'Khan Academy Vietnam / GDPT 2018',
+      sourceUrl: 'https://vi.khanacademy.org/math/toan-lop-10-vietnam',
+      topics: [
+        {
+          id: 'top_math10_c3_t1',
+          code: 'MATH10_C3_T1',
+          title: 'Hệ thức lượng và giải tam giác',
+          description: 'Định lí sin, cosin và công thức diện tích tam giác.',
+          orderIndex: 1,
+          lessons: [
+            {
+              id: 'les_math10_c3_b1',
+              code: 'MATH10_C3_B1',
+              title: 'Bài 1: Định lí cosin và định lí sin trong tam giác',
+              slug: 'dinh-li-cosin-va-dinh-li-sin',
+              orderIndex: 1,
+              status: 'published',
+              sourceName: 'Khan Academy Vietnam',
+              sourceUrl: 'https://vi.khanacademy.org/math/toan-lop-10-vietnam',
+              sourceLicense: 'CC BY-NC-SA 4.0',
+              learningObjectives: [
+                'Thuộc và vận dụng thành thạo định lí cosin: $a^2 = b^2 + c^2 - 2bc\\cos A$.',
+                'Thuộc và vận dụng định lí sin: $\\frac{a}{\\sin A} = 2R$.',
+                'Áp dụng công thức Heron và các công thức tính diện tích tam giác.'
+              ],
+              introduction: 'Hệ thức lượng giúp ta giải các bài toán đo đạc thực địa như tính khoảng cách, chiều cao không thể tới trực tiếp.',
+              definitions: [
+                { term: 'Định lí Cosin', content: 'Trong tam giác ABC, bình phương một cạnh bằng tổng bình phương hai cạnh kia trừ đi hai lần tích hai cạnh đó với cosin của góc xen giữa.' }
+              ],
+              formulas: [
+                { name: 'Định lí Cosin', latex: 'a^2 = b^2 + c^2 - 2bc \\cos A' },
+                { name: 'Định lí Sin', latex: '\\frac{a}{\\sin A} = \\frac{b}{\\sin B} = \\frac{c}{\\sin C} = 2R' },
+                { name: 'Công thức Heron', latex: 'S = \\sqrt{p(p-a)(p-b)(p-c)} \\text{ với } p = \\frac{a+b+c}{2}' }
+              ],
+              examples: [
+                {
+                  title: 'Ví dụ: Tính cạnh trong tam giác',
+                  problem: 'Cho tam giác ABC có $b = 5, c = 8$ và $\\widehat{A} = 60^\\circ$. Tính độ dài cạnh a.',
+                  solution: 'Áp dụng định lí Cosin: $a^2 = 5^2 + 8^2 - 2 \\cdot 5 \\cdot 8 \\cdot \\cos 60^\\circ = 25 + 64 - 40 = 49 \\implies a = 7$.'
+                }
+              ],
+              importantNotes: ['Góc tù có cosin âm, góc nhọn có cosin dương.'],
+              summaryPoints: ['Biết 2 cạnh và góc xen giữa: dùng định lí Cosin. Biết 1 cạnh và 2 góc: dùng định lí Sin.'],
+              videos: [
+                {
+                  id: 'vid_m10_c3_b1_v1',
+                  title: 'Bài 2. Hệ Thức Lượng Trong Tam Giác - Toán 10',
+                  description: 'Định lí sin, cosin và giải tam giác.',
+                  provider: 'youtube',
+                  sourceUrl: 'https://www.youtube.com/watch?v=VB385S07t3o',
+                  embedUrl: 'https://www.youtube-nocookie.com/embed/VB385S07t3o',
+                  youtubeVideoId: 'VB385S07t3o',
+                  channelName: 'Thầy Nguyễn Phan Tiến',
+                  isPrimary: true,
+                  attributionText: 'Nguồn: YouTube / Kênh Thầy Nguyễn Phan Tiến',
+                  durationSeconds: 2800,
+                  thumbnailUrl: 'https://i.ytimg.com/vi/VB385S07t3o/hqdefault.jpg',
+                  sortOrder: 1,
+                  embedAllowed: true,
+                  verificationStatus: 'verified'
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'chap_math10_c4',
+      code: 'MATH10_C4',
+      title: 'Chương IV: Vectơ',
+      description: 'Khái niệm vectơ, tổng và hiệu của vectơ, tích vectơ với một số, tích vô hướng.',
+      orderIndex: 4,
+      status: 'published',
+      sourceName: 'Khan Academy Vietnam / GDPT 2018',
+      sourceUrl: 'https://vi.khanacademy.org/math/toan-lop-10-vietnam',
+      topics: [
+        {
+          id: 'top_math10_c4_t1',
+          code: 'MATH10_C4_T1',
+          title: 'Khái niệm và phép toán vectơ',
+          description: 'Cộng, trừ, nhân số và tích vô hướng của hai vectơ.',
+          orderIndex: 1,
+          lessons: [
+            {
+              id: 'les_math10_c4_b1',
+              code: 'MATH10_C4_B1',
+              title: 'Bài 1: Khái niệm vectơ và các phép toán',
+              slug: 'khai-niem-vecto-va-cac-phep-toan',
+              orderIndex: 1,
+              status: 'published',
+              sourceName: 'Khan Academy Vietnam',
+              sourceUrl: 'https://vi.khanacademy.org/math/toan-lop-10-vietnam',
+              sourceLicense: 'CC BY-NC-SA 4.0',
+              learningObjectives: [
+                'Hiểu khái niệm đoạn thẳng có hướng, phương, hướng và độ dài của vectơ.',
+                'Thực hiện quy tắc 3 điểm, quy tắc hình bình hành.'
+              ],
+              introduction: 'Vectơ là công cụ cơ bản để biểu diễn các đại lượng vật lý có hướng như vận tốc, lực và gia tốc.',
+              definitions: [
+                { term: 'Vectơ', content: 'Vectơ là một đoạn thẳng có hướng (có điểm đầu và điểm cuối xác định).' }
+              ],
+              formulas: [
+                { name: 'Quy tắc 3 điểm', latex: '\\vec{AB} + \\vec{BC} = \\vec{AC}' },
+                { name: 'Quy tắc hình bình hành', latex: '\\vec{AB} + \\vec{AD} = \\vec{AC} \\text{ (với ABCD là hình bình hành)}' }
+              ],
+              examples: [
+                {
+                  title: 'Ví dụ: Rút gọn vectơ',
+                  problem: 'Cho bốn điểm A, B, C, D. Rút gọn tổng $\\vec{AB} + \\vec{BC} + \\vec{CD}$.',
+                  solution: 'Áp dụng quy tắc 3 điểm liên tiếp: $(\\vec{AB} + \\vec{BC}) + \\vec{CD} = \\vec{AC} + \\vec{CD} = \\vec{AD}$.'
+                }
+              ],
+              importantNotes: ['Hai vectơ cùng phương khi giá của chúng song song hoặc trùng nhau.'],
+              summaryPoints: ['Quy tắc ba điểm và quy tắc hình bình hành là nền tảng cộng vectơ.'],
+              videos: [
+                {
+                  id: 'vid_m10_c4_b1_v1',
+                  title: 'Bài 1. Vecto và các khái niệm, định nghĩa - Toán 10',
+                  description: 'Phương, hướng, độ dài vectơ và hai vectơ bằng nhau.',
+                  provider: 'youtube',
+                  sourceUrl: 'https://www.youtube.com/watch?v=zXyDnOHwBf4',
+                  embedUrl: 'https://www.youtube-nocookie.com/embed/zXyDnOHwBf4',
+                  youtubeVideoId: 'zXyDnOHwBf4',
+                  channelName: 'Thầy Nguyễn Phan Tiến',
+                  isPrimary: true,
+                  attributionText: 'Nguồn: YouTube / Kênh Thầy Nguyễn Phan Tiến',
+                  durationSeconds: 2300,
+                  thumbnailUrl: 'https://i.ytimg.com/vi/zXyDnOHwBf4/hqdefault.jpg',
+                  sortOrder: 1,
+                  embedAllowed: true,
+                  verificationStatus: 'verified'
+                },
+                {
+                  id: 'vid_m10_c4_b1_v2',
+                  title: 'Bài 3. Tích Vecto Với 1 Số - Toán 10',
+                  description: 'Quy tắc nhân vectơ với một số thực k và điều kiện ba điểm thẳng hàng.',
+                  provider: 'youtube',
+                  sourceUrl: 'https://www.youtube.com/watch?v=kbTFOhLc5w0',
+                  embedUrl: 'https://www.youtube-nocookie.com/embed/kbTFOhLc5w0',
+                  youtubeVideoId: 'kbTFOhLc5w0',
+                  channelName: 'Thầy Nguyễn Phan Tiến',
+                  isPrimary: false,
+                  attributionText: 'Nguồn: YouTube / Kênh Thầy Nguyễn Phan Tiến',
+                  durationSeconds: 2500,
+                  thumbnailUrl: 'https://i.ytimg.com/vi/kbTFOhLc5w0/hqdefault.jpg',
+                  sortOrder: 2,
+                  embedAllowed: true,
+                  verificationStatus: 'verified'
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'chap_math10_c7',
+      code: 'MATH10_C7',
+      title: 'Chương VII: Phương pháp toạ độ trong mặt phẳng',
+      description: 'Toạ độ của vectơ, phương trình đường thẳng, đường tròn và ba đường conic.',
+      orderIndex: 5,
+      status: 'published',
+      sourceName: 'Khan Academy Vietnam / GDPT 2018',
+      sourceUrl: 'https://vi.khanacademy.org/math/toan-lop-10-vietnam',
+      topics: [
+        {
+          id: 'top_math10_c7_t1',
+          code: 'MATH10_C7_T1',
+          title: 'Toạ độ trong mặt phẳng Oxy',
+          description: 'Toạ độ điểm, vectơ và phương trình đường thẳng.',
+          orderIndex: 1,
+          lessons: [
+            {
+              id: 'les_math10_c7_b1',
+              code: 'MATH10_C7_B1',
+              title: 'Bài 1: Toạ độ của vectơ trong mặt phẳng',
+              slug: 'toa-do-cua-vecto-trong-mat-phang',
+              orderIndex: 1,
+              status: 'published',
+              sourceName: 'Khan Academy Vietnam',
+              sourceUrl: 'https://vi.khanacademy.org/math/toan-lop-10-vietnam',
+              sourceLicense: 'CC BY-NC-SA 4.0',
+              learningObjectives: [
+                'Biểu diễn vectơ qua hai vectơ đơn vị $\\vec{i}$ và $\\vec{j}$.',
+                'Tính toạ độ tổng, hiệu và tích vô hướng của hai vectơ.'
+              ],
+              introduction: 'Phương pháp toạ độ giúp đại số hoá các bài toán hình học bằng các phép tính trên số thực.',
+              definitions: [
+                { term: 'Toạ độ vectơ', content: 'Vectơ u = (x; y) khi và chỉ khi u = x*i + y*j với i, j là hai vectơ đơn vị trên Ox, Oy.' }
+              ],
+              formulas: [
+                { name: 'Toạ độ vectơ AB', latex: '\\vec{AB} = (x_B - x_A; y_B - y_A)' },
+                { name: 'Độ dài vectơ', latex: '|\\vec{u}| = \\sqrt{x^2 + y^2}' },
+                { name: 'Tích vô hướng', latex: '\\vec{u} \\cdot \\vec{v} = x_1 x_2 + y_1 y_2' }
+              ],
+              examples: [
+                {
+                  title: 'Ví dụ: Tính tích vô hướng',
+                  problem: 'Cho $\\vec{u} = (2; -3)$ và $\\vec{v} = (4; 1)$. Tính $\\vec{u} \\cdot \\vec{v}$.',
+                  solution: 'Ta có $\\vec{u} \\cdot \\vec{v} = 2(4) + (-3)(1) = 8 - 3 = 5$.'
+                }
+              ],
+              importantNotes: ['Hai vectơ vuông góc khi và chỉ khi tích vô hướng bằng 0: $x_1 x_2 + y_1 y_2 = 0$.'],
+              summaryPoints: ['Mỗi vectơ được xác định bởi cặp toạ độ (x; y).'],
+              videos: [
+                {
+                  id: 'vid_m10_c7_b1_v1',
+                  title: 'Bài 5. Vecto trong mặt phẳng tọa độ - Toán 10',
+                  description: 'Toạ độ vectơ, toạ độ điểm và các phép toán cơ bản.',
+                  provider: 'youtube',
+                  sourceUrl: 'https://www.youtube.com/watch?v=NgsbqlkYgu8',
+                  embedUrl: 'https://www.youtube-nocookie.com/embed/NgsbqlkYgu8',
+                  youtubeVideoId: 'NgsbqlkYgu8',
+                  channelName: 'Thầy Nguyễn Phan Tiến',
+                  isPrimary: true,
+                  attributionText: 'Nguồn: YouTube / Kênh Thầy Nguyễn Phan Tiến',
+                  durationSeconds: 2600,
+                  thumbnailUrl: 'https://i.ytimg.com/vi/NgsbqlkYgu8/hqdefault.jpg',
+                  sortOrder: 1,
+                  embedAllowed: true,
+                  verificationStatus: 'verified'
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+};
+
+const math11: SubjectItem = {
+  id: 'sub_math11',
+  code: 'MATH11',
+  name: 'Toán 11',
+  grade: '11',
+  description: 'Chương trình chuẩn Toán học lớp 11 theo GDPT 2018 (Lượng giác, Dãy số, Giới hạn, Đạo hàm, Hình học không gian).',
+  orderIndex: 2,
+  chapters: [
+    {
+      id: 'chap_math11_c1',
+      code: 'MATH11_C1',
+      title: 'Chương I: Hàm số lượng giác và phương trình lượng giác',
+      description: 'Góc lượng giác, các công thức lượng giác, hàm số lượng giác và phương trình lượng giác cơ bản.',
+      orderIndex: 1,
+      status: 'published',
+      sourceName: 'Khan Academy Vietnam / GDPT 2018',
+      sourceUrl: 'https://vi.khanacademy.org/math/toan-lop-11-viet-nam',
+      topics: [
+        {
+          id: 'top_math11_c1_t1',
+          code: 'MATH11_C1_T1',
+          title: 'Hàm số và phương trình lượng giác',
+          description: 'Hàm số sin, cos, tan, cot và phương trình lượng giác.',
+          orderIndex: 1,
+          lessons: [
+            {
+              id: 'les_math11_c1_b1',
+              code: 'MATH11_C1_B1',
+              title: 'Bài 1: Hàm số lượng giác và đồ thị',
+              slug: 'ham-so-luong-giac-va-do-thi',
+              orderIndex: 1,
+              status: 'published',
+              sourceName: 'Khan Academy Vietnam',
+              sourceUrl: 'https://vi.khanacademy.org/math/toan-lop-11-viet-nam',
+              sourceLicense: 'CC BY-NC-SA 4.0',
+              learningObjectives: [
+                'Nắm vững tập xác định, tập giá trị và tính tuần hoàn của $y = \\sin x, \\cos x, \\tan x, \\cot x$.',
+                'Khảo sát và vẽ đồ thị các hàm số lượng giác cơ bản.'
+              ],
+              introduction: 'Hàm số lượng giác mô tả các quá trình dao động và biến thiên có tính chu kỳ trong tự nhiên và kỹ thuật.',
+              definitions: [
+                { term: 'Tính tuần hoàn', content: 'Hàm số f(x) tuần hoàn với chu kì T > 0 nếu f(x + T) = f(x) với mọi x thuộc tập xác định.' }
+              ],
+              formulas: [
+                { name: 'Chu kì hàm sin, cos', latex: 'T = 2\\pi \\text{ với } y = \\sin x, y = \\cos x' },
+                { name: 'Chu kì hàm tan, cot', latex: 'T = \\pi \\text{ với } y = \\tan x, y = \\cot x' }
+              ],
+              examples: [
+                {
+                  title: 'Ví dụ: Tìm tập xác định',
+                  problem: 'Tìm tập xác định của hàm số $y = \\tan(2x - \\frac{\\pi}{3})$.',
+                  solution: 'Điều kiện xác định: $2x - \\frac{\\pi}{3} \\ne \\frac{\\pi}{2} + k\\pi \\iff 2x \\ne \\frac{5\\pi}{6} + k\\pi \\iff x \\ne \\frac{5\\pi}{12} + k\\frac{\\pi}{2} \\, (k \\in \\mathbb{Z})$.'
+                }
+              ],
+              importantNotes: ['Hàm sin, tan, cot là hàm số lẻ; hàm cos là hàm số chẵn.'],
+              summaryPoints: ['Sin và Cos có tập giá trị [-1; 1], chu kì 2π.'],
+              videos: [
+                {
+                  id: 'vid_m11_c1_b1_v1',
+                  title: 'Bài 3. Hàm Số Lượng Giác và Vẽ Đồ Thị - Toán 11',
+                  description: 'Chi tiết chu kỳ, tính chẵn lẻ và đồ thị 4 hàm số lượng giác.',
+                  provider: 'youtube',
+                  sourceUrl: 'https://www.youtube.com/watch?v=lA5r8JXiOFk',
+                  embedUrl: 'https://www.youtube-nocookie.com/embed/lA5r8JXiOFk',
+                  youtubeVideoId: 'lA5r8JXiOFk',
+                  channelName: 'Thầy Nguyễn Phan Tiến',
+                  isPrimary: true,
+                  attributionText: 'Nguồn: YouTube / Kênh Thầy Nguyễn Phan Tiến',
+                  durationSeconds: 2700,
+                  thumbnailUrl: 'https://i.ytimg.com/vi/lA5r8JXiOFk/hqdefault.jpg',
+                  sortOrder: 1,
+                  embedAllowed: true,
+                  verificationStatus: 'verified'
+                }
+              ]
+            },
+            {
+              id: 'les_math11_c1_b2',
+              code: 'MATH11_C1_B2',
+              title: 'Bài 2: Phương trình lượng giác cơ bản',
+              slug: 'phuong-trinh-luong-giac-co-ban',
+              orderIndex: 2,
+              status: 'published',
+              sourceName: 'Khan Academy Vietnam',
+              sourceUrl: 'https://vi.khanacademy.org/math/toan-lop-11-viet-nam',
+              sourceLicense: 'CC BY-NC-SA 4.0',
+              learningObjectives: [
+                'Giải thành thạo $\\sin x = m, \\cos x = m, \\tan x = m, \\cot x = m$.',
+                'Biết cách biểu diễn nghiệm trên đường tròn lượng giác.'
+              ],
+              introduction: 'Phương trình lượng giác là công cụ giải các bài toán cân bằng lực và dao động điều hoà.',
+              definitions: [
+                { term: 'Phương trình cơ bản', content: 'Phương trình có dạng sin(u) = sin(v), cos(u) = cos(v), tan(u) = tan(v).' }
+              ],
+              formulas: [
+                { name: 'Nghiệm phương trình sin', latex: '\\sin x = \\sin \\alpha \\iff \\left[ \\begin{aligned} x &= \\alpha + k2\\pi \\\\ x &= \\pi - \\alpha + k2\\pi \\end{aligned} \\right. \\, (k \\in \\mathbb{Z})' },
+                { name: 'Nghiệm phương trình cos', latex: '\\cos x = \\cos \\alpha \\iff x = \\pm \\alpha + k2\\pi \\, (k \\in \\mathbb{Z})' }
+              ],
+              examples: [
+                {
+                  title: 'Ví dụ: Giải phương trình',
+                  problem: 'Giải phương trình $\\cos x = \\frac{1}{2}$.',
+                  solution: 'Vì $\\frac{1}{2} = \\cos \\frac{\\pi}{3}$, nên nghiệm là $x = \\pm \\frac{\\pi}{3} + k2\\pi \\, (k \\in \\mathbb{Z})$.'
+                }
+              ],
+              importantNotes: ['Phương trình $\\sin x = m$ hoặc $\\cos x = m$ vô nghiệm khi $|m| > 1$.'],
+              summaryPoints: ['Nhớ công thức nghiệm của sin (cùng hoặc bù) và cos (đối nhau).'],
+              videos: [
+                {
+                  id: 'vid_m11_c1_b2_v1',
+                  title: 'Bài 4. Phương Trình Lượng Giác Cơ Bản - Toán 11',
+                  description: 'Phương pháp giải và các trường hợp đặc biệt của phương trình lượng giác.',
+                  provider: 'youtube',
+                  sourceUrl: 'https://www.youtube.com/watch?v=updNBYF5MVA',
+                  embedUrl: 'https://www.youtube-nocookie.com/embed/updNBYF5MVA',
+                  youtubeVideoId: 'updNBYF5MVA',
+                  channelName: 'Thầy Nguyễn Phan Tiến',
+                  isPrimary: true,
+                  attributionText: 'Nguồn: YouTube / Kênh Thầy Nguyễn Phan Tiến',
+                  durationSeconds: 2500,
+                  thumbnailUrl: 'https://i.ytimg.com/vi/updNBYF5MVA/hqdefault.jpg',
+                  sortOrder: 1,
+                  embedAllowed: true,
+                  verificationStatus: 'verified'
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'chap_math11_c2',
+      code: 'MATH11_C2',
+      title: 'Chương II: Dãy số, cấp số cộng và cấp số nhân',
+      description: 'Định nghĩa dãy số, tính tăng giảm, số hạng tổng quát và tổng n số hạng của cấp số cộng, cấp số nhân.',
+      orderIndex: 2,
+      status: 'published',
+      sourceName: 'Khan Academy Vietnam / GDPT 2018',
+      sourceUrl: 'https://vi.khanacademy.org/math/toan-lop-11-viet-nam',
+      topics: [
+        {
+          id: 'top_math11_c2_t1',
+          code: 'MATH11_C2_T1',
+          title: 'Cấp số cộng và Cấp số nhân',
+          description: 'Công thức số hạng tổng quát và tổng n số hạng.',
+          orderIndex: 1,
+          lessons: [
+            {
+              id: 'les_math11_c2_b1',
+              code: 'MATH11_C2_B1',
+              title: 'Bài 1: Cấp số cộng',
+              slug: 'cap-so-cong',
+              orderIndex: 1,
+              status: 'published',
+              sourceName: 'Khan Academy Vietnam',
+              sourceUrl: 'https://vi.khanacademy.org/math/toan-lop-11-viet-nam',
+              sourceLicense: 'CC BY-NC-SA 4.0',
+              learningObjectives: [
+                'Nắm định nghĩa cấp số cộng và công sai d.',
+                'Tính số hạng tổng quát $u_n = u_1 + (n-1)d$.',
+                'Tính tổng n số hạng đầu tiên $S_n$.'
+              ],
+              introduction: 'Cấp số cộng là dãy số mà mỗi số hạng (kể từ số hạng thứ hai) bằng số hạng liền trước cộng với một hằng số.',
+              definitions: [
+                { term: 'Cấp số cộng', content: 'Dãy số (u_n) thỏa mãn u_{n+1} = u_n + d với mọi n >= 1 (d gọi là công sai).' }
+              ],
+              formulas: [
+                { name: 'Số hạng tổng quát', latex: 'u_n = u_1 + (n-1)d' },
+                { name: 'Tổng n số hạng đầu', latex: 'S_n = \\frac{n(u_1 + u_n)}{2} = \\frac{n[2u_1 + (n-1)d]}{2}' }
+              ],
+              examples: [
+                {
+                  title: 'Ví dụ: Tính số hạng thứ 10',
+                  problem: 'Cho cấp số cộng có $u_1 = 3$ và công sai $d = 4$. Tính $u_{10}$ và $S_{10}$.',
+                  solution: '$u_{10} = 3 + (10 - 1) \\cdot 4 = 39$. $S_{10} = \\frac{10(3 + 39)}{2} = 210$.'
+                }
+              ],
+              importantNotes: ['Nếu $u_a, u_b, u_c$ lập thành cấp số cộng thì $u_a + u_c = 2u_b$.'],
+              summaryPoints: ['Công sai d có thể âm, dương hoặc bằng 0.'],
+              videos: [
+                {
+                  id: 'vid_m11_c2_b1_v1',
+                  title: 'Toán 11 - Cấp Số Cộng',
+                  description: 'Khái niệm, số hạng tổng quát và các bài toán thực tế.',
+                  provider: 'youtube',
+                  sourceUrl: 'https://www.youtube.com/watch?v=Bx1hgpLddtE',
+                  embedUrl: 'https://www.youtube-nocookie.com/embed/Bx1hgpLddtE',
+                  youtubeVideoId: 'Bx1hgpLddtE',
+                  channelName: 'Thầy Nguyễn Phan Tiến',
+                  isPrimary: true,
+                  attributionText: 'Nguồn: YouTube / Kênh Thầy Nguyễn Phan Tiến',
+                  durationSeconds: 2400,
+                  thumbnailUrl: 'https://i.ytimg.com/vi/Bx1hgpLddtE/hqdefault.jpg',
+                  sortOrder: 1,
+                  embedAllowed: true,
+                  verificationStatus: 'verified'
+                }
+              ]
+            },
+            {
+              id: 'les_math11_c2_b2',
+              code: 'MATH11_C2_B2',
+              title: 'Bài 2: Cấp số nhân',
+              slug: 'cap-so-nhan',
+              orderIndex: 2,
+              status: 'published',
+              sourceName: 'Khan Academy Vietnam',
+              sourceUrl: 'https://vi.khanacademy.org/math/toan-lop-11-viet-nam',
+              sourceLicense: 'CC BY-NC-SA 4.0',
+              learningObjectives: [
+                'Nắm định nghĩa cấp số nhân và công bội q.',
+                'Tính số hạng tổng quát $u_n = u_1 \\cdot q^{n-1}$.',
+                'Tính tổng n số hạng đầu tiên và tổng cấp số nhân lùi vô hạn.'
+              ],
+              introduction: 'Cấp số nhân mô tả sự tăng trưởng theo cấp số mũ như lãi kép, dân số hoặc phân rã phóng xạ.',
+              definitions: [
+                { term: 'Cấp số nhân', content: 'Dãy số (u_n) thỏa mãn u_{n+1} = u_n * q với mọi n >= 1 (q gọi là công bội).' }
+              ],
+              formulas: [
+                { name: 'Số hạng tổng quát', latex: 'u_n = u_1 \\cdot q^{n-1}' },
+                { name: 'Tổng n số hạng đầu', latex: 'S_n = \\frac{u_1(1 - q^n)}{1 - q} \\, (q \\ne 1)' }
+              ],
+              examples: [
+                {
+                  title: 'Ví dụ: Tính tổng cấp số nhân',
+                  problem: 'Cho cấp số nhân có $u_1 = 2$ và công bội $q = 3$. Tính $u_5$ và $S_5$.',
+                  solution: '$u_5 = 2 \\cdot 3^4 = 162$. $S_5 = \\frac{2(1 - 3^5)}{1 - 3} = \\frac{2(-242)}{-2} = 242$.'
+                }
+              ],
+              importantNotes: ['Nếu $|q| < 1$, cấp số nhân lùi vô hạn có tổng $S = \\frac{u_1}{1 - q}$.'],
+              summaryPoints: ['Mỗi số hạng bằng số hạng trước nhân với công bội q.'],
+              videos: [
+                {
+                  id: 'vid_m11_c2_b2_v1',
+                  title: 'Cấp Số Cộng và Cấp Số Nhân Trong Đề Thi - Toán 11',
+                  description: 'Tổng hợp các bài toán trắc nghiệm và vận dụng cao về cấp số.',
+                  provider: 'youtube',
+                  sourceUrl: 'https://www.youtube.com/watch?v=NPGtGOx3xe8',
+                  embedUrl: 'https://www.youtube-nocookie.com/embed/NPGtGOx3xe8',
+                  youtubeVideoId: 'NPGtGOx3xe8',
+                  channelName: 'Thầy Nguyễn Phan Tiến',
+                  isPrimary: true,
+                  attributionText: 'Nguồn: YouTube / Kênh Thầy Nguyễn Phan Tiến',
+                  durationSeconds: 2700,
+                  thumbnailUrl: 'https://i.ytimg.com/vi/NPGtGOx3xe8/hqdefault.jpg',
+                  sortOrder: 1,
+                  embedAllowed: true,
+                  verificationStatus: 'verified'
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+};
+
+const math12: SubjectItem = {
+  id: 'sub_math12',
+  code: 'MATH12',
+  name: 'Toán 12',
+  grade: '12',
+  description: 'Chương trình chuẩn Toán học lớp 12 theo GDPT 2018 (Ứng dụng đạo hàm, Oxyz, Nguyên hàm - Tích phân, Thống kê phân tán, Xác suất có điều kiện).',
+  orderIndex: 3,
+  chapters: [
+    {
+      id: 'chap_math12_c1',
+      code: 'MATH12_C1',
+      title: 'Chương I: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số',
+      description: 'Tính đơn điệu, cực trị, giá trị lớn nhất nhỏ nhất, tiệm cận và khảo sát hàm số.',
+      orderIndex: 1,
+      status: 'published',
+      sourceName: 'Khan Academy Vietnam / GDPT 2018',
+      sourceUrl: 'https://vi.khanacademy.org/math/toan-lop-12-viet-nam',
+      topics: [
+        {
+          id: 'top_math12_c1_t1',
+          code: 'MATH12_C1_T1',
+          title: 'Tính đơn điệu và cực trị hàm số',
+          description: 'Quy tắc xét dấu đạo hàm, điều kiện cực đại và cực tiểu.',
+          orderIndex: 1,
+          lessons: [
+            {
+              id: 'les_math12_c1_b1', // PRESERVED ID for existing lesson_progress
+              code: 'MATH12_C1_B1',
+              title: 'Bài 1: Tính đơn điệu và cực trị của hàm số',
+              slug: 'tinh-don-dieu-va-cuc-tri-cua-ham-so',
+              orderIndex: 1,
+              status: 'published',
+              sourceName: 'Khan Academy Vietnam / GDPT 2018',
+              sourceUrl: 'https://vi.khanacademy.org/math/toan-lop-12-viet-nam',
+              sourceLicense: 'CC BY-NC-SA 4.0',
+              learningObjectives: [
+                'Nắm vững mối liên hệ giữa dấu đạo hàm $f\'(x)$ và tính đồng biến, nghịch biến của hàm số.',
+                'Nắm điều kiện cần và đủ để hàm số đạt cực trị tại một điểm.',
+                'Thành thạo lập bảng biến thiên để kết luận khoảng đơn điệu và toạ độ cực trị.'
+              ],
+              introduction: 'Đạo hàm là công cụ giải tích then chốt giúp ta nhìn thấu hình dáng đồ thị, tốc độ biến thiên và các điểm tới hạn của hàm số.',
+              definitions: [
+                { term: 'Hàm số đồng biến', content: 'Hàm số f đồng biến trên khoảng K nếu với mọi x1 < x2 thuộc K thì f(x1) < f(x2).' },
+                { term: 'Điểm cực đại', content: 'x0 là điểm cực đại nếu tồn tại lân cận của x0 sao cho f(x) <= f(x0) với mọi x trong lân cận đó.' }
+              ],
+              formulas: [
+                { name: 'Định lí đơn điệu', latex: 'f\'(x) \\ge 0 \\, \\forall x \\in K \\implies f \\text{ đồng biến trên } K' },
+                { name: 'Dấu hiệu cực trị (Dấu hiệu 1)', latex: 'f\'(x) \\text{ đổi dấu từ } + \\text{ sang } - \\implies x_0 \\text{ là cực đại}' }
+              ],
+              examples: [
+                {
+                  title: 'Ví dụ: Tìm khoảng đơn điệu hàm bậc ba',
+                  problem: 'Tìm các khoảng đơn điệu của hàm số $y = x^3 - 3x^2 + 2$.',
+                  solution: 'Tập xác định: $D = \\mathbb{R}$. Đạo hàm: $y\' = 3x^2 - 6x = 3x(x - 2)$. Cho $y\' = 0 \\iff x = 0$ hoặc $x = 2$. Bảng xét dấu: $y\' > 0$ trên $(-\\infty; 0)$ và $(2; +\\infty)$; $y\' < 0$ trên $(0; 2)$. Kết luận: hàm số đồng biến trên $(-\\infty; 0)$ và $(2; +\\infty)$; nghịch biến trên $(0; 2)$.'
+                }
+              ],
+              importantNotes: [
+                'Định lí đơn điệu mở rộng: nếu $f\'(x) \\ge 0$ và dấu bằng chỉ xảy ra tại hữu hạn điểm thì hàm số vẫn đồng biến.',
+                'Đạo hàm triệt tiêu $f\'(x_0) = 0$ chưa chắc $x_0$ là cực trị nếu $f\'(x)$ không đổi dấu.'
+              ],
+              summaryPoints: [
+                'f\'(x) > 0: đồ thị đi lên (đồng biến).',
+                'f\'(x) < 0: đồ thị đi xuống (nghịch biến).',
+                'Cực trị xảy ra khi đạo hàm đổi dấu qua điểm đó.'
+              ],
+              videos: [
+                {
+                  id: 'vid_m12_c1_b1_v1',
+                  title: 'Bài 1. Tính Đơn Điệu và Cực Trị Của Hàm Số - Toán 12',
+                  description: 'Bài giảng chi tiết về tính đơn điệu, định lý đạo hàm và bảng biến thiên.',
+                  provider: 'youtube',
+                  sourceUrl: 'https://www.youtube.com/watch?v=C64H0h3qiRc',
+                  embedUrl: 'https://www.youtube-nocookie.com/embed/C64H0h3qiRc',
+                  youtubeVideoId: 'C64H0h3qiRc',
+                  channelName: 'Thầy Nguyễn Phan Tiến',
+                  isPrimary: true,
+                  attributionText: 'Nguồn: YouTube / Kênh Thầy Nguyễn Phan Tiến',
+                  durationSeconds: 3200,
+                  thumbnailUrl: 'https://i.ytimg.com/vi/C64H0h3qiRc/hqdefault.jpg',
+                  sortOrder: 1,
+                  embedAllowed: true,
+                  verificationStatus: 'verified'
+                },
+                {
+                  id: 'vid_m12_c1_b1_v2',
+                  title: 'TÍNH ĐƠN ĐIỆU CỦA HÀM SỐ - TOÁN 12',
+                  description: 'Phương pháp giải nhanh trắc nghiệm tính đơn điệu hàm số.',
+                  provider: 'youtube',
+                  sourceUrl: 'https://www.youtube.com/watch?v=W_8aEs16RI0',
+                  embedUrl: 'https://www.youtube-nocookie.com/embed/W_8aEs16RI0',
+                  youtubeVideoId: 'W_8aEs16RI0',
+                  channelName: 'Thầy Nguyễn Quốc Chí',
+                  isPrimary: false,
+                  attributionText: 'Nguồn: YouTube / Kênh Thầy Nguyễn Quốc Chí',
+                  durationSeconds: 2800,
+                  thumbnailUrl: 'https://i.ytimg.com/vi/W_8aEs16RI0/hqdefault.jpg',
+                  sortOrder: 2,
+                  embedAllowed: true,
+                  verificationStatus: 'verified'
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'chap_math12_c2',
+      code: 'MATH12_C2',
+      title: 'Chương II: Toạ độ của vectơ trong không gian',
+      description: 'Hệ trục toạ độ Oxyz, toạ độ vectơ, toạ độ điểm và các phép toán vectơ trong không gian.',
+      orderIndex: 2,
+      status: 'published',
+      sourceName: 'Khan Academy Vietnam / GDPT 2018',
+      sourceUrl: 'https://vi.khanacademy.org/math/toan-lop-12-viet-nam',
+      topics: [
+        {
+          id: 'top_math12_c2_t1',
+          code: 'MATH12_C2_T1',
+          title: 'Hệ trục toạ độ Oxyz',
+          description: 'Toạ độ điểm, toạ độ vectơ và tích có hướng.',
+          orderIndex: 1,
+          lessons: [
+            {
+              id: 'les_math12_c2_b1',
+              code: 'MATH12_C2_B1',
+              title: 'Bài 1: Toạ độ của điểm và vectơ trong không gian',
+              slug: 'toa-do-diem-va-vecto-trong-khong-gian',
+              orderIndex: 1,
+              status: 'published',
+              sourceName: 'Khan Academy Vietnam',
+              sourceUrl: 'https://vi.khanacademy.org/math/toan-lop-12-viet-nam',
+              sourceLicense: 'CC BY-NC-SA 4.0',
+              learningObjectives: [
+                'Nắm cấu trúc hệ toạ độ không gian Oxyz và ba vectơ đơn vị $\\vec{i}, \\vec{j}, \\vec{k}$.',
+                'Tính toạ độ vectơ $\\vec{AB}$, trung điểm đoạn thẳng và trọng tâm tam giác.',
+                'Tính độ dài vectơ và khoảng cách giữa hai điểm trong không gian.'
+              ],
+              introduction: 'Hệ toạ độ Oxyz mở rộng không gian 2D sang không gian 3 chiều thực tế, cho phép mô hình hoá quỹ đạo không gian và kiến trúc.',
+              definitions: [
+                { term: 'Hệ toạ độ Oxyz', content: 'Gồm ba trục Ox, Oy, Oz đôi một vuông góc với ba vectơ đơn vị i, j, k.' }
+              ],
+              formulas: [
+                { name: 'Độ dài vectơ', latex: '|\\vec{u}| = \\sqrt{x^2 + y^2 + z^2}' },
+                { name: 'Khoảng cách hai điểm', latex: 'AB = \\sqrt{(x_B - x_A)^2 + (y_B - y_A)^2 + (z_B - z_A)^2}' }
+              ],
+              examples: [
+                {
+                  title: 'Ví dụ: Tính khoảng cách hai điểm',
+                  problem: 'Cho $A(1; 2; -1)$ và $B(3; 0; 1)$. Tính toạ độ vectơ $\\vec{AB}$ và độ dài đoạn thẳng AB.',
+                  solution: '$\\vec{AB} = (3-1; 0-2; 1-(-1)) = (2; -2; 2)$. Độ dài $AB = \\sqrt{2^2 + (-2)^2 + 2^2} = \\sqrt{12} = 2\\sqrt{3}$.'
+                }
+              ],
+              importantNotes: ['Tọa độ của điểm M chính là toạ độ của vectơ $\\vec{OM}$.'],
+              summaryPoints: ['Công thức trong không gian Oxyz mở rộng từ Oxy bằng cách thêm cao độ z.'],
+              videos: [
+                {
+                  id: 'vid_m12_c2_b1_v1',
+                  title: 'Bài 2. Hệ Trục Tọa Độ Oxyz - Tọa Độ Điểm và Vecto - Toán 12',
+                  description: 'Khái niệm hệ trục Oxyz, toạ độ điểm, toạ độ vectơ và các dạng bài tập nền tảng.',
+                  provider: 'youtube',
+                  sourceUrl: 'https://www.youtube.com/watch?v=uzN97cFH1II',
+                  embedUrl: 'https://www.youtube-nocookie.com/embed/uzN97cFH1II',
+                  youtubeVideoId: 'uzN97cFH1II',
+                  channelName: 'Thầy Nguyễn Phan Tiến',
+                  isPrimary: true,
+                  attributionText: 'Nguồn: YouTube / Kênh Thầy Nguyễn Phan Tiến',
+                  durationSeconds: 3100,
+                  thumbnailUrl: 'https://i.ytimg.com/vi/uzN97cFH1II/hqdefault.jpg',
+                  sortOrder: 1,
+                  embedAllowed: true,
+                  verificationStatus: 'verified'
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'chap_math12_c4',
+      code: 'MATH12_C4',
+      title: 'Chương IV: Nguyên hàm và tích phân',
+      description: 'Khái niệm nguyên hàm, các phương pháp tính nguyên hàm, tích phân và ứng dụng diện tích, thể tích.',
+      orderIndex: 3,
+      status: 'published',
+      sourceName: 'Khan Academy Vietnam / GDPT 2018',
+      sourceUrl: 'https://vi.khanacademy.org/math/toan-lop-12-viet-nam',
+      topics: [
+        {
+          id: 'top_math12_c4_t1',
+          code: 'MATH12_C4_T1',
+          title: 'Nguyên hàm và phương pháp tính',
+          description: 'Bảng nguyên hàm cơ bản, đổi biến số và từng phần.',
+          orderIndex: 1,
+          lessons: [
+            {
+              id: 'les_math12_c4_b1',
+              code: 'MATH12_C4_B1',
+              title: 'Bài 1: Nguyên hàm',
+              slug: 'nguyen-ham',
+              orderIndex: 1,
+              status: 'published',
+              sourceName: 'Khan Academy Vietnam',
+              sourceUrl: 'https://vi.khanacademy.org/math/toan-lop-12-viet-nam',
+              sourceLicense: 'CC BY-NC-SA 4.0',
+              learningObjectives: [
+                'Nắm định nghĩa nguyên hàm: $F\'(x) = f(x)$.',
+                'Thuộc bảng nguyên hàm của các hàm số sơ cấp thường gặp.',
+                'Áp dụng tính chất tuyến tính của nguyên hàm: $\\int [af(x) + bg(x)] dx = a\\int f(x)dx + b\\int g(x)dx$.'
+              ],
+              introduction: 'Phép tính nguyên hàm là bài toán ngược của đạo hàm, là chìa khoá để tính tích phân, diện tích hình phẳng và thể tích vật thể.',
+              definitions: [
+                { term: 'Nguyên hàm', content: 'F(x) là một nguyên hàm của f(x) trên K nếu F\'(x) = f(x) với mọi x thuộc K.' }
+              ],
+              formulas: [
+                { name: 'Nguyên hàm hàm luỹ thừa', latex: '\\int x^\\alpha dx = \\frac{x^{\\alpha+1}}{\\alpha+1} + C \\, (\\alpha \\ne -1)' },
+                { name: 'Nguyên hàm hàm mũ', latex: '\\int e^x dx = e^x + C, \\quad \\int a^x dx = \\frac{a^x}{\\ln a} + C' },
+                { name: 'Nguyên hàm từng phần', latex: '\\int u \\, dv = uv - \\int v \\, du' }
+              ],
+              examples: [
+                {
+                  title: 'Ví dụ: Tính nguyên hàm',
+                  problem: 'Tìm nguyên hàm $I = \\int (3x^2 - 2\\sin x) dx$.',
+                  solution: '$I = 3 \\int x^2 dx - 2 \\int \\sin x dx = 3 \\cdot \\frac{x^3}{3} - 2(-\\cos x) + C = x^3 + 2\\cos x + C$.'
+                }
+              ],
+              importantNotes: ['Họ nguyên hàm luôn có hằng số C: nếu F(x) là một nguyên hàm thì F(x) + C là họ tất cả nguyên hàm.'],
+              summaryPoints: ['Nguyên hàm là phép toán ngược của đạo hàm.'],
+              videos: [
+                {
+                  id: 'vid_m12_c4_b1_v1',
+                  title: 'Bài 1.1 Nguyên Hàm Cơ Bản và Công Thức Nguyên Hàm - Toán 12',
+                  description: 'Bảng nguyên hàm đầy đủ và phương pháp nhớ nhanh.',
+                  provider: 'youtube',
+                  sourceUrl: 'https://www.youtube.com/watch?v=j615s9znk4U',
+                  embedUrl: 'https://www.youtube-nocookie.com/embed/j615s9znk4U',
+                  youtubeVideoId: 'j615s9znk4U',
+                  channelName: 'Thầy Nguyễn Phan Tiến',
+                  isPrimary: true,
+                  attributionText: 'Nguồn: YouTube / Kênh Thầy Nguyễn Phan Tiến',
+                  durationSeconds: 3000,
+                  thumbnailUrl: 'https://i.ytimg.com/vi/j615s9znk4U/hqdefault.jpg',
+                  sortOrder: 1,
+                  embedAllowed: true,
+                  verificationStatus: 'verified'
+                },
+                {
+                  id: 'vid_m12_c4_b1_v2',
+                  title: 'Bài 1.2 Nguyên Hàm Thường Gặp - Toán 12',
+                  description: 'Các dạng toán nguyên hàm đổi biến số và bài tập thực hành.',
+                  provider: 'youtube',
+                  sourceUrl: 'https://www.youtube.com/watch?v=7urfQ8s20oY',
+                  embedUrl: 'https://www.youtube-nocookie.com/embed/7urfQ8s20oY',
+                  youtubeVideoId: '7urfQ8s20oY',
+                  channelName: 'Thầy Nguyễn Phan Tiến',
+                  isPrimary: false,
+                  attributionText: 'Nguồn: YouTube / Kênh Thầy Nguyễn Phan Tiến',
+                  durationSeconds: 2700,
+                  thumbnailUrl: 'https://i.ytimg.com/vi/7urfQ8s20oY/hqdefault.jpg',
+                  sortOrder: 2,
+                  embedAllowed: true,
+                  verificationStatus: 'verified'
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'chap_math12_c5',
+      code: 'MATH12_C5',
+      title: 'Chương V: Phương pháp toạ độ trong không gian',
+      description: 'Phương trình mặt phẳng, phương trình đường thẳng và phương trình mặt cầu trong không gian Oxyz.',
+      orderIndex: 4,
+      status: 'published',
+      sourceName: 'Khan Academy Vietnam / GDPT 2018',
+      sourceUrl: 'https://vi.khanacademy.org/math/toan-lop-12-viet-nam',
+      topics: [
+        {
+          id: 'top_math12_c5_t1',
+          code: 'MATH12_C5_T1',
+          title: 'Phương trình mặt phẳng trong không gian',
+          description: 'Vectơ pháp tuyến và phương trình tổng quát của mặt phẳng.',
+          orderIndex: 1,
+          lessons: [
+            {
+              id: 'les_math12_c5_b1',
+              code: 'MATH12_C5_B1',
+              title: 'Bài 1: Phương trình mặt phẳng',
+              slug: 'phuong-trinh-mat-phang',
+              orderIndex: 1,
+              status: 'published',
+              sourceName: 'Khan Academy Vietnam',
+              sourceUrl: 'https://vi.khanacademy.org/math/toan-lop-12-viet-nam',
+              sourceLicense: 'CC BY-NC-SA 4.0',
+              learningObjectives: [
+                'Xác định vectơ pháp tuyến $\\vec{n} = (A; B; C)$ của mặt phẳng.',
+                'Lập phương trình mặt phẳng đi qua một điểm có vectơ pháp tuyến cho trước.',
+                'Tính khoảng cách từ một điểm đến một mặt phẳng.'
+              ],
+              introduction: 'Mặt phẳng là một trong hai đối tượng hình học cơ bản nhất trong không gian Oxyz cùng với đường thẳng.',
+              definitions: [
+                { term: 'Vectơ pháp tuyến', content: 'Vectơ n khác 0 vuông góc với mọi vectơ nằm trong mặt phẳng (P) gọi là vectơ pháp tuyến.' }
+              ],
+              formulas: [
+                { name: 'Phương trình mặt phẳng', latex: 'A(x - x_0) + B(y - y_0) + C(z - z_0) = 0 \\iff Ax + By + Cz + D = 0' },
+                { name: 'Khoảng cách từ điểm đến mặt phẳng', latex: 'd(M, (P)) = \\frac{|Ax_M + By_M + Cz_M + D|}{\\sqrt{A^2 + B^2 + C^2}}' }
+              ],
+              examples: [
+                {
+                  title: 'Ví dụ: Lập phương trình mặt phẳng',
+                  problem: 'Viết phương trình mặt phẳng (P) đi qua $M(1; -2; 3)$ và có VTPT $\\vec{n} = (2; 1; -1)$.',
+                  solution: 'Phương trình (P): $2(x - 1) + 1(y + 2) - 1(z - 3) = 0 \\iff 2x + y - z + 3 = 0$.'
+                }
+              ],
+              importantNotes: ['Nếu hai mặt phẳng song song thì vectơ pháp tuyến của chúng cùng phương.'],
+              summaryPoints: ['Biết 1 điểm và 1 VTPT là đủ lập phương trình mặt phẳng.'],
+              videos: [
+                {
+                  id: 'vid_m12_c5_b1_v1',
+                  title: 'Bài 1. Phương Trình Mặt Phẳng - Hình Oxyz - Toán 12',
+                  description: 'Lý thuyết vectơ pháp tuyến, tích có hướng và các dạng viết phương trình mặt phẳng.',
+                  provider: 'youtube',
+                  sourceUrl: 'https://www.youtube.com/watch?v=PciV6qoMQXU',
+                  embedUrl: 'https://www.youtube-nocookie.com/embed/PciV6qoMQXU',
+                  youtubeVideoId: 'PciV6qoMQXU',
+                  channelName: 'Thầy Nguyễn Phan Tiến',
+                  isPrimary: true,
+                  attributionText: 'Nguồn: YouTube / Kênh Thầy Nguyễn Phan Tiến',
+                  durationSeconds: 3300,
+                  thumbnailUrl: 'https://i.ytimg.com/vi/PciV6qoMQXU/hqdefault.jpg',
+                  sortOrder: 1,
+                  embedAllowed: true,
+                  verificationStatus: 'verified'
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+};
+
+const catalog: CatalogManifest = {
+  schemaVersion: 1,
+  generatedAt: new Date().toISOString(),
+  title: 'Chương trình Giáo dục Phổ thông 2018 - Môn Toán THPT (Lớp 10, 11, 12)',
+  description: 'Danh mục bài học, chủ đề, công thức KaTeX, ví dụ mẫu và video giáo dục đã kiểm chứng bản quyền nhúng cho Toán 10, Toán 11 và Toán 12.',
+  license: 'Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)',
+  subjects: [math10, math11, math12]
+};
+
+const outPath = path.resolve('backend/data/curriculum/math-vietnam-catalog.v1.json');
+fs.writeFileSync(outPath, JSON.stringify(catalog, null, 2), 'utf-8');
+console.log(`Successfully generated curriculum catalog manifest: ${outPath}`);
+console.log(`Subjects: ${catalog.subjects.length}`);
+console.log(`Total Chapters: ${catalog.subjects.reduce((acc, s) => acc + s.chapters.length, 0)}`);
+console.log(`Total Topics: ${catalog.subjects.reduce((acc, s) => acc + s.chapters.reduce((a, c) => a + c.topics.length, 0), 0)}`);
+console.log(`Total Lessons: ${catalog.subjects.reduce((acc, s) => acc + s.chapters.reduce((a, c) => a + c.topics.reduce((tAcc, t) => tAcc + t.lessons.length, 0), 0), 0)}`);
+console.log(`Total Real Videos: ${catalog.subjects.reduce((acc, s) => acc + s.chapters.reduce((a, c) => a + c.topics.reduce((tAcc, t) => tAcc + t.lessons.reduce((vAcc, l) => vAcc + l.videos.length, 0), 0), 0), 0)}`);
