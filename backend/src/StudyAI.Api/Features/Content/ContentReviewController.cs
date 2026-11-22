@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using StudyAI.Application.Features.Content.ReviewQueue;
 
-namespace StudyAI.Api.Features.Content;
+namespace StudyAI.Features.Content;
 
 [ApiController]
 [Route("api/v1/content")]

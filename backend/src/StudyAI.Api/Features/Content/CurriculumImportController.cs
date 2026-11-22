@@ -3,11 +3,8 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-using StudyAI.Application.Common.Interfaces;
-using StudyAI.Application.DTOs;
-using StudyAI.Application.Services;
 
-namespace StudyAI.Api.Features.Content;
+namespace StudyAI.Features.Content;
 
 [Authorize(Roles = "content,admin")]
 [ApiController]

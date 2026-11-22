@@ -2,10 +2,8 @@ using System.Security.Claims;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using StudyAI.Application.DTOs;
-using StudyAI.Application.Features.Content.Assessments;
 
-namespace StudyAI.Api.Features.Content;
+namespace StudyAI.Features.Content;
 
 [ApiController]
 [Route("api/v1/content/assessments")]

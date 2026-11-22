@@ -1,10 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using StudyAI.Application.Common.Interfaces;
-using StudyAI.Application.DTOs;
 
-namespace StudyAI.Api.Features.Content;
+namespace StudyAI.Features.Content;
 
 [ApiController]
 [Route("api/v1/content/governance")]
@@ -110,4 +108,3 @@ public class ContentGovernanceController : ControllerBase
         }
     }
 }
-
