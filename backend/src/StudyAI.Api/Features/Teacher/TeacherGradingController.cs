@@ -1,11 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using StudyAI.Application.Common.Exceptions;
-using StudyAI.Application.DTOs;
-using StudyAI.Application.Features.Teacher.Submissions;
 
-namespace StudyAI.Api.Features.Teacher;
+namespace StudyAI.Features.Teacher;
 
 [Authorize(Roles = "teacher,admin")]
 [ApiController]

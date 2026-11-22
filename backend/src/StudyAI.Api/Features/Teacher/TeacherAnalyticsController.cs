@@ -2,11 +2,8 @@ using System.Security.Claims;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using StudyAI.Application.Common.Exceptions;
-using StudyAI.Application.DTOs;
-using StudyAI.Application.Features.Teacher.Analytics;
 
-namespace StudyAI.Api.Features.Teacher;
+namespace StudyAI.Features.Teacher;
 
 [ApiController]
 [Route("api/v1/teacher")]
