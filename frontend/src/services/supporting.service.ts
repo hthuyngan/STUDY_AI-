@@ -112,10 +112,8 @@ export async function updateUserSettings(settings: Partial<UserSettingsData>): P
   const storageKey = getStorageKey('user_settings')
   if (typeof window !== 'undefined') {
     localStorage.setItem(storageKey, JSON.stringify(updated))
-    if (updated.theme) {
-      document.documentElement.setAttribute('data-theme', updated.theme)
-      localStorage.setItem('study_ai_theme', updated.theme)
-    }
+    document.documentElement.setAttribute('data-theme', 'light')
+    localStorage.removeItem('study_ai_theme')
   }
   return updated
 }

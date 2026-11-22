@@ -6,8 +6,6 @@ import {
   User as UserIcon,
   ChevronDown,
   ArrowLeft,
-  PanelLeftClose,
-  PanelLeftOpen,
   Info,
   Bell,
   Search,
@@ -40,9 +38,6 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
   const location = useLocation()
   const config = getWorkspaceConfig(role)
 
-  const [collapsed, setCollapsed] = useState<boolean>(() => {
-    return localStorage.getItem('study_ai_workspace_sidebar_collapsed') === 'true'
-  })
   const [mobileOpen, setMobileOpen] = useState<boolean>(false)
   const [prevPath, setPrevPath] = useState(location.pathname)
   const [accountMenuOpen, setAccountMenuOpen] = useState<boolean>(false)
@@ -59,21 +54,10 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
     setNotifyOpen(false)
   }
 
-  const toggleCollapse = () => {
-    setCollapsed((prev) => {
-      const next = !prev
-      localStorage.setItem('study_ai_workspace_sidebar_collapsed', String(next))
-      return next
-    })
-  }
-
-  // Keyboard shortcut Ctrl+B or Cmd+B to toggle sidebar, Escape to close menus
+  // Keyboard shortcut Ctrl+K to search, Escape to close menus
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b') {
-        e.preventDefault()
-        toggleCollapse()
-      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
         const searchInput = document.querySelector('.sidebar-search-input') as HTMLInputElement
         if (searchInput) searchInput.focus()
@@ -138,14 +122,12 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
       {/* Shared Management Sidebar */}
       <WorkspaceSidebar
         config={config}
-        collapsed={collapsed}
-        onToggleCollapse={toggleCollapse}
         mobileOpen={mobileOpen}
         onCloseMobile={() => setMobileOpen(false)}
       />
 
       {/* Main Viewport */}
-      <div className={`workspace-main ${collapsed ? 'sidebar-collapsed' : ''}`}>
+      <div className="workspace-main">
         {/* Topbar */}
         <header className="workspace-topbar" aria-label="Thanh công cụ làm việc">
           <div className="workspace-topbar-left">
@@ -157,17 +139,6 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
               aria-label="Mở danh mục điều hướng"
             >
               <Menu size={20} />
-            </button>
-
-            {/* Desktop Collapse Icon Trigger (>= 1024px) */}
-            <button
-              type="button"
-              className="workspace-desktop-collapse-btn desktop-only"
-              onClick={toggleCollapse}
-              aria-label={collapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'}
-              title={collapsed ? 'Mở rộng sidebar (Ctrl+B)' : 'Thu gọn sidebar (Ctrl+B)'}
-            >
-              {collapsed ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
             </button>
 
             {/* Structured Breadcrumbs */}

@@ -190,9 +190,7 @@ describe('WorkspaceShell & Admin Navigation Suite', () => {
     expect(screen.getByTestId('page-learner')).toBeInTheDocument()
   })
 
-  it('supports sidebar collapse/expand toggle and persists to localStorage', async () => {
-    const user = userEvent.setup()
-
+  it('keeps sidebar permanently expanded on desktop and does not render collapse button', () => {
     render(
       <MemoryRouter initialEntries={['/admin']}>
         <WorkspaceShell role="admin">
@@ -203,22 +201,14 @@ describe('WorkspaceShell & Admin Navigation Suite', () => {
 
     const sidebar = screen.getByLabelText(/Thanh điều hướng Quản trị hệ thống/i)
     expect(sidebar).not.toHaveClass('collapsed')
+    expect(sidebar).toHaveClass('expanded')
 
-    // Find collapse button
-    const collapseBtn = screen.getByRole('button', { name: /Thu gọn thanh điều hướng/i })
-    await user.click(collapseBtn)
-
-    expect(sidebar).toHaveClass('collapsed')
-    expect(localStorage.getItem('study_ai_workspace_sidebar_collapsed')).toBe('true')
-
-    // Re-expand
-    const expandBtn = screen.getByRole('button', { name: /Mở rộng thanh điều hướng/i })
-    await user.click(expandBtn)
-    expect(sidebar).not.toHaveClass('collapsed')
-    expect(localStorage.getItem('study_ai_workspace_sidebar_collapsed')).toBe('false')
+    // Collapse button should not exist
+    expect(screen.queryByRole('button', { name: /Thu gọn thanh điều hướng/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Mở rộng thanh điều hướng/i })).not.toBeInTheDocument()
   })
 
-  it('supports Ctrl+B keyboard shortcut to toggle sidebar collapse', () => {
+  it('does not collapse on Ctrl+B keyboard shortcut', () => {
     render(
       <MemoryRouter initialEntries={['/admin']}>
         <WorkspaceShell role="admin">
@@ -229,12 +219,11 @@ describe('WorkspaceShell & Admin Navigation Suite', () => {
 
     const sidebar = screen.getByLabelText(/Thanh điều hướng Quản trị hệ thống/i)
     expect(sidebar).not.toHaveClass('collapsed')
-
-    fireEvent.keyDown(window, { key: 'b', ctrlKey: true })
-    expect(sidebar).toHaveClass('collapsed')
+    expect(sidebar).toHaveClass('expanded')
 
     fireEvent.keyDown(window, { key: 'b', ctrlKey: true })
     expect(sidebar).not.toHaveClass('collapsed')
+    expect(sidebar).toHaveClass('expanded')
   })
 
   it('handles mobile drawer open, close on click, and close on Escape', async () => {

@@ -92,14 +92,6 @@ button,
   background: var(--neutral-400, #94a3b8);
 }
 
-[data-theme='dark'] * {
-  scrollbar-color: var(--neutral-700, #334155) transparent;
-}
-
-[data-theme='dark'] *::-webkit-scrollbar-thumb {
-  background: var(--neutral-700, #334155);
-}
-
 /* ── Media Elements ──────────────────────────────────────── */
 img,
 picture,

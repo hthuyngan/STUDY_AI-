@@ -72,23 +72,23 @@ describe('Moodle-Style Workspace & Sidebar Redesign Suite', () => {
       expect(screen.queryByText('Design System')).toBeNull()
     })
 
-    it('retains collapsed state and mobile toggle without breaking layout', () => {
-      const onToggle = vi.fn()
+    it('remains permanently expanded on desktop and supports mobile toggle drawer without breaking layout', () => {
       const onClose = vi.fn()
 
       const { rerender } = render(
         <MemoryRouter>
-          <Sidebar collapsed={true} onToggleCollapse={onToggle} mobileOpen={false} onCloseMobile={onClose} />
+          <Sidebar mobileOpen={false} onCloseMobile={onClose} />
         </MemoryRouter>
       )
 
       const aside = document.querySelector('aside.sidebar')
-      expect(aside).toHaveClass('collapsed')
+      expect(aside).not.toHaveClass('collapsed')
+      expect(screen.queryByRole('button', { name: /Thu gọn thanh bên/i })).toBeNull()
 
       // Rerender as mobile open
       rerender(
         <MemoryRouter>
-          <Sidebar collapsed={false} onToggleCollapse={onToggle} mobileOpen={true} onCloseMobile={onClose} />
+          <Sidebar mobileOpen={true} onCloseMobile={onClose} />
         </MemoryRouter>
       )
 

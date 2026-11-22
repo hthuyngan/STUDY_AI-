@@ -6,7 +6,6 @@ export interface SidebarItemProps {
   label: string
   icon: LucideIcon
   count?: number
-  collapsed?: boolean
   onClick?: () => void
 }
 
@@ -15,7 +14,6 @@ export function SidebarItem({
   label,
   icon: Icon,
   count,
-  collapsed = false,
   onClick,
 }: SidebarItemProps) {
   const location = useLocation()
@@ -28,19 +26,15 @@ export function SidebarItem({
     <Link
       to={to}
       onClick={onClick}
-      className={`sidebar-nav-link ${isActive ? 'active' : ''} ${collapsed ? 'collapsed' : ''}`.trim()}
-      title={collapsed ? label : undefined}
+      className={`sidebar-nav-link ${isActive ? 'active' : ''}`.trim()}
       aria-current={isActive ? 'page' : undefined}
     >
       <Icon className="sidebar-nav-icon" size={18} aria-hidden />
-      {!collapsed && <span className="sidebar-nav-label">{label}</span>}
-      {!collapsed && count !== undefined && count > 0 && (
-        <span className="sidebar-nav-count" aria-label={`${count} mục`}>
+      <span className="sidebar-nav-label">{label}</span>
+      {count !== undefined && count > 0 && (
+        <span className="sidebar-nav-count" aria-hidden="true">
           {count > 99 ? '99+' : count}
         </span>
-      )}
-      {collapsed && count !== undefined && count > 0 && (
-        <span className="sidebar-nav-dot" aria-hidden />
       )}
     </Link>
   )

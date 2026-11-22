@@ -7,11 +7,9 @@ import {
   Layers,
   LogOut,
   Menu,
-  Moon,
   Search,
   Settings,
   Shield,
-  Sun,
   User as UserIcon,
   X,
 } from 'lucide-react'
@@ -95,16 +93,6 @@ export function Topbar({ onOpenMobileMenu }: TopbarProps) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
 
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    return (localStorage.getItem('study_ai_theme') as 'light' | 'dark') || 'light'
-  })
-
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme)
-    localStorage.setItem('study_ai_theme', theme)
-  }, [theme])
-
   // Global Ctrl+K / Cmd+K shortcut
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -152,10 +140,6 @@ export function Topbar({ onOpenMobileMenu }: TopbarProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))
-  }
 
   const filteredResults = query.trim()
     ? QUICK_SEARCH_SUGGESTIONS.filter(
@@ -347,13 +331,6 @@ export function Topbar({ onOpenMobileMenu }: TopbarProps) {
         {/* Moodle-style 9-dot Workspace App Launcher */}
         <WorkspaceAppLauncher
           onOpenNotifications={() => setIsNotificationsOpen(true)}
-        />
-
-        {/* Theme toggle */}
-        <IconButton
-          icon={theme === 'light' ? Moon : Sun}
-          label={theme === 'light' ? 'Chuyển sang nền tối' : 'Chuyển sang nền sáng'}
-          onClick={toggleTheme}
         />
 
         {/* Notifications */}

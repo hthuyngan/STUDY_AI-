@@ -56,17 +56,6 @@
   border-color: var(--navy-primary-hover, #173F5F);
 }
 
-[data-theme="dark"] .btn-primary {
-  background: #2563eb;
-  color: #ffffff;
-  border-color: #2563eb;
-}
-
-[data-theme="dark"] .btn-primary:hover:not(:disabled) {
-  background: #1d4ed8;
-  border-color: #1d4ed8;
-}
-
 .btn-secondary {
   background: var(--surface-card);
   color: var(--text-primary);
@@ -210,10 +199,6 @@
   color: var(--navy-primary, #102A43);
 }
 
-[data-theme="dark"] .card-header-icon {
-  color: var(--navy-primary, #60A5FA);
-}
-
 .card-title-group {
   display: flex;
   flex-direction: column;
@@ -267,10 +252,6 @@
   transition: opacity var(--duration-fast);
 }
 
-[data-theme="dark"] .card-link-action {
-  color: var(--navy-primary, #60A5FA);
-}
-
 .card-link-action:hover {
   text-decoration: underline;
 }
@@ -314,11 +295,6 @@
   box-shadow: 0 0 0 2px rgba(16, 42, 67, 0.1);
 }
 
-[data-theme="dark"] .input:focus {
-  border-color: var(--navy-primary, #60A5FA);
-  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
-}
-
 .input:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -356,11 +332,6 @@
   border-radius: var(--radius-full);
   background: var(--navy-primary, #102A43);
   transition: width var(--duration-slow) var(--ease-out);
-}
-
-[data-theme="dark"] .progress-fill,
-[data-theme="dark"] .progress-bar-fill {
-  background: #2563eb;
 }
 
 .progress-label {

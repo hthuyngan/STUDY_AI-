@@ -76,6 +76,19 @@ describe('Topbar Header & Authentication Navigation (P20-000)', () => {
       expect(screen.getByText('Không có thông báo mới')).toBeInTheDocument()
       expect(screen.queryByText(/streak 12 ngày/i)).not.toBeInTheDocument()
     })
+
+    it('does not render theme toggle button (strictly light mode only)', () => {
+      mockAuthState(null)
+
+      render(
+        <MemoryRouter>
+          <Topbar />
+        </MemoryRouter>
+      )
+
+      expect(screen.queryByLabelText(/Giao diện sáng\/tối/i)).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /Chuyển sang giao diện/i })).not.toBeInTheDocument()
+    })
   })
 
   describe('Initializing Auth State', () => {

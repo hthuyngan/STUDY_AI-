@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, LogOut, Moon, RefreshCw, Shield, Sun, User as UserIcon } from 'lucide-react'
+import { Check, LogOut, RefreshCw, Shield, User as UserIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/auth/useAuth'
 import { Breadcrumb } from '@/components/ui/Breadcrumb'
@@ -33,11 +33,6 @@ export function SettingsPage() {
         <PageErrorState description={error || 'Không tải được cài đặt'} onRetry={reload} />
       </div>
     )
-  }
-
-  const handleThemeChange = (newTheme: 'light' | 'dark' | 'system') => {
-    saveSettings({ theme: newTheme })
-    showSaved()
   }
 
   const handleStyleChange = (style: 'concise' | 'balanced' | 'detailed') => {
@@ -160,30 +155,6 @@ export function SettingsPage() {
             </div>
           )}
         </Card>
-
-        {/* Section 1: Giao diện */}
-        <Card title="Giao diện hiển thị" subtitle="Chế độ màu sáng/tối tối ưu cho mắt khi học đêm">
-          <div className="setting-control-row">
-            <span className="control-label">Chế độ giao diện</span>
-            <div className="theme-toggle-group">
-              <button
-                type="button"
-                className={`theme-opt-btn ${settings.theme === 'light' ? 'active' : ''}`}
-                onClick={() => handleThemeChange('light')}
-              >
-                <Sun size={15} aria-hidden /> Sáng
-              </button>
-              <button
-                type="button"
-                className={`theme-opt-btn ${settings.theme === 'dark' ? 'active' : ''}`}
-                onClick={() => handleThemeChange('dark')}
-              >
-                <Moon size={15} aria-hidden /> Tối
-              </button>
-            </div>
-          </div>
-        </Card>
-
 
         {/* Section 2: Học tập */}
         <Card title="Mục tiêu học tập hàng ngày" subtitle="Đặt thời gian tự học mục tiêu mỗi ngày">

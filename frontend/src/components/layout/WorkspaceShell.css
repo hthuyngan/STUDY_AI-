@@ -24,10 +24,6 @@
   background-color: var(--staff-bg-app, #f8fafc);
 }
 
-.workspace-main.sidebar-collapsed {
-  margin-left: var(--staff-sidebar-collapsed-width, 72px);
-}
-
 /* ==========================================================================
    SIDEBAR (WorkspaceSidebar)
    ========================================================================== */
@@ -44,10 +40,6 @@
   border-right: 1px solid var(--staff-border, #e2e8f0);
   transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: none;
-}
-
-.workspace-sidebar.collapsed {
-  width: var(--staff-sidebar-collapsed-width, 72px);
 }
 
 .sidebar-mobile-backdrop {
@@ -67,11 +59,6 @@
   padding: 0 16px;
   border-bottom: 1px solid var(--staff-border, #e2e8f0);
   flex-shrink: 0;
-}
-
-.workspace-sidebar.collapsed .sidebar-header {
-  padding: 0;
-  justify-content: center;
 }
 
 .sidebar-brand {
@@ -218,10 +205,6 @@
   padding: 10px 10px;
 }
 
-.workspace-sidebar.collapsed .sidebar-nav {
-  padding: 10px 0;
-}
-
 .sidebar-nav-group {
   margin-bottom: 14px;
 }
@@ -263,13 +246,6 @@
   font-weight: 500;
   transition: background-color 0.12s ease, color 0.12s ease;
   position: relative;
-}
-
-.workspace-sidebar.collapsed .sidebar-nav-link {
-  justify-content: center;
-  width: 44px;
-  margin: 2px auto;
-  padding: 0;
 }
 
 .sidebar-nav-link:hover:not(.active) {
@@ -327,36 +303,6 @@
   right: 8px;
 }
 
-/* Tooltip for collapsed mode */
-.sidebar-collapsed-tooltip {
-  position: absolute;
-  left: 64px;
-  top: 50%;
-  transform: translateY(-50%);
-  background-color: #0f172a;
-  color: #ffffff;
-  padding: 6px 12px;
-  border-radius: var(--staff-radius-md, 8px);
-  font-size: 12px;
-  font-weight: 500;
-  white-space: nowrap;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  z-index: 100;
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.tooltip-badge {
-  background-color: var(--staff-navy-primary, #102a43);
-  color: #ffffff;
-  font-size: 10px;
-  font-weight: 700;
-  padding: 1px 5px;
-  border-radius: var(--staff-radius-full, 9999px);
-}
-
 /* 4. Footer Switcher & Back */
 .workspace-sidebar-footer {
   border-top: 1px solid var(--staff-border, #e2e8f0);
@@ -366,10 +312,6 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-
-.workspace-sidebar.collapsed .workspace-sidebar-footer {
-  padding: 10px 4px;
 }
 
 .sidebar-workspace-switcher {
@@ -433,11 +375,6 @@
   transition: background-color 0.12s ease;
 }
 
-.workspace-sidebar.collapsed .workspace-sidebar-back-link {
-  justify-content: center;
-  padding: 8px 0;
-}
-
 .workspace-sidebar-back-link:hover {
   background-color: var(--staff-surface-hover, #f1f5f9);
 }
@@ -450,32 +387,6 @@
 
 .back-link-ext {
   color: var(--staff-text-muted, #627d98);
-}
-
-.sidebar-collapse-btn {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  height: 32px;
-  padding: 0 8px;
-  background: none;
-  border: none;
-  border-radius: var(--staff-radius-md, 8px);
-  color: var(--staff-text-muted, #627d98);
-  font-size: 11.5px;
-  cursor: pointer;
-  transition: background-color 0.12s ease, color 0.12s ease;
-}
-
-.workspace-sidebar.collapsed .sidebar-collapse-btn {
-  justify-content: center;
-  padding: 0;
-}
-
-.sidebar-collapse-btn:hover {
-  background-color: var(--staff-surface-hover, #f1f5f9);
-  color: var(--staff-text-main, #102a43);
 }
 
 /* ==========================================================================
@@ -500,25 +411,6 @@
   align-items: center;
   gap: 12px;
   min-width: 0;
-}
-
-.workspace-desktop-collapse-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  background: none;
-  border: 1px solid var(--staff-border, #e2e8f0);
-  border-radius: var(--staff-radius-md, 8px);
-  color: var(--staff-text-muted, #627d98);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.workspace-desktop-collapse-btn:hover {
-  background-color: var(--staff-surface-hover, #f1f5f9);
-  color: var(--staff-text-main, #102a43);
 }
 
 .workspace-mobile-menu-btn {
@@ -951,10 +843,6 @@
 
   .workspace-mobile-menu-btn {
     display: inline-flex !important;
-  }
-
-  .workspace-desktop-collapse-btn {
-    display: none !important;
   }
 
   .desktop-only {
