@@ -480,18 +480,18 @@ Tạo `frontend/src/shared/api/generated` chỉ khi dự án có OpenAPI generat
 - Dashboard read model.
 - FE auth/admin users tương ứng.
 
-### Phase 3 — Content/Curriculum
+### Phase 3 — Content/Curriculum [COMPLETED]
 
-- Subjects.
-- Chapters.
-- Topics.
-- Lessons.
-- Videos.
-- Questions.
-- Assessments.
-- Review/publish/rollback.
-- Curriculum import.
-- FE Content Workspace và learner curriculum đồng bộ.
+- [x] Subjects.
+- [x] Chapters.
+- [x] Topics.
+- [x] Lessons.
+- [x] Videos.
+- [x] Questions.
+- [x] Assessments.
+- [x] Review/publish/rollback.
+- [x] Curriculum import.
+- [x] FE Content Workspace và learner curriculum đồng bộ.
 
 ### Phase 4 — Teacher
 

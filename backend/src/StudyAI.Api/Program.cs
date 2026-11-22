@@ -58,6 +58,20 @@ builder.Services.AddScoped<StudyAI.Application.Features.Admin.AuditLogs.IAdminAu
 builder.Services.AddScoped<StudyAI.Application.Features.Admin.Announcements.IAdminAnnouncementsService, StudyAI.Application.Features.Admin.Announcements.AdminAnnouncementsService>();
 builder.Services.AddScoped<StudyAI.Application.Features.Admin.Settings.IAdminSettingsService, StudyAI.Application.Features.Admin.Settings.AdminSettingsService>();
 
+// Content Services (Role + Feature Architecture)
+builder.Services.AddScoped<StudyAI.Application.Features.Content.Subjects.IContentSubjectsService, StudyAI.Application.Features.Content.Subjects.ContentSubjectsService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Content.Chapters.IContentChaptersService, StudyAI.Application.Features.Content.Chapters.ContentChaptersService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Content.Topics.IContentTopicsService, StudyAI.Application.Features.Content.Topics.ContentTopicsService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Content.Videos.IContentVideosService, StudyAI.Application.Features.Content.Videos.ContentVideosService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Content.Lessons.IContentLessonsService, StudyAI.Application.Features.Content.Lessons.ContentLessonsService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Content.Questions.IContentQuestionsService, StudyAI.Application.Features.Content.Questions.ContentQuestionsService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Content.Assessments.IContentAssessmentsService, StudyAI.Application.Features.Content.Assessments.ContentAssessmentsService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Content.ReviewQueue.IContentReviewService, StudyAI.Application.Features.Content.ReviewQueue.ContentReviewService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Content.CurriculumImport.IContentImportService, StudyAI.Application.Features.Content.CurriculumImport.ContentImportService>();
+
+// Learner Services (Role + Feature Architecture)
+builder.Services.AddScoped<StudyAI.Application.Features.Learner.Curriculum.ILearnerCurriculumService, StudyAI.Application.Features.Learner.Curriculum.LearnerCurriculumService>();
+
 // 2.1 LLM Provider & AI Tutor Service
 builder.Services.AddHttpClient();
 builder.Services.AddHttpClient<StudyAI.Infrastructure.Services.OpenAiLlmProvider>(client =>

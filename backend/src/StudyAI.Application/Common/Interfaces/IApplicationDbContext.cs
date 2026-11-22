@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using StudyAI.Domain.Entities;
 
@@ -20,6 +21,7 @@ public interface IApplicationDbContext
     DbSet<ContentLessonVideo> ContentLessonVideos { get; }
     DbSet<ContentAssessment> ContentAssessments { get; }
     DbSet<ContentQuestion> ContentQuestions { get; }
+    DbSet<ContentRevision> ContentRevisions { get; }
     DbSet<AiConversation> AiConversations { get; }
     DbSet<AiMessage> AiMessages { get; }
     DbSet<Classroom> Classrooms { get; }
@@ -31,6 +33,8 @@ public interface IApplicationDbContext
     DbSet<StudentTopicMastery> StudentTopicMasteries { get; }
     DbSet<AiHintUsage> AiHintUsages { get; }
     DbSet<AiLearningRecommendation> AiLearningRecommendations { get; }
+
+    EntityEntry<TEntity> Entry<TEntity>(TEntity entity) where TEntity : class;
 
     DatabaseFacade Database { get; }
 

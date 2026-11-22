@@ -6,9 +6,15 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using StudyAI.Api.Controllers;
+using StudyAI.Api.Features.Content;
+using StudyAI.Api.Features.Learner;
 using StudyAI.Application.Common.Interfaces;
 using StudyAI.Application.DTOs;
+using StudyAI.Application.Features.Content.Topics;
+using StudyAI.Application.Features.Content.Videos;
+using StudyAI.Application.Features.Learner.Curriculum;
 using StudyAI.Domain.Entities;
+using StudyAI.Infrastructure.Authentication;
 using StudyAI.Infrastructure.Persistence;
 using StudyAI.Infrastructure.Services;
 using Xunit;
@@ -67,6 +73,14 @@ public class CurriculumAndVideoVerificationTests
         };
         if (isReviewer) claims.Add(new Claim("reviewer", "true"));
         return new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth"));
+    }
+
+    private static IAuditWriter CreateAuditWriter(StudyAIDbContext db, ClaimsPrincipal? principal = null)
+    {
+        var httpContext = new DefaultHttpContext();
+        if (principal != null) httpContext.User = principal;
+        var accessor = new HttpContextAccessor { HttpContext = httpContext };
+        return new AuditWriter(db, new CurrentUser(accessor), new SystemClock(), new IdGenerator());
     }
 
     [Fact]
@@ -155,7 +169,9 @@ public class CurriculumAndVideoVerificationTests
         db.ContentLessons.AddRange(lesPub, lesDraft);
         await db.SaveChangesAsync();
 
-        var controller = new CurriculumController(db, null!, NullLogger<CurriculumController>.Instance);
+        var auditWriter = CreateAuditWriter(db);
+        var service = new LearnerCurriculumService(db, auditWriter, null!, NullLogger<LearnerCurriculumService>.Instance);
+        var controller = new LearnerCurriculumController(service);
         var result = await controller.GetChapterDetail(chap.Id);
 
         var okResult = Assert.IsType<OkObjectResult>(result);
@@ -203,7 +219,9 @@ public class CurriculumAndVideoVerificationTests
         db.ContentLessonVideos.AddRange(vid1, vid2);
         await db.SaveChangesAsync();
 
-        var controller = new CurriculumController(db, null!, NullLogger<CurriculumController>.Instance);
+        var auditWriter = CreateAuditWriter(db);
+        var service = new LearnerCurriculumService(db, auditWriter, null!, NullLogger<LearnerCurriculumService>.Instance);
+        var controller = new LearnerCurriculumController(service);
         var result = await controller.GetLessonVideos(les.Id);
 
         var okResult = Assert.IsType<OkObjectResult>(result);
@@ -227,11 +245,14 @@ public class CurriculumAndVideoVerificationTests
         db.ContentTopics.AddRange(t1, t2);
         await db.SaveChangesAsync();
 
-        var controller = new ContentController(db)
+        var userPrincipal = CreateUserPrincipal("admin_1", "admin");
+        var auditWriter = CreateAuditWriter(db, userPrincipal);
+        var topicService = new ContentTopicsService(db, auditWriter, new SystemClock(), new IdGenerator());
+        var controller = new ContentTopicsController(topicService)
         {
             ControllerContext = new ControllerContext
             {
-                HttpContext = new DefaultHttpContext { User = CreateUserPrincipal("admin_1", "admin") }
+                HttpContext = new DefaultHttpContext { User = userPrincipal }
             }
         };
 
@@ -256,12 +277,14 @@ public class CurriculumAndVideoVerificationTests
         using var db = CreateInMemoryDb(Guid.NewGuid().ToString());
 
         var fakeVerifier = new FakeVideoVerificationService();
-
-        var controller = new ContentController(db, fakeVerifier)
+        var userPrincipal = CreateUserPrincipal("admin_1", "admin");
+        var auditWriter = CreateAuditWriter(db, userPrincipal);
+        var videoService = new ContentVideosService(db, auditWriter, new SystemClock(), new IdGenerator(), fakeVerifier);
+        var controller = new ContentVideosController(videoService)
         {
             ControllerContext = new ControllerContext
             {
-                HttpContext = new DefaultHttpContext { User = CreateUserPrincipal("admin_1", "admin") }
+                HttpContext = new DefaultHttpContext { User = userPrincipal }
             }
         };
 

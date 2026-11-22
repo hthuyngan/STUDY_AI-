@@ -6,7 +6,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using StudyAI.Api.Controllers;
+using StudyAI.Api.Features.Learner;
+using StudyAI.Application.Features.Learner.Curriculum;
 using StudyAI.Domain.Entities;
+using StudyAI.Infrastructure.Authentication;
 using StudyAI.Infrastructure.Persistence;
 using StudyAI.Infrastructure.Services;
 using Xunit;
@@ -15,7 +18,7 @@ namespace StudyAI.UnitTests;
 
 public class CurriculumQuestionBankTests
 {
-    private (CurriculumController controller, StudyAIDbContext db) CreateCurriculumController(string dbName, string? role = null)
+    private (LearnerCurriculumController controller, StudyAIDbContext db) CreateCurriculumController(string dbName, string? role = null)
     {
         var options = new DbContextOptionsBuilder<StudyAIDbContext>()
             .UseInMemoryDatabase(databaseName: dbName)
@@ -23,9 +26,10 @@ public class CurriculumQuestionBankTests
 
         var context = new StudyAIDbContext(options);
         var memoryCache = new MemoryCache(new MemoryCacheOptions());
-        var logger = NullLogger<CurriculumController>.Instance;
-
-        var controller = new CurriculumController(context, memoryCache, logger);
+        var logger = NullLogger<LearnerCurriculumService>.Instance;
+        var clock = new SystemClock();
+        var idGen = new IdGenerator();
+        var httpContextAccessor = new HttpContextAccessor { HttpContext = new DefaultHttpContext() };
         if (role != null)
         {
             var userPrincipal = new ClaimsPrincipal(new ClaimsIdentity(new[]
@@ -33,10 +37,18 @@ public class CurriculumQuestionBankTests
                 new Claim(ClaimTypes.NameIdentifier, "usr_staff"),
                 new Claim(ClaimTypes.Role, role)
             }, "TestAuth"));
+            httpContextAccessor.HttpContext.User = userPrincipal;
+        }
+        var currentUser = new CurrentUser(httpContextAccessor);
+        var auditWriter = new AuditWriter(context, currentUser, clock, idGen);
+        var service = new LearnerCurriculumService(context, auditWriter, memoryCache, logger);
 
+        var controller = new LearnerCurriculumController(service);
+        if (role != null)
+        {
             controller.ControllerContext = new ControllerContext
             {
-                HttpContext = new DefaultHttpContext { User = userPrincipal }
+                HttpContext = httpContextAccessor.HttpContext
             };
         }
         return (controller, context);

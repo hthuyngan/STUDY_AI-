@@ -19,9 +19,15 @@
   - Application Services: `AdminDashboardService`, `AdminUsersService`, `AdminTeachersService`, `AdminAuditService`, `AdminAnnouncementsService`, `AdminSettingsService`.
   - Toàn bộ 9 controller mới không còn inject `StudyAIDbContext` (được bảo vệ bởi `ArchitectureTests`).
   - Test gates: 258/258 Backend Unit Tests pass, 0 oxlint warnings, Vite build success, 544/544 Frontend Vitest pass.
-- [ ] **Phase 3: Content / Curriculum**
-  - Split `ContentController` & `CurriculumController` thành các controller chuyên biệt.
-  - Content Application Services.
+- [x] **Phase 3: Content / Curriculum**
+  - Tách hoàn toàn hai monolithic controllers: `ContentController.cs` (4521 dòng) và `CurriculumController.cs` (1242 dòng) thành 10 thin controllers:
+    - Content: `ContentSubjectsController`, `ContentChaptersController`, `ContentTopicsController`, `ContentVideosController`, `ContentLessonsController`, `ContentQuestionsController`, `ContentAssessmentsController`, `ContentReviewController`, `ContentCurriculumImportController`.
+    - Learner: `LearnerCurriculumController`.
+  - Triển khai 10 Application Services chuyên biệt theo role/feature:
+    - Content: `ContentSubjectsService`, `ContentChaptersService`, `ContentTopicsService`, `ContentVideosService`, `ContentLessonsService`, `ContentQuestionsService`, `ContentAssessmentsService`, `ContentReviewService`, `ContentImportService`.
+    - Learner: `LearnerCurriculumService`.
+  - Quy tắc bảo mật giáo dục: Independent Review (nguyên tắc 4 mắt), bản quyền VNHSGE, bảo vệ đáp án đối với học sinh/người dùng chưa đăng nhập.
+  - Test gates: 258/258 Backend Unit Tests pass, 3/3 ArchitectureTests pass (0 DbContext injection trong controller mới), 0 oxlint warnings, Vite build success, 544/544 Frontend Vitest pass.
 - [ ] **Phase 4: Teacher**
   - Split Teacher / Classroom / Assignment controllers.
   - Teacher Application Services & Ownership enforcement.

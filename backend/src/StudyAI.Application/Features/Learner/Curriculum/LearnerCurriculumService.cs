@@ -1,33 +1,34 @@
-using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
-using StudyAI.Application.DTOs;
-using StudyAI.Domain.Entities;
-using StudyAI.Infrastructure.Persistence;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using StudyAI.Application.Common.Exceptions;
+using StudyAI.Application.Common.Interfaces;
+using StudyAI.Application.DTOs;
+using StudyAI.Domain.Entities;
 
-namespace StudyAI.Api.Controllers;
+namespace StudyAI.Application.Features.Learner.Curriculum;
 
-[ApiController]
-[Route("api/v1/curriculum")]
-public class CurriculumController : ControllerBase
+public class LearnerCurriculumService : ILearnerCurriculumService
 {
-    private readonly StudyAIDbContext _db;
-    private readonly IMemoryCache _cache;
-    private readonly ILogger<CurriculumController> _logger;
+    private readonly IApplicationDbContext _db;
+    private readonly IAuditWriter _auditWriter;
+    private readonly IMemoryCache? _cache;
+    private readonly ILogger<LearnerCurriculumService>? _logger;
 
-    public CurriculumController(StudyAIDbContext db, IMemoryCache cache, ILogger<CurriculumController> logger)
+    public LearnerCurriculumService(
+        IApplicationDbContext db,
+        IAuditWriter auditWriter,
+        IMemoryCache? cache = null,
+        ILogger<LearnerCurriculumService>? logger = null)
     {
         _db = db;
+        _auditWriter = auditWriter;
         _cache = cache;
         _logger = logger;
     }
-
-    private string CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub") ?? string.Empty;
 
     private static JsonArray SafeJsonArray(string? val)
     {
@@ -35,48 +36,20 @@ public class CurriculumController : ControllerBase
         try { return JsonNode.Parse(val) as JsonArray ?? new JsonArray(); } catch { return new JsonArray(); }
     }
 
-    private static List<string> SafeDeserializeStringList(string? rawJson)
+    private static List<string> SafeDeserializeStringList(string? json)
     {
-        if (string.IsNullOrWhiteSpace(rawJson)) return new List<string>();
+        if (string.IsNullOrWhiteSpace(json)) return new List<string>();
         try
         {
-            return JsonSerializer.Deserialize<List<string>>(rawJson) ?? new List<string>();
+            return JsonSerializer.Deserialize<List<string>>(json) ?? new List<string>();
         }
         catch
         {
-            // Fallback for LaTeX backslash escapes: sanitize single backslashes that are invalid in JSON into double backslashes
-            try
-            {
-                var sanitized = System.Text.RegularExpressions.Regex.Replace(rawJson, @"\\(?![/""\\bfnrtu]|u[0-9a-fA-F]{4})", "\\\\");
-                return JsonSerializer.Deserialize<List<string>>(sanitized) ?? new List<string>();
-            }
-            catch
-            {
-                try
-                {
-                    var matches = System.Text.RegularExpressions.Regex.Matches(rawJson, @"""((?:\\""|[^""])*)""");
-                    var list = new List<string>();
-                    foreach (System.Text.RegularExpressions.Match m in matches)
-                    {
-                        list.Add(m.Groups[1].Value.Replace("\\\"", "\""));
-                    }
-                    return list;
-                }
-                catch
-                {
-                    return new List<string>();
-                }
-            }
+            return new List<string>();
         }
     }
 
-    /// <summary>
-    /// GET /api/v1/curriculum/subjects
-    /// Returns only active subjects with published content.
-    /// Excludes test fixtures.
-    /// </summary>
-    [HttpGet("subjects")]
-    public async Task<IActionResult> GetSubjects([FromQuery] string? grade = null, [FromQuery] string? search = null)
+    public async Task<List<LearnerSubjectDto>> GetSubjectsAsync(string? grade = null, string? search = null, CancellationToken ct = default)
     {
         var query = _db.ContentSubjects
             .Where(s => s.IsActive && !s.Code.StartsWith("TEST_") && !s.Code.StartsWith("SEC_") && !s.Code.StartsWith("PHYS12_") && !s.Code.StartsWith("SUB_") && !s.Code.StartsWith("VID-") && !s.Code.StartsWith("PERF_") && !s.Name.Contains("kiểm thử"))
@@ -99,9 +72,9 @@ public class CurriculumController : ControllerBase
         var subjects = await query
             .OrderBy(s => s.OrderIndex)
             .ThenBy(s => s.Code)
-            .ToListAsync();
+            .ToListAsync(ct);
 
-        var dtos = subjects.Select(s =>
+        return subjects.Select(s =>
         {
             var activeChapters = s.Chapters.Where(c => c.IsActive).ToList();
             var publishedLessonCount = activeChapters
@@ -120,17 +93,9 @@ public class CurriculumController : ControllerBase
                 LessonCount = publishedLessonCount
             };
         }).ToList();
-
-        return Ok(dtos);
     }
 
-    /// <summary>
-    /// GET /api/v1/curriculum/subjects/{subjectId}
-    /// Returns single active subject with its active chapters and published lessons.
-    /// Supports lookup by Id or Code.
-    /// </summary>
-    [HttpGet("subjects/{subjectId}")]
-    public async Task<IActionResult> GetSubjectDetail(string subjectId)
+    public async Task<LearnerSubjectWithChaptersDto> GetSubjectDetailAsync(string subjectId, CancellationToken ct = default)
     {
         var subject = await _db.ContentSubjects
             .Include(s => s.Chapters)
@@ -142,12 +107,10 @@ public class CurriculumController : ControllerBase
                 .ThenInclude(c => c.Lessons)
                     .ThenInclude(l => l.Videos)
             .AsNoTracking()
-            .FirstOrDefaultAsync(s => (s.Id == subjectId || s.Code == subjectId || s.Code.ToLower() == subjectId.ToLower()) && s.IsActive);
+            .FirstOrDefaultAsync(s => (s.Id == subjectId || s.Code == subjectId || s.Code.ToLower() == subjectId.ToLower()) && s.IsActive, ct);
 
         if (subject == null)
-        {
-            return NotFound(new { message = $"Môn học '{subjectId}' không tồn tại hoặc đã ngừng kích hoạt." });
-        }
+            throw new NotFoundException($"Môn học '{subjectId}' không tồn tại hoặc đã ngừng kích hoạt.");
 
         var activeChapters = subject.Chapters
             .Where(c => c.IsActive)
@@ -207,11 +170,9 @@ public class CurriculumController : ControllerBase
             })
             .ToList();
 
-        var publishedLessonCount = activeChapters
-            .SelectMany(c => c.Lessons)
-            .Count();
+        var totalPublishedLessons = activeChapters.Sum(c => c.Lessons.Count);
 
-        var dto = new LearnerSubjectWithChaptersDto
+        return new LearnerSubjectWithChaptersDto
         {
             Id = subject.Id,
             Name = subject.Name,
@@ -220,29 +181,19 @@ public class CurriculumController : ControllerBase
             Description = subject.Description ?? string.Empty,
             OrderIndex = subject.OrderIndex,
             ChapterCount = activeChapters.Count,
-            LessonCount = publishedLessonCount,
+            LessonCount = totalPublishedLessons,
             Chapters = activeChapters
         };
-
-        return Ok(dto);
     }
 
-    /// <summary>
-    /// GET /api/v1/curriculum/subjects/{subjectId}/chapters
-    /// Returns active chapters and their published lessons for a subject.
-    /// Supports lookup by Id or Code.
-    /// </summary>
-    [HttpGet("subjects/{subjectId}/chapters")]
-    public async Task<IActionResult> GetSubjectChapters(string subjectId)
+    public async Task<List<LearnerChapterDto>> GetSubjectChaptersAsync(string subjectId, CancellationToken ct = default)
     {
         var subject = await _db.ContentSubjects
             .AsNoTracking()
-            .FirstOrDefaultAsync(s => (s.Id == subjectId || s.Code == subjectId || s.Code.ToLower() == subjectId.ToLower()) && s.IsActive);
+            .FirstOrDefaultAsync(s => (s.Id == subjectId || s.Code == subjectId || s.Code.ToLower() == subjectId.ToLower()) && s.IsActive, ct);
 
         if (subject == null)
-        {
-            return NotFound(new { message = $"Môn học '{subjectId}' không tồn tại hoặc đã ngừng kích hoạt." });
-        }
+            throw new NotFoundException($"Môn học '{subjectId}' không tồn tại hoặc đã ngừng kích hoạt.");
 
         var chapters = await _db.ContentChapters
             .Where(c => c.SubjectId == subject.Id && c.IsActive)
@@ -253,9 +204,9 @@ public class CurriculumController : ControllerBase
                 .ThenInclude(l => l.Videos)
             .AsNoTracking()
             .OrderBy(c => c.OrderIndex)
-            .ToListAsync();
+            .ToListAsync(ct);
 
-        var response = chapters.Select(c =>
+        return chapters.Select(c =>
         {
             var publishedLessons = c.Lessons
                 .OrderBy(l => l.OrderIndex)
@@ -307,16 +258,9 @@ public class CurriculumController : ControllerBase
                 Lessons = publishedLessons
             };
         }).ToList();
-
-        return Ok(response);
     }
 
-    /// <summary>
-    /// GET /api/v1/curriculum/chapters/{chapterId}
-    /// Returns single active chapter with its active topics and published lessons.
-    /// </summary>
-    [HttpGet("chapters/{chapterId}")]
-    public async Task<IActionResult> GetChapterDetail(string chapterId)
+    public async Task<LearnerChapterDto> GetChapterDetailAsync(string chapterId, CancellationToken ct = default)
     {
         var chapter = await _db.ContentChapters
             .Include(c => c.Subject)
@@ -326,12 +270,10 @@ public class CurriculumController : ControllerBase
             .Include(c => c.Lessons.Where(l => l.Status == "published"))
                 .ThenInclude(l => l.Videos)
             .AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Id == chapterId && c.IsActive);
+            .FirstOrDefaultAsync(c => c.Id == chapterId && c.IsActive, ct);
 
         if (chapter == null || chapter.Subject == null || !chapter.Subject.IsActive)
-        {
-            return NotFound(new { message = $"Chương '{chapterId}' không tồn tại hoặc đã ngừng kích hoạt." });
-        }
+            throw new NotFoundException($"Chương '{chapterId}' không tồn tại hoặc đã ngừng kích hoạt.");
 
         var publishedLessons = chapter.Lessons
             .OrderBy(l => l.OrderIndex)
@@ -369,7 +311,7 @@ public class CurriculumController : ControllerBase
             })
             .ToList();
 
-        var dto = new LearnerChapterDto
+        return new LearnerChapterDto
         {
             Id = chapter.Id,
             SubjectId = chapter.SubjectId,
@@ -382,16 +324,9 @@ public class CurriculumController : ControllerBase
             Topics = activeTopics,
             Lessons = publishedLessons
         };
-
-        return Ok(dto);
     }
 
-    /// <summary>
-    /// GET /api/v1/curriculum/topics/{topicId}
-    /// Returns single active topic with its published lessons.
-    /// </summary>
-    [HttpGet("topics/{topicId}")]
-    public async Task<IActionResult> GetTopicDetail(string topicId)
+    public async Task<LearnerTopicDto> GetTopicDetailAsync(string topicId, CancellationToken ct = default)
     {
         var topic = await _db.ContentTopics
             .Include(t => t.Chapter)
@@ -399,12 +334,10 @@ public class CurriculumController : ControllerBase
             .Include(t => t.Lessons.Where(l => l.Status == "published"))
                 .ThenInclude(l => l.Videos)
             .AsNoTracking()
-            .FirstOrDefaultAsync(t => t.Id == topicId && t.IsActive);
+            .FirstOrDefaultAsync(t => t.Id == topicId && t.IsActive, ct);
 
         if (topic == null || topic.Chapter == null || !topic.Chapter.IsActive || topic.Chapter.Subject == null || !topic.Chapter.Subject.IsActive)
-        {
-            return NotFound(new { message = $"Chủ đề '{topicId}' không tồn tại hoặc đã ngừng kích hoạt." });
-        }
+            throw new NotFoundException($"Chủ đề '{topicId}' không tồn tại hoặc đã ngừng kích hoạt.");
 
         var publishedLessons = topic.Lessons
             .OrderBy(l => l.OrderIndex)
@@ -428,7 +361,7 @@ public class CurriculumController : ControllerBase
             })
             .ToList();
 
-        var dto = new LearnerTopicDto
+        return new LearnerTopicDto
         {
             Id = topic.Id,
             ChapterId = topic.ChapterId,
@@ -437,28 +370,19 @@ public class CurriculumController : ControllerBase
             OrderIndex = topic.OrderIndex,
             Lessons = publishedLessons
         };
-
-        return Ok(dto);
     }
 
-    /// <summary>
-    /// GET /api/v1/curriculum/lessons/{lessonId}/videos
-    /// Returns published videos for a published lesson.
-    /// </summary>
-    [HttpGet("lessons/{lessonId}/videos")]
-    public async Task<IActionResult> GetLessonVideos(string lessonId)
+    public async Task<List<LearnerVideoDto>> GetLessonVideosAsync(string lessonId, CancellationToken ct = default)
     {
         var lesson = await _db.ContentLessons
             .Include(l => l.Videos)
             .AsNoTracking()
-            .FirstOrDefaultAsync(l => (l.Id == lessonId || l.Slug == lessonId) && l.Status == "published");
+            .FirstOrDefaultAsync(l => (l.Id == lessonId || l.Slug == lessonId) && l.Status == "published", ct);
 
         if (lesson == null)
-        {
-            return NotFound(new { message = "Bài học không tồn tại hoặc chưa được xuất bản." });
-        }
+            throw new NotFoundException("Bài học không tồn tại hoặc chưa được xuất bản.");
 
-        var videos = lesson.Videos
+        return lesson.Videos
             .Where(v => v.IsPublished)
             .OrderBy(v => v.SortOrder)
             .Select(v => new LearnerVideoDto
@@ -479,17 +403,9 @@ public class CurriculumController : ControllerBase
                 VerificationStatus = v.VerificationStatus
             })
             .ToList();
-
-        return Ok(videos);
     }
 
-    /// <summary>
-    /// GET /api/v1/curriculum/lessons/{lessonId}
-    /// Returns lesson theory &amp; KaTeX formulas.
-    /// Returns HTTP 404 for Draft or In-Review lessons.
-    /// </summary>
-    [HttpGet("lessons/{lessonId}")]
-    public async Task<IActionResult> GetLessonDetail(string lessonId)
+    public async Task<LearnerLessonDetailDto> GetLessonDetailAsync(string lessonId, CancellationToken ct = default)
     {
         var lesson = await _db.ContentLessons
             .Include(l => l.Chapter)
@@ -497,12 +413,10 @@ public class CurriculumController : ControllerBase
             .Include(l => l.Topic)
             .Include(l => l.Videos)
             .AsNoTracking()
-            .FirstOrDefaultAsync(l => l.Id == lessonId || l.Slug == lessonId);
+            .FirstOrDefaultAsync(l => l.Id == lessonId || l.Slug == lessonId, ct);
 
         if (lesson == null || lesson.Status != "published" || lesson.Chapter == null || !lesson.Chapter.IsActive || lesson.Chapter.Subject == null || !lesson.Chapter.Subject.IsActive)
-        {
-            return NotFound(new { message = "Bài học không tồn tại hoặc chưa được xuất bản." });
-        }
+            throw new NotFoundException("Bài học không tồn tại hoặc chưa được xuất bản.");
 
         var publishedVideos = lesson.Videos
             .Where(v => v.IsPublished)
@@ -526,7 +440,7 @@ public class CurriculumController : ControllerBase
             })
             .ToList();
 
-        var dto = new LearnerLessonDetailDto
+        return new LearnerLessonDetailDto
         {
             Id = lesson.Id,
             ChapterId = lesson.ChapterId,
@@ -551,96 +465,70 @@ public class CurriculumController : ControllerBase
             SummaryPoints = SafeJsonArray(lesson.SummaryPointsJson),
             Videos = publishedVideos
         };
-
-        return Ok(dto);
     }
 
-    /// <summary>
-    /// GET /api/v1/curriculum/lessons/{lessonId}/questions
-    /// STRICT ZERO-LEAK SECURITY: Returns published questions for the lesson WITHOUT CorrectAnswer and Explanation.
-    /// Returns HTTP 404 for Draft/In-Review lessons.
-    /// </summary>
-    [HttpGet("lessons/{lessonId}/questions")]
-    public async Task<IActionResult> GetLessonQuestions(string lessonId)
+    public async Task<List<LearnerQuestionDto>> GetLessonQuestionsAsync(string lessonId, CancellationToken ct = default)
     {
         var lesson = await _db.ContentLessons
             .Include(l => l.Chapter)
                 .ThenInclude(c => c!.Subject)
             .AsNoTracking()
-            .FirstOrDefaultAsync(l => (l.Id == lessonId || l.Slug == lessonId) && l.Status == "published");
+            .FirstOrDefaultAsync(l => (l.Id == lessonId || l.Slug == lessonId) && l.Status == "published", ct);
 
         if (lesson == null || lesson.Chapter == null || !lesson.Chapter.IsActive || lesson.Chapter.Subject == null || !lesson.Chapter.Subject.IsActive)
-        {
-            return NotFound(new { message = "Bài học không tồn tại hoặc chưa được xuất bản." });
-        }
+            throw new NotFoundException("Bài học không tồn tại hoặc chưa được xuất bản.");
 
         var questions = await _db.ContentQuestions
             .Where(q => q.LessonId == lesson.Id && q.Status == "published")
             .OrderBy(q => q.OrderIndex)
             .AsNoTracking()
-            .ToListAsync();
+            .ToListAsync(ct);
 
-        var dtos = questions.Select(q =>
+        return questions.Select(q => new LearnerQuestionDto
         {
-            var options = SafeDeserializeStringList(q.OptionsJson);
-
-            return new LearnerQuestionDto
-            {
-                Id = q.Id,
-                LessonId = q.LessonId ?? lessonId,
-                Prompt = q.Prompt,
-                Options = options,
-                Topic = q.Topic,
-                Difficulty = q.Difficulty,
-                Type = q.Type,
-                OrderIndex = q.OrderIndex
-            };
+            Id = q.Id,
+            LessonId = q.LessonId ?? lessonId,
+            Prompt = q.Prompt,
+            Options = SafeDeserializeStringList(q.OptionsJson),
+            Topic = q.Topic,
+            Difficulty = q.Difficulty,
+            Type = q.Type,
+            OrderIndex = q.OrderIndex
         }).ToList();
-
-        return Ok(dtos);
     }
 
-    /// <summary>
-    /// POST /api/v1/curriculum/lessons/{lessonId}/questions/{questionId}/check
-    /// Server-side validation of student's answer.
-    /// Returns grading result, correct answer, explanation, and earned score.
-    /// </summary>
-    [HttpPost("lessons/{lessonId}/questions/{questionId}/check")]
-    public async Task<IActionResult> CheckQuestionAnswer(
+    public async Task<CheckAnswerResponseDto> CheckQuestionAnswerAsync(
         string lessonId,
         string questionId,
-        [FromBody] CheckAnswerRequestDto req)
+        CheckAnswerRequestDto req,
+        string? currentUserId,
+        string clientIp,
+        CancellationToken ct = default)
     {
         if (req == null || string.IsNullOrWhiteSpace(req.SelectedOption))
-        {
-            return BadRequest(new { message = "Vui lòng chọn một đáp án." });
-        }
+            throw new ValidationException("SelectedOption", "Vui lòng chọn một đáp án.");
 
-        var clientKey = !string.IsNullOrEmpty(CurrentUserId)
-            ? $"usr_{CurrentUserId}"
-            : $"ip_{HttpContext.Connection.RemoteIpAddress?.ToString() ?? "anon"}";
+        var clientKey = !string.IsNullOrEmpty(currentUserId)
+            ? $"usr_{currentUserId}"
+            : $"ip_{clientIp}";
         var rateLimitKey = $"check_rate_{clientKey}_{questionId}";
 
-        if (_cache.TryGetValue<int>(rateLimitKey, out var failedCount) && failedCount >= 3)
+        if (_cache != null && _cache.TryGetValue<int>(rateLimitKey, out var failedCount) && failedCount >= 3)
         {
-            return StatusCode(429, new
-            {
-                message = "Bạn đã thử sai quá 3 lần đối với câu hỏi này. Vui lòng ôn lại lý thuyết bài học và thử lại sau 2 phút.",
-                retryAfterSeconds = 120
-            });
+            throw new ValidationException("RateLimit", "Bạn đã thử sai quá 3 lần đối với câu hỏi này. Vui lòng ôn lại lý thuyết bài học và thử lại sau 2 phút.");
         }
 
         var question = await _db.ContentQuestions
             .Include(q => q.Lesson)
                 .ThenInclude(l => l!.Chapter)
                     .ThenInclude(c => c!.Subject)
-            .FirstOrDefaultAsync(q => q.Id == questionId && (q.LessonId == lessonId || (q.Lesson != null && q.Lesson.Slug == lessonId)) && q.Status == "published");
+            .FirstOrDefaultAsync(q => q.Id == questionId && (q.LessonId == lessonId || (q.Lesson != null && q.Lesson.Slug == lessonId)) && q.Status == "published", ct);
 
         if (question == null || question.Lesson == null || question.Lesson.Status != "published" ||
             question.Lesson.Chapter == null || !question.Lesson.Chapter.IsActive ||
             question.Lesson.Chapter.Subject == null || !question.Lesson.Chapter.Subject.IsActive)
         {
-            return NotFound(new { message = "Câu hỏi hoặc bài học không tồn tại hoặc chưa xuất bản." });
+            throw new NotFoundException("Câu hỏi hoặc bài học không tồn tại hoặc chưa xuất bản.");
         }
 
         var selected = req.SelectedOption.Trim();
@@ -648,7 +536,6 @@ public class CurriculumController : ControllerBase
 
         bool isCorrect = string.Equals(selected, correct, StringComparison.OrdinalIgnoreCase);
 
-        // Also check if selected is option index/letter (e.g. "A", "B", "C", "D") matching the index
         if (!isCorrect)
         {
             var options = SafeDeserializeStringList(question.OptionsJson);
@@ -662,7 +549,6 @@ public class CurriculumController : ControllerBase
                 }
             }
 
-            // Also check client option id pattern like "opt_1_B"
             if (!isCorrect && selected.StartsWith("opt_"))
             {
                 var parts = selected.Split('_');
@@ -673,14 +559,18 @@ public class CurriculumController : ControllerBase
             }
         }
 
-        if (isCorrect)
+        if (_cache != null)
         {
-            _cache.Remove(rateLimitKey);
-        }
-        else
-        {
-            _cache.Set(rateLimitKey, failedCount + 1, TimeSpan.FromMinutes(2));
-            _logger.LogWarning("Failed question check attempt {Attempts}/3 for question {QuestionId} from {ClientKey}", failedCount + 1, questionId, clientKey);
+            if (isCorrect)
+            {
+                _cache.Remove(rateLimitKey);
+            }
+            else
+            {
+                int currentFailures = 0;
+                _cache.TryGetValue<int>(rateLimitKey, out currentFailures);
+                _cache.Set(rateLimitKey, currentFailures + 1, TimeSpan.FromMinutes(2));
+            }
         }
 
         int scoreEarned = isCorrect ? (question.Difficulty switch
@@ -691,26 +581,17 @@ public class CurriculumController : ControllerBase
             _ => 5
         }) : 0;
 
-        try
-        {
-            _db.StaffAuditLogs.Add(new StaffAuditLog
-            {
-                Id = $"log_{Guid.NewGuid():N}",
-                ActorUserId = !string.IsNullOrEmpty(CurrentUserId) ? CurrentUserId : $"anon:{clientKey}",
-                Action = "question_attempt_checked",
-                TargetType = "content_question",
-                TargetId = question.Id,
-                Payload = JsonSerializer.Serialize(new { lessonId, isCorrect, scoreEarned }),
-                CreatedAt = DateTimeOffset.UtcNow
-            });
-            await _db.SaveChangesAsync();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to persist audit log for question check.");
-        }
+        await _auditWriter.WriteStaffAuditAsync(
+            "question_attempt_checked",
+            "content_question",
+            question.Id,
+            null,
+            JsonSerializer.Serialize(new { lessonId, isCorrect, scoreEarned }),
+            ct);
 
-        var response = new CheckAnswerResponseDto
+        await _db.SaveChangesAsync(ct);
+
+        return new CheckAnswerResponseDto
         {
             QuestionId = question.Id,
             IsCorrect = isCorrect,
@@ -719,15 +600,9 @@ public class CurriculumController : ControllerBase
             ScoreEarned = scoreEarned,
             Feedback = isCorrect ? "Chính xác! Làm rất tốt." : "Chưa chính xác. Hãy xem kỹ lời giải chi tiết bên dưới."
         };
-
-        return Ok(response);
     }
 
-    [HttpGet("materials")]
-    public async Task<IActionResult> GetMaterials(
-        [FromQuery] string? category = null,
-        [FromQuery] string? subjectId = null,
-        [FromQuery] string? search = null)
+    public async Task<List<object>> GetMaterialsAsync(string? category = null, string? subjectId = null, string? search = null, CancellationToken ct = default)
     {
         var query = _db.ContentLessons.AsNoTracking()
             .Include(l => l.Chapter)
@@ -748,7 +623,7 @@ public class CurriculumController : ControllerBase
         var lessons = await query
             .OrderBy(l => l.Chapter!.OrderIndex)
             .ThenBy(l => l.OrderIndex)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var materials = lessons.Select(l =>
         {
@@ -773,22 +648,21 @@ public class CurriculumController : ControllerBase
             materials = materials.Where(m => m.category == category);
         }
 
-        return Ok(materials.ToList());
+        return materials.Cast<object>().ToList();
     }
 
-    #region Question Bank (Learner-Facing Verified Assessment Items)
-
-    [HttpGet("question-bank")]
-    public async Task<IActionResult> GetQuestionBank(
-        [FromQuery] string? subjectId = null,
-        [FromQuery] string? chapterId = null,
-        [FromQuery] string? lessonId = null,
-        [FromQuery] string? grade = null,
-        [FromQuery] string? difficulty = null,
-        [FromQuery] string? type = null,
-        [FromQuery] string? search = null,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 50)
+    public async Task<object> GetQuestionBankAsync(
+        string? subjectId = null,
+        string? chapterId = null,
+        string? lessonId = null,
+        string? grade = null,
+        string? difficulty = null,
+        string? type = null,
+        string? search = null,
+        int page = 1,
+        int pageSize = 50,
+        bool isStaffOrAuthorized = false,
+        CancellationToken ct = default)
     {
         var query = _db.ContentQuestions.AsNoTracking()
             .Include(q => q.Lesson)
@@ -846,7 +720,7 @@ public class CurriculumController : ControllerBase
             query = query.Where(q => q.Prompt.ToLower().Contains(term) || q.Id.ToLower().Contains(term) || (q.Topic != null && q.Topic.ToLower().Contains(term)));
         }
 
-        var total = await query.CountAsync();
+        var total = await query.CountAsync(ct);
         var safePage = Math.Max(1, page);
         var safePageSize = Math.Clamp(pageSize, 1, 100);
 
@@ -855,18 +729,13 @@ public class CurriculumController : ControllerBase
             .ThenBy(q => q.Id)
             .Skip((safePage - 1) * safePageSize)
             .Take(safePageSize)
-            .ToListAsync();
+            .ToListAsync(ct);
 
-        var isStaffOrAuthorized = User?.Identity?.IsAuthenticated == true &&
-            (User.IsInRole("admin") || User.IsInRole("content") || User.IsInRole("content_admin") || User.IsInRole("teacher") || User.HasClaim("permission", "content.approve"));
         var dtos = questions.Select(q => FormatQuestionBankItem(q, isStaffOrAuthorized)).ToList();
-        return Ok(new { items = dtos, total, page = safePage, pageSize = safePageSize });
+        return new { items = dtos, total, page = safePage, pageSize = safePageSize };
     }
 
-    [HttpGet("question-bank/statistics")]
-    public async Task<IActionResult> GetQuestionBankStats(
-        [FromQuery] string? subjectId = null,
-        [FromQuery] string? grade = null)
+    public async Task<object> GetQuestionBankStatsAsync(string? subjectId = null, string? grade = null, CancellationToken ct = default)
     {
         var query = _db.ContentQuestions.AsNoTracking()
             .Include(q => q.Lesson)
@@ -895,7 +764,7 @@ public class CurriculumController : ControllerBase
             query = query.Where(q => q.Grade == grade || (q.Lesson != null && q.Lesson.Chapter != null && q.Lesson.Chapter.Subject != null && q.Lesson.Chapter.Subject.Grade == grade));
         }
 
-        var allItems = await query.ToListAsync();
+        var allItems = await query.ToListAsync(ct);
 
         var total = allItems.Count(q => q.Status == "published" || q.Status == "approved");
         var approvedCount = total;
@@ -918,7 +787,7 @@ public class CurriculumController : ControllerBase
             ["high_application"] = allItems.Count(q => (q.Status == "published" || q.Status == "approved") && (q.Difficulty == "very_hard" || q.Difficulty == "van_dung_cao"))
         };
 
-        return Ok(new
+        return new
         {
             total,
             approvedCount,
@@ -927,24 +796,21 @@ public class CurriculumController : ControllerBase
             rejectedCount,
             byType,
             byCognitiveLevel
-        });
+        };
     }
 
-    [HttpGet("question-bank/{questionId}")]
-    public async Task<IActionResult> GetQuestionBankDetail(string questionId)
+    public async Task<object> GetQuestionBankDetailAsync(string questionId, bool isStaffOrAuthorized = false, CancellationToken ct = default)
     {
         var q = await _db.ContentQuestions.AsNoTracking()
             .Include(x => x.Lesson)
                 .ThenInclude(l => l!.Chapter)
                     .ThenInclude(c => c!.Subject)
-            .FirstOrDefaultAsync(x => x.Id == questionId && !x.IsDeleted && (x.Status == "published" || x.Status == "approved"));
+            .FirstOrDefaultAsync(x => x.Id == questionId && !x.IsDeleted && (x.Status == "published" || x.Status == "approved"), ct);
 
         if (q == null)
-            return NotFound(new { message = "Câu hỏi không tồn tại hoặc chưa được phê duyệt." });
+            throw new NotFoundException("Câu hỏi không tồn tại hoặc chưa được phê duyệt.");
 
-        var isStaffOrAuthorized = User?.Identity?.IsAuthenticated == true &&
-            (User.IsInRole("admin") || User.IsInRole("content") || User.IsInRole("content_admin") || User.IsInRole("teacher") || User.HasClaim("permission", "content.approve"));
-        return Ok(FormatQuestionBankItem(q, isStaffOrAuthorized));
+        return FormatQuestionBankItem(q, isStaffOrAuthorized);
     }
 
     private static object FormatQuestionBankItem(ContentQuestion q, bool isStaffOrAuthorized = false)
@@ -954,7 +820,7 @@ public class CurriculumController : ControllerBase
         var options = rawOptions.Select((text, idx) => new
         {
             id = idx < letters.Length ? letters[idx] : $"O{idx + 1}",
-            text = System.Text.RegularExpressions.Regex.Replace(text, @"^[A-Da-d][.:)\s]+", "").Trim()
+            text = Regex.Replace(text, @"^[A-Da-d][.:)\s]+", "").Trim()
         }).ToList();
 
         var normalizedType = q.Type == "multiple-choice" ? "multiple_choice"
@@ -984,8 +850,8 @@ public class CurriculumController : ControllerBase
             {
                 try
                 {
-                    using var doc = System.Text.Json.JsonDocument.Parse(q.MetadataJson);
-                    if (doc.RootElement.TryGetProperty("subItems", out var subItemsEl) && subItemsEl.ValueKind == System.Text.Json.JsonValueKind.Array)
+                    using var doc = JsonDocument.Parse(q.MetadataJson);
+                    if (doc.RootElement.TryGetProperty("subItems", out var subItemsEl) && subItemsEl.ValueKind == JsonValueKind.Array)
                     {
                         foreach (var el in subItemsEl.EnumerateArray())
                         {
@@ -1105,8 +971,8 @@ public class CurriculumController : ControllerBase
             {
                 try
                 {
-                    using var doc = System.Text.Json.JsonDocument.Parse(q.MetadataJson);
-                    if (doc.RootElement.TryGetProperty("acceptedAnswers", out var accEl) && accEl.ValueKind == System.Text.Json.JsonValueKind.Array)
+                    using var doc = JsonDocument.Parse(q.MetadataJson);
+                    if (doc.RootElement.TryGetProperty("acceptedAnswers", out var accEl) && accEl.ValueKind == JsonValueKind.Array)
                     {
                         foreach (var el in accEl.EnumerateArray())
                         {
@@ -1236,6 +1102,4 @@ public class CurriculumController : ControllerBase
             updatedAt = q.UpdatedAt.ToString("o")
         };
     }
-
-    #endregion
 }

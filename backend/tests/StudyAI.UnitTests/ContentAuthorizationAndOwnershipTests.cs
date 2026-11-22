@@ -2,17 +2,22 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using StudyAI.Api.Controllers;
+using StudyAI.Api.Features.Content;
 using StudyAI.Application.DTOs;
+using StudyAI.Application.Features.Content.Lessons;
+using StudyAI.Application.Features.Content.Questions;
 using StudyAI.Domain.Entities;
+using StudyAI.Infrastructure.Authentication;
 using StudyAI.Infrastructure.Persistence;
+using StudyAI.Infrastructure.Services;
 using Xunit;
 
 namespace StudyAI.UnitTests;
 
 public class ContentAuthorizationAndOwnershipTests
 {
-    private (StudyAIDbContext Context, ContentController Controller) CreateContextAndController(string role, string userId, bool hasApproveClaim = false)
+    private (StudyAIDbContext Context, ContentLessonsController LessonsController, ContentQuestionsController QuestionsController)
+        CreateControllers(string role, string userId, bool hasApproveClaim = false)
     {
         var options = new DbContextOptionsBuilder<StudyAIDbContext>()
             .UseInMemoryDatabase(databaseName: $"StudyAI_Authz_Test_{Guid.NewGuid():N}")
@@ -119,8 +124,6 @@ public class ContentAuthorizationAndOwnershipTests
 
         context.SaveChanges();
 
-        // Controller setup
-        var controller = new ContentController(context);
         var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, userId),
@@ -133,21 +136,36 @@ public class ContentAuthorizationAndOwnershipTests
 
         var identity = new ClaimsIdentity(claims, "TestAuth");
         var claimsPrincipal = new ClaimsPrincipal(identity);
+        var httpContext = new DefaultHttpContext { User = claimsPrincipal };
+        var httpContextAccessor = new HttpContextAccessor { HttpContext = httpContext };
 
-        controller.ControllerContext = new ControllerContext
+        var clock = new SystemClock();
+        var idGenerator = new IdGenerator();
+        var currentUser = new CurrentUser(httpContextAccessor);
+        var auditWriter = new AuditWriter(context, currentUser, clock, idGenerator);
+
+        var lessonsService = new ContentLessonsService(context, auditWriter, clock, idGenerator);
+        var questionsService = new ContentQuestionsService(context, auditWriter, clock, idGenerator);
+
+        var lessonsController = new ContentLessonsController(lessonsService)
         {
-            HttpContext = new DefaultHttpContext { User = claimsPrincipal }
+            ControllerContext = new ControllerContext { HttpContext = httpContext }
         };
 
-        return (context, controller);
+        var questionsController = new ContentQuestionsController(questionsService)
+        {
+            ControllerContext = new ControllerContext { HttpContext = httpContext }
+        };
+
+        return (context, lessonsController, questionsController);
     }
 
     [Fact]
     public async Task UpdateLesson_ByDifferentAuthor_Returns403()
     {
-        var (_, controller) = CreateContextAndController("author", "usr_author_2");
+        var (_, lessonsController, _) = CreateControllers("author", "usr_author_2");
 
-        var result = await controller.UpdateLesson("les_author1", new UpdateLessonRequestDto
+        var result = await lessonsController.UpdateLesson("les_author1", new UpdateLessonRequestDto
         {
             Title = "Hacker update"
         });
@@ -159,9 +177,9 @@ public class ContentAuthorizationAndOwnershipTests
     [Fact]
     public async Task DeleteLesson_ByDifferentAuthor_Returns403()
     {
-        var (_, controller) = CreateContextAndController("author", "usr_author_2");
+        var (_, lessonsController, _) = CreateControllers("author", "usr_author_2");
 
-        var result = await controller.DeleteLesson("les_author1");
+        var result = await lessonsController.DeleteLesson("les_author1");
 
         var statusResult = Assert.IsType<ObjectResult>(result);
         Assert.Equal(StatusCodes.Status403Forbidden, statusResult.StatusCode);
@@ -170,9 +188,9 @@ public class ContentAuthorizationAndOwnershipTests
     [Fact]
     public async Task SubmitReview_ByDifferentAuthor_Returns403()
     {
-        var (_, controller) = CreateContextAndController("author", "usr_author_2");
+        var (_, lessonsController, _) = CreateControllers("author", "usr_author_2");
 
-        var result = await controller.SubmitReview("les_draft_author1");
+        var result = await lessonsController.SubmitReview("les_draft_author1");
 
         var statusResult = Assert.IsType<ObjectResult>(result);
         Assert.Equal(StatusCodes.Status403Forbidden, statusResult.StatusCode);
@@ -181,10 +199,9 @@ public class ContentAuthorizationAndOwnershipTests
     [Fact]
     public async Task ApproveLesson_ByAuthorThemselves_Returns403FourEyes()
     {
-        // Even if the author also has a 'content' role or approve claim, four-eyes forbids approving own content
-        var (_, controller) = CreateContextAndController("content", "usr_author_1");
+        var (_, lessonsController, _) = CreateControllers("content", "usr_author_1");
 
-        var result = await controller.ApproveLesson("les_author1");
+        var result = await lessonsController.ApproveLesson("les_author1");
 
         var statusResult = Assert.IsType<ObjectResult>(result);
         Assert.Equal(StatusCodes.Status403Forbidden, statusResult.StatusCode);
@@ -193,9 +210,9 @@ public class ContentAuthorizationAndOwnershipTests
     [Fact]
     public async Task ApproveLesson_ByIndependentReviewer_Succeeds()
     {
-        var (context, controller) = CreateContextAndController("content", "usr_content_reviewer");
+        var (context, lessonsController, _) = CreateControllers("content", "usr_content_reviewer");
 
-        var result = await controller.ApproveLesson("les_author1");
+        var result = await lessonsController.ApproveLesson("les_author1");
 
         var okResult = Assert.IsType<OkObjectResult>(result);
         Assert.Equal(StatusCodes.Status200OK, okResult.StatusCode);
@@ -208,9 +225,9 @@ public class ContentAuthorizationAndOwnershipTests
     [Fact]
     public async Task ApproveLesson_ByAdmin_OverridesFourEyesAndSucceeds()
     {
-        var (context, controller) = CreateContextAndController("admin", "usr_admin");
+        var (context, lessonsController, _) = CreateControllers("admin", "usr_admin");
 
-        var result = await controller.ApproveLesson("les_author1");
+        var result = await lessonsController.ApproveLesson("les_author1");
 
         var okResult = Assert.IsType<OkObjectResult>(result);
         Assert.Equal(StatusCodes.Status200OK, okResult.StatusCode);
@@ -219,9 +236,9 @@ public class ContentAuthorizationAndOwnershipTests
     [Fact]
     public async Task UpdateQuestion_ByDifferentAuthor_Returns403()
     {
-        var (_, controller) = CreateContextAndController("author", "usr_author_2");
+        var (_, _, questionsController) = CreateControllers("author", "usr_author_2");
 
-        var result = await controller.UpdateQuestion("qst_author1", new UpdateQuestionRequestDto
+        var result = await questionsController.UpdateQuestion("qst_author1", new UpdateQuestionRequestDto
         {
             Prompt = "New Prompt"
         });
@@ -233,9 +250,9 @@ public class ContentAuthorizationAndOwnershipTests
     [Fact]
     public async Task DeleteQuestion_ByDifferentAuthor_Returns403()
     {
-        var (_, controller) = CreateContextAndController("author", "usr_author_2");
+        var (_, _, questionsController) = CreateControllers("author", "usr_author_2");
 
-        var result = await controller.DeleteQuestion("qst_author1");
+        var result = await questionsController.DeleteQuestion("qst_author1");
 
         var statusResult = Assert.IsType<ObjectResult>(result);
         Assert.Equal(StatusCodes.Status403Forbidden, statusResult.StatusCode);
@@ -244,9 +261,9 @@ public class ContentAuthorizationAndOwnershipTests
     [Fact]
     public async Task ApproveQuestion_ByAuthorThemselves_Returns403FourEyes()
     {
-        var (_, controller) = CreateContextAndController("content", "usr_author_1");
+        var (_, _, questionsController) = CreateControllers("content", "usr_author_1");
 
-        var result = await controller.ApproveQuestion("qst_author1");
+        var result = await questionsController.ApproveQuestion("qst_author1");
 
         var statusResult = Assert.IsType<ObjectResult>(result);
         Assert.Equal(StatusCodes.Status403Forbidden, statusResult.StatusCode);
@@ -255,9 +272,9 @@ public class ContentAuthorizationAndOwnershipTests
     [Fact]
     public async Task ApproveQuestion_ByIndependentReviewer_Succeeds()
     {
-        var (context, controller) = CreateContextAndController("content", "usr_content_reviewer");
+        var (context, _, questionsController) = CreateControllers("content", "usr_content_reviewer");
 
-        var result = await controller.ApproveQuestion("qst_author1");
+        var result = await questionsController.ApproveQuestion("qst_author1");
 
         var okResult = Assert.IsType<OkObjectResult>(result);
         Assert.Equal(StatusCodes.Status200OK, okResult.StatusCode);

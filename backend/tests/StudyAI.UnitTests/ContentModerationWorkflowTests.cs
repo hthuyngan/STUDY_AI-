@@ -2,16 +2,21 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using StudyAI.Api.Controllers;
+using StudyAI.Api.Features.Content;
+using StudyAI.Application.Features.Content.Lessons;
+using StudyAI.Application.Features.Content.ReviewQueue;
 using StudyAI.Domain.Entities;
+using StudyAI.Infrastructure.Authentication;
 using StudyAI.Infrastructure.Persistence;
+using StudyAI.Infrastructure.Services;
 using Xunit;
 
 namespace StudyAI.UnitTests;
 
 public class ContentModerationWorkflowTests
 {
-    private (StudyAIDbContext Context, ContentController Controller) CreateContextAndController(string role = "content", string userId = "usr_reviewer_1")
+    private (StudyAIDbContext Context, ContentLessonsController LessonsController, ContentReviewController ReviewController)
+        CreateControllers(string role = "content", string userId = "usr_reviewer_1")
     {
         var options = new DbContextOptionsBuilder<StudyAIDbContext>()
             .UseInMemoryDatabase(databaseName: $"StudyAI_ContentMod_Test_{Guid.NewGuid():N}")
@@ -109,8 +114,6 @@ public class ContentModerationWorkflowTests
 
         context.SaveChanges();
 
-        var controller = new ContentController(context);
-
         var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, userId),
@@ -121,19 +124,34 @@ public class ContentModerationWorkflowTests
 
         var identity = new ClaimsIdentity(claims, "TestAuth");
         var claimsPrincipal = new ClaimsPrincipal(identity);
+        var httpContext = new DefaultHttpContext { User = claimsPrincipal };
+        var httpContextAccessor = new HttpContextAccessor { HttpContext = httpContext };
 
-        controller.ControllerContext = new ControllerContext
+        var clock = new SystemClock();
+        var idGenerator = new IdGenerator();
+        var currentUser = new CurrentUser(httpContextAccessor);
+        var auditWriter = new AuditWriter(context, currentUser, clock, idGenerator);
+
+        var lessonsService = new ContentLessonsService(context, auditWriter, clock, idGenerator);
+        var reviewService = new ContentReviewService(context);
+
+        var lessonsController = new ContentLessonsController(lessonsService)
         {
-            HttpContext = new DefaultHttpContext { User = claimsPrincipal }
+            ControllerContext = new ControllerContext { HttpContext = httpContext }
         };
 
-        return (context, controller);
+        var reviewController = new ContentReviewController(reviewService)
+        {
+            ControllerContext = new ControllerContext { HttpContext = httpContext }
+        };
+
+        return (context, lessonsController, reviewController);
     }
 
     [Fact]
     public async Task SubmitReview_TransitionsDraftLessonToInReview()
     {
-        var (context, controller) = CreateContextAndController(role: "author", userId: "usr_author_1");
+        var (context, controller, _) = CreateControllers(role: "author", userId: "usr_author_1");
 
         var result = await controller.SubmitReview("les_draft_1");
 
@@ -150,7 +168,7 @@ public class ContentModerationWorkflowTests
     [Fact]
     public async Task SubmitReview_OnNonDraftLesson_ReturnsBadRequest()
     {
-        var (_, controller) = CreateContextAndController(role: "author", userId: "usr_author_1");
+        var (_, controller, _) = CreateControllers(role: "author", userId: "usr_author_1");
 
         var result = await controller.SubmitReview("les_published_1");
 
@@ -160,7 +178,7 @@ public class ContentModerationWorkflowTests
     [Fact]
     public async Task ApproveLesson_ByAuthorizedReviewer_TransitionsToPublished()
     {
-        var (context, controller) = CreateContextAndController(role: "content");
+        var (context, controller, _) = CreateControllers(role: "content");
 
         // Put lesson into in-review first
         var lesson = await context.ContentLessons.FindAsync("les_draft_1");
@@ -181,7 +199,7 @@ public class ContentModerationWorkflowTests
     [Fact]
     public async Task ApproveLesson_ByUnauthorizedUser_ReturnsForbidden()
     {
-        var (_, controller) = CreateContextAndController(role: "student");
+        var (_, controller, _) = CreateControllers(role: "student");
 
         var result = await controller.ApproveLesson("les_draft_1");
 
@@ -192,7 +210,7 @@ public class ContentModerationWorkflowTests
     [Fact]
     public async Task RollbackLesson_WithoutHistoricalRevision_ReturnsConflictWithoutMutation()
     {
-        var (context, controller) = CreateContextAndController(role: "content");
+        var (context, controller, _) = CreateControllers(role: "content");
 
         var result = await controller.RollbackLesson("les_published_1");
 
@@ -208,24 +226,24 @@ public class ContentModerationWorkflowTests
     [Fact]
     public async Task RollbackLesson_OnDraftLesson_ReturnsConflict()
     {
-        var (_, controller) = CreateContextAndController(role: "content");
+        var (_, controller, _) = CreateControllers(role: "content");
 
         var result = await controller.RollbackLesson("les_draft_1");
 
-        var objResult = Assert.IsType<ObjectResult>(result);
+        var objResult = Assert.IsType<ConflictObjectResult>(result);
         Assert.Equal(409, objResult.StatusCode);
     }
 
     [Fact]
     public async Task GetApprovals_ReturnsReviewQueueWithHistory()
     {
-        var (context, controller) = CreateContextAndController(role: "content");
+        var (context, _, reviewController) = CreateControllers(role: "content");
 
         var lesson = await context.ContentLessons.FindAsync("les_draft_1");
         lesson!.Status = "in-review";
         await context.SaveChangesAsync();
 
-        var result = await controller.GetApprovals(status: "pending");
+        var result = await reviewController.GetApprovals(status: "pending");
 
         var okResult = Assert.IsType<OkObjectResult>(result);
         var items = Assert.IsAssignableFrom<System.Collections.IEnumerable>(okResult.Value);
@@ -235,9 +253,9 @@ public class ContentModerationWorkflowTests
     [Fact]
     public async Task GetPublications_ReturnsPublishedLessonsAndQuestions()
     {
-        var (_, controller) = CreateContextAndController(role: "content");
+        var (_, _, reviewController) = CreateControllers(role: "content");
 
-        var result = await controller.GetPublications();
+        var result = await reviewController.GetPublications();
 
         var okResult = Assert.IsType<OkObjectResult>(result);
         var items = Assert.IsAssignableFrom<System.Collections.IEnumerable>(okResult.Value);
@@ -247,9 +265,9 @@ public class ContentModerationWorkflowTests
     [Fact]
     public async Task GetPublications_ReturnsPublishedBy_AndActiveStatus()
     {
-        var (_, controller) = CreateContextAndController(role: "content");
+        var (_, _, reviewController) = CreateControllers(role: "content");
 
-        var result = await controller.GetPublications();
+        var result = await reviewController.GetPublications();
 
         var okResult = Assert.IsType<OkObjectResult>(result);
         var json = System.Text.Json.JsonSerializer.Serialize(okResult.Value);
@@ -267,7 +285,7 @@ public class ContentModerationWorkflowTests
     [Fact]
     public async Task RollbackLesson_WithTargetVersion_RestoresHistoricalSnapshot()
     {
-        var (context, controller) = CreateContextAndController(role: "content");
+        var (context, controller, _) = CreateControllers(role: "content");
 
         // Seed a historical revision for les_published_1
         var snapshot = new
