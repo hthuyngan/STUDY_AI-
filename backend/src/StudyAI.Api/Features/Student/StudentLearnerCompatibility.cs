@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -58,30 +59,35 @@ public class LearnerPracticeService : StudentPracticeService
 }
 
 // Controller aliases
+[NonController]
 public class LearnerCurriculumController : StudentCurriculumController
 {
     public LearnerCurriculumController(ILearnerCurriculumService curriculumService)
         : base(curriculumService) { }
 }
 
+[NonController]
 public class LearnerProgressController : StudentProgressController
 {
     public LearnerProgressController(ILearnerProgressService progressService)
         : base(progressService) { }
 }
 
+[NonController]
 public class LearnerAssessmentAttemptsController : StudentAssessmentAttemptsController
 {
     public LearnerAssessmentAttemptsController(ILearnerAssessmentService assessmentService)
         : base(assessmentService) { }
 }
 
+[NonController]
 public class LearnerEventsController : StudentEventsController
 {
     public LearnerEventsController(ILearnerEventsService eventsService)
         : base(eventsService) { }
 }
 
+[NonController]
 public class StudentExamPreparationController : ExamPreparationController
 {
     public StudentExamPreparationController(
@@ -95,6 +101,7 @@ public class StudentExamPreparationController : ExamPreparationController
         : base(blueprintService, qualityService, spacedRepetitionService, revisionPlannerService, readinessService, subjectResolver, logger) { }
 }
 
+[NonController]
 public class LearnerExamPreparationController : StudentExamPreparationController
 {
     public LearnerExamPreparationController(
@@ -108,18 +115,21 @@ public class LearnerExamPreparationController : StudentExamPreparationController
         : base(blueprintService, qualityService, spacedRepetitionService, revisionPlannerService, readinessService, subjectResolver, logger) { }
 }
 
+[NonController]
 public class LearnerPracticeController : StudentPracticeController
 {
     public LearnerPracticeController(ILearnerPracticeService practiceService)
         : base(practiceService) { }
 }
 
+[NonController]
 public class LearnerProfileController : StudentProfileController
 {
     public LearnerProfileController(ILearnerProfileService profileService)
         : base(profileService) { }
 }
 
+[NonController]
 public class StudentAdaptiveLearningController : AdaptiveLearningController
 {
     public StudentAdaptiveLearningController(
@@ -130,6 +140,7 @@ public class StudentAdaptiveLearningController : AdaptiveLearningController
         : base(hintService, analysisService, masteryService, recommendationService) { }
 }
 
+[NonController]
 public class LearnerAdaptiveLearningController : StudentAdaptiveLearningController
 {
     public LearnerAdaptiveLearningController(
@@ -140,6 +151,7 @@ public class LearnerAdaptiveLearningController : StudentAdaptiveLearningControll
         : base(hintService, analysisService, masteryService, recommendationService) { }
 }
 
+[NonController]
 public class StudentAnalyticsController : LearningAnalyticsController
 {
     public StudentAnalyticsController(
@@ -148,6 +160,7 @@ public class StudentAnalyticsController : LearningAnalyticsController
         : base(analyticsService, examService) { }
 }
 
+[NonController]
 public class LearnerAnalyticsController : StudentAnalyticsController
 {
     public LearnerAnalyticsController(
@@ -156,6 +169,7 @@ public class LearnerAnalyticsController : StudentAnalyticsController
         : base(analyticsService, examService) { }
 }
 
+[NonController]
 public class LearnerAiChatController : StudyAI.Features.AI.AiChatController
 {
     public LearnerAiChatController(
