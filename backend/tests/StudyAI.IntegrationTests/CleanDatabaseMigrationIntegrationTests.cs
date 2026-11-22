@@ -5,8 +5,8 @@ using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using StudyAI.Domain.Entities;
-using StudyAI.Infrastructure.Persistence;
+using StudyAI.Models;
+using StudyAI.Data;
 using Xunit;
 
 namespace StudyAI.IntegrationTests;

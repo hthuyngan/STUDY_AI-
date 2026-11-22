@@ -5,8 +5,8 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using StudyAI.Application.DTOs;
-using StudyAI.Infrastructure.Persistence;
+
+using StudyAI.Data;
 using Xunit;
 
 namespace StudyAI.IntegrationTests;

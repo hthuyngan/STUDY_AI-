@@ -24,9 +24,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\StudyAI.Application\StudyAI.Application.csproj" />
-    <ProjectReference Include="..\..\src\StudyAI.Domain\StudyAI.Domain.csproj" />
-    <ProjectReference Include="..\..\src\StudyAI.Infrastructure\StudyAI.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\StudyAI.Api\StudyAI.Api.csproj" />
   </ItemGroup>
 

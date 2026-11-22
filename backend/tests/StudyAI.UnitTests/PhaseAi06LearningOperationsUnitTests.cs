@@ -1,10 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using StudyAI.Application.Common.Interfaces;
-using StudyAI.Application.DTOs;
-using StudyAI.Domain.Entities;
-using StudyAI.Infrastructure.Persistence;
-using StudyAI.Infrastructure.Services;
+
+
+using StudyAI.Models;
+using StudyAI.Data;
+
 using Xunit;
 
 namespace StudyAI.UnitTests;

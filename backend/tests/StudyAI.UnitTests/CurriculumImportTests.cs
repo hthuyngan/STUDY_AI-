@@ -1,8 +1,8 @@
 using System.IO.Compression;
 using System.Text;
-using StudyAI.Application.Common.Interfaces;
-using StudyAI.Application.DTOs;
-using StudyAI.Application.Services;
+
+
+
 using Xunit;
 
 namespace StudyAI.UnitTests;

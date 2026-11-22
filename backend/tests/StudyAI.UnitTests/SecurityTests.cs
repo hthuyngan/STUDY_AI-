@@ -1,5 +1,5 @@
-using StudyAI.Domain.Entities;
-using StudyAI.Infrastructure.Security;
+using StudyAI.Models;
+using StudyAI.Common.Security;
 using Xunit;
 
 namespace StudyAI.UnitTests;

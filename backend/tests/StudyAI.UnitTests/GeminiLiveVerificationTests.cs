@@ -2,8 +2,8 @@ using System.IO;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
-using StudyAI.Application.Common.Interfaces;
-using StudyAI.Infrastructure.Services;
+
+
 using Xunit;
 
 namespace StudyAI.UnitTests;

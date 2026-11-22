@@ -5,13 +5,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
-using StudyAI.Api.Features.Learner;
-using StudyAI.Application.Features.Learner.Curriculum;
-using StudyAI.Application.Features.Learner.Practice;
-using StudyAI.Domain.Entities;
-using StudyAI.Infrastructure.Authentication;
-using StudyAI.Infrastructure.Persistence;
-using StudyAI.Infrastructure.Services;
+using StudyAI.Features.Student;
+using StudyAI.Features.AI;
+using StudyAI.Features.Student;
+using StudyAI.Features.Student;
+using StudyAI.Models;
+using StudyAI.Common.Authorization;
+using StudyAI.Data;
+
 using Xunit;
 
 namespace StudyAI.UnitTests;

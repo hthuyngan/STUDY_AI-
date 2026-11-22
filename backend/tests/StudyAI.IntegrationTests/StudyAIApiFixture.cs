@@ -10,8 +10,8 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using StudyAI.Application.Common.Interfaces;
-using StudyAI.Infrastructure.Persistence;
+
+using StudyAI.Data;
 using Xunit;
 
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
@@ -84,7 +84,7 @@ public class StudyAIApiFixture : WebApplicationFactory<Program>
             {
                 services.Remove(llmDescriptor);
             }
-            services.AddScoped<ILlmProvider, StudyAI.Infrastructure.Services.FakeLlmProvider>();
+            services.AddScoped<ILlmProvider, FakeLlmProvider>();
 
             // 3. Register SaveChanges Interceptor for defense-in-depth on all write operations
             services.AddSingleton<ISaveChangesInterceptor, TestDatabaseSafetySaveChangesInterceptor>();

@@ -2,11 +2,11 @@ using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
-using StudyAI.Api.Middleware;
-using StudyAI.Application.Common.Authorization;
-using StudyAI.Application.Common.Exceptions;
-using StudyAI.Application.Common.Results;
-using StudyAI.Infrastructure.Authentication;
+using StudyAI.Common.Middleware;
+using StudyAI.Common.Authorization;
+using StudyAI.Common.Exceptions;
+using StudyAI.Common.Utilities;
+using StudyAI.Common.Authorization;
 using Xunit;
 
 namespace StudyAI.UnitTests;

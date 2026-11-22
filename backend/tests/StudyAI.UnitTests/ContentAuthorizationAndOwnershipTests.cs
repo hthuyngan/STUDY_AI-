@@ -2,14 +2,14 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using StudyAI.Api.Features.Content;
-using StudyAI.Application.DTOs;
-using StudyAI.Application.Features.Content.Lessons;
-using StudyAI.Application.Features.Content.Questions;
-using StudyAI.Domain.Entities;
-using StudyAI.Infrastructure.Authentication;
-using StudyAI.Infrastructure.Persistence;
-using StudyAI.Infrastructure.Services;
+using StudyAI.Features.Content;
+
+using StudyAI.Features.Content;
+using StudyAI.Features.Content;
+using StudyAI.Models;
+using StudyAI.Common.Authorization;
+using StudyAI.Data;
+
 using Xunit;
 
 namespace StudyAI.UnitTests;

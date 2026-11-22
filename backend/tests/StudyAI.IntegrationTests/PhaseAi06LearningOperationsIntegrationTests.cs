@@ -4,8 +4,8 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using StudyAI.Application.DTOs;
-using StudyAI.Infrastructure.Persistence;
+
+using StudyAI.Data;
 using Xunit;
 
 namespace StudyAI.IntegrationTests;
@@ -229,7 +229,7 @@ public class PhaseAi06LearningOperationsIntegrationTests : IClassFixture<StudyAI
             var q = await db.ContentQuestions.FirstOrDefaultAsync(x => x.Status == "published" && !x.IsDeleted);
             if (q == null)
             {
-                q = new Domain.Entities.ContentQuestion
+                q = new ContentQuestion
                 {
                     Id = $"q_exam_leak_{Guid.NewGuid():N}"[..12],
                     SubjectId = "sub_math12",
@@ -244,7 +244,7 @@ public class PhaseAi06LearningOperationsIntegrationTests : IClassFixture<StudyAI
             examQuestionId = q.Id;
 
             // Create an active exam session containing this question
-            var activeExam = new Domain.Entities.AssessmentAttempt
+            var activeExam = new AssessmentAttempt
             {
                 Id = activeExamId,
                 UserId = learnerId,
@@ -302,7 +302,7 @@ public class PhaseAi06LearningOperationsIntegrationTests : IClassFixture<StudyAI
         using (var scope = _factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
-            var q = new Domain.Entities.ContentQuestion
+            var q = new ContentQuestion
             {
                 Id = $"q_unatt_{Guid.NewGuid():N}"[..12],
                 SubjectId = "sub_math12",
@@ -343,7 +343,7 @@ public class PhaseAi06LearningOperationsIntegrationTests : IClassFixture<StudyAI
             var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
             var learner = await db.Users.FirstAsync(u => u.EmailNormalized == "LEARNER@STUDYAI.INTERNAL" || u.EmailNormalized == "learner@studyai.internal");
 
-            var q1 = new Domain.Entities.ContentQuestion
+            var q1 = new ContentQuestion
             {
                 Id = $"q1_{Guid.NewGuid():N}"[..16],
                 SubjectId = "sub_math12",
@@ -352,7 +352,7 @@ public class PhaseAi06LearningOperationsIntegrationTests : IClassFixture<StudyAI
                 CorrectAnswer = "A",
                 Status = "published"
             };
-            var q2 = new Domain.Entities.ContentQuestion
+            var q2 = new ContentQuestion
             {
                 Id = $"q2_{Guid.NewGuid():N}"[..16],
                 SubjectId = "sub_math12",
@@ -367,7 +367,7 @@ public class PhaseAi06LearningOperationsIntegrationTests : IClassFixture<StudyAI
             // Expired 10 minutes ago
             var expiredTime = DateTimeOffset.UtcNow.AddMinutes(-10);
 
-            var attempt = new Domain.Entities.AssessmentAttempt
+            var attempt = new AssessmentAttempt
             {
                 Id = sessionId,
                 UserId = learner.Id,

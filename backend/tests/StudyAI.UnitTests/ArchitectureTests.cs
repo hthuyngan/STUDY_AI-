@@ -4,59 +4,37 @@ using Xunit;
 
 namespace StudyAI.UnitTests;
 
+/// <summary>
+/// Architecture validation tests enforcing the Feature-Based Modular Monolith design principles.
+/// Verifies proper feature isolation, controller organization, and absence of anti-patterns.
+/// </summary>
 public class ArchitectureTests
 {
-    [Fact]
-    public void DomainAssembly_ShouldNotReferenceOtherProjectAssemblies()
-    {
-        var domainAssembly = typeof(StudyAI.Domain.Entities.User).Assembly;
-        var referencedAssemblies = domainAssembly.GetReferencedAssemblies();
-
-        var disallowedNames = new[] { "StudyAI.Application", "StudyAI.Infrastructure", "StudyAI.Api" };
-        foreach (var referenced in referencedAssemblies)
-        {
-            Assert.DoesNotContain(referenced.Name, disallowedNames);
-        }
-    }
-
-    [Fact]
-    public void ApplicationAssembly_ShouldNotReferenceInfrastructureOrApi()
-    {
-        var applicationAssembly = typeof(StudyAI.Application.DTOs.LearnerSubjectDto).Assembly;
-        var referencedAssemblies = applicationAssembly.GetReferencedAssemblies();
-
-        var disallowedNames = new[] { "StudyAI.Infrastructure", "StudyAI.Api" };
-        foreach (var referenced in referencedAssemblies)
-        {
-            Assert.DoesNotContain(referenced.Name, disallowedNames);
-        }
-    }
+    private static readonly Assembly ApiAssembly = typeof(StudyAI.Features.Public.HealthController).Assembly;
 
     [Fact]
     public void AllControllers_MustBeOrganizedUnderFeaturesNamespace()
     {
-        var apiAssembly = typeof(StudyAI.Api.Features.Public.HealthController).Assembly;
-        var allControllers = apiAssembly.GetTypes()
+        var allControllers = ApiAssembly.GetTypes()
             .Where(t => typeof(ControllerBase).IsAssignableFrom(t) && !t.IsAbstract)
             .ToList();
 
         Assert.NotEmpty(allControllers);
 
         var misplaced = allControllers
-            .Where(t => t.Namespace == null || !t.Namespace.StartsWith("StudyAI.Api.Features."))
+            .Where(t => t.Namespace == null || !t.Namespace.StartsWith("StudyAI.Features."))
             .Select(t => t.FullName)
             .ToList();
 
-        Assert.True(misplaced.Count == 0, $"Controllers must be organized under StudyAI.Api.Features.*, but found outside:\n{string.Join("\n", misplaced)}");
+        Assert.True(misplaced.Count == 0, $"Controllers must be organized under StudyAI.Features.*, but found outside:\n{string.Join("\n", misplaced)}");
     }
 
     [Fact]
     public void FeatureControllers_MustNotInjectAnyDbContextDirectly()
     {
-        var apiAssembly = typeof(StudyAI.Api.Features.Public.HealthController).Assembly;
-        var featureControllers = apiAssembly.GetTypes()
+        var featureControllers = ApiAssembly.GetTypes()
             .Where(t => typeof(ControllerBase).IsAssignableFrom(t) && !t.IsAbstract)
-            .Where(t => t.Namespace != null && t.Namespace.StartsWith("StudyAI.Api.Features"))
+            .Where(t => t.Namespace != null && t.Namespace.StartsWith("StudyAI.Features"))
             .ToList();
 
         Assert.NotEmpty(featureControllers);
@@ -65,7 +43,6 @@ public class ArchitectureTests
 
         foreach (var controller in featureControllers)
         {
-            // Check constructors for DbContext or IApplicationDbContext
             var constructors = controller.GetConstructors();
             foreach (var ctor in constructors)
             {
@@ -79,7 +56,6 @@ public class ArchitectureTests
                 }
             }
 
-            // Check fields for DbContext or IApplicationDbContext
             var fields = controller.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
             foreach (var field in fields)
             {
@@ -91,6 +67,56 @@ public class ArchitectureTests
             }
         }
 
-        Assert.True(violations.Count == 0, $"Architecture violations detected (Controllers must NOT inject DbContext):\n{string.Join("\n", violations)}");
+        Assert.True(violations.Count == 0, $"Architecture violations detected (Controllers must NOT inject DbContext directly):\n{string.Join("\n", violations)}");
+    }
+
+    [Fact]
+    public void ModularMonolith_HasExpectedCoreFeatureModules()
+    {
+        var expectedModules = new[]
+        {
+            "StudyAI.Features.Auth",
+            "StudyAI.Features.Admin",
+            "StudyAI.Features.Student",
+            "StudyAI.Features.Teacher",
+            "StudyAI.Features.Content",
+            "StudyAI.Features.AI"
+        };
+
+        var allNamespaces = ApiAssembly.GetTypes()
+            .Where(t => t.Namespace != null)
+            .Select(t => t.Namespace!)
+            .Distinct()
+            .ToList();
+
+        foreach (var expected in expectedModules)
+        {
+            Assert.Contains(allNamespaces, ns => ns == expected || ns.StartsWith(expected + "."));
+        }
+    }
+
+    [Fact]
+    public void SingleProjectArchitecture_SharedLayersProperlySegregated()
+    {
+        var expectedSharedNamespaces = new[]
+        {
+            "StudyAI.Models",
+            "StudyAI.Data",
+            "StudyAI.Common.Authorization",
+            "StudyAI.Common.Exceptions",
+            "StudyAI.Common.Security",
+            "StudyAI.Common.Utilities"
+        };
+
+        var allNamespaces = ApiAssembly.GetTypes()
+            .Where(t => t.Namespace != null)
+            .Select(t => t.Namespace!)
+            .Distinct()
+            .ToList();
+
+        foreach (var expected in expectedSharedNamespaces)
+        {
+            Assert.Contains(allNamespaces, ns => ns == expected || ns.StartsWith(expected + "."));
+        }
     }
 }

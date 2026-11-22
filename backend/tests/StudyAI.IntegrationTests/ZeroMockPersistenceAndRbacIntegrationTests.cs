@@ -6,10 +6,10 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using StudyAI.Application.Common.Interfaces;
-using StudyAI.Application.DTOs;
-using StudyAI.Domain.Entities;
-using StudyAI.Infrastructure.Persistence;
+
+
+using StudyAI.Models;
+using StudyAI.Data;
 using Xunit;
 
 namespace StudyAI.IntegrationTests;

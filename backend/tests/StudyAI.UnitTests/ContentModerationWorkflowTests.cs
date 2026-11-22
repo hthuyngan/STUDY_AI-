@@ -2,13 +2,13 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using StudyAI.Api.Features.Content;
-using StudyAI.Application.Features.Content.Lessons;
-using StudyAI.Application.Features.Content.ReviewQueue;
-using StudyAI.Domain.Entities;
-using StudyAI.Infrastructure.Authentication;
-using StudyAI.Infrastructure.Persistence;
-using StudyAI.Infrastructure.Services;
+using StudyAI.Features.Content;
+using StudyAI.Features.Content;
+using StudyAI.Features.Content;
+using StudyAI.Models;
+using StudyAI.Common.Authorization;
+using StudyAI.Data;
+
 using Xunit;
 
 namespace StudyAI.UnitTests;
@@ -319,7 +319,7 @@ public class ContentModerationWorkflowTests
         lesson!.Title = "Bài 2: Tập hợp - Đã sửa đổi";
         await context.SaveChangesAsync();
 
-        var rollbackReq = new StudyAI.Application.DTOs.RollbackContentRequestDto
+        var rollbackReq = new RollbackContentRequestDto
         {
             TargetVersion = 1,
             Reason = "Khôi phục phiên bản v1"

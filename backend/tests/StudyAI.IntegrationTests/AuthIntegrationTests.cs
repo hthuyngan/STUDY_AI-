@@ -5,10 +5,10 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using StudyAI.Application.Common.Interfaces;
-using StudyAI.Application.DTOs;
-using StudyAI.Domain.Entities;
-using StudyAI.Infrastructure.Persistence;
+
+
+using StudyAI.Models;
+using StudyAI.Data;
 using Xunit;
 
 namespace StudyAI.IntegrationTests;

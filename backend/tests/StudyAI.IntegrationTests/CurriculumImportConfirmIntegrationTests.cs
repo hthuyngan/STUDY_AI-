@@ -6,8 +6,8 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using StudyAI.Application.DTOs;
-using StudyAI.Infrastructure.Persistence;
+
+using StudyAI.Data;
 using Xunit;
 
 namespace StudyAI.IntegrationTests;
@@ -697,7 +697,7 @@ public class CurriculumImportConfirmIntegrationTests : IClassFixture<StudyAIApiF
             var author = await db.Users.FirstOrDefaultAsync();
             Assert.NotNull(author);
 
-            var l1 = new Domain.Entities.ContentLesson
+            var l1 = new ContentLesson
             {
                 Id = Guid.NewGuid().ToString("N"),
                 ChapterId = ch1.Id,
@@ -708,7 +708,7 @@ public class CurriculumImportConfirmIntegrationTests : IClassFixture<StudyAIApiF
                 CreatedAt = DateTimeOffset.UtcNow,
                 UpdatedAt = DateTimeOffset.UtcNow
             };
-            var l2 = new Domain.Entities.ContentLesson
+            var l2 = new ContentLesson
             {
                 Id = Guid.NewGuid().ToString("N"),
                 ChapterId = ch1.Id,
