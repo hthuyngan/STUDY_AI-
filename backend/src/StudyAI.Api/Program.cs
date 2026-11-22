@@ -49,6 +49,7 @@ builder.Services.AddSingleton<IIdGenerator, IdGenerator>();
 builder.Services.AddScoped<IAuditWriter, AuditWriter>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<StudyAI.Application.Features.Public.Auth.IAuthService, StudyAI.Application.Features.Public.Auth.AuthService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Public.Health.IHealthService, StudyAI.Application.Features.Public.Health.HealthService>();
 
 // Admin Services (Role + Feature Architecture)
 builder.Services.AddScoped<StudyAI.Application.Features.Admin.Dashboard.IAdminDashboardService, StudyAI.Application.Features.Admin.Dashboard.AdminDashboardService>();
@@ -58,6 +59,7 @@ builder.Services.AddScoped<StudyAI.Application.Features.Admin.AuditLogs.IAdminAu
 builder.Services.AddScoped<StudyAI.Application.Features.Admin.Announcements.IAdminAnnouncementsService, StudyAI.Application.Features.Admin.Announcements.AdminAnnouncementsService>();
 builder.Services.AddScoped<StudyAI.Application.Features.Admin.Settings.IAdminSettingsService, StudyAI.Application.Features.Admin.Settings.AdminSettingsService>();
 builder.Services.AddScoped<StudyAI.Application.Features.Admin.Operations.IAdminOperationsService, StudyAI.Application.Features.Admin.Operations.AdminOperationsService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Admin.System.IAdminSystemService, StudyAI.Application.Features.Admin.System.AdminSystemService>();
 
 // Content Services (Role + Feature Architecture)
 builder.Services.AddScoped<StudyAI.Application.Features.Content.Subjects.IContentSubjectsService, StudyAI.Application.Features.Content.Subjects.ContentSubjectsService>();

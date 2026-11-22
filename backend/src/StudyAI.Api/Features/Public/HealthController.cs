@@ -1,18 +1,17 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using StudyAI.Application.Common.Interfaces;
+using StudyAI.Application.Features.Public.Health;
 
 namespace StudyAI.Api.Features.Public;
 
 [ApiController]
 public class HealthController : ControllerBase
 {
-    private readonly IApplicationDbContext _db;
+    private readonly IHealthService _healthService;
     private readonly ILogger<HealthController> _logger;
 
-    public HealthController(IApplicationDbContext db, ILogger<HealthController> logger)
+    public HealthController(IHealthService healthService, ILogger<HealthController> logger)
     {
-        _db = db;
+        _healthService = healthService;
         _logger = logger;
     }
 
@@ -30,26 +29,24 @@ public class HealthController : ControllerBase
 
     [HttpGet("health/db")]
     [HttpGet("api/v1/health/db")]
-    public async Task<IActionResult> DatabaseHealth()
+    public async Task<IActionResult> DatabaseHealth(CancellationToken ct = default)
     {
-        try
+        bool isConnected = await _healthService.CheckDatabaseHealthAsync(ct);
+        if (isConnected)
         {
-            await _db.Database.ExecuteSqlRawAsync("SELECT 1");
             return Ok(new
             {
                 status = "ok",
                 database = "connected"
             });
         }
-        catch (Exception ex)
+
+        _logger.LogError("Database probe failed");
+        return StatusCode(503, new
         {
-            _logger.LogError(ex, "Database probe failed");
-            return StatusCode(503, new
-            {
-                status = "unhealthy",
-                database = "disconnected",
-                detail = "Database service is unreachable or unready."
-            });
-        }
+            status = "unhealthy",
+            database = "disconnected",
+            detail = "Database service is unreachable or unready."
+        });
     }
 }
