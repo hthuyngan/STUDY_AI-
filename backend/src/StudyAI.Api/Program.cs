@@ -5,10 +5,14 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using StudyAI.Application.Common.Authorization;
 using StudyAI.Application.Common.Interfaces;
 using StudyAI.Application.Services;
+using StudyAI.Infrastructure.Authentication;
 using StudyAI.Infrastructure.Persistence;
 using StudyAI.Infrastructure.Security;
+using StudyAI.Infrastructure.Services;
+using StudyAI.Api.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -36,6 +40,14 @@ builder.Services.AddSingleton<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<ICurriculumImportParser, CurriculumImportParser>();
 builder.Services.AddScoped<ICurriculumImportValidator, CurriculumImportValidator>();
 builder.Services.AddScoped<ICurriculumImportConfirmService, CurriculumImportConfirmService>();
+
+// Common Foundation Services (Role + Feature Architecture)
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+builder.Services.AddSingleton<IClock, SystemClock>();
+builder.Services.AddSingleton<IIdGenerator, IdGenerator>();
+builder.Services.AddScoped<IAuditWriter, AuditWriter>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // 2.1 LLM Provider & AI Tutor Service
 builder.Services.AddHttpClient();
@@ -442,6 +454,8 @@ else
 }
 
 app.UseCors("DefaultCorsPolicy");
+
+app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
 app.UseStaticFiles();
 

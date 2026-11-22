@@ -8,10 +8,11 @@
   - Architecture decisions: `docs/refactor/architecture-decisions.md`
   - Architecture tests: `backend/tests/StudyAI.UnitTests/ArchitectureTests.cs`
   - Baseline test gates: All passed.
-- [ ] **Phase 1: Common Foundation**
-  - Application Common: Authorization, Exceptions, Results, Pagination, Interfaces.
-  - Infrastructure Common: CurrentUser, Clock, AuditWriter, UnitOfWork.
-  - Api: Global Exception Handler Middleware.
+- [x] **Phase 1: Common Foundation**
+  - Application Common: Authorization (Permissions, RolePermissionMap, ICurrentUser), Exceptions (ValidationException, NotFoundException, ForbiddenException, ConflictException), Results (Result, Result<T>), Pagination (PageRequest, PagedResult), Interfaces (IAuditWriter, IUnitOfWork, IClock, IIdGenerator).
+  - Infrastructure Common: CurrentUser, SystemClock, IdGenerator, AuditWriter, UnitOfWork.
+  - Api: Global Exception Handler Middleware (RFC 7807 problem details / uniform error formatting).
+  - Test gates: 20/20 new CommonFoundationTests pass, 258/258 total Unit Tests pass, 0 oxlint warnings, Vite build success.
 - [ ] **Phase 2: Public và Identity/Admin Users**
   - Public Features: Auth, Health.
   - Admin Features: Users, Dashboard read model, Settings, AuditLogs, Announcements, System.
