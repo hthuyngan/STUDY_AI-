@@ -1,0 +1,60 @@
+{
+  "timestamp": "2026-11-22T08:24:33.768Z",
+  "task": "P20-002-MATH-CURRICULUM",
+  "totalScenarios": 5,
+  "passed": 5,
+  "failed": 0,
+  "totalDurationMs": 9701,
+  "scenarios": [
+    {
+      "id": 1,
+      "name": "High School Math 10-12 Curriculum Hub & Grade Filters",
+      "status": "PASS",
+      "durationMs": 3038,
+      "screenshots": [
+        "math_01_all_grades.png",
+        "math_02_filter_grade10.png",
+        "math_03_filter_grade12.png"
+      ],
+      "notes": "Verified Toán 10, 11, 12 cards, GDPT 2018 curriculum badges, and grade filter switching."
+    },
+    {
+      "id": 2,
+      "name": "Math 10 Chapters, Topics & Lessons Hierarchy",
+      "status": "PASS",
+      "durationMs": 414,
+      "screenshots": [
+        "math_04_toan10_hierarchy.png"
+      ],
+      "notes": "Verified hierarchy: Subject -> Grade 10 -> Chapter 1 -> Topic 1.1 -> Lesson."
+    },
+    {
+      "id": 3,
+      "name": "Real Video Integration & Attribution Verification",
+      "status": "PASS",
+      "durationMs": 363,
+      "screenshots": [
+        "math_05_real_video_player.png"
+      ],
+      "notes": "Verified real educational video player (YouTube nocookie embed / Khan Academy card). Zero mock placeholders."
+    },
+    {
+      "id": 4,
+      "name": "KaTeX Mathematical Formula Rendering",
+      "status": "PASS",
+      "durationMs": 47,
+      "screenshots": [
+        "math_06_katex_formulas.png"
+      ],
+      "notes": "Verified standard KaTeX mathematical typesetting (6 KaTeX elements rendered)."
+    },
+    {
+      "id": 5,
+      "name": "Backend Reorder & SSRF Protection API Test",
+      "status": "PASS",
+      "durationMs": 611,
+      "screenshots": [],
+      "notes": "Verified SSRF guard (rejects loopback/private IPs), real oEmbed video preview, curriculum dry-run, and strict RBAC enforcement."
+    }
+  ]
+}

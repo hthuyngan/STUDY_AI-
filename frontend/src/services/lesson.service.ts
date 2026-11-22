@@ -76,7 +76,7 @@ function parseFormulas(raw: unknown[]): FormulaItem[] {
       return {
         id: String(obj.id || `form-${idx + 1}`),
         label: String(obj.label || obj.name || `Công thức ${idx + 1}`),
-        formula: String(obj.formula || obj.math || ''),
+        formula: String(obj.formula || obj.math || obj.latex || ''),
         note: obj.note ? String(obj.note) : undefined,
       }
     }
@@ -142,11 +142,15 @@ function mapLearnerDetailToLessonDetail(
     sourceUrl: v.sourceUrl,
     embedUrl: v.embedUrl || null,
     youTubeVideoId: v.youTubeVideoId || null,
+    channelName: v.channelName || null,
+    isPrimary: v.isPrimary ?? false,
+    attributionText: v.attributionText || null,
+    embedAllowed: v.embedAllowed ?? true,
     durationSeconds: v.durationSeconds || null,
     thumbnailUrl: v.thumbnailUrl || null,
   }))
 
-  const firstVideo = mappedVideos.length > 0 ? mappedVideos[0] : null
+  const firstVideo = mappedVideos.find((v) => v.isPrimary) || (mappedVideos.length > 0 ? mappedVideos[0] : null)
   const videoMeta = firstVideo
     ? {
         hasVideo: true,
@@ -155,7 +159,7 @@ function mapLearnerDetailToLessonDetail(
         durationSeconds: firstVideo.durationSeconds || undefined,
         provider: (firstVideo.provider as any) || 'youtube',
         sourceReferenceUrl: firstVideo.sourceUrl,
-        licenseNotice: firstVideo.title,
+        licenseNotice: firstVideo.attributionText || firstVideo.title,
       }
     : {
         hasVideo: false,

@@ -756,6 +756,21 @@ namespace StudyAI.Infrastructure.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(0);
 
+                    b.Property<string>("SourceName")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("SourceUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)")
+                        .HasDefaultValue("published");
+
                     b.Property<string>("SubjectId")
                         .IsRequired()
                         .HasMaxLength(64)
@@ -827,6 +842,18 @@ namespace StudyAI.Infrastructure.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
+                    b.Property<string>("SourceLicense")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("SourceName")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("SourceUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -868,6 +895,14 @@ namespace StudyAI.Infrastructure.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
+                    b.Property<string>("AttributionText")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("ChannelName")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -888,6 +923,11 @@ namespace StudyAI.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<bool>("IsPrimary")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<bool>("IsPublished")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -899,6 +939,9 @@ namespace StudyAI.Infrastructure.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("nvarchar(16)")
                         .HasDefaultValue("vi");
+
+                    b.Property<DateTimeOffset?>("LastVerifiedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("LessonId")
                         .IsRequired()

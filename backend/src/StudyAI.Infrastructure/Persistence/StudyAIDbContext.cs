@@ -403,6 +403,12 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
             entity.Property(e => e.IsActive).HasDefaultValue(true);
 
+            entity.Property(e => e.Status).HasMaxLength(32).HasDefaultValue("published");
+
+            entity.Property(e => e.SourceName).HasMaxLength(255);
+
+            entity.Property(e => e.SourceUrl).HasMaxLength(500);
+
             entity.Property(e => e.CreatedAt).IsRequired();
 
             entity.Property(e => e.UpdatedAt).IsRequired();
@@ -505,6 +511,12 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
             entity.Property(e => e.ReviewedBy).HasMaxLength(64);
 
+            entity.Property(e => e.SourceName).HasMaxLength(255);
+
+            entity.Property(e => e.SourceUrl).HasMaxLength(500);
+
+            entity.Property(e => e.SourceLicense).HasMaxLength(255);
+
 
 
             entity.HasIndex(e => e.ChapterId);
@@ -573,6 +585,12 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
             entity.Property(e => e.YouTubeVideoId).HasMaxLength(64);
 
+            entity.Property(e => e.ChannelName).HasMaxLength(255);
+
+            entity.Property(e => e.IsPrimary).HasDefaultValue(false);
+
+            entity.Property(e => e.AttributionText).HasMaxLength(500);
+
             entity.Property(e => e.Language).HasMaxLength(16).HasDefaultValue("vi");
 
             entity.Property(e => e.DurationSeconds).HasDefaultValue(0);
@@ -584,6 +602,10 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.EmbedAllowed).HasDefaultValue(true);
 
             entity.Property(e => e.VerificationStatus).HasMaxLength(32).HasDefaultValue("verified");
+
+            entity.Property(e => e.VerifiedAt);
+
+            entity.Property(e => e.LastVerifiedAt);
 
             entity.Property(e => e.IsPublished).HasDefaultValue(true);
 

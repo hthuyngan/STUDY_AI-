@@ -23,6 +23,9 @@ public class ContentChapter
     public string? Description { get; set; }
     public int OrderIndex { get; set; } = 0;
     public bool IsActive { get; set; } = true;
+    public string Status { get; set; } = "published"; // draft, published, archived
+    public string? SourceName { get; set; }
+    public string? SourceUrl { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 
@@ -57,6 +60,9 @@ public class ContentLesson
     public string Status { get; set; } = "draft"; // draft, in-review, approved, published, archived
     public string AuthorId { get; set; } = string.Empty;
     public string? ReviewedBy { get; set; }
+    public string? SourceName { get; set; }
+    public string? SourceUrl { get; set; }
+    public string? SourceLicense { get; set; }
 
     public string? LearningObjectivesJson { get; set; }
     public string? Introduction { get; set; }
@@ -87,6 +93,9 @@ public class ContentLessonVideo
     public string SourceUrl { get; set; } = string.Empty;
     public string? EmbedUrl { get; set; }
     public string? YouTubeVideoId { get; set; }
+    public string? ChannelName { get; set; }
+    public bool IsPrimary { get; set; } = false;
+    public string? AttributionText { get; set; }
     public string Language { get; set; } = "vi";
     public int DurationSeconds { get; set; } = 0;
     public string? ThumbnailUrl { get; set; }
@@ -94,6 +103,7 @@ public class ContentLessonVideo
     public bool EmbedAllowed { get; set; } = true;
     public string VerificationStatus { get; set; } = "verified"; // verified, pending_verification, missing
     public DateTimeOffset? VerifiedAt { get; set; }
+    public DateTimeOffset? LastVerifiedAt { get; set; }
     public bool IsPublished { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;

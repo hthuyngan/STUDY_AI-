@@ -11,12 +11,26 @@ interface SubjectVisualMeta {
 }
 
 const SUBJECT_VISUAL_MAP: Record<string, SubjectVisualMeta> = {
+  MATH10: {
+    icon: '📐',
+    color: '#0284c7',
+    bgColor: 'rgba(2, 132, 199, 0.1)',
+    curriculumLabel: 'Toán học GDPT 2018',
+    plannedTopics: ['Mệnh đề & Tập hợp', 'Bất phương trình bậc nhất 2 ẩn', 'Hệ thức lượng trong tam giác', 'Vectơ', 'Phương pháp toạ độ trong mặt phẳng'],
+  },
+  MATH11: {
+    icon: '📐',
+    color: '#0891b2',
+    bgColor: 'rgba(8, 145, 178, 0.1)',
+    curriculumLabel: 'Toán học GDPT 2018',
+    plannedTopics: ['Hàm số lượng giác & PT lượng giác', 'Dãy số & Cấp số cộng / nhân', 'Giới hạn', 'Đạo hàm', 'Hình học không gian'],
+  },
   MATH12: {
     icon: '📐',
     color: '#2563eb',
     bgColor: 'rgba(37, 99, 235, 0.1)',
     curriculumLabel: 'Toán học GDPT 2018',
-    plannedTopics: ['Ứng dụng đạo hàm khảo sát hàm số', 'Tọa độ trong không gian Oxyz', 'Xác suất có điều kiện'],
+    plannedTopics: ['Ứng dụng đạo hàm khảo sát hàm số', 'Tọa độ trong không gian Oxyz', 'Nguyên hàm & Tích phân', 'Xác suất có điều kiện'],
   },
   PHYS12: {
     icon: '⚡',
@@ -143,7 +157,7 @@ export async function getSubjects(): Promise<SubjectSummary[]> {
       s.id === 'sub_math11' ||
       s.id === 'sub_math12' ||
       s.id === 'math' ||
-      s.name.toLowerCase().includes('toán')
+      (s.name.toLowerCase().includes('toán') && !s.id.startsWith('sub_vid_') && !s.name.toLowerCase().includes('kiểm thử'))
   )
 }
 

@@ -123,6 +123,7 @@ builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IAiCostOptimiza
 builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.IContentQualityMonitoringService, StudyAI.Infrastructure.Services.ContentQualityMonitoringService>();
 builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ILearningDataConsistencyService, StudyAI.Infrastructure.Services.LearningDataConsistencyService>();
 builder.Services.AddScoped<StudyAI.Application.Common.Interfaces.ISubjectGradeResolver, StudyAI.Infrastructure.Services.SubjectGradeResolver>();
+builder.Services.AddHttpClient<StudyAI.Application.Common.Interfaces.IVideoVerificationService, StudyAI.Infrastructure.Services.VideoVerificationService>();
 
 // 3. JWT Secret Validation & Authentication
 var jwtSecret = configuration["Jwt:SecretKey"]

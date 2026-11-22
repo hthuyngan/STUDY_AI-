@@ -79,7 +79,7 @@ public class CurriculumController : ControllerBase
     public async Task<IActionResult> GetSubjects([FromQuery] string? grade = null, [FromQuery] string? search = null)
     {
         var query = _db.ContentSubjects
-            .Where(s => s.IsActive && !s.Code.StartsWith("TEST_") && !s.Code.StartsWith("SEC_") && !s.Code.StartsWith("PHYS12_"))
+            .Where(s => s.IsActive && !s.Code.StartsWith("TEST_") && !s.Code.StartsWith("SEC_") && !s.Code.StartsWith("PHYS12_") && !s.Code.StartsWith("SUB_") && !s.Code.StartsWith("VID-") && !s.Code.StartsWith("PERF_") && !s.Name.Contains("kiểm thử"))
             .Include(s => s.Chapters)
                 .ThenInclude(c => c.Lessons)
             .AsNoTracking()
@@ -194,9 +194,13 @@ public class CurriculumController : ControllerBase
                 return new LearnerChapterDto
                 {
                     Id = c.Id,
+                    SubjectId = c.SubjectId,
                     Title = c.Title,
                     Description = c.Description ?? string.Empty,
                     OrderIndex = c.OrderIndex,
+                    Status = c.Status,
+                    SourceName = c.SourceName,
+                    SourceUrl = c.SourceUrl,
                     Topics = activeTopics,
                     Lessons = publishedLessons
                 };
@@ -292,15 +296,191 @@ public class CurriculumController : ControllerBase
             return new LearnerChapterDto
             {
                 Id = c.Id,
+                SubjectId = c.SubjectId,
                 Title = c.Title,
                 Description = c.Description ?? string.Empty,
                 OrderIndex = c.OrderIndex,
+                Status = c.Status,
+                SourceName = c.SourceName,
+                SourceUrl = c.SourceUrl,
                 Topics = activeTopics,
                 Lessons = publishedLessons
             };
         }).ToList();
 
         return Ok(response);
+    }
+
+    /// <summary>
+    /// GET /api/v1/curriculum/chapters/{chapterId}
+    /// Returns single active chapter with its active topics and published lessons.
+    /// </summary>
+    [HttpGet("chapters/{chapterId}")]
+    public async Task<IActionResult> GetChapterDetail(string chapterId)
+    {
+        var chapter = await _db.ContentChapters
+            .Include(c => c.Subject)
+            .Include(c => c.Topics)
+            .Include(c => c.Lessons.Where(l => l.Status == "published"))
+                .ThenInclude(l => l.Topic)
+            .Include(c => c.Lessons.Where(l => l.Status == "published"))
+                .ThenInclude(l => l.Videos)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == chapterId && c.IsActive);
+
+        if (chapter == null || chapter.Subject == null || !chapter.Subject.IsActive)
+        {
+            return NotFound(new { message = $"Chương '{chapterId}' không tồn tại hoặc đã ngừng kích hoạt." });
+        }
+
+        var publishedLessons = chapter.Lessons
+            .OrderBy(l => l.OrderIndex)
+            .Select(l =>
+            {
+                var primaryVideo = l.Videos.FirstOrDefault(v => v.IsPublished && v.EmbedAllowed);
+                return new LearnerLessonSummaryDto
+                {
+                    Id = l.Id,
+                    TopicId = l.TopicId,
+                    TopicTitle = l.Topic?.Title,
+                    Title = l.Title,
+                    Slug = l.Slug,
+                    OrderIndex = l.OrderIndex,
+                    Status = l.Status,
+                    ContentType = "video",
+                    HasVideo = l.Videos.Any(v => v.IsPublished),
+                    VideoProvider = primaryVideo?.Provider ?? (l.Videos.Any() ? "youtube" : null),
+                    YouTubeVideoId = primaryVideo?.YouTubeVideoId
+                };
+            })
+            .ToList();
+
+        var activeTopics = chapter.Topics
+            .Where(t => t.IsActive)
+            .OrderBy(t => t.OrderIndex)
+            .Select(t => new LearnerTopicDto
+            {
+                Id = t.Id,
+                ChapterId = t.ChapterId,
+                Title = t.Title,
+                Description = t.Description ?? string.Empty,
+                OrderIndex = t.OrderIndex,
+                Lessons = publishedLessons.Where(l => l.TopicId == t.Id).ToList()
+            })
+            .ToList();
+
+        var dto = new LearnerChapterDto
+        {
+            Id = chapter.Id,
+            SubjectId = chapter.SubjectId,
+            Title = chapter.Title,
+            Description = chapter.Description ?? string.Empty,
+            OrderIndex = chapter.OrderIndex,
+            Status = chapter.Status,
+            SourceName = chapter.SourceName,
+            SourceUrl = chapter.SourceUrl,
+            Topics = activeTopics,
+            Lessons = publishedLessons
+        };
+
+        return Ok(dto);
+    }
+
+    /// <summary>
+    /// GET /api/v1/curriculum/topics/{topicId}
+    /// Returns single active topic with its published lessons.
+    /// </summary>
+    [HttpGet("topics/{topicId}")]
+    public async Task<IActionResult> GetTopicDetail(string topicId)
+    {
+        var topic = await _db.ContentTopics
+            .Include(t => t.Chapter)
+                .ThenInclude(c => c!.Subject)
+            .Include(t => t.Lessons.Where(l => l.Status == "published"))
+                .ThenInclude(l => l.Videos)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == topicId && t.IsActive);
+
+        if (topic == null || topic.Chapter == null || !topic.Chapter.IsActive || topic.Chapter.Subject == null || !topic.Chapter.Subject.IsActive)
+        {
+            return NotFound(new { message = $"Chủ đề '{topicId}' không tồn tại hoặc đã ngừng kích hoạt." });
+        }
+
+        var publishedLessons = topic.Lessons
+            .OrderBy(l => l.OrderIndex)
+            .Select(l =>
+            {
+                var primaryVideo = l.Videos.FirstOrDefault(v => v.IsPublished && v.EmbedAllowed);
+                return new LearnerLessonSummaryDto
+                {
+                    Id = l.Id,
+                    TopicId = l.TopicId,
+                    TopicTitle = topic.Title,
+                    Title = l.Title,
+                    Slug = l.Slug,
+                    OrderIndex = l.OrderIndex,
+                    Status = l.Status,
+                    ContentType = "video",
+                    HasVideo = l.Videos.Any(v => v.IsPublished),
+                    VideoProvider = primaryVideo?.Provider ?? (l.Videos.Any() ? "youtube" : null),
+                    YouTubeVideoId = primaryVideo?.YouTubeVideoId
+                };
+            })
+            .ToList();
+
+        var dto = new LearnerTopicDto
+        {
+            Id = topic.Id,
+            ChapterId = topic.ChapterId,
+            Title = topic.Title,
+            Description = topic.Description ?? string.Empty,
+            OrderIndex = topic.OrderIndex,
+            Lessons = publishedLessons
+        };
+
+        return Ok(dto);
+    }
+
+    /// <summary>
+    /// GET /api/v1/curriculum/lessons/{lessonId}/videos
+    /// Returns published videos for a published lesson.
+    /// </summary>
+    [HttpGet("lessons/{lessonId}/videos")]
+    public async Task<IActionResult> GetLessonVideos(string lessonId)
+    {
+        var lesson = await _db.ContentLessons
+            .Include(l => l.Videos)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(l => (l.Id == lessonId || l.Slug == lessonId) && l.Status == "published");
+
+        if (lesson == null)
+        {
+            return NotFound(new { message = "Bài học không tồn tại hoặc chưa được xuất bản." });
+        }
+
+        var videos = lesson.Videos
+            .Where(v => v.IsPublished)
+            .OrderBy(v => v.SortOrder)
+            .Select(v => new LearnerVideoDto
+            {
+                Id = v.Id,
+                Title = v.Title,
+                Description = v.Description,
+                Provider = v.Provider,
+                SourceUrl = v.SourceUrl,
+                EmbedUrl = v.EmbedUrl,
+                YouTubeVideoId = v.YouTubeVideoId,
+                ChannelName = v.ChannelName,
+                IsPrimary = v.IsPrimary,
+                AttributionText = v.AttributionText,
+                DurationSeconds = v.DurationSeconds,
+                ThumbnailUrl = v.ThumbnailUrl,
+                EmbedAllowed = v.EmbedAllowed,
+                VerificationStatus = v.VerificationStatus
+            })
+            .ToList();
+
+        return Ok(videos);
     }
 
     /// <summary>
@@ -336,6 +516,9 @@ public class CurriculumController : ControllerBase
                 SourceUrl = v.SourceUrl,
                 EmbedUrl = v.EmbedUrl,
                 YouTubeVideoId = v.YouTubeVideoId,
+                ChannelName = v.ChannelName,
+                IsPrimary = v.IsPrimary,
+                AttributionText = v.AttributionText,
                 DurationSeconds = v.DurationSeconds,
                 ThumbnailUrl = v.ThumbnailUrl,
                 EmbedAllowed = v.EmbedAllowed,
@@ -356,6 +539,9 @@ public class CurriculumController : ControllerBase
             Slug = lesson.Slug,
             OrderIndex = lesson.OrderIndex,
             ContentType = "video",
+            SourceName = lesson.SourceName,
+            SourceUrl = lesson.SourceUrl,
+            SourceLicense = lesson.SourceLicense,
             Introduction = lesson.Introduction ?? string.Empty,
             LearningObjectives = SafeJsonArray(lesson.LearningObjectivesJson),
             Definitions = SafeJsonArray(lesson.DefinitionsJson),
