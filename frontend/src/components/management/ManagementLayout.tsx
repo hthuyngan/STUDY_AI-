@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import { Outlet } from 'react-router-dom'
 import type { UserRole } from '@/auth/auth.types'
 import { getWorkspaceConfig } from '@/components/layout/workspaceNavigation'
@@ -22,38 +22,11 @@ export const ManagementLayout: React.FC<ManagementLayoutProps> = ({
   children,
 }) => {
   const config = getWorkspaceConfig(role)
-  const [collapsed, setCollapsed] = useState<boolean>(() => {
-    return localStorage.getItem('study_ai_mgmt_sidebar_collapsed') === 'true'
-  })
-
-  const toggleCollapse = () => {
-    setCollapsed((prev) => {
-      const next = !prev
-      localStorage.setItem('study_ai_mgmt_sidebar_collapsed', String(next))
-      return next
-    })
-  }
-
-  // Keyboard shortcut Ctrl+B or Cmd+B to toggle sidebar
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b') {
-        e.preventDefault()
-        toggleCollapse()
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
 
   return (
     <div className="mgmt-layout">
-      <ManagementSidebar
-        config={config}
-        collapsed={collapsed}
-        onToggleCollapse={toggleCollapse}
-      />
-      <div className={`mgmt-main ${collapsed ? 'collapsed' : ''}`}>
+      <ManagementSidebar config={config} />
+      <div className="mgmt-main">
         <ManagementHeader
           title={title || config.name}
           breadcrumbs={breadcrumbs}

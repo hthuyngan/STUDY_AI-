@@ -236,7 +236,7 @@ describe('Redesigned Lesson Page & Context-Aware AI Tutor Suite', () => {
   it('removes "AI Tutor" link from student Sidebar and MobileBottomNav', () => {
     const { container: sidebarContainer } = render(
       <MemoryRouter>
-        <Sidebar collapsed={false} onToggleCollapse={vi.fn()} mobileOpen={false} onCloseMobile={vi.fn()} />
+        <Sidebar mobileOpen={false} onCloseMobile={vi.fn()} />
       </MemoryRouter>
     )
 

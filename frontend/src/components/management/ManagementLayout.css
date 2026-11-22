@@ -45,7 +45,6 @@
 
   /* Dimensions & Spacing */
   --mgmt-sidebar-width: 240px;
-  --mgmt-sidebar-collapsed: 64px;
   --mgmt-header-height: 48px;
   --mgmt-radius-sm: var(--ui-radius-sm, 4px);
   --mgmt-radius-md: var(--ui-radius-md, 6px);
@@ -81,10 +80,6 @@
   background-color: var(--mgmt-bg-app);
 }
 
-.mgmt-main.collapsed {
-  margin-left: var(--mgmt-sidebar-collapsed);
-}
-
 .mgmt-content-body {
   flex: 1;
   padding: 16px 24px 32px 24px;
@@ -112,10 +107,6 @@
   user-select: none;
 }
 
-.mgmt-sidebar.collapsed {
-  width: var(--mgmt-sidebar-collapsed);
-}
-
 /* Sidebar Brand Header */
 .mgmt-sidebar-brand {
   height: var(--mgmt-header-height);
@@ -125,11 +116,6 @@
   padding: 0 14px;
   border-bottom: 1px solid var(--mgmt-border);
   flex-shrink: 0;
-}
-
-.mgmt-sidebar.collapsed .mgmt-sidebar-brand {
-  padding: 0;
-  justify-content: center;
 }
 
 .mgmt-brand-link {
@@ -188,10 +174,6 @@
   gap: 16px;
 }
 
-.mgmt-sidebar.collapsed .mgmt-sidebar-nav {
-  padding: 12px 4px;
-}
-
 .mgmt-nav-group-title {
   font-size: 11px;
   font-weight: 700;
@@ -221,14 +203,6 @@
   font-weight: 500;
   transition: all 0.12s ease;
   position: relative;
-}
-
-.mgmt-sidebar.collapsed .mgmt-nav-link {
-  justify-content: center;
-  padding: 0;
-  width: 40px;
-  height: 40px;
-  margin: 0 auto;
 }
 
 .mgmt-nav-link:hover:not(.active) {
@@ -306,11 +280,6 @@
   text-decoration: none;
   transition: all 0.12s ease;
   box-sizing: border-box;
-}
-
-.mgmt-sidebar.collapsed .mgmt-footer-btn {
-  justify-content: center;
-  padding: 0;
 }
 
 .mgmt-footer-btn:hover {

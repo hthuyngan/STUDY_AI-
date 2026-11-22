@@ -41,7 +41,7 @@ describe('Moodle-Style Workspace & Sidebar Redesign Suite', () => {
     it('renders exactly the two core groups: MENU CHÍNH and LUYỆN TẬP', () => {
       render(
         <MemoryRouter>
-          <Sidebar collapsed={false} onToggleCollapse={vi.fn()} mobileOpen={false} onCloseMobile={vi.fn()} />
+          <Sidebar mobileOpen={false} onCloseMobile={vi.fn()} />
         </MemoryRouter>
       )
 

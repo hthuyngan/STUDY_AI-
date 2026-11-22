@@ -11,8 +11,6 @@ import type { WorkspaceConfig } from './workspaceNavigation'
 
 export interface WorkspaceSidebarProps {
   config: WorkspaceConfig
-  collapsed?: boolean
-  onToggleCollapse?: () => void
   mobileOpen?: boolean
   onCloseMobile?: () => void
 }

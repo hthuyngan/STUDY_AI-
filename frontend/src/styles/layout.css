@@ -101,9 +101,28 @@
   height: var(--topbar-height, 60px);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 0 var(--space-4, 16px);
   border-bottom: 1px solid var(--border-default);
   flex-shrink: 0;
+}
+
+.sidebar-mobile-close-btn {
+  display: none;
+  background: none;
+  border: none;
+  padding: 6px;
+  color: var(--text-muted, #64748b);
+  cursor: pointer;
+  border-radius: var(--radius-md, 8px);
+  align-items: center;
+  justify-content: center;
+  transition: all var(--duration-fast, 100ms) var(--ease-default);
+}
+
+.sidebar-mobile-close-btn:hover {
+  background-color: var(--surface-hover, #f1f5f9);
+  color: var(--text-primary, #0f172a);
 }
 
 .sidebar-brand {
@@ -335,7 +354,7 @@
   border: none;
   cursor: pointer;
   color: var(--text-primary);
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   padding: 6px;
@@ -711,24 +730,18 @@
 .desktop-only { display: flex; }
 .mobile-only  { display: none; }
 
-/* ≤ 1024px — Tablet */
-@media (max-width: 1024px) {
+/* ≤ 1023px — Tablet & Mobile Drawer (< 1024px) */
+@media (max-width: 1023px) {
   .topbar-left {
     max-width: 360px;
   }
 
-  .app-content-container {
-    padding: 20px 24px;
+  .topbar-mobile-btn {
+    display: inline-flex !important;
   }
-}
 
-/* ≤ 768px — Mobile: hide sidebar, show bottom nav */
-@media (max-width: 768px) {
-  .desktop-only { display: none !important; }
-  .mobile-only  { display: flex !important; }
-
-  .app-content-container {
-    padding: 16px;
+  .app-main {
+    margin-left: 0 !important;
   }
 
   .sidebar {
@@ -738,6 +751,7 @@
     bottom: 0;
     width: 260px !important;
     z-index: var(--z-modal, 400);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
     transition: left var(--duration-base, 150ms) var(--ease-default);
   }
 
@@ -745,13 +759,8 @@
     left: 0;
   }
 
-  .sidebar.mobile-open .sidebar-brand-text,
-  .sidebar.mobile-open .sidebar-group-title,
-  .sidebar.mobile-open .sidebar-nav-label,
-  .sidebar.mobile-open .sidebar-nav-count,
-  .sidebar.mobile-open .sidebar-user-info {
-    display: flex;
-    pointer-events: auto;
+  .sidebar-mobile-close-btn {
+    display: inline-flex !important;
   }
 
   .sidebar-mobile-backdrop {
@@ -760,6 +769,16 @@
     background-color: rgba(0, 0, 0, 0.4);
     z-index: calc(var(--z-modal, 400) - 1);
   }
+
+  .app-content-container {
+    padding: 20px 24px;
+  }
+}
+
+/* ≤ 768px — Mobile: show bottom nav */
+@media (max-width: 768px) {
+  .desktop-only { display: none !important; }
+  .mobile-only  { display: flex !important; }
 
   .mobile-bottom-nav {
     display: flex;

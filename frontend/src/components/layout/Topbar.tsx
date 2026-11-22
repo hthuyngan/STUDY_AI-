@@ -162,7 +162,7 @@ export function Topbar({ onOpenMobileMenu }: TopbarProps) {
         {onOpenMobileMenu && (
           <button
             type="button"
-            className="topbar-mobile-btn mobile-only"
+            className="topbar-mobile-btn"
             onClick={onOpenMobileMenu}
             aria-label="Mở danh mục menu"
           >

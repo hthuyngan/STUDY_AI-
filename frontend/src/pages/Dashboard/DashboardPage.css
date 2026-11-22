@@ -47,10 +47,6 @@
   z-index: var(--z-sticky, 200);
 }
 
-.sidebar.collapsed {
-  width: var(--sidebar-collapsed-width, 64px);
-}
-
 .sidebar-header {
   height: var(--topbar-height, 60px);
   display: flex;
@@ -188,11 +184,6 @@
   background-color: var(--color-primary-light);
   color: var(--color-primary);
   font-weight: 600;
-}
-
-.sidebar-nav-link.collapsed {
-  justify-content: center;
-  padding: 0;
 }
 
 .sidebar-nav-icon {

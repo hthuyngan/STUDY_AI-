@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { MobileBottomNav } from './MobileBottomNav'
 import { Sidebar } from './Sidebar'
@@ -13,6 +13,22 @@ export function AppShell({ children }: AppShellProps) {
   const isAITutor = location.pathname.startsWith('/ai-tutor')
   const isLesson = location.pathname.includes('/lessons/')
   const [mobileOpen, setMobileOpen] = useState<boolean>(false)
+
+  // Automatically close mobile drawer when navigating
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [location.pathname])
+
+  // Close mobile drawer on Escape key press
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && mobileOpen) {
+        setMobileOpen(false)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [mobileOpen])
 
   return (
     <div className="app-shell">

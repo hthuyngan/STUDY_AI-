@@ -6,7 +6,6 @@
 /* Root Variables & Tokens */
 :root {
   --staff-sidebar-width: 256px;
-  --staff-sidebar-collapsed-width: 72px;
   --staff-header-height: 52px;
   --staff-max-content-width: 1680px;
 

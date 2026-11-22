@@ -1,8 +1,6 @@
 import React, { useState } from 'react'
 import {
   GraduationCap,
-  ChevronLeft,
-  ChevronRight,
   ArrowLeft,
   Search,
 } from 'lucide-react'
@@ -12,15 +10,11 @@ import './ManagementLayout.css'
 
 export interface ManagementSidebarProps {
   config: WorkspaceConfig
-  collapsed?: boolean
-  onToggleCollapse?: () => void
   className?: string
 }
 
 export const ManagementSidebar: React.FC<ManagementSidebarProps> = ({
   config,
-  collapsed = false,
-  onToggleCollapse,
   className = '',
 }) => {
   const location = useLocation()
@@ -41,7 +35,7 @@ export const ManagementSidebar: React.FC<ManagementSidebarProps> = ({
 
   return (
     <aside
-      className={`mgmt-sidebar ${collapsed ? 'collapsed' : ''} ${className}`.trim()}
+      className={`mgmt-sidebar ${className}`.trim()}
       aria-label={`Thanh điều hướng ${config.name}`}
     >
       {/* Brand Header */}
@@ -50,18 +44,15 @@ export const ManagementSidebar: React.FC<ManagementSidebarProps> = ({
           <div className="mgmt-brand-seal" aria-hidden="true">
             <GraduationCap size={16} />
           </div>
-          {!collapsed && (
-            <div className="mgmt-brand-meta">
-              <span className="mgmt-brand-name">STUDY_AI</span>
-              <span className="mgmt-brand-tag">{config.subLabel}</span>
-            </div>
-          )}
+          <div className="mgmt-brand-meta">
+            <span className="mgmt-brand-name">STUDY_AI</span>
+            <span className="mgmt-brand-tag">{config.subLabel}</span>
+          </div>
         </Link>
       </div>
 
-      {/* Quick Menu Search (when expanded) */}
-      {!collapsed && (
-        <div style={{ padding: '8px 12px 0 12px' }}>
+      {/* Quick Menu Search */}
+      <div style={{ padding: '8px 12px 0 12px' }}>
           <div style={{ position: 'relative' }}>
             <Search
               size={12}
@@ -94,13 +85,12 @@ export const ManagementSidebar: React.FC<ManagementSidebarProps> = ({
             />
           </div>
         </div>
-      )}
 
       {/* Navigation Groups */}
       <nav className="mgmt-sidebar-nav" aria-label="Menu quản trị">
         {displayedGroups.map((group) => (
           <div key={group.id} className="mgmt-nav-group">
-            {!collapsed && <div className="mgmt-nav-group-title">{group.title}</div>}
+            <div className="mgmt-nav-group-title">{group.title}</div>
             <div className="mgmt-nav-item-list">
               {group.items.map((item) => {
                 const Icon = item.icon
@@ -115,13 +105,12 @@ export const ManagementSidebar: React.FC<ManagementSidebarProps> = ({
                     to={item.path}
                     className={`mgmt-nav-link ${isActive ? 'active' : ''}`}
                     aria-current={isActive ? 'page' : undefined}
-                    title={collapsed ? item.label : undefined}
                   >
                     <div className="mgmt-nav-link-left">
                       <Icon className="mgmt-nav-icon" size={16} aria-hidden="true" />
-                      {!collapsed && <span className="mgmt-nav-label">{item.label}</span>}
+                      <span className="mgmt-nav-label">{item.label}</span>
                     </div>
-                    {!collapsed && item.badge !== undefined && (
+                    {item.badge !== undefined && (
                       <span className="mgmt-nav-badge">{item.badge}</span>
                     )}
                   </Link>
@@ -132,34 +121,32 @@ export const ManagementSidebar: React.FC<ManagementSidebarProps> = ({
         ))}
       </nav>
 
-      {/* Footer Switcher & Collapse */}
+      {/* Footer Switcher */}
       <div className="mgmt-sidebar-footer">
         {/* Workspace Quick Switcher */}
-        {!collapsed && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px', marginBottom: '4px' }}>
-            {[
-              { role: 'admin', label: 'Admin', path: '/admin' },
-              { role: 'teacher', label: 'GV', path: '/teacher' },
-              { role: 'content', label: 'Nội dung', path: '/content' },
-            ].map((ws) => (
-              <Link
-                key={ws.role}
-                to={ws.path}
-                className="mgmt-page-btn"
-                style={{
-                  fontSize: '11px',
-                  fontWeight: config.role === ws.role ? 700 : 500,
-                  backgroundColor: config.role === ws.role ? 'var(--mgmt-primary-light)' : 'transparent',
-                  color: config.role === ws.role ? 'var(--mgmt-primary)' : 'var(--mgmt-text-muted)',
-                  borderColor: config.role === ws.role ? 'var(--mgmt-primary-border)' : 'var(--mgmt-border)',
-                  textDecoration: 'none',
-                }}
-              >
-                {ws.label}
-              </Link>
-            ))}
-          </div>
-        )}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px', marginBottom: '4px' }}>
+          {[
+            { role: 'admin', label: 'Admin', path: '/admin' },
+            { role: 'teacher', label: 'GV', path: '/teacher' },
+            { role: 'content', label: 'Nội dung', path: '/content' },
+          ].map((ws) => (
+            <Link
+              key={ws.role}
+              to={ws.path}
+              className="mgmt-page-btn"
+              style={{
+                fontSize: '11px',
+                fontWeight: config.role === ws.role ? 700 : 500,
+                backgroundColor: config.role === ws.role ? 'var(--mgmt-primary-light)' : 'transparent',
+                color: config.role === ws.role ? 'var(--mgmt-primary)' : 'var(--mgmt-text-muted)',
+                borderColor: config.role === ws.role ? 'var(--mgmt-primary-border)' : 'var(--mgmt-border)',
+                textDecoration: 'none',
+              }}
+            >
+              {ws.label}
+            </Link>
+          ))}
+        </div>
 
         {/* Back to Learner Portal */}
         <Link
@@ -169,22 +156,9 @@ export const ManagementSidebar: React.FC<ManagementSidebarProps> = ({
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <ArrowLeft size={14} aria-hidden="true" />
-            {!collapsed && <span>Quay lại học viên</span>}
+            <span>Quay lại học viên</span>
           </div>
         </Link>
-
-        {/* Collapse Sidebar Button */}
-        {onToggleCollapse && (
-          <button
-            type="button"
-            className="mgmt-footer-btn"
-            onClick={onToggleCollapse}
-            aria-label={collapsed ? 'Mở rộng thanh điều hướng' : 'Thu gọn thanh điều hướng'}
-          >
-            {!collapsed && <span>Thu gọn</span>}
-            {collapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
-          </button>
-        )}
       </div>
     </aside>
   )

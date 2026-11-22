@@ -4,13 +4,12 @@ import {
   LayoutGrid,
   Target,
   Trophy,
+  X,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { SidebarItem } from './SidebarItem'
 
 export interface SidebarProps {
-  collapsed?: boolean
-  onToggleCollapse?: () => void
   mobileOpen?: boolean
   onCloseMobile?: () => void
 }
@@ -45,6 +44,18 @@ export function Sidebar({
               <span className="brand-badge">PRO</span>
             </div>
           </Link>
+
+          {/* Mobile Close Button */}
+          {mobileOpen && onCloseMobile && (
+            <button
+              type="button"
+              className="sidebar-mobile-close-btn"
+              onClick={onCloseMobile}
+              aria-label="Đóng thanh điều hướng"
+            >
+              <X size={18} />
+            </button>
+          )}
         </div>
 
         {/* Navigation list */}
