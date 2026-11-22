@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using StudyAI.Application.Common.Interfaces;
 using StudyAI.Application.DTOs;
 
-namespace StudyAI.Api.Controllers;
+namespace StudyAI.Api.Features.Learner;
 
 [ApiController]
 [Route("api/v1/ai/exam-prep")]

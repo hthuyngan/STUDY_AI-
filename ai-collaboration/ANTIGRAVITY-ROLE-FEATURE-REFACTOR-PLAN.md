@@ -14,7 +14,7 @@
 - [x] **Phase 2 — Public và Identity/Admin Users** (Auth, Health, Admin split into 7 thin controllers & application services, deleted monolithic AdminController, 258 BE + 544 FE tests pass)
 - [ ] **Phase 3 — Content/Curriculum** (Curriculum & Content controllers split, Application workflow services)
 - [ ] **Phase 4 — Teacher** (Classroom, Student ownership, Assignment, Submissions, Grading, Analytics)
-- [ ] **Phase 5 — Learner** (Profile, Progress, Assessment attempts, Learning events, Practice, Assignments, Dashboard)
+- [x] **Phase 5 — Learner** (Profile, Progress, Assessment attempts, Learning events, Practice, Assignments, Dashboard)
 - [ ] **Phase 6 — AI Tutor và Support** (Orchestration separation, LLM provider adapters, Support workspace)
 - [ ] **Phase 7 — Cleanup & Verification** (0 DbContext in controllers, remove legacy dead code, 100% test gates pass, final docs)
 

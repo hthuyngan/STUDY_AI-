@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using StudyAI.Api.Controllers;
 using StudyAI.Api.Features.Learner;
 using StudyAI.Application.Features.Learner.Curriculum;
+using StudyAI.Application.Features.Learner.Practice;
 using StudyAI.Domain.Entities;
 using StudyAI.Infrastructure.Authentication;
 using StudyAI.Infrastructure.Persistence;
@@ -54,14 +55,17 @@ public class CurriculumQuestionBankTests
         return (controller, context);
     }
 
-    private (PracticeController controller, StudyAIDbContext db) CreatePracticeController(string dbName, string userId)
+    private (LearnerPracticeController controller, StudyAIDbContext db) CreatePracticeController(string dbName, string userId)
     {
         var options = new DbContextOptionsBuilder<StudyAIDbContext>()
             .UseInMemoryDatabase(databaseName: dbName)
             .Options;
 
         var context = new StudyAIDbContext(options);
-        var controller = new PracticeController(context);
+        var clock = new SystemClock();
+        var idGenerator = new IdGenerator();
+        var practiceService = new LearnerPracticeService(context, clock, idGenerator);
+        var controller = new LearnerPracticeController(practiceService);
         var userPrincipal = new ClaimsPrincipal(new ClaimsIdentity(new[]
         {
             new Claim(ClaimTypes.NameIdentifier, userId),

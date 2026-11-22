@@ -6,8 +6,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using StudyAI.Api.Controllers;
+using StudyAI.Api.Features.Learner;
 using StudyAI.Application.Common.Interfaces;
 using StudyAI.Application.DTOs;
+using StudyAI.Application.Features.Learner.Practice;
 using StudyAI.Domain.Entities;
 using StudyAI.Infrastructure.Persistence;
 using StudyAI.Infrastructure.Services;
@@ -286,7 +288,10 @@ public class PhaseAi02ComprehensiveAuditTests
         });
         await db.SaveChangesAsync();
 
-        var controller = new PracticeController(db, masteryService);
+        var clock = new SystemClock();
+        var idGen = new IdGenerator();
+        var practiceService = new LearnerPracticeService(db, clock, idGen, masteryService);
+        var controller = new LearnerPracticeController(practiceService);
         var httpContext = new DefaultHttpContext();
         httpContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[]
         {
@@ -398,7 +403,10 @@ public class PhaseAi02ComprehensiveAuditTests
         db.AssessmentAttempts.Add(victimAttempt);
         await db.SaveChangesAsync();
 
-        var controller = new PracticeController(db, null);
+        var clock = new SystemClock();
+        var idGen = new IdGenerator();
+        var practiceService = new LearnerPracticeService(db, clock, idGen, null);
+        var controller = new LearnerPracticeController(practiceService);
 
         // Attacker attempts to submit or complete victim's practice session
         var attackerContext = new DefaultHttpContext();

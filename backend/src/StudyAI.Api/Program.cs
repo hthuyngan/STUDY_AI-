@@ -57,6 +57,7 @@ builder.Services.AddScoped<StudyAI.Application.Features.Admin.Teachers.IAdminTea
 builder.Services.AddScoped<StudyAI.Application.Features.Admin.AuditLogs.IAdminAuditService, StudyAI.Application.Features.Admin.AuditLogs.AdminAuditService>();
 builder.Services.AddScoped<StudyAI.Application.Features.Admin.Announcements.IAdminAnnouncementsService, StudyAI.Application.Features.Admin.Announcements.AdminAnnouncementsService>();
 builder.Services.AddScoped<StudyAI.Application.Features.Admin.Settings.IAdminSettingsService, StudyAI.Application.Features.Admin.Settings.AdminSettingsService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Admin.Operations.IAdminOperationsService, StudyAI.Application.Features.Admin.Operations.AdminOperationsService>();
 
 // Content Services (Role + Feature Architecture)
 builder.Services.AddScoped<StudyAI.Application.Features.Content.Subjects.IContentSubjectsService, StudyAI.Application.Features.Content.Subjects.ContentSubjectsService>();
@@ -71,6 +72,11 @@ builder.Services.AddScoped<StudyAI.Application.Features.Content.CurriculumImport
 
 // Learner Services (Role + Feature Architecture)
 builder.Services.AddScoped<StudyAI.Application.Features.Learner.Curriculum.ILearnerCurriculumService, StudyAI.Application.Features.Learner.Curriculum.LearnerCurriculumService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Learner.Progress.ILearnerProgressService, StudyAI.Application.Features.Learner.Progress.LearnerProgressService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Learner.Assessments.ILearnerAssessmentService, StudyAI.Application.Features.Learner.Assessments.LearnerAssessmentService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Learner.Events.ILearnerEventsService, StudyAI.Application.Features.Learner.Events.LearnerEventsService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Learner.Profile.ILearnerProfileService, StudyAI.Application.Features.Learner.Profile.LearnerProfileService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Learner.Practice.ILearnerPracticeService, StudyAI.Application.Features.Learner.Practice.LearnerPracticeService>();
 
 // Teacher Services (Role + Feature Architecture)
 builder.Services.AddScoped<StudyAI.Application.Features.Teacher.Classrooms.ITeacherClassroomsService, StudyAI.Application.Features.Teacher.Classrooms.TeacherClassroomsService>();

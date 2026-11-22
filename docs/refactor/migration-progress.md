@@ -35,9 +35,16 @@
     - `TeacherClassroomsService`, `TeacherStudentsService`, `TeacherAssignmentsService`, `TeacherSubmissionsService`, `TeacherAnalyticsService`.
   - Kiểm soát quyền sở hữu chặt chẽ (Ownership enforcement): Giáo viên chỉ quản lý lớp học/bài tập/học sinh/cảnh báo của mình; Học sinh chỉ nộp bài trong lớp đã tham gia; Tự động cập nhật StudentTopicMastery chuẩn hóa khi chấm bài và ghi vết StaffAuditLog đầy đủ.
   - Test gates: 258/258 Backend Unit Tests pass, 3/3 ArchitectureTests pass (0 DbContext injection), 0 oxlint warnings, Vite build success, 544/544 Frontend Vitest pass.
-- [ ] **Phase 5: Learner**
-  - Split Learner Profile, Progress, Practice, Assessment, Assignments, Dashboard.
-  - Learner Application Services.
+- [x] **Phase 5: Learner**
+  - Tách hoàn toàn các controllers cựu: `PracticeController.cs` (1521 dòng), `MeController.cs` (605 dòng), `LearningDataControllers.cs` (453 dòng), và `LearningOperationsController.cs` (125 dòng).
+  - Triển khai các thin controllers theo role/feature:
+    - Learner: `LearnerProgressController`, `LearnerAssessmentAttemptsController`, `LearnerEventsController`, `LearnerProfileController`, `LearnerPracticeController`, `LearnerAdaptiveLearningController`, `LearnerExamPreparationController`, `LearnerAnalyticsController`.
+    - Admin Operations: `AdminOperationsController`.
+    - Content: di chuyển `ContentGovernanceController` và `CurriculumImportController` về `StudyAI.Api/Features/Content/`.
+  - Triển khai 6 Application Services chuyên biệt:
+    - `LearnerProgressService`, `LearnerAssessmentService`, `LearnerEventsService`, `LearnerProfileService`, `LearnerPracticeService`, `AdminOperationsService`.
+  - Bảo đảm an toàn dữ liệu: Ngăn chặn cross-tenant access, hỗ trợ đồng bộ dữ liệu `sync/bootstrap` không làm hỏng tiến trình, Leitner review box 1..5 và adaptive practice chống lặp câu hỏi.
+  - Test gates: 258/258 Backend Unit Tests pass, 3/3 ArchitectureTests pass (0 DbContext injection), 0 oxlint warnings, Vite build success, 544/544 Frontend Vitest pass.
 - [ ] **Phase 6: AI Tutor và Support**
   - Tách Orchestration & LLM provider adapters.
   - Support workspace permissions.

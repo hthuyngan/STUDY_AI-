@@ -7,7 +7,7 @@ using StudyAI.Application.Common.Interfaces;
 using StudyAI.Application.DTOs;
 using StudyAI.Application.Services;
 
-namespace StudyAI.Api.Controllers;
+namespace StudyAI.Api.Features.Content;
 
 [Authorize(Roles = "content,admin")]
 [ApiController]
