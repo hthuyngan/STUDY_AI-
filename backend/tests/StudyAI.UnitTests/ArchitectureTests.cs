@@ -35,7 +35,7 @@ public class ArchitectureTests
     [Fact]
     public void FeatureControllers_MustNotInjectStudyAIDbContextDirectly()
     {
-        var apiAssembly = typeof(StudyAI.Api.Controllers.HealthController).Assembly;
+        var apiAssembly = typeof(StudyAI.Api.Features.Public.HealthController).Assembly;
         var featureControllers = apiAssembly.GetTypes()
             .Where(t => typeof(ControllerBase).IsAssignableFrom(t) && !t.IsAbstract)
             .Where(t => t.Namespace != null && t.Namespace.StartsWith("StudyAI.Api.Features"))

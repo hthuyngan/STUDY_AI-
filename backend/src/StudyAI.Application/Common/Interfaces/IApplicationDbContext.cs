@@ -24,6 +24,7 @@ public interface IApplicationDbContext
     DbSet<AiMessage> AiMessages { get; }
     DbSet<Classroom> Classrooms { get; }
     DbSet<ClassroomStudent> ClassroomStudents { get; }
+    DbSet<TeacherProfile> TeacherProfiles { get; }
     DbSet<Assignment> Assignments { get; }
     DbSet<AssignmentSubmission> AssignmentSubmissions { get; }
     DbSet<AiUsageLog> AiUsageLogs { get; }

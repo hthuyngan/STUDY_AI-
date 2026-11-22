@@ -48,6 +48,15 @@ builder.Services.AddSingleton<IClock, SystemClock>();
 builder.Services.AddSingleton<IIdGenerator, IdGenerator>();
 builder.Services.AddScoped<IAuditWriter, AuditWriter>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<StudyAI.Application.Features.Public.Auth.IAuthService, StudyAI.Application.Features.Public.Auth.AuthService>();
+
+// Admin Services (Role + Feature Architecture)
+builder.Services.AddScoped<StudyAI.Application.Features.Admin.Dashboard.IAdminDashboardService, StudyAI.Application.Features.Admin.Dashboard.AdminDashboardService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Admin.Users.IAdminUsersService, StudyAI.Application.Features.Admin.Users.AdminUsersService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Admin.Teachers.IAdminTeachersService, StudyAI.Application.Features.Admin.Teachers.AdminTeachersService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Admin.AuditLogs.IAdminAuditService, StudyAI.Application.Features.Admin.AuditLogs.AdminAuditService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Admin.Announcements.IAdminAnnouncementsService, StudyAI.Application.Features.Admin.Announcements.AdminAnnouncementsService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Admin.Settings.IAdminSettingsService, StudyAI.Application.Features.Admin.Settings.AdminSettingsService>();
 
 // 2.1 LLM Provider & AI Tutor Service
 builder.Services.AddHttpClient();

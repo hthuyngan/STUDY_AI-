@@ -1,16 +1,16 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using StudyAI.Infrastructure.Persistence;
+using StudyAI.Application.Common.Interfaces;
 
-namespace StudyAI.Api.Controllers;
+namespace StudyAI.Api.Features.Public;
 
 [ApiController]
 public class HealthController : ControllerBase
 {
-    private readonly StudyAIDbContext _db;
+    private readonly IApplicationDbContext _db;
     private readonly ILogger<HealthController> _logger;
 
-    public HealthController(StudyAIDbContext db, ILogger<HealthController> logger)
+    public HealthController(IApplicationDbContext db, ILogger<HealthController> logger)
     {
         _db = db;
         _logger = logger;

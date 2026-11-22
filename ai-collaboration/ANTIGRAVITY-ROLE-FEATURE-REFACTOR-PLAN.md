@@ -11,7 +11,7 @@
 ## Progress Checklist & Tracking
 - [x] **Phase 0 — Inventory và Architecture Guard** (Baseline, docs, route snapshot, architecture tests pass)
 - [x] **Phase 1 — Common Foundation** (CurrentUser, Permissions, Result/Exception model, Global Exception Middleware, UnitOfWork, AuditWriter - 20 tests pass)
-- [ ] **Phase 2 — Public và Identity/Admin Users** (Auth, Health, Admin split thin controllers, Application services)
+- [x] **Phase 2 — Public và Identity/Admin Users** (Auth, Health, Admin split into 7 thin controllers & application services, deleted monolithic AdminController, 258 BE + 544 FE tests pass)
 - [ ] **Phase 3 — Content/Curriculum** (Curriculum & Content controllers split, Application workflow services)
 - [ ] **Phase 4 — Teacher** (Classroom, Student ownership, Assignment, Submissions, Grading, Analytics)
 - [ ] **Phase 5 — Learner** (Profile, Progress, Assessment attempts, Learning events, Practice, Assignments, Dashboard)

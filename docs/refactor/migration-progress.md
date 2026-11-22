@@ -13,10 +13,12 @@
   - Infrastructure Common: CurrentUser, SystemClock, IdGenerator, AuditWriter, UnitOfWork.
   - Api: Global Exception Handler Middleware (RFC 7807 problem details / uniform error formatting).
   - Test gates: 20/20 new CommonFoundationTests pass, 258/258 total Unit Tests pass, 0 oxlint warnings, Vite build success.
-- [ ] **Phase 2: Public và Identity/Admin Users**
-  - Public Features: Auth, Health.
-  - Admin Features: Users, Dashboard read model, Settings, AuditLogs, Announcements, System.
-  - Thin Controllers & Application Services.
+- [x] **Phase 2: Public và Identity/Admin Users**
+  - Public Features: `AuthController` và `HealthController` được tổ chức lại tại `StudyAI.Api/Features/Public/` và `StudyAI.Application/Features/Public/Auth/` với `IAuthService` và `AuthService`.
+  - Admin Features: Tách hoàn toàn `AdminController` (1962 dòng) thành 7 controllers độc lập (`AdminDashboardController`, `AdminUsersController`, `AdminTeachersController`, `AdminAuditLogsController`, `AdminAnnouncementsController`, `AdminSettingsController`, `AdminSystemController`).
+  - Application Services: `AdminDashboardService`, `AdminUsersService`, `AdminTeachersService`, `AdminAuditService`, `AdminAnnouncementsService`, `AdminSettingsService`.
+  - Toàn bộ 9 controller mới không còn inject `StudyAIDbContext` (được bảo vệ bởi `ArchitectureTests`).
+  - Test gates: 258/258 Backend Unit Tests pass, 0 oxlint warnings, Vite build success, 544/544 Frontend Vitest pass.
 - [ ] **Phase 3: Content / Curriculum**
   - Split `ContentController` & `CurriculumController` thành các controller chuyên biệt.
   - Content Application Services.
