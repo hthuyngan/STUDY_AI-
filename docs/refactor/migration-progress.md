@@ -28,9 +28,13 @@
     - Learner: `LearnerCurriculumService`.
   - Quy tắc bảo mật giáo dục: Independent Review (nguyên tắc 4 mắt), bản quyền VNHSGE, bảo vệ đáp án đối với học sinh/người dùng chưa đăng nhập.
   - Test gates: 258/258 Backend Unit Tests pass, 3/3 ArchitectureTests pass (0 DbContext injection trong controller mới), 0 oxlint warnings, Vite build success, 544/544 Frontend Vitest pass.
-- [ ] **Phase 4: Teacher**
-  - Split Teacher / Classroom / Assignment controllers.
-  - Teacher Application Services & Ownership enforcement.
+- [x] **Phase 4: Teacher**
+  - Tách hoàn toàn ba controllers cũ: `ClassroomsController.cs` (825 dòng), `AssignmentsController.cs` (758 dòng) và `TeacherManagementController.cs` (585 dòng) thành 6 thin controllers:
+    - `TeacherClassroomsController`, `TeacherStudentsController`, `TeacherAssignmentsController`, `TeacherSubmissionsController`, `TeacherGradingController`, `TeacherAnalyticsController`.
+  - Triển khai 5 Application Services chuyên biệt theo role/feature:
+    - `TeacherClassroomsService`, `TeacherStudentsService`, `TeacherAssignmentsService`, `TeacherSubmissionsService`, `TeacherAnalyticsService`.
+  - Kiểm soát quyền sở hữu chặt chẽ (Ownership enforcement): Giáo viên chỉ quản lý lớp học/bài tập/học sinh/cảnh báo của mình; Học sinh chỉ nộp bài trong lớp đã tham gia; Tự động cập nhật StudentTopicMastery chuẩn hóa khi chấm bài và ghi vết StaffAuditLog đầy đủ.
+  - Test gates: 258/258 Backend Unit Tests pass, 3/3 ArchitectureTests pass (0 DbContext injection), 0 oxlint warnings, Vite build success, 544/544 Frontend Vitest pass.
 - [ ] **Phase 5: Learner**
   - Split Learner Profile, Progress, Practice, Assessment, Assignments, Dashboard.
   - Learner Application Services.

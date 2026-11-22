@@ -72,6 +72,13 @@ builder.Services.AddScoped<StudyAI.Application.Features.Content.CurriculumImport
 // Learner Services (Role + Feature Architecture)
 builder.Services.AddScoped<StudyAI.Application.Features.Learner.Curriculum.ILearnerCurriculumService, StudyAI.Application.Features.Learner.Curriculum.LearnerCurriculumService>();
 
+// Teacher Services (Role + Feature Architecture)
+builder.Services.AddScoped<StudyAI.Application.Features.Teacher.Classrooms.ITeacherClassroomsService, StudyAI.Application.Features.Teacher.Classrooms.TeacherClassroomsService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Teacher.Students.ITeacherStudentsService, StudyAI.Application.Features.Teacher.Students.TeacherStudentsService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Teacher.Assignments.ITeacherAssignmentsService, StudyAI.Application.Features.Teacher.Assignments.TeacherAssignmentsService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Teacher.Submissions.ITeacherSubmissionsService, StudyAI.Application.Features.Teacher.Submissions.TeacherSubmissionsService>();
+builder.Services.AddScoped<StudyAI.Application.Features.Teacher.Analytics.ITeacherAnalyticsService, StudyAI.Application.Features.Teacher.Analytics.TeacherAnalyticsService>();
+
 // 2.1 LLM Provider & AI Tutor Service
 builder.Services.AddHttpClient();
 builder.Services.AddHttpClient<StudyAI.Infrastructure.Services.OpenAiLlmProvider>(client =>

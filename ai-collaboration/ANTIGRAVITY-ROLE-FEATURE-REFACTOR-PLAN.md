@@ -493,14 +493,14 @@ Tạo `frontend/src/shared/api/generated` chỉ khi dự án có OpenAPI generat
 - [x] Curriculum import.
 - [x] FE Content Workspace và learner curriculum đồng bộ.
 
-### Phase 4 — Teacher
+### Phase 4 — Teacher [COMPLETED]
 
-- Classroom.
-- Student ownership.
-- Assignment.
-- Submission/grading.
-- Teacher analytics.
-- FE Teacher Workspace.
+- [x] Classroom.
+- [x] Student ownership.
+- [x] Assignment.
+- [x] Submission/grading.
+- [x] Teacher analytics.
+- [x] FE Teacher Workspace.
 
 ### Phase 5 — Learner
 
