@@ -1,6 +1,4 @@
 import { learningProgressRepository, LESSON_PROGRESS_STORAGE_KEY } from '@/repositories/learningProgress.repository'
-import { mockLessonsDetail } from '@/data/lessons.mock'
-import { mockSubjectDetails } from '@/data/subjects.mock'
 import type { LessonProgressState } from '@/types/assessment'
 
 export { LESSON_PROGRESS_STORAGE_KEY }
@@ -11,9 +9,6 @@ export function getLessonProgress(lessonId: string): LessonProgressState | null 
 
 export function saveLessonProgress(progress: LessonProgressState): void {
   learningProgressRepository.save(progress)
-
-  // Sync with mockSubjectDetails so Curriculum panels & lesson rows reflect progress
-  syncProgressToSubject(progress)
 }
 
 
@@ -187,36 +182,6 @@ export function markAssessmentCompleted(
 
   saveLessonProgress(updated)
   return updated
-}
-
-/**
- * Synchronize lesson progress to mockSubjectDetails in memory
- * to keep CurriculumLessonRow and SubjectDetailPage in sync.
- */
-function syncProgressToSubject(progress: LessonProgressState): void {
-  // Update mockLessonsDetail isCompleted
-  if (mockLessonsDetail[progress.lessonId]) {
-    mockLessonsDetail[progress.lessonId].isCompleted = progress.overallProgress === 100
-  }
-
-  // Update in subject chapters
-  const subject = mockSubjectDetails[progress.subjectId]
-  if (!subject) return
-
-  for (const chapter of subject.chapters) {
-    const found = chapter.lessons.find((l) => l.id === progress.lessonId)
-    if (found) {
-      found.progress = progress.overallProgress
-      if (progress.overallProgress === 100) {
-        found.status = 'completed'
-      } else if (progress.overallProgress > 0) {
-        found.status = 'in-progress'
-      } else {
-        found.status = 'available'
-      }
-      break
-    }
-  }
 }
 
 export const lessonProgressService = {

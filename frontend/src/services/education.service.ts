@@ -37,6 +37,9 @@ const STORAGE_KEYS = {
 }
 
 function readStorage<T>(key: string, fallback: T): T {
+  if (!isTestEnvironment()) {
+    throw new Error('Bạn cần đăng nhập tài khoản quản trị nội dung để truy cập dữ liệu này.')
+  }
   try {
     const raw = localStorage.getItem(key)
     if (!raw) return fallback
@@ -47,6 +50,9 @@ function readStorage<T>(key: string, fallback: T): T {
 }
 
 function writeStorage<T>(key: string, data: T): void {
+  if (!isTestEnvironment()) {
+    throw new Error('Không thể ghi dữ liệu quản trị vào bộ nhớ trình duyệt.')
+  }
   try {
     localStorage.setItem(key, JSON.stringify(data))
   } catch {
@@ -1010,12 +1016,8 @@ export const educationService = {
 
   async getAssessmentById(id: string): Promise<CurriculumAssessmentItem | undefined> {
     if (getAccessToken()) {
-      try {
-        const res = await apiClient.get<CurriculumAssessmentItem>(`/api/v1/content/assessments/${id}`)
-        return res || undefined
-      } catch {
-        return undefined
-      }
+      const res = await apiClient.get<CurriculumAssessmentItem>(`/api/v1/content/assessments/${id}`)
+      return res || undefined
     }
     const assessments = await this.getAssessments()
     return assessments.find((a) => a.id === id)
@@ -1343,9 +1345,6 @@ export const educationService = {
       writeStorage(STORAGE_KEYS.LESSONS, INITIAL_LESSONS)
       writeStorage(STORAGE_KEYS.ASSESSMENTS, INITIAL_ASSESSMENTS)
       writeStorage(STORAGE_KEYS.TEACHERS, INITIAL_TEACHERS)
-    } else {
-      writeStorage(STORAGE_KEYS.ASSESSMENTS, [])
-      writeStorage(STORAGE_KEYS.TEACHERS, [])
     }
   },
 }

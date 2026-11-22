@@ -539,6 +539,9 @@ export const INITIAL_ACTIVITIES: ClassActivityItem[] = [
 
 // Storage helpers
 function loadFromStorage<T>(key: string, fallback: T): T {
+  if (!isTestEnvironment()) {
+    throw new Error('Bạn cần đăng nhập tài khoản giáo viên hoặc quản trị để truy cập dữ liệu lớp học.')
+  }
   if (typeof window === 'undefined' || !window.localStorage) return fallback
   try {
     const raw = localStorage.getItem(key)
@@ -549,6 +552,9 @@ function loadFromStorage<T>(key: string, fallback: T): T {
 }
 
 function saveToStorage<T>(key: string, data: T): void {
+  if (!isTestEnvironment()) {
+    throw new Error('Không thể ghi dữ liệu lớp học vào bộ nhớ trình duyệt.')
+  }
   if (typeof window === 'undefined' || !window.localStorage) return
   try {
     localStorage.setItem(key, JSON.stringify(data))

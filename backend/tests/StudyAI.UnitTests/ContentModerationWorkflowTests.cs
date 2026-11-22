@@ -190,19 +190,19 @@ public class ContentModerationWorkflowTests
     }
 
     [Fact]
-    public async Task RollbackLesson_OnPublishedLesson_RevertsToDraftAndLogsAudit()
+    public async Task RollbackLesson_WithoutHistoricalRevision_ReturnsConflictWithoutMutation()
     {
         var (context, controller) = CreateContextAndController(role: "content");
 
         var result = await controller.RollbackLesson("les_published_1");
 
-        Assert.IsType<OkObjectResult>(result);
+        Assert.IsType<ConflictObjectResult>(result);
         var updated = await context.ContentLessons.FindAsync("les_published_1");
         Assert.NotNull(updated);
-        Assert.Equal("draft", updated.Status);
+        Assert.Equal("published", updated.Status);
 
         var rollbackLog = await context.StaffAuditLogs.FirstOrDefaultAsync(l => l.TargetId == "les_published_1" && l.Action == "lesson_rollback");
-        Assert.NotNull(rollbackLog);
+        Assert.Null(rollbackLog);
     }
 
     [Fact]

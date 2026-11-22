@@ -178,9 +178,9 @@ export const AdminAssessmentsPage: React.FC = () => {
   }
 
   const handleDelete = async (id: string, title: string) => {
-    if (window.confirm(`Bạn có chắc muốn xóa bài thu hoạch "${title}" (Dữ liệu demo)?`)) {
+    if (window.confirm(`Bạn có chắc muốn lưu trữ bài thu hoạch "${title}"?`)) {
       await educationService.deleteAssessment(id)
-      showToast(`Đã xóa bài thu hoạch: ${title}`)
+      showToast(`Đã lưu trữ bài thu hoạch: ${title}`)
       loadData()
     }
   }

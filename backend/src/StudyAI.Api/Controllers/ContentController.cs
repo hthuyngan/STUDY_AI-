@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using StudyAI.Application.DTOs;
 using StudyAI.Domain.Entities;
@@ -154,6 +155,40 @@ public class ContentController : ControllerBase
 
         _db.ContentRevisions.Add(revision);
         return revision;
+    }
+
+    private static bool IsRevisionVersionConflict(DbUpdateException ex)
+    {
+        return ex.InnerException is SqlException sqlException &&
+               sqlException.Number is 2601 or 2627 &&
+               sqlException.Message.Contains("IX_content_revisions_ContentId_Version", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task SaveChangesWithRevisionRetryAsync(ContentRevision revision)
+    {
+        const int maxAttempts = 3;
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            try
+            {
+                await _db.SaveChangesAsync();
+                return;
+            }
+            catch (DbUpdateException ex) when (attempt < maxAttempts && IsRevisionVersionConflict(ex))
+            {
+                _db.Entry(revision).State = EntityState.Detached;
+                revision.Version = (await _db.ContentRevisions
+                    .Where(r => r.ContentId == revision.ContentId)
+                    .Select(r => (int?)r.Version)
+                    .MaxAsync() ?? 0) + 1;
+                _db.ContentRevisions.Add(revision);
+            }
+        }
+    }
+
+    private static bool IsValidAssessmentStatus(string? status)
+    {
+        return status is "draft" or "in-review" or "approved" or "published" or "archived";
     }
 
     #region Subject Endpoints
@@ -1665,7 +1700,7 @@ public class ContentController : ControllerBase
         les.ReviewedBy = CurrentUserId;
         les.UpdatedAt = DateTimeOffset.UtcNow;
 
-        await CreateLessonRevisionAsync(les, "Phê duyệt xuất bản bài học");
+        var approvalRevision = await CreateLessonRevisionAsync(les, "Phê duyệt xuất bản bài học");
 
         _db.StaffAuditLogs.Add(new StaffAuditLog
         {
@@ -1678,7 +1713,7 @@ public class ContentController : ControllerBase
             CreatedAt = DateTimeOffset.UtcNow
         });
 
-        await _db.SaveChangesAsync();
+        await SaveChangesWithRevisionRetryAsync(approvalRevision);
         return Ok(FormatLesson(les, les.Author));
     }
 
@@ -1778,7 +1813,7 @@ public class ContentController : ControllerBase
         ContentRevision? targetRev = null;
         if (!string.IsNullOrWhiteSpace(req?.RevisionId))
         {
-            targetRev = await _db.ContentRevisions.FirstOrDefaultAsync(r => r.Id == req.RevisionId && r.ContentId == lessonId);
+            targetRev = await _db.ContentRevisions.FirstOrDefaultAsync(r => r.Id == req.RevisionId && r.ContentId == lessonId && r.ContentType == "lesson");
             if (targetRev == null)
             {
                 return NotFound(new { detail = $"Không tìm thấy phiên bản revision '{req.RevisionId}' cho bài học này." });
@@ -1787,7 +1822,7 @@ public class ContentController : ControllerBase
         else if (req?.TargetVersion.HasValue == true)
         {
             targetRev = await _db.ContentRevisions
-                .Where(r => r.ContentId == lessonId && r.Version == req.TargetVersion.Value)
+                .Where(r => r.ContentId == lessonId && r.ContentType == "lesson" && r.Version == req.TargetVersion.Value)
                 .OrderByDescending(r => r.CreatedAt)
                 .FirstOrDefaultAsync();
             if (targetRev == null)
@@ -1798,38 +1833,44 @@ public class ContentController : ControllerBase
         else
         {
             targetRev = await _db.ContentRevisions
-                .Where(r => r.ContentId == lessonId)
+                .Where(r => r.ContentId == lessonId && r.ContentType == "lesson")
                 .OrderByDescending(r => r.CreatedAt)
                 .Skip(1)
                 .FirstOrDefaultAsync();
         }
 
+        if (targetRev == null)
+            return Conflict(new { detail = "Không có phiên bản trước đó để khôi phục bài học." });
+        if (string.IsNullOrWhiteSpace(targetRev.SnapshotJson))
+            return Conflict(new { detail = "Phiên bản được chọn không có snapshot hợp lệ." });
+
         var previousStatus = les.Status;
 
-        if (targetRev != null && !string.IsNullOrWhiteSpace(targetRev.SnapshotJson))
+        try
         {
-            try
-            {
-                using var doc = JsonDocument.Parse(targetRev.SnapshotJson);
-                var root = doc.RootElement;
-                if (root.TryGetProperty("Title", out var titleProp) && titleProp.GetString() is string title && !string.IsNullOrWhiteSpace(title))
-                    les.Title = title;
-                if (root.TryGetProperty("Introduction", out var introProp))
-                    les.Introduction = introProp.GetString();
-                if (root.TryGetProperty("DefinitionsJson", out var defProp))
-                    les.DefinitionsJson = defProp.GetString();
-                if (root.TryGetProperty("FormulasJson", out var formProp))
-                    les.FormulasJson = formProp.GetString();
-                if (root.TryGetProperty("ExamplesJson", out var exProp))
-                    les.ExamplesJson = exProp.GetString();
-                if (root.TryGetProperty("ImportantNotesJson", out var notesProp))
-                    les.ImportantNotesJson = notesProp.GetString();
-                if (root.TryGetProperty("SummaryPointsJson", out var sumProp))
-                    les.SummaryPointsJson = sumProp.GetString();
-            }
-            catch (JsonException)
-            {
-            }
+            using var doc = JsonDocument.Parse(targetRev.SnapshotJson);
+            var root = doc.RootElement;
+            if (root.TryGetProperty("schemaVersion", out var schemaVersion) &&
+                (schemaVersion.ValueKind != JsonValueKind.Number || !schemaVersion.TryGetInt32(out var version) || version != 1))
+                return Conflict(new { detail = "Schema snapshot của phiên bản không được hỗ trợ." });
+
+            if (root.TryGetProperty("ChapterId", out var chapterProp) && !string.IsNullOrWhiteSpace(chapterProp.GetString())) les.ChapterId = chapterProp.GetString()!;
+            if (root.TryGetProperty("TopicId", out var topicProp)) les.TopicId = topicProp.ValueKind == JsonValueKind.Null ? null : topicProp.GetString();
+            if (root.TryGetProperty("Title", out var titleProp) && !string.IsNullOrWhiteSpace(titleProp.GetString())) les.Title = titleProp.GetString()!;
+            if (root.TryGetProperty("Slug", out var slugProp) && !string.IsNullOrWhiteSpace(slugProp.GetString())) les.Slug = slugProp.GetString()!;
+            if (root.TryGetProperty("AuthorId", out var authorProp) && !string.IsNullOrWhiteSpace(authorProp.GetString())) les.AuthorId = authorProp.GetString()!;
+            if (root.TryGetProperty("ReviewedBy", out var reviewerProp)) les.ReviewedBy = reviewerProp.ValueKind == JsonValueKind.Null ? null : reviewerProp.GetString();
+            if (root.TryGetProperty("Introduction", out var introProp)) les.Introduction = introProp.ValueKind == JsonValueKind.Null ? null : introProp.GetString();
+            if (root.TryGetProperty("DefinitionsJson", out var defProp)) les.DefinitionsJson = defProp.ValueKind == JsonValueKind.Null ? null : defProp.GetString();
+            if (root.TryGetProperty("FormulasJson", out var formProp)) les.FormulasJson = formProp.ValueKind == JsonValueKind.Null ? null : formProp.GetString();
+            if (root.TryGetProperty("ExamplesJson", out var exProp)) les.ExamplesJson = exProp.ValueKind == JsonValueKind.Null ? null : exProp.GetString();
+            if (root.TryGetProperty("ImportantNotesJson", out var notesProp)) les.ImportantNotesJson = notesProp.ValueKind == JsonValueKind.Null ? null : notesProp.GetString();
+            if (root.TryGetProperty("SummaryPointsJson", out var sumProp)) les.SummaryPointsJson = sumProp.ValueKind == JsonValueKind.Null ? null : sumProp.GetString();
+            if (root.TryGetProperty("OrderIndex", out var orderProp)) les.OrderIndex = orderProp.GetInt32();
+        }
+        catch (JsonException)
+        {
+            return Conflict(new { detail = "Snapshot của phiên bản bị hỏng và không thể khôi phục an toàn." });
         }
 
         les.Status = "draft";
@@ -1857,7 +1898,7 @@ public class ContentController : ControllerBase
             CreatedAt = DateTimeOffset.UtcNow
         });
 
-        await _db.SaveChangesAsync();
+        await SaveChangesWithRevisionRetryAsync(rollbackRev);
         return Ok(FormatLesson(les, les.Author));
     }
 
@@ -2152,6 +2193,9 @@ public class ContentController : ControllerBase
         [FromQuery] string? search = null,
         [FromQuery] string? lessonId = null)
     {
+        if (!IsContentStaffOrAdmin)
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Chỉ Content staff hoặc quản trị viên được quản lý bài đánh giá." });
+
         var query = _db.ContentAssessments
             .AsNoTracking()
             .Include(a => a.Lesson)
@@ -2168,6 +2212,10 @@ public class ContentController : ControllerBase
         if (!string.IsNullOrWhiteSpace(status) && status != "all")
         {
             query = query.Where(a => a.Status == status);
+        }
+        else
+        {
+            query = query.Where(a => a.Status != "archived");
         }
 
         if (!string.IsNullOrWhiteSpace(subjectId) && subjectId != "all")
@@ -2189,6 +2237,9 @@ public class ContentController : ControllerBase
     [HttpGet("assessments/{id}")]
     public async Task<IActionResult> GetAssessmentDetail(string id)
     {
+        if (!IsContentStaffOrAdmin)
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Chỉ Content staff hoặc quản trị viên được quản lý bài đánh giá." });
+
         var a = await _db.ContentAssessments
             .AsNoTracking()
             .Include(x => x.Lesson)
@@ -2206,8 +2257,16 @@ public class ContentController : ControllerBase
     [HttpPost("assessments")]
     public async Task<IActionResult> CreateAssessment([FromBody] CreateAssessmentRequestDto req)
     {
+        if (!IsContentStaffOrAdmin)
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Chỉ Content staff hoặc quản trị viên được tạo bài đánh giá." });
         if (string.IsNullOrWhiteSpace(req.LessonId))
             return BadRequest(new { detail = "Bài học (LessonId) không được để trống." });
+        if (req.PassingScore is < 0 or > 100)
+            return BadRequest(new { detail = "Điểm đạt phải nằm trong khoảng 0 đến 100." });
+        if (req.DurationMinutes is <= 0 or > 480)
+            return BadRequest(new { detail = "Thời lượng phải nằm trong khoảng 1 đến 480 phút." });
+        if (!string.IsNullOrWhiteSpace(req.Status) && !IsValidAssessmentStatus(req.Status))
+            return BadRequest(new { detail = "Trạng thái bài đánh giá không hợp lệ." });
 
         var lesson = await _db.ContentLessons
             .Include(l => l.Chapter)
@@ -2256,6 +2315,15 @@ public class ContentController : ControllerBase
     [HttpPut("assessments/{id}")]
     public async Task<IActionResult> UpdateAssessment(string id, [FromBody] UpdateAssessmentRequestDto req)
     {
+        if (!IsContentStaffOrAdmin)
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Chỉ Content staff hoặc quản trị viên được cập nhật bài đánh giá." });
+        if (req.PassingScore is < 0 or > 100)
+            return BadRequest(new { detail = "Điểm đạt phải nằm trong khoảng 0 đến 100." });
+        if (req.DurationMinutes is <= 0 or > 480)
+            return BadRequest(new { detail = "Thời lượng phải nằm trong khoảng 1 đến 480 phút." });
+        if (!string.IsNullOrWhiteSpace(req.Status) && !IsValidAssessmentStatus(req.Status))
+            return BadRequest(new { detail = "Trạng thái bài đánh giá không hợp lệ." });
+
         var assessment = await _db.ContentAssessments
             .Include(a => a.Lesson)
                 .ThenInclude(l => l!.Chapter)
@@ -2298,17 +2366,21 @@ public class ContentController : ControllerBase
     [HttpDelete("assessments/{id}")]
     public async Task<IActionResult> DeleteAssessment(string id)
     {
+        if (!IsContentStaffOrAdmin)
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Chỉ Content staff hoặc quản trị viên được lưu trữ bài đánh giá." });
+
         var assessment = await _db.ContentAssessments.FirstOrDefaultAsync(a => a.Id == id);
         if (assessment == null)
             return NotFound(new { detail = "Bài kiểm tra / đánh giá không tồn tại." });
 
-        _db.ContentAssessments.Remove(assessment);
+        assessment.Status = "archived";
+        assessment.UpdatedAt = DateTimeOffset.UtcNow;
 
         _db.StaffAuditLogs.Add(new StaffAuditLog
         {
             Id = $"log_{Guid.NewGuid():N}",
             ActorUserId = CurrentUserId,
-            Action = "assessment_deleted",
+            Action = "assessment_archived",
             TargetType = "content_assessment",
             TargetId = id,
             Payload = JsonSerializer.Serialize(new { assessment.Id, assessment.Title }),
@@ -2316,15 +2388,19 @@ public class ContentController : ControllerBase
         });
 
         await _db.SaveChangesAsync();
-        return Ok(new { success = true, detail = "Đã xóa bài đánh giá thành công." });
+        return Ok(new { success = true, detail = "Đã lưu trữ bài đánh giá thành công." });
     }
 
     [HttpPut("assessments/{id}/status")]
     public async Task<IActionResult> UpdateAssessmentStatus(string id, [FromBody] JsonObject body)
     {
+        if (!IsContentStaffOrAdmin)
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Chỉ Content staff hoặc quản trị viên được đổi trạng thái bài đánh giá." });
         var status = body?["status"]?.ToString();
         if (string.IsNullOrWhiteSpace(status))
             return BadRequest(new { detail = "Trạng thái mới không được để trống." });
+        if (!IsValidAssessmentStatus(status))
+            return BadRequest(new { detail = "Trạng thái bài đánh giá không hợp lệ." });
 
         var assessment = await _db.ContentAssessments
             .Include(a => a.Lesson)
@@ -2357,6 +2433,8 @@ public class ContentController : ControllerBase
     [HttpPost("assessments/{id}/questions")]
     public async Task<IActionResult> AddAssessmentQuestion(string id, [FromBody] AddAssessmentQuestionRequestDto req)
     {
+        if (!IsContentStaffOrAdmin)
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Chỉ Content staff hoặc quản trị viên được thêm câu hỏi." });
         if (string.IsNullOrWhiteSpace(req.Prompt))
             return BadRequest(new { detail = "Nội dung câu hỏi không được để trống." });
 
@@ -2387,7 +2465,7 @@ public class ContentController : ControllerBase
             Explanation = req.Explanation,
             Difficulty = "medium",
             Type = "multiple-choice",
-            Status = "published",
+            Status = "draft",
             AuthorId = CurrentUserId,
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
@@ -3069,7 +3147,7 @@ public class ContentController : ControllerBase
         question.Status = "published";
         question.UpdatedAt = DateTimeOffset.UtcNow;
 
-        await CreateQuestionRevisionAsync(question, "Xuất bản câu hỏi");
+        var publicationRevision = await CreateQuestionRevisionAsync(question, "Xuất bản câu hỏi");
 
         _db.StaffAuditLogs.Add(new StaffAuditLog
         {
@@ -3082,7 +3160,7 @@ public class ContentController : ControllerBase
             CreatedAt = DateTimeOffset.UtcNow
         });
 
-        await _db.SaveChangesAsync();
+        await SaveChangesWithRevisionRetryAsync(publicationRevision);
         return Ok(FormatQuestion(question));
     }
 
@@ -3149,7 +3227,7 @@ public class ContentController : ControllerBase
         ContentRevision? targetRev = null;
         if (!string.IsNullOrWhiteSpace(req?.RevisionId))
         {
-            targetRev = await _db.ContentRevisions.FirstOrDefaultAsync(r => r.Id == req.RevisionId && r.ContentId == questionId);
+            targetRev = await _db.ContentRevisions.FirstOrDefaultAsync(r => r.Id == req.RevisionId && r.ContentId == questionId && r.ContentType == "question");
             if (targetRev == null)
             {
                 return NotFound(new { detail = $"Không tìm thấy phiên bản revision '{req.RevisionId}' cho câu hỏi này." });
@@ -3158,7 +3236,7 @@ public class ContentController : ControllerBase
         else if (req?.TargetVersion.HasValue == true)
         {
             targetRev = await _db.ContentRevisions
-                .Where(r => r.ContentId == questionId && r.Version == req.TargetVersion.Value)
+                .Where(r => r.ContentId == questionId && r.ContentType == "question" && r.Version == req.TargetVersion.Value)
                 .OrderByDescending(r => r.CreatedAt)
                 .FirstOrDefaultAsync();
             if (targetRev == null)
@@ -3169,34 +3247,48 @@ public class ContentController : ControllerBase
         else
         {
             targetRev = await _db.ContentRevisions
-                .Where(r => r.ContentId == questionId)
+                .Where(r => r.ContentId == questionId && r.ContentType == "question")
                 .OrderByDescending(r => r.CreatedAt)
                 .Skip(1)
                 .FirstOrDefaultAsync();
         }
 
+        if (targetRev == null)
+            return Conflict(new { detail = "Không có phiên bản trước đó để khôi phục câu hỏi." });
+        if (string.IsNullOrWhiteSpace(targetRev.SnapshotJson))
+            return Conflict(new { detail = "Phiên bản được chọn không có snapshot hợp lệ." });
+
         var previousStatus = question.Status;
 
-        if (targetRev != null && !string.IsNullOrWhiteSpace(targetRev.SnapshotJson))
+        try
         {
-            try
-            {
-                using var doc = JsonDocument.Parse(targetRev.SnapshotJson);
-                var root = doc.RootElement;
-                if (root.TryGetProperty("Prompt", out var promptProp) && promptProp.GetString() is string p && !string.IsNullOrWhiteSpace(p))
-                    question.Prompt = p;
-                if (root.TryGetProperty("OptionsJson", out var optProp))
-                    question.OptionsJson = optProp.GetString() ?? "[]";
-                if (root.TryGetProperty("CorrectAnswer", out var ansProp))
-                    question.CorrectAnswer = ansProp.GetString() ?? string.Empty;
-                if (root.TryGetProperty("Explanation", out var expProp))
-                    question.Explanation = expProp.GetString();
-                if (root.TryGetProperty("Difficulty", out var diffProp))
-                    question.Difficulty = diffProp.GetString() ?? "medium";
-            }
-            catch (JsonException)
-            {
-            }
+            using var doc = JsonDocument.Parse(targetRev.SnapshotJson);
+            var root = doc.RootElement;
+            if (root.TryGetProperty("schemaVersion", out var schemaVersion) &&
+                (schemaVersion.ValueKind != JsonValueKind.Number || !schemaVersion.TryGetInt32(out var version) || version != 1))
+                return Conflict(new { detail = "Schema snapshot của phiên bản không được hỗ trợ." });
+
+            if (root.TryGetProperty("Code", out var codeProp)) question.Code = codeProp.ValueKind == JsonValueKind.Null ? null : codeProp.GetString();
+            if (root.TryGetProperty("LessonId", out var lessonProp)) question.LessonId = lessonProp.ValueKind == JsonValueKind.Null ? null : lessonProp.GetString();
+            if (root.TryGetProperty("SubjectId", out var subjectProp)) question.SubjectId = subjectProp.ValueKind == JsonValueKind.Null ? null : subjectProp.GetString();
+            if (root.TryGetProperty("ChapterId", out var chapterProp)) question.ChapterId = chapterProp.ValueKind == JsonValueKind.Null ? null : chapterProp.GetString();
+            if (root.TryGetProperty("Grade", out var gradeProp)) question.Grade = gradeProp.ValueKind == JsonValueKind.Null ? null : gradeProp.GetString();
+            if (root.TryGetProperty("Prompt", out var promptProp) && !string.IsNullOrWhiteSpace(promptProp.GetString())) question.Prompt = promptProp.GetString()!;
+            if (root.TryGetProperty("OptionsJson", out var optProp)) question.OptionsJson = optProp.GetString() ?? "[]";
+            if (root.TryGetProperty("CorrectAnswer", out var ansProp)) question.CorrectAnswer = ansProp.GetString() ?? string.Empty;
+            if (root.TryGetProperty("Explanation", out var expProp)) question.Explanation = expProp.ValueKind == JsonValueKind.Null ? null : expProp.GetString();
+            if (root.TryGetProperty("Topic", out var topicProp)) question.Topic = topicProp.ValueKind == JsonValueKind.Null ? null : topicProp.GetString();
+            if (root.TryGetProperty("Difficulty", out var diffProp)) question.Difficulty = diffProp.GetString() ?? "medium";
+            if (root.TryGetProperty("Type", out var typeProp)) question.Type = typeProp.GetString() ?? "multiple-choice";
+            if (root.TryGetProperty("OrderIndex", out var orderProp)) question.OrderIndex = orderProp.GetInt32();
+            if (root.TryGetProperty("ImageUrl", out var imageProp)) question.ImageUrl = imageProp.ValueKind == JsonValueKind.Null ? null : imageProp.GetString();
+            if (root.TryGetProperty("MetadataJson", out var metadataProp)) question.MetadataJson = metadataProp.ValueKind == JsonValueKind.Null ? null : metadataProp.GetString();
+            if (root.TryGetProperty("AuthorId", out var authorProp)) question.AuthorId = authorProp.ValueKind == JsonValueKind.Null ? null : authorProp.GetString();
+            if (root.TryGetProperty("ReviewedBy", out var reviewerProp)) question.ReviewedBy = reviewerProp.ValueKind == JsonValueKind.Null ? null : reviewerProp.GetString();
+        }
+        catch (JsonException)
+        {
+            return Conflict(new { detail = "Snapshot của phiên bản bị hỏng và không thể khôi phục an toàn." });
         }
 
         question.Status = "draft";
@@ -3224,7 +3316,7 @@ public class ContentController : ControllerBase
             CreatedAt = DateTimeOffset.UtcNow
         });
 
-        await _db.SaveChangesAsync();
+        await SaveChangesWithRevisionRetryAsync(rollbackRev);
         return Ok(FormatQuestion(question));
     }
 

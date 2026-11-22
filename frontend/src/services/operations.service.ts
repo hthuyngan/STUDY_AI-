@@ -33,9 +33,9 @@ export const DEFAULT_SETTINGS: OperationalSettings = {
   allowRevisionRequests: true,
   showArchivedContent: false,
   notificationDisplayDays: 7,
-  enableDemoAlerts: true,
-  updatedAt: '2026-10-27T10:00:00Z',
-  updatedBy: 'Quản trị viên',
+  enableDemoAlerts: false,
+  updatedAt: '',
+  updatedBy: 'System',
 }
 
 export const DEFAULT_APPROVALS: ApprovalItem[] = [
@@ -534,15 +534,21 @@ export const operationsService = {
 
   async approveContent(id: string, note?: string, actor = 'Quản trị viên'): Promise<ApprovalItem> {
     if (getAccessToken()) {
+      const current = (await this.getApprovals('all', 'all')).find((a) => a.id === id)
+      if (!current) throw new Error('Không tìm thấy yêu cầu phê duyệt trên máy chủ')
       const cleanId = id.replace(/^apr_[lq]_/, '')
       const isQuestion = id.startsWith('apr_q_')
       const endpoint = isQuestion
         ? `/api/v1/content/questions/${cleanId}/approve`
         : `/api/v1/content/lessons/${cleanId}/approve`
-      await apiClient.post(endpoint)
-      const approvals = await this.getApprovals('all', 'all')
-      const found = approvals.find((a) => a.id === id || a.contentId === cleanId)
-      if (found) return found
+      const result = await apiClient.post<{ status?: string; updatedAt?: string }>(endpoint)
+      return {
+        ...current,
+        status: 'approved',
+        reviewedAt: result?.updatedAt || new Date().toISOString(),
+        reviewedBy: actor,
+        reviewNote: note,
+      }
     }
 
     const list = await this.getApprovals()
@@ -590,15 +596,21 @@ export const operationsService = {
     }
 
     if (getAccessToken()) {
+      const current = (await this.getApprovals('all', 'all')).find((a) => a.id === id)
+      if (!current) throw new Error('Không tìm thấy yêu cầu phê duyệt trên máy chủ')
       const cleanId = id.replace(/^apr_[lq]_/, '')
       const isQuestion = id.startsWith('apr_q_')
       const endpoint = isQuestion
         ? `/api/v1/content/questions/${cleanId}/request-changes`
         : `/api/v1/content/lessons/${cleanId}/request-changes`
-      await apiClient.post(endpoint, { feedback: reason })
-      const approvals = await this.getApprovals('all', 'all')
-      const found = approvals.find((a) => a.id === id || a.contentId === cleanId)
-      if (found) return found
+      const result = await apiClient.post<{ updatedAt?: string }>(endpoint, { feedback: reason })
+      return {
+        ...current,
+        status: 'changes-requested',
+        reviewedAt: result?.updatedAt || new Date().toISOString(),
+        reviewedBy: actor,
+        reviewNote: reason,
+      }
     }
 
     const list = await this.getApprovals()
@@ -653,15 +665,21 @@ export const operationsService = {
     }
 
     if (getAccessToken()) {
+      const current = (await this.getApprovals('all', 'all')).find((a) => a.id === id)
+      if (!current) throw new Error('Không tìm thấy yêu cầu phê duyệt trên máy chủ')
       const cleanId = id.replace(/^apr_[lq]_/, '')
       const isQuestion = id.startsWith('apr_q_')
       const endpoint = isQuestion
         ? `/api/v1/content/questions/${cleanId}/reject`
         : `/api/v1/content/lessons/${cleanId}/reject`
-      await apiClient.post(endpoint, { reason })
-      const approvals = await this.getApprovals('all', 'all')
-      const found = approvals.find((a) => a.id === id || a.contentId === cleanId)
-      if (found) return found
+      const result = await apiClient.post<{ updatedAt?: string }>(endpoint, { reason })
+      return {
+        ...current,
+        status: 'rejected',
+        reviewedAt: result?.updatedAt || new Date().toISOString(),
+        reviewedBy: actor,
+        rejectionReason: reason,
+      }
     }
 
     const list = await this.getApprovals()
@@ -824,23 +842,28 @@ export const operationsService = {
         ? `/api/v1/content/questions/${cleanId}/rollback`
         : `/api/v1/content/lessons/${cleanId}/rollback`
       const versionNum = parseInt(targetVersion.replace(/\D/g, ''), 10) || 1
-      await apiClient.post(endpoint, {
+      const restored = await apiClient.post<{
+        id?: string
+        title?: string
+        prompt?: string
+        subjectName?: string
+        updatedAt?: string
+      }>(endpoint, {
         targetVersion: versionNum,
         reason: `Rollback về ${targetVersion} bởi ${actor}`
       })
-      const pubs = await this.getPublications('all')
-      const found = pubs.find((p) => p.id === pubId || p.contentId === cleanId)
-      if (found) return found
-
+      if (!restored?.updatedAt || (!restored.title && !restored.prompt)) {
+        throw new Error('Máy chủ đã rollback nhưng response không đủ dữ liệu để cập nhật giao diện.')
+      }
       return {
         id: pubId,
         contentId: cleanId,
         contentType: isQuestion ? 'assessment' : 'lesson',
-        title: 'Đã khôi phục phiên bản thành công',
-        subjectName: 'Toán học',
+        title: restored.title || restored.prompt!,
+        subjectName: restored.subjectName || '',
         version: targetVersion,
         publishedBy: actor,
-        publishedAt: new Date().toISOString(),
+        publishedAt: restored.updatedAt,
         status: 'archived',
         changelog: `Khôi phục về phiên bản ${targetVersion}`,
       }
@@ -1032,6 +1055,7 @@ export const operationsService = {
         saveToStorage(STORAGE_KEYS.SETTINGS, serverRes)
         return serverRes
       }
+      throw new Error('Máy chủ không trả về cấu hình sau khi lưu.')
     }
 
     saveToStorage(STORAGE_KEYS.SETTINGS, updated)
@@ -1048,30 +1072,16 @@ export const operationsService = {
     return updated
   },
 
-  resetSettings(actor = 'Quản trị viên'): OperationalSettings {
-    saveToStorage(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS)
-    this.recordAuditLog({
-      actor,
-      workspace: 'admin',
-      action: 'Khôi phục cấu hình mặc định',
-      target: 'Thiết lập hệ thống',
-      result: 'warning',
-    })
-    return DEFAULT_SETTINGS
-  },
-
-  resetAllDemoData(): void {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      localStorage.removeItem(STORAGE_KEYS.APPROVALS)
-      localStorage.removeItem(STORAGE_KEYS.PUBLICATIONS)
-      localStorage.removeItem(STORAGE_KEYS.ANNOUNCEMENTS)
-      localStorage.removeItem(STORAGE_KEYS.AUDIT_LOGS)
-      localStorage.removeItem(STORAGE_KEYS.SETTINGS)
+  async resetSettings(actor = 'Quản trị viên'): Promise<OperationalSettings> {
+    if (!getAccessToken()) {
+      throw new Error('Bạn cần đăng nhập quản trị để khôi phục cấu hình.')
     }
+    const current = await this.getSettingsAsync()
+    return this.saveSettings({ ...DEFAULT_SETTINGS, version: current.version }, actor)
   },
 
   _resetMockState(): void {
-    if (typeof window !== 'undefined' && window.localStorage) {
+    if (isTestEnvironment() && typeof window !== 'undefined' && window.localStorage) {
       saveToStorage(STORAGE_KEYS.APPROVALS, DEFAULT_APPROVALS)
       saveToStorage(STORAGE_KEYS.PUBLICATIONS, DEFAULT_PUBLICATIONS)
       saveToStorage(STORAGE_KEYS.ANNOUNCEMENTS, DEFAULT_ANNOUNCEMENTS)

@@ -236,7 +236,7 @@ export const AdminUserDetailPage: React.FC = () => {
             </div>
             <div className="confirm-dialog-body">
               <p className="confirm-dialog-desc">
-                Chọn vai trò mới cho tài khoản. Phân quyền và không gian làm việc tương ứng sẽ cập nhật ngay trong phiên demo này.
+                Chọn vai trò mới cho tài khoản. Phân quyền và không gian làm việc tương ứng sẽ cập nhật trên hệ thống.
               </p>
               <div style={{ marginTop: '14px' }}>
                 <label htmlFor="select-new-role" className="admin-form-label">

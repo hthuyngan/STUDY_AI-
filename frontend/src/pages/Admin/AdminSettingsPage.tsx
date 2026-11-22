@@ -127,12 +127,15 @@ export const AdminSettingsPage: React.FC = () => {
     }
   }
 
-  const handleResetSettings = () => {
+  const handleResetSettings = async () => {
     if (window.confirm('Khôi phục toàn bộ thiết lập về giá trị mặc định ban đầu?')) {
-      const defaults = operationsService.resetSettings(currentActor)
-      setSettings(defaults)
-      showToast('Đã khôi phục thiết lập mặc định')
-      setStorageUsage(computeStorageUsage())
+      try {
+        const defaults = await operationsService.resetSettings(currentActor)
+        setSettings(defaults)
+        showToast('Đã khôi phục thiết lập mặc định trên máy chủ')
+      } catch (err) {
+        showToast(err instanceof Error ? err.message : 'Không thể khôi phục thiết lập.')
+      }
     }
   }
 
@@ -144,7 +147,7 @@ export const AdminSettingsPage: React.FC = () => {
       if (typeof window !== 'undefined' && window.localStorage) {
         localStorage.removeItem('study_ai_settings')
       }
-      showToast('Đã làm sạch bộ nhớ tạm (Đã đặt lại dữ liệu demo hệ thống)')
+      showToast('Đã làm sạch bộ nhớ đệm phía client')
       setStorageUsage(computeStorageUsage())
     }
   }
@@ -169,7 +172,7 @@ export const AdminSettingsPage: React.FC = () => {
           <div>
             <h1 className="staff-page-title">Thiết lập vận hành (Operational Settings)</h1>
             <p className="staff-page-desc">
-              Tùy biến các quy tắc học tập, ngưỡng cảnh báo, quy trình kiểm duyệt nội dung và quản trị bộ nhớ demo.
+              Tùy biến các quy tắc học tập, ngưỡng cảnh báo và quy trình kiểm duyệt nội dung.
               {settingsLoading && <span style={{ marginLeft: 8, color: '#0284c7' }}>(Đang đồng bộ từ máy chủ...)</span>}
             </p>
           </div>
@@ -208,7 +211,7 @@ export const AdminSettingsPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="form-label" htmlFor="set-lang">Ngôn ngữ giao diện demo</label>
+              <label className="form-label" htmlFor="set-lang">Ngôn ngữ giao diện</label>
               <select
                 id="set-lang"
                 className="form-input"
@@ -351,18 +354,6 @@ export const AdminSettingsPage: React.FC = () => {
               />
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', marginTop: 24 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={settings.enableDemoAlerts}
-                  onChange={(e) => setSettings({ ...settings, enableDemoAlerts: e.target.checked })}
-                />
-                <span style={{ fontSize: '0.9rem', color: '#102a43' }}>
-                  Kích hoạt thông báo cảnh báo demo trong thanh Topbar
-                </span>
-              </label>
-            </div>
           </div>
         </div>
 
@@ -386,7 +377,7 @@ export const AdminSettingsPage: React.FC = () => {
               type="button"
               className="btn btn-outline btn-sm"
               onClick={handleClearCache}
-              aria-label="Xóa toàn bộ dữ liệu demo & Reset trạng thái"
+              aria-label="Làm sạch bộ nhớ tạm trình duyệt"
             >
               <Trash2 size={14} style={{ marginRight: 6 }} />
               <span>Làm sạch bộ nhớ tạm trình duyệt</span>

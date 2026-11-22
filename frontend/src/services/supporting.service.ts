@@ -54,57 +54,9 @@ export async function getAchievements(): Promise<AchievementItem[]> {
     return []
   }
 
-  try {
-    const stats = await apiClient.get<any>('/api/v1/practice/dashboard-stats')
-    return [
-      {
-        id: 'ach-01',
-        title: 'Khởi đầu nan',
-        description: 'Hoàn thành bài luyện tập đầu tiên',
-        icon: '🎯',
-        progress: Math.min(1, stats?.totalQuestionsPracticed || 0),
-        target: 1,
-        isUnlocked: (stats?.totalQuestionsPracticed || 0) > 0,
-        unlockedDate: stats?.recentAttempts?.[0]?.completedAt || undefined,
-        xpReward: 50,
-      },
-      {
-        id: 'ach-02',
-        title: 'Chiến binh kiên trì',
-        description: 'Học tập liên tục 3 ngày',
-        icon: '🔥',
-        progress: Math.min(3, stats?.streakDays || 0),
-        target: 3,
-        isUnlocked: (stats?.streakDays || 0) >= 3,
-        unlockedDate: (stats?.streakDays || 0) >= 3 ? new Date().toISOString() : undefined,
-        xpReward: 100,
-      },
-      {
-        id: 'ach-03',
-        title: 'Bách phát bách trúng',
-        description: 'Đạt độ chính xác từ 80% trở lên',
-        icon: '⭐',
-        progress: Math.min(80, Math.round(stats?.accuracyRate || 0)),
-        target: 80,
-        isUnlocked: (stats?.accuracyRate || 0) >= 80 && (stats?.totalQuestionsPracticed || 0) >= 5,
-        unlockedDate: (stats?.accuracyRate || 0) >= 80 && (stats?.totalQuestionsPracticed || 0) >= 5 ? new Date().toISOString() : undefined,
-        xpReward: 150,
-      },
-      {
-        id: 'ach-04',
-        title: 'Chinh phục bài học',
-        description: 'Hoàn thành 1 bài học lý thuyết hoặc chuyên đề',
-        icon: '📚',
-        progress: Math.min(1, stats?.completedLessons || 0),
-        target: 1,
-        isUnlocked: (stats?.completedLessons || 0) >= 1,
-        unlockedDate: (stats?.completedLessons || 0) >= 1 ? new Date().toISOString() : undefined,
-        xpReward: 80,
-      },
-    ]
-  } catch {
-    return []
-  }
+  // The backend does not persist achievements yet. Return a truthful empty state
+  // instead of manufacturing badges and unlock dates from unrelated statistics.
+  return []
 }
 
 export async function getUserProfile(): Promise<UserProfileData | null> {
@@ -125,15 +77,15 @@ export async function getUserProfile(): Promise<UserProfileData | null> {
     name: authUser.displayName || 'Học viên',
     avatar: '',
     grade: authUser.grade ? `Lớp ${authUser.grade}` : 'Chưa cập nhật',
-    school: 'THPT',
-    studyGoal: 'Chinh phục kỳ thi THPT với điểm số mục tiêu',
+    school: '',
+    studyGoal: '',
     streakDays: stats?.streakDays ?? 0,
-    totalXP: stats ? (stats.totalCorrectAnswers || 0) * 10 : 0,
+    totalXP: 0,
     studyHours: stats ? Math.round(((stats.totalStudyMinutes || 0) / 60) * 10) / 10 : 0,
     completedLessons: stats?.completedLessons ?? 0,
     subjectStats: stats?.subjectProgress?.map((s: any) => ({
       subjectId: s.subjectId,
-      subjectName: s.subjectName,
+      name: s.subjectName,
       completedLessons: s.completedLessons,
       totalLessons: s.totalLessons,
       progress: s.progressPercent,
@@ -142,7 +94,6 @@ export async function getUserProfile(): Promise<UserProfileData | null> {
 }
 
 export async function getUserSettings(): Promise<UserSettingsData> {
-  await new Promise((resolve) => setTimeout(resolve, 150))
   const storageKey = getStorageKey('user_settings')
   const saved = typeof window !== 'undefined' ? localStorage.getItem(storageKey) : null
   if (saved) {
@@ -156,7 +107,6 @@ export async function getUserSettings(): Promise<UserSettingsData> {
 }
 
 export async function updateUserSettings(settings: Partial<UserSettingsData>): Promise<UserSettingsData> {
-  await new Promise((resolve) => setTimeout(resolve, 150))
   const current = await getUserSettings()
   const updated = { ...current, ...settings }
   const storageKey = getStorageKey('user_settings')

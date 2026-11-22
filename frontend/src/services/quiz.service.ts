@@ -1,52 +1,21 @@
-import { apiClient } from '@/lib/apiClient'
-import { getAccessToken } from '@/auth/authSession'
-import { mockQuizzes } from '@/data/quiz.mock'
 import type { QuizDetail, QuizResultReport, QuizSubmissionAnswer } from '@/types/quiz'
 
-declare const process: { env?: { NODE_ENV?: string } } | undefined
+const isTestEnvironment = (): boolean => import.meta.env.MODE === 'test'
+
+async function getTestQuizzes() {
+  if (!isTestEnvironment()) {
+    throw new Error('Test fixtures are unavailable outside the test runner.')
+  }
+  return (await import('@/data/quiz.mock')).mockQuizzes
+}
 
 export async function getQuiz(quizId: string): Promise<QuizDetail | null> {
-  if (getAccessToken()) {
-    try {
-      const asm = await apiClient.get<any>(`/api/v1/content/assessments/${quizId}`)
-      if (asm && asm.id) {
-        return {
-          id: asm.id,
-          title: asm.lessonTitle || asm.title,
-          subjectId: asm.subjectId || 'sub_math12',
-          subjectName: asm.subjectName || 'Toán học',
-          lessonId: asm.lessonId || undefined,
-          lessonTitle: asm.lessonTitle || undefined,
-          durationMinutes: asm.durationMinutes || 15,
-          totalQuestions: asm.questions?.length ?? asm.questionCount ?? 0,
-          passingScore: asm.passingScore || 80,
-          rewardXP: 50,
-          questions: (asm.questions || []).map((q: any, idx: number) => ({
-            id: q.id,
-            number: idx + 1,
-            question: q.prompt,
-            options: (q.options || []).map((o: any) => ({
-              id: o.id,
-              label: o.label || '',
-              text: o.text || o.label,
-            })),
-            correctOptionId: q.correctOptionId || '',
-            explanation: q.explanation || '',
-            conceptTag: q.conceptTag || '',
-          })),
-        }
-      }
-    } catch {
-      // ignore and continue
-    }
-  }
-
-  if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test' && !getAccessToken()) {
+  if (isTestEnvironment()) {
+    const mockQuizzes = await getTestQuizzes()
     const quiz = mockQuizzes[quizId]
     return quiz ? { ...quiz } : null
   }
-
-  return null
+  throw new Error('Luồng quiz cũ đã được thay bằng Luyện tập có chấm điểm phía máy chủ.')
 }
 
 export async function submitQuiz(
@@ -54,7 +23,8 @@ export async function submitQuiz(
   answers: QuizSubmissionAnswer[],
   timeTakenSeconds = 180
 ): Promise<QuizResultReport> {
-  if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test' && !getAccessToken()) {
+  if (isTestEnvironment()) {
+    const mockQuizzes = await getTestQuizzes()
     const quiz = mockQuizzes[quizId] || mockQuizzes['quiz-math-08']
 
     let correctCount = 0
@@ -98,11 +68,12 @@ export async function submitQuiz(
     }
   }
 
-  throw new Error('Chưa đăng nhập hoặc không tìm thấy bài kiểm tra hợp lệ.')
+  throw new Error('Luồng quiz cũ đã được thay bằng Luyện tập có chấm điểm phía máy chủ.')
 }
 
 export async function getLatestQuizResult(quizId: string): Promise<QuizResultReport | null> {
-  if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test' && !getAccessToken()) {
+  if (isTestEnvironment()) {
+    const mockQuizzes = await getTestQuizzes()
     const quiz = mockQuizzes[quizId]
     if (!quiz) return null
     return {
@@ -120,5 +91,5 @@ export async function getLatestQuizResult(quizId: string): Promise<QuizResultRep
       answers: [],
     }
   }
-  return null
+  throw new Error('Luồng kết quả quiz cũ đã được thay bằng lịch sử Luyện tập trên máy chủ.')
 }

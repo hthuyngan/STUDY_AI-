@@ -37,6 +37,24 @@ namespace StudyAI.Infrastructure.Migrations
                 nullable: false,
                 defaultValue: new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)));
 
+            // Existing deployments used a non-unique index and may contain duplicate
+            // version numbers. Re-number deterministically before enforcing uniqueness.
+            migrationBuilder.Sql("""
+                WITH ranked AS
+                (
+                    SELECT Id,
+                           ROW_NUMBER() OVER (
+                               PARTITION BY ContentId
+                               ORDER BY CreatedAt, Id
+                           ) AS NewVersion
+                    FROM content_revisions
+                )
+                UPDATE revisions
+                SET Version = ranked.NewVersion
+                FROM content_revisions AS revisions
+                INNER JOIN ranked ON ranked.Id = revisions.Id;
+                """);
+
             migrationBuilder.CreateIndex(
                 name: "IX_content_revisions_ContentId_Version",
                 table: "content_revisions",

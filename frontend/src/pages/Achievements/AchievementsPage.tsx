@@ -111,8 +111,16 @@ export function AchievementsPage() {
       <div className="badges-section">
         <h2 className="badges-section-title">Huy hiệu đạt được</h2>
 
-        <div className="badges-grid">
-          {achievements.map((ach) => {
+        {achievements.length === 0 ? (
+          <Card className="badge-card-item">
+            <h3 className="badge-title">Chưa có dữ liệu thành tích</h3>
+            <p className="badge-desc">
+              Hệ thống chưa cung cấp thành tích đã được lưu trên máy chủ.
+            </p>
+          </Card>
+        ) : (
+          <div className="badges-grid">
+            {achievements.map((ach) => {
             const isUnlocked = ach.isUnlocked
             return (
               <Card
@@ -160,8 +168,9 @@ export function AchievementsPage() {
                 </div>
               </Card>
             )
-          })}
-        </div>
+            })}
+          </div>
+        )}
       </div>
     </div>
   )

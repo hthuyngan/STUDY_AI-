@@ -286,7 +286,7 @@ describe('Admin Workspace V5 — Operations, Content Approval & Quality Control 
       })
     })
 
-    it('resets demo data to factory defaults when triggered', async () => {
+    it('clears client-side cache when triggered', async () => {
       const user = userEvent.setup()
       render(
         <MemoryRouter initialEntries={['/admin/settings']}>
@@ -295,14 +295,14 @@ describe('Admin Workspace V5 — Operations, Content Approval & Quality Control 
       )
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /xóa toàn bộ dữ liệu demo/i })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /làm sạch bộ nhớ tạm trình duyệt/i })).toBeInTheDocument()
       })
 
-      const resetBtn = screen.getByRole('button', { name: /xóa toàn bộ dữ liệu demo/i })
+      const resetBtn = screen.getByRole('button', { name: /làm sạch bộ nhớ tạm trình duyệt/i })
       await user.click(resetBtn)
 
       await waitFor(() => {
-        expect(screen.getByText(/đã đặt lại dữ liệu demo hệ thống/i)).toBeInTheDocument()
+        expect(screen.getByText(/đã làm sạch bộ nhớ đệm phía client/i)).toBeInTheDocument()
       })
     })
   })
