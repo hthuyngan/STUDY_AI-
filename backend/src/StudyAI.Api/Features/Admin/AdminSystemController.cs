@@ -1,8 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using StudyAI.Application.Features.Admin.System;
 
-namespace StudyAI.Api.Features.Admin;
+namespace StudyAI.Features.Admin;
 
 [ApiController]
 [Route("api/v1/admin/system")]

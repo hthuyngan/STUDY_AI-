@@ -1,9 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using StudyAI.Application.Common.Interfaces;
-using StudyAI.Application.DTOs;
 
-namespace StudyAI.Api.Features.Admin;
+namespace StudyAI.Features.Admin;
 
 [Authorize(Roles = "admin")]
 [ApiController]
@@ -73,4 +71,3 @@ public class AiAdminController : ControllerBase
         });
     }
 }
-

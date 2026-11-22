@@ -1,10 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using StudyAI.Application.DTOs;
-using StudyAI.Application.Features.Admin.Announcements;
 
-namespace StudyAI.Api.Features.Admin;
+namespace StudyAI.Features.Admin;
 
 [ApiController]
 [Route("api/v1/admin/announcements")]

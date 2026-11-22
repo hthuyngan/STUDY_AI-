@@ -1,10 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using StudyAI.Application.DTOs;
-using StudyAI.Application.Features.Admin.Operations;
 
-namespace StudyAI.Api.Features.Admin;
+namespace StudyAI.Features.Admin;
 
 [Authorize(Roles = "admin")]
 [ApiController]
