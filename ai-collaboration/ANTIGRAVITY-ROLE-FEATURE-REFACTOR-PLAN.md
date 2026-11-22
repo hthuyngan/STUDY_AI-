@@ -8,6 +8,16 @@
 > Repository tham khảo cách tổ chức feature: `https://github.com/nguyendz2k4/DuAnTuyenDung`  
 > Commit tham khảo đã audit: `19998ad`
 
+## Progress Checklist & Tracking
+- [x] **Phase 0 — Inventory và Architecture Guard** (Baseline, docs, route snapshot, architecture tests pass)
+- [ ] **Phase 1 — Common Foundation** (CurrentUser, Permissions, Result/Exception model, Global Exception Middleware, UnitOfWork, AuditWriter)
+- [ ] **Phase 2 — Public và Identity/Admin Users** (Auth, Health, Admin split thin controllers, Application services)
+- [ ] **Phase 3 — Content/Curriculum** (Curriculum & Content controllers split, Application workflow services)
+- [ ] **Phase 4 — Teacher** (Classroom, Student ownership, Assignment, Submissions, Grading, Analytics)
+- [ ] **Phase 5 — Learner** (Profile, Progress, Assessment attempts, Learning events, Practice, Assignments, Dashboard)
+- [ ] **Phase 6 — AI Tutor và Support** (Orchestration separation, LLM provider adapters, Support workspace)
+- [ ] **Phase 7 — Cleanup & Verification** (0 DbContext in controllers, remove legacy dead code, 100% test gates pass, final docs)
+
 ## 1. Mệnh lệnh thực thi
 
 Antigravity phải đọc toàn bộ tài liệu này trước khi sửa code. Hãy refactor toàn bộ Backend STUDY_AI theo cách tổ chức quen thuộc của `DuAnTuyenDung`: code được nhóm theo role/workspace và feature, Controller/DTO/interface/service dễ tìm cạnh nhau về mặt đường dẫn logic. Đồng thời tối ưu Frontend theo cùng feature và API Backend.
