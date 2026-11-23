@@ -2,223 +2,258 @@
 
 > **Ngày lập kế hoạch:** 2026-11-23  
 > **Nhánh thực hiện:** `audit/fullstack-quality-plan-20261123`  
+> **Pull Request:** [Draft PR #22](https://github.com/hthuyngan/STUDY_AI-/pull/22)  
+> **Trạng thái Codex Review:** `REVIEW_BLOCKED_USAGE_LIMIT` (Yêu cầu review thất bại do chạm giới hạn hạn ngạch tài khoản GitHub; kế hoạch sẽ được nghiệm thu lại khi quota phục hồi).  
 > **Tài liệu kiểm toán gốc:** `docs/audit/FULLSTACK_QUALITY_AUDIT_20261123.md`  
-> **Nguyên tắc:** Kế hoạch thực hiện theo từng giai đoạn độc lập (Phased Execution), kiểm thử nghiêm ngặt sau mỗi giai đoạn, fail-closed và bảo vệ tuyệt đối database `StudyAIDb`.
+> **Chế độ thực hiện:** **AUDIT & PLAN ONLY — TUYỆT ĐỐI CHƯA SỬA MÃ NGUỒN.**
 
 ---
 
-## I. MỤC TIÊU VÀ TRIẾT LÝ THỰC HIỆN
+## I. NGUYÊN TẮC VÀ ĐIỀU KIỆN TIÊN QUYẾT
 
-Kế hoạch này vạch ra lộ trình chi tiết để khắc phục triệt để các lỗi đã được xác minh trong đợt kiểm toán ngày 2026-11-23.
+Kế hoạch này được xây dựng dựa trên các phát hiện đã kiểm chứng thực tế tại `docs/audit/FULLSTACK_QUALITY_AUDIT_20261123.md`. Quá trình thực hiện phải tuân thủ nghiêm ngặt các nguyên tắc sau:
 
-### Các nguyên tắc bắt buộc:
-1. **Server-Side Grading Authority:** Server là cơ quan duy nhất có quyền chấm điểm và xác nhận kết quả làm bài của học sinh. Loại bỏ hoàn toàn sự tin tưởng vào `ScoreRaw`/`IsCorrect` từ payload client.
-2. **Zero-Mock & Zero-Silent-Fallback:** Loại bỏ hoàn toàn các nhánh lưu dữ liệu giả vào `localStorage` khi người dùng đã xác thực. Nếu API lỗi, hiển thị UI lỗi và nút thử lại (retry), không giả vờ thành công.
-3. **Strict Contract Alignment:** Đồng bộ 100% route contract giữa Frontend React và Backend ASP.NET Core. Sửa các endpoint sai chính tả và cập nhật DTO tương ứng.
-4. **CSS Scoping & Token Normalization:** Loại bỏ mã CSS trùng lặp, xóa bỏ selector toàn cục không scope và bổ sung alias đầy đủ cho 49 token chưa khai báo.
-5. **Database Protection:** Tuyệt đối không chạm vào `StudyAIDb`. Toàn bộ kiểm thử SQL integration phải chạy trên `StudyAIDb_E2E`.
+1. **Server-Side Grading Authority:** Toàn quyền tính toán điểm số và trạng thái câu trả lời thuộc về server. Loại bỏ hoàn toàn sự tin tưởng vào điểm số từ payload client.
+2. **Loại bỏ Side-Effect nguy hiểm:** Tách biệt rõ ràng giữa logic chấm bài tập của giáo viên và việc quản lý danh mục môn học / chủ đề. Không cho phép hành động chấm bài tự ý chèn dữ liệu vào bảng danh mục.
+3. **Zero-Mock & Zero-Silent-Fallback:** Khi người dùng đã xác thực, nếu API thất bại phải hiển thị lỗi rõ ràng trên giao diện người dùng; không âm thầm nuốt ngoại lệ hay fallback vào localStorage.
+4. **Không tự ý mở rộng Schema hoặc tạo API mới:** Giữ nguyên phạm vi xử lý; không tạo thêm bảng hay database migration ngoài kế hoạch khi chưa có yêu cầu nghiệp vụ rõ ràng từ sản phẩm.
+5. **Bảo vệ tuyệt đối cơ sở dữ liệu sản xuất:** Nghiêm cấm chạy migration, seed hoặc write test trên `StudyAIDb`. Mọi thử nghiệm ghi dữ liệu phải chạy trên `StudyAIDb_E2E`.
 
 ---
 
-## II. LỘ TRÌNH KHẮC PHỤC THEO GIAI ĐOẠN (PHASED ROADMAP)
+## II. LỘ TRÌNH KHẮC PHỤC CHI TIẾT THEO GIAI ĐOẠN (5 PHASES)
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
 │  PHASE 1: Bảo mật, Liêm chính thi cử & Phân quyền (SEC-01, SEC-02)     │
-│  - Chấm điểm bài thi tại Server trong StudentAssessmentService         │
-│  - Guard chống Admin tự khóa / tự hạ quyền trong UpdateUserAsync       │
+│  - Chấm điểm server-side theo loại câu hỏi, thang điểm và trạng thái   │
+│  - Guard chống Admin tự khóa / tự hạ quyền & Revoke Session            │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │
 ┌───────────────────────────────────▼────────────────────────────────────┐
-│  PHASE 2: Đồng bộ Contract & Sửa API Mismatch (API-01, DATA-01)        │
-│  - Chuẩn hóa 3 endpoint AI Governance trong teacherManagement.service  │
-│  - Chuẩn hóa lưu Topic Mastery từ Assignment theo Topic/Skill chuẩn    │
+│  PHASE 2: Đồng bộ Contract & Xử lý Side-Effect (API-01, DATA-01)       │
+│  - Chuẩn hóa 3 endpoint AI Governance & thêm alias tương thích ngược   │
+│  - Xóa bỏ suy đoán môn học, mặc định sub_math10 & INSERT ContentSubject│
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │
 ┌───────────────────────────────────▼────────────────────────────────────┐
 │  PHASE 3: Xóa bỏ Mock Fallback & Sửa lỗi LocalStorage (MOCK-01..04)    │
-│  - Sửa lỗi quăng Exception giả khi xóa lớp/bài tập trong classroom.ts  │
-│  - Loại bỏ fallback localStorage trong operations.service.ts           │
-│  - Bổ sung API lưu trữ UserSettings trên backend                       │
+│  - Sửa lỗi ném Exception giả khi xóa lớp học / bài tập trong classroom │
+│  - Loại bỏ nuốt ngoại lệ âm thầm trong getAnnouncements & getLibrary   │
+│  - Chuẩn hóa client preferences không sinh theme cũ                    │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │
 ┌───────────────────────────────────▼────────────────────────────────────┐
 │  PHASE 4: Chuẩn hóa Kiến trúc CSS & Design Tokens (CSS-01..04)         │
-│  - Dọn dẹp >580 dòng trùng lặp trong DashboardPage.css                 │
+│  - Xóa bỏ >580 dòng trùng lặp trong DashboardPage.css                  │
 │  - Scope selector input[type='text'] trong ContentPages.css            │
 │  - Khai báo token alias trong tokens.css cho 49 biến CSS               │
-│  - Tăng z-index dropdown menu trong staff-shared.css                   │
+│  - Nâng z-index action dropdown trong staff-shared.css lên layer 300   │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │
 ┌───────────────────────────────────▼────────────────────────────────────┐
 │  PHASE 5: Kiểm định Toàn diện & Báo cáo Nghiệm thu (Verification)      │
 │  - Chạy full test suite: Oxlint + Vitest + Vite Build + Dotnet Tests  │
-│  - Kiểm thử Playwright E2E trên các luồng đã sửa                       │
+│  - Chạy SQL Integration Tests trên database StudyAIDb_E2E cô lập       │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## III. CHI TIẾT KỸ THUẬT TỪNG GIAI ĐOẠN
+## III. THIẾT KẾ KỸ THUẬT VÀ PHƯƠNG ÁN TRIỂN KHAI
 
 ### GIAI ĐOẠN 1: BẢO MẬT, LIÊM CHÍNH THI CỬ & PHÂN QUYỀN
-**Mục tiêu:** Khắc phục SEC-01 và SEC-02.
 
-#### 1.1 Chấm điểm Server-side cho StudentAssessmentService (SEC-01)
+#### 1.1 Hoàn thiện Chấm điểm Server-side cho StudentAssessmentService (SEC-01)
 - **Tệp chỉnh sửa:** `backend/src/StudyAI.Api/Features/Student/StudentAssessmentService.cs`
-- **Phương thức:** `SaveAttemptInternal`
-- **Logic khắc phục:**
-  1. Khi nhận danh sách `dto.Responses`, server truy vấn bảng `ContentQuestions` theo danh sách `questionId`.
-  2. Với mỗi câu trả lời của học sinh:
-     - So khớp `SelectedOptionIds` với `ContentQuestion.CorrectAnswer`.
-     - Tự động gán `resp.IsCorrect = isMatched`.
-     - Không bao giờ gán trực tiếp `resp.IsCorrect = rDto.IsCorrect`.
-  3. Tính toán tổng số câu đúng:
-     - `int totalCorrect = attempt.Responses.Count(r => r.IsCorrect == true);`
-     - `attempt.ScoreRaw = totalCorrect;`
-     - `attempt.ScoreScaled = totalQuestions > 0 ? Math.Round((double)totalCorrect / totalQuestions * 10.0, 1) : 0.0;`
-  4. Nếu `dto.CompletionStatus == "completed"`, cập nhật `CompletedAt = _clock.UtcNow` và khóa phiên vĩnh viễn.
+- **Hàm chỉnh sửa:** `SaveAttemptInternal`
+- **Logic dự kiến triển khai:**
+  1. *Lấy danh sách câu hỏi:*
+     - Lấy danh sách ID câu hỏi từ `dto.Responses.Keys`.
+     - Truy vấn `_db.ContentQuestions.AsNoTracking().Where(q => questionIds.Contains(q.Id))` để lấy đáp án chuẩn.
+  2. *Chấm điểm theo loại câu hỏi (Question Types):*
+     - `multiple-choice`: So khớp `SelectedOptionIds.FirstOrDefault()?.Trim()` với `q.CorrectAnswer.Trim()`. Khớp (không phân biệt hoa thường) -> `IsCorrect = true`.
+     - `multiple-select`: Parse `q.CorrectAnswer` thành mảng string. So sánh tập hợp ID đã chọn với tập hợp đáp án đúng. Toàn bộ trùng khớp -> `IsCorrect = true`.
+     - `true-false`: Chuẩn hóa `"true"`/`"false"` hoặc `"A"`/`"B"` và so sánh trực tiếp.
+     - `short-answer`: Chuẩn hóa chuỗi số hoặc biểu thức văn bản bằng hàm chuẩn hóa trước khi so sánh với `q.CorrectAnswer`.
+     - Tuyệt đối KHÔNG gán `resp.IsCorrect = rDto.IsCorrect` từ payload client.
+  3. *Thang điểm (Scoring Scale):*
+     - Mỗi câu đúng cộng 1.0 điểm (hoặc theo trọng số câu hỏi): `ScoreRaw = correctCount`.
+     - `ScoreMin = 0.0`, `ScoreMax = totalQuestions`.
+     - `ScoreScaled = totalQuestions > 0 ? Math.Round((double)correctCount / totalQuestions * 10.0, 1) : 0.0`.
+  4. *Trạng thái bài thi (Attempt Lifecycle):*
+     - Nếu `dto.CompletionStatus == "in_progress"`: Lưu các câu trả lời học sinh đã chọn, tích lũy thời gian làm bài, nhưng KHÔNG trả về `IsCorrect`, `Explanation`, `CorrectAnswer` cho học sinh.
+     - Nếu `dto.CompletionStatus == "completed"`: Đánh dấu bài làm hoàn thành, gán `CompletedAt = _clock.UtcNow`, cập nhật `SuccessStatus` (`"passed"` nếu `ScoreScaled >= 5.0`), và khóa phiên làm bài.
+     - Kiểm tra: Nếu attempt đã có `CompletionStatus == "completed"`, mọi yêu cầu cập nhật tiếp theo đều ném `ConflictException("Phiên làm bài đã hoàn thành không thể chỉnh sửa.")`.
+- **Tác động:**
+  - FE: Không cần tự tính điểm, hiển thị điểm chính thức do server trả về.
+  - BE: Chấm điểm an toàn, vô hiệu hóa hoàn toàn việc gian lận điểm qua HTTP client.
+  - SQL: Không đổi schema, lưu trữ kết quả trung thực.
+- **Regression Tests:** Viết unit test gửi payload với `scoreRaw: 100`, `isCorrect: true` nhưng chọn đáp án sai; kiểm chứng server lưu `ScoreRaw = 0.0`.
 
 #### 1.2 Bổ sung Guard tự khóa / tự hạ quyền và Revoke Session (SEC-02)
 - **Tệp chỉnh sửa:** `backend/src/StudyAI.Api/Features/Admin/AdminUsersService.cs`
-- **Phương thức:** `UpdateUserAsync`
-- **Logic khắc phục:**
-  1. Thêm kiểm tra:
-     ```csharp
-     if (user.Id == currentUserId)
-     {
-         if (!string.IsNullOrWhiteSpace(req.Role) && req.Role.Trim().ToLowerInvariant() != "admin")
-             throw new ForbiddenException("Không thể tự hạ quyền quản trị viên của chính mình.");
-         if (!string.IsNullOrWhiteSpace(req.Status) && req.Status.Trim().ToLowerInvariant() != "active")
-             throw new ForbiddenException("Không thể tự khóa tài khoản của chính mình.");
-     }
-     ```
-  2. Khi cập nhật trạng thái sang `disabled` hoặc `suspended`:
-     ```csharp
-     if (user.Status is "suspended" or "disabled")
-     {
-         await RevokeUserSessionsAsync(userId, currentUserId, ct);
-     }
-     ```
+- **Hàm chỉnh sửa:** `UpdateUserAsync`
+- **Logic dự kiến triển khai:**
+  ```csharp
+  if (user.Id == currentUserId)
+  {
+      if (!string.IsNullOrWhiteSpace(req.Role) && req.Role.Trim().ToLowerInvariant() != "admin")
+      {
+          throw new ForbiddenException("Không thể tự hạ quyền quản trị viên của chính mình.");
+      }
+      if (!string.IsNullOrWhiteSpace(req.Status) && req.Status.Trim().ToLowerInvariant() != "active")
+      {
+          throw new ForbiddenException("Không thể tự khóa tài khoản của chính mình.");
+      }
+  }
+  ```
+  Khi cập nhật trạng thái người dùng sang `suspended` hoặc `disabled`:
+  ```csharp
+  if (user.Status is "suspended" or "disabled")
+  {
+      await RevokeUserSessionsAsync(userId, currentUserId, ct);
+  }
+  ```
+- **Tác động:**
+  - Ngăn ngừa tình trạng toàn bộ hệ thống bị mất quyền quản trị viên do admin vô tình tự đổi role hoặc tự khóa mình.
+- **Regression Tests:** Unit test gọi `UpdateUserAsync` với `userId == currentUserId` và `role = learner`, xác nhận trả về HTTP 403 Forbidden.
 
 ---
 
-### GIAI ĐOẠN 2: ĐỒNG BỘ CONTRACT & CHUẨN HÓA DỮ LIỆU
-**Mục tiêu:** Khắc phục API-01 và DATA-01.
+### GIAI ĐOẠN 2: ĐỒNG BỘ CONTRACT & XỬ LÝ SIDE-EFFECT NGUY HIỂM
 
-#### 2.1 Sửa đổi Endpoint AI Governance (API-01)
-- **Tệp chỉnh sửa:** `frontend/src/services/teacherManagement.service.ts`
-- **Thay đổi cụ thể:**
-  1. Đổi `/api/v1/content/governance/quality-audit`  
-     -> `/api/v1/content/governance/ai-audit`
-  2. Đổi `/api/v1/content/governance/lesson-authoring/outline`  
-     -> `/api/v1/content/governance/ai-authoring/outline`
-  3. Đổi `/api/v1/content/governance/lesson-authoring/checkpoint-questions`  
-     -> `/api/v1/content/governance/ai-authoring/questions`
-- **Backend hỗ trợ alias:** Thêm route alias trên `ContentGovernanceController.cs` để hỗ trợ cả 2 chuẩn, đảm bảo backward compatibility.
+#### 2.1 Chuẩn hóa Route AI Governance (API-01)
+- **Tệp chỉnh sửa:**
+  - `frontend/src/services/teacherManagement.service.ts`:
+    - Đổi `/api/v1/content/governance/quality-audit` -> `/api/v1/content/governance/ai-audit`.
+    - Đổi `/api/v1/content/governance/lesson-authoring/outline` -> `/api/v1/content/governance/ai-authoring/outline`.
+    - Đổi `/api/v1/content/governance/lesson-authoring/checkpoint-questions` -> `/api/v1/content/governance/ai-authoring/questions`.
+  - `backend/src/StudyAI.Api/Features/Content/ContentGovernanceController.cs`:
+    - Bổ sung route alias cho các action tương ứng để hỗ trợ cả 2 chuẩn, đảm bảo backward compatibility.
+- **Tác động:**
+  - Loại bỏ hoàn toàn lỗi 404 khi giáo viên sử dụng các công cụ AI hỗ trợ soạn giáo án.
+- **Regression Tests:** Vitest kiểm chứng các hàm trong `teacherManagement.service.ts` gọi đúng route mới; integration test kiểm chứng cả hai route alias đều trả về HTTP 200/201.
 
-#### 2.2 Chuẩn hóa Topic Mastery Attribution (DATA-01)
+#### 2.2 Xử lý Side-Effect trong Quá trình Chấm Bài (DATA-01)
 - **Tệp chỉnh sửa:** `backend/src/StudyAI.Api/Features/Teacher/TeacherSubmissionsService.cs`
-- **Phương thức:** `GradeSubmissionAsync`
-- **Logic khắc phục:**
-  - Thay vì lấy `assignment.Title` làm topic name tự do, bổ sung trường tùy chọn `TopicId` hoặc ánh xạ qua bảng `ContentLessons` / `ContentChapters`.
-  - Nếu bài tập không gắn với Topic cụ thể, ghi nhận điểm số vào Assignment Submission mà không tạo Topic Mastery rác.
+- **Hàm chỉnh sửa:** `GradeSubmissionAsync`
+- **Logic dự kiến triển khai:**
+  1. *Lấy SubjectId chuẩn:*
+     - Lấy trực tiếp từ lớp học: `string? subjectId = assignment.Classroom?.Subject;`.
+     - Nếu không có, để `subjectId = null`, tuyệt đối không dùng heuristic tìm chuỗi trong tiêu đề bài tập và không mặc định `sub_math10`.
+  2. *Loại bỏ Side-effect tự tạo ContentSubject:*
+     - Xóa bỏ hoàn toàn khối lệnh:
+       ```csharp
+       // XÓA BỎ HOÀN TOÀN KHỐI NÀY:
+       var subjectExists = await _db.ContentSubjects.AnyAsync(...);
+       if (!subjectExists && resolvedSubjectId.StartsWith("sub_math")) {
+           _db.ContentSubjects.Add(new ContentSubject { ... });
+           await _db.SaveChangesAsync(cancellationToken);
+       }
+       ```
+     - Chấm điểm là nghiệp vụ giao dịch kết quả học tập của học sinh, không được phép can thiệp vào bảng danh mục chương trình học.
+  3. *Chuẩn hóa cập nhật Topic Mastery:*
+     - Chỉ cập nhật `StudentTopicMastery` nếu bài tập có liên kết với `LessonId` hoặc `TopicId` chuẩn trong hệ thống.
+     - Nếu bài tập chỉ có tiêu đề tự do (ví dụ: "Kiểm tra 15 phút"), chỉ cập nhật điểm số và phản hồi vào bảng `AssignmentSubmission`, không tạo hoặc cập nhật `StudentTopicMastery` bằng chuỗi tự do.
+- **Tác động:**
+  - Bảo vệ tính toàn vẹn của bảng `ContentSubjects` và không làm sai lệch biểu đồ radar năng lực của học sinh.
+- **Regression Tests:** Viết test chấm điểm bài tập với tiêu đề "Kiểm tra 15 phút tuần 1", kiểm tra `_db.ContentSubjects` không phát sinh bản ghi mới và `_db.StudentTopicMasteries` không bị chèn chuỗi tự do.
 
 ---
 
 ### GIAI ĐOẠN 3: XÓA BỎ MOCK FALLBACK & LOCALSTORAGE
-**Mục tiêu:** Khắc phục MOCK-01, MOCK-02, MOCK-03, MOCK-04.
 
-#### 3.1 Sửa lỗi quăng ngoại lệ giả khi xóa lớp và bài tập (MOCK-01)
+#### 3.1 Sửa lỗi ném ngoại lệ giả khi xóa Lớp học và Bài tập (MOCK-01)
 - **Tệp chỉnh sửa:** `frontend/src/services/classroom.service.ts`
-- **Phương thức:** `deleteClass`, `deleteAssignment`
-- **Logic khắc phục:**
+- **Hàm chỉnh sửa:** `deleteClass`, `deleteAssignment`
+- **Logic dự kiến triển khai:**
   ```typescript
   async deleteClass(classId: string): Promise<void> {
     if (getAccessToken()) {
       await apiClient.delete(`/api/v1/classrooms/${classId}`)
-      // Xóa bỏ hoàn toàn lời gọi loadFromStorage gây quăng ngoại lệ giả
+      // Xóa bỏ dòng loadFromStorage và saveToStorage gây ném ngoại lệ giả
       return
     }
     ...
   }
   ```
+  Áp dụng tương tự cho `deleteAssignment`.
+- **Tác động:**
+  - Khi xóa lớp học hoặc bài tập thành công trên server, giao diện thông báo toast thành công thay vì thông báo lỗi đỏ giả.
+- **Regression Tests:** Vitest mô phỏng có token hợp lệ, gọi `deleteClass` và kiểm chứng hàm hoàn thành mà không ném ngoại lệ.
 
-#### 3.2 Loại bỏ LocalStorage Fallback trong Operations Service (MOCK-02)
+#### 3.2 Minh bạch hóa xử lý lỗi trong Operations Service (MOCK-02)
 - **Tệp chỉnh sửa:** `frontend/src/services/operations.service.ts`
-- **Logic khắc phục:**
-  - Trong `approveContent`, `rejectContent`, `requestChanges`, `publishContent`, khi đã xác thực, nếu API trả về lỗi thì quăng lỗi hiển thị trên UI, không âm thầm ghi vào `STORAGE_KEYS.APPROVALS`.
+- **Hàm chỉnh sửa:** `getAnnouncements`, `submitForApproval`
+- **Logic dự kiến triển khai:**
+  - Trong `getAnnouncements`: Khi có token, nếu API gặp lỗi, quăng ngoại lệ ra để component hiển thị Error Alert và nút Retry; không rơi vào `catch` rồi âm thầm trả về `DEFAULT_ANNOUNCEMENTS`.
+  - Trong `submitForApproval`: Khi có token, nếu server đã tiếp nhận mà danh sách chưa kịp cập nhật, trả về đối tượng phê duyệt tạm thời dựa trên phản hồi của API thay vì ghi dữ liệu ảo vào `localStorage`.
+- **Tác động:**
+  - Đảm bảo tính trung thực 100% của dữ liệu khi người dùng đăng nhập.
+- **Regression Tests:** Vitest kiểm tra khi API thông báo lỗi, `getAnnouncements` ném lỗi thay vì trả về mảng dữ liệu mẫu.
 
-#### 3.3 Backend API lưu trữ Learner Settings (MOCK-03)
-- **Tệp chỉnh sửa:**
-  - Backend: Thêm `GET/PUT /api/v1/me/settings` vào `StudentProfileController.cs` và `StudentProfileService.cs`.
-  - Frontend: `supporting.service.ts` gọi `apiClient.get('/api/v1/me/settings')` và `apiClient.put('/api/v1/me/settings', data)`.
+#### 3.3 Chuẩn hóa Client Preferences (MOCK-03 & MOCK-04)
+- **Tệp chỉnh sửa:** `frontend/src/services/supporting.service.ts`
+- **Logic dự kiến triển khai:**
+  - Tuân thủ nguyên tắc không tạo API hay migration ngoài kế hoạch: Giữ `getUserSettings` là client preferences cục bộ, xóa bỏ việc lưu trữ `study_ai_theme` vì hệ thống đã chuyển sang Light Mode duy nhất.
+  - Trong `getLibraryItems`: Quăng lỗi thay vì nuốt ngoại lệ thành `[]` khi API thất bại.
+- **Tác động:**
+  - Giao diện thư viện hiển thị thông báo lỗi mạng rõ ràng.
+- **Regression Tests:** Vitest kiểm tra `getLibraryItems` quăng ngoại lệ khi API thất bại.
 
 ---
 
 ### GIAI ĐOẠN 4: CHUẨN HÓA KIẾN TRÚC CSS & DESIGN TOKENS
-**Mục tiêu:** Khắc phục CSS-01, CSS-02, CSS-03, CSS-04.
 
 #### 4.1 Xóa bỏ CSS trùng lặp trong DashboardPage.css (CSS-01)
 - **Tệp chỉnh sửa:** `frontend/src/pages/Dashboard/DashboardPage.css`
-- **Hành động:** Xóa bỏ toàn bộ các selector `.app-shell`, `.sidebar`, `.topbar`, `.btn-*` (dòng 8-595); chỉ giữ lại các style đặc thù của Dashboard (widget cards, metric tiles).
+- **Hành động cụ thể:** Xóa bỏ toàn bộ các khai báo layout trùng lặp từ dòng 8 đến dòng 595 (`.app-shell`, `.sidebar`, `.topbar`, `.btn-*`); chỉ giữ lại các class riêng của Dashboard (`.dashboard-container`, `.kpi-card`, `.activity-chart`).
+- **Tác động:** Tránh xung đột CSS specificity và loại bỏ hiện tượng giật giao diện (layout shift) khi chuyển trang.
 
 #### 4.2 Scope Selector trong ContentPages.css (CSS-02)
 - **Tệp chỉnh sửa:** `frontend/src/pages/Content/ContentPages.css`
-- **Hành động:** Bọc selector dòng 499 trong class cha `.content-management-page`:
+- **Hành động cụ thể:**
+  Thay thế selector dòng 499:
   ```css
-  .content-management-page input[type='text'],
-  .content-management-page select,
-  .content-management-page textarea {
+  /* TRƯỚC: Gây bleed toàn cục */
+  input[type='text'], select, textarea { font-size: 16px !important; }
+
+  /* SAU: Đã được scope an toàn */
+  .content-management-container input[type='text'],
+  .content-management-container select,
+  .content-management-container textarea {
     font-size: 16px;
   }
   ```
 
 #### 4.3 Khai báo Token Alias trong tokens.css (CSS-03)
 - **Tệp chỉnh sửa:** `frontend/src/styles/tokens.css`
-- **Hành động:** Bổ sung alias:
-  ```css
-  :root {
-    --spacing-1: var(--space-1);
-    --spacing-2: var(--space-2);
-    --spacing-3: var(--space-3);
-    --spacing-4: var(--space-4);
-    --spacing-5: var(--space-5);
-    --spacing-6: var(--space-6);
-    --spacing-8: var(--space-8);
-    
-    --primary-50: var(--brand-50);
-    --primary-100: var(--brand-100);
-    --primary-500: var(--brand-500);
-    --primary-600: var(--brand-600);
-    --primary-700: var(--brand-700);
+- **Hành động cụ thể:** Bổ sung các alias trong `:root`:
+  - `--spacing-1` đến `--spacing-8` -> trỏ về `--space-1` đến `--space-8`.
+  - `--primary-50` đến `--primary-700` -> trỏ về `--brand-50` đến `--brand-700`.
+  - `--surface-subtle`, `--surface-muted`, `--surface-hover` -> trỏ về `--bg-surface-subtle`, `--bg-surface-muted`, `--bg-surface-hover`.
+  - `--color-paper` -> `--bg-surface`; `--color-primary-navy` -> `--brand-900`.
 
-    --surface-subtle: var(--bg-surface-subtle);
-    --surface-muted: var(--bg-surface-muted);
-    --surface-hover: var(--bg-surface-hover);
-  }
-  ```
-
-#### 4.4 Tăng z-index Action Dropdown Menu (CSS-04)
-- **Tệp chỉnh sửa:** `frontend/src/components/staff/staff-shared.css:1306`
-- **Hành động:** Đổi `z-index: 100` thành `z-index: var(--ui-layer-dropdown, 300)`.
+#### 4.4 Nâng z-index Dropdown Menu (CSS-04)
+- **Tệp chỉnh sửa:** `frontend/src/components/staff/staff-shared.css`
+- **Hành động cụ thể:** Đổi `.action-dropdown-menu` từ `z-index: 100` thành `z-index: var(--ui-layer-dropdown, 300)`.
 
 ---
 
-## IV. CỔNG KIỂM THỬ VÀ ĐIỀU KIỆN CHẤP NHẬN (ACCEPTANCE GATES)
+## IV. TIÊU CHÍ NGHIỆM THU VÀ CỔNG KIỂM THỬ (ACCEPTANCE GATES)
 
-Mỗi giai đoạn phải vượt qua các cổng kiểm thử sau trước khi hợp nhất:
+Mỗi giai đoạn trước khi hoàn tất phải vượt qua 100% các cổng kiểm thử sau:
 
 1. **Frontend Gate:**
-   - `cd frontend && bun run lint` -> PASS (0 warnings, 0 errors).
-   - `cd frontend && bun run test` -> PASS (toàn bộ 79 files / >545 tests).
-   - `cd frontend && bun run build` -> PASS (0 type errors).
+   - `cd frontend && bun run lint` -> 0 warnings, 0 errors.
+   - `cd frontend && bun run test` -> 79/79 files passed, toàn bộ >545 unit tests passed.
+   - `cd frontend && bun run build` -> Hoàn thành không lỗi TypeScript.
 2. **Backend Gate:**
-   - `cd backend && dotnet build StudyAI.sln` -> PASS (0 warnings, 0 errors).
-   - `cd backend && dotnet test tests/StudyAI.UnitTests` -> PASS (263/263 tests).
-3. **Database Safety Gate:**
+   - `cd backend && dotnet build StudyAI.sln` -> 0 Warnings, 0 Errors.
+   - `cd backend && dotnet test tests/StudyAI.UnitTests/StudyAI.UnitTests.csproj` -> 263/263 passed.
+3. **Database Guard Gate:**
    - Database connection string không bao giờ trỏ vào `StudyAIDb`.
-   - Mọi test ghi phải trỏ vào `StudyAIDb_E2E` với fail-closed check.
+   - Kiểm thử SQL Integration chỉ chạy trên `StudyAIDb_E2E`.
 4. **Git Policy:**
-   - Giữ working tree sạch sẽ.
-   - Commit message theo chuẩn Conventional Commits: `fix(sec):`, `fix(contract):`, `fix(mock):`, `refactor(css):`.
+   - Git working tree sạch sẽ, commit message chuẩn Conventional Commits.
