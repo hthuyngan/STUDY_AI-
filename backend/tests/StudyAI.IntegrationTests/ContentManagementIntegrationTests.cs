@@ -3,6 +3,9 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using StudyAI.Data;
 
 using Xunit;
 
@@ -11,9 +14,11 @@ namespace StudyAI.IntegrationTests;
 public class ContentManagementIntegrationTests : IClassFixture<StudyAIApiFixture>
 {
     private readonly HttpClient _client;
+    private readonly StudyAIApiFixture _factory;
 
     public ContentManagementIntegrationTests(StudyAIApiFixture fixture)
     {
+        _factory = fixture;
         _client = fixture.CreateClient();
     }
 
@@ -308,6 +313,34 @@ public class ContentManagementIntegrationTests : IClassFixture<StudyAIApiFixture
         Assert.Equal(HttpStatusCode.OK, adminReqChangesRes.StatusCode);
         var rejectedData = await adminReqChangesRes.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal("draft", rejectedData.GetProperty("status").GetString());
+
+        // WORKSTREAM 4: State Machine - Request changes on a lesson in 'draft' status MUST RETURN 400 Bad Request
+        // Ensure that no mutation and no audit log is created
+        var auditCountBefore = 0;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            auditCountBefore = await db.StaffAuditLogs.CountAsync(l => l.TargetId == lesson2Id && l.Action == "lesson_changes_requested");
+        }
+
+        var draftReqChangesMsg = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lesson2Id}/request-changes")
+        {
+            Headers = { Authorization = adminAuthHeader },
+            Content = JsonContent.Create(new { notes = "Attempting to request changes on draft" })
+        };
+        var draftReqChangesRes = await _client.SendAsync(draftReqChangesMsg);
+        Assert.Equal(HttpStatusCode.BadRequest, draftReqChangesRes.StatusCode);
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            var lessonReloaded = await db.ContentLessons.FindAsync(lesson2Id);
+            Assert.NotNull(lessonReloaded);
+            Assert.Equal("draft", lessonReloaded.Status);
+
+            var auditCountAfter = await db.StaffAuditLogs.CountAsync(l => l.TargetId == lesson2Id && l.Action == "lesson_changes_requested");
+            Assert.Equal(auditCountBefore, auditCountAfter);
+        }
     }
 
     [Fact]

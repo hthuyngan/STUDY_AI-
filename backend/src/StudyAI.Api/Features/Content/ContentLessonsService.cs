@@ -544,8 +544,8 @@ public class ContentLessonsService : IContentLessonsService
             throw new ForbiddenException("Quy tắc kiểm duyệt độc lập (four-eyes): Người biên soạn không được tự yêu cầu sửa bài học của chính mình.");
         }
 
-        if (les.Status != "in-review" && les.Status != "published" && les.Status != "draft")
-            throw new ValidationException("Status", $"Chỉ có bài học đang chờ duyệt ('in-review'), bản nháp ('draft') hoặc đã xuất bản mới có thể yêu cầu chỉnh sửa. Trạng thái hiện tại: {les.Status}");
+        if (les.Status != "in-review" && les.Status != "published")
+            throw new ValidationException("Status", $"Chỉ có bài học đang chờ duyệt ('in-review') hoặc đã xuất bản ('published') mới có thể yêu cầu chỉnh sửa. Trạng thái hiện tại: {les.Status}");
 
         var notes = body?["notes"]?.ToString() ?? body?["reason"]?.ToString() ?? "Cần cập nhật thêm nội dung";
 
