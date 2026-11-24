@@ -11,6 +11,7 @@ import { AdminTeachersPage } from './AdminTeachersPage'
 import { AdminReportsPage } from './AdminReportsPage'
 import { educationService } from '@/services/education.service'
 import { contentService } from '@/services/content.service'
+import { INITIAL_LESSONS, mockEducationServiceForTesting } from '@/test/fixtures/education.fixture'
 import { WorkspaceShell } from '@/components/layout/WorkspaceShell'
 import * as useAuthModule from '@/auth/useAuth'
 
@@ -34,7 +35,7 @@ describe('Admin Workspace V3 — Education Management Suite', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     localStorage.clear()
-    educationService._resetEducationMockState()
+    mockEducationServiceForTesting(educationService, vi)
     window.confirm = () => true
 
     vi.mocked(useAuthModule.useAuth).mockReturnValue({
@@ -362,6 +363,26 @@ describe('Admin Workspace V3 — Education Management Suite', () => {
 
   describe('8. Shared Mock Repository (Admin & Content Sync)', () => {
     it('synchronizes updates between Admin education service and Content workspace service', async () => {
+      let testLessons = INITIAL_LESSONS.map((l) => ({ ...l }))
+      vi.spyOn(educationService, 'getLessons').mockImplementation(async () => testLessons)
+      vi.spyOn(educationService, 'changeLessonStatus').mockImplementation(async (id, status) => {
+        const found = testLessons.find((l) => l.id === id)
+        if (found) {
+          found.status = status
+          return found
+        }
+        return undefined
+      })
+      vi.spyOn(educationService, 'createLesson').mockImplementation(async (input) => {
+        const newLesson = {
+          ...input,
+          id: `lesson-${Date.now()}`,
+          updatedAt: new Date().toISOString(),
+        }
+        testLessons = [...testLessons, newLesson]
+        return newLesson
+      })
+
       // 1. Check initial lessons from Content service
       const contentLessonsBefore = await contentService.getLessons()
       const mathLesson = contentLessonsBefore.find((l) => l.id === 'lesson-math-08')

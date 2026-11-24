@@ -156,7 +156,6 @@ export const contentService = {
   },
 
   _resetMockState(): void {
-    educationService._resetEducationMockState()
     operationsService._resetMockState()
   },
 }

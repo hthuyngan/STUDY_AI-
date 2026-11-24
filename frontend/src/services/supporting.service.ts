@@ -22,22 +22,18 @@ export async function getLibraryItems(filters?: {
   subjectId?: string
   search?: string
 }): Promise<LibraryItem[]> {
-  try {
-    const params = new URLSearchParams()
-    if (filters?.category && filters.category !== 'all' && filters.category !== 'Đã lưu') {
-      params.set('category', filters.category)
-    }
-    if (filters?.subjectId && filters.subjectId !== 'all') {
-      params.set('subjectId', filters.subjectId)
-    }
-    if (filters?.search) {
-      params.set('search', filters.search)
-    }
-    const materials = await apiClient.get<LibraryItem[]>(`/api/v1/curriculum/materials?${params.toString()}`)
-    return materials || []
-  } catch {
-    return []
+  const params = new URLSearchParams()
+  if (filters?.category && filters.category !== 'all' && filters.category !== 'Đã lưu') {
+    params.set('category', filters.category)
   }
+  if (filters?.subjectId && filters.subjectId !== 'all') {
+    params.set('subjectId', filters.subjectId)
+  }
+  if (filters?.search) {
+    params.set('search', filters.search)
+  }
+  const materials = await apiClient.get<LibraryItem[]>(`/api/v1/curriculum/materials?${params.toString()}`)
+  return materials || []
 }
 
 export async function getAchievements(): Promise<AchievementItem[]> {
@@ -57,12 +53,7 @@ export async function getUserProfile(): Promise<UserProfileData | null> {
     return null
   }
 
-  let stats: any = null
-  try {
-    stats = await apiClient.get<any>('/api/v1/practice/dashboard-stats')
-  } catch {
-    // ignore
-  }
+  const stats = await apiClient.get<any>('/api/v1/practice/dashboard-stats')
 
   return {
     id: authUser.id,

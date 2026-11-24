@@ -417,3 +417,231 @@ export const INITIAL_TEACHERS: AdminTeacherItem[] = [
     accountStatus: 'ACTIVE',
   },
 ]
+
+export function mockEducationServiceForTesting(educationService: any, vi: any) {
+  let subjects = INITIAL_SUBJECTS.map((s) => ({ ...s }))
+  let chapters = INITIAL_CHAPTERS.map((c) => ({ ...c }))
+  let lessons = INITIAL_LESSONS.map((l) => ({ ...l }))
+  let assessments = INITIAL_ASSESSMENTS.map((a) => ({ ...a }))
+  let teachers = INITIAL_TEACHERS.map((t) => ({ ...t }))
+
+  vi.spyOn(educationService, 'getSubjects').mockImplementation(async () => [...subjects])
+  vi.spyOn(educationService, 'getSubjectById').mockImplementation(async (id: string) => subjects.find((s) => s.id === id))
+  vi.spyOn(educationService, 'createSubject').mockImplementation(async (input: any) => {
+    const item = {
+      ...input,
+      id: `subj-${Date.now().toString(36)}`,
+      chapterCount: 0,
+      lessonCount: 0,
+      assessmentCount: 0,
+      publishedPercent: input.status === 'published' ? 100 : 0,
+      updatedAt: new Date().toISOString(),
+    }
+    subjects = [item, ...subjects]
+    return item
+  })
+  vi.spyOn(educationService, 'updateSubject').mockImplementation(async (id: string, updates: any) => {
+    const idx = subjects.findIndex((s) => s.id === id)
+    if (idx !== -1) {
+      subjects[idx] = { ...subjects[idx], ...updates, updatedAt: new Date().toISOString() }
+      return subjects[idx]
+    }
+    return undefined
+  })
+  vi.spyOn(educationService, 'deleteSubject').mockImplementation(async (id: string) => {
+    subjects = subjects.filter((s) => s.id !== id)
+    return true
+  })
+
+  // chapters
+  vi.spyOn(educationService, 'getChapters').mockImplementation(async (subjectId?: string) => {
+    let res = [...chapters]
+    if (subjectId && subjectId !== 'all') res = res.filter((c) => c.subjectId === subjectId)
+    return res.sort((a, b) => a.order - b.order)
+  })
+  vi.spyOn(educationService, 'getChapterById').mockImplementation(async (id: string) => chapters.find((c) => c.id === id))
+  vi.spyOn(educationService, 'createChapter').mockImplementation(async (input: any) => {
+    const item = {
+      ...input,
+      id: `ch-${Date.now().toString(36)}`,
+      lessonsCount: 0,
+      updatedAt: new Date().toISOString(),
+    }
+    chapters = [...chapters, item]
+    return item
+  })
+  vi.spyOn(educationService, 'updateChapter').mockImplementation(async (id: string, updates: any) => {
+    const idx = chapters.findIndex((c) => c.id === id)
+    if (idx !== -1) {
+      chapters[idx] = { ...chapters[idx], ...updates, updatedAt: new Date().toISOString() }
+      return chapters[idx]
+    }
+    return undefined
+  })
+  vi.spyOn(educationService, 'deleteChapter').mockImplementation(async (id: string) => {
+    chapters = chapters.filter((c) => c.id !== id)
+    return true
+  })
+  vi.spyOn(educationService, 'reorderChapters').mockImplementation(async (subjectId: string, orderedIds: string[]) => {
+    chapters = chapters.map((c) => {
+      if (c.subjectId === subjectId) {
+        const newOrder = orderedIds.indexOf(c.id) + 1
+        if (newOrder > 0) return { ...c, order: newOrder }
+      }
+      return c
+    })
+    return chapters.filter((c) => c.subjectId === subjectId).sort((a, b) => a.order - b.order)
+  })
+
+  // topics
+  vi.spyOn(educationService, 'getTopics').mockImplementation(async () => [])
+
+  // lessons
+  vi.spyOn(educationService, 'getLessons').mockImplementation(async (filter?: any) => {
+    let res = [...lessons]
+    if (filter?.subjectId && filter.subjectId !== 'all') res = res.filter((l) => l.subjectId === filter.subjectId)
+    if (filter?.chapterId && filter.chapterId !== 'all') res = res.filter((l) => l.chapterId === filter.chapterId)
+    if (filter?.status && filter.status !== 'all') res = res.filter((l) => l.status === filter.status)
+    if (filter?.search?.trim()) {
+      const q = filter.search.trim().toLowerCase()
+      res = res.filter((l) => l.title.toLowerCase().includes(q) || l.authorName.toLowerCase().includes(q))
+    }
+    return res
+  })
+  vi.spyOn(educationService, 'getLessonById').mockImplementation(async (id: string) => lessons.find((l) => l.id === id))
+  vi.spyOn(educationService, 'createLesson').mockImplementation(async (input: any) => {
+    const item = {
+      ...input,
+      id: `lesson-${Date.now().toString(36)}`,
+      updatedAt: new Date().toISOString(),
+    }
+    lessons = [item, ...lessons]
+    return item
+  })
+  vi.spyOn(educationService, 'updateLesson').mockImplementation(async (id: string, updates: any) => {
+    const idx = lessons.findIndex((l) => l.id === id)
+    if (idx !== -1) {
+      lessons[idx] = { ...lessons[idx], ...updates, updatedAt: new Date().toISOString() }
+      return lessons[idx]
+    }
+    return undefined
+  })
+  vi.spyOn(educationService, 'deleteLesson').mockImplementation(async (id: string) => {
+    lessons = lessons.filter((l) => l.id !== id)
+    return true
+  })
+  vi.spyOn(educationService, 'changeLessonStatus').mockImplementation(async (id: string, status: any) => {
+    const found = lessons.find((l) => l.id === id)
+    if (found) {
+      found.status = status
+      return found
+    }
+    return undefined
+  })
+
+  // assessments
+  vi.spyOn(educationService, 'getAssessments').mockImplementation(async (filter?: any) => {
+    let res = [...assessments]
+    if (filter?.subjectId && filter.subjectId !== 'all') res = res.filter((a) => a.subjectId === filter.subjectId)
+    if (filter?.status && filter.status !== 'all') res = res.filter((a) => a.status === filter.status)
+    if (filter?.search?.trim()) {
+      const q = filter.search.trim().toLowerCase()
+      res = res.filter((a) => a.lessonTitle.toLowerCase().includes(q))
+    }
+    return res
+  })
+  vi.spyOn(educationService, 'getAssessmentById').mockImplementation(async (id: string) => assessments.find((a) => a.id === id))
+  vi.spyOn(educationService, 'createAssessment').mockImplementation(async (input: any) => {
+    const item = {
+      ...input,
+      id: `asm-${Date.now().toString(36)}`,
+      updatedAt: new Date().toISOString(),
+    }
+    assessments = [item, ...assessments]
+    return item
+  })
+  vi.spyOn(educationService, 'updateAssessment').mockImplementation(async (id: string, updates: any) => {
+    const idx = assessments.findIndex((a) => a.id === id)
+    if (idx !== -1) {
+      assessments[idx] = { ...assessments[idx], ...updates, updatedAt: new Date().toISOString() }
+      return assessments[idx]
+    }
+    return undefined
+  })
+  vi.spyOn(educationService, 'deleteAssessment').mockImplementation(async (id: string) => {
+    assessments = assessments.filter((a) => a.id !== id)
+    return true
+  })
+  vi.spyOn(educationService, 'addQuestionToAssessment').mockImplementation(async (id: string, q: any) => {
+    const asm = assessments.find((a) => a.id === id)
+    if (asm) {
+      const newQ = { ...q, id: `q-${Date.now().toString(36)}` }
+      asm.questions = [...(asm.questions || []), newQ]
+      asm.questionCount = asm.questions.length
+      return asm
+    }
+    return undefined
+  })
+
+  // teachers
+  vi.spyOn(educationService, 'getTeachers').mockImplementation(async (filter?: any) => {
+    let res = [...teachers]
+    if (filter?.status && filter.status !== 'all') res = res.filter((t) => t.status === filter.status)
+    if (filter?.search?.trim()) {
+      const q = filter.search.trim().toLowerCase()
+      res = res.filter((t) => t.name.toLowerCase().includes(q) || t.email.toLowerCase().includes(q))
+    }
+    return res
+  })
+  vi.spyOn(educationService, 'getTeacherById').mockImplementation(async (id: string) => teachers.find((t) => t.id === id))
+  vi.spyOn(educationService, 'saveTeacher').mockImplementation(async (data: any) => {
+    const newT = {
+      id: `tch-${Date.now().toString(36)}`,
+      name: data.name,
+      email: data.email,
+      phone: data.phone || '0901 234 567',
+      subject: data.subject,
+      classes: data.classes || ['12A1'],
+      studentCount: 35,
+      status: data.status || 'active',
+      joinedAt: new Date().toISOString(),
+      rating: 5.0,
+      qualifications: data.qualifications || 'Cử nhân Sư phạm',
+      experienceYears: data.experienceYears || 3,
+      bio: data.bio || '',
+      accountStatus: 'ACTIVE',
+      _persistedLocally: true,
+    }
+    teachers = [newT as any, ...teachers]
+    return newT as any
+  })
+  vi.spyOn(educationService, 'updateTeacher').mockImplementation(async (id: string, updates: any) => {
+    const idx = teachers.findIndex((t) => t.id === id)
+    if (idx !== -1) {
+      teachers[idx] = { ...teachers[idx], ...updates }
+      return teachers[idx]
+    }
+    throw new Error('Teacher not found')
+  })
+  vi.spyOn(educationService, 'getTeacherKPIs').mockImplementation(async () => ({
+    totalTeachers: teachers.length,
+    activeTeaching: teachers.filter((t) => t.status === 'active').length,
+    pendingOrLeave: teachers.filter((t) => t.status !== 'active').length,
+    newTeachers: 1,
+  }))
+
+  // reports
+  vi.spyOn(educationService, 'getReports').mockImplementation(async () => ({
+    totalLearners: 120,
+    activeLearners: 85,
+    completedLessons: 420,
+    completionRatePercent: 75.0,
+    averageAssessmentScore: 7.8,
+    activityTrend: [
+      { date: '20/11', activeUsers: 45, completedLessons: 15, lessonsCompleted: 15 },
+    ],
+    subjectProgress: [],
+    scoreDistribution: [],
+  }))
+}
+

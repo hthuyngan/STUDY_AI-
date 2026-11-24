@@ -112,12 +112,54 @@ export function AchievementsPage() {
         <h2 className="badges-section-title">Huy hiệu đạt được</h2>
 
         {achievements.length === 0 ? (
-          <Card className="badge-card-item">
-            <h3 className="badge-title">Chưa có dữ liệu thành tích</h3>
-            <p className="badge-desc">
-              Hệ thống chưa cung cấp thành tích đã được lưu trên máy chủ.
+          <div
+            className="achievements-unavailable-state"
+            data-testid="achievements-unavailable-card"
+            style={{
+              padding: '32px 24px',
+              textAlign: 'center',
+              background: 'var(--surface-card, #ffffff)',
+              border: '1px solid var(--border-default, #e2e8f0)',
+              borderRadius: '12px',
+            }}
+          >
+            <div
+              style={{
+                display: 'inline-flex',
+                padding: '12px',
+                borderRadius: '50%',
+                background: 'var(--color-primary-50, #eff6ff)',
+                color: 'var(--color-primary-600, #2563eb)',
+                marginBottom: '16px',
+              }}
+            >
+              <Trophy size={36} aria-hidden />
+            </div>
+            <h3
+              style={{
+                fontSize: '18px',
+                fontWeight: 600,
+                marginBottom: '8px',
+                color: 'var(--text-primary, #0f172a)',
+              }}
+            >
+              Tính năng Huy hiệu & Thành tích đang kết nối hệ thống
+            </h3>
+            <p
+              style={{
+                color: 'var(--text-secondary, #64748b)',
+                maxWidth: '520px',
+                margin: '0 auto 20px',
+                fontSize: '14px',
+                lineHeight: 1.6,
+              }}
+            >
+              Dữ liệu huy hiệu học tập và bảng xếp hạng đang được đồng bộ hóa với cơ sở dữ liệu học tập Toán THPT. Hệ thống không tạo huy hiệu mẫu và sẽ hiển thị thành tích chính thức khi tính năng ghi nhận hoàn tất.
             </p>
-          </Card>
+            <Button variant="primary" onClick={() => navigate('/practice')}>
+              Luyện tập ngay
+            </Button>
+          </div>
         ) : (
           <div className="badges-grid">
             {achievements.map((ach) => {

@@ -8,6 +8,8 @@ import { ContentLessonsPage } from './ContentLessonsPage'
 import { ContentAssessmentsPage } from './ContentAssessmentsPage'
 import { ContentReviewPage } from './ContentReviewPage'
 import { ContentPublicationsPage } from './ContentPublicationsPage'
+import { educationService } from '@/services/education.service'
+import { mockEducationServiceForTesting } from '@/test/fixtures/education.fixture'
 
 // Mock useAuth
 vi.mock('@/auth/useAuth', () => ({
@@ -28,6 +30,7 @@ vi.mock('@/auth/useAuth', () => ({
 describe('Content Workspace UI & Interaction Suite', () => {
   beforeEach(() => {
     localStorage.clear()
+    mockEducationServiceForTesting(educationService, vi)
   })
 
   it('1. Content Dashboard renders metrics, review queue and lessons', async () => {

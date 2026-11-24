@@ -6,6 +6,7 @@ import { AdminRoutes } from '@/routes/adminRoutes'
 import { classroomService } from '@/services/classroom.service'
 import { educationService } from '@/services/education.service'
 import { operationsService } from '@/services/operations.service'
+import { INITIAL_SUBJECTS, mockEducationServiceForTesting } from '@/test/fixtures/education.fixture'
 
 // Mock useAuth
 vi.mock('@/auth/useAuth', () => ({
@@ -26,6 +27,7 @@ vi.mock('@/auth/useAuth', () => ({
 describe('STUDY_AI Workspace Restructuring V6 Suite', () => {
   beforeEach(() => {
     localStorage.clear()
+    mockEducationServiceForTesting(educationService, vi)
   })
 
   describe('1. Workspace Navigation Configuration & Role Boundaries', () => {
@@ -188,6 +190,22 @@ describe('STUDY_AI Workspace Restructuring V6 Suite', () => {
 
   describe('3. Content Workspace Flow & Approval Lifecycle', () => {
     it('manages subjects, chapters, lessons in educationService', async () => {
+      let subjects = INITIAL_SUBJECTS.map((s) => ({ ...s }))
+      vi.spyOn(educationService, 'getSubjects').mockImplementation(async () => subjects)
+      vi.spyOn(educationService, 'createSubject').mockImplementation(async (input) => {
+        const item = {
+          ...input,
+          id: `sub_${Date.now()}`,
+          chapterCount: 0,
+          lessonCount: 0,
+          assessmentCount: 0,
+          publishedPercent: 100,
+          updatedAt: new Date().toISOString(),
+        }
+        subjects = [...subjects, item]
+        return item
+      })
+
       const initialSubjects = await educationService.getSubjects()
       expect(initialSubjects.length).toBeGreaterThan(0)
 

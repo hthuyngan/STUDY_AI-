@@ -3,11 +3,14 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { AdminTeachersPage } from './AdminTeachersPage'
+import { educationService } from '@/services/education.service'
+import { mockEducationServiceForTesting } from '@/test/fixtures/education.fixture'
 
 describe('AdminTeachersPage — ZhongWenHub Architecture Suite', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     localStorage.clear()
+    mockEducationServiceForTesting(educationService, vi)
   })
 
   it('1. Renders PageHeader, SummaryStrip with 4 KPIs, and Search/Filter Toolbar', async () => {
