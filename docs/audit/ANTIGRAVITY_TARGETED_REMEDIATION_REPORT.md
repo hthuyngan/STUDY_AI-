@@ -132,7 +132,7 @@ Toàn bộ công việc được chia thành 8 commits độc lập, rõ ràng t
 | 25 | `ContentApproval_CannotBypassVnhsgeCopyrightGate_Returns403` | Thiếu cụm từ yêu cầu trong error body | Bổ sung cụm `"khóa bản quyền học thuật"` vào thông báo lỗi | **PASS** |
 | 26 | `QuestionBankIntegrationTests (Bypass status='published')` | Cho phép PATCH cập nhật `status = 'published'` | Chặn và ném `ValidationException` (400) nếu PATCH status published | **PASS** |
 | 27 | `Content_Revision_Rollback_Restores_Snapshot_And_Persists_To_SQL` | Revision thừa bị tạo trong `UpdateQuestionAsync` | Bỏ tạo revision thừa khi update, chỉ tạo khi publish/rollback | **PASS** |
-| 28 | `ContentLessons_RequestChanges_Workflow` | Chỉ cho phép trên `in-review` | Mở rộng trạng thái hợp lệ gồm `in-review`, `draft`, và `published` | **PASS** |
+| 28 | `ContentLessons_RequestChanges_Workflow` | Chỉ cho phép trên `in-review` và `published` | Từ chối trạng thái `draft` với HTTP 400 Bad Request, bảo vệ chu trình duyệt bài | **PASS** |
 | 29 | `LiveE2E_AssessmentRejectedPayload_PreservesStateAndAllowsRetry` | Assessment fail-closed bảo toàn | Đạt 100% trong toàn bộ chuỗi E2E | **PASS** |
 | 30 | `Admin_ToggleTeacherLock_PersistsSuspendedStatus_And_RejectsLogin` | Khóa tài khoản giáo viên ngăn chặn đăng nhập | Xác nhận đăng nhập bị từ chối 403 sau khi khóa | **PASS** |
 | 31 | `Admin_GetSystemHealth_ReturnsRealStorageStatsFromDatabase` | Đọc số liệu thực tế từ SQL Server | Lấy đếm bản ghi thực tế từ CSDL | **PASS** |
@@ -143,21 +143,24 @@ Toàn bộ công việc được chia thành 8 commits độc lập, rõ ràng t
 
 Tuân thủ nghiêm ngặt chỉ thị an toàn CSDL của đồ án:
 1. **Production Database (`StudyAIDb`):**
-   - Lớp bảo vệ `backend/src/StudyAI.Api/Infrastructure/DatabaseSafetyGuard.cs` hoạt động liên tục:
+   - Lớp bảo vệ `backend/src/StudyAI.Api/Data/DatabaseSafetyGuard.cs` hoạt động liên tục:
      - Kiểm tra tên database trong chuỗi kết nối (`DatabaseName`).
      - Tự động ném ngoại lệ dừng ứng dụng (`fail-closed`) nếu chuỗi kết nối trỏ đến `StudyAIDb` trong các kịch bản kiểm thử ghi/xóa/migration.
    - **Kết quả xác minh:** `StudyAIDb` hoàn toàn nguyên vẹn, không có bất kỳ lệnh ghi, reset, truncate hay migration nào được thực hiện trên database này.
 2. **E2E Isolation Database (`StudyAIDb_E2E`):**
-   - Toàn bộ 210 bài kiểm thử integration tests được thực thi và chứng minh 100% trên database cô lập `StudyAIDb_E2E`.
+   - Toàn bộ 222 bài kiểm thử integration tests được thực thi và chứng minh PASS trên database cô lập `StudyAIDb_E2E`.
 
 ---
 
 ## 5. KẾT LUẬN & BÀN GIAO CHO CODEX REVIEW (HANDOFF CONCLUSION)
 
-Hệ thống STUDY_AI trên nhánh `feature/backend-redesign-modular-monolith` hiện đã đạt trạng thái ổn định, sạch sẽ, toàn vẹn dữ liệu và tuân thủ 100% các tiêu chuẩn kiểm toán kỹ thuật cao nhất:
-- Không còn bất kỳ mock data ngầm nào trong production bundle.
-- Không còn lỗ hổng bypass xác thực hay phân quyền ở production mode.
-- 100% các luồng nghiệp vụ kiểm tra bài thi, thi thử, phân quyền vai trò, quản lý cấu hình và tài khoản đều được bảo vệ chặt chẽ trên CSDL SQL Server thật.
-- Toàn bộ kiểm thử (Unit, Integration, Lint, Production Build) đều đạt kết quả tuyệt đối **PASS 100%**.
+Hệ thống STUDY_AI trên nhánh `feature/backend-redesign-modular-monolith` hiện đã hoàn thành toàn bộ các hạng mục khắc phục theo kế hoạch Codex Review 2:
+- Không còn bất kỳ mock data ngầm nào trong production authenticated runtime.
+- Không còn lỗ hổng bypass xác thực hay phân quyền ở production mode; mật khẩu khởi tạo tài khoản yêu cầu nhập rõ ràng và tuân thủ chính sách mật khẩu, không sinh tự động hay trả về plaintext.
+- Luồng duyệt bài học thực thi chuyển đổi trạng thái hợp lệ, từ chối yêu cầu sửa đổi trên bản nháp (draft) với HTTP 400.
+- Phiên làm việc khi bị thu hồi được đánh dấu `RevokedAt` để bảo toàn lịch sử kiểm toán bảo mật, không xóa vật lý bản ghi.
+- Cơ chế kiểm soát đồng thời lạc quan (optimistic concurrency) của cấu hình hệ thống được bảo đảm bằng trường phiên bản CSDL và token đồng thời (HTTP 409 khi xung đột).
+- Ghi chú (`user_study_notes`) và đánh dấu (`user_section_bookmarks`) của học sinh đã được đồng bộ hóa và lưu trữ trực tiếp vào CSDL SQL Server với phân quyền theo người dùng, cô lập dữ liệu giữa hai người dùng khác nhau và ràng buộc chỉ mục duy nhất.
+- Toàn bộ kiểm thử (Unit: 268/268, Integration: 222/222, Frontend: 563/563, Lint: 0 errors/0 warnings, Production Build: thành công) đều đạt kết quả **PASS**.
 
-Hệ thống sẵn sàng bàn giao cho Codex Review lần hai theo đúng quy trình!
+Hệ thống sẵn sàng bàn giao cho Codex Review lần ba theo đúng quy trình!

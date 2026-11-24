@@ -511,14 +511,14 @@ Qua kiểm tra chi tiết, các tính năng sau đây chỉ tồn tại ở mứ
    - Phân loại chính xác: **`UI_ONLY_OR_PLACEHOLDER`**.
 
 3. **Ghi chú Học tập Cá nhân (Study Notes):**
-   - File: `frontend/src/services/studyNotes.service.ts`.
-   - Hiện trạng: Hoạt động 100% trên `localStorage` của trình duyệt. Không sử dụng `apiClient`, không có entity hay bảng cơ sở dữ liệu backend.
-   - Phân loại chính xác: **`UI_ONLY_OR_PLACEHOLDER`**.
+   - File: `frontend/src/services/studyNotes.service.ts`, `backend/src/StudyAI.Api/Features/Student/StudentNotesController.cs`.
+   - Hiện trạng: Đã được khắc phục hoàn toàn trong Workstream 6 (Commit `70036a0`). Sử dụng API `/api/v1/me/notes` (CRUD), lưu trữ bảng CSDL `user_study_notes`, xác thực qua JWT Bearer claims, cô lập dữ liệu 2 người dùng và kiểm thử tích hợp tự động trên `StudyAIDb_E2E`.
+   - Phân loại chính xác: **`AUTHENTICATED_PERSISTED_DONE`**.
 
 4. **Đánh dấu Đoạn Bài học (Section Bookmarks):**
-   - File: `frontend/src/services/sectionBookmarks.service.ts`.
-   - Hiện trạng: Hoạt động 100% trên `localStorage` của trình duyệt. Không có endpoint backend để đồng bộ giữa các thiết bị.
-   - Phân loại chính xác: **`UI_ONLY_OR_PLACEHOLDER`**.
+   - File: `frontend/src/services/sectionBookmarks.service.ts`, `backend/src/StudyAI.Api/Features/Student/StudentProfileController.cs`.
+   - Hiện trạng: Đã được khắc phục hoàn toàn trong Workstream 6 (Commit `70036a0`). Sử dụng API `/api/v1/me/bookmarks`, lưu trữ bảng CSDL `user_section_bookmarks` với unique constraint theo `(UserId, LessonId, SectionId)`, idempotent toggle/remove, đồng bộ đa thiết bị cho tài khoản đăng nhập.
+   - Phân loại chính xác: **`AUTHENTICATED_PERSISTED_DONE`**.
 
 ---
 
