@@ -34,6 +34,7 @@ public interface IApplicationDbContext
     DbSet<StudentTopicMastery> StudentTopicMasteries { get; }
     DbSet<AiHintUsage> AiHintUsages { get; }
     DbSet<AiLearningRecommendation> AiLearningRecommendations { get; }
+    DbSet<SystemSetting> SystemSettings { get; }
 
     EntityEntry<TEntity> Entry<TEntity>(TEntity entity) where TEntity : class;
 

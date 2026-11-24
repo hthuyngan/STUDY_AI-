@@ -77,6 +77,8 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
     public DbSet<TeacherProfile> TeacherProfiles => Set<TeacherProfile>();
 
+    public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         base.OnConfiguring(optionsBuilder);
@@ -1084,6 +1086,17 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
                 .WithMany()
                 .HasForeignKey(e => e.TeacherId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SystemSetting>(entity =>
+        {
+            entity.ToTable("system_settings");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.Payload).IsRequired();
+            entity.Property(e => e.Version).HasMaxLength(64).IsConcurrencyToken();
+            entity.Property(e => e.UpdatedBy).HasMaxLength(128).IsRequired();
+            entity.Property(e => e.RowVersion).IsRowVersion();
         });
     }
 

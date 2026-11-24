@@ -1600,6 +1600,89 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
     }
 
     [Fact]
+    public async Task Admin_UpdateSettings_ConcurrentDatabaseUpdates_ExactlyOneWins_AndOtherReceives409_RetrySucceeds()
+    {
+        var adminToken = await GetAdminTokenAsync();
+
+        // 1. Initial GET to obtain baseline Version
+        var reqGet = new HttpRequestMessage(HttpMethod.Get, "/api/v1/admin/settings");
+        reqGet.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var respGet = await _client.SendAsync(reqGet);
+        Assert.Equal(HttpStatusCode.OK, respGet.StatusCode);
+        var initialSettings = JsonSerializer.Deserialize<OperationalSettingsDto>(await respGet.Content.ReadAsStringAsync(), JsonOpts)!;
+        var baseVersion = initialSettings.Version;
+
+        // 2. Prepare two competing update requests both carrying the SAME baseVersion
+        var updateDtoA = new OperationalSettingsDto
+        {
+            SystemName = "STUDY_AI Concurrent Test A",
+            PassingScoreThreshold = 6.0,
+            Version = baseVersion
+        };
+        var updateDtoB = new OperationalSettingsDto
+        {
+            SystemName = "STUDY_AI Concurrent Test B",
+            PassingScoreThreshold = 7.0,
+            Version = baseVersion
+        };
+
+        var clientA = _factory.CreateClient();
+        var clientB = _factory.CreateClient();
+
+        var reqA = new HttpRequestMessage(HttpMethod.Put, "/api/v1/admin/settings")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(updateDtoA), Encoding.UTF8, "application/json")
+        };
+        reqA.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+
+        var reqB = new HttpRequestMessage(HttpMethod.Put, "/api/v1/admin/settings")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(updateDtoB), Encoding.UTF8, "application/json")
+        };
+        reqB.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+
+        // 3. Dispatch both concurrently
+        var taskA = clientA.SendAsync(reqA);
+        var taskB = clientB.SendAsync(reqB);
+
+        var responses = await Task.WhenAll(taskA, taskB);
+
+        // Exactly one MUST return 200 OK and exactly one MUST return 409 Conflict
+        var successCount = responses.Count(r => r.StatusCode == HttpStatusCode.OK);
+        var conflictCount = responses.Count(r => r.StatusCode == HttpStatusCode.Conflict);
+
+        Assert.Equal(1, successCount);
+        Assert.Equal(1, conflictCount);
+
+        // 4. Retry with fresh version succeeds
+        var reqGetFresh = new HttpRequestMessage(HttpMethod.Get, "/api/v1/admin/settings");
+        reqGetFresh.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var respGetFresh = await _client.SendAsync(reqGetFresh);
+        var freshSettings = JsonSerializer.Deserialize<OperationalSettingsDto>(await respGetFresh.Content.ReadAsStringAsync(), JsonOpts)!;
+
+        var retryDto = new OperationalSettingsDto
+        {
+            SystemName = "STUDY_AI Concurrent Retry Final",
+            PassingScoreThreshold = 8.0,
+            Version = freshSettings.Version
+        };
+        var reqRetry = new HttpRequestMessage(HttpMethod.Put, "/api/v1/admin/settings")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(retryDto), Encoding.UTF8, "application/json")
+        };
+        reqRetry.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var respRetry = await _client.SendAsync(reqRetry);
+        Assert.Equal(HttpStatusCode.OK, respRetry.StatusCode);
+
+        // 5. Verify database entity SystemSetting
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+        var dbSetting = await db.SystemSettings.FirstOrDefaultAsync(s => s.Id == "global");
+        Assert.NotNull(dbSetting);
+        Assert.Contains("STUDY_AI Concurrent Retry Final", dbSetting.Payload);
+    }
+
+    [Fact]
     public async Task Admin_GetSystemHealth_ReturnsRealStorageStatsFromDatabase()
     {
         // Issue 7: System health endpoint returns real storage stats from SQL Server

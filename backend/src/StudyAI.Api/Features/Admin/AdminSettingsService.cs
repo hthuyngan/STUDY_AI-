@@ -1,12 +1,12 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using StudyAI.Common.Exceptions;
+using StudyAI.Models;
 
 namespace StudyAI.Features.Admin;
 
 public class AdminSettingsService : IAdminSettingsService
 {
-    private static readonly SemaphoreSlim _settingsLock = new(1, 1);
     private readonly IApplicationDbContext _db;
     private readonly IClock _clock;
     private readonly IIdGenerator _idGenerator;
@@ -23,20 +23,21 @@ public class AdminSettingsService : IAdminSettingsService
 
     public async Task<OperationalSettingsDto> GetSettingsAsync(CancellationToken ct = default)
     {
-        var log = await _db.StaffAuditLogs
-            .Where(l => l.TargetType == "system_settings" && l.Action == "system_settings_updated")
-            .OrderByDescending(l => l.CreatedAt)
-            .FirstOrDefaultAsync(ct);
+        var setting = await _db.SystemSettings
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.Id == "global", ct);
 
-        if (log != null && !string.IsNullOrWhiteSpace(log.Payload))
+        if (setting != null && !string.IsNullOrWhiteSpace(setting.Payload))
         {
             try
             {
-                var settings = JsonSerializer.Deserialize<OperationalSettingsDto>(log.Payload, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                if (settings != null)
+                var dto = JsonSerializer.Deserialize<OperationalSettingsDto>(setting.Payload, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (dto != null)
                 {
-                    settings.Version = log.Id;
-                    return settings;
+                    dto.Version = setting.Version;
+                    dto.UpdatedAt = setting.UpdatedAt.ToString("o");
+                    dto.UpdatedBy = setting.UpdatedBy;
+                    return dto;
                 }
             }
             catch { }
@@ -52,52 +53,62 @@ public class AdminSettingsService : IAdminSettingsService
 
     public async Task<OperationalSettingsDto> UpdateSettingsAsync(OperationalSettingsDto req, string currentUserId, CancellationToken ct = default)
     {
-        await _settingsLock.WaitAsync(ct);
+        var setting = await _db.SystemSettings.FirstOrDefaultAsync(s => s.Id == "global", ct);
+
+        if (setting != null)
+        {
+            if (string.IsNullOrEmpty(req.Version) || req.Version != setting.Version)
+            {
+                throw new ConflictException("Phiên bản cấu hình hệ thống đã thay đổi. Vui lòng tải lại trang.");
+            }
+        }
+        else
+        {
+            if (!string.IsNullOrEmpty(req.Version) && req.Version != "initial")
+            {
+                throw new ConflictException("Phiên bản cấu hình hệ thống đã thay đổi. Vui lòng tải lại trang.");
+            }
+
+            setting = new SystemSetting
+            {
+                Id = "global"
+            };
+            _db.SystemSettings.Add(setting);
+        }
+
+        var now = _clock.UtcNow;
+        var newVersion = _idGenerator.NewId("set");
+
+        req.UpdatedAt = now.ToString("o");
+        req.UpdatedBy = currentUserId;
+        req.Version = newVersion;
+
+        setting.Payload = JsonSerializer.Serialize(req);
+        setting.Version = newVersion;
+        setting.UpdatedBy = currentUserId;
+        setting.UpdatedAt = now;
+
+        var log = new StaffAuditLog
+        {
+            Id = newVersion,
+            ActorUserId = currentUserId,
+            Action = "system_settings_updated",
+            TargetType = "system_settings",
+            TargetId = "global",
+            Payload = setting.Payload,
+            CreatedAt = now
+        };
+        _db.StaffAuditLogs.Add(log);
+
         try
         {
-            var latestLog = await _db.StaffAuditLogs
-                .Where(l => l.TargetType == "system_settings" && l.Action == "system_settings_updated")
-                .OrderByDescending(l => l.CreatedAt)
-                .FirstOrDefaultAsync(ct);
-
-            if (latestLog != null)
-            {
-                if (string.IsNullOrEmpty(req.Version) || req.Version != latestLog.Id)
-                {
-                    throw new ConflictException("Phiên bản cấu hình hệ thống đã thay đổi. Vui lòng tải lại trang.");
-                }
-            }
-            else
-            {
-                if (!string.IsNullOrEmpty(req.Version) && req.Version != "initial")
-                {
-                    throw new ConflictException("Phiên bản cấu hình hệ thống đã thay đổi. Vui lòng tải lại trang.");
-                }
-            }
-
-            req.UpdatedAt = _clock.UtcNow.ToString("o");
-            req.UpdatedBy = currentUserId;
-            var newVersion = _idGenerator.NewId("set");
-            req.Version = newVersion;
-
-            var log = new StaffAuditLog
-            {
-                Id = newVersion,
-                ActorUserId = currentUserId,
-                Action = "system_settings_updated",
-                TargetType = "system_settings",
-                TargetId = "global",
-                Payload = JsonSerializer.Serialize(req),
-                CreatedAt = _clock.UtcNow
-            };
-            _db.StaffAuditLogs.Add(log);
             await _db.SaveChangesAsync(ct);
-
-            return req;
         }
-        finally
+        catch (DbUpdateConcurrencyException)
         {
-            _settingsLock.Release();
+            throw new ConflictException("Phiên bản cấu hình hệ thống đã thay đổi do thao tác đồng thời. Vui lòng tải lại trang.");
         }
+
+        return req;
     }
 }
