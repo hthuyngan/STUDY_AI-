@@ -108,7 +108,10 @@ async function run() {
 
       // Check no horizontal scroll
       const noOverflow = await checkHorizontalScroll(page)
-      console.log(`   - Dashboard horizontal scroll check: ${noOverflow ? 'PASS' : 'FAIL (overflow detected)'}`)
+      if (!noOverflow) {
+        throw new Error(`Horizontal scroll overflow detected at viewport ${vp.name} (${vp.width}px) on /dashboard`)
+      }
+      console.log(`   - Dashboard horizontal scroll check: PASS`)
 
       const prefix = vp.width.toString().padStart(4, '0')
 
@@ -122,7 +125,10 @@ async function run() {
         // Verify hamburger is visible
         const hamburger = page.locator('.topbar-mobile-btn')
         const hamburgerVisible = await hamburger.isVisible()
-        console.log(`   - Topbar hamburger button visible: ${hamburgerVisible}`)
+        if (!hamburgerVisible) {
+          throw new Error(`Expected mobile hamburger button (.topbar-mobile-btn) to be visible at viewport ${vp.name} (${vp.width}px)`)
+        }
+        console.log(`   - Topbar hamburger button visible: true`)
 
         if (hamburgerVisible) {
           await hamburger.click()
@@ -130,12 +136,18 @@ async function run() {
 
           // Verify drawer is open
           const drawerOpen = await page.locator('.sidebar.mobile-open').isVisible()
-          console.log(`   - Mobile drawer opened: ${drawerOpen}`)
+          if (!drawerOpen) {
+            throw new Error(`Expected mobile drawer (.sidebar.mobile-open) to open after hamburger click at ${vp.name}`)
+          }
+          console.log(`   - Mobile drawer opened: true`)
 
           // Verify close button is visible
           const closeBtn = page.locator('.sidebar.mobile-open .sidebar-mobile-close-btn')
           const closeBtnVisible = await closeBtn.isVisible()
-          console.log(`   - Drawer close button (X) visible: ${closeBtnVisible}`)
+          if (!closeBtnVisible) {
+            throw new Error(`Expected drawer close button (.sidebar-mobile-close-btn) to be visible at ${vp.name}`)
+          }
+          console.log(`   - Drawer close button (X) visible: true`)
 
           // Capture drawer open
           await page.screenshot({
@@ -180,7 +192,10 @@ async function run() {
         // Verify NO collapse button
         const collapseBtn = page.locator('.sidebar-collapse-btn')
         const collapseBtnExists = await collapseBtn.count()
-        console.log(`   - Sidebar collapse button count (must be 0): ${collapseBtnExists}`)
+        if (collapseBtnExists !== 0) {
+          throw new Error(`Found ${collapseBtnExists} .sidebar-collapse-btn elements; collapse buttons must be completely removed`)
+        }
+        console.log(`   - Sidebar collapse button count (must be 0): 0 (PASS)`)
 
         await page.screenshot({
           path: path.join(QA_DIR, `${prefix}_dashboard_desktop.png`),
@@ -195,27 +210,42 @@ async function run() {
           fullPage: false,
         })
 
-        // Test Admin Workspace
+        // Test Admin Workspace Redirect to /login
         await page.goto(`${PREVIEW_URL}/admin`, { waitUntil: 'networkidle' })
         await page.waitForTimeout(500)
+        const adminUrl = page.url()
+        if (!adminUrl.includes('/login')) {
+          throw new Error(`Expected unauthenticated /admin to redirect to /login in production preview, but stayed on ${adminUrl}`)
+        }
+        console.log(`   - Unauthenticated /admin correctly redirected to /login: PASS`)
         await page.screenshot({
-          path: path.join(QA_DIR, `${prefix}_admin_workspace_desktop.png`),
+          path: path.join(QA_DIR, `${prefix}_admin_redirect_login.png`),
           fullPage: false,
         })
 
-        // Test Teacher Workspace
+        // Test Teacher Workspace Redirect to /login
         await page.goto(`${PREVIEW_URL}/teacher`, { waitUntil: 'networkidle' })
         await page.waitForTimeout(500)
+        const teacherUrl = page.url()
+        if (!teacherUrl.includes('/login')) {
+          throw new Error(`Expected unauthenticated /teacher to redirect to /login in production preview, but stayed on ${teacherUrl}`)
+        }
+        console.log(`   - Unauthenticated /teacher correctly redirected to /login: PASS`)
         await page.screenshot({
-          path: path.join(QA_DIR, `${prefix}_teacher_workspace_desktop.png`),
+          path: path.join(QA_DIR, `${prefix}_teacher_redirect_login.png`),
           fullPage: false,
         })
 
-        // Test Content Workspace
+        // Test Content Workspace Redirect to /login
         await page.goto(`${PREVIEW_URL}/content`, { waitUntil: 'networkidle' })
         await page.waitForTimeout(500)
+        const contentUrl = page.url()
+        if (!contentUrl.includes('/login')) {
+          throw new Error(`Expected unauthenticated /content to redirect to /login in production preview, but stayed on ${contentUrl}`)
+        }
+        console.log(`   - Unauthenticated /content correctly redirected to /login: PASS`)
         await page.screenshot({
-          path: path.join(QA_DIR, `${prefix}_content_workspace_desktop.png`),
+          path: path.join(QA_DIR, `${prefix}_content_redirect_login.png`),
           fullPage: false,
         })
       }
