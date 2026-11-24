@@ -1,5 +1,4 @@
 using System.Net;
-using System.Text.Encodings.Web;
 using System.Text.Json;
 using StudyAI.Common.Exceptions;
 
@@ -9,7 +8,6 @@ public class GlobalExceptionHandlingMiddleware
 {
     private static readonly JsonSerializerOptions _jsonOptions = new()
     {
-        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
