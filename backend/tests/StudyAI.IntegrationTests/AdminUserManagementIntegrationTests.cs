@@ -401,44 +401,83 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
     public async Task Admin_RevokeSessions_RevokesAllSessionsInDatabase()
     {
         var token = await GetAdminTokenAsync();
-        string email = $"target_rev_{Guid.NewGuid():N}@studyai.internal";
+        string emailA = $"target_rev_a_{Guid.NewGuid():N}@studyai.internal";
+        string emailB = $"target_rev_b_{Guid.NewGuid():N}@studyai.internal";
 
-        // Create target user
-        var createReq = new CreateUserRequestDto { Email = email, DisplayName = "Target Revoke", Role = "learner", Status = "active", Password = "ValidPassword@123" };
-        var reqCreate = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/users")
+        // Create target user A
+        var createReqA = new CreateUserRequestDto { Email = emailA, DisplayName = "Target Revoke A", Role = "learner", Status = "active", Password = "ValidPassword@123" };
+        var reqCreateA = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/users")
         {
-            Content = new StringContent(JsonSerializer.Serialize(createReq), Encoding.UTF8, "application/json")
+            Content = new StringContent(JsonSerializer.Serialize(createReqA), Encoding.UTF8, "application/json")
         };
-        reqCreate.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        var respCreate = await _client.SendAsync(reqCreate);
-        var created = JsonSerializer.Deserialize<CreateUserResponseDto>(await respCreate.Content.ReadAsStringAsync(), JsonOpts);
-        Assert.NotNull(created?.User);
+        reqCreateA.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var respCreateA = await _client.SendAsync(reqCreateA);
+        var createdA = JsonSerializer.Deserialize<CreateUserResponseDto>(await respCreateA.Content.ReadAsStringAsync(), JsonOpts);
+        Assert.NotNull(createdA?.User);
 
-        // Seed 3 mock sessions
+        // Create target user B
+        var createReqB = new CreateUserRequestDto { Email = emailB, DisplayName = "Target Revoke B", Role = "learner", Status = "active", Password = "ValidPassword@123" };
+        var reqCreateB = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/users")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(createReqB), Encoding.UTF8, "application/json")
+        };
+        reqCreateB.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var respCreateB = await _client.SendAsync(reqCreateB);
+        var createdB = JsonSerializer.Deserialize<CreateUserResponseDto>(await respCreateB.Content.ReadAsStringAsync(), JsonOpts);
+        Assert.NotNull(createdB?.User);
+
+        // Seed 3 active sessions for user A, and 2 active sessions for user B
         using (var scope = _factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
             db.RefreshSessions.AddRange(
-                new RefreshSession { Id = $"s1_{Guid.NewGuid():N}", UserId = created.User.Id, TokenHash = "hash1", CreatedAt = DateTimeOffset.UtcNow, ExpiresAt = DateTimeOffset.UtcNow.AddDays(7) },
-                new RefreshSession { Id = $"s2_{Guid.NewGuid():N}", UserId = created.User.Id, TokenHash = "hash2", CreatedAt = DateTimeOffset.UtcNow, ExpiresAt = DateTimeOffset.UtcNow.AddDays(7) },
-                new RefreshSession { Id = $"s3_{Guid.NewGuid():N}", UserId = created.User.Id, TokenHash = "hash3", CreatedAt = DateTimeOffset.UtcNow, ExpiresAt = DateTimeOffset.UtcNow.AddDays(7) }
+                new RefreshSession { Id = $"sa1_{Guid.NewGuid():N}", UserId = createdA.User.Id, TokenHash = "hash1", CreatedAt = DateTimeOffset.UtcNow, ExpiresAt = DateTimeOffset.UtcNow.AddDays(7) },
+                new RefreshSession { Id = $"sa2_{Guid.NewGuid():N}", UserId = createdA.User.Id, TokenHash = "hash2", CreatedAt = DateTimeOffset.UtcNow, ExpiresAt = DateTimeOffset.UtcNow.AddDays(7) },
+                new RefreshSession { Id = $"sa3_{Guid.NewGuid():N}", UserId = createdA.User.Id, TokenHash = "hash3", CreatedAt = DateTimeOffset.UtcNow, ExpiresAt = DateTimeOffset.UtcNow.AddDays(7) },
+                new RefreshSession { Id = $"sb1_{Guid.NewGuid():N}", UserId = createdB.User.Id, TokenHash = "hash4", CreatedAt = DateTimeOffset.UtcNow, ExpiresAt = DateTimeOffset.UtcNow.AddDays(7) },
+                new RefreshSession { Id = $"sb2_{Guid.NewGuid():N}", UserId = createdB.User.Id, TokenHash = "hash5", CreatedAt = DateTimeOffset.UtcNow, ExpiresAt = DateTimeOffset.UtcNow.AddDays(7) }
             );
             await db.SaveChangesAsync();
         }
 
-        // Call revoke sessions API
-        var reqRevoke = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/admin/users/{created.User.Id}/revoke-sessions");
+        // Call revoke sessions API for user A
+        var reqRevoke = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/admin/users/{createdA.User.Id}/revoke-sessions");
         reqRevoke.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var respRevoke = await _client.SendAsync(reqRevoke);
         Assert.Equal(HttpStatusCode.OK, respRevoke.StatusCode);
 
-        // Confirm database has 0 sessions
+        var revokeContent = await respRevoke.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(revokeContent);
+        Assert.Equal(3, doc.RootElement.GetProperty("revokedSessionsCount").GetInt32());
+
+        // In database:
+        // User A sessions must NOT be deleted: totalCount == 3, activeCount == 0, RevokedAt != null
+        // User B sessions must remain intact: totalCount == 2, activeCount == 2, RevokedAt == null
         using (var scope = _factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
-            var count = await db.RefreshSessions.CountAsync(s => s.UserId == created.User.Id);
-            Assert.Equal(0, count);
+            var sessionsA = await db.RefreshSessions.Where(s => s.UserId == createdA.User.Id).ToListAsync();
+            Assert.Equal(3, sessionsA.Count);
+            Assert.All(sessionsA, s => Assert.NotNull(s.RevokedAt));
+            var activeCountA = sessionsA.Count(s => s.RevokedAt == null);
+            Assert.Equal(0, activeCountA);
+
+            var sessionsB = await db.RefreshSessions.Where(s => s.UserId == createdB.User.Id).ToListAsync();
+            Assert.Equal(2, sessionsB.Count);
+            Assert.All(sessionsB, s => Assert.Null(s.RevokedAt));
+            var activeCountB = sessionsB.Count(s => s.RevokedAt == null);
+            Assert.Equal(2, activeCountB);
         }
+
+        // Second call for user A must be idempotent and return 0 newly revoked sessions
+        var reqRevoke2 = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/admin/users/{createdA.User.Id}/revoke-sessions");
+        reqRevoke2.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var respRevoke2 = await _client.SendAsync(reqRevoke2);
+        Assert.Equal(HttpStatusCode.OK, respRevoke2.StatusCode);
+
+        var revokeContent2 = await respRevoke2.Content.ReadAsStringAsync();
+        using var doc2 = JsonDocument.Parse(revokeContent2);
+        Assert.Equal(0, doc2.RootElement.GetProperty("revokedSessionsCount").GetInt32());
     }
 
     [Fact]

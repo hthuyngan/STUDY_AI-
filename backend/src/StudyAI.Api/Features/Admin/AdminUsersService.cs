@@ -402,13 +402,20 @@ public class AdminUsersService : IAdminUsersService
 
     public async Task<int> RevokeUserSessionsAsync(string userId, string currentUserId, CancellationToken ct = default)
     {
-        var sessions = await _db.RefreshSessions
-            .Where(s => s.UserId == userId)
+        var activeSessions = await _db.RefreshSessions
+            .Where(s => s.UserId == userId && s.RevokedAt == null)
             .ToListAsync(ct);
 
-        int count = sessions.Count;
-        _db.RefreshSessions.RemoveRange(sessions);
-        await _db.SaveChangesAsync(ct);
+        int count = activeSessions.Count;
+        if (count > 0)
+        {
+            var now = _clock.UtcNow;
+            foreach (var session in activeSessions)
+            {
+                session.RevokedAt = now;
+            }
+            await _db.SaveChangesAsync(ct);
+        }
 
         await _auditWriter.WriteStaffAuditAsync(
             "admin_revoke_sessions",
