@@ -1,10 +1,12 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using StudyAI.Common.Exceptions;
 
 namespace StudyAI.Features.Admin;
 
 public class AdminSettingsService : IAdminSettingsService
 {
+    private static readonly SemaphoreSlim _settingsLock = new(1, 1);
     private readonly IApplicationDbContext _db;
     private readonly IClock _clock;
     private readonly IIdGenerator _idGenerator;
@@ -50,24 +52,52 @@ public class AdminSettingsService : IAdminSettingsService
 
     public async Task<OperationalSettingsDto> UpdateSettingsAsync(OperationalSettingsDto req, string currentUserId, CancellationToken ct = default)
     {
-        req.UpdatedAt = _clock.UtcNow.ToString("o");
-        req.UpdatedBy = currentUserId;
-        var newVersion = _idGenerator.NewId("set");
-        req.Version = newVersion;
-
-        var log = new StaffAuditLog
+        await _settingsLock.WaitAsync(ct);
+        try
         {
-            Id = newVersion,
-            ActorUserId = currentUserId,
-            Action = "system_settings_updated",
-            TargetType = "system_settings",
-            TargetId = "global",
-            Payload = JsonSerializer.Serialize(req),
-            CreatedAt = _clock.UtcNow
-        };
-        _db.StaffAuditLogs.Add(log);
-        await _db.SaveChangesAsync(ct);
+            var latestLog = await _db.StaffAuditLogs
+                .Where(l => l.TargetType == "system_settings" && l.Action == "system_settings_updated")
+                .OrderByDescending(l => l.CreatedAt)
+                .FirstOrDefaultAsync(ct);
 
-        return req;
+            if (latestLog != null)
+            {
+                if (string.IsNullOrEmpty(req.Version) || req.Version != latestLog.Id)
+                {
+                    throw new ConflictException("Phiên bản cấu hình hệ thống đã thay đổi. Vui lòng tải lại trang.");
+                }
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(req.Version) && req.Version != "initial")
+                {
+                    throw new ConflictException("Phiên bản cấu hình hệ thống đã thay đổi. Vui lòng tải lại trang.");
+                }
+            }
+
+            req.UpdatedAt = _clock.UtcNow.ToString("o");
+            req.UpdatedBy = currentUserId;
+            var newVersion = _idGenerator.NewId("set");
+            req.Version = newVersion;
+
+            var log = new StaffAuditLog
+            {
+                Id = newVersion,
+                ActorUserId = currentUserId,
+                Action = "system_settings_updated",
+                TargetType = "system_settings",
+                TargetId = "global",
+                Payload = JsonSerializer.Serialize(req),
+                CreatedAt = _clock.UtcNow
+            };
+            _db.StaffAuditLogs.Add(log);
+            await _db.SaveChangesAsync(ct);
+
+            return req;
+        }
+        finally
+        {
+            _settingsLock.Release();
+        }
     }
 }

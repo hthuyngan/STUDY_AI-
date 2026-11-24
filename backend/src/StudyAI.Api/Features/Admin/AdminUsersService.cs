@@ -144,6 +144,27 @@ public class AdminUsersService : IAdminUsersService
             Timestamp = l.UpdatedAt.ToString("o")
         }).ToList();
 
+        int streakDays = 0;
+        if (attempts.Count > 0 || lessons.Count > 0)
+        {
+            var activeDates = attempts.Select(a => (a.CompletedAt ?? a.StartedAt).Date)
+                .Concat(lessons.Select(l => l.UpdatedAt.Date))
+                .Distinct()
+                .OrderByDescending(d => d)
+                .ToList();
+
+            var today = _clock.UtcNow.Date;
+            if (activeDates.Contains(today) || activeDates.Contains(today.AddDays(-1)))
+            {
+                var checkDate = activeDates.Contains(today) ? today : today.AddDays(-1);
+                while (activeDates.Contains(checkDate))
+                {
+                    streakDays++;
+                    checkDate = checkDate.AddDays(-1);
+                }
+            }
+        }
+
         var formatted = FormatUser(user);
         return new AdminUserDetailDto
         {
@@ -163,7 +184,7 @@ public class AdminUsersService : IAdminUsersService
             {
                 CompletedLessons = completedLessonsCount,
                 TotalLessons = lessons.Count,
-                StreakDays = 1,
+                StreakDays = streakDays,
                 RecentSubjects = new List<UserRecentSubjectDto>()
             },
             Assessments = assessments,
@@ -171,7 +192,7 @@ public class AdminUsersService : IAdminUsersService
         };
     }
 
-    public async Task<AdminUserDetailDto> CreateUserAsync(CreateUserRequestDto req, string currentUserId, CancellationToken ct = default)
+    public async Task<CreateUserResponseDto> CreateUserAsync(CreateUserRequestDto req, string currentUserId, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(req.Email) || !req.Email.Contains('@'))
         {
@@ -227,14 +248,19 @@ public class AdminUsersService : IAdminUsersService
         await _db.SaveChangesAsync(ct);
 
         await _auditWriter.WriteStaffAuditAsync(
-            "admin_create_user",
+            "user_created",
             "user",
             user.Id,
             null,
             JsonSerializer.Serialize(new { email = user.Email, role = user.Role, status = user.Status }),
             ct);
 
-        return await GetUserDetailAsync(user.Id, true, ct);
+        return new CreateUserResponseDto
+        {
+            User = FormatUser(user),
+            TemporaryPassword = rawPassword,
+            Message = "Người dùng đã được tạo thành công."
+        };
     }
 
     public async Task<AdminUserDetailDto> UpdateUserAsync(string userId, UpdateUserRequestDto req, string currentUserId, CancellationToken ct = default)
@@ -246,6 +272,23 @@ public class AdminUsersService : IAdminUsersService
         }
 
         var beforeState = JsonSerializer.Serialize(new { email = user.Email, displayName = user.DisplayName, grade = user.Grade, role = user.Role, status = user.Status });
+
+        if (user.Role == "admin")
+        {
+            bool demoting = !string.IsNullOrWhiteSpace(req.Role) && req.Role.Trim().ToLowerInvariant() != "admin";
+            bool deactivating = !string.IsNullOrWhiteSpace(req.Status) && req.Status.Trim().ToLowerInvariant() != "active";
+            if (demoting || deactivating)
+            {
+                var activeAdminCount = await _db.Users.CountAsync(u => u.Role == "admin" && !u.IsDeleted && u.Status == "active", ct);
+                if (activeAdminCount <= 1)
+                {
+                    if (demoting)
+                        throw new ValidationException("Role", "Không thể hủy quyền quản trị viên hoạt động duy nhất trong hệ thống.");
+                    if (deactivating)
+                        throw new ValidationException("Status", "Không thể tạm khóa hoặc vô hiệu hóa quản trị viên hoạt động duy nhất.");
+                }
+            }
+        }
 
         if (!string.IsNullOrWhiteSpace(req.DisplayName))
         {
@@ -284,6 +327,15 @@ public class AdminUsersService : IAdminUsersService
         var newRole = (req.Role ?? "").Trim().ToLowerInvariant();
         if (!AllowedRoles.Contains(newRole)) throw new ValidationException("Role", $"Vai trò '{req.Role}' không hợp lệ.");
 
+        if (user.Role == "admin" && newRole != "admin")
+        {
+            var activeAdminCount = await _db.Users.CountAsync(u => u.Role == "admin" && !u.IsDeleted && u.Status == "active", ct);
+            if (activeAdminCount <= 1)
+            {
+                throw new ValidationException("Role", "Không thể hủy quyền quản trị viên hoạt động duy nhất trong hệ thống.");
+            }
+        }
+
         if (user.Id == currentUserId && newRole != "admin")
         {
             throw new ForbiddenException("Không thể tự hạ quyền quản trị viên của chính mình.");
@@ -314,6 +366,15 @@ public class AdminUsersService : IAdminUsersService
         var newStatus = (req.Status ?? "").Trim().ToLowerInvariant();
         if (!AllowedStatuses.Contains(newStatus)) throw new ValidationException("Status", $"Trạng thái '{req.Status}' không hợp lệ.");
 
+        if (user.Role == "admin" && newStatus != "active")
+        {
+            var activeAdminCount = await _db.Users.CountAsync(u => u.Role == "admin" && !u.IsDeleted && u.Status == "active", ct);
+            if (activeAdminCount <= 1)
+            {
+                throw new ValidationException("Status", "Không thể tạm khóa hoặc vô hiệu hóa quản trị viên hoạt động duy nhất.");
+            }
+        }
+
         if (user.Id == currentUserId && newStatus != "active")
         {
             throw new ForbiddenException("Không thể tự khóa tài khoản của chính mình.");
@@ -343,15 +404,12 @@ public class AdminUsersService : IAdminUsersService
 
     public async Task<int> RevokeUserSessionsAsync(string userId, string currentUserId, CancellationToken ct = default)
     {
-        var activeSessions = await _db.RefreshSessions
-            .Where(s => s.UserId == userId && s.RevokedAt == null)
+        var sessions = await _db.RefreshSessions
+            .Where(s => s.UserId == userId)
             .ToListAsync(ct);
 
-        foreach (var session in activeSessions)
-        {
-            session.RevokedAt = _clock.UtcNow;
-        }
-
+        int count = sessions.Count;
+        _db.RefreshSessions.RemoveRange(sessions);
         await _db.SaveChangesAsync(ct);
 
         await _auditWriter.WriteStaffAuditAsync(
@@ -359,10 +417,10 @@ public class AdminUsersService : IAdminUsersService
             "user",
             userId,
             null,
-            JsonSerializer.Serialize(new { revokedCount = activeSessions.Count }),
+            JsonSerializer.Serialize(new { revokedCount = count }),
             ct);
 
-        return activeSessions.Count;
+        return count;
     }
 
     public async Task<ResetPasswordResponseDto> ResetUserPasswordAsync(string userId, ResetPasswordRequestDto? req, string currentUserId, CancellationToken ct = default)
@@ -391,13 +449,22 @@ public class AdminUsersService : IAdminUsersService
 
     public async Task<bool> DeleteUserAsync(string userId, string currentUserId, CancellationToken ct = default)
     {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
+        if (user == null) throw new NotFoundException("Người dùng", userId);
+
+        if (user.Role == "admin")
+        {
+            var activeAdminCount = await _db.Users.CountAsync(u => u.Role == "admin" && !u.IsDeleted && u.Status == "active", ct);
+            if (activeAdminCount <= 1)
+            {
+                throw new ValidationException("User", "Không thể xóa quản trị viên hoạt động duy nhất trong hệ thống.");
+            }
+        }
+
         if (userId == currentUserId)
         {
             throw new ForbiddenException("Không thể tự xóa tài khoản của chính mình.");
         }
-
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
-        if (user == null) throw new NotFoundException("Người dùng", userId);
 
         user.IsDeleted = true;
         user.DeletedAt = _clock.UtcNow;

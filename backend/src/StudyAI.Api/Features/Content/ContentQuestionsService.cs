@@ -433,6 +433,11 @@ public class ContentQuestionsService : IContentQuestionsService
             throw new ForbiddenException("Bạn không có quyền chỉnh sửa câu hỏi của tác giả khác.");
         }
 
+        if (!string.IsNullOrWhiteSpace(req.Status) && req.Status.Trim().ToLowerInvariant() == "published")
+        {
+            throw new ValidationException("Status", "Không thể xuất bản trực tiếp qua API cập nhật câu hỏi. Vui lòng qua quy trình phê duyệt xuất bản.");
+        }
+
         if (!string.IsNullOrWhiteSpace(req.Prompt)) question.Prompt = req.Prompt.Trim();
         if (req.Options != null) question.OptionsJson = JsonSerializer.Serialize(req.Options);
         if (req.CorrectAnswer != null) question.CorrectAnswer = req.CorrectAnswer.Trim();
@@ -448,6 +453,7 @@ public class ContentQuestionsService : IContentQuestionsService
         if (req.ChapterId != null) question.ChapterId = req.ChapterId.Trim();
         if (req.LessonId != null) question.LessonId = req.LessonId.Trim();
 
+        question.Version++;
         question.UpdatedAt = _clock.UtcNow;
 
         await _auditWriter.WriteStaffAuditAsync(

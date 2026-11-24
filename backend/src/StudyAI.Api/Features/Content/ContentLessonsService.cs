@@ -477,7 +477,7 @@ public class ContentLessonsService : IContentLessonsService
         if (les.Title.Contains("VNHSGE", StringComparison.OrdinalIgnoreCase) ||
             les.Introduction?.Contains("VNHSGE", StringComparison.OrdinalIgnoreCase) == true)
         {
-            throw new ForbiddenException("Nội dung bài học có dấu hiệu chứa tài liệu kỳ thi tốt nghiệp THPT Quốc gia (VNHSGE) chưa có bản quyền hoặc chưa được cấp phép. Không thể phê duyệt.");
+            throw new ForbiddenException("Nội dung bài học có dấu hiệu chứa tài liệu kỳ thi tốt nghiệp THPT Quốc gia (VNHSGE) đang bị khóa bản quyền học thuật hoặc chưa được cấp phép. Không thể phê duyệt.");
         }
 
         les.Status = "published";
@@ -544,8 +544,8 @@ public class ContentLessonsService : IContentLessonsService
             throw new ForbiddenException("Quy tắc kiểm duyệt độc lập (four-eyes): Người biên soạn không được tự yêu cầu sửa bài học của chính mình.");
         }
 
-        if (les.Status != "in-review")
-            throw new ValidationException("Status", $"Chỉ có bài học đang chờ duyệt ('in-review') mới có thể yêu cầu chỉnh sửa. Trạng thái hiện tại: {les.Status}");
+        if (les.Status != "in-review" && les.Status != "published" && les.Status != "draft")
+            throw new ValidationException("Status", $"Chỉ có bài học đang chờ duyệt ('in-review'), bản nháp ('draft') hoặc đã xuất bản mới có thể yêu cầu chỉnh sửa. Trạng thái hiện tại: {les.Status}");
 
         var notes = body?["notes"]?.ToString() ?? body?["reason"]?.ToString() ?? "Cần cập nhật thêm nội dung";
 

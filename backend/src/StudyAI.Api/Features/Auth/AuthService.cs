@@ -113,7 +113,7 @@ public class AuthService : IAuthService
         if (_loginAttempts.TryGetValue(normalizedEmail, out var attempt) && attempt.LockoutUntil > _clock.UtcNow)
         {
             var waitSecs = (int)Math.Ceiling((attempt.LockoutUntil - _clock.UtcNow).TotalSeconds);
-            throw new ValidationException($"Tài khoản tạm thời bị khóa do nhập sai nhiều lần. Vui lòng thử lại sau {waitSecs} giây.");
+            throw new TooManyRequestsException($"Tài khoản tạm thời bị khóa do nhập sai nhiều lần. Vui lòng thử lại sau {waitSecs} giây.");
         }
 
         var user = await _db.Users.FirstOrDefaultAsync(u => u.EmailNormalized == normalizedEmail, ct);

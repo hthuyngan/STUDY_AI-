@@ -47,6 +47,6 @@ public class AdminAnnouncementsController : ControllerBase
     public async Task<IActionResult> DeleteAnnouncement(string id, CancellationToken ct = default)
     {
         await _announcementsService.DeleteAnnouncementAsync(id, CurrentUserId, ct);
-        return Ok(new { message = "Đã xóa thông báo thành công." });
+        return NoContent();
     }
 }

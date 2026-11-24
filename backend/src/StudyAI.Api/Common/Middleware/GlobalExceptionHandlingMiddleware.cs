@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using StudyAI.Common.Exceptions;
 
@@ -6,6 +7,12 @@ namespace StudyAI.Common.Middleware;
 
 public class GlobalExceptionHandlingMiddleware
 {
+    private static readonly JsonSerializerOptions _jsonOptions = new()
+    {
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
     private readonly RequestDelegate _next;
     private readonly ILogger<GlobalExceptionHandlingMiddleware> _logger;
 
@@ -91,6 +98,17 @@ public class GlobalExceptionHandlingMiddleware
                 };
                 break;
 
+            case TooManyRequestsException tooManyEx:
+                statusCode = HttpStatusCode.TooManyRequests;
+                responseBody = new
+                {
+                    status = 429,
+                    title = "Quá nhiều yêu cầu",
+                    detail = tooManyEx.Message,
+                    traceId = correlationId
+                };
+                break;
+
             default:
                 _logger.LogError(exception, "Unhandled exception occurred. TraceId: {TraceId}", correlationId);
                 statusCode = HttpStatusCode.InternalServerError;
@@ -106,6 +124,6 @@ public class GlobalExceptionHandlingMiddleware
 
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = (int)statusCode;
-        return context.Response.WriteAsync(JsonSerializer.Serialize(responseBody));
+        return context.Response.WriteAsync(JsonSerializer.Serialize(responseBody, _jsonOptions));
     }
 }

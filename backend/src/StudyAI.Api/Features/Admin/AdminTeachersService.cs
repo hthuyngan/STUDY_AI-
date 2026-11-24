@@ -275,7 +275,7 @@ public class AdminTeachersService : IAdminTeachersService
             var duplicate = await _db.Users.AnyAsync(u => u.EmailNormalized == newEmail && u.Id != teacher.Id && !u.IsDeleted, ct);
             if (duplicate)
             {
-                throw new ConflictException("Email đã được sử dụng bởi tài khoản khác.");
+                throw new ValidationException("Email", "Email đã được sử dụng bởi tài khoản khác.");
             }
 
             teacher.Email = req.Email.Trim();
