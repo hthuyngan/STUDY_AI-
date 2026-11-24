@@ -1,16 +1,3 @@
-export interface ExerciseItem {
-  id: string
-  title: string
-  subjectId: string
-  subjectName: string
-  difficulty: 'Nhận biết' | 'Thông hiểu' | 'Vận dụng' | 'Vận dụng cao'
-  totalQuestions: number
-  completedQuestions: number
-  durationMinutes: number
-  quizId: string
-  status: 'not-started' | 'in-progress' | 'completed'
-}
-
 export interface LibraryItem {
   id: string
   title: string

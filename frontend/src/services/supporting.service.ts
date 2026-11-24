@@ -3,7 +3,6 @@ import { getAuthUser } from '@/auth/authSession'
 import { getStorageKey } from '@/repositories/storageKeys'
 import type {
   AchievementItem,
-  ExerciseItem,
   LibraryItem,
   UserProfileData,
   UserSettingsData,
@@ -16,13 +15,6 @@ const DEFAULT_USER_SETTINGS: UserSettingsData = {
   streakAlert: true,
   courseAlert: true,
   aiResponseStyle: 'balanced',
-}
-
-export async function getExercises(_filters?: {
-  subjectId?: string
-  status?: string
-}): Promise<ExerciseItem[]> {
-  return []
 }
 
 export async function getLibraryItems(filters?: {

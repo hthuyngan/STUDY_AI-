@@ -1,73 +1,9 @@
 import type {
   AchievementItem,
-  ExerciseItem,
   LibraryItem,
   UserProfileData,
   UserSettingsData,
 } from '@/types/supporting'
-
-export const mockExercises: ExerciseItem[] = [
-  {
-    id: 'ex-01',
-    title: 'Khảo sát sự biến thiên & Đồ thị hàm số',
-    subjectId: 'math',
-    subjectName: 'Toán 12',
-    difficulty: 'Thông hiểu',
-    totalQuestions: 10,
-    completedQuestions: 6,
-    durationMinutes: 15,
-    quizId: 'quiz-math-08',
-    status: 'in-progress',
-  },
-  {
-    id: 'ex-02',
-    title: 'Cực trị của hàm số bậc ba & bậc bốn trùng phương',
-    subjectId: 'math',
-    subjectName: 'Toán 12',
-    difficulty: 'Vận dụng',
-    totalQuestions: 15,
-    completedQuestions: 15,
-    durationMinutes: 25,
-    quizId: 'quiz-math-02',
-    status: 'completed',
-  },
-  {
-    id: 'ex-03',
-    title: 'Điện xoay chiều: Mạch RLC nối tiếp & Cộng hưởng',
-    subjectId: 'physics',
-    subjectName: 'Vật lý 12',
-    difficulty: 'Thông hiểu',
-    totalQuestions: 12,
-    completedQuestions: 4,
-    durationMinutes: 20,
-    quizId: 'quiz-physics-ac',
-    status: 'in-progress',
-  },
-  {
-    id: 'ex-04',
-    title: 'Phản ứng Este hóa & Bài toán đốt cháy Este',
-    subjectId: 'chemistry',
-    subjectName: 'Hóa học 12',
-    difficulty: 'Vận dụng cao',
-    totalQuestions: 20,
-    completedQuestions: 0,
-    durationMinutes: 30,
-    quizId: 'quiz-math-08',
-    status: 'not-started',
-  },
-  {
-    id: 'ex-05',
-    title: 'Mệnh đề quan hệ & Giới từ trong Tiếng Anh',
-    subjectId: 'english',
-    subjectName: 'Tiếng Anh 12',
-    difficulty: 'Nhận biết',
-    totalQuestions: 25,
-    completedQuestions: 25,
-    durationMinutes: 20,
-    quizId: 'quiz-math-08',
-    status: 'completed',
-  },
-]
 
 export const mockLibraryItems: LibraryItem[] = [
   {

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
   getAchievements,
-  getExercises,
   getLibraryItems,
   getUserProfile,
   getUserSettings,
@@ -9,55 +8,10 @@ import {
 } from '@/services/supporting.service'
 import type {
   AchievementItem,
-  ExerciseItem,
   LibraryItem,
   UserProfileData,
   UserSettingsData,
 } from '@/types/supporting'
-
-export function useExercises(filters?: { subjectId?: string; status?: string }) {
-  const [exercises, setExercises] = useState<ExerciseItem[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  const subjectFilter = filters?.subjectId
-  const statusFilter = filters?.status
-
-  const reload = useCallback(async () => {
-    setIsLoading(true)
-    setError(null)
-    try {
-      const data = await getExercises(filters)
-      setExercises(data)
-    } catch {
-      setError('Lỗi khi tải danh sách bài tập.')
-    } finally {
-      setIsLoading(false)
-    }
-  }, [filters])
-
-  useEffect(() => {
-    let isMounted = true
-
-    getExercises({ subjectId: subjectFilter, status: statusFilter })
-      .then((data) => {
-        if (!isMounted) return
-        setExercises(data)
-        setIsLoading(false)
-      })
-      .catch(() => {
-        if (!isMounted) return
-        setError('Lỗi khi tải danh sách bài tập.')
-        setIsLoading(false)
-      })
-
-    return () => {
-      isMounted = false
-    }
-  }, [subjectFilter, statusFilter])
-
-  return { exercises, isLoading, error, reload }
-}
 
 export function useLibrary(filters?: { category?: string; subjectId?: string; search?: string }) {
   const [items, setItems] = useState<LibraryItem[]>([])
