@@ -81,6 +81,7 @@ async function run() {
     // Viewports to test
     const viewports = [
       { name: '375px (Mobile)', width: 375, height: 667, isMobile: true },
+      { name: '390px (Mobile Standard iPhone)', width: 390, height: 844, isMobile: true },
       { name: '768px (Tablet)', width: 768, height: 1024, isMobile: true },
       { name: '1024px (Laptop/Tablet Landscape)', width: 1024, height: 768, isMobile: false },
       { name: '1366px (Standard Laptop)', width: 1366, height: 768, isMobile: false },
@@ -162,26 +163,30 @@ async function run() {
           }
         }
 
-        // Test Workspace (Admin) on mobile
+        // Assert unauthenticated staff routes redirect to /login on mobile (Workstream 7 requirement)
         await page.goto(`${PREVIEW_URL}/admin`, { waitUntil: 'networkidle' })
-        await page.waitForTimeout(600)
-
-        const wsHamburger = page.locator('.workspace-mobile-menu-btn')
-        if (await wsHamburger.isVisible()) {
-          await wsHamburger.click()
-          await page.waitForTimeout(400)
-
-          await page.screenshot({
-            path: path.join(QA_DIR, `${prefix}_admin_drawer_open.png`),
-            fullPage: false,
-          })
-
-          const wsClose = page.locator('.workspace-sidebar.mobile-open .sidebar-mobile-close-btn')
-          if (await wsClose.isVisible()) {
-            await wsClose.click()
-            await page.waitForTimeout(300)
-          }
+        await page.waitForTimeout(400)
+        const mobileAdminUrl = page.url()
+        if (!mobileAdminUrl.includes('/login')) {
+          throw new Error(`Expected unauthenticated /admin to redirect to /login on mobile (${vp.name}), but stayed on ${mobileAdminUrl}`)
         }
+        console.log(`   - Unauthenticated /admin redirected to /login on mobile (${vp.name}): PASS`)
+
+        await page.goto(`${PREVIEW_URL}/teacher`, { waitUntil: 'networkidle' })
+        await page.waitForTimeout(400)
+        const mobileTeacherUrl = page.url()
+        if (!mobileTeacherUrl.includes('/login')) {
+          throw new Error(`Expected unauthenticated /teacher to redirect to /login on mobile (${vp.name}), but stayed on ${mobileTeacherUrl}`)
+        }
+        console.log(`   - Unauthenticated /teacher redirected to /login on mobile (${vp.name}): PASS`)
+
+        await page.goto(`${PREVIEW_URL}/content`, { waitUntil: 'networkidle' })
+        await page.waitForTimeout(400)
+        const mobileContentUrl = page.url()
+        if (!mobileContentUrl.includes('/login')) {
+          throw new Error(`Expected unauthenticated /content to redirect to /login on mobile (${vp.name}), but stayed on ${mobileContentUrl}`)
+        }
+        console.log(`   - Unauthenticated /content redirected to /login on mobile (${vp.name}): PASS`)
       } else {
         // Desktop / Laptop: Sidebar is permanently expanded
         const sidebarExpanded = await page.locator('.sidebar').isVisible()
