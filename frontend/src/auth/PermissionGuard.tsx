@@ -19,7 +19,7 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
   const location = useLocation()
 
   // Development / UI Review Prototype Mode:
-  if (isPrototypeMode()) {
+  if (import.meta.env.DEV && isPrototypeMode()) {
     return children ? <>{children}</> : <Outlet />
   }
 

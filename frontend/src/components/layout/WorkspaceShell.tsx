@@ -9,7 +9,6 @@ import {
   Info,
   Bell,
   Search,
-  CheckCheck,
 } from 'lucide-react'
 import { Link, useNavigate, useLocation, Outlet } from 'react-router-dom'
 import { useAuth } from '@/auth/useAuth'
@@ -161,13 +160,15 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
 
           <div className="workspace-topbar-right">
             {/* Environment / Prototype Indicator Pill */}
-            <div
-              className="workspace-prototype-pill"
-              title="Chế độ mô phỏng vận hành trực tiếp không yêu cầu đăng nhập"
-            >
-              <Info size={12} aria-hidden="true" />
-              <span>FE Prototype</span>
-            </div>
+            {import.meta.env.DEV && isPrototypeMode() && (
+              <div
+                className="workspace-prototype-pill"
+                title="Chế độ mô phỏng vận hành trực tiếp không yêu cầu đăng nhập"
+              >
+                <Info size={12} aria-hidden="true" />
+                <span>FE Prototype</span>
+              </div>
+            )}
 
             {/* Quick Search Trigger (focuses search input in sidebar) */}
             <button
@@ -190,11 +191,10 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
                 type="button"
                 className="workspace-notify-btn"
                 onClick={() => setNotifyOpen((prev) => !prev)}
-                aria-label="Thông báo hệ thống (3 mới)"
+                aria-label="Thông báo hệ thống"
                 title="Thông báo hệ thống"
               >
                 <Bell size={16} />
-                <span className="notify-badge">3</span>
               </button>
 
               {notifyOpen && (
@@ -202,37 +202,19 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
                   <div className="notify-header">
                     <div className="notify-title-group">
                       <span className="notify-heading">Thông báo hệ thống</span>
-                      <span className="notify-count-pill">3 mới</span>
                     </div>
-                    <button
-                      type="button"
-                      className="notify-mark-read"
-                      onClick={() => setNotifyOpen(false)}
-                    >
-                      <CheckCheck size={13} />
-                      <span>Đã đọc hết</span>
-                    </button>
                   </div>
 
-                  <div className="notify-list scrollbar-clean">
-                    <div className="notify-item unread">
-                      <div className="notify-item-title">
-                        {role === 'content'
-                          ? '2 Học liệu bài giảng mới chờ phê duyệt'
-                          : role === 'teacher'
-                            ? '5 Bài tập học sinh nộp cần chấm điểm'
-                            : '14 Mục vận hành đang chờ xử lý'}
-                      </div>
-                      <div className="notify-item-meta">10 phút trước • Hệ thống STUDY_AI</div>
-                    </div>
-                    <div className="notify-item">
-                      <div className="notify-item-title">Đồng bộ dữ liệu tiến độ hoàn tất</div>
-                      <div className="notify-item-meta">45 phút trước • Bản lưu tự động</div>
-                    </div>
-                    <div className="notify-item">
-                      <div className="notify-item-title">Hạ tầng hệ thống đạt trạng thái 100% On-track</div>
-                      <div className="notify-item-meta">2 giờ trước • Giám sát hiệu năng</div>
-                    </div>
+                  <div
+                    className="notify-list scrollbar-clean"
+                    style={{
+                      padding: '24px 16px',
+                      textAlign: 'center',
+                      color: 'var(--text-secondary, #64748b)',
+                      fontSize: '13px',
+                    }}
+                  >
+                    Chưa có thông báo mới
                   </div>
                 </div>
               )}
@@ -250,7 +232,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
             </Link>
 
             {/* Quick Workspace Switcher for Admin or Prototype Mode */}
-            {(isPrototypeMode() || user?.role === 'admin' || role === 'admin') && (
+            {((import.meta.env.DEV && isPrototypeMode()) || user?.role === 'admin' || role === 'admin') && (
               <div className="workspace-switcher-wrapper">
                 <select
                   className="workspace-switcher-select"
@@ -302,7 +284,7 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
                   {user?.displayName ? user.displayName.charAt(0).toUpperCase() : 'U'}
                 </div>
                 <span className="workspace-user-name">
-                  {user?.displayName || 'Nhân viên'}
+                  {user?.displayName || 'Chưa đăng nhập'}
                 </span>
                 <ChevronDown size={14} className="workspace-user-caret" />
               </button>
@@ -310,8 +292,8 @@ export const WorkspaceShell: React.FC<WorkspaceShellProps> = ({
               {accountMenuOpen && (
                 <div className="workspace-user-dropdown" role="menu">
                   <div className="workspace-dropdown-header">
-                    <div className="workspace-dropdown-name">{user?.displayName || 'Nhân viên STUDY_AI'}</div>
-                    <div className="workspace-dropdown-email">{user?.email || 'staff@study-ai.edu.vn'}</div>
+                    <div className="workspace-dropdown-name">{user?.displayName || 'Chưa đăng nhập'}</div>
+                    <div className="workspace-dropdown-email">{user?.email || ''}</div>
                     <div className="workspace-dropdown-role-tag">
                       VAI TRÒ: {roleLabel.toUpperCase()}
                     </div>

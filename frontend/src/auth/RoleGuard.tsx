@@ -21,7 +21,7 @@ export const RoleGuard: React.FC<RoleGuardProps> = ({
   // Development / UI Review Preview Mode:
   // When preview mode is enabled, allows direct rendering of staff screens
   // without requiring authenticated backend session or role match.
-  if (isStaffUiPreviewEnabled()) {
+  if (import.meta.env.DEV && isStaffUiPreviewEnabled()) {
     return children ? <>{children}</> : <Outlet />
   }
 

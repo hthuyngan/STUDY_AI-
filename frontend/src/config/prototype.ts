@@ -11,6 +11,10 @@
 export const FRONTEND_PROTOTYPE_MODE = false
 
 export function isPrototypeMode(): boolean {
+  if (!import.meta.env.DEV) {
+    return false
+  }
+
   if (typeof window !== 'undefined') {
     const win = window as unknown as { __STUDY_AI_PROTOTYPE_MODE__?: boolean }
     if (typeof win.__STUDY_AI_PROTOTYPE_MODE__ === 'boolean') {

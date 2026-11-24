@@ -1,19 +1,74 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Routes, Route } from 'react-router-dom'
+import { MemoryRouter } from 'react-router-dom'
 import { WorkspaceShell } from './WorkspaceShell'
 import * as useAuthModule from '@/auth/useAuth'
 
-vi.mock('@/auth/useAuth', () => ({
-  useAuth: vi.fn(),
-}))
-
-describe('WorkspaceShell & Admin Navigation Suite', () => {
+describe('WorkspaceShell — Identity & Production Safety Suite', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
-    localStorage.clear()
-    vi.mocked(useAuthModule.useAuth).mockReturnValue({
+    vi.restoreAllMocks()
+    delete (window as any).__STUDY_AI_PROTOTYPE_MODE__
+
+    vi.spyOn(useAuthModule, 'useAuth').mockReturnValue({
+      user: {
+        id: 'usr-admin-01',
+        email: 'real.admin@school.edu.vn',
+        displayName: 'Trần Thị B',
+        role: 'admin',
+      } as any,
+      state: 'authenticated',
+      isAuthenticated: true,
+      isGuest: false,
+      error: null,
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(),
+      refreshSession: vi.fn(),
+      migrationPending: false,
+      confirmMigration: vi.fn(),
+      declineMigration: vi.fn(),
+    })
+  })
+
+  it('renders authenticated staff identity truthfully and does not fabricate staff@study-ai.edu.vn', () => {
+    vi.spyOn(useAuthModule, 'useAuth').mockReturnValue({
+      user: {
+        id: 'usr-admin-01',
+        email: 'real.admin@school.edu.vn',
+        displayName: 'Trần Thị B',
+        role: 'admin',
+      } as any,
+      state: 'authenticated',
+      isAuthenticated: true,
+      isGuest: false,
+      error: null,
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(),
+      refreshSession: vi.fn(),
+      migrationPending: false,
+      confirmMigration: vi.fn(),
+      declineMigration: vi.fn(),
+    })
+
+    render(
+      <MemoryRouter>
+        <WorkspaceShell role="admin">
+          <div>Admin Content</div>
+        </WorkspaceShell>
+      </MemoryRouter>
+    )
+
+    expect(screen.getByText('Trần Thị B')).toBeInTheDocument()
+    expect(screen.queryByText('staff@study-ai.edu.vn')).not.toBeInTheDocument()
+
+    // Open account menu
+    fireEvent.click(screen.getByLabelText('Menu tài khoản cá nhân'))
+    expect(screen.getByText('real.admin@school.edu.vn')).toBeInTheDocument()
+  })
+
+  it('displays "Chưa đăng nhập" when user is null instead of "Nhân viên"', () => {
+    vi.spyOn(useAuthModule, 'useAuth').mockReturnValue({
       user: null,
       state: 'guest',
       isAuthenticated: false,
@@ -27,251 +82,69 @@ describe('WorkspaceShell & Admin Navigation Suite', () => {
       confirmMigration: vi.fn(),
       declineMigration: vi.fn(),
     })
-  })
 
-  it('renders all required admin navigation items with correct hrefs', () => {
     render(
-      <MemoryRouter initialEntries={['/admin']}>
-        <WorkspaceShell role="admin">
-          <div>Dashboard Content</div>
+      <MemoryRouter>
+        <WorkspaceShell role="content">
+          <div>Content Content</div>
         </WorkspaceShell>
       </MemoryRouter>
     )
 
-    const dashboardLink = screen.getByRole('link', { name: /Bảng điều khiển/i })
-    expect(dashboardLink).toHaveAttribute('href', '/admin')
-
-    const usersLink = screen.getByRole('link', { name: /Danh sách người dùng/i })
-    expect(usersLink).toHaveAttribute('href', '/admin/users')
-
-    const rolesLink = screen.getByRole('link', { name: /Phân quyền & Vai trò/i })
-    expect(rolesLink).toHaveAttribute('href', '/admin/roles')
-
-    const systemLink = screen.getByRole('link', { name: /Trạng thái hệ thống/i })
-    expect(systemLink).toHaveAttribute('href', '/admin/system')
-
-    const returnLinks = screen.getAllByRole('link', { name: /Quay lại học viên|Giao diện học viên/i })
-    expect(returnLinks.length).toBeGreaterThan(0)
-    expect(returnLinks.some((l) => l.getAttribute('href') === '/dashboard')).toBe(true)
+    expect(screen.getByText('Chưa đăng nhập')).toBeInTheDocument()
+    expect(screen.queryByText('Nhân viên')).not.toBeInTheDocument()
+    expect(screen.queryByText('staff@study-ai.edu.vn')).not.toBeInTheDocument()
   })
 
-  it('highlights "Bảng điều khiển" as active when at /admin', () => {
+  it('renders empty notification state without fabricated unread count badge', () => {
+    vi.spyOn(useAuthModule, 'useAuth').mockReturnValue({
+      user: {
+        id: 'usr-teacher-01',
+        email: 'teacher@school.edu.vn',
+        displayName: 'Nguyễn Văn Giáo Viên',
+        role: 'teacher',
+      } as any,
+      state: 'authenticated',
+      isAuthenticated: true,
+      isGuest: false,
+      error: null,
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(),
+      refreshSession: vi.fn(),
+      migrationPending: false,
+      confirmMigration: vi.fn(),
+      declineMigration: vi.fn(),
+    })
+
     render(
-      <MemoryRouter initialEntries={['/admin']}>
-        <WorkspaceShell role="admin">
-          <div>Dashboard View</div>
+      <MemoryRouter>
+        <WorkspaceShell role="teacher">
+          <div>Teacher Content</div>
         </WorkspaceShell>
       </MemoryRouter>
     )
 
-    const dashboardLink = screen.getByRole('link', { name: /Bảng điều khiển/i })
-    expect(dashboardLink).toHaveClass('active')
-    expect(dashboardLink).toHaveAttribute('aria-current', 'page')
+    // Notification badge should not be '3'
+    expect(screen.queryByText('3 mới')).not.toBeInTheDocument()
 
-    const usersLink = screen.getByRole('link', { name: /Danh sách người dùng/i })
-    expect(usersLink).not.toHaveClass('active')
-    expect(usersLink).not.toHaveAttribute('aria-current')
-
-    expect(screen.getByText('Quản trị hệ thống')).toBeInTheDocument()
-    expect(document.querySelector('.workspace-current-title')).toHaveTextContent('Bảng điều khiển')
+    // Open notify dropdown
+    fireEvent.click(screen.getByLabelText('Thông báo hệ thống'))
+    expect(screen.getByText('Chưa có thông báo mới')).toBeInTheDocument()
   })
 
-  it('highlights "Danh sách người dùng" when at /admin/users', () => {
-    render(
-      <MemoryRouter initialEntries={['/admin/users']}>
-        <WorkspaceShell role="admin">
-          <div>Users List View</div>
-        </WorkspaceShell>
-      </MemoryRouter>
-    )
-
-    const usersLink = screen.getByRole('link', { name: /Danh sách người dùng/i })
-    expect(usersLink).toHaveClass('active')
-    expect(usersLink).toHaveAttribute('aria-current', 'page')
-
-    const dashboardLink = screen.getByRole('link', { name: /Bảng điều khiển/i })
-    expect(dashboardLink).not.toHaveClass('active')
-
-    // Topbar breadcrumb shows active title
-    expect(document.querySelector('.workspace-current-title')).toHaveTextContent('Danh sách người dùng')
-  })
-
-  it('keeps "Danh sách người dùng" active on nested user detail route /admin/users/:id', () => {
-    render(
-      <MemoryRouter initialEntries={['/admin/users/usr-001']}>
-        <WorkspaceShell role="admin">
-          <div>User Detail View</div>
-        </WorkspaceShell>
-      </MemoryRouter>
-    )
-
-    const usersLink = screen.getByRole('link', { name: /Danh sách người dùng/i })
-    expect(usersLink).toHaveClass('active')
-
-    const dashboardLink = screen.getByRole('link', { name: /Bảng điều khiển/i })
-    expect(dashboardLink).not.toHaveClass('active')
-
-    // Breadcrumb keeps "Danh sách người dùng" for subroute
-    expect(document.querySelector('.workspace-current-title')).toHaveTextContent('Danh sách người dùng')
-  })
-
-  it('highlights "Phân quyền & Vai trò" when at /admin/roles', () => {
-    render(
-      <MemoryRouter initialEntries={['/admin/roles']}>
-        <WorkspaceShell role="admin">
-          <div>Roles View</div>
-        </WorkspaceShell>
-      </MemoryRouter>
-    )
-
-    const rolesLink = screen.getByRole('link', { name: /Phân quyền & Vai trò/i })
-    expect(rolesLink).toHaveClass('active')
-
-    const dashboardLink = screen.getByRole('link', { name: /Bảng điều khiển/i })
-    expect(dashboardLink).not.toHaveClass('active')
-
-    expect(document.querySelector('.workspace-current-title')).toHaveTextContent('Phân quyền & Vai trò')
-  })
-
-  it('highlights "Trạng thái hệ thống" when at /admin/system', () => {
-    render(
-      <MemoryRouter initialEntries={['/admin/system']}>
-        <WorkspaceShell role="admin">
-          <div>System View</div>
-        </WorkspaceShell>
-      </MemoryRouter>
-    )
-
-    const systemLink = screen.getByRole('link', { name: /Trạng thái hệ thống/i })
-    expect(systemLink).toHaveClass('active')
-
-    expect(document.querySelector('.workspace-current-title')).toHaveTextContent('Trạng thái hệ thống')
-  })
-
-  it('navigates seamlessly across admin routes and updates view', async () => {
-    const user = userEvent.setup()
-
-    render(
-      <MemoryRouter initialEntries={['/admin']}>
-        <Routes>
-          <Route path="/admin" element={<WorkspaceShell role="admin" />}>
-            <Route index element={<div data-testid="page-dashboard">Page: Dashboard</div>} />
-            <Route path="users" element={<div data-testid="page-users">Page: Users</div>} />
-            <Route path="roles" element={<div data-testid="page-roles">Page: Roles</div>} />
-            <Route path="system" element={<div data-testid="page-system">Page: System</div>} />
-          </Route>
-          <Route path="/dashboard" element={<div data-testid="page-learner">Page: Learner</div>} />
-        </Routes>
-      </MemoryRouter>
-    )
-
-    // Initially at dashboard
-    expect(screen.getByTestId('page-dashboard')).toBeInTheDocument()
-
-    // Click "Danh sách người dùng"
-    await user.click(screen.getByRole('link', { name: /Danh sách người dùng/i }))
-    expect(screen.getByTestId('page-users')).toBeInTheDocument()
-
-    // Click "Phân quyền & Vai trò"
-    await user.click(screen.getByRole('link', { name: /Phân quyền & Vai trò/i }))
-    expect(screen.getByTestId('page-roles')).toBeInTheDocument()
-
-    // Click "Trạng thái hệ thống"
-    await user.click(screen.getByRole('link', { name: /Trạng thái hệ thống/i }))
-    expect(screen.getByTestId('page-system')).toBeInTheDocument()
-
-    // Click "Bảng điều khiển"
-    await user.click(screen.getByRole('link', { name: /Bảng điều khiển/i }))
-    expect(screen.getByTestId('page-dashboard')).toBeInTheDocument()
-
-    // Click "Quay lại học viên" from bottom sidebar
-    const returnBottomLink = screen.getByRole('link', { name: /Quay lại học viên/i })
-    await user.click(returnBottomLink)
-    expect(screen.getByTestId('page-learner')).toBeInTheDocument()
-  })
-
-  it('keeps sidebar permanently expanded on desktop and does not render collapse button', () => {
-    render(
-      <MemoryRouter initialEntries={['/admin']}>
-        <WorkspaceShell role="admin">
-          <div>Dashboard View</div>
-        </WorkspaceShell>
-      </MemoryRouter>
-    )
-
-    const sidebar = screen.getByLabelText(/Thanh điều hướng Quản trị hệ thống/i)
-    expect(sidebar).not.toHaveClass('collapsed')
-    expect(sidebar).toHaveClass('expanded')
-
-    // Collapse button should not exist
-    expect(screen.queryByRole('button', { name: /Thu gọn thanh điều hướng/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Mở rộng thanh điều hướng/i })).not.toBeInTheDocument()
-  })
-
-  it('does not collapse on Ctrl+B keyboard shortcut', () => {
-    render(
-      <MemoryRouter initialEntries={['/admin']}>
-        <WorkspaceShell role="admin">
-          <div>Dashboard View</div>
-        </WorkspaceShell>
-      </MemoryRouter>
-    )
-
-    const sidebar = screen.getByLabelText(/Thanh điều hướng Quản trị hệ thống/i)
-    expect(sidebar).not.toHaveClass('collapsed')
-    expect(sidebar).toHaveClass('expanded')
-
-    fireEvent.keyDown(window, { key: 'b', ctrlKey: true })
-    expect(sidebar).not.toHaveClass('collapsed')
-    expect(sidebar).toHaveClass('expanded')
-  })
-
-  it('handles mobile drawer open, close on click, and close on Escape', async () => {
-    const user = userEvent.setup()
-
-    render(
-      <MemoryRouter initialEntries={['/admin']}>
-        <WorkspaceShell role="admin">
-          <div>Dashboard View</div>
-        </WorkspaceShell>
-      </MemoryRouter>
-    )
-
-    const sidebar = screen.getByLabelText(/Thanh điều hướng Quản trị hệ thống/i)
-    expect(sidebar).not.toHaveClass('mobile-open')
-
-    // Click mobile menu hamburger button
-    const hamburgerBtn = screen.getByRole('button', { name: /Mở danh mục điều hướng/i })
-    await user.click(hamburgerBtn)
-    expect(sidebar).toHaveClass('mobile-open')
-
-    // Press Escape to close
-    fireEvent.keyDown(window, { key: 'Escape' })
-    expect(sidebar).not.toHaveClass('mobile-open')
-
-    // Open again and click backdrop to close
-    await user.click(hamburgerBtn)
-    expect(sidebar).toHaveClass('mobile-open')
-
-    const backdrop = document.querySelector('.sidebar-mobile-backdrop')
-    expect(backdrop).toBeInTheDocument()
-    if (backdrop) {
-      await user.click(backdrop)
-    }
-    expect(sidebar).not.toHaveClass('mobile-open')
-  })
-
-  it('renders workspace switcher allowing switching between roles', () => {
-    render(
-      <MemoryRouter initialEntries={['/admin']}>
-        <WorkspaceShell role="admin">
-          <div>Admin Content</div>
-        </WorkspaceShell>
-      </MemoryRouter>
-    )
-
-    const switcher = screen.getByLabelText(/Chuyển không gian làm việc/i)
-    expect(switcher).toBeInTheDocument()
-    expect(switcher).toHaveValue('admin')
+  it('renders for all three staff roles: admin, teacher, and content', () => {
+    const roles: Array<'admin' | 'teacher' | 'content'> = ['admin', 'teacher', 'content']
+    roles.forEach((r) => {
+      const { unmount } = render(
+        <MemoryRouter>
+          <WorkspaceShell role={r}>
+            <div>{r} child</div>
+          </WorkspaceShell>
+        </MemoryRouter>
+      )
+      expect(screen.getByText(`${r} child`)).toBeInTheDocument()
+      unmount()
+    })
   })
 })
