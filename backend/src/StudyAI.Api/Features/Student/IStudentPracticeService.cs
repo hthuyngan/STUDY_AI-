@@ -45,6 +45,8 @@ public interface IStudentPracticeService
         string? mode,
         string? grade,
         string userGrade,
+        string? skillId = null,
+        string? type = null,
         CancellationToken cancellationToken = default);
 
     Task<PracticeSessionResponseDto> CreateSessionAsync(

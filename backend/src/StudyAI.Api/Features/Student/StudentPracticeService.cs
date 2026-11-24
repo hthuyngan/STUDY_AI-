@@ -211,6 +211,8 @@ public class StudentPracticeService : ILearnerPracticeService
         string? mode,
         string? grade,
         string userGrade,
+        string? skillId = null,
+        string? type = null,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(subjectId))
@@ -221,7 +223,7 @@ public class StudentPracticeService : ILearnerPracticeService
         var baseQuery = _db.ContentQuestions.AsNoTracking()
             .Where(q => !q.IsDeleted && q.Status == "published" && !string.IsNullOrWhiteSpace(q.CorrectAnswer));
 
-        var query = ApplyQuestionFilters(baseQuery, subjectId, chapterId, lessonId, difficulty, null, null, grade);
+        var query = ApplyQuestionFilters(baseQuery, subjectId, chapterId, lessonId, difficulty, skillId, type, grade);
         var count = await query.CountAsync(cancellationToken);
         return new QuestionCountDto { Count = count, AvailableQuestions = count };
     }
@@ -459,6 +461,11 @@ public class StudentPracticeService : ILearnerPracticeService
             throw new ForbiddenException("Bạn không có quyền truy cập phiên luyện tập này.");
         }
 
+        if (attempt.UserId != userId)
+        {
+            throw new ForbiddenException("Chỉ học sinh sở hữu phiên làm bài mới có quyền lưu câu trả lời.");
+        }
+
         if (attempt.CompletionStatus == "completed")
         {
             throw new ValidationException("Phiên luyện tập đã kết thúc, không thể lưu câu trả lời.");
@@ -504,6 +511,11 @@ public class StudentPracticeService : ILearnerPracticeService
             throw new ForbiddenException("Bạn không có quyền truy cập phiên luyện tập này.");
         }
 
+        if (attempt.UserId != userId)
+        {
+            throw new ForbiddenException("Chỉ học sinh sở hữu phiên làm bài mới có quyền kiểm tra câu hỏi.");
+        }
+
         var suspendNode = string.IsNullOrEmpty(attempt.SuspendDataJson)
             ? new JsonObject()
             : JsonNode.Parse(attempt.SuspendDataJson)?.AsObject() ?? new JsonObject();
@@ -511,7 +523,7 @@ public class StudentPracticeService : ILearnerPracticeService
         var mode = suspendNode["mode"]?.GetValue<string>() ?? "practice";
         if (mode == "exam")
         {
-            throw new ValidationException("Chế độ thi thử không cho phép kiểm tra đáp án tức thời.");
+            throw new ForbiddenException("Chế độ thi thử không cho phép kiểm tra đáp án tức thời.");
         }
 
         var question = await _db.ContentQuestions.AsNoTracking()
@@ -554,6 +566,11 @@ public class StudentPracticeService : ILearnerPracticeService
             throw new ForbiddenException("Bạn không có quyền nộp bài cho phiên luyện tập này.");
         }
 
+        if (attempt.UserId != userId)
+        {
+            throw new ForbiddenException("Chỉ học sinh sở hữu phiên làm bài mới có quyền nộp bài cho phiên luyện tập này.");
+        }
+
         var now = _clock.UtcNow;
 
         if (attempt.CompletionStatus == "completed")
@@ -564,6 +581,16 @@ public class StudentPracticeService : ILearnerPracticeService
         var suspendNode = string.IsNullOrEmpty(attempt.SuspendDataJson)
             ? new JsonObject()
             : JsonNode.Parse(attempt.SuspendDataJson)?.AsObject() ?? new JsonObject();
+
+        bool isPastDeadline = false;
+        if (suspendNode.TryGetPropertyValue("expiresAt", out var expNode) &&
+            DateTimeOffset.TryParse(expNode?.GetValue<string>(), out var expiresAt))
+        {
+            if (now > expiresAt)
+            {
+                isPastDeadline = true;
+            }
+        }
 
         var questionIds = suspendNode["questionIds"]?.AsArray()
             .Select(x => x?.GetValue<string>())
@@ -585,7 +612,7 @@ public class StudentPracticeService : ILearnerPracticeService
             if (q == null) continue;
 
             string studentAns = string.Empty;
-            if (request.Answers != null && !string.IsNullOrEmpty(qId) && request.Answers.TryGetValue(qId, out var ans))
+            if (!isPastDeadline && request.Answers != null && !string.IsNullOrEmpty(qId) && request.Answers.TryGetValue(qId, out var ans))
             {
                 studentAns = ans?.Trim() ?? string.Empty;
             }
@@ -617,6 +644,7 @@ public class StudentPracticeService : ILearnerPracticeService
                 Explanation = q.Explanation,
                 Difficulty = q.Difficulty,
                 Type = q.Type,
+                QuestionType = q.Type,
                 SkillIds = sIds,
                 CognitiveLevel = cogLevel
             });
@@ -658,7 +686,7 @@ public class StudentPracticeService : ILearnerPracticeService
         attempt.ScoreRaw = scoreRaw;
         attempt.ScoreScaled = scoreScaled;
         attempt.ScoreMin = 0.0;
-        attempt.ScoreMax = 10.0;
+        attempt.ScoreMax = attempt.ScoreMax > 0 ? attempt.ScoreMax : (totalQ > 0 ? (double)totalQ : 10.0);
         attempt.SessionTimeMs = request.SessionTimeMs > 0 ? request.SessionTimeMs : attempt.SessionTimeMs;
 
         suspendNode["resultBreakdown"] = JsonSerializer.SerializeToNode(questionResults);
@@ -730,9 +758,10 @@ public class StudentPracticeService : ILearnerPracticeService
         string resultId,
         CancellationToken cancellationToken = default)
     {
+        var cleanId = resultId.StartsWith("res_", StringComparison.OrdinalIgnoreCase) ? resultId[4..] : resultId;
         var attempt = await _db.AssessmentAttempts.AsNoTracking()
             .Include(a => a.Responses)
-            .FirstOrDefaultAsync(a => a.Id == resultId, cancellationToken);
+            .FirstOrDefaultAsync(a => a.Id == resultId || a.Id == cleanId, cancellationToken);
 
         if (attempt == null)
         {
@@ -742,6 +771,11 @@ public class StudentPracticeService : ILearnerPracticeService
         if (!await CanAccessAttemptAsync(attempt, userId, userRole))
         {
             throw new ForbiddenException("Bạn không có quyền xem kết quả này.");
+        }
+
+        if (attempt.CompletionStatus != "completed")
+        {
+            throw new ValidationException("Bài thi chưa hoàn thành, không thể xem kết quả.");
         }
 
         var suspendNode = string.IsNullOrEmpty(attempt.SuspendDataJson)
@@ -791,6 +825,7 @@ public class StudentPracticeService : ILearnerPracticeService
                     Explanation = q.Explanation,
                     Difficulty = q.Difficulty,
                     Type = q.Type,
+                    QuestionType = q.Type,
                     SkillIds = sIds,
                     CognitiveLevel = cogLevel
                 });
@@ -921,6 +956,16 @@ public class StudentPracticeService : ILearnerPracticeService
                 catch (ForbiddenException) { throw; }
                 catch { }
             }
+        }
+
+        var hasMistake = await _db.AssessmentResponses.AsNoTracking()
+            .AnyAsync(r => r.QuestionId == questionId &&
+                           r.IsCorrect == false &&
+                           _db.AssessmentAttempts.Any(a => a.Id == r.AttemptId && a.UserId == userId), cancellationToken);
+
+        if (!hasMistake)
+        {
+            throw new ValidationException("Học sinh chưa từng trả lời sai câu hỏi này.");
         }
 
         bool isCorrect = EvaluateAnswer(question, request.Answer);

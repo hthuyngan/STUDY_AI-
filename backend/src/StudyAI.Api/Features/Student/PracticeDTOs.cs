@@ -15,6 +15,7 @@ public class CreatePracticeSessionRequest
     public string? SkillId { get; set; }
     public List<string>? SkillIds { get; set; }
     public string? QuestionType { get; set; }
+    public string? Type { get => QuestionType; set => QuestionType = value; }
     public string? Grade { get; set; }
 }
 
@@ -83,8 +84,27 @@ public class QuestionResultItemDto
     public bool IsCorrect { get; set; }
     public string? Explanation { get; set; }
     public string Difficulty { get; set; } = string.Empty;
-    public string Type { get; set; } = "multiple-choice";
-    public string? QuestionType { get; set; }
+    private string _type = "multiple-choice";
+    public string Type
+    {
+        get => _type;
+        set
+        {
+            _type = value;
+            if (string.IsNullOrEmpty(_questionType)) _questionType = value;
+        }
+    }
+
+    private string? _questionType;
+    public string? QuestionType
+    {
+        get => _questionType ?? _type;
+        set
+        {
+            _questionType = value;
+            if (!string.IsNullOrEmpty(value) && _type == "multiple-choice") _type = value;
+        }
+    }
     public List<string> SkillIds { get; set; } = new();
     public string? CognitiveLevel { get; set; }
 }

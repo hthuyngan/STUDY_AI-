@@ -36,10 +36,14 @@ public class StudentPracticeController : ControllerBase
         [FromQuery] string? difficulty = null,
         [FromQuery] string? mode = null,
         [FromQuery] string? grade = null,
+        [FromQuery] string? skillId = null,
+        [FromQuery] string? type = null,
+        [FromQuery] string? questionType = null,
         CancellationToken ct = default)
     {
         try
         {
+            var effectiveType = questionType ?? type;
             var result = await _practiceService.GetQuestionCountAsync(
                 subjectId,
                 chapterId,
@@ -48,6 +52,8 @@ public class StudentPracticeController : ControllerBase
                 mode,
                 grade,
                 CurrentUserGrade,
+                skillId,
+                effectiveType,
                 ct);
 
             return Ok(result);
@@ -140,6 +146,7 @@ public class StudentPracticeController : ControllerBase
         }
         catch (NotFoundException ex) { return NotFound(new { detail = ex.Message }); }
         catch (ForbiddenException ex) { return StatusCode(StatusCodes.Status403Forbidden, new { detail = ex.Message }); }
+        catch (ValidationException ex) { return BadRequest(new { detail = ex.Message }); }
     }
 
     [HttpGet("results/{resultId}")]
@@ -152,6 +159,7 @@ public class StudentPracticeController : ControllerBase
         }
         catch (NotFoundException ex) { return NotFound(new { detail = ex.Message }); }
         catch (ForbiddenException ex) { return StatusCode(StatusCodes.Status403Forbidden, new { detail = ex.Message }); }
+        catch (ValidationException ex) { return BadRequest(new { detail = ex.Message }); }
     }
 
     [HttpGet("mistakes")]
