@@ -1,5 +1,7 @@
 using System.Net;
+using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Unicode;
 using StudyAI.Common.Exceptions;
 
 namespace StudyAI.Common.Middleware;
@@ -8,7 +10,8 @@ public class GlobalExceptionHandlingMiddleware
 {
     private static readonly JsonSerializerOptions _jsonOptions = new()
     {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Encoder = JavaScriptEncoder.Create(UnicodeRanges.All)
     };
 
     private readonly RequestDelegate _next;

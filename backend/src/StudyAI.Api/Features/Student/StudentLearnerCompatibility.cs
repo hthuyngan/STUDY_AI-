@@ -125,8 +125,8 @@ public class LearnerPracticeController : StudentPracticeController
 [NonController]
 public class LearnerProfileController : StudentProfileController
 {
-    public LearnerProfileController(ILearnerProfileService profileService)
-        : base(profileService) { }
+    public LearnerProfileController(ILearnerProfileService profileService, IStudentNotesService notesService)
+        : base(profileService, notesService) { }
 }
 
 [NonController]

@@ -109,6 +109,7 @@ builder.Services.AddScoped<ILearnerEventsService>(sp => sp.GetRequiredService<St
 builder.Services.AddScoped<StudentProfileService>();
 builder.Services.AddScoped<IStudentProfileService>(sp => sp.GetRequiredService<StudentProfileService>());
 builder.Services.AddScoped<ILearnerProfileService>(sp => sp.GetRequiredService<StudentProfileService>());
+builder.Services.AddScoped<IStudentNotesService, StudentNotesService>();
 
 builder.Services.AddScoped<StudentPracticeService>();
 builder.Services.AddScoped<IStudentPracticeService>(sp => sp.GetRequiredService<StudentPracticeService>());

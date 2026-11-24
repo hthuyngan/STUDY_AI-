@@ -1,3 +1,5 @@
+import { apiClient } from '@/lib/apiClient'
+import { getAccessToken } from '@/auth/authSession'
 import type { CreateNoteInput, StudyNote } from '@/types/studyNotes'
 
 export const STUDY_NOTES_STORAGE_KEY = 'study_ai.study_notes.v1'
@@ -22,7 +24,6 @@ function loadStoredData(): StudyNote[] {
     if (!raw) return []
     const parsed = JSON.parse(raw) as StoredNotesSchema | StudyNote[]
 
-    // Handle versioned schema or flat array
     if (Array.isArray(parsed)) {
       return parsed
     }
@@ -50,6 +51,50 @@ function persistNotes(notes: StudyNote[]): void {
   }
 }
 
+export function isAuthenticated(): boolean {
+  return typeof window !== 'undefined' && Boolean(getAccessToken())
+}
+
+export async function fetchStudyNotesFromApi(filter?: {
+  lessonId?: string
+  subjectId?: string
+  search?: string
+}): Promise<StudyNote[]> {
+  const params = new URLSearchParams()
+  if (filter?.lessonId) params.append('lessonId', filter.lessonId)
+  if (filter?.subjectId) params.append('subjectId', filter.subjectId)
+  if (filter?.search) params.append('search', filter.search)
+
+  const query = params.toString() ? `?${params.toString()}` : ''
+  const notes = await apiClient.get<StudyNote[]>(`/api/v1/me/notes${query}`)
+  if (Array.isArray(notes)) {
+    persistNotes(notes)
+    return notes
+  }
+  return []
+}
+
+export async function createStudyNoteOnApi(input: CreateNoteInput): Promise<StudyNote> {
+  const created = await apiClient.post<StudyNote>('/api/v1/me/notes', input)
+  const current = loadStoredData()
+  persistNotes([created, ...current.filter((n) => n.id !== created.id)])
+  return created
+}
+
+export async function updateStudyNoteOnApi(id: string, content: string): Promise<StudyNote> {
+  const updated = await apiClient.put<StudyNote>(`/api/v1/me/notes/${id}`, { content })
+  const current = loadStoredData()
+  persistNotes(current.map((n) => (n.id === id ? updated : n)))
+  return updated
+}
+
+export async function deleteStudyNoteOnApi(id: string): Promise<boolean> {
+  await apiClient.delete(`/api/v1/me/notes/${id}`)
+  const current = loadStoredData()
+  persistNotes(current.filter((n) => n.id !== id))
+  return true
+}
+
 export const studyNotesService = {
   getNotes(filter?: { lessonId?: string; subjectId?: string; search?: string }): StudyNote[] {
     const all = loadStoredData()
@@ -73,7 +118,6 @@ export const studyNotesService = {
       )
     }
 
-    // Sort by latest updated first
     return result.sort(
       (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
     )
@@ -107,6 +151,13 @@ export const studyNotesService = {
     const current = loadStoredData()
     const updated = [newNote, ...current]
     persistNotes(updated)
+
+    if (isAuthenticated()) {
+      createStudyNoteOnApi(input).catch((err) => {
+        console.error('Failed to sync study note to backend', err)
+      })
+    }
+
     return newNote
   },
 
@@ -133,6 +184,11 @@ export const studyNotesService = {
 
     if (updatedNote) {
       persistNotes(updated)
+      if (isAuthenticated()) {
+        updateStudyNoteOnApi(id, trimmed).catch((err) => {
+          console.error('Failed to sync updated study note to backend', err)
+        })
+      }
     }
     return updatedNote
   },
@@ -142,6 +198,11 @@ export const studyNotesService = {
     const filtered = current.filter((n) => n.id !== id)
     if (filtered.length !== current.length) {
       persistNotes(filtered)
+      if (isAuthenticated()) {
+        deleteStudyNoteOnApi(id).catch((err) => {
+          console.error('Failed to delete study note on backend', err)
+        })
+      }
       return true
     }
     return false
@@ -177,5 +238,3 @@ export const searchStudyNotes = (query: string, subjectFilter?: string) =>
     search: query,
     subjectId: subjectFilter && subjectFilter !== 'all' ? subjectFilter : undefined,
   })
-
-

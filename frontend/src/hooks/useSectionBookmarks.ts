@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
+  fetchBookmarksFromApi,
   getBookmarks,
   getBookmarksByLesson,
-  isSectionBookmarked,
+  isAuthenticated,
+  removeBookmarkOnApi,
   removeSectionBookmark,
   SECTION_BOOKMARKS_CHANGED_EVENT,
+  toggleBookmarkOnApi,
   toggleSectionBookmark,
 } from '@/services/sectionBookmarks.service'
 import type { SectionBookmark, ToggleBookmarkInput } from '@/types/studyNotes'
@@ -13,18 +16,35 @@ export function useSectionBookmarks(lessonId?: string) {
   const [bookmarks, setBookmarks] = useState<SectionBookmark[]>(() =>
     lessonId ? getBookmarksByLesson(lessonId) : getBookmarks()
   )
+  const [loading, setLoading] = useState<boolean>(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const refresh = useCallback(() => {
-    if (lessonId) {
-      setBookmarks(getBookmarksByLesson(lessonId))
+  const refresh = useCallback(async () => {
+    if (isAuthenticated()) {
+      setLoading(true)
+      setError(null)
+      try {
+        const remoteBookmarks = await fetchBookmarksFromApi(lessonId ? { lessonId } : undefined)
+        setBookmarks(remoteBookmarks)
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Không thể tải đánh dấu từ máy chủ.'
+        setError(msg)
+        setBookmarks(lessonId ? getBookmarksByLesson(lessonId) : getBookmarks())
+      } finally {
+        setLoading(false)
+      }
     } else {
-      setBookmarks(getBookmarks())
+      setBookmarks(lessonId ? getBookmarksByLesson(lessonId) : getBookmarks())
     }
   }, [lessonId])
 
   useEffect(() => {
+    refresh()
+  }, [refresh])
+
+  useEffect(() => {
     const handleBookmarksChanged = () => {
-      refresh()
+      setBookmarks(lessonId ? getBookmarksByLesson(lessonId) : getBookmarks())
     }
 
     if (typeof window !== 'undefined') {
@@ -36,26 +56,61 @@ export function useSectionBookmarks(lessonId?: string) {
         window.removeEventListener(SECTION_BOOKMARKS_CHANGED_EVENT, handleBookmarksChanged)
       }
     }
-  }, [refresh])
+  }, [lessonId])
 
-  const isBookmarked = useCallback((lesId: string, secId: string) => {
-    return isSectionBookmarked(lesId, secId)
-  }, [])
+  const isBookmarked = useCallback(
+    (lesId: string, secId: string) => {
+      return bookmarks.some((b) => b.lessonId === lesId && b.sectionId === secId)
+    },
+    [bookmarks]
+  )
 
-  const toggle = useCallback((input: ToggleBookmarkInput) => {
+  const toggle = useCallback(async (input: ToggleBookmarkInput) => {
+    if (isAuthenticated()) {
+      setLoading(true)
+      setError(null)
+      try {
+        const isNowBookmarked = await toggleBookmarkOnApi(input)
+        await refresh()
+        return isNowBookmarked
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Lỗi khi cập nhật đánh dấu trên máy chủ.'
+        setError(msg)
+        throw err
+      } finally {
+        setLoading(false)
+      }
+    }
     const isNowBookmarked = toggleSectionBookmark(input)
-    refresh()
+    setBookmarks(lessonId ? getBookmarksByLesson(lessonId) : getBookmarks())
     return isNowBookmarked
-  }, [refresh])
+  }, [lessonId, refresh])
 
-  const remove = useCallback((lesId: string, secId: string) => {
+  const remove = useCallback(async (lesId: string, secId: string) => {
+    if (isAuthenticated()) {
+      setLoading(true)
+      setError(null)
+      try {
+        await removeBookmarkOnApi(lesId, secId)
+        await refresh()
+        return true
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Lỗi khi xóa đánh dấu trên máy chủ.'
+        setError(msg)
+        throw err
+      } finally {
+        setLoading(false)
+      }
+    }
     const success = removeSectionBookmark(lesId, secId)
-    refresh()
+    setBookmarks(lessonId ? getBookmarksByLesson(lessonId) : getBookmarks())
     return success
-  }, [refresh])
+  }, [lessonId, refresh])
 
   return {
     bookmarks,
+    loading,
+    error,
     refresh,
     isBookmarked,
     toggleBookmark: toggle,

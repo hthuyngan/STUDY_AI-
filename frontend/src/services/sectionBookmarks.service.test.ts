@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   getBookmarks,
   getBookmarksByLesson,
@@ -93,6 +93,48 @@ describe('sectionBookmarks.service', () => {
     const res = removeSectionBookmark('lesson-math-01', 'examples')
     expect(res).toBe(true)
     expect(isSectionBookmarked('lesson-math-01', 'examples')).toBe(false)
+  })
+
+  describe('API integration', () => {
+    it('fetches bookmarks from API and persists to local cache', async () => {
+      const mockBookmarks = [
+        {
+          id: 'bm_les_sec',
+          lessonId: 'les_1',
+          subjectId: 'sub_math10',
+          lessonTitle: 'Toán 10',
+          subjectName: 'Toán học 10',
+          sectionId: 'sec_1',
+          sectionTitle: 'Phần 1',
+          bookmarkedAt: new Date().toISOString(),
+        },
+      ]
+      const { apiClient } = await import('@/lib/apiClient')
+      const { fetchBookmarksFromApi } = await import('./sectionBookmarks.service')
+      vi.spyOn(apiClient, 'get').mockResolvedValueOnce(mockBookmarks)
+
+      const result = await fetchBookmarksFromApi({ lessonId: 'les_1' })
+      expect(result).toEqual(mockBookmarks)
+      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/me/bookmarks?lessonId=les_1')
+      expect(getBookmarks().length).toBe(1)
+    })
+
+    it('propagates API error when toggle fails', async () => {
+      const { apiClient } = await import('@/lib/apiClient')
+      const { toggleBookmarkOnApi } = await import('./sectionBookmarks.service')
+      vi.spyOn(apiClient, 'post').mockRejectedValueOnce(new Error('Network error 500'))
+
+      await expect(
+        toggleBookmarkOnApi({
+          lessonId: 'les_1',
+          subjectId: 'sub_math10',
+          lessonTitle: 'Toán 10',
+          subjectName: 'Toán học 10',
+          sectionId: 'sec_1',
+          sectionTitle: 'Phần 1',
+        })
+      ).rejects.toThrow('Network error 500')
+    })
   })
 })
 

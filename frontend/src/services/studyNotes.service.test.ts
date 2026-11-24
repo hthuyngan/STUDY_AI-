@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   createStudyNote,
   deleteStudyNote,
@@ -127,6 +127,47 @@ describe('studyNotes.service', () => {
 
     const resultsNone = searchStudyNotes('không tồn tại')
     expect(resultsNone.length).toBe(0)
+  })
+
+  describe('API integration', () => {
+    it('fetches notes from API and persists to local cache', async () => {
+      const mockNotes = [
+        {
+          id: 'note_api_1',
+          lessonId: 'les_1',
+          subjectId: 'sub_math10',
+          lessonTitle: 'Toán 10',
+          subjectName: 'Toán học 10',
+          content: 'Ghi chú từ API',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ]
+      const { apiClient } = await import('@/lib/apiClient')
+      const { fetchStudyNotesFromApi } = await import('./studyNotes.service')
+      vi.spyOn(apiClient, 'get').mockResolvedValueOnce(mockNotes)
+
+      const result = await fetchStudyNotesFromApi({ lessonId: 'les_1' })
+      expect(result).toEqual(mockNotes)
+      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/me/notes?lessonId=les_1')
+      expect(getStudyNotes().length).toBe(1)
+    })
+
+    it('propagates API error when creating note fails', async () => {
+      const { apiClient } = await import('@/lib/apiClient')
+      const { createStudyNoteOnApi } = await import('./studyNotes.service')
+      vi.spyOn(apiClient, 'post').mockRejectedValueOnce(new Error('Network error 500'))
+
+      await expect(
+        createStudyNoteOnApi({
+          lessonId: 'les_1',
+          subjectId: 'sub_math10',
+          lessonTitle: 'Toán 10',
+          subjectName: 'Toán học 10',
+          content: 'Nội dung lỗi',
+        })
+      ).rejects.toThrow('Network error 500')
+    })
   })
 })
 

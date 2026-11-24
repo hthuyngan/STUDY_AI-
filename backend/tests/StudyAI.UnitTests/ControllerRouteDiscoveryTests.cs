@@ -225,9 +225,6 @@ public class ControllerRouteDiscoveryTests
             }
         }
 
-        // Verify total registered count is exactly 236
-        Assert.Equal(236, actionDescriptors.Count);
-
         // Verify no baseline endpoints are missing from registered descriptors
         var missingEndpoints = baselineEndpoints
             .Where(b => !registeredEndpoints.Contains(b.Key))
@@ -238,9 +235,22 @@ public class ControllerRouteDiscoveryTests
             $"API Contract Regression! {missingEndpoints.Count} baseline endpoint(s) missing from assembly:\n" +
             string.Join("\n", missingEndpoints));
 
-        // Verify no unexpected extra endpoints outside baseline
+        // Approved feature extensions (Workstream 6: Authenticated learner notes persistence)
+        var approvedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "GET api/v1/me/notes",
+            "GET api/v1/me/notes/{param}",
+            "POST api/v1/me/notes",
+            "PUT api/v1/me/notes/{param}",
+            "DELETE api/v1/me/notes/{param}"
+        };
+
+        // Verify total registered count is exactly 236 baseline + 5 approved extensions
+        Assert.Equal(236 + approvedExtensions.Count, actionDescriptors.Count);
+
+        // Verify no unexpected extra endpoints outside baseline and approved extensions
         var extraEndpoints = registeredEndpoints
-            .Where(r => !baselineEndpoints.ContainsKey(r))
+            .Where(r => !baselineEndpoints.ContainsKey(r) && !approvedExtensions.Contains(r))
             .Select(r => $"Extra: [{r}]")
             .ToList();
 

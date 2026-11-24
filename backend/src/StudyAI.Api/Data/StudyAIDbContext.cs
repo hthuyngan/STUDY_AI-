@@ -79,6 +79,10 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
 
+    public DbSet<UserStudyNote> UserStudyNotes => Set<UserStudyNote>();
+
+    public DbSet<UserSectionBookmark> UserSectionBookmarks => Set<UserSectionBookmark>();
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         base.OnConfiguring(optionsBuilder);
@@ -1097,6 +1101,53 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.Version).HasMaxLength(64).IsConcurrencyToken();
             entity.Property(e => e.UpdatedBy).HasMaxLength(128).IsRequired();
             entity.Property(e => e.RowVersion).IsRowVersion();
+        });
+
+        modelBuilder.Entity<UserStudyNote>(entity =>
+        {
+            entity.ToTable("user_study_notes");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.UserId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.LessonId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.SubjectId).HasMaxLength(64);
+            entity.Property(e => e.LessonTitle).HasMaxLength(256);
+            entity.Property(e => e.SubjectName).HasMaxLength(256);
+            entity.Property(e => e.SectionId).HasMaxLength(64);
+            entity.Property(e => e.SectionTitle).HasMaxLength(256);
+            entity.Property(e => e.Content).IsRequired();
+            entity.HasIndex(e => new { e.UserId, e.LessonId });
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.NoAction);
+            entity.HasOne(e => e.Lesson)
+                .WithMany()
+                .HasForeignKey(e => e.LessonId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<UserSectionBookmark>(entity =>
+        {
+            entity.ToTable("user_section_bookmarks");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(128);
+            entity.Property(e => e.UserId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.LessonId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.SubjectId).HasMaxLength(64);
+            entity.Property(e => e.LessonTitle).HasMaxLength(256);
+            entity.Property(e => e.SubjectName).HasMaxLength(256);
+            entity.Property(e => e.SectionId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.SectionTitle).HasMaxLength(256);
+            entity.HasIndex(e => new { e.UserId, e.LessonId, e.SectionId }).IsUnique();
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.NoAction);
+            entity.HasOne(e => e.Lesson)
+                .WithMany()
+                .HasForeignKey(e => e.LessonId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 
