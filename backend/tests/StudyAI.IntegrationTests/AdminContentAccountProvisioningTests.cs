@@ -276,7 +276,8 @@ public class AdminContentAccountProvisioningTests : IClassFixture<StudyAIApiFixt
             {
                 Email = "elevate@gmail.com",
                 DisplayName = "Elevate Attempt",
-                Role = "admin"
+                Role = "admin",
+                Password = "ElevatePassword@123"
             }), Encoding.UTF8, "application/json")
         };
         createUserReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);

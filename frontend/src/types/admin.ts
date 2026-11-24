@@ -61,7 +61,6 @@ export interface PaginatedAdminUsers {
 export interface ResetPasswordResult {
   success: boolean
   userId: string
-  temporaryPassword?: string
   message: string
 }
 

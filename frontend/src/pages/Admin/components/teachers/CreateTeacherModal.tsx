@@ -14,6 +14,7 @@ export interface CreateTeacherModalProps {
     experienceYears: number
     status: 'active' | 'pending' | 'inactive'
     bio: string
+    password?: string
   }) => Promise<void>
 }
 
@@ -24,6 +25,8 @@ export const CreateTeacherModal: React.FC<CreateTeacherModalProps> = ({
 }) => {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [phone, setPhone] = useState('')
   const [subject, setSubject] = useState('Toán học 12')
   const [classesInput, setClassesInput] = useState('12A1, 12A2')
@@ -38,6 +41,8 @@ export const CreateTeacherModal: React.FC<CreateTeacherModalProps> = ({
     if (isSubmitting) return
     setName('')
     setEmail('')
+    setPassword('')
+    setConfirmPassword('')
     setPhone('')
     setError(null)
     onClose()
@@ -70,6 +75,16 @@ export const CreateTeacherModal: React.FC<CreateTeacherModalProps> = ({
       return
     }
 
+    if (password && password.trim().length < 8) {
+      setError('Mật khẩu nếu nhập phải có ít nhất 8 ký tự.')
+      return
+    }
+
+    if (password && password !== confirmPassword) {
+      setError('Mật khẩu xác nhận không khớp.')
+      return
+    }
+
     const classes = classesInput
       .split(',')
       .map((c) => c.trim())
@@ -87,6 +102,7 @@ export const CreateTeacherModal: React.FC<CreateTeacherModalProps> = ({
         experienceYears: Math.max(0, Number(experienceYears) || 0),
         status,
         bio: bio.trim(),
+        password: password.trim() || undefined,
       })
       handleModalClose()
     } catch (err: unknown) {
@@ -193,6 +209,38 @@ export const CreateTeacherModal: React.FC<CreateTeacherModalProps> = ({
                   placeholder="0912 345 678"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
+                />
+              </div>
+
+              {/* Mật khẩu khởi tạo — Cột 1 */}
+              <div className="teacher-form-field">
+                <label className="teacher-form-label" htmlFor="create-tch-password">
+                  Mật khẩu khởi tạo
+                </label>
+                <input
+                  id="create-tch-password"
+                  name="password"
+                  type="password"
+                  className="teacher-form-input"
+                  placeholder="Nhập ít nhất 8 ký tự"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+
+              {/* Xác nhận mật khẩu — Cột 2 */}
+              <div className="teacher-form-field">
+                <label className="teacher-form-label" htmlFor="create-tch-confirm-password">
+                  Xác nhận mật khẩu
+                </label>
+                <input
+                  id="create-tch-confirm-password"
+                  name="confirmPassword"
+                  type="password"
+                  className="teacher-form-input"
+                  placeholder="Nhập lại mật khẩu"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                 />
               </div>
 

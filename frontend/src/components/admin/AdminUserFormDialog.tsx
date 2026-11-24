@@ -20,6 +20,7 @@ export const AdminUserFormDialog: React.FC<AdminUserFormDialogProps> = ({
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [role, setRole] = useState<UserRole>('learner')
   const [status, setStatus] = useState<AccountStatus>('active')
   const [className, setClassName] = useState('Khối 12')
@@ -30,6 +31,7 @@ export const AdminUserFormDialog: React.FC<AdminUserFormDialogProps> = ({
     setDisplayName('')
     setEmail('')
     setPassword('')
+    setConfirmPassword('')
     setRole('learner')
     setStatus('active')
     setClassName('Khối 12')
@@ -70,8 +72,18 @@ export const AdminUserFormDialog: React.FC<AdminUserFormDialogProps> = ({
       return
     }
 
-    if (password && password.trim().length < 8) {
-      setErrorMsg('Mật khẩu nếu nhập phải có ít nhất 8 ký tự.')
+    if (!password || password.trim().length < 8) {
+      setErrorMsg('Mật khẩu phải chứa ít nhất 8 ký tự.')
+      return
+    }
+
+    if (password.length > 128) {
+      setErrorMsg('Mật khẩu không được vượt quá 128 ký tự.')
+      return
+    }
+
+    if (password !== confirmPassword) {
+      setErrorMsg('Mật khẩu xác nhận không khớp.')
       return
     }
 
@@ -80,7 +92,7 @@ export const AdminUserFormDialog: React.FC<AdminUserFormDialogProps> = ({
       await onSubmit({
         displayName: displayName.trim(),
         email: email.trim(),
-        password: password.trim() || undefined,
+        password: password.trim(),
         role,
         status,
         className: role === 'learner' ? className.trim() : undefined,
@@ -165,15 +177,31 @@ export const AdminUserFormDialog: React.FC<AdminUserFormDialogProps> = ({
 
             <div className="admin-form-group">
               <label htmlFor="user-password" className="admin-form-label">
-                Mật khẩu ban đầu <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>(Tùy chọn)</span>
+                Mật khẩu ban đầu <span className="required-star">*</span>
               </label>
               <input
                 id="user-password"
                 type="password"
                 className="admin-form-input"
-                placeholder="Để trống để tự động tạo mật khẩu an toàn ngẫu nhiên"
+                placeholder="Nhập ít nhất 8 ký tự"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="admin-form-group">
+              <label htmlFor="user-confirm-password" className="admin-form-label">
+                Xác nhận mật khẩu ban đầu <span className="required-star">*</span>
+              </label>
+              <input
+                id="user-confirm-password"
+                type="password"
+                className="admin-form-input"
+                placeholder="Nhập lại mật khẩu ban đầu"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
               />
             </div>
 

@@ -1,6 +1,8 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using StudyAI.Common.Exceptions;
+using StudyAI.Common.Validation;
 
 namespace StudyAI.Features.Admin;
 
@@ -223,11 +225,8 @@ public class AdminUsersService : IAdminUsersService
             throw new ValidationException("Status", $"Trạng thái '{req.Status}' không hợp lệ.");
         }
 
-        string rawPassword = string.IsNullOrWhiteSpace(req.Password) ? GenerateSecurePassword() : req.Password.Trim();
-        if (rawPassword.Length < 8)
-        {
-            throw new ValidationException("Password", "Mật khẩu phải có ít nhất 8 ký tự.");
-        }
+        PasswordPolicyValidator.Validate(req.Password, "Password");
+        string rawPassword = req.Password!.Trim();
 
         var userId = _idGenerator.NewId("usr");
         var user = new User
@@ -258,7 +257,6 @@ public class AdminUsersService : IAdminUsersService
         return new CreateUserResponseDto
         {
             User = FormatUser(user),
-            TemporaryPassword = rawPassword,
             Message = "Người dùng đã được tạo thành công."
         };
     }
@@ -428,8 +426,12 @@ public class AdminUsersService : IAdminUsersService
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
         if (user == null || user.IsDeleted) throw new NotFoundException("Người dùng", userId);
 
-        string newPassword = string.IsNullOrWhiteSpace(req?.NewPassword) ? GenerateSecurePassword() : req.NewPassword.Trim();
-        if (newPassword.Length < 8) throw new ValidationException("Password", "Mật khẩu mới phải có ít nhất 8 ký tự.");
+        if (req == null)
+        {
+            throw new ValidationException("NewPassword", "Mật khẩu mới không được để trống.");
+        }
+        PasswordPolicyValidator.Validate(req.NewPassword, "NewPassword");
+        string newPassword = req.NewPassword!.Trim();
 
         user.PasswordHash = _passwordHasher.HashPassword(newPassword);
         user.UpdatedAt = _clock.UtcNow;
@@ -441,8 +443,8 @@ public class AdminUsersService : IAdminUsersService
 
         return new ResetPasswordResponseDto
         {
+            Success = true,
             UserId = user.Id,
-            TemporaryPassword = newPassword,
             Message = "Đặt lại mật khẩu thành công. Các phiên đăng nhập cũ đã bị hủy."
         };
     }
@@ -531,28 +533,5 @@ public class AdminUsersService : IAdminUsersService
         }
 
         return null;
-    }
-
-    private static string GenerateSecurePassword()
-    {
-        const string upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-        const string lower = "abcdefghijkmnopqrstuvwxyz";
-        const string digits = "23456789";
-        const string special = "!@#$%^&*";
-
-        var chars = new char[12];
-        chars[0] = upper[RandomNumberGenerator.GetInt32(upper.Length)];
-        chars[1] = lower[RandomNumberGenerator.GetInt32(lower.Length)];
-        chars[2] = digits[RandomNumberGenerator.GetInt32(digits.Length)];
-        chars[3] = special[RandomNumberGenerator.GetInt32(special.Length)];
-
-        const string all = upper + lower + digits + special;
-        for (int i = 4; i < chars.Length; i++)
-        {
-            chars[i] = all[RandomNumberGenerator.GetInt32(all.Length)];
-        }
-
-        RandomNumberGenerator.Shuffle(chars.AsSpan());
-        return new string(chars);
     }
 }

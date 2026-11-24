@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { X, KeyRound, AlertCircle, Copy, Check } from 'lucide-react'
+import { X, KeyRound, AlertCircle } from 'lucide-react'
 import type { AdminUserItem, ResetPasswordResult } from '@/types/admin'
 import { Button } from '@/components/ui/Button'
 import './AdminComponents.css'
@@ -8,7 +8,7 @@ export interface AdminResetPasswordDialogProps {
   user: AdminUserItem | null
   isOpen: boolean
   onClose: () => void
-  onReset: (userId: string, newPassword?: string) => Promise<ResetPasswordResult>
+  onReset: (userId: string, newPassword: string) => Promise<ResetPasswordResult>
 }
 
 export const AdminResetPasswordDialog: React.FC<AdminResetPasswordDialogProps> = ({
@@ -19,16 +19,16 @@ export const AdminResetPasswordDialog: React.FC<AdminResetPasswordDialogProps> =
 }) => {
   const dialogRef = useRef<HTMLDivElement>(null)
   const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [result, setResult] = useState<ResetPasswordResult | null>(null)
-  const [copied, setCopied] = useState(false)
 
   const handleClose = useCallback(() => {
     setNewPassword('')
+    setConfirmPassword('')
     setErrorMsg(null)
     setResult(null)
-    setCopied(false)
     setIsSubmitting(false)
     onClose()
   }, [onClose])
@@ -50,27 +50,29 @@ export const AdminResetPasswordDialog: React.FC<AdminResetPasswordDialogProps> =
     e.preventDefault()
     setErrorMsg(null)
 
-    if (newPassword && newPassword.trim().length < 8) {
-      setErrorMsg('Mật khẩu mới nếu nhập phải có ít nhất 8 ký tự.')
+    if (!newPassword || newPassword.trim().length < 8) {
+      setErrorMsg('Mật khẩu mới phải chứa ít nhất 8 ký tự.')
+      return
+    }
+
+    if (newPassword.length > 128) {
+      setErrorMsg('Mật khẩu mới không được vượt quá 128 ký tự.')
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      setErrorMsg('Mật khẩu xác nhận không khớp.')
       return
     }
 
     setIsSubmitting(true)
     try {
-      const res = await onReset(user.id, newPassword.trim() || undefined)
+      const res = await onReset(user.id, newPassword.trim())
       setResult(res)
     } catch (err: unknown) {
       setErrorMsg(err instanceof Error ? err.message : 'Lỗi khi đặt lại mật khẩu.')
     } finally {
       setIsSubmitting(false)
-    }
-  }
-
-  const handleCopy = () => {
-    if (result?.temporaryPassword) {
-      void navigator.clipboard.writeText(result.temporaryPassword)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2500)
     }
   }
 
@@ -113,31 +115,9 @@ export const AdminResetPasswordDialog: React.FC<AdminResetPasswordDialogProps> =
               <div style={{ fontSize: '0.88rem', color: '#15803d', marginBottom: '12px' }}>
                 Tất cả phiên đăng nhập trước đây của tài khoản <strong>{user.email}</strong> đã bị thu hồi ngay lập tức để bảo vệ an toàn.
               </div>
-              {result.temporaryPassword && (
-                <div>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#14532d', marginBottom: '4px' }}>
-                    Mật khẩu tạm thời mới:
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#ffffff', padding: '8px 12px', borderRadius: '6px', border: '1px solid #86efac' }}>
-                    <code style={{ fontSize: '1rem', fontWeight: 700, letterSpacing: '0.05em', color: '#102a43', flex: 1 }}>
-                      {result.temporaryPassword}
-                    </code>
-                    <button
-                      type="button"
-                      onClick={handleCopy}
-                      className="admin-page-btn"
-                      style={{ padding: '4px 8px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}
-                      title="Sao chép mật khẩu"
-                    >
-                      {copied ? <Check size={14} color="#16a34a" /> : <Copy size={14} />}
-                      <span>{copied ? 'Đã sao chép' : 'Sao chép'}</span>
-                    </button>
-                  </div>
-                  <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '6px' }}>
-                    Vui lòng cung cấp mật khẩu này cho người dùng và yêu cầu họ đổi mật khẩu sau khi đăng nhập.
-                  </div>
-                </div>
-              )}
+              <div style={{ fontSize: '0.85rem', color: '#166534' }}>
+                Người dùng có thể đăng nhập bằng mật khẩu mới vừa thiết lập.
+              </div>
             </div>
             <div className="confirm-dialog-footer" style={{ padding: 0 }}>
               <Button type="button" variant="primary" onClick={handleClose}>
@@ -161,16 +141,32 @@ export const AdminResetPasswordDialog: React.FC<AdminResetPasswordDialogProps> =
 
               <div className="admin-form-group">
                 <label htmlFor="reset-new-password" className="admin-form-label">
-                  Mật khẩu mới <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>(Tùy chọn)</span>
+                  Mật khẩu mới <span className="required-star">*</span>
                 </label>
                 <input
                   id="reset-new-password"
                   type="password"
                   className="admin-form-input"
-                  placeholder="Để trống để tự động tạo mật khẩu an toàn ngẫu nhiên"
+                  placeholder="Nhập ít nhất 8 ký tự"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
+                  required
                   autoFocus
+                />
+              </div>
+
+              <div className="admin-form-group">
+                <label htmlFor="reset-confirm-password" className="admin-form-label">
+                  Xác nhận mật khẩu mới <span className="required-star">*</span>
+                </label>
+                <input
+                  id="reset-confirm-password"
+                  type="password"
+                  className="admin-form-input"
+                  placeholder="Nhập lại mật khẩu mới"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
                 />
               </div>
 

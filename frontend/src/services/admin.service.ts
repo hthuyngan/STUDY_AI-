@@ -257,7 +257,7 @@ export const adminService = {
       grade: input.className || input.grade,
       password: input.password,
     }
-    const res = await apiClient.post<{ user: BackendUserDto; temporaryPassword?: string }>(
+    const res = await apiClient.post<{ user: BackendUserDto }>(
       '/api/v1/admin/users',
       payload
     )
@@ -299,7 +299,7 @@ export const adminService = {
     return true
   },
 
-  async resetPassword(userId: string, newPassword?: string): Promise<ResetPasswordResult> {
+  async resetPassword(userId: string, newPassword: string): Promise<ResetPasswordResult> {
     const res = await apiClient.post<ResetPasswordResult>(
       `/api/v1/admin/users/${userId}/reset-password`,
       { newPassword }

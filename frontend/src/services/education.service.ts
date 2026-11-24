@@ -823,6 +823,7 @@ export const educationService = {
     qualifications?: string
     experienceYears?: number
     bio?: string
+    password?: string
   }): Promise<AdminTeacherItem & { _persistedLocally?: boolean }> {
     assertAuthenticated()
     const res = await apiClient.post<AdminTeacherItem>('/api/v1/admin/teachers', data)

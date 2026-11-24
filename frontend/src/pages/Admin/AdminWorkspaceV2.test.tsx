@@ -213,6 +213,11 @@ describe('Admin Workspace V2 UI Tests', () => {
       fireEvent.change(nameInput, { target: { value: 'Lê Hoàng Long' } })
       fireEvent.change(emailInput, { target: { value: 'hoang.long@example.com' } })
 
+      const passInput = screen.getByLabelText(/^Mật khẩu ban đầu/i)
+      const confirmPassInput = screen.getByLabelText(/Xác nhận mật khẩu ban đầu/i)
+      fireEvent.change(passInput, { target: { value: 'Password@123' } })
+      fireEvent.change(confirmPassInput, { target: { value: 'Password@123' } })
+
       const submitBtn = screen.getByRole('button', { name: /Tạo tài khoản demo/i })
       fireEvent.click(submitBtn)
 

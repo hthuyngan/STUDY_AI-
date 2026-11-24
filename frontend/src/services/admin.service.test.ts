@@ -147,13 +147,11 @@ describe('adminService (API & Real Backend Architecture)', () => {
     const postSpy = vi.spyOn(apiClient, 'post').mockResolvedValue({
       success: true,
       userId: 'usr-1',
-      temporaryPassword: 'NewPassword2026!',
       message: 'Đặt lại mật khẩu thành công.',
     })
 
     const res = await adminService.resetPassword('usr-1', 'NewPassword2026!')
     expect(res.success).toBe(true)
-    expect(res.temporaryPassword).toBe('NewPassword2026!')
     expect(postSpy).toHaveBeenCalledWith('/api/v1/admin/users/usr-1/reset-password', {
       newPassword: 'NewPassword2026!',
     })

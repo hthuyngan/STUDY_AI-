@@ -239,7 +239,7 @@ export function useAdminUsers(initialSearch = '', initialRole = 'all', initialSt
     return ok
   }
 
-  const resetPassword = async (userId: string, newPassword?: string) => {
+  const resetPassword = async (userId: string, newPassword: string) => {
     return adminService.resetPassword(userId, newPassword)
   }
 

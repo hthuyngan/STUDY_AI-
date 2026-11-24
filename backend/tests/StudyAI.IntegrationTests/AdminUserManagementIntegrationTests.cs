@@ -113,7 +113,7 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
     }
 
     [Fact]
-    public async Task Admin_CreateUser_Teacher_SucceedsWithSecureRandomPasswordAndAuditLog()
+    public async Task Admin_CreateUser_Teacher_SucceedsWithExplicitPasswordAndAuditLog()
     {
         var token = await GetAdminTokenAsync();
         var email = $"teacher_{Guid.NewGuid():N}@studyai.internal";
@@ -123,7 +123,8 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
             Email = email,
             DisplayName = "Thầy Giáo Mẫu",
             Role = "teacher",
-            Status = "active"
+            Status = "active",
+            Password = "TeacherSecret@2026"
         };
 
         var req = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/users")
@@ -142,8 +143,17 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
         Assert.Equal(email, created.User.Email);
         Assert.Equal("teacher", created.User.Role);
         Assert.Equal("active", created.User.Status);
-        Assert.False(string.IsNullOrWhiteSpace(created.TemporaryPassword));
-        Assert.True(created.TemporaryPassword.Length >= 8);
+
+        // Verify login succeeds with explicit password
+        var loginResp = await _client.PostAsync("/api/v1/auth/login", new StringContent(
+            JsonSerializer.Serialize(new UserLoginRequestDto
+            {
+                Email = email,
+                Password = "TeacherSecret@2026"
+            }),
+            Encoding.UTF8,
+            "application/json"));
+        Assert.Equal(HttpStatusCode.OK, loginResp.StatusCode);
 
         // Verify audit log
         using var scope = _factory.Services.CreateScope();
@@ -151,6 +161,35 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
         var log = await db.StaffAuditLogs.FirstOrDefaultAsync(l => l.TargetId == created.User.Id && l.Action == "user_created");
         Assert.NotNull(log);
         Assert.Equal("user", log.TargetType);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("short")]
+    public async Task Admin_CreateUser_MissingOrInvalidPassword_ReturnsBadRequest400(string? invalidPassword)
+    {
+        var token = await GetAdminTokenAsync();
+        var email = $"teacher_badpass_{Guid.NewGuid():N}@studyai.internal";
+
+        var createReq = new CreateUserRequestDto
+        {
+            Email = email,
+            DisplayName = "Thầy Giáo Mẫu",
+            Role = "teacher",
+            Status = "active",
+            Password = invalidPassword
+        };
+
+        var req = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/users")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(createReq), Encoding.UTF8, "application/json")
+        };
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var resp = await _client.SendAsync(req);
+        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
     }
 
     [Fact]
@@ -164,7 +203,8 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
             Email = email,
             DisplayName = "Người Dùng Trùng",
             Role = "learner",
-            Status = "active"
+            Status = "active",
+            Password = "ValidPassword@123"
         };
 
         var req1 = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/users")
@@ -235,7 +275,8 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
             DisplayName = "Tên Ban Đầu",
             Role = "learner",
             Status = "active",
-            Grade = "11"
+            Grade = "11",
+            Password = "ValidPassword@123"
         };
         var reqCreate = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/users")
         {
@@ -363,7 +404,7 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
         string email = $"target_rev_{Guid.NewGuid():N}@studyai.internal";
 
         // Create target user
-        var createReq = new CreateUserRequestDto { Email = email, DisplayName = "Target Revoke", Role = "learner", Status = "active" };
+        var createReq = new CreateUserRequestDto { Email = email, DisplayName = "Target Revoke", Role = "learner", Status = "active", Password = "ValidPassword@123" };
         var reqCreate = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/users")
         {
             Content = new StringContent(JsonSerializer.Serialize(createReq), Encoding.UTF8, "application/json")
@@ -406,7 +447,7 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
         var token = await GetAdminTokenAsync();
         string email = $"reset_pass_{Guid.NewGuid():N}@studyai.internal";
 
-        var createReq = new CreateUserRequestDto { Email = email, DisplayName = "Target Reset Pass", Role = "learner", Status = "active" };
+        var createReq = new CreateUserRequestDto { Email = email, DisplayName = "Target Reset Pass", Role = "learner", Status = "active", Password = "InitialPassword@123" };
         var reqCreate = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/users")
         {
             Content = new StringContent(JsonSerializer.Serialize(createReq), Encoding.UTF8, "application/json")
@@ -429,7 +470,6 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
         var resetResult = JsonSerializer.Deserialize<ResetPasswordResponseDto>(await respReset.Content.ReadAsStringAsync(), JsonOpts);
         Assert.NotNull(resetResult);
         Assert.True(resetResult.Success);
-        Assert.Equal("NewSecurePassword@999", resetResult.TemporaryPassword);
 
         // Try logging in with the newly reset password
         var loginResp = await _client.PostAsync("/api/v1/auth/login", new StringContent(
@@ -443,6 +483,44 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
         Assert.Equal(HttpStatusCode.OK, loginResp.StatusCode);
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("short")]
+    public async Task Admin_ResetPassword_MissingOrInvalidNewPassword_ReturnsBadRequest400(string? invalidPassword)
+    {
+        var token = await GetAdminTokenAsync();
+        string email = $"reset_pass_bad_{Guid.NewGuid():N}@studyai.internal";
+
+        var createReq = new CreateUserRequestDto
+        {
+            Email = email,
+            DisplayName = "Target Reset Pass Bad",
+            Role = "learner",
+            Status = "active",
+            Password = "InitialValidPassword@123"
+        };
+        var reqCreate = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/users")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(createReq), Encoding.UTF8, "application/json")
+        };
+        reqCreate.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var respCreate = await _client.SendAsync(reqCreate);
+        var created = JsonSerializer.Deserialize<CreateUserResponseDto>(await respCreate.Content.ReadAsStringAsync(), JsonOpts);
+        Assert.NotNull(created?.User);
+
+        // Reset password with invalid password
+        var resetReq = new ResetPasswordRequestDto { NewPassword = invalidPassword };
+        var reqReset = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/admin/users/{created.User.Id}/reset-password")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(resetReq), Encoding.UTF8, "application/json")
+        };
+        reqReset.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var respReset = await _client.SendAsync(reqReset);
+        Assert.Equal(HttpStatusCode.BadRequest, respReset.StatusCode);
+    }
+
     [Fact]
     public async Task Admin_SoftDelete_SetsIsDeletedAndPreservesLearningHistory()
     {
@@ -450,7 +528,7 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
         string email = $"soft_del_{Guid.NewGuid():N}@studyai.internal";
 
         // Create learner
-        var createReq = new CreateUserRequestDto { Email = email, DisplayName = "Học Sinh Bị Xóa Mềm", Role = "learner", Status = "active" };
+        var createReq = new CreateUserRequestDto { Email = email, DisplayName = "Học Sinh Bị Xóa Mềm", Role = "learner", Status = "active", Password = "InitialPassword@123" };
         var reqCreate = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/users")
         {
             Content = new StringContent(JsonSerializer.Serialize(createReq), Encoding.UTF8, "application/json")
@@ -522,7 +600,7 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
             JsonSerializer.Serialize(new UserLoginRequestDto
             {
                 Email = email,
-                Password = created.TemporaryPassword!
+                Password = "InitialPassword@123"
             }),
             Encoding.UTF8,
             "application/json"));
@@ -888,7 +966,8 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
             DisplayName = "Đồng Bộ Phiên Trình Duyệt",
             Role = "teacher",
             Grade = "Lớp 12",
-            Status = "active"
+            Status = "active",
+            Password = "SessionPass@123"
         };
 
         var reqCreate = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/users")
@@ -948,18 +1027,36 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
     }
 
     [Fact]
-    public async Task Admin_CreateTeacher_GeneratesUniqueSecurePassword_RejectsHardcodedPassword()
+    public async Task Admin_CreateTeacher_RequiresExplicitPassword_RejectsMissing_AndDoesNotReturnPlaintextPassword()
     {
         var adminToken = await GetAdminTokenAsync();
 
-        // 1. Create a new teacher via admin endpoint without supplying password
+        // 1. Attempt create teacher without password -> MUST FAIL (400)
+        var missingPassReq = new SaveTeacherRequestDto
+        {
+            Name = "Thầy Không Có Mật Khẩu",
+            Email = $"teacher.nopass.{Guid.NewGuid():N}@studyai.test",
+            Subject = "Toán 12",
+            Status = "active"
+        };
+        var reqNoPass = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/teachers")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(missingPassReq), Encoding.UTF8, "application/json")
+        };
+        reqNoPass.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var respNoPass = await _client.SendAsync(reqNoPass);
+        Assert.Equal(HttpStatusCode.BadRequest, respNoPass.StatusCode);
+
+        // 2. Create teacher with explicit valid password -> MUST SUCCEED (201)
         var uniqueEmail = $"teacher.secure.{Guid.NewGuid():N}@studyai.test";
+        var validPassword = "TeacherPassword@2026";
         var createReq = new SaveTeacherRequestDto
         {
             Name = "Thầy Giáo Bảo Mật Cao",
             Email = uniqueEmail,
             Subject = "Toán 12",
-            Status = "active"
+            Status = "active",
+            Password = validPassword
         };
 
         var reqCreate = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/teachers")
@@ -975,30 +1072,26 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
         var teacherDto = JsonSerializer.Deserialize<AdminTeacherDto>(bodyCreate, JsonOpts);
 
         Assert.NotNull(teacherDto);
-        Assert.NotNull(teacherDto.TemporaryPassword);
-        // Must NOT be the legacy insecure hardcoded password
-        Assert.NotEqual("Teacher@123456", teacherDto.TemporaryPassword);
-        Assert.True(teacherDto.TemporaryPassword.Length >= 12, "Temporary password must be at least 12 characters long.");
 
-        // 2. Attempt login with the legacy shared password "Teacher@123456" -> MUST FAIL (401)
+        // 3. Attempt login with wrong password -> MUST FAIL (401)
         var loginInsecureReq = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/login")
         {
             Content = new StringContent(JsonSerializer.Serialize(new
             {
                 email = uniqueEmail,
-                password = "Teacher@123456"
+                password = "WrongPassword@123"
             }), Encoding.UTF8, "application/json")
         };
         var respInsecure = await _client.SendAsync(loginInsecureReq);
         Assert.Equal(HttpStatusCode.Unauthorized, respInsecure.StatusCode);
 
-        // 3. Attempt login with the securely generated TemporaryPassword -> MUST SUCCEED (200)
+        // 4. Attempt login with explicit password -> MUST SUCCEED (200)
         var loginSecureReq = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/login")
         {
             Content = new StringContent(JsonSerializer.Serialize(new
             {
                 email = uniqueEmail,
-                password = teacherDto.TemporaryPassword
+                password = validPassword
             }), Encoding.UTF8, "application/json")
         };
         var respSecure = await _client.SendAsync(loginSecureReq);
@@ -1147,7 +1240,8 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
             Qualifications = "Thạc sĩ Toán học",
             ExperienceYears = 8,
             Bio = "Giáo viên chuyên ôn thi THPT Quốc gia",
-            Status = "active"
+            Status = "active",
+            Password = "TeacherProfile@123"
         };
         var reqCreate = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/teachers")
         {
@@ -1224,7 +1318,8 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
             {
                 Name = "Giáo Viên Một",
                 Email = email1,
-                Subject = "Toán 12"
+                Subject = "Toán 12",
+                Password = "Teacher1@Secret"
             }), Encoding.UTF8, "application/json")
         };
         reqCreate1.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
@@ -1238,7 +1333,8 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
             {
                 Name = "Giáo Viên Hai",
                 Email = email2,
-                Subject = "Toán 12"
+                Subject = "Toán 12",
+                Password = "Teacher2@Secret"
             }), Encoding.UTF8, "application/json")
         };
         reqCreate2.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
@@ -1395,7 +1491,8 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
                 Phone = "0911223344",
                 Qualifications = "Thạc Sĩ Toán Học",
                 ExperienceYears = 7,
-                Bio = "Chuyên gia Đại số tổ hợp"
+                Bio = "Chuyên gia Đại số tổ hợp",
+                Password = "TeacherPreserve@123"
             }), Encoding.UTF8, "application/json")
         };
         reqCreate.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
@@ -1540,7 +1637,8 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
             Name = "Thầy Lê Văn Hùng",
             Email = uniqueEmail,
             Subject = "Toán học 11",
-            Status = "active"
+            Status = "active",
+            Password = "TeacherHung@123"
         };
         var createHttp = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/teachers")
         {
@@ -1646,7 +1744,8 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
             DisplayName = "Nguyễn Thị Mới",
             Email = uniqueEmail,
             Role = "learner",
-            Grade = "10"
+            Grade = "10",
+            Password = "LearnerMoi@123"
         };
         var createHttp = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/users")
         {
@@ -1683,7 +1782,8 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
             Name = "Thầy Inactive Test",
             Email = emailInactive,
             Subject = "Toán 12",
-            Status = "inactive"
+            Status = "inactive",
+            Password = "TeacherInact@123"
         };
         var httpCreateInactive = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/teachers")
         {
@@ -1701,7 +1801,8 @@ public class AdminUserManagementIntegrationTests : IClassFixture<StudyAIApiFixtu
             Name = "Thầy Pending Test",
             Email = emailPending,
             Subject = "Toán 12",
-            Status = "pending"
+            Status = "pending",
+            Password = "TeacherPend@123"
         };
         var httpCreatePending = new HttpRequestMessage(HttpMethod.Post, "/api/v1/admin/teachers")
         {

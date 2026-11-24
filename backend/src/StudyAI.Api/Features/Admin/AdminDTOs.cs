@@ -13,7 +13,6 @@ public class CreateUserRequestDto
 public class CreateUserResponseDto
 {
     public AdminUserDto User { get; set; } = new();
-    public string? TemporaryPassword { get; set; }
     public string Message { get; set; } = string.Empty;
 }
 
@@ -44,7 +43,6 @@ public class ResetPasswordResponseDto
 {
     public bool Success { get; set; } = true;
     public string UserId { get; set; } = string.Empty;
-    public string? TemporaryPassword { get; set; }
     public string Message { get; set; } = string.Empty;
 }
 
@@ -165,7 +163,6 @@ public class AdminTeacherDto
     public int ExperienceYears { get; set; } = 0;
     public string Bio { get; set; } = string.Empty;
     public string AccountStatus { get; set; } = "ACTIVE";
-    public string? TemporaryPassword { get; set; }
 }
 
 public class TeacherKpisDto

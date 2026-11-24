@@ -1,6 +1,8 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using StudyAI.Common.Exceptions;
+using StudyAI.Common.Validation;
 
 namespace StudyAI.Features.Admin;
 
@@ -175,17 +177,8 @@ public class AdminTeachersService : IAdminTeachersService
         if (existing)
             throw new ConflictException("Email đã được sử dụng.");
 
-        string rawPassword;
-        if (!string.IsNullOrWhiteSpace(req.Password))
-        {
-            if (req.Password.Trim().Length < 8 || req.Password.Length > 128)
-                throw new ValidationException("Password", "Mật khẩu phải chứa ít nhất 8 ký tự và không vượt quá 128 ký tự.");
-            rawPassword = req.Password.Trim();
-        }
-        else
-        {
-            rawPassword = GenerateSecurePassword();
-        }
+        PasswordPolicyValidator.Validate(req.Password, "Password");
+        string rawPassword = req.Password!.Trim();
 
         string initialStatus = "active";
         if (!string.IsNullOrWhiteSpace(req.AccountStatus) && req.AccountStatus.Trim().Equals("LOCKED", StringComparison.OrdinalIgnoreCase))
@@ -254,8 +247,7 @@ public class AdminTeachersService : IAdminTeachersService
             Qualifications = newProfile.Qualifications ?? string.Empty,
             ExperienceYears = newProfile.ExperienceYears,
             Bio = newProfile.Bio ?? string.Empty,
-            AccountStatus = (newTeacher.Status == "suspended" || newTeacher.Status == "disabled") ? "LOCKED" : "ACTIVE",
-            TemporaryPassword = rawPassword
+            AccountStatus = (newTeacher.Status == "suspended" || newTeacher.Status == "disabled") ? "LOCKED" : "ACTIVE"
         };
     }
 
@@ -408,28 +400,5 @@ public class AdminTeachersService : IAdminTeachersService
             ct);
 
         return true;
-    }
-
-    private static string GenerateSecurePassword()
-    {
-        const string upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-        const string lower = "abcdefghijkmnopqrstuvwxyz";
-        const string digits = "23456789";
-        const string special = "!@#$%^&*";
-
-        var chars = new char[12];
-        chars[0] = upper[RandomNumberGenerator.GetInt32(upper.Length)];
-        chars[1] = lower[RandomNumberGenerator.GetInt32(lower.Length)];
-        chars[2] = digits[RandomNumberGenerator.GetInt32(digits.Length)];
-        chars[3] = special[RandomNumberGenerator.GetInt32(special.Length)];
-
-        const string all = upper + lower + digits + special;
-        for (int i = 4; i < chars.Length; i++)
-        {
-            chars[i] = all[RandomNumberGenerator.GetInt32(all.Length)];
-        }
-
-        RandomNumberGenerator.Shuffle(chars.AsSpan());
-        return new string(chars);
     }
 }
