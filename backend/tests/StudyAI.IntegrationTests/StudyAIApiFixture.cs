@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
@@ -20,12 +21,14 @@ namespace StudyAI.IntegrationTests;
 
 public class StudyAIApiFixture : WebApplicationFactory<Program>
 {
-    public const string DefaultTestConnectionString =
-        "Server=.\\SQLEXPRESS;Database=StudyAIDb_E2E;Trusted_Connection=True;TrustServerCertificate=True";
+    private string? _ownedDisposableDbName;
+    private string? _ownedMasterConnStr;
+    private string? _resolvedConnStr;
 
     /// <summary>
     /// Explicit override for testing the database safety guard.
-    /// When null, defaults to environment variable ConnectionStrings__DefaultConnection or DefaultTestConnectionString.
+    /// When null, defaults to environment variable ConnectionStrings__DefaultConnection (if pointing to StudyAIDb_Clean_{GUID})
+    /// or automatically creates &amp; disposes a fresh StudyAIDb_Clean_{GUID} database.
     /// </summary>
     public string? TestConnectionStringOverride { get; set; }
 
@@ -35,13 +38,82 @@ public class StudyAIApiFixture : WebApplicationFactory<Program>
         DatabaseSafetyGuard.IsTestExecutionContext = true;
     }
 
+    private string ResolveOrProvisionTestConnectionString()
+    {
+        if (TestConnectionStringOverride != null)
+        {
+            return TestConnectionStringOverride;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_resolvedConnStr))
+        {
+            return _resolvedConnStr;
+        }
+
+        var envConn = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
+        if (!string.IsNullOrWhiteSpace(envConn))
+        {
+            // Validate strictly (rejects StudyAIDb, StudyAIDb_Dev, StudyAIDb_E2E)
+            var dbName = DatabaseSafetyGuard.EnsureSafeTestDatabase(envConn, "StudyAIApiFixture.EnvConnection");
+            var masterBuilder = new SqlConnectionStringBuilder(envConn) { InitialCatalog = "master" };
+            EnsureCleanDatabaseExists(masterBuilder.ConnectionString, dbName);
+            _resolvedConnStr = envConn;
+            return _resolvedConnStr;
+        }
+
+        // Provision a fresh disposable StudyAIDb_Clean_{GUID} on local .\SQLEXPRESS and own its cleanup
+        var cleanDbName = $"StudyAIDb_Clean_{Guid.NewGuid():N}";
+        var localMaster = "Server=.\\SQLEXPRESS;Database=master;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true;";
+        var cleanConn = new SqlConnectionStringBuilder(localMaster) { InitialCatalog = cleanDbName }.ConnectionString;
+        DatabaseSafetyGuard.EnsureSafeTestDatabase(cleanConn, "StudyAIApiFixture.AutoProvision");
+        EnsureCleanDatabaseExists(localMaster, cleanDbName);
+
+        _ownedMasterConnStr = localMaster;
+        _ownedDisposableDbName = cleanDbName;
+        _resolvedConnStr = cleanConn;
+        return _resolvedConnStr;
+    }
+
+    private static void EnsureCleanDatabaseExists(string masterConnStr, string dbName)
+    {
+        using var conn = new SqlConnection(masterConnStr);
+        conn.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = $"IF DB_ID('{dbName}') IS NULL CREATE DATABASE [{dbName}];";
+        cmd.ExecuteNonQuery();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+        if (disposing && !string.IsNullOrWhiteSpace(_ownedDisposableDbName) && !string.IsNullOrWhiteSpace(_ownedMasterConnStr))
+        {
+            try
+            {
+                SqlConnection.ClearAllPools();
+                using var conn = new SqlConnection(_ownedMasterConnStr);
+                conn.Open();
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = $@"
+                    IF DB_ID('{_ownedDisposableDbName}') IS NOT NULL
+                    BEGIN
+                        ALTER DATABASE [{_ownedDisposableDbName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+                        DROP DATABASE [{_ownedDisposableDbName}];
+                    END";
+                cmd.ExecuteNonQuery();
+            }
+            catch
+            {
+                // Best-effort cleanup of disposable test DB
+            }
+        }
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.UseEnvironment("Development");
+        builder.UseEnvironment("Testing");
 
-        var effectiveConn = TestConnectionStringOverride
-            ?? Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
-            ?? DefaultTestConnectionString;
+        var effectiveConn = ResolveOrProvisionTestConnectionString();
 
         // 1. Fail-closed configuration: Inject the explicit test connection string into configuration
         builder.ConfigureAppConfiguration((context, configBuilder) =>

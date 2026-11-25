@@ -24,13 +24,25 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Configuration
 var configuration = builder.Configuration;
-var connectionString = configuration.GetConnectionString("DefaultConnection") 
-    ?? "Server=.\\SQLEXPRESS;Database=StudyAIDb_E2E;Trusted_Connection=True;TrustServerCertificate=True";
 
-// 1. Database Context
-builder.Services.AddDbContext<StudyAIDbContext>(options =>
+// 1. Database Context (Fail-Closed: no hardcoded E2E/Prod fallback connection string)
+builder.Services.AddDbContext<StudyAIDbContext>((sp, options) =>
 {
-    options.UseSqlServer(connectionString, sqlOptions =>
+    var cfg = sp.GetRequiredService<IConfiguration>();
+    var env = sp.GetRequiredService<IHostEnvironment>();
+    var resolvedConnectionString = cfg.GetConnectionString("DefaultConnection");
+    if (string.IsNullOrWhiteSpace(resolvedConnectionString))
+    {
+        throw new InvalidOperationException(
+            "FATAL: ConnectionStrings:DefaultConnection is required and is missing or empty. Host execution aborted (fail-closed).");
+    }
+
+    DatabaseSafetyGuard.EnsureSafeDatabaseForEnvironment(
+        resolvedConnectionString,
+        env.EnvironmentName,
+        "Program.cs DbContext Registration");
+
+    options.UseSqlServer(resolvedConnectionString, sqlOptions =>
     {
         sqlOptions.EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(5), errorNumbersToAdd: null);
     });
@@ -311,7 +323,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("DefaultCorsPolicy", policy =>
     {
-        if (builder.Environment.IsDevelopment())
+        if (builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Testing"))
         {
             policy.SetIsOriginAllowed(origin =>
             {
@@ -506,7 +518,7 @@ if (args.Contains("--bootstrap-admin"))
     }
 }
 
-// Database Migration & Reference Data Initialization (Fail-Fast on error)
+// Database Connection, Migration & Account Bootstrap Guards (Fail-Closed on error)
 using (var scope = app.Services.CreateScope())
 {
     try
@@ -520,26 +532,52 @@ using (var scope = app.Services.CreateScope())
                 "Use isolated test fixtures in StudyAI.IntegrationTests instead.");
         }
 
-        var activeConn = resolvedConfiguration.GetConnectionString("DefaultConnection") ?? connectionString;
-
-        var applyMigrationsDefault = !app.Environment.IsProduction();
-        var shouldMigrate = resolvedConfiguration.GetValue<bool>("Database:ApplyMigrationsOnStartup", applyMigrationsDefault);
-
-        if (app.Environment.IsDevelopment() || shouldMigrate || DatabaseSafetyGuard.IsTestExecutionContext)
+        var activeConn = resolvedConfiguration.GetConnectionString("DefaultConnection");
+        if (string.IsNullOrWhiteSpace(activeConn))
         {
-            DatabaseSafetyGuard.EnsureSafeDatabaseForDevelopmentOrMigration(
-                activeConn,
-                app.Environment.EnvironmentName,
-                "Program.cs Startup Migration/Seed Guard");
+            throw new InvalidOperationException(
+                "FATAL: ConnectionStrings:DefaultConnection is required and is missing or empty. Host startup aborted (fail-closed).");
         }
+
+        var resolvedDbName = DatabaseSafetyGuard.EnsureSafeDatabaseForEnvironment(
+            activeConn,
+            app.Environment.EnvironmentName,
+            "Program.cs Startup Guard");
+
+        var isTestingEnv = app.Environment.IsEnvironment("Testing");
+        var applyMigrationsDefault = isTestingEnv;
+        var shouldMigrate = resolvedConfiguration.GetValue<bool>("Database:ApplyMigrationsOnStartup", applyMigrationsDefault);
 
         var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
         if (shouldMigrate)
         {
+            // Automatic startup migrations are strictly forbidden on StudyAIDb (controlled migration only)
+            if (string.Equals(resolvedDbName, DatabaseSafetyGuard.ProductionDatabaseName, StringComparison.OrdinalIgnoreCase) || !isTestingEnv)
+            {
+                throw new InvalidOperationException(
+                    "CRITICAL DATABASE SAFETY GUARD TRIGGERED [Program.cs Startup Migration]: " +
+                    "Automatic migrations on startup are strictly disabled for StudyAIDb and non-Testing environments. Apply controlled EF Core migrations explicitly.");
+            }
+
+            DatabaseSafetyGuard.EnsureSafeTestDatabase(activeConn, "Program.cs Startup Migration");
             await db.Database.MigrateAsync();
         }
-        if (app.Environment.IsDevelopment())
+
+        // Startup deterministic test account bootstrap is allowed ONLY in Testing on StudyAIDb_Clean_{GUID},
+        // and strictly forbidden on StudyAIDb or in Development/Production/Staging.
+        var bootstrapDefault = isTestingEnv;
+        var shouldBootstrapAccounts = resolvedConfiguration.GetValue<bool>("Database:BootstrapTestAccounts", bootstrapDefault);
+        if (shouldBootstrapAccounts)
         {
+            if (!isTestingEnv ||
+                string.Equals(resolvedDbName, DatabaseSafetyGuard.ProductionDatabaseName, StringComparison.OrdinalIgnoreCase) ||
+                !DatabaseSafetyGuard.IsAuthorizedTestDatabase(resolvedDbName))
+            {
+                throw new InvalidOperationException(
+                    "CRITICAL DATABASE SAFETY GUARD TRIGGERED [Program.cs Account Bootstrap]: " +
+                    "Automatic startup test account bootstrap is strictly forbidden outside Testing or against 'StudyAIDb'.");
+            }
+
             var hasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
             await DbInitializer.BootstrapAdminAsync(db, hasher, "admin@studyai.internal", "Admin@123456", "Integration Test Admin");
             await DbInitializer.BootstrapLearnerAsync(db, hasher, "learner@studyai.internal", "Learner@123456", "Integration Test Learner", "12");
@@ -550,14 +588,14 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        logger.LogCritical(ex, "FATAL: Database migration or reference seeding failed. Terminating host startup.");
+        logger.LogCritical(ex, "FATAL: Database initialization or environment guard failed. Terminating host startup.");
         Console.Error.WriteLine($"FATAL: Database initialization failed: {ex.Message}");
         Environment.Exit(1);
     }
 }
 
 // HTTP request pipeline
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
 {
     app.MapOpenApi();
     app.UseSwaggerUI(options =>

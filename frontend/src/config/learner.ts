@@ -26,23 +26,43 @@ export function getCurrentLearnerId(): string {
   return getCurrentIdentity()
 }
 
+export const STALE_API_BASE_STORAGE_KEY = 'study_ai_api_base_url'
+
+/**
+ * Removes any stale localStorage API base URL override so old E2E/local sessions
+ * cannot hijack requests away from VITE_API_BASE_URL or the local Vite proxy.
+ */
+export function clearStaleApiBaseOverride(): string | null {
+  if (typeof window === 'undefined') {
+    return null
+  }
+  try {
+    const stale = localStorage.getItem(STALE_API_BASE_STORAGE_KEY)
+    if (stale) {
+      localStorage.removeItem(STALE_API_BASE_STORAGE_KEY)
+      return stale
+    }
+  } catch {
+    // Ignore localStorage access restrictions in private browsing
+  }
+  return null
+}
+
 /**
  * Get configured remote API base URL, stripped of trailing slashes.
- * Supports compile-time VITE_API_BASE_URL, window runtime global, or localStorage override.
+ * Precedence:
+ *   1. Explicit per-window runtime override (`window.__STUDY_AI_API_BASE_URL__`, non-persistent)
+ *   2. Compile-time/environment configuration (`import.meta.env.VITE_API_BASE_URL`)
+ *   3. Empty string (delegates to Vite `/api` proxy in local dev/preview)
+ * Stale `localStorage` overrides (`study_ai_api_base_url`) are cleared and never used.
  */
 export function getApiBaseUrl(): string {
+  clearStaleApiBaseOverride()
+
   if (typeof window !== 'undefined') {
     const win = window as unknown as { __STUDY_AI_API_BASE_URL__?: string }
     if (win.__STUDY_AI_API_BASE_URL__) {
       return sanitizeApiUrl(win.__STUDY_AI_API_BASE_URL__)
-    }
-    try {
-      const localOverride = localStorage.getItem('study_ai_api_base_url')
-      if (localOverride) {
-        return sanitizeApiUrl(localOverride)
-      }
-    } catch {
-      // Ignore localStorage access restrictions in private browsing
     }
   }
   const envUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) || ''

@@ -1,9 +1,8 @@
 /**
  * Hardened Fail-Closed Database Safety Guard for E2E and Test Scripts.
- * Strictly prevents any execution against production / primary database 'StudyAIDb',
- * and enforces exact whitelist:
- *   1. 'StudyAIDb_E2E' (case-insensitive)
- *   2. 'StudyAIDb_Clean_{GUID}' where GUID strictly matches Guid:N (32 hex) or Guid:D (36 chars).
+ * Strictly prevents any execution against persistent database 'StudyAIDb' or legacy 'StudyAIDb_E2E'/'StudyAIDb_Dev',
+ * and enforces exact disposable whitelist:
+ *   - 'StudyAIDb_Clean_{GUID}' where GUID strictly matches Guid:N (32 hex) or Guid:D (36 chars).
  * Fixed constant error messages are used for malformed inputs without reflecting input strings or secrets.
  */
 
@@ -12,10 +11,9 @@ const GUID_N_OR_D_REGEX =
   /^(?:[0-9a-fA-F]{32}|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/
 
 /**
- * Checks whether a given database name strictly matches the authorized test whitelist:
- *   - Exactly "StudyAIDb_E2E" (case-insensitive)
+ * Checks whether a given database name strictly matches the authorized disposable test whitelist:
  *   - Exactly "StudyAIDb_Clean_{GUID}" where GUID strictly matches Guid:N (32 hex) or Guid:D (36 chars).
- * Formats such as B ({...}), P ((...)), X, or arbitrary substrings are strictly rejected.
+ * Persistent databases ("StudyAIDb", "StudyAIDb_Dev", "StudyAIDb_E2E") and formats B/P/X are strictly rejected.
  */
 export function isAuthorizedTestDatabase(dbName: string | undefined): boolean {
   if (!dbName || !dbName.trim()) {
@@ -29,12 +27,7 @@ export function isAuthorizedTestDatabase(dbName: string | undefined): boolean {
     return false
   }
 
-  // 2. Exactly StudyAIDb_E2E (case-insensitive)
-  if (normalized.toLowerCase() === 'studyaidb_e2e') {
-    return true
-  }
-
-  // 3. Exactly StudyAIDb_Clean_{GUID} where GUID is strictly Guid:N (32 hex) or Guid:D (36 chars)
+  // 2. Strictly StudyAIDb_Clean_{GUID} where GUID is strictly Guid:N (32 hex) or Guid:D (36 chars)
   const cleanPrefix = 'studyaidb_clean_'
   if (normalized.toLowerCase().startsWith(cleanPrefix)) {
     const guidPart = normalized.slice(cleanPrefix.length)
@@ -56,7 +49,7 @@ export function assertSafeTestDatabase(
   callerContext = 'E2E Script'
 ): string {
   if (!connectionString || connectionString.trim() === '') {
-    const errorMsg = `CRITICAL DATABASE SAFETY GUARD TRIGGERED [${callerContext}]: Connection string is empty or undefined. E2E tests must target an isolated test database ('StudyAIDb_E2E').`
+    const errorMsg = `CRITICAL DATABASE SAFETY GUARD TRIGGERED [${callerContext}]: Connection string is empty or undefined. E2E tests must target an isolated disposable database ('StudyAIDb_Clean_{GUID}').`
     console.error(`\n[CRITICAL ERROR] ${errorMsg}\n`)
     throw new Error(errorMsg)
   }
@@ -83,9 +76,9 @@ export function assertSafeTestDatabase(
     throw new Error(errorMsg)
   }
 
-  // 2. Strict Exact Whitelist Check (StudyAIDb_E2E or StudyAIDb_Clean_{Guid:N|Guid:D})
+  // 2. Strict Exact Whitelist Check (StudyAIDb_Clean_{Guid:N|Guid:D} ONLY)
   if (!isAuthorizedTestDatabase(dbName)) {
-    const errorMsg = `CRITICAL DATABASE SAFETY GUARD TRIGGERED [${callerContext}]: Database '${dbName}' is NOT an authorized test database. E2E executions must strictly target 'StudyAIDb_E2E' or 'StudyAIDb_Clean_{GUID}' (Guid:N or Guid:D). Generic databases containing 'test' or 'e2e' substrings, or non-N/D GUID formats are rejected.`
+    const errorMsg = `CRITICAL DATABASE SAFETY GUARD TRIGGERED [${callerContext}]: Database '${dbName}' is NOT an authorized test database. E2E executions must strictly target 'StudyAIDb_Clean_{GUID}' (Guid:N or Guid:D). Persistent databases ('StudyAIDb', 'StudyAIDb_Dev', 'StudyAIDb_E2E'), generic substrings, or non-N/D GUID formats are rejected.`
     console.error(`\n[CRITICAL ERROR] ${errorMsg}\n`)
     throw new Error(errorMsg)
   }

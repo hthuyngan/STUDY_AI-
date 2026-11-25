@@ -4,6 +4,7 @@ import fs from 'fs'
 import path from 'path'
 import { resolveDotnet10Environment } from './utils/dotnetRuntime'
 import { assertSafeTestDatabase } from './utils/databaseSafetyGuard'
+import { createDisposableTestDatabase } from './utils/disposableDb'
 
 const BACKEND_PORT = 8000
 const FRONTEND_PORT = 4191
@@ -11,11 +12,6 @@ const BACKEND_URL = `http://localhost:${BACKEND_PORT}`
 const FRONTEND_URL = `http://localhost:${FRONTEND_PORT}`
 const QA_DIR = path.join('docs', 'visual-qa', 'catalog-p01')
 
-const E2E_CONNECTION_STRING =
-  process.env.ConnectionStrings__DefaultConnection ||
-  'Server=.\\SQLEXPRESS;Database=StudyAIDb_E2E;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True'
-
-assertSafeTestDatabase(E2E_CONNECTION_STRING, 'P01 Multi-Subject Catalog Playwright E2E')
 fs.mkdirSync(QA_DIR, { recursive: true })
 
 function killProcessTree(proc: ChildProcess | undefined) {
@@ -58,21 +54,24 @@ async function loginApi(email: string, password: string): Promise<string> {
 
 async function run() {
   console.log('=== STARTING P01 MULTI-SUBJECT CATALOG E2E PLAYWRIGHT SUITE ===')
-  console.log('Target E2E Database: StudyAIDb_E2E (DatabaseSafetyGuard verified)')
+  const disposableDb = createDisposableTestDatabase('P01 Multi-Subject Catalog Playwright E2E')
+  assertSafeTestDatabase(disposableDb.connectionString, 'P01 Multi-Subject Catalog Playwright E2E')
+  console.log(`Target Disposable Database: ${disposableDb.dbName} (DatabaseSafetyGuard verified)`)
 
   const dotnetEnv = resolveDotnet10Environment()
   const backendProc = spawn(
     dotnetEnv.dotnetBin,
-    ['run', '--project', path.join('backend', 'src', 'StudyAI.Api'), '--urls', BACKEND_URL, '--no-build'],
+    ['run', '--project', path.join('backend', 'src', 'StudyAI.Api'), '--urls', BACKEND_URL, '--no-build', '--no-launch-profile'],
     {
       cwd: process.cwd(),
       env: {
         ...process.env,
         PATH: dotnetEnv.customPath,
         DOTNET_ROOT: dotnetEnv.dotnetRoot,
-        ASPNETCORE_ENVIRONMENT: 'Development',
-        ConnectionStrings__DefaultConnection: E2E_CONNECTION_STRING,
+        ASPNETCORE_ENVIRONMENT: 'Testing',
+        ConnectionStrings__DefaultConnection: disposableDb.connectionString,
         Database__ApplyMigrationsOnStartup: 'true',
+        Database__BootstrapTestAccounts: 'true',
       },
       stdio: ['ignore', 'pipe', 'pipe'],
     }
@@ -95,6 +94,19 @@ async function run() {
     await waitForUrl(`${BACKEND_URL}/api/v1/health`)
     await waitForUrl(FRONTEND_URL)
     console.log('-> Backend & Frontend ready.')
+
+    // 0. Diagnostics check (Testing environment & StudyAIDb_Clean_{GUID} without credentials)
+    const diagRes = await fetch(`${BACKEND_URL}/api/v1/health/db`)
+    if (!diagRes.ok) throw new Error(`Expected 200 on /api/v1/health/db, got ${diagRes.status}`)
+    const diagText = await diagRes.text()
+    const diagJson = JSON.parse(diagText) as { environment?: string; databaseName?: string }
+    if (diagJson.environment !== 'Testing' || diagJson.databaseName !== disposableDb.dbName) {
+      throw new Error(`Expected Testing/${disposableDb.dbName} diagnostics, got ${diagText}`)
+    }
+    if (/password=|user id=|trusted_connection/i.test(diagText)) {
+      throw new Error(`Diagnostics leaked credential tokens: ${diagText}`)
+    }
+    console.log(`[PASS] Scenario 0: Diagnostics report Testing / ${disposableDb.dbName} with zero credentials`)
 
     // 1. Unauthenticated 401 & Student/Teacher 403
     const unauth = await fetch(`${BACKEND_URL}/api/v1/content/catalog/subjects`)
@@ -144,6 +156,15 @@ async function run() {
     const suffix = Date.now().toString(36).toUpperCase()
 
     await page.goto(`${FRONTEND_URL}/login`, { waitUntil: 'networkidle' })
+    // Verify stale localStorage API override is cleared and ignored on load
+    await page.evaluate(() => {
+      window.localStorage.setItem('study_ai_api_base_url', 'http://127.0.0.1:59999/api/v1')
+    })
+    await page.reload({ waitUntil: 'networkidle' })
+    const remainingStaleOverride = await page.evaluate(() => window.localStorage.getItem('study_ai_api_base_url'))
+    if (remainingStaleOverride !== null) {
+      throw new Error(`Expected stale study_ai_api_base_url to be cleared, got ${remainingStaleOverride}`)
+    }
     await page.fill('input[type="email"]', 'admin@studyai.internal')
     await page.fill('input[type="password"]', 'Admin@123456')
     await page.click('button[type="submit"]')
@@ -289,6 +310,8 @@ async function run() {
     await browser.close()
     killProcessTree(backendProc)
     killProcessTree(frontendProc)
+    await disposableDb.cleanup()
+    console.log(`Cleaned up disposable database: ${disposableDb.dbName}`)
   }
 }
 

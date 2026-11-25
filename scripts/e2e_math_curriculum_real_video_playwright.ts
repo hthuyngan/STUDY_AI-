@@ -4,6 +4,7 @@ import fs from 'fs'
 import path from 'path'
 import { resolveDotnet10Environment } from './utils/dotnetRuntime'
 import { assertSafeTestDatabase } from './utils/databaseSafetyGuard'
+import { createDisposableTestDatabase } from './utils/disposableDb'
 
 const BACKEND_PORT = 8000
 const FRONTEND_PORT = 4185
@@ -12,9 +13,9 @@ const FRONTEND_URL = `http://localhost:${FRONTEND_PORT}`
 const QA_DIR = path.join('docs', 'visual-qa', 'math-curriculum')
 
 // Dedicated test database connection string to strictly protect StudyAIDb
-const E2E_CONNECTION_STRING =
-  process.env.ConnectionStrings__DefaultConnection ||
-  'Server=.\\SQLEXPRESS;Database=StudyAIDb_E2E;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True'
+const _disposableDb = process.env.ConnectionStrings__DefaultConnection ? null : createDisposableTestDatabase('e2e_math_curriculum_real_video_playwright')
+const E2E_CONNECTION_STRING = process.env.ConnectionStrings__DefaultConnection || _disposableDb!.connectionString
+if (_disposableDb) { process.on('exit', () => { void _disposableDb.cleanup() }) }
 
 // Fail-closed database safety guard: abort immediately if targeting StudyAIDb
 assertSafeTestDatabase(E2E_CONNECTION_STRING, 'Math Curriculum & Real Video Playwright E2E')
@@ -89,14 +90,14 @@ async function run() {
   console.log(`Starting ASP.NET Core API on ${BACKEND_URL}...`)
   const backendProc: ChildProcess = spawn(
     dotnetBin,
-    ['run', '--project', path.join('backend', 'src', 'StudyAI.Api'), '--urls', BACKEND_URL, '-c', 'Release', '--no-build'],
+    ['run', '--project', path.join('backend', 'src', 'StudyAI.Api'), '--urls', BACKEND_URL, '-c', 'Release', '--no-build', '--no-launch-profile'],
     {
       cwd: process.cwd(),
       env: {
         ...process.env,
         PATH: customPath,
         DOTNET_ROOT: dotnetRoot,
-        ASPNETCORE_ENVIRONMENT: 'Development',
+        ASPNETCORE_ENVIRONMENT: 'Testing',
         ConnectionStrings__DefaultConnection: E2E_CONNECTION_STRING,
       },
       stdio: ['ignore', 'pipe', 'pipe'],

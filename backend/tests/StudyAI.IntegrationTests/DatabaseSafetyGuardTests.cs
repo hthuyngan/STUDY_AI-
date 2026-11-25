@@ -94,9 +94,6 @@ public class DatabaseSafetyGuardTests
     }
 
     [Theory]
-    [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb_E2E;Trusted_Connection=True;", "StudyAIDb_E2E")]
-    [InlineData("Server=.\\SQLEXPRESS;Database=studyaidb_e2e;Trusted_Connection=True;", "studyaidb_e2e")]
-    [InlineData("Server=.\\SQLEXPRESS;Initial Catalog=[StudyAIDb_E2E];Trusted_Connection=True;", "StudyAIDb_E2E")]
     // Guid:N (32 hex characters)
     [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb_Clean_a1b2c3d4e5f60718293a4b5c6d7e8f90;Trusted_Connection=True;", "StudyAIDb_Clean_a1b2c3d4e5f60718293a4b5c6d7e8f90")]
     // Guid:D (36 characters 8-4-4-4-12)
@@ -105,6 +102,18 @@ public class DatabaseSafetyGuardTests
     {
         var resolved = DatabaseSafetyGuard.EnsureSafeTestDatabase(validConnStr, "UnitTest_ValidTestDb");
         Assert.Equal(expectedDbName, resolved);
+    }
+
+    [Theory]
+    [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb_E2E;Trusted_Connection=True;")]
+    [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb_Dev;Trusted_Connection=True;")]
+    public void Guard_Strictly_Blocks_Static_E2E_And_Dev_Databases_In_Tests(string staticConnStr)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            DatabaseSafetyGuard.EnsureSafeTestDatabase(staticConnStr, "UnitTest_StaticDbRejected"));
+
+        Assert.Contains("CRITICAL DATABASE SAFETY GUARD TRIGGERED", ex.Message);
+        Assert.Contains("NOT an authorized test database", ex.Message);
     }
 
     [Fact]
@@ -205,28 +214,53 @@ public class DatabaseSafetyGuardTests
     }
 
     [Theory]
-    [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb;Trusted_Connection=True;", "Development", "Startup")]
-    [InlineData("Server=.\\SQLEXPRESS;Database=studyaidb;Trusted_Connection=True;", "Development", "Program.cs")]
+    [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb;Trusted_Connection=True;", "Development", "Startup Migration")]
+    [InlineData("Server=.\\SQLEXPRESS;Database=studyaidb;Trusted_Connection=True;", "Development", "DbSeed")]
     [InlineData("Server=.\\SQLEXPRESS;Database=[StudyAIDb];Trusted_Connection=True;", "Production", "Migration")]
     [InlineData("Server=.\\SQLEXPRESS;Initial Catalog=StudyAIDb;Trusted_Connection=True;", "Staging", "DbSeed")]
     [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb;Trusted_Connection=True;", "Testing", "ImportScript")]
-    public void Guard_Blocks_StudyAIDb_In_Development_And_Migrations(string connStr, string env, string context)
+    public void Guard_Blocks_StudyAIDb_In_Migrations_Seeds_And_Testing(string connStr, string env, string context)
     {
         var ex = Assert.Throws<InvalidOperationException>(() =>
             DatabaseSafetyGuard.EnsureSafeDatabaseForDevelopmentOrMigration(connStr, env, context));
 
         Assert.Contains("CRITICAL DATABASE SAFETY GUARD TRIGGERED", ex.Message);
-        Assert.Contains("strictly FORBIDDEN", ex.Message);
+        Assert.Contains("strictly FORBIDDEN", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("StudyAIDb", ex.Message);
     }
 
     [Theory]
     [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb_E2E;Trusted_Connection=True;", "Development", "Startup")]
-    [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb_E2E;Trusted_Connection=True;", "Testing", "Migration")]
     [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb_E2E;Trusted_Connection=True;", "Development", "ImportScript")]
-    public void Guard_Allows_StudyAIDb_E2E_In_Development_And_Migrations(string connStr, string env, string context)
+    [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb_Clean_a1b2c3d4e5f60718293a4b5c6d7e8f90;Trusted_Connection=True;", "Development", "Startup")]
+    public void Guard_Blocks_NonPrimary_Databases_In_Development(string connStr, string env, string context)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            DatabaseSafetyGuard.EnsureSafeDatabaseForEnvironment(connStr, env, context));
+
+        Assert.Contains("CRITICAL DATABASE SAFETY GUARD TRIGGERED", ex.Message);
+        Assert.Contains("Development", ex.Message);
+    }
+
+    [Theory]
+    [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb;Trusted_Connection=True;", "Testing", "Startup")]
+    [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb_Dev;Trusted_Connection=True;", "Testing", "Startup")]
+    [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb_E2E;Trusted_Connection=True;", "Testing", "Migration")]
+    public void Guard_Blocks_Persistent_Databases_In_Testing(string connStr, string env, string context)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            DatabaseSafetyGuard.EnsureSafeDatabaseForEnvironment(connStr, env, context));
+
+        Assert.Contains("CRITICAL DATABASE SAFETY GUARD TRIGGERED", ex.Message);
+        Assert.Contains("Testing", ex.Message);
+    }
+
+    [Theory]
+    [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb;Trusted_Connection=True;", "Development", "Startup", "StudyAIDb")]
+    [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb_Clean_a1b2c3d4e5f60718293a4b5c6d7e8f90;Trusted_Connection=True;", "Testing", "Startup", "StudyAIDb_Clean_a1b2c3d4e5f60718293a4b5c6d7e8f90")]
+    public void Guard_Allows_Environment_Matched_Databases(string connStr, string env, string context, string expectedDb)
     {
         var resolved = DatabaseSafetyGuard.EnsureSafeDatabaseForDevelopmentOrMigration(connStr, env, context);
-        Assert.Equal("StudyAIDb_E2E", resolved);
+        Assert.Equal(expectedDb, resolved);
     }
 }

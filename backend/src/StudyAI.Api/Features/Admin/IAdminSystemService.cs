@@ -30,6 +30,12 @@ public class AdminSystemDatabaseStatusDto
 
     [JsonPropertyName("latencyMs")]
     public double LatencyMs { get; set; }
+
+    [JsonPropertyName("databaseName")]
+    public string? DatabaseName { get; set; }
+
+    [JsonPropertyName("dataSource")]
+    public string? DataSource { get; set; }
 }
 
 public class AdminSystemStorageStatsDto

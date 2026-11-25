@@ -83,14 +83,16 @@ jobs:
             -p 1433:1433 \
             mcr.microsoft.com/mssql/server:2022-latest
 
-      - name: Wait for SQL Server Health Check & Pre-create Database
+      - name: Wait for SQL Server Health Check & Pre-create Disposable Test Database
         run: |
+          CLEAN_DB="StudyAIDb_Clean_$(openssl rand -hex 16)"
+          echo "CI_CLEAN_DB=$CLEAN_DB" >> $GITHUB_ENV
           echo "Verifying SQL Server container readiness..."
           for i in {1..30}; do
             if docker exec mssql-ci /bin/bash -c "(/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"\$MSSQL_SA_PASSWORD\" -C -Q \"SELECT 1\" || /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"\$MSSQL_SA_PASSWORD\" -Q \"SELECT 1\")" > /dev/null 2>&1; then
               echo "SQL Server is healthy and ready to accept connections."
-              docker exec mssql-ci /bin/bash -c "(/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"\$MSSQL_SA_PASSWORD\" -C -Q \"IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'StudyAIDb_E2E') CREATE DATABASE [StudyAIDb_E2E];\" || /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"\$MSSQL_SA_PASSWORD\" -Q \"IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'StudyAIDb_E2E') CREATE DATABASE [StudyAIDb_E2E];\")"
-              echo "Database StudyAIDb_E2E verified/created successfully."
+              docker exec mssql-ci /bin/bash -c "(/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"\$MSSQL_SA_PASSWORD\" -C -Q \"CREATE DATABASE [$CLEAN_DB];\" || /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"\$MSSQL_SA_PASSWORD\" -Q \"CREATE DATABASE [$CLEAN_DB];\")"
+              echo "Disposable test database $CLEAN_DB created successfully."
               exit 0
             fi
             echo "Waiting for SQL Server ($i/30)..."
@@ -108,10 +110,10 @@ jobs:
       - name: Run .NET Unit Tests
         run: dotnet test --no-build --configuration Release tests/StudyAI.UnitTests/StudyAI.UnitTests.csproj --verbosity normal
 
-      - name: Run .NET Integration Tests (Real SQL Server)
+      - name: Run .NET Integration Tests (Real SQL Server Disposable DB)
         run: dotnet test --no-build --configuration Release tests/StudyAI.IntegrationTests/StudyAI.IntegrationTests.csproj --verbosity normal
         env:
-          ConnectionStrings__DefaultConnection: "Server=127.0.0.1,1433;Database=StudyAIDb_E2E;User Id=sa;Password=${{ env.MSSQL_SA_PASSWORD }};TrustServerCertificate=True;"
+          ConnectionStrings__DefaultConnection: "Server=127.0.0.1,1433;Database=${{ env.CI_CLEAN_DB }};User Id=sa;Password=${{ env.MSSQL_SA_PASSWORD }};TrustServerCertificate=True;"
           Jwt__SecretKey: ${{ env.CI_JWT_KEY }}
 
       - name: Teardown SQL Server Container

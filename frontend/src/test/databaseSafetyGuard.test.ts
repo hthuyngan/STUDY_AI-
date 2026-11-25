@@ -107,24 +107,18 @@ describe('Hardened Fail-Closed Database Safety Guard (TypeScript / E2E)', () => 
     }
   })
 
-  it('allows only exact authorized test databases (StudyAIDb_E2E and Guid:N/Guid:D)', () => {
-    expect(
+  it('allows only exact authorized disposable test databases (StudyAIDb_Clean_{Guid:N|Guid:D}) and rejects StudyAIDb_E2E', () => {
+    expect(() =>
       assertSafeTestDatabase(
         'Server=.\\SQLEXPRESS;Database=StudyAIDb_E2E;Trusted_Connection=True;'
       )
-    ).toBe('StudyAIDb_E2E')
+    ).toThrowError(/is NOT an authorized test database/i)
 
-    expect(
+    expect(() =>
       assertSafeTestDatabase(
-        'Server=.\\SQLEXPRESS;Database=studyaidb_e2e;Trusted_Connection=True;'
+        'Server=.\\SQLEXPRESS;Database=StudyAIDb_Dev;Trusted_Connection=True;'
       )
-    ).toBe('studyaidb_e2e')
-
-    expect(
-      assertSafeTestDatabase(
-        'Server=.\\SQLEXPRESS;Initial Catalog=[StudyAIDb_E2E];Trusted_Connection=True;'
-      )
-    ).toBe('StudyAIDb_E2E')
+    ).toThrowError(/is NOT an authorized test database/i)
 
     // Guid:N (32 hex characters)
     expect(
@@ -141,13 +135,13 @@ describe('Hardened Fail-Closed Database Safety Guard (TypeScript / E2E)', () => 
     ).toBe('StudyAIDb_Clean_12345678-1234-1234-1234-1234567890ab')
   })
 
-  it('isAuthorizedTestDatabase correctly rejects B, P, X and validates N and D', () => {
+  it('isAuthorizedTestDatabase correctly rejects StudyAIDb_E2E, B, P, X and validates N and D', () => {
     expect(isAuthorizedTestDatabase(undefined)).toBe(false)
     expect(isAuthorizedTestDatabase('')).toBe(false)
     expect(isAuthorizedTestDatabase('StudyAIDb')).toBe(false)
     expect(isAuthorizedTestDatabase('studyaidb')).toBe(false)
-    expect(isAuthorizedTestDatabase('StudyAIDb_E2E')).toBe(true)
-    expect(isAuthorizedTestDatabase('studyaidb_e2e')).toBe(true)
+    expect(isAuthorizedTestDatabase('StudyAIDb_E2E')).toBe(false)
+    expect(isAuthorizedTestDatabase('StudyAIDb_Dev')).toBe(false)
 
     // Guid:N (32 hex)
     expect(isAuthorizedTestDatabase('StudyAIDb_Clean_d8a1f16decc8ea1a5c35119cb5b0a748')).toBe(true)

@@ -2,12 +2,19 @@ import { chromium } from 'playwright'
 import { spawn, ChildProcess } from 'child_process'
 import fs from 'fs'
 import path from 'path'
+import { assertSafeTestDatabase } from './utils/databaseSafetyGuard'
+import { createDisposableTestDatabase } from './utils/disposableDb'
 
 const BACKEND_PORT = 5290
 const FRONTEND_PORT = 4173
 const BACKEND_URL = `http://127.0.0.1:${BACKEND_PORT}`
 const FRONTEND_URL = `http://localhost:${FRONTEND_PORT}`
 const QA_DIR = path.join('docs', 'visual-qa', 'phase-15')
+const _disposableDb = process.env.ConnectionStrings__DefaultConnection ? null : createDisposableTestDatabase('e2e_phase15_playwright')
+const E2E_CONNECTION_STRING = process.env.ConnectionStrings__DefaultConnection || _disposableDb!.connectionString
+if (_disposableDb) { process.on('exit', () => { void _disposableDb.cleanup() }) }
+
+assertSafeTestDatabase(E2E_CONNECTION_STRING, 'Phase 15 Playwright E2E')
 
 if (!fs.existsSync(QA_DIR)) {
   fs.mkdirSync(QA_DIR, { recursive: true })
@@ -39,14 +46,15 @@ async function run() {
   console.log(`Starting ASP.NET Core API on ${BACKEND_URL}...`)
   const backendProc: ChildProcess = spawn(
     'dotnet',
-    ['run', '--project', path.join('backend', 'src', 'StudyAI.Api'), '--urls', BACKEND_URL, '--no-build'],
+    ['run', '--project', path.join('backend', 'src', 'StudyAI.Api'), '--urls', BACKEND_URL, '--no-build', '--no-launch-profile'],
     {
       cwd: process.cwd(),
       env: {
         ...process.env,
         DOTNET_ROOT: dotnetRoot,
         PATH: customPath,
-        ASPNETCORE_ENVIRONMENT: 'Development',
+        ASPNETCORE_ENVIRONMENT: 'Testing',
+        ConnectionStrings__DefaultConnection: E2E_CONNECTION_STRING,
       },
       stdio: ['ignore', 'pipe', 'pipe'],
     }
