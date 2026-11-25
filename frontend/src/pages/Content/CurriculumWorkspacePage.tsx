@@ -7,6 +7,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { PageErrorState } from '@/components/ui/PageErrorState'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { StatusBadge } from '@/components/ui/StatusBadge'
+import { ManagementPagination } from '@/components/management/ManagementPagination'
 import { catalogService } from '@/services/catalog.service'
 import {
   curriculumWorkspaceService,
@@ -23,7 +24,7 @@ import type {
 } from '@/types/catalog'
 import './CurriculumWorkspacePage.css'
 
-const PAGE_SIZE = 20
+const PAGE_SIZE_DEFAULT = 20
 
 const STATUSES: Array<{ value: string; label: string }> = [
   { value: '', label: 'Tất cả trạng thái' },
@@ -74,6 +75,7 @@ export function CurriculumWorkspacePage() {
   const sort = params.get('sort') ?? 'orderIndex'
   const direction = params.get('dir') === 'desc' ? 'desc' : 'asc'
   const page = Math.max(1, Number(params.get('page') || 1))
+  const pageSize = Math.min(100, Math.max(5, Number(params.get('pageSize') || PAGE_SIZE_DEFAULT)))
   const chapterPage = Math.max(1, Number(params.get('cpage') || 1))
 
   const [grades, setGrades] = useState<GradeLevelItem[]>([])
@@ -108,12 +110,12 @@ export function CurriculumWorkspacePage() {
 
   const returnFocusRef = useRef<HTMLButtonElement | null>(null)
 
-  const updateParams = (patch: Record<string, string | null>) => {
+  const updateParams = (patch: Record<string, string | null>, replace = false) => {
     const next = new URLSearchParams(params)
     Object.entries(patch).forEach(([key, value]) =>
       value ? next.set(key, value) : next.delete(key)
     )
-    setParams(next, { replace: true })
+    setParams(next, { replace })
   }
 
   // Load base catalog filters (grades, subjects, textbook series)
@@ -143,7 +145,10 @@ export function CurriculumWorkspacePage() {
         pageSize: 50,
       })
       .then((res) => setCurricula(res.items))
-      .catch(() => setCurricula([]))
+      .catch((err) => {
+        setCurricula([])
+        setLoadError(extractErrorMessage(err, 'Không thể tải danh sách chương trình.'))
+      })
   }, [gradeId, subjectId])
 
   // Cascade editions when curriculumId / seriesId changes
@@ -156,7 +161,10 @@ export function CurriculumWorkspacePage() {
         pageSize: 50,
       })
       .then((res) => setEditions(res.items))
-      .catch(() => setEditions([]))
+      .catch((err) => {
+        setEditions([])
+        setLoadError(extractErrorMessage(err, 'Không thể tải danh sách phiên bản giáo trình.'))
+      })
   }, [curriculumId, seriesId])
 
   const load = useCallback(async () => {
@@ -173,7 +181,7 @@ export function CurriculumWorkspacePage() {
       const chapterResult = await curriculumWorkspaceService.listChapters({
         curriculumEditionId: editionId,
         page: chapterPage,
-        pageSize: PAGE_SIZE,
+        pageSize: 20,
         sort: 'orderIndex',
         direction: 'asc',
       })
@@ -186,7 +194,7 @@ export function CurriculumWorkspacePage() {
           status: status || undefined,
           search: search || undefined,
           page,
-          pageSize: PAGE_SIZE,
+          pageSize,
           sort,
           direction,
         })
@@ -201,7 +209,7 @@ export function CurriculumWorkspacePage() {
     } finally {
       setLoading(false)
     }
-  }, [chapterId, chapterPage, direction, editionId, page, search, sort, status])
+  }, [chapterId, chapterPage, direction, editionId, page, pageSize, search, sort, status])
 
   useEffect(() => {
     void load()
@@ -328,16 +336,81 @@ export function CurriculumWorkspacePage() {
     void executeTransition(row, kind, action.key)
   }
 
-  const moveLesson = async (index: number, delta: -1 | 1) => {
-    if (!chapterId) return
-    const targetIndex = index + delta
-    if (targetIndex < 0 || targetIndex >= lessons.length) return
-    const nextOrder = [...lessons]
-    const [moved] = nextOrder.splice(index, 1)
-    nextOrder.splice(targetIndex, 0, moved)
-    const rowVersions = Object.fromEntries(lessons.map((l) => [l.id, l.rowVersion]))
+  const fetchAllChaptersForReorder = async (targetEditionId: string) => {
+    const collected: WorkspaceChapter[] = []
+    let p = 1
+    let totalCount = Infinity
+    while (collected.length < totalCount) {
+      const res = await curriculumWorkspaceService.listChapters({
+        curriculumEditionId: targetEditionId,
+        page: p,
+        pageSize: 100,
+        sort: 'orderIndex',
+        direction: 'asc',
+      })
+      collected.push(...res.items)
+      totalCount = res.total
+      if (res.items.length === 0) break
+      p += 1
+    }
+    return collected.filter((c) => c.status !== 'archived')
+  }
+
+  const fetchAllLessonsForReorder = async (targetChapterId: string) => {
+    const collected: WorkspaceLesson[] = []
+    let p = 1
+    let totalCount = Infinity
+    while (collected.length < totalCount) {
+      const res = await curriculumWorkspaceService.listLessons({
+        chapterId: targetChapterId,
+        page: p,
+        pageSize: 100,
+        sort: 'orderIndex',
+        direction: 'asc',
+      })
+      collected.push(...res.items)
+      totalCount = res.total
+      if (res.items.length === 0) break
+      p += 1
+    }
+    return collected
+  }
+
+  const moveChapter = async (targetChapterId: string, delta: -1 | 1) => {
+    if (!editionId) return
     setActionError('')
     try {
+      const allChapters = await fetchAllChaptersForReorder(editionId)
+      const idx = allChapters.findIndex((c) => c.id === targetChapterId)
+      const targetIndex = idx + delta
+      if (idx < 0 || targetIndex < 0 || targetIndex >= allChapters.length) return
+      const nextOrder = [...allChapters]
+      const [moved] = nextOrder.splice(idx, 1)
+      nextOrder.splice(targetIndex, 0, moved)
+      const rowVersions = Object.fromEntries(allChapters.map((c) => [c.id, c.rowVersion]))
+      await curriculumWorkspaceService.reorderChapters({
+        curriculumEditionId: editionId,
+        chapterIds: nextOrder.map((c) => c.id),
+        rowVersions,
+      })
+      await load()
+    } catch (err) {
+      setActionError(extractErrorMessage(err, 'Không thể sắp xếp thứ tự chương.'))
+    }
+  }
+
+  const moveLesson = async (targetLessonId: string, delta: -1 | 1) => {
+    if (!chapterId) return
+    setActionError('')
+    try {
+      const allLessons = await fetchAllLessonsForReorder(chapterId)
+      const idx = allLessons.findIndex((l) => l.id === targetLessonId)
+      const targetIndex = idx + delta
+      if (idx < 0 || targetIndex < 0 || targetIndex >= allLessons.length) return
+      const nextOrder = [...allLessons]
+      const [moved] = nextOrder.splice(idx, 1)
+      nextOrder.splice(targetIndex, 0, moved)
+      const rowVersions = Object.fromEntries(allLessons.map((l) => [l.id, l.rowVersion]))
       await curriculumWorkspaceService.reorderLessons({
         chapterId,
         lessonIds: nextOrder.map((l) => l.id),
@@ -541,25 +614,49 @@ export function CurriculumWorkspacePage() {
               <div className="curriculum-workspace__empty">Giáo trình chưa có chương.</div>
             ) : (
               <>
-                {chapters.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    aria-current={chapterId === c.id ? 'true' : undefined}
-                    onClick={() => {
-                      updateParams({ chapterId: c.id, page: null })
-                      setTreeOpenMobile(false)
-                    }}
-                  >
-                    <span className="curriculum-tree__code">{c.code}</span>
-                    {c.title}
-                    <br />
-                    <small>
-                      {c.lessonCount} bài · {c.status}
-                    </small>
-                  </button>
+                {chapters.map((c, cIdx) => (
+                  <div key={c.id} className="curriculum-tree__item">
+                    <button
+                      type="button"
+                      className="curriculum-tree__select"
+                      aria-current={chapterId === c.id ? 'true' : undefined}
+                      onClick={() => {
+                        updateParams({ chapterId: c.id, page: null })
+                        setTreeOpenMobile(false)
+                      }}
+                    >
+                      <span className="curriculum-tree__code">{c.code}</span>
+                      {c.title}
+                      <br />
+                      <small>
+                        {c.lessonCount} bài · {c.status}
+                      </small>
+                    </button>
+                    <div className="curriculum-tree__item-actions">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        aria-label={`Lên chương ${c.title}`}
+                        disabled={c.status === 'archived' || (chapterPage === 1 && cIdx === 0)}
+                        onClick={() => void moveChapter(c.id, -1)}
+                      >
+                        <ArrowUp size={14} />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        aria-label={`Xuống chương ${c.title}`}
+                        disabled={
+                          c.status === 'archived' || (chapterPage - 1) * 20 + cIdx >= chapterTotal - 1
+                        }
+                        onClick={() => void moveChapter(c.id, 1)}
+                      >
+                        <ArrowDown size={14} />
+                      </Button>
+                    </div>
+                  </div>
                 ))}
-                {chapterTotal > PAGE_SIZE && (
+                {chapterTotal > 20 && (
                   <div className="curriculum-workspace__pagination">
                     <Button
                       size="sm"
@@ -570,12 +667,12 @@ export function CurriculumWorkspacePage() {
                       Trước
                     </Button>
                     <span>
-                      {chapterPage}/{Math.ceil(chapterTotal / PAGE_SIZE)}
+                      {chapterPage}/{Math.ceil(chapterTotal / 20)}
                     </span>
                     <Button
                       size="sm"
                       variant="secondary"
-                      disabled={chapterPage * PAGE_SIZE >= chapterTotal}
+                      disabled={chapterPage * 20 >= chapterTotal}
                       onClick={() => updateParams({ cpage: String(chapterPage + 1) })}
                     >
                       Sau
@@ -670,8 +767,13 @@ export function CurriculumWorkspacePage() {
                               size="sm"
                               variant="secondary"
                               aria-label={`Lên ${l.title}`}
-                              disabled={idx === 0}
-                              onClick={() => void moveLesson(idx, -1)}
+                              disabled={
+                                sort === 'orderIndex' &&
+                                direction === 'asc' &&
+                                !hasActiveFilters &&
+                                (page - 1) * pageSize + idx === 0
+                              }
+                              onClick={() => void moveLesson(l.id, -1)}
                             >
                               <ArrowUp size={14} />
                             </Button>
@@ -679,8 +781,13 @@ export function CurriculumWorkspacePage() {
                               size="sm"
                               variant="secondary"
                               aria-label={`Xuống ${l.title}`}
-                              disabled={idx === lessons.length - 1}
-                              onClick={() => void moveLesson(idx, 1)}
+                              disabled={
+                                sort === 'orderIndex' &&
+                                direction === 'asc' &&
+                                !hasActiveFilters &&
+                                (page - 1) * pageSize + idx >= total - 1
+                              }
+                              onClick={() => void moveLesson(l.id, 1)}
                             >
                               <ArrowDown size={14} />
                             </Button>
@@ -723,28 +830,18 @@ export function CurriculumWorkspacePage() {
               </table>
             )}
 
-            {total > PAGE_SIZE && (
-              <div className="curriculum-workspace__pagination">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  disabled={page === 1}
-                  onClick={() => updateParams({ page: String(page - 1) })}
-                >
-                  Trước
-                </Button>
-                <span>
-                  Trang {page}/{Math.ceil(total / PAGE_SIZE)}
-                </span>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  disabled={page * PAGE_SIZE >= total}
-                  onClick={() => updateParams({ page: String(page + 1) })}
-                >
-                  Sau
-                </Button>
-              </div>
+            {total > 0 && (
+              <ManagementPagination
+                currentPage={page}
+                totalPages={Math.max(1, Math.ceil(total / pageSize))}
+                totalCount={total}
+                pageSize={pageSize}
+                pageSizeOptions={[10, 20, 50]}
+                onPageChange={(nextPage) => updateParams({ page: String(nextPage) })}
+                onPageSizeChange={(nextPageSize) =>
+                  updateParams({ pageSize: String(nextPageSize), page: null })
+                }
+              />
             )}
           </div>
         </section>
