@@ -301,10 +301,26 @@ public class CurriculumImportConfirmIntegrationTests : IClassFixture<StudyAIApiF
     {
         var staffToken = await GetContentStaffTokenAsync();
         var uniquePrompt = $"Tích phân cơ bản tự động {Guid.NewGuid():N}";
+        var uniqueSubCode = $"CSV_{Guid.NewGuid():N}"[..12].ToUpperInvariant();
+
+        using (var scope = _fixture.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            db.ContentSubjects.Add(new ContentSubject
+            {
+                Id = $"sub_{uniqueSubCode}",
+                Name = $"Môn {uniqueSubCode}",
+                Code = uniqueSubCode,
+                Grade = "12",
+                IsActive = true,
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+            await db.SaveChangesAsync();
+        }
 
         var csv = $"""
         subjectCode,prompt,options,correctAnswer,difficulty,type,explanation
-        MATH12,"{uniquePrompt}","A. F(x) | B. f'(x)",A,easy,multiple-choice,"Định nghĩa nguyên hàm"
+        {uniqueSubCode},"{uniquePrompt}","A. F(x) | B. f'(x)",A,easy,multiple-choice,"Định nghĩa nguyên hàm"
         """;
 
         var previewToken = await GeneratePreviewTokenAsync(staffToken, csv, "flat_questions.csv");
@@ -337,6 +353,22 @@ public class CurriculumImportConfirmIntegrationTests : IClassFixture<StudyAIApiF
     {
         var staffToken = await GetContentStaffTokenAsync();
         var uniquePrompt = $"XLSX Prompt {Guid.NewGuid():N}";
+        var uniqueSubCode = $"XLSX_{Guid.NewGuid():N}"[..12].ToUpperInvariant();
+
+        using (var scope = _fixture.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            db.ContentSubjects.Add(new ContentSubject
+            {
+                Id = $"sub_{uniqueSubCode}",
+                Name = $"Môn {uniqueSubCode}",
+                Code = uniqueSubCode,
+                Grade = "12",
+                IsActive = true,
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+            await db.SaveChangesAsync();
+        }
 
         using var ms = new MemoryStream();
         using (var archive = new ZipArchive(ms, ZipArchiveMode.Create, true))
@@ -355,7 +387,7 @@ public class CurriculumImportConfirmIntegrationTests : IClassFixture<StudyAIApiF
                       <c r="D1" t="inlineStr"><is><t>correctAnswer</t></is></c>
                     </row>
                     <row r="2">
-                      <c r="A2" t="inlineStr"><is><t>MATH12</t></is></c>
+                      <c r="A2" t="inlineStr"><is><t>{uniqueSubCode}</t></is></c>
                       <c r="B2" t="inlineStr"><is><t>{uniquePrompt}</t></is></c>
                       <c r="C2" t="inlineStr"><is><t>Opt1 | Opt2</t></is></c>
                       <c r="D2" t="inlineStr"><is><t>A</t></is></c>
@@ -391,13 +423,29 @@ public class CurriculumImportConfirmIntegrationTests : IClassFixture<StudyAIApiF
     public async Task Confirm_InsertOnly_RejectsExistingSubjectWithConflict409()
     {
         var staffToken = await GetContentStaffTokenAsync();
+        var existingCode = $"DUP_{Guid.NewGuid():N}"[..12].ToUpperInvariant();
 
-        // MATH12 already exists in DB! Attempting to insert it as a new subject should return Conflict 409
-        var jsonWithExistingSub = """
+        using (var scope = _fixture.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            db.ContentSubjects.Add(new ContentSubject
+            {
+                Id = $"sub_{existingCode}",
+                Name = $"Môn Đã Có {existingCode}",
+                Code = existingCode,
+                Grade = "12",
+                IsActive = true,
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+            await db.SaveChangesAsync();
+        }
+
+        // Subject already exists in DB! Attempting to insert it as a new subject should return Conflict 409
+        var jsonWithExistingSub = $$"""
         {
           "subject": {
-            "code": "MATH12",
-            "name": "Toán 12 Đã Có",
+            "code": "{{existingCode}}",
+            "name": "Môn Đã Có",
             "chapters": []
           }
         }
@@ -424,10 +472,26 @@ public class CurriculumImportConfirmIntegrationTests : IClassFixture<StudyAIApiF
     {
         var staffToken = await GetContentStaffTokenAsync();
         var uniquePrompt = $"Double confirm test prompt {Guid.NewGuid():N}";
+        var uniqueSubCode = $"DBL_{Guid.NewGuid():N}"[..12].ToUpperInvariant();
+
+        using (var scope = _fixture.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            db.ContentSubjects.Add(new ContentSubject
+            {
+                Id = $"sub_{uniqueSubCode}",
+                Name = $"Môn {uniqueSubCode}",
+                Code = uniqueSubCode,
+                Grade = "12",
+                IsActive = true,
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+            await db.SaveChangesAsync();
+        }
 
         var csv = $"""
         subjectCode,prompt,options,correctAnswer
-        MATH12,"{uniquePrompt}","A | B",A
+        {uniqueSubCode},"{uniquePrompt}","A | B",A
         """;
 
         var previewToken = await GeneratePreviewTokenAsync(staffToken, csv, "double_confirm.csv");
@@ -688,14 +752,35 @@ public class CurriculumImportConfirmIntegrationTests : IClassFixture<StudyAIApiF
         var staffToken = await GetContentStaffTokenAsync();
         var uniqueTitle = $"Ambiguous Lesson {Guid.NewGuid():N}"[..24];
 
-        // Seed two separate lessons with identical title under an existing chapter in test database
+        // Seed an isolated subject, chapter, and two separate lessons with identical title
         using (var scope = _fixture.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
-            var ch1 = await db.ContentChapters.FirstOrDefaultAsync();
-            Assert.NotNull(ch1);
             var author = await db.Users.FirstOrDefaultAsync();
             Assert.NotNull(author);
+
+            var subToken = Guid.NewGuid().ToString("N")[..10];
+            var sub = new ContentSubject
+            {
+                Id = $"sub_amb_{subToken}",
+                Name = $"Môn Ambiguous {subToken}",
+                Code = $"AMB_{subToken}".ToUpperInvariant(),
+                Grade = "12",
+                IsActive = true,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+            var ch1 = new ContentChapter
+            {
+                Id = $"chp_amb_{subToken}",
+                SubjectId = sub.Id,
+                Title = $"Chương Ambiguous {subToken}",
+                OrderIndex = 1,
+                Status = "published",
+                IsActive = true,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
+            db.ContentSubjects.Add(sub);
+            db.ContentChapters.Add(ch1);
 
             var l1 = new ContentLesson
             {

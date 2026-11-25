@@ -2,18 +2,23 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using StudyAI.Data;
+using StudyAI.Models;
 using Xunit;
 
 namespace StudyAI.IntegrationTests;
 
 public class AdaptiveLearningIntegrationTests : IClassFixture<StudyAIApiFixture>
 {
+    private readonly StudyAIApiFixture _factory;
     private readonly HttpClient _client;
     private readonly JsonSerializerOptions _jsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
     public AdaptiveLearningIntegrationTests(StudyAIApiFixture factory)
     {
+        _factory = factory;
         _client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
         {
             HandleCookies = true
@@ -36,15 +41,91 @@ public class AdaptiveLearningIntegrationTests : IClassFixture<StudyAIApiFixture>
         return result!.AccessToken;
     }
 
+    private async Task<string> SeedIsolatedSubjectWithQuestionsAsync(int count = 2)
+    {
+        var token = Guid.NewGuid().ToString("N")[..10];
+        var subjectId = $"sub_adp_{token}";
+        var chapterId = $"chp_adp_{token}";
+        var lessonId = $"les_adp_{token}";
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+        var author = await db.Users.FirstAsync();
+
+        db.ContentSubjects.Add(new ContentSubject
+        {
+            Id = subjectId,
+            Name = $"Môn Adaptive {token}",
+            Code = $"ADP_{token}".ToUpperInvariant(),
+            Grade = "12",
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        db.ContentChapters.Add(new ContentChapter
+        {
+            Id = chapterId,
+            SubjectId = subjectId,
+            Title = $"Chương Adaptive {token}",
+            OrderIndex = 1,
+            Status = "published",
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        db.ContentLessons.Add(new ContentLesson
+        {
+            Id = lessonId,
+            ChapterId = chapterId,
+            Title = $"Bài Adaptive {token}",
+            Slug = $"adp-{token}",
+            OrderIndex = 1,
+            Status = "published",
+            AuthorId = author.Id,
+            CreatedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+
+        for (int i = 0; i < count; i++)
+        {
+            db.ContentQuestions.Add(new ContentQuestion
+            {
+                Id = $"q_adp_{token}_{i + 1}",
+                SubjectId = subjectId,
+                ChapterId = chapterId,
+                LessonId = lessonId,
+                Prompt = $"Câu hỏi Adaptive {i + 1} ({token})",
+                OptionsJson = "[\"A\", \"B\", \"C\", \"D\"]",
+                CorrectAnswer = "A",
+                Explanation = "Giải thích chi tiết.",
+                Topic = "Hàm số",
+                Difficulty = "medium",
+                Type = "multiple-choice",
+                Status = "published",
+                AuthorId = author.Id,
+                ReviewedBy = author.Id,
+                SourceType = "manual",
+                CopyrightStatus = "proprietary",
+                OrderIndex = i + 1,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            });
+        }
+
+        await db.SaveChangesAsync();
+        return subjectId;
+    }
+
     [Fact]
     public async Task HintLadder_ReturnsThreeLevels_WithoutLeakingFinalAnswer()
     {
+        var subjectId = await SeedIsolatedSubjectWithQuestionsAsync(1);
         var token = await GetLearnerTokenAsync();
 
         // 1. Get a question from practice session to test hints
         var createReq = new CreatePracticeSessionRequest
         {
-            SubjectId = "sub_math12",
+            SubjectId = subjectId,
             QuestionCount = 1
         };
         var postMsg = new HttpRequestMessage(HttpMethod.Post, "/api/v1/practice/sessions")
@@ -215,12 +296,13 @@ public class AdaptiveLearningIntegrationTests : IClassFixture<StudyAIApiFixture>
     [Fact]
     public async Task HintLadder_DuringActiveExam_Returns403Forbidden()
     {
+        var subjectId = await SeedIsolatedSubjectWithQuestionsAsync(2);
         var token = await GetLearnerTokenAsync();
 
         // 1. Create an exam session
         var examReq = new CreatePracticeSessionRequest
         {
-            SubjectId = "sub_math12",
+            SubjectId = subjectId,
             Mode = "exam",
             QuestionCount = 2
         };

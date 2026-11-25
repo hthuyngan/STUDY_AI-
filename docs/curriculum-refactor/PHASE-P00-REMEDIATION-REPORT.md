@@ -96,8 +96,10 @@ All 9 failures occurred on a fresh empty `StudyAIDb_E2E` in CI because runtime s
   - Updated all curriculum/question-dependent tests in `PracticeIntegrationTests.cs` to query only their own isolated `SubjectId`/`LessonId` (leaving `Practice_Unauthenticated_ReturnsUnauthorized` and `Me_Bookmarks_Add_Query_Delete_PersistedInSql` free of unnecessary curriculum seeding).
 - **Files Changed:**
   - `backend/tests/StudyAI.IntegrationTests/PracticeIntegrationTests.cs`
+  - `backend/tests/StudyAI.IntegrationTests/AdaptiveLearningIntegrationTests.cs` (isolated subject/question seeding replacing `sub_math12`)
+  - `backend/tests/StudyAI.IntegrationTests/CurriculumImportConfirmIntegrationTests.cs` (isolated GUID-scoped `ContentSubject`/`ContentChapter` per test, removing shared `MATH12` collision with `ClassroomAssignmentIntegrationTests`)
   - `docs/curriculum-refactor/PHASE-P00-REMEDIATION-REPORT.md`
-- **Local Test Results (after final edit, on `StudyAIDb_E2E` / `StudyAIDb_Clean_{Guid}`):**
+- **Local Test Results (after final edit, on brand-new empty `StudyAIDb_Clean_{Guid}` + `StudyAIDb_E2E`):**
   - Targeted 2 failing tests: **2/2 PASS**
   - Repeated `PracticeIntegrationTests`: **12/12 PASS**
-  - Full `StudyAI.IntegrationTests` (including `DatabaseSafetyGuardTests` & `EmptyDatabaseStartupTests`): **230/230 PASS** (0 failed, 0 skipped)
+  - Full `StudyAI.IntegrationTests` on fresh empty `StudyAIDb_Clean_{Guid}` (including `DatabaseSafetyGuardTests` & `EmptyDatabaseStartupTests`): **230/230 PASS** (0 failed, 0 skipped, 51s)
