@@ -2,6 +2,17 @@
 
 This repository implements an education system for Vietnamese high-school students. Before coding or reviewing, read `docs/plans/AI_TUTOR_MATH10_12_IMPLEMENTATION_PLAN.md` and `docs/prompts/ANTIGRAVITY_MATH10_12_MASTER_PROMPT.md`.
 
+## Persistent progress protocol
+
+- At the start of every new session, read root `PROGRESS.md`, then verify its branch, HEAD, PR and CI claims against the actual local Git state and GitHub. A checkpoint is a handoff aid, not an authority.
+- Read only the plans, reviews, reports and prompts relevant to the current task/phase. Follow any branch-specific reading order below.
+- Do not reimplement work recorded as completed and accepted. Treat `IMPLEMENTED`, `VERIFIED`, `BLOCKED` and `COMPLETED` as distinct states; only `COMPLETED` means accepted.
+- Antigravity must update `PROGRESS.md` after each workstream. Codex must update the review verdict after each review.
+- Before ending a session, update the checkpoint with the observed branch, HEAD, PR/CI evidence, blockers, findings and next action.
+- Never put passwords, API keys, tokens, connection strings, private student data or other secrets in progress tracking.
+- Do not advance to another phase while a blocker or required acceptance remains open.
+- Avoid overwriting another agent's progress update: re-read `PROGRESS.md`, inspect its Git diff/history, and merge concurrent facts rather than replacing them.
+
 ## Stack and baseline
 
 - React 19, TypeScript, Vite, Bun; .NET 10, ASP.NET Core, EF Core, SQL Server. Preserve Clean Architecture and existing API contracts. 
