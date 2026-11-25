@@ -1048,7 +1048,7 @@ public class StudentPracticeService : ILearnerPracticeService
 
         // 5. Subject Progress
         var subjects = await _db.ContentSubjects.AsNoTracking()
-            .Where(s => s.IsActive && !s.Name.StartsWith("TEST_"))
+            .Where(s => s.IsActive)
             .OrderBy(s => s.OrderIndex)
             .ToListAsync(cancellationToken);
 

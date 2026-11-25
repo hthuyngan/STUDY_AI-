@@ -104,6 +104,15 @@ public class ContentVideosService : IContentVideosService
         if (string.IsNullOrWhiteSpace(req.SourceUrl) || string.IsNullOrWhiteSpace(req.Title))
             throw new ValidationException("SourceUrl/Title", "Tiêu đề và Đường dẫn URL video không được để trống.");
 
+        if (_videoVerificationService != null)
+        {
+            var verifyResult = await _videoVerificationService.VerifyVideoUrlAsync(req.SourceUrl, ct);
+            if (!verifyResult.IsValid)
+            {
+                throw new ValidationException("SourceUrl", verifyResult.ErrorMessage ?? "URL video không hợp lệ hoặc bị từ chối bởi cơ chế an toàn.");
+            }
+        }
+
         var vStatus = !string.IsNullOrWhiteSpace(req.VerificationStatus)
             ? req.VerificationStatus.Trim().ToLowerInvariant()
             : "pending";
@@ -260,10 +269,29 @@ public class ContentVideosService : IContentVideosService
         if (req.Provider != null) video.Provider = req.Provider;
         if (!string.IsNullOrWhiteSpace(req.SourceUrl))
         {
-            video.SourceUrl = req.SourceUrl.Trim();
-            var (_, ytId, embedUrl) = ParseVideoUrl(req.SourceUrl);
-            if (ytId != null) video.YouTubeVideoId = ytId;
-            if (embedUrl != null) video.EmbedUrl = embedUrl;
+            var trimmedSource = req.SourceUrl.Trim();
+            if (!string.Equals(trimmedSource, video.SourceUrl, StringComparison.OrdinalIgnoreCase))
+            {
+                if (_videoVerificationService != null)
+                {
+                    var verifyResult = await _videoVerificationService.VerifyVideoUrlAsync(trimmedSource, ct);
+                    if (!verifyResult.IsValid)
+                    {
+                        throw new ValidationException("SourceUrl", verifyResult.ErrorMessage ?? "URL video không hợp lệ hoặc bị từ chối bởi cơ chế an toàn.");
+                    }
+                }
+
+                video.SourceUrl = trimmedSource;
+                var (_, ytId, embedUrl) = ParseVideoUrl(trimmedSource);
+                if (ytId != null) video.YouTubeVideoId = ytId;
+                if (embedUrl != null) video.EmbedUrl = embedUrl;
+
+                // When source URL changes, reset verification status and unpublish
+                video.VerificationStatus = "pending";
+                video.VerifiedAt = null;
+                video.LastVerifiedAt = null;
+                video.IsPublished = false;
+            }
         }
         if (req.EmbedUrl != null) video.EmbedUrl = req.EmbedUrl;
         if (req.YouTubeVideoId != null) video.YouTubeVideoId = req.YouTubeVideoId;

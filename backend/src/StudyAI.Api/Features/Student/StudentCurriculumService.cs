@@ -48,7 +48,7 @@ public class StudentCurriculumService : ILearnerCurriculumService
     public async Task<List<LearnerSubjectDto>> GetSubjectsAsync(string? grade = null, string? search = null, CancellationToken ct = default)
     {
         var query = _db.ContentSubjects
-            .Where(s => s.IsActive && !s.Code.StartsWith("TEST_") && !s.Code.StartsWith("SEC_") && !s.Code.StartsWith("PHYS12_") && !s.Code.StartsWith("SUB_") && !s.Code.StartsWith("VID-") && !s.Code.StartsWith("PERF_") && !s.Name.Contains("kiểm thử"))
+            .Where(s => s.IsActive)
             .Include(s => s.Chapters)
                 .ThenInclude(c => c.Lessons)
             .AsNoTracking()
@@ -379,7 +379,7 @@ public class StudentCurriculumService : ILearnerCurriculumService
             throw new NotFoundException("Bài học không tồn tại hoặc chưa được xuất bản.");
 
         return lesson.Videos
-            .Where(v => v.IsPublished)
+            .Where(v => v.IsPublished && v.VerificationStatus == "verified" && v.EmbedAllowed)
             .OrderBy(v => v.SortOrder)
             .Select(v => new LearnerVideoDto
             {
@@ -415,7 +415,7 @@ public class StudentCurriculumService : ILearnerCurriculumService
             throw new NotFoundException("Bài học không tồn tại hoặc chưa được xuất bản.");
 
         var publishedVideos = lesson.Videos
-            .Where(v => v.IsPublished)
+            .Where(v => v.IsPublished && v.VerificationStatus == "verified" && v.EmbedAllowed)
             .OrderBy(v => v.SortOrder)
             .Select(v => new LearnerVideoDto
             {

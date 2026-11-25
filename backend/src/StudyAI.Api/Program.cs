@@ -515,7 +515,8 @@ using (var scope = app.Services.CreateScope())
 
         var applyMigrationsDefault = !app.Environment.IsProduction();
         var shouldMigrate = resolvedConfiguration.GetValue<bool>("Database:ApplyMigrationsOnStartup", applyMigrationsDefault);
-        var shouldSeed = resolvedConfiguration.GetValue<bool>("Database:SeedReferenceData", applyMigrationsDefault);
+        // CURR-006: Seed reference/demo data must be explicit opt-in only and blocked on shared environments
+        var shouldSeed = resolvedConfiguration.GetValue<bool>("Database:SeedReferenceData", false);
 
         if (app.Environment.IsDevelopment() || shouldMigrate || shouldSeed || DatabaseSafetyGuard.IsTestExecutionContext)
         {
@@ -531,9 +532,10 @@ using (var scope = app.Services.CreateScope())
             await db.Database.MigrateAsync();
         }
 
-        var seedReferenceDefault = !app.Environment.IsProduction();
         if (shouldSeed)
         {
+            // CURR-006: Reference data seeding strictly restricted to test/disposable database
+            DatabaseSafetyGuard.EnsureSafeTestDatabase(activeConn, "Program.cs Reference Data Seeding");
             await DbInitializer.SeedReferenceDataAsync(db);
         }
         if (app.Environment.IsDevelopment())

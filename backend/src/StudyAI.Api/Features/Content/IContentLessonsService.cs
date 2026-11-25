@@ -5,6 +5,7 @@ namespace StudyAI.Features.Content;
 public interface IContentLessonsService
 {
     Task<object> ListLessonsAsync(
+        string? subjectId = null,
         string? chapterId = null,
         string? topicId = null,
         string? status = null,

@@ -152,6 +152,11 @@ export function useLessonEditor(lessonId: string) {
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
+    if (!lessonId) {
+      setError('Mã bài học không hợp lệ.')
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setError(null)
     try {
@@ -165,6 +170,11 @@ export function useLessonEditor(lessonId: string) {
   }, [lessonId])
 
   useEffect(() => {
+    if (!lessonId) {
+      setError('Mã bài học không hợp lệ.')
+      setLoading(false)
+      return
+    }
     let isMounted = true
     contentService
       .getLessonEditor(lessonId)
@@ -184,21 +194,75 @@ export function useLessonEditor(lessonId: string) {
     }
   }, [lessonId])
 
-  const save = async (updates: Partial<LessonEditorData>) => {
+  const saveDraft = async (updates: Partial<LessonEditorData>) => {
     if (!lessonData) return
     setIsSaving(true)
     try {
-      const saved = await contentService.saveLessonEditor({
-        ...lessonData,
-        ...updates,
+      const { status: _baseStatus, ...baseData } = lessonData
+      const { status: _updateStatus, ...cleanUpdates } = updates
+      const saved = await contentService.saveLessonContent({
+        ...baseData,
+        ...cleanUpdates,
+        id: lessonData.id,
       })
       setLessonData(saved)
+      return saved
     } finally {
       setIsSaving(false)
     }
   }
 
-  return { lessonData, loading, isSaving, error, save, refresh: load }
+  const submitReview = async () => {
+    if (!lessonData) return
+    setIsSaving(true)
+    try {
+      const res = await contentService.submitLessonReview(lessonData.id)
+      setLessonData((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: res.status,
+              lastSavedAt: res.updatedAt,
+            }
+          : prev
+      )
+      return res
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const publish = async () => {
+    if (!lessonData) return
+    setIsSaving(true)
+    try {
+      const res = await contentService.publishLesson(lessonData.id)
+      setLessonData((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: res.status,
+              lastSavedAt: res.updatedAt,
+            }
+          : prev
+      )
+      return res
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  return {
+    lessonData,
+    loading,
+    isSaving,
+    error,
+    save: saveDraft,
+    saveDraft,
+    submitReview,
+    publish,
+    refresh: load,
+  }
 }
 
 export function useContentAssessments() {

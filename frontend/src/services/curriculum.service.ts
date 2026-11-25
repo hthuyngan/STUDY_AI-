@@ -77,6 +77,9 @@ export interface LearnerLessonDetail {
   slug: string
   orderIndex: number
   contentType?: string
+  sourceName?: string
+  sourceUrl?: string
+  sourceLicense?: string
   introduction: string
   learningObjectives?: string[]
   definitions: string[]

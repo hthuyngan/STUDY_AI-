@@ -143,8 +143,8 @@ export class HybridLearningProgressRepository implements ILearningProgressReposi
         } else {
           const remoteTime = new Date(item.updatedAt).getTime()
           const localTime = new Date(localItem.updatedAt).getTime()
-          // Server newer wins, preserving 100% completed progress
-          if (remoteTime > localTime && localItem.overallProgress < 100) {
+          // Server is source of truth when newer or with higher/equal progress
+          if (remoteTime >= localTime || item.overallProgress >= localItem.overallProgress) {
             localMap[item.lessonId] = item
             hasChanges = true
           }

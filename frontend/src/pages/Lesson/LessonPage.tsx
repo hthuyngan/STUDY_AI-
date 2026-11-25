@@ -66,8 +66,32 @@ export function LessonPage() {
     reload,
   } = useLesson(resolvedSubjectId, lessonId)
 
-  // Identify valid learning sections for 70% video + 30% assessment progress tracking
-  const actualSectionIds: string[] = useMemo(() => ['video-lecture'], [])
+  // Identify all real learning sections present in the lesson
+  const actualSectionIds: string[] = useMemo(() => {
+    const ids: string[] = []
+    if (lesson?.videos && lesson.videos.length > 0) {
+      ids.push('video-lecture')
+    }
+    if (lesson?.content?.introduction) {
+      ids.push('theory-intro')
+    }
+    if (lesson?.content?.definitions && lesson.content.definitions.length > 0) {
+      ids.push('theory-definitions')
+    }
+    if (lesson?.content?.formulas && lesson.content.formulas.length > 0) {
+      ids.push('theory-formulas')
+    }
+    if (lesson?.content?.examples && lesson.content.examples.length > 0) {
+      ids.push('theory-examples')
+    }
+    if (lesson?.content?.importantNotes && lesson.content.importantNotes.length > 0) {
+      ids.push('theory-notes')
+    }
+    if (lesson?.content?.summaryPoints && lesson.content.summaryPoints.length > 0) {
+      ids.push('theory-summary')
+    }
+    return ids
+  }, [lesson])
 
   // Sync active lesson context on mount/lesson change
   useEffect(() => {
@@ -91,11 +115,12 @@ export function LessonPage() {
   // Resolve active lesson identifier immediately from props or URL
   const currentLessonId = lesson?.id || lessonId || ''
 
-  // Track progress (70% video + 30% assessment)
+  // Track progress (70% content sections + 30% assessment)
   const {
     overallProgress,
     isAssessmentCompleted,
     markVideoCompleted,
+    registerSection,
     reloadProgress,
   } = useLessonProgress({
     lessonId: currentLessonId,
@@ -146,7 +171,7 @@ export function LessonPage() {
       })
 
       setAssessment({
-        id: `asmt_${lesson.id}`,
+        id: (lesson as { assessmentId?: string }).assessmentId || lesson.id,
         lessonId: lesson.id,
         subjectId: resolvedSubjectId,
         title: `Bài tập thu hoạch: ${lesson.title}`,
@@ -311,9 +336,11 @@ export function LessonPage() {
               <span className="lesson-progress-label">Tiến độ bài học:</span>
               <strong className="lesson-progress-value">{overallProgress}%</strong>
             </div>
-            <span className="lesson-xp-badge">
-              <Sparkles size={13} aria-hidden /> +{lesson.xp} XP
-            </span>
+            {lesson.xp != null && (
+              <span className="lesson-xp-badge">
+                <Sparkles size={13} aria-hidden /> +{lesson.xp} XP
+              </span>
+            )}
           </div>
           <div className="lesson-progress-bar-wrap">
             <LessonProgressBar progressPercent={overallProgress} />
@@ -353,14 +380,24 @@ export function LessonPage() {
         {lesson.content && (
           <section className="lesson-theory-section" aria-label="Nội dung lý thuyết và công thức" style={{ marginTop: '24px' }}>
             {lesson.content.introduction && (
-              <div className="theory-block-intro" style={{ marginBottom: '20px' }}>
+              <div
+                ref={(el) => registerSection('theory-intro', el)}
+                data-section-id="theory-intro"
+                className="theory-block-intro"
+                style={{ marginBottom: '20px' }}
+              >
                 <LessonHeading>Đặt vấn đề & Mở đầu</LessonHeading>
                 <LessonParagraph>{lesson.content.introduction}</LessonParagraph>
               </div>
             )}
 
             {lesson.content.definitions && lesson.content.definitions.length > 0 && (
-              <div className="theory-block-definitions" style={{ marginBottom: '20px' }}>
+              <div
+                ref={(el) => registerSection('theory-definitions', el)}
+                data-section-id="theory-definitions"
+                className="theory-block-definitions"
+                style={{ marginBottom: '20px' }}
+              >
                 <LessonHeading>Khái niệm & Định lý cốt lõi</LessonHeading>
                 <div style={{ display: 'grid', gap: '12px' }}>
                   {lesson.content.definitions.map((def, idx) => (
@@ -371,7 +408,12 @@ export function LessonPage() {
             )}
 
             {lesson.content.formulas && lesson.content.formulas.length > 0 && (
-              <div className="theory-block-formulas" style={{ marginBottom: '20px' }}>
+              <div
+                ref={(el) => registerSection('theory-formulas', el)}
+                data-section-id="theory-formulas"
+                className="theory-block-formulas"
+                style={{ marginBottom: '20px' }}
+              >
                 <LessonHeading>Công thức toán học & Quy tắc</LessonHeading>
                 <div style={{ display: 'grid', gap: '12px' }}>
                   {lesson.content.formulas.map((form) => (
@@ -382,7 +424,12 @@ export function LessonPage() {
             )}
 
             {lesson.content.examples && lesson.content.examples.length > 0 && (
-              <div className="theory-block-examples" style={{ marginBottom: '20px' }}>
+              <div
+                ref={(el) => registerSection('theory-examples', el)}
+                data-section-id="theory-examples"
+                className="theory-block-examples"
+                style={{ marginBottom: '20px' }}
+              >
                 <LessonHeading>Ví dụ minh họa chi tiết</LessonHeading>
                 <div style={{ display: 'grid', gap: '16px' }}>
                   {lesson.content.examples.map((ex) => (
@@ -393,13 +440,23 @@ export function LessonPage() {
             )}
 
             {lesson.content.importantNotes && lesson.content.importantNotes.length > 0 && (
-              <div className="theory-block-notes" style={{ marginBottom: '20px' }}>
+              <div
+                ref={(el) => registerSection('theory-notes', el)}
+                data-section-id="theory-notes"
+                className="theory-block-notes"
+                style={{ marginBottom: '20px' }}
+              >
                 <ImportantNote notes={lesson.content.importantNotes} />
               </div>
             )}
 
             {lesson.content.summaryPoints && lesson.content.summaryPoints.length > 0 && (
-              <div className="theory-block-summary" style={{ marginBottom: '20px' }}>
+              <div
+                ref={(el) => registerSection('theory-summary', el)}
+                data-section-id="theory-summary"
+                className="theory-block-summary"
+                style={{ marginBottom: '20px' }}
+              >
                 <LessonSummaryBlock points={lesson.content.summaryPoints} />
               </div>
             )}

@@ -33,6 +33,7 @@ public class ContentLessonsController : ControllerBase
 
     [HttpGet]
     public async Task<IActionResult> ListLessons(
+        [FromQuery] string? subjectId = null,
         [FromQuery] string? chapterId = null,
         [FromQuery] string? topicId = null,
         [FromQuery] string? status = null,
@@ -42,7 +43,7 @@ public class ContentLessonsController : ControllerBase
         [FromQuery] int pageSize = 20,
         CancellationToken ct = default)
     {
-        var result = await _lessonsService.ListLessonsAsync(chapterId, topicId, status, search, includeDeleted, page, pageSize, ct);
+        var result = await _lessonsService.ListLessonsAsync(subjectId, chapterId, topicId, status, search, includeDeleted, page, pageSize, ct);
         return Ok(result);
     }
 

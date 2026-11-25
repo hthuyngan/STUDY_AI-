@@ -35,6 +35,8 @@ public class ContentSubjectItemDto
     public bool IsActive { get; set; } = true;
     public int ChapterCount { get; set; }
     public int LessonCount { get; set; }
+    public int PublishedLessonCount { get; set; }
+    public int PublishedPercent { get; set; }
     public string CreatedAt { get; set; } = string.Empty;
     public string UpdatedAt { get; set; } = string.Empty;
 }
@@ -258,6 +260,7 @@ public class UpdateLessonRequestDto
     public string? Title { get; set; }
     public string? Slug { get; set; }
     public int? OrderIndex { get; set; }
+    public string? Status { get; set; }
     public string? Introduction { get; set; }
     public string? SourceName { get; set; }
     public string? SourceUrl { get; set; }

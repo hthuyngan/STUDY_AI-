@@ -546,4 +546,280 @@ public class ContentManagementIntegrationTests : IClassFixture<StudyAIApiFixture
         });
         Assert.Equal(HttpStatusCode.TooManyRequests, blockedRes.StatusCode);
     }
+
+    [Fact]
+    public async Task ContentLessons_GenericPatch_StatusBypass_Returns400BadRequest()
+    {
+        var contentToken = await GetContentStaffTokenAsync();
+        var contentAuthHeader = new AuthenticationHeaderValue("Bearer", contentToken);
+
+        // 1. Create a draft lesson
+        var subRes = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/subjects")
+        {
+            Headers = { Authorization = contentAuthHeader },
+            Content = JsonContent.Create(new { name = "Patch Security Test", code = $"SEC_{Guid.NewGuid():N}"[..9].ToUpperInvariant(), grade = "10", description = "Test" })
+        });
+        subRes.EnsureSuccessStatusCode();
+        var subId = (await subRes.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
+
+        var chpRes = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/chapters")
+        {
+            Headers = { Authorization = contentAuthHeader },
+            Content = JsonContent.Create(new { subjectId = subId, title = "Chương Patch Security", orderIndex = 1 })
+        });
+        chpRes.EnsureSuccessStatusCode();
+        var chpId = (await chpRes.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
+
+        var lesRes = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/lessons")
+        {
+            Headers = { Authorization = contentAuthHeader },
+            Content = JsonContent.Create(new { chapterId = chpId, title = "Bài Draft Không Thể Bypass", slug = $"sec-patch-{Guid.NewGuid():N}"[..25], orderIndex = 1 })
+        });
+        lesRes.EnsureSuccessStatusCode();
+        var lesId = (await lesRes.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
+
+        // 2. Attempt generic PATCH with status = "published" -> MUST return 400 Bad Request
+        var patchMsg = new HttpRequestMessage(HttpMethod.Patch, $"/api/v1/content/lessons/{lesId}")
+        {
+            Headers = { Authorization = contentAuthHeader },
+            Content = JsonContent.Create(new
+            {
+                title = "Bài Cố Tình Bypass",
+                status = "published"
+            })
+        };
+        var patchRes = await _client.SendAsync(patchMsg);
+        Assert.Equal(HttpStatusCode.BadRequest, patchRes.StatusCode);
+        var errJson = await patchRes.Content.ReadAsStringAsync();
+        Assert.Contains("Không thể thay đổi trạng thái qua API cập nhật bài học", errJson);
+
+        // Verify status remains "draft"
+        var detailRes = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Get, $"/api/v1/content/lessons/{lesId}")
+        {
+            Headers = { Authorization = contentAuthHeader }
+        });
+        detailRes.EnsureSuccessStatusCode();
+        var detailJson = await detailRes.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("draft", detailJson.GetProperty("status").GetString());
+    }
+
+    [Fact]
+    public async Task ContentLessons_ListLessons_SubjectFilter_ReturnsOnlyMatchingSubject()
+    {
+        var contentToken = await GetContentStaffTokenAsync();
+        var contentAuthHeader = new AuthenticationHeaderValue("Bearer", contentToken);
+
+        // Create Subject A and Lesson A
+        var subARes = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/subjects")
+        {
+            Headers = { Authorization = contentAuthHeader },
+            Content = JsonContent.Create(new { name = "Môn Lọc A", code = $"FLT_A_{Guid.NewGuid():N}"[..9].ToUpperInvariant(), grade = "10" })
+        });
+        subARes.EnsureSuccessStatusCode();
+        var subAId = (await subARes.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
+
+        var chpARes = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/chapters")
+        {
+            Headers = { Authorization = contentAuthHeader },
+            Content = JsonContent.Create(new { subjectId = subAId, title = "Chương A", orderIndex = 1 })
+        });
+        chpARes.EnsureSuccessStatusCode();
+        var chpAId = (await chpARes.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
+
+        var lesARes = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/lessons")
+        {
+            Headers = { Authorization = contentAuthHeader },
+            Content = JsonContent.Create(new { chapterId = chpAId, title = "Bài Thuộc Môn A", slug = $"les-sub-a-{Guid.NewGuid():N}"[..25], orderIndex = 1 })
+        });
+        lesARes.EnsureSuccessStatusCode();
+        var lesAId = (await lesARes.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
+
+        // Create Subject B and Lesson B
+        var subBRes = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/subjects")
+        {
+            Headers = { Authorization = contentAuthHeader },
+            Content = JsonContent.Create(new { name = "Môn Lọc B", code = $"FLT_B_{Guid.NewGuid():N}"[..9].ToUpperInvariant(), grade = "11" })
+        });
+        subBRes.EnsureSuccessStatusCode();
+        var subBId = (await subBRes.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
+
+        var chpBRes = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/chapters")
+        {
+            Headers = { Authorization = contentAuthHeader },
+            Content = JsonContent.Create(new { subjectId = subBId, title = "Chương B", orderIndex = 1 })
+        });
+        chpBRes.EnsureSuccessStatusCode();
+        var chpBId = (await chpBRes.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
+
+        var lesBRes = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/lessons")
+        {
+            Headers = { Authorization = contentAuthHeader },
+            Content = JsonContent.Create(new { chapterId = chpBId, title = "Bài Thuộc Môn B", slug = $"les-sub-b-{Guid.NewGuid():N}"[..25], orderIndex = 1 })
+        });
+        lesBRes.EnsureSuccessStatusCode();
+        var lesBId = (await lesBRes.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
+
+        // Query lessons with subjectId = subAId
+        var listRes = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Get, $"/api/v1/content/lessons?subjectId={subAId}")
+        {
+            Headers = { Authorization = contentAuthHeader }
+        });
+        listRes.EnsureSuccessStatusCode();
+        var listJson = await listRes.Content.ReadFromJsonAsync<JsonElement>();
+        var items = listJson.GetProperty("items").EnumerateArray().ToList();
+
+        Assert.Contains(items, item => item.GetProperty("id").GetString() == lesAId);
+        Assert.DoesNotContain(items, item => item.GetProperty("id").GetString() == lesBId);
+    }
+
+    [Fact]
+    public async Task ContentLessons_StructuredContent_Roundtrip_PreservesObjectFields()
+    {
+        var contentToken = await GetContentStaffTokenAsync();
+        var contentAuthHeader = new AuthenticationHeaderValue("Bearer", contentToken);
+
+        var subRes = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/subjects")
+        {
+            Headers = { Authorization = contentAuthHeader },
+            Content = JsonContent.Create(new { name = "Cấu Trúc Test", code = $"STR_{Guid.NewGuid():N}"[..9].ToUpperInvariant(), grade = "10" })
+        });
+        subRes.EnsureSuccessStatusCode();
+        var subId = (await subRes.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
+
+        var chpRes = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/chapters")
+        {
+            Headers = { Authorization = contentAuthHeader },
+            Content = JsonContent.Create(new { subjectId = subId, title = "Chương Cấu Trúc", orderIndex = 1 })
+        });
+        chpRes.EnsureSuccessStatusCode();
+        var chpId = (await chpRes.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
+
+        // Create lesson with structured JSON objects in definitions, formulas, examples
+        var defItem = new { term = "Mệnh đề kéo theo", content = "Mệnh đề 'Nếu P thì Q' được gọi là mệnh đề kéo theo." };
+        var formItem = new { label = "Công thức kéo theo", formula = "P \\Rightarrow Q", note = "Chỉ sai khi P đúng và Q sai." };
+        var exItem = new
+        {
+            title = "Ví dụ 1",
+            problem = "Xét tính đúng sai của mệnh đề",
+            solutionSteps = new[]
+            {
+                new { step = 1, explanation = "Xác định giả thiết P và kết luận Q", math = "P: 2 > 1" }
+            },
+            conclusion = "Mệnh đề đúng."
+        };
+
+        var lesRes = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/lessons")
+        {
+            Headers = { Authorization = contentAuthHeader },
+            Content = JsonContent.Create(new
+            {
+                chapterId = chpId,
+                title = "Bài Cấu Trúc Đầy Đủ",
+                slug = $"les-str-{Guid.NewGuid():N}"[..25],
+                orderIndex = 1,
+                definitions = new object[] { defItem },
+                formulas = new object[] { formItem },
+                examples = new object[] { exItem },
+                importantNotes = new[] { "Lưu ý bảng chân trị" },
+                summaryPoints = new[] { "Ghi nhớ điều kiện mệnh đề đúng" }
+            })
+        });
+        lesRes.EnsureSuccessStatusCode();
+        var lesId = (await lesRes.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
+
+        // Fetch back and verify object preservation
+        var getRes = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Get, $"/api/v1/content/lessons/{lesId}")
+        {
+            Headers = { Authorization = contentAuthHeader }
+        });
+        getRes.EnsureSuccessStatusCode();
+        var lesson = await getRes.Content.ReadFromJsonAsync<JsonElement>();
+
+        var defs = lesson.GetProperty("definitions").EnumerateArray().ToList();
+        Assert.Single(defs);
+        Assert.Equal("Mệnh đề kéo theo", defs[0].GetProperty("term").GetString());
+        Assert.Equal("Mệnh đề 'Nếu P thì Q' được gọi là mệnh đề kéo theo.", defs[0].GetProperty("content").GetString());
+
+        var forms = lesson.GetProperty("formulas").EnumerateArray().ToList();
+        Assert.Single(forms);
+        Assert.Equal("Công thức kéo theo", forms[0].GetProperty("label").GetString());
+        Assert.Equal("P \\Rightarrow Q", forms[0].GetProperty("formula").GetString());
+        Assert.Equal("Chỉ sai khi P đúng và Q sai.", forms[0].GetProperty("note").GetString());
+
+        var exs = lesson.GetProperty("examples").EnumerateArray().ToList();
+        Assert.Single(exs);
+        Assert.Equal("Ví dụ 1", exs[0].GetProperty("title").GetString());
+        Assert.Equal("Mệnh đề đúng.", exs[0].GetProperty("conclusion").GetString());
+        var steps = exs[0].GetProperty("solutionSteps").EnumerateArray().ToList();
+        Assert.Single(steps);
+        Assert.Equal(1, steps[0].GetProperty("step").GetInt32());
+    }
+
+    [Fact]
+    public async Task StudentCurriculum_DraftLesson_NotVisibleToLearner_PublishedLesson_VisibleToLearner()
+    {
+        var contentToken = await GetContentStaffTokenAsync();
+        var adminToken = await GetAdminTokenAsync();
+        var learnerToken = await GetLearnerTokenAsync();
+
+        var contentAuthHeader = new AuthenticationHeaderValue("Bearer", contentToken);
+        var adminAuthHeader = new AuthenticationHeaderValue("Bearer", adminToken);
+        var learnerAuthHeader = new AuthenticationHeaderValue("Bearer", learnerToken);
+
+        // 1. Create active subject & chapter
+        var subRes = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/subjects")
+        {
+            Headers = { Authorization = contentAuthHeader },
+            Content = JsonContent.Create(new { name = "Toán Học Kiểm Thử", code = $"MATH_VIS_{Guid.NewGuid():N}"[..12].ToUpperInvariant(), grade = "10" })
+        });
+        subRes.EnsureSuccessStatusCode();
+        var subId = (await subRes.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
+
+        var chpRes = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/chapters")
+        {
+            Headers = { Authorization = contentAuthHeader },
+            Content = JsonContent.Create(new { subjectId = subId, title = "Chương 1", orderIndex = 1 })
+        });
+        chpRes.EnsureSuccessStatusCode();
+        var chpId = (await chpRes.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
+
+        // 2. Create lesson (defaults to draft)
+        var lesRes = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/lessons")
+        {
+            Headers = { Authorization = contentAuthHeader },
+            Content = JsonContent.Create(new
+            {
+                chapterId = chpId,
+                title = "Bài 1 Kiểm Thử Hiển Thị",
+                slug = $"bai-1-visibility-{Guid.NewGuid():N}"[..25],
+                orderIndex = 1,
+                introduction = "Mô tả bài học"
+            })
+        });
+        lesRes.EnsureSuccessStatusCode();
+        var lesId = (await lesRes.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetString()!;
+
+        // 3. Learner requests draft lesson -> MUST be 404 Not Found
+        var draftGetLearner = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Get, $"/api/v1/curriculum/lessons/{lesId}")
+        {
+            Headers = { Authorization = learnerAuthHeader }
+        });
+        Assert.Equal(HttpStatusCode.NotFound, draftGetLearner.StatusCode);
+
+        // 4. Admin publishes lesson
+        var pubRes = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lesId}/publish")
+        {
+            Headers = { Authorization = adminAuthHeader }
+        });
+        pubRes.EnsureSuccessStatusCode();
+
+        // 5. Learner requests published lesson -> MUST be 200 OK
+        var pubGetLearner = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Get, $"/api/v1/curriculum/lessons/{lesId}")
+        {
+            Headers = { Authorization = learnerAuthHeader }
+        });
+        Assert.Equal(HttpStatusCode.OK, pubGetLearner.StatusCode);
+        var pubBody = await pubGetLearner.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("Bài 1 Kiểm Thử Hiển Thị", pubBody.GetProperty("title").GetString());
+    }
 }

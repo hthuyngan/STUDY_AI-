@@ -170,6 +170,7 @@ public class ContentLessonsService : IContentLessonsService
     }
 
     public async Task<object> ListLessonsAsync(
+        string? subjectId = null,
         string? chapterId = null,
         string? topicId = null,
         string? status = null,
@@ -187,6 +188,11 @@ public class ContentLessonsService : IContentLessonsService
             .Include(l => l.Videos)
             .Include(l => l.Questions)
             .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(subjectId) && subjectId != "all")
+        {
+            query = query.Where(l => l.Chapter != null && l.Chapter.SubjectId == subjectId);
+        }
 
         if (!string.IsNullOrWhiteSpace(status) && status != "all")
         {
@@ -316,6 +322,11 @@ public class ContentLessonsService : IContentLessonsService
         if (!isContentStaffOrAdmin && les.AuthorId != currentUserId)
         {
             throw new ForbiddenException("Bạn không có quyền chỉnh sửa bài học của tác giả khác.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(req.Status))
+        {
+            throw new ValidationException("Status", "Không thể thay đổi trạng thái qua API cập nhật bài học. Vui lòng sử dụng các endpoint workflow chuyên biệt (submit-review, approve, publish, unpublish).");
         }
 
         if (req.ChapterId != null) les.ChapterId = req.ChapterId;

@@ -61,7 +61,7 @@ export function markQuestionsProgress(
 ): LessonProgressState {
   const existing = getLessonProgress(lessonId)
   const isDone = existing?.assessmentStatus === 'completed'
-  const { overallProgress } = computeProgressValues(
+  const { overallProgress, contentProgress } = computeProgressValues(
     answeredCount,
     totalQuestions,
     isDone
@@ -71,7 +71,7 @@ export function markQuestionsProgress(
     lessonId,
     subjectId,
     completedSectionIds: existing?.completedSectionIds || [],
-    contentProgress: overallProgress,
+    contentProgress,
     assessmentStatus: isDone ? 'completed' : answeredCount > 0 ? 'incomplete' : 'not-attempted',
     assessmentAttemptId: existing?.assessmentAttemptId,
     assessmentScore: existing?.assessmentScore,
@@ -97,7 +97,7 @@ export function markSectionCompleted(
   }
 
   const isAssessmentDone = existing?.assessmentStatus === 'completed'
-  const { overallProgress } = computeProgressValues(
+  const { overallProgress, contentProgress } = computeProgressValues(
     currentSections.length,
     totalActualSections,
     isAssessmentDone
@@ -107,7 +107,7 @@ export function markSectionCompleted(
     lessonId,
     subjectId,
     completedSectionIds: currentSections,
-    contentProgress: overallProgress,
+    contentProgress,
     assessmentStatus: existing?.assessmentStatus || 'not-attempted',
     assessmentAttemptId: existing?.assessmentAttemptId,
     assessmentScore: existing?.assessmentScore,
