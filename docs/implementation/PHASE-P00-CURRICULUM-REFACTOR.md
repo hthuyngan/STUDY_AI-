@@ -11,7 +11,7 @@
 ## 1. Deliverables Completed
 
 1. **Architecture Decision Record:** [ADR_MULTI_SUBJECT_CURRICULUM_ENGINE.md](../architecture/ADR_MULTI_SUBJECT_CURRICULUM_ENGINE.md)
-   - Defines target hierarchy (`GradeLevel -> Subject -> Curriculum -> CurriculumEdition -> ContentChapter -> ContentLesson`), canonical lifecycle (`draft -> in_review -> approved -> published -> archived`, `changes_requested`), compatibility/migration strategy, and AI/adaptive boundaries.
+   - Defines target hierarchy (`GradeLevel -> Subject -> Curriculum -> CurriculumEdition -> ContentChapter -> ContentLesson`), canonical lifecycle (`draft -> in-review -> approved -> published -> archived`, `changes-requested`), compatibility/migration strategy, and AI/adaptive boundaries.
 2. **PR Reconciliation Matrix & Fallback Inventory:** [PR_RECONCILIATION_MATRIX.md](../curriculum-refactor/PR_RECONCILIATION_MATRIX.md)
    - Verified `origin/feature/ai-core-v1` and PR #20 are ancestors of `HEAD`.
    - Reconciled PR #22 (absorbed into `docs/curriculum-refactor/`) and PR #23 (Math-only direction superseded; DB safety & dry-run rules reused in P09).
@@ -52,6 +52,6 @@
 
 Per `docs/curriculum-refactor/04-IMPLEMENTATION-PHASES.md`, **Phase P01 (Stable catalog foundations)** requires owner confirmation of the ADR in [ADR_MULTI_SUBJECT_CURRICULUM_ENGINE.md](../architecture/ADR_MULTI_SUBJECT_CURRICULUM_ENGINE.md):
 - Target entity names (`GradeLevel`, `Subject`, `Curriculum`, `TextbookSeries`, `CurriculumEdition`),
-- Canonical status model (`draft -> in_review -> approved -> published -> archived`, `changes_requested`),
+- Canonical status model (`draft -> in-review -> approved -> published -> archived`, `changes-requested`),
 - Compatibility strategy (preserve existing `ContentSubject`/`ContentChapter`/`ContentLesson` IDs & dual-read during migration),
 - PR reconciliation disposition (#20/#22/#23 and `feature/ai-core-v1`).

@@ -8,11 +8,12 @@ using Microsoft.Extensions.DependencyInjection;
 
 using StudyAI.Models;
 using StudyAI.Data;
+using StudyAI.IntegrationTests.Fixtures;
 using Xunit;
 
 namespace StudyAI.IntegrationTests;
 
-public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
+public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>, IAsyncLifetime
 {
     private readonly StudyAIApiFixture _factory;
     private readonly HttpClient _client;
@@ -26,6 +27,15 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
             HandleCookies = true
         });
     }
+
+    public async Task InitializeAsync()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+        await SampleCurriculumFixtureSeeder.SeedAsync(db);
+    }
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     private async Task<string> LoginAsync(string email, string password)
     {

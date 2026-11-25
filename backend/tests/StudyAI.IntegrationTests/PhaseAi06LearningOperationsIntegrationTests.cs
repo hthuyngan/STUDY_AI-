@@ -337,16 +337,27 @@ public class PhaseAi06LearningOperationsIntegrationTests : IClassFixture<StudyAI
         var learnerToken = await GetLearnerTokenAsync();
         string sessionId;
         string q1Id, q2Id;
+        var isolatedSubjectId = $"sub_p06_{Guid.NewGuid():N}"[..16];
 
         using (var scope = _factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
             var learner = await db.Users.FirstAsync(u => u.EmailNormalized == "LEARNER@STUDYAI.INTERNAL" || u.EmailNormalized == "learner@studyai.internal");
 
+            db.ContentSubjects.Add(new ContentSubject
+            {
+                Id = isolatedSubjectId,
+                Name = "Môn Test PhaseAi06",
+                Code = $"P06_{Guid.NewGuid():N}"[..12],
+                Grade = "12",
+                IsActive = true,
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+
             var q1 = new ContentQuestion
             {
                 Id = $"q1_{Guid.NewGuid():N}"[..16],
-                SubjectId = "sub_math12",
+                SubjectId = isolatedSubjectId,
                 Prompt = "Câu hỏi 1 đã lưu trước hạn",
                 OptionsJson = "[\"A\", \"B\", \"C\", \"D\"]",
                 CorrectAnswer = "A",
@@ -355,7 +366,7 @@ public class PhaseAi06LearningOperationsIntegrationTests : IClassFixture<StudyAI
             var q2 = new ContentQuestion
             {
                 Id = $"q2_{Guid.NewGuid():N}"[..16],
-                SubjectId = "sub_math12",
+                SubjectId = isolatedSubjectId,
                 Prompt = "Câu hỏi 2 nộp muộn sau hạn",
                 OptionsJson = "[\"A\", \"B\", \"C\", \"D\"]",
                 CorrectAnswer = "B",
@@ -372,7 +383,7 @@ public class PhaseAi06LearningOperationsIntegrationTests : IClassFixture<StudyAI
                 Id = sessionId,
                 UserId = learner.Id,
                 AssessmentId = "asmt_exam",
-                SubjectId = "sub_math12",
+                SubjectId = isolatedSubjectId,
                 CompletionStatus = "in_progress",
                 StartedAt = expiredTime.AddMinutes(-60),
                 ScoreMax = 2.0,

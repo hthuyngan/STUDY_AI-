@@ -511,15 +511,20 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var resolvedConfiguration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+        var shouldSeed = resolvedConfiguration.GetValue<bool>("Database:SeedReferenceData", false);
+        if (shouldSeed)
+        {
+            throw new InvalidOperationException(
+                "Database:SeedReferenceData is disabled in runtime StudyAI.Api (CURR-002). " +
+                "Use isolated test fixtures in StudyAI.IntegrationTests instead.");
+        }
+
         var activeConn = resolvedConfiguration.GetConnectionString("DefaultConnection") ?? connectionString;
 
         var applyMigrationsDefault = !app.Environment.IsProduction();
         var shouldMigrate = resolvedConfiguration.GetValue<bool>("Database:ApplyMigrationsOnStartup", applyMigrationsDefault);
-        // CURR-002 (P00): Runtime sample curriculum seeding is permanently removed from StudyAI.Api.
-        // Empty databases start empty; isolated test fixtures live in StudyAI.IntegrationTests.
-        var shouldSeed = resolvedConfiguration.GetValue<bool>("Database:SeedReferenceData", false);
 
-        if (app.Environment.IsDevelopment() || shouldMigrate || shouldSeed || DatabaseSafetyGuard.IsTestExecutionContext)
+        if (app.Environment.IsDevelopment() || shouldMigrate || DatabaseSafetyGuard.IsTestExecutionContext)
         {
             DatabaseSafetyGuard.EnsureSafeDatabaseForDevelopmentOrMigration(
                 activeConn,
@@ -531,13 +536,6 @@ using (var scope = app.Services.CreateScope())
         if (shouldMigrate)
         {
             await db.Database.MigrateAsync();
-        }
-
-        if (shouldSeed)
-        {
-            throw new InvalidOperationException(
-                "Database:SeedReferenceData is disabled in runtime StudyAI.Api (CURR-002). " +
-                "Use isolated test fixtures in StudyAI.IntegrationTests instead.");
         }
         if (app.Environment.IsDevelopment())
         {

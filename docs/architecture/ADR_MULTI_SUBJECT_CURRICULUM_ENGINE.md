@@ -41,10 +41,11 @@ GradeLevel -> Subject -> Curriculum -> CurriculumEdition -> ContentChapter -> Co
 
 ### 2.2 Canonical Lifecycle & Versioning
 
-All authored curriculum entities follow one canonical state machine:
+All authored curriculum entities follow one canonical state machine using the existing persisted/wire hyphenated contract:
 
-`draft -> in_review -> approved -> published -> archived` (with `changes_requested` as a review outcome).
+`draft -> in-review -> approved -> published -> archived` (with `changes-requested` as a review outcome).
 
+- **Wire & Persistence Compatibility:** Existing backend services (`ContentGovernanceService`, `ContentLessonsService`, `ContentQuestionsService`, `ContentAssessmentsService`, `ContentReviewService`) and frontend types (`ContentStatus`, `ContentApprovalItem`) use `"in-review"` and `"changes-requested"`. This contract is preserved to maintain backward compatibility without unnecessary status-renaming migrations.
 - **Creation always starts `draft`.** No implicit `published` or `verified` defaults.
 - **Server-owned transitions:** Authorization, ownership, parent lifecycle checks, and provenance/license requirements are enforced in backend handlers and recorded in audit logs.
 - **Archive-first retention:** Records referenced by learner progress, attempts, responses, or assignments are archived/tombstoned, never hard-deleted via EF cascade.
