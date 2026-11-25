@@ -203,7 +203,7 @@ public class ContentManagementIntegrationTests : IClassFixture<StudyAIApiFixture
         var selfApproveRes = await _client.SendAsync(selfApproveMsg);
         Assert.Equal(HttpStatusCode.Forbidden, selfApproveRes.StatusCode);
 
-        // Independent Content Reviewer approves valid content -> 200 OK
+        // Independent Content Reviewer approves valid content -> 200 OK (status = approved), then publishes -> published
         var reviewerApproveMsg = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lessonId}/approve")
         {
             Headers = { Authorization = reviewerAuthHeader }
@@ -211,7 +211,14 @@ public class ContentManagementIntegrationTests : IClassFixture<StudyAIApiFixture
         var reviewerApproveRes = await _client.SendAsync(reviewerApproveMsg);
         Assert.Equal(HttpStatusCode.OK, reviewerApproveRes.StatusCode);
         var selfApprovedData = await reviewerApproveRes.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal("published", selfApprovedData.GetProperty("status").GetString());
+        Assert.Equal("approved", selfApprovedData.GetProperty("status").GetString());
+
+        var reviewerPublishMsg = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lessonId}/publish")
+        {
+            Headers = { Authorization = reviewerAuthHeader }
+        };
+        var reviewerPublishRes = await _client.SendAsync(reviewerPublishMsg);
+        Assert.Equal(HttpStatusCode.OK, reviewerPublishRes.StatusCode);
 
         // 8. SECURITY GUARD: Learner cannot approve -> 403 Forbidden
         var learnerApproveMsg = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lessonId}/approve")
@@ -221,7 +228,7 @@ public class ContentManagementIntegrationTests : IClassFixture<StudyAIApiFixture
         var learnerApproveRes = await _client.SendAsync(learnerApproveMsg);
         Assert.Equal(HttpStatusCode.Forbidden, learnerApproveRes.StatusCode);
 
-        // 9. Content can unpublish -> 200 OK & Status = 'draft', then Admin can publish -> 200 OK & Status = 'published'
+        // 9. Content can unpublish -> 200 OK & Status = 'approved', then Admin can publish -> 200 OK & Status = 'published'
         var unpublishMsg = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lessonId}/unpublish")
         {
             Headers = { Authorization = contentAuthHeader }
@@ -229,7 +236,7 @@ public class ContentManagementIntegrationTests : IClassFixture<StudyAIApiFixture
         var unpublishRes = await _client.SendAsync(unpublishMsg);
         Assert.Equal(HttpStatusCode.OK, unpublishRes.StatusCode);
         var unpublishData = await unpublishRes.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal("draft", unpublishData.GetProperty("status").GetString());
+        Assert.Equal("approved", unpublishData.GetProperty("status").GetString());
 
         var adminApproveMsg = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lessonId}/publish")
         {
@@ -284,7 +291,7 @@ public class ContentManagementIntegrationTests : IClassFixture<StudyAIApiFixture
         var reviewerReqChangesRes = await _client.SendAsync(reviewerReqChangesMsg);
         Assert.Equal(HttpStatusCode.OK, reviewerReqChangesRes.StatusCode);
         var reviewerReqData = await reviewerReqChangesRes.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal("draft", reviewerReqData.GetProperty("status").GetString());
+        Assert.Equal("changes-requested", reviewerReqData.GetProperty("status").GetString());
 
         // Resubmit for review
         var resubmit2Msg = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lesson2Id}/submit-review")
@@ -312,7 +319,7 @@ public class ContentManagementIntegrationTests : IClassFixture<StudyAIApiFixture
         var adminReqChangesRes = await _client.SendAsync(adminReqChangesMsg);
         Assert.Equal(HttpStatusCode.OK, adminReqChangesRes.StatusCode);
         var rejectedData = await adminReqChangesRes.Content.ReadFromJsonAsync<JsonElement>();
-        Assert.Equal("draft", rejectedData.GetProperty("status").GetString());
+        Assert.Equal("changes-requested", rejectedData.GetProperty("status").GetString());
 
         // WORKSTREAM 4: State Machine - Request changes on a lesson in 'draft' status MUST RETURN 400 Bad Request
         // Ensure that no mutation and no audit log is created
@@ -336,7 +343,7 @@ public class ContentManagementIntegrationTests : IClassFixture<StudyAIApiFixture
             var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
             var lessonReloaded = await db.ContentLessons.FindAsync(lesson2Id);
             Assert.NotNull(lessonReloaded);
-            Assert.Equal("draft", lessonReloaded.Status);
+            Assert.Equal("changes-requested", lessonReloaded.Status);
 
             var auditCountAfter = await db.StaffAuditLogs.CountAsync(l => l.TargetId == lesson2Id && l.Action == "lesson_changes_requested");
             Assert.Equal(auditCountBefore, auditCountAfter);
@@ -404,6 +411,12 @@ public class ContentManagementIntegrationTests : IClassFixture<StudyAIApiFixture
             Headers = { Authorization = adminAuthHeader }
         });
         approveRes.EnsureSuccessStatusCode();
+
+        var publishRes = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lesId}/publish")
+        {
+            Headers = { Authorization = adminAuthHeader }
+        });
+        publishRes.EnsureSuccessStatusCode();
 
         var qRes = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/questions")
         {
@@ -507,6 +520,12 @@ public class ContentManagementIntegrationTests : IClassFixture<StudyAIApiFixture
             Headers = { Authorization = adminAuthHeader }
         });
         approveRes.EnsureSuccessStatusCode();
+
+        var publishRes = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lesId}/publish")
+        {
+            Headers = { Authorization = adminAuthHeader }
+        });
+        publishRes.EnsureSuccessStatusCode();
 
         var qRes = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/questions")
         {
@@ -806,7 +825,19 @@ public class ContentManagementIntegrationTests : IClassFixture<StudyAIApiFixture
         });
         Assert.Equal(HttpStatusCode.NotFound, draftGetLearner.StatusCode);
 
-        // 4. Admin publishes lesson
+        // 4. Reviewer submits, approves (four-eyes), and publishes lesson
+        var submitRes = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lesId}/submit-review")
+        {
+            Headers = { Authorization = adminAuthHeader }
+        });
+        submitRes.EnsureSuccessStatusCode();
+
+        var appRes = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lesId}/approve")
+        {
+            Headers = { Authorization = adminAuthHeader }
+        });
+        appRes.EnsureSuccessStatusCode();
+
         var pubRes = await _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lesId}/publish")
         {
             Headers = { Authorization = adminAuthHeader }

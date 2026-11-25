@@ -97,7 +97,7 @@ public class ContentChaptersService(IApplicationDbContext db, IAuditWriter audit
         {
             CheckVersion(rows.Single(x => x.Id == req.ChapterIds[0]), req.RowVersion);
         }
-        else if (rows.Any(x => x.RowVersion.Length > 0))
+        else if (rows.Any(x => x.CurriculumEditionId != null))
         {
             throw new ValidationException("RowVersion", "Thiếu RowVersion khi sắp xếp chương.");
         }
@@ -116,7 +116,7 @@ public class ContentChaptersService(IApplicationDbContext db, IAuditWriter audit
     private static string? Code(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim().ToUpperInvariant();
     private static string Version(byte[]? b) => b is { Length: > 0 } ? Convert.ToBase64String(b) : "";
     private static ContentChapterItemDto Map(Models.ContentChapter x) => new() { Id = x.Id, SubjectId = x.SubjectId ?? x.CurriculumEdition?.Curriculum?.SubjectId, SubjectName = x.Subject?.Name ?? x.CurriculumEdition?.Curriculum?.Subject?.Name ?? "", CurriculumEditionId = x.CurriculumEditionId, CurriculumEditionName = x.CurriculumEdition?.EditionName, Code = x.Code, Title = x.Title, Description = x.Description ?? "", OrderIndex = x.OrderIndex, IsActive = x.IsActive, Status = x.Status, SourceName = x.SourceName, SourceUrl = x.SourceUrl, LessonCount = x.Lessons.Count, CreatedAt = x.CreatedAt.ToString("o"), UpdatedAt = x.UpdatedAt.ToString("o"), RowVersion = Version(x.RowVersion) };
-    private void CheckVersion(Models.ContentChapter e, string? expected) { if (e.RowVersion.Length == 0 && string.IsNullOrWhiteSpace(expected)) return; if (string.IsNullOrWhiteSpace(expected)) throw new ValidationException("RowVersion", "Thiếu RowVersion."); byte[] b; try { b = Convert.FromBase64String(expected); } catch { throw new ValidationException("RowVersion", "RowVersion không đúng Base64."); } if (!e.RowVersion.SequenceEqual(b)) throw new ConflictException("Dữ liệu đã được thay đổi bởi người dùng khác."); db.Entry(e).Property(nameof(e.RowVersion)).OriginalValue = b; }
+    private void CheckVersion(Models.ContentChapter e, string? expected) { if ((e.RowVersion.Length == 0 || e.CurriculumEditionId == null) && string.IsNullOrWhiteSpace(expected)) return; if (string.IsNullOrWhiteSpace(expected)) throw new ValidationException("RowVersion", "Thiếu RowVersion."); byte[] b; try { b = Convert.FromBase64String(expected); } catch { throw new ValidationException("RowVersion", "RowVersion không đúng Base64."); } if (!e.RowVersion.SequenceEqual(b)) throw new ConflictException("Dữ liệu đã được thay đổi bởi người dùng khác."); db.Entry(e).Property(nameof(e.RowVersion)).OriginalValue = b; }
     private async Task Save(CancellationToken ct) { try { await db.SaveChangesAsync(ct); } catch (DbUpdateConcurrencyException) { throw new ConflictException("Dữ liệu đã được thay đổi bởi người dùng khác."); } }
     private Task WriteAudit(string action, Models.ContentChapter e, string actor, string? reason, CancellationToken ct) => audit.WriteStaffAuditAsync(action, "content_chapter", e.Id, null, JsonSerializer.Serialize(new { actorUserId = actor, e.Title, e.Code, e.CurriculumEditionId, reason }), ct);
 }

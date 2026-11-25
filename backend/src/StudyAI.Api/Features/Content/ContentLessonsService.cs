@@ -356,12 +356,12 @@ public class ContentLessonsService : IContentLessonsService
             throw new ForbiddenException("Bạn không có quyền chỉnh sửa bài học của tác giả khác.");
         }
 
-        ApplyExpectedRowVersion(les, req.RowVersion);
-
         if (!string.IsNullOrWhiteSpace(req.Status))
         {
             throw new ValidationException("Status", "Không thể thay đổi trạng thái qua API cập nhật bài học. Vui lòng sử dụng các endpoint workflow chuyên biệt (submit-review, approve, publish, unpublish).");
         }
+
+        ApplyExpectedRowVersion(les, req.RowVersion);
 
         if (req.ChapterId != null && req.ChapterId != les.ChapterId)
         {
@@ -448,7 +448,7 @@ public class ContentLessonsService : IContentLessonsService
         if (req.LessonIds.Distinct().Count() != req.LessonIds.Count)
             throw new ValidationException("LessonIds", "Danh sách lessonIds chứa mã bài học trùng lặp.");
 
-        var lessonsQuery = _db.ContentLessons.Where(l => l.ChapterId == req.ChapterId);
+        var lessonsQuery = _db.ContentLessons.Include(l => l.Chapter).Where(l => l.ChapterId == req.ChapterId);
         if (!string.IsNullOrWhiteSpace(req.TopicId))
         {
             lessonsQuery = lessonsQuery.Where(l => l.TopicId == req.TopicId);
@@ -476,7 +476,7 @@ public class ContentLessonsService : IContentLessonsService
                 ApplyExpectedRowVersion(lesson, rv);
             }
         }
-        else if (lessons.Any(l => l.RowVersion.Length > 0))
+        else if (lessons.Any(l => l.Chapter?.CurriculumEditionId != null))
         {
             throw new ValidationException("RowVersion", "Thiếu RowVersions khi sắp xếp bài học.");
         }
@@ -809,7 +809,7 @@ public class ContentLessonsService : IContentLessonsService
 
     private void ApplyExpectedRowVersion(ContentLesson lesson, string? expected)
     {
-        if (lesson.RowVersion.Length == 0 && string.IsNullOrWhiteSpace(expected)) return;
+        if ((lesson.RowVersion.Length == 0 || lesson.Chapter?.CurriculumEditionId == null) && string.IsNullOrWhiteSpace(expected)) return;
         if (string.IsNullOrWhiteSpace(expected)) throw new ValidationException("RowVersion", "Thiếu RowVersion.");
         byte[] bytes;
         try { bytes = Convert.FromBase64String(expected); }
