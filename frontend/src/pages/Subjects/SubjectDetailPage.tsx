@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, BookOpen, Bot, Clock, Compass, Play, Search, SlidersHorizontal } from 'lucide-react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { CurriculumChapterNav, type ChapterWithStats } from '@/components/subjects/CurriculumChapterNav'
@@ -24,7 +24,7 @@ export function SubjectDetailPage() {
   const [editionLoading, setEditionLoading] = useState(Boolean(editionId))
   const [editionError, setEditionError] = useState<string | null>(null)
 
-  const loadEdition = () => {
+  const loadEdition = useCallback(() => {
     if (!editionId) return
     setEditionLoading(true)
     setEditionError(null)
@@ -41,9 +41,11 @@ export function SubjectDetailPage() {
           description: ch.description || '',
           lessons: (ch.lessons || []).map((l, lIdx) => ({
             id: l.id,
+            subjectId: meta?.catalogSubjectId || editionId,
             title: l.title,
             orderIndex: l.orderIndex || lIdx + 1,
             estimatedMinutes: 15,
+            durationMinutes: 15,
             status: 'available' as const,
             progress: 0,
             hasVideo: Boolean(l.hasVideo),
@@ -67,13 +69,13 @@ export function SubjectDetailPage() {
       })
       .catch((err) => setEditionError(err instanceof Error ? err.message : 'Không thể tải giáo trình phiên bản.'))
       .finally(() => setEditionLoading(false))
-  }
+  }, [editionId])
 
   useEffect(() => {
     if (editionId) {
       loadEdition()
     }
-  }, [editionId])
+  }, [editionId, loadEdition])
 
   const subject = editionId ? editionDetail : legacyHook.subject
   const isLoading = editionId ? editionLoading : legacyHook.isLoading
