@@ -571,6 +571,10 @@ public class LearnerChapterDto
 {
     public string Id { get; set; } = string.Empty;
     public string SubjectId { get; set; } = string.Empty;
+    public string? GradeLevelId { get; set; }
+    public string? CatalogSubjectId { get; set; }
+    public string? CurriculumId { get; set; }
+    public string? CurriculumEditionId { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public int OrderIndex { get; set; } = 0;
@@ -605,6 +609,10 @@ public class LearnerLessonDetailDto
     public string? TopicTitle { get; set; }
     public string SubjectId { get; set; } = string.Empty;
     public string SubjectName { get; set; } = string.Empty;
+    public string? GradeLevelId { get; set; }
+    public string? CatalogSubjectId { get; set; }
+    public string? CurriculumId { get; set; }
+    public string? CurriculumEditionId { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
     public int OrderIndex { get; set; } = 0;

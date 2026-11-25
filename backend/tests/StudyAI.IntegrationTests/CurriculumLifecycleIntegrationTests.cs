@@ -195,6 +195,76 @@ public class CurriculumLifecycleIntegrationTests : IClassFixture<StudyAIApiFixtu
         Assert.False(await db.ContentChapters.AnyAsync(c => c.CurriculumEditionId == edition.Id && c.Code == code));
     }
 
+    [Fact]
+    public async Task EditionAwareLearnerProjection_MultiSubjectIsolation_OptionalVideo_And_PublishedChain_AreEnforced()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
+        var admin = await Login("admin@studyai.internal", "Admin@123456");
+        var reviewer = await Login("content@studyai.internal", "Content@123456");
+
+        var grade = await Send<GradeLevelDto>(HttpMethod.Post, "/api/v1/content/catalog/grades", admin, new { code = $"GM{suffix}", name = $"Khối {suffix}", orderIndex = 1 });
+        var histSub = await Send<CatalogSubjectDto>(HttpMethod.Post, "/api/v1/content/catalog/subjects", admin, new { code = $"HIST{suffix}", name = $"Lịch sử {suffix}" });
+        var bioSub = await Send<CatalogSubjectDto>(HttpMethod.Post, "/api/v1/content/catalog/subjects", admin, new { code = $"BIO{suffix}", name = $"Sinh học {suffix}" });
+
+        var histCur = await Send<CurriculumDto>(HttpMethod.Post, "/api/v1/content/catalog/curricula", admin, new { code = $"CH{suffix}", gradeLevelId = grade.Id, subjectId = histSub.Id, name = $"CT Sử {suffix}", framework = "CT2018" });
+        histCur = await Send<CurriculumDto>(HttpMethod.Post, $"/api/v1/content/catalog/curricula/{histCur.Id}/publish", admin, new { histCur.RowVersion });
+        var histEd = await Send<CurriculumEditionDto>(HttpMethod.Post, "/api/v1/content/catalog/editions", admin, new { code = $"EH{suffix}", curriculumId = histCur.Id, editionName = $"Bản Sử {suffix}" });
+        histEd = await Send<CurriculumEditionDto>(HttpMethod.Post, $"/api/v1/content/catalog/editions/{histEd.Id}/publish", admin, new { histEd.RowVersion });
+
+        var bioCur = await Send<CurriculumDto>(HttpMethod.Post, "/api/v1/content/catalog/curricula", admin, new { code = $"CB{suffix}", gradeLevelId = grade.Id, subjectId = bioSub.Id, name = $"CT Sinh {suffix}", framework = "CT2018" });
+        bioCur = await Send<CurriculumDto>(HttpMethod.Post, $"/api/v1/content/catalog/curricula/{bioCur.Id}/publish", admin, new { bioCur.RowVersion });
+        var bioEd = await Send<CurriculumEditionDto>(HttpMethod.Post, "/api/v1/content/catalog/editions", admin, new { code = $"EB{suffix}", curriculumId = bioCur.Id, editionName = $"Bản Sinh {suffix}" });
+        bioEd = await Send<CurriculumEditionDto>(HttpMethod.Post, $"/api/v1/content/catalog/editions/{bioEd.Id}/publish", admin, new { bioEd.RowVersion });
+
+        var histCh = await Send<ContentChapterItemDto>(HttpMethod.Post, "/api/v1/content/chapters", admin, new { curriculumEditionId = histEd.Id, code = "HCH1", title = "Chương Sử 1", orderIndex = 1 });
+        histCh = await Send<ContentChapterItemDto>(HttpMethod.Post, $"/api/v1/content/chapters/{histCh.Id}/submit-review", admin, new { histCh.RowVersion });
+        histCh = await Send<ContentChapterItemDto>(HttpMethod.Post, $"/api/v1/content/chapters/{histCh.Id}/approve", reviewer, new { histCh.RowVersion });
+        histCh = await Send<ContentChapterItemDto>(HttpMethod.Post, $"/api/v1/content/chapters/{histCh.Id}/publish", reviewer, new { histCh.RowVersion });
+
+        var bioCh = await Send<ContentChapterItemDto>(HttpMethod.Post, "/api/v1/content/chapters", admin, new { curriculumEditionId = bioEd.Id, code = "BCH1", title = "Chương Sinh 1", orderIndex = 1 });
+        bioCh = await Send<ContentChapterItemDto>(HttpMethod.Post, $"/api/v1/content/chapters/{bioCh.Id}/submit-review", admin, new { bioCh.RowVersion });
+        bioCh = await Send<ContentChapterItemDto>(HttpMethod.Post, $"/api/v1/content/chapters/{bioCh.Id}/approve", reviewer, new { bioCh.RowVersion });
+        bioCh = await Send<ContentChapterItemDto>(HttpMethod.Post, $"/api/v1/content/chapters/{bioCh.Id}/publish", reviewer, new { bioCh.RowVersion });
+
+        var histPubLesson = await Send<ContentLessonDetailDto>(HttpMethod.Post, "/api/v1/content/lessons", admin, new { chapterId = histCh.Id, code = "HL1", title = "Bài Sử Published", slug = $"hl1-{suffix}", orderIndex = 1 });
+        histPubLesson = await Send<ContentLessonDetailDto>(HttpMethod.Post, $"/api/v1/content/lessons/{histPubLesson.Id}/submit-review", admin, new { histPubLesson.RowVersion });
+        histPubLesson = await Send<ContentLessonDetailDto>(HttpMethod.Post, $"/api/v1/content/lessons/{histPubLesson.Id}/approve", reviewer, new { histPubLesson.RowVersion });
+        histPubLesson = await Send<ContentLessonDetailDto>(HttpMethod.Post, $"/api/v1/content/lessons/{histPubLesson.Id}/publish", reviewer, new { histPubLesson.RowVersion });
+
+        var histDraftLesson = await Send<ContentLessonDetailDto>(HttpMethod.Post, "/api/v1/content/lessons", admin, new { chapterId = histCh.Id, code = "HL2", title = "Bài Sử Draft", slug = $"hl2-{suffix}", orderIndex = 2 });
+
+        var bioPubLesson = await Send<ContentLessonDetailDto>(HttpMethod.Post, "/api/v1/content/lessons", admin, new { chapterId = bioCh.Id, code = "BL1", title = "Bài Sinh Published", slug = $"bl1-{suffix}", orderIndex = 1 });
+        bioPubLesson = await Send<ContentLessonDetailDto>(HttpMethod.Post, $"/api/v1/content/lessons/{bioPubLesson.Id}/submit-review", admin, new { bioPubLesson.RowVersion });
+        bioPubLesson = await Send<ContentLessonDetailDto>(HttpMethod.Post, $"/api/v1/content/lessons/{bioPubLesson.Id}/approve", reviewer, new { bioPubLesson.RowVersion });
+        bioPubLesson = await Send<ContentLessonDetailDto>(HttpMethod.Post, $"/api/v1/content/lessons/{bioPubLesson.Id}/publish", reviewer, new { bioPubLesson.RowVersion });
+
+        // Exact-once & multi-subject isolation
+        var histResp = await _client.GetFromJsonAsync<List<LearnerChapterDto>>($"/api/v1/curriculum/editions/{histEd.Id}/chapters", _json);
+        Assert.NotNull(histResp);
+        Assert.Single(histResp);
+        Assert.Equal(grade.Id, histResp[0].GradeLevelId);
+        Assert.Equal(histSub.Id, histResp[0].CatalogSubjectId);
+        Assert.Equal(histCur.Id, histResp[0].CurriculumId);
+        Assert.Equal(histEd.Id, histResp[0].CurriculumEditionId);
+        Assert.Single(histResp[0].Lessons);
+        Assert.Equal(histPubLesson.Id, histResp[0].Lessons[0].Id);
+        Assert.DoesNotContain(histResp[0].Lessons, l => l.Id == histDraftLesson.Id || l.Id == bioPubLesson.Id);
+
+        // Optional video: published lesson with 0 videos succeeds and returns empty videos list
+        var detailResp = await _client.GetFromJsonAsync<LearnerLessonDetailDto>($"/api/v1/curriculum/lessons/{histPubLesson.Id}", _json);
+        Assert.NotNull(detailResp);
+        Assert.Equal(histEd.Id, detailResp.CurriculumEditionId);
+        Assert.Empty(detailResp.Videos);
+
+        // Draft lesson is 404
+        Assert.Equal(HttpStatusCode.NotFound, (await _client.GetAsync($"/api/v1/curriculum/lessons/{histDraftLesson.Id}")).StatusCode);
+
+        // Archiving parent edition hides its published lesson
+        await Send<CurriculumEditionDto>(HttpMethod.Post, $"/api/v1/content/catalog/editions/{histEd.Id}/archive", admin, new { histEd.RowVersion });
+        Assert.Equal(HttpStatusCode.NotFound, (await _client.GetAsync($"/api/v1/curriculum/editions/{histEd.Id}/chapters")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await _client.GetAsync($"/api/v1/curriculum/lessons/{histPubLesson.Id}")).StatusCode);
+    }
+
     private sealed class FailingAuditWriter : IAuditWriter
     {
         public Task WriteStaffAuditAsync(string action, string targetType, string? targetId, string? targetUserId, string? detailsJson, CancellationToken ct = default)
