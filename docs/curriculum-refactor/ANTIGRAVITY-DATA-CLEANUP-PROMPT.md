@@ -16,17 +16,22 @@ Mặc định của lượt chạy là **READ-ONLY + DRY-RUN ARTIFACTS**. Chỉ 
 - Không cascade delete. Prefer archive/unpublish; hard delete requires a separately justified record-level manifest and zero protected dependencies.
 - Never operate on `StudyAIDb_E2E` as a source of truth or copy its data into `StudyAIDb`.
 
-### Existing read-only evidence to revalidate
+### Existing read-only evidence (revalidated on `StudyAIDb` at schema 17, 2026-11-25)
 
-Planning snapshot on 2026-11-25:
-
-- `StudyAIDb`: 21 subjects, 18 chapters, 35 lessons, 27 videos.
-- 31 lessons published, 4 draft; 4 lessons had no current body fields; 16 had no video.
-- 27/27 stored videos had a nonblank HTTP-like URL and were marked verified/published. URL reachability, license and accuracy were not proven.
-- No duplicate `(ChapterId, Slug)` or duplicate `(SubjectId, Title)` was observed.
-- Candidate repeated Physics/security/draft-test rows are listed in `NEXT-IMPLEMENTATION-PLAN.md`, but they are unclassified and **not approved for cleanup**.
-
-Counts and records may have changed. Re-query read-only and report drift before building a manifest.
+- `StudyAIDb`: **21** subjects, **18** chapters, **35** lessons, **27** videos, **16,693** questions, **0** assessments, **20** `lesson_progress`, **38** `ai_conversations`, **0** `user_section_bookmarks`, **0** `user_study_notes`, **0** `student_topic_mastery`, **0** `ai_learning_recommendations`.
+- **12 Test/Duplicate Subjects** (`12` chapters, `16` lessons, `12` questions, `0` videos, `0` progress, `0` AI conversations):
+  - Subjects (`12`): `sub_phys12_08d`, `sub_phys12_3e4`, `sub_phys12_5a7`, `sub_phys12_915`, `sub_sec_4ea98`, `sub_sec_a01cb`, `sub_sec_b145e`, `sub_sec_c1815`, `sub_test_drf_4`, `sub_test_drf_6`, `sub_test_drf_7`, `sub_test_drf_b`.
+  - Chapters (`12`): `chp_a4b1aefab26c46988c1d965d8744e6ee`, `chp_68b51765300d4e948bbe81f339990d48`, `chp_b0e92b3496744f1f8a77798a5a44a2d3`, `chp_9669111c291545d0904aa62a38d71ab1`, `chp_237646c84bdb43b58c97c5f4d763e437`, `chp_0ef7fa01e4714d96b3a385c1ea80b9dc`, `chp_b566ca563304422f9fa63cf9103067c1`, `chp_cc15648d4e384fdeb98110e6568975ff`, `chp_86b75a3408e14edda7049fc1c83ca020`, `chp_17e0b78ac3f94edb94799c521ee6a569`, `chp_0bb8ac9ccd8242c698c744428af60027`, `chp_6286b8922abc4fbeb6038b7dfa09951e`.
+  - Lessons (`16`): `les_4a43b543ff9245f39c475b44813fa98f`, `les_99c0dd4fe9ab42fb8f83b24c6a45d60a`, `les_5b37625af9474f0eba247d4c88bb89c3`, `les_5f1c2b37c64247f4b6b85884fd564e17`, `les_9c538e07e811436a8be848fab7fb86d0`, `les_a5d86cf0ba654eb884ad94a87c721d5b`, `les_6810911061314bd0bff2eecd98da2929`, `les_9fc89006dde5400fa21b4fc7eaaa704f`, `les_b903798d5c98459a8a1575cbbc50b146`, `les_315ca0933b9541d38e0664e78e0e5d10`, `les_0e0a4aa52189478a904161e4a633a6bf`, `les_054bf74a0e234b738e62f7cbe081bbd0`, `les_980bd6f7d1894de9b74d06b221660cc2`, `les_af8afe9c068740cf809de50ebc1ae531`, `les_663dcf18194e48c29d5fc492672f0e83`, `les_54de4cef9ccd440ea273cd6e58b0708d`.
+- **9 Canonical VNHSGE Subjects (`16,681` questions — preserve subjects & questions):**
+  - Question-only subjects (`8`): `sub_bio12` (1,989 Q), `sub_chem12` (1,973 Q), `sub_civic12` (1,852 Q), `sub_eng12` (2,367 Q), `sub_geo12` (1,931 Q), `sub_hist12` (1,998 Q), `sub_lit12` (30 Q), `sub_phys12` (1,995 Q).
+  - `sub_math12` (`2,546` questions):
+    - Legacy Chapters (`6`): `chp_math12_c1`, `chp_math12_c2`, `chp_math12_c3`, `chp_math12_c4`, `chp_math12_c5`, `chp_math12_c6`.
+    - Legacy Lessons (`19`, with `2` Qs on `c1_b1`, `9` `lesson_progress` rows across `c1_b1..c1_b4`, `c2_b1`, `c4_b2`, `c5_b2`, `c5_b3`, and `35` `ai_conversations` across `c1_b1`, `c1_b3`, `c1_b5`, `c3_b1`, `c4_b1`, `c4_b2`, `c5_b3`): `les_math12_c1_b1`, `les_math12_c1_b2`, `les_math12_c1_b3`, `les_math12_c1_b4`, `les_math12_c1_b5`, `les_math12_c2_b1`, `les_math12_c2_b2`, `les_math12_c2_b3`, `les_math12_c3_b1`, `les_math12_c3_b2`, `les_math12_c4_b1`, `les_math12_c4_b2`, `les_math12_c4_b3`, `les_math12_c5_b1`, `les_math12_c5_b2`, `les_math12_c5_b3`, `les_math12_c5_b4`, `les_math12_c6_b1`, `les_math12_c6_b2`.
+    - Video Resources (`27`, all `youtube`/`verified`/`IsPublished=1`/`https://www.youtube.com/`, note: missing provenance is **not** equated with fake data): `vid_math12_c1_b1_1`, `vid_math12_c1_b1_2`, `vid_math12_c1_b2_1`, `vid_math12_c1_b2_2`, `vid_math12_c1_b3_1`, `vid_math12_c1_b3_2`, `vid_math12_c1_b4_1`, `vid_math12_c1_b5_1`, `vid_math12_c1_b5_2`, `vid_math12_c2_b1_1`, `vid_math12_c2_b2_1`, `vid_math12_c2_b3_1`, `vid_math12_c3_b1_1`, `vid_math12_c3_b1_2`, `vid_math12_c3_b2_1`, `vid_math12_c3_b2_2`, `vid_math12_c4_b1_1`, `vid_math12_c4_b1_2`, `vid_math12_c4_b2_1`, `vid_math12_c4_b3_1`, `vid_math12_c5_b1_1`, `vid_math12_c5_b2_1`, `vid_math12_c5_b3_1`, `vid_math12_c5_b4_1`, `vid_math12_c6_b1_1`, `vid_math12_c6_b2_1`, `vid_math12_c6_b2_2`.
+- **How to hide old curriculum from Learner API/UI without breaking FKs (`8` `CASCADE` FKs, `3` `NO_ACTION` FKs):**
+  - `StudentCurriculumService.cs` filters chapters by `c.IsActive` and lessons by `l.Status == "published"` (and videos by `v.IsPublished`).
+  - Therefore: set `Status = 'archived'` on all `16` test lessons + `19` legacy Math12 lessons; set `IsPublished = 0` on all `27` videos; set `IsActive = 0, Status = 'archived'` on all `12` test chapters + `6` legacy Math12 chapters; set `IsActive = 0` on the `12` test subjects. Keep `sub_bio12..sub_phys12` `IsActive = 1` (or archive `sub_math12` only if Practice doesn't require it), preserving all `16,693` questions and all `lesson_progress` / `ai_conversations` history. Never auto-map legacy subjects into P01 catalog tables.
 
 ### Phase 1 — provenance and dependency inventory (read-only)
 

@@ -4,8 +4,8 @@
 
 ## 1. Entry gates
 
-- **AC-P02-ENTRY-01:** PR #24, #25 and #26 are merge-committed in order into `feature/backend-redesign-modular-monolith`; final target CI is green at one recorded release SHA.
-- **AC-P02-ENTRY-02:** Owner records the P01 compatibility-mapping decision. No name-based automatic legacy backfill is pending.
+- **AC-P02-ENTRY-01:** PR #24, #25 and #26 are merge-committed in order into `feature/backend-redesign-modular-monolith` (**DONE** at release SHA `f109952ffd4141ec3c0855185fb7caa4c3ad3072`, CI run `45607823423` PASS).
+- **AC-P02-ENTRY-02:** Owner records the P01 compatibility-mapping decision (**DONE** — legacy backfill deferred; no name-based automatic legacy backfill).
 - **AC-P02-ENTRY-03:** Baseline contains accepted database guards and disposable test lifecycle. Test connection to `StudyAIDb` or static `StudyAIDb_E2E` fails closed.
 - **AC-P02-ENTRY-04:** `StudyAIDb` deployment readiness is tracked separately. P02 development does not require or authorize a production migration.
 

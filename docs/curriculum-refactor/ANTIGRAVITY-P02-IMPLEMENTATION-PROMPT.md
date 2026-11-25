@@ -17,7 +17,7 @@ Read completely before editing:
 - `docs/curriculum-refactor/P02-ACCEPTANCE-CRITERIA.md`.
 - `.agents/skills/ui-ux/SKILL.md` and the references it routes to.
 
-Baseline must be the final CI-green integration SHA after PR #24→#25→#26 is merged into `feature/backend-redesign-modular-monolith`. Do not start from `main` or from an unmerged stacked PR. Record the immutable baseline SHA.
+Baseline is the CI-green integration SHA **`f109952ffd4141ec3c0855185fb7caa4c3ad3072`** (`feature/backend-redesign-modular-monolith`, CI run `45607823423` PASS after PR #24 → #25 → #26). Develop on branch **`feature/p02-multi-subject-curriculum-lifecycle`** using disposable `StudyAIDb_Clean_{GUID}` databases only. P02 development proceeds independently of pending production data cleanup and `StudyAIDb_E2E` retirement; do not open a new infrastructure phase.
 
 ### Non-negotiable scope
 

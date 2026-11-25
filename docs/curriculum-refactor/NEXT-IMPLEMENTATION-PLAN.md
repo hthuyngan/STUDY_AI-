@@ -2,27 +2,33 @@
 
 **Plan date:** 2026-11-25
 
-**Planning baseline:** `be856ebaa7ed302cf0cc40e078bafb7b53f1e3a3` (PR #26 accepted HEAD)
+**Integration release SHA:** `f109952ffd4141ec3c0855185fb7caa4c3ad3072` (`feature/backend-redesign-modular-monolith`, CI run `45607823423` PASS)
+
+**P02 branch:** `feature/p02-multi-subject-curriculum-lifecycle` (branched from `f109952ffd4141ec3c0855185fb7caa4c3ad3072`)
 
 **Documentation branch:** `codex/docs-p02-integration-plan`
 
-**Mode:** architecture/review only; no application code, merge, migration, import, or data mutation was performed
+**Mode:** architecture/review only; no application code, merge, migration, import, or data mutation was performed in this docs update
 
 ## 1. Evidence and decisions
 
-### 1.1 Git and PR preflight
+### 1.1 Git, PR integration, and migration status
 
-The repository was clean and exactly matched `origin/feature/database-environment-isolation` before this documentation branch was created. `git fetch --all --prune` completed without changing the reviewed HEAD.
+PRs #24, #25, and #26 have been merge-committed in order into `feature/backend-redesign-modular-monolith`:
 
-| PR | Head | Base | State | Current CI evidence | Gate |
-|---|---|---|---|---|---|
-| #24 — P00 | `bc969b56ca75bff7acc3b1777cadc69543c21a89` | `feature/backend-redesign-modular-monolith` | Draft, mergeable | run `45531835806`, FE and BE success | PASS |
-| #25 — P01 | `1baa9de8b26fab37b203e696204e26b5cd77c8a6` | PR #24 branch | Draft, mergeable | run `45541102294`, FE and BE success | CONDITIONAL PASS |
-| #26 — ENV-01/ENV-02 | `be856ebaa7ed302cf0cc40e078bafb7b53f1e3a3` | PR #25 branch | Draft, mergeable | run `45590636859`, FE plus two isolated BE runs success | PASS |
+| PR | Head | Merge Commit SHA | CI evidence | Gate |
+|---|---|---|---|---|
+| #24 — P00 | `bc969b56ca75bff7acc3b1777cadc69543c21a89` | `a4129b7a97af016b8ae464c0bbbd811b5dca7057` | run `45606841411`, FE and BE success | PASS |
+| #25 — P01 | `1baa9de8b26fab37b203e696204e26b5cd77c8a6` | `5e886e2acd01f03a4242fdb79104abaf79fa915c` | run `45607323623`, FE and BE success | PASS |
+| #26 — ENV-01/ENV-02 | `be856ebaa7ed302cf0cc40e078bafb7b53f1e3a3` | `f109952ffd4141ec3c0855185fb7caa4c3ad3072` | run `45607823423`, FE + 2 isolated BE runs success | PASS |
 
-P01 code acceptance is satisfied for the additive five-entity catalog: real SQL CRUD, server pagination/search/filter/sort, optimistic concurrency, audit rollback, RBAC, empty state, and zero catalog seeding are covered by `ContentCatalogIntegrationTests.cs`, `ContentCatalogPage.test.tsx`, and `e2e_catalog_p01_playwright.ts`. PR #26 then ran the complete backend suite twice on independent disposable databases at the stacked application SHA.
-
-Before integration, the owner must explicitly close the remaining P01 governance gate: accept the compatibility-mapping report or record that legacy backfill is deferred. The rehearsed production snapshot contains `21` legacy subjects with `0` mapped, `13` unmapped, and `8` conflicts. No automatic mapping or name-based backfill is allowed. Also update the ADR status after the owner decision; it still says P01 schema migration is pending.
+Owner decisions recorded:
+- Legacy compatibility mapping (`21` legacy subjects: `0` mapped, `13` unmapped, `8` conflicts) remains **deferred**; no automatic name-based backfill.
+- Controlled `StudyAIDb` migration `8 → 17` executed from `f109952ffd4141ec3c0855185fb7caa4c3ad3072`:
+  - Backup: `D:\StudyAI_Backups\StudyAIDb_pre_p01_20261125_2015.bak` (`106,785,280` bytes, SHA-256 `1E45D7559E739C5227D8C504B5A1AB6CF30BB5ADBC1CC98CAA9E68889CD41DA6`, `RESTORE VERIFYONLY WITH CHECKSUM` PASS).
+  - Migration script SHA-256: `05FB1B80C576CC94F18402C5153EE718E76715B771A53CF01608D9A584244A60` (exact match to rehearsal).
+  - Gate 4 note: first `dotnet ef database update` attempt under `ASPNETCORE_ENVIRONMENT=Production` exited `1` at `Program.cs` design-time `JWT_SECRET_KEY` check before any SQL command ran (zero partial migration); second run under `Development` with explicit `StudyAIDb` connection completed `8 → 17` (`EF_UPDATE_EXIT=0`).
+  - Gate 5: `17` migrations, protected row counts preserved (`134` users, `21` subjects, `18` chapters, `35` lessons, `16,693` questions, `20` progress, `21` attempts, `38` AI conversations), `0` disabled/untrusted FKs, `DBCC CHECKCONSTRAINTS` `0` violations, empty P01 tables, `/api/v1/health/db` `200`, `/api/v1/curriculum/subjects` `200`. Note: `GET /api/v1/content/catalog/grades` returning `401` proves the authorization guard only; authenticated catalog read smoke remains to be verified with a read-only staff token.
 
 ### 1.2 Current architecture audit
 
@@ -217,9 +223,9 @@ P02 is one integrated phase with four independently testable workstreams, not a 
 
 ## 6. Required order
 
-1. Owner approves P01 compatibility decision.
-2. Execute Plan A and record the final integration SHA.
-3. Owner separately approves and executes Plan B for `StudyAIDb`; code readiness alone does not authorize this.
-4. Implement P02 W1–W4 on a feature branch using disposable SQL only.
-5. Cleanup planning/rehearsal may proceed in parallel after migration, but production cleanup requires its own signed manifest and approval.
+1. ~~Owner approves P01 compatibility decision.~~ (**DONE** — deferred)
+2. ~~Execute Plan A and record the final integration SHA.~~ (**DONE** — `f109952ffd4141ec3c0855185fb7caa4c3ad3072`)
+3. ~~Owner separately approves and executes Plan B for `StudyAIDb`.~~ (**DONE** — `8 → 17` verified)
+4. Implement P02 W1–W4 on `feature/p02-multi-subject-curriculum-lifecycle` using disposable SQL (`StudyAIDb_Clean_{GUID}`) **in parallel / independently of pending production cleanup**.
+5. Execute `ANTIGRAVITY-DATA-CLEANUP-PROMPT.md` (archive/unpublish old curriculum to clear learner curriculum UI while preserving `16,693` questions and learning history) and `ANTIGRAVITY-E2E-DATABASE-RETIREMENT-PROMPT.md` (`StudyAIDb_E2E` retirement) after separate owner approvals.
 6. P03/P04/P05 remain later phases; P02 must not import data or fabricate content to make the UI look populated.
