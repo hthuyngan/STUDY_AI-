@@ -59,7 +59,7 @@ public class CurriculumImportConfirmIntegrationTests : IClassFixture<StudyAIApiF
         return json.GetProperty("accessToken").GetString()!;
     }
 
-    private async Task<string> GeneratePreviewTokenAsync(string token, string content, string fileName)
+    private async Task<CurriculumImportPreviewResponseDto> GeneratePreviewAsync(string token, string content, string fileName)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/import/preview");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -72,7 +72,32 @@ public class CurriculumImportConfirmIntegrationTests : IClassFixture<StudyAIApiF
         response.EnsureSuccessStatusCode();
         var preview = await response.Content.ReadFromJsonAsync<CurriculumImportPreviewResponseDto>();
         Assert.NotNull(preview);
+        return preview;
+    }
+
+    private async Task<string> GeneratePreviewTokenAsync(string token, string content, string fileName)
+    {
+        var preview = await GeneratePreviewAsync(token, content, fileName);
         return preview.PreviewToken;
+    }
+
+    private async Task<string> SeedIsolatedSubjectAsync(string prefix = "IMP")
+    {
+        var token = Guid.NewGuid().ToString("N")[..10].ToUpperInvariant();
+        var code = $"{prefix}_{token}";
+        using var scope = _fixture.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+        db.ContentSubjects.Add(new ContentSubject
+        {
+            Id = $"sub_{prefix.ToLowerInvariant()}_{token.ToLowerInvariant()}",
+            Name = $"Môn {code}",
+            Code = code,
+            Grade = "12",
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+        await db.SaveChangesAsync();
+        return code;
     }
 
     private async Task<string> GeneratePreviewTokenFromBytesAsync(string token, byte[] bytes, string fileName)
@@ -689,12 +714,13 @@ public class CurriculumImportConfirmIntegrationTests : IClassFixture<StudyAIApiF
     public async Task Confirm_DuplicateFlatQuestionsInSameLesson_ReturnsConflict409()
     {
         var staffToken = await GetContentStaffTokenAsync();
+        var subjectCode = await SeedIsolatedSubjectAsync("DUP");
         var duplicatePrompt = $"Flat duplicate prompt {Guid.NewGuid():N}";
 
         var csv = $"""
         subjectCode,prompt,options,correctAnswer
-        MATH12,"{duplicatePrompt}","A | B",A
-        MATH12,"{duplicatePrompt}","X | Y",X
+        {subjectCode},"{duplicatePrompt}","A | B",A
+        {subjectCode},"{duplicatePrompt}","X | Y",X
         """;
 
         var previewToken = await GeneratePreviewTokenAsync(staffToken, csv, "dup_flat_q.csv");
@@ -715,14 +741,17 @@ public class CurriculumImportConfirmIntegrationTests : IClassFixture<StudyAIApiF
     public async Task Confirm_ConcurrentExecution_OneSucceedsOneFails()
     {
         var staffToken = await GetContentStaffTokenAsync();
+        var subjectCode = await SeedIsolatedSubjectAsync("CONC");
         var prompt = $"Concurrent test prompt {Guid.NewGuid():N}";
 
         var csv = $"""
         subjectCode,prompt,options,correctAnswer
-        MATH12,"{prompt}","A | B",A
+        {subjectCode},"{prompt}","A | B",A
         """;
 
-        var previewToken = await GeneratePreviewTokenAsync(staffToken, csv, "concurrent.csv");
+        var preview = await GeneratePreviewAsync(staffToken, csv, "concurrent.csv");
+        Assert.Equal(0, preview.Summary.ErrorCount);
+        var previewToken = preview.PreviewToken;
 
         // Fire two concurrent requests for the exact same PreviewToken
         var task1 = _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/import/confirm")
@@ -740,10 +769,15 @@ public class CurriculumImportConfirmIntegrationTests : IClassFixture<StudyAIApiF
         var responses = await Task.WhenAll(task1, task2);
 
         // One request must succeed (200 OK)
-        Assert.Contains(responses, r => r.StatusCode == HttpStatusCode.OK);
+        Assert.Single(responses, r => r.StatusCode == HttpStatusCode.OK);
 
         // The second request must fail either with 409 Conflict (TOKEN_IN_USE) or 404 NotFound (already consumed)
-        Assert.Contains(responses, r => r.StatusCode == HttpStatusCode.Conflict || r.StatusCode == HttpStatusCode.NotFound);
+        Assert.Single(responses, r => r.StatusCode == HttpStatusCode.Conflict || r.StatusCode == HttpStatusCode.NotFound);
+
+        // Exactly one question record must be persisted in SQL
+        using var scope = _fixture.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+        Assert.Equal(1, await db.ContentQuestions.CountAsync(q => q.Prompt == prompt));
     }
 
     [Fact]
@@ -751,6 +785,7 @@ public class CurriculumImportConfirmIntegrationTests : IClassFixture<StudyAIApiF
     {
         var staffToken = await GetContentStaffTokenAsync();
         var uniqueTitle = $"Ambiguous Lesson {Guid.NewGuid():N}"[..24];
+        string subjectCode;
 
         // Seed an isolated subject, chapter, and two separate lessons with identical title
         using (var scope = _fixture.Services.CreateScope())
@@ -769,6 +804,7 @@ public class CurriculumImportConfirmIntegrationTests : IClassFixture<StudyAIApiF
                 IsActive = true,
                 CreatedAt = DateTimeOffset.UtcNow
             };
+            subjectCode = sub.Code;
             var ch1 = new ContentChapter
             {
                 Id = $"chp_amb_{subToken}",
@@ -809,11 +845,13 @@ public class CurriculumImportConfirmIntegrationTests : IClassFixture<StudyAIApiF
         }
 
         var csv = $"""
-        lessonCode,prompt,options,correctAnswer
-        "{uniqueTitle}","Câu hỏi trỏ tới bài học mơ hồ","A | B",A
+        subjectCode,lessonCode,prompt,options,correctAnswer
+        {subjectCode},"{uniqueTitle}","Câu hỏi trỏ tới bài học mơ hồ","A | B",A
         """;
 
-        var previewToken = await GeneratePreviewTokenAsync(staffToken, csv, "ambiguous_ref.csv");
+        var preview = await GeneratePreviewAsync(staffToken, csv, "ambiguous_ref.csv");
+        Assert.Equal(0, preview.Summary.ErrorCount);
+        var previewToken = preview.PreviewToken;
 
         using var req = new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/import/confirm");
         req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", staffToken);

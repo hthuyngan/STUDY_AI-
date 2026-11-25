@@ -235,14 +235,50 @@ public class ControllerRouteDiscoveryTests
             $"API Contract Regression! {missingEndpoints.Count} baseline endpoint(s) missing from assembly:\n" +
             string.Join("\n", missingEndpoints));
 
-        // Approved feature extensions (Workstream 6: Authenticated learner notes persistence)
+        // Approved feature extensions (Workstream 6: Authenticated learner notes persistence + P01: Multi-subject catalog)
         var approvedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "GET api/v1/me/notes",
             "GET api/v1/me/notes/{param}",
             "POST api/v1/me/notes",
             "PUT api/v1/me/notes/{param}",
-            "DELETE api/v1/me/notes/{param}"
+            "DELETE api/v1/me/notes/{param}",
+            "GET api/v1/content/catalog/grades",
+            "GET api/v1/content/catalog/grades/{param}",
+            "POST api/v1/content/catalog/grades",
+            "PUT api/v1/content/catalog/grades/{param}",
+            "PATCH api/v1/content/catalog/grades/{param}",
+            "POST api/v1/content/catalog/grades/{param}/archive",
+            "POST api/v1/content/catalog/grades/{param}/reactivate",
+            "GET api/v1/content/catalog/subjects",
+            "GET api/v1/content/catalog/subjects/{param}",
+            "POST api/v1/content/catalog/subjects",
+            "PUT api/v1/content/catalog/subjects/{param}",
+            "PATCH api/v1/content/catalog/subjects/{param}",
+            "POST api/v1/content/catalog/subjects/{param}/archive",
+            "POST api/v1/content/catalog/subjects/{param}/reactivate",
+            "GET api/v1/content/catalog/curricula",
+            "GET api/v1/content/catalog/curricula/{param}",
+            "POST api/v1/content/catalog/curricula",
+            "PUT api/v1/content/catalog/curricula/{param}",
+            "PATCH api/v1/content/catalog/curricula/{param}",
+            "POST api/v1/content/catalog/curricula/{param}/archive",
+            "POST api/v1/content/catalog/curricula/{param}/reactivate",
+            "GET api/v1/content/catalog/textbook-series",
+            "GET api/v1/content/catalog/textbook-series/{param}",
+            "POST api/v1/content/catalog/textbook-series",
+            "PUT api/v1/content/catalog/textbook-series/{param}",
+            "PATCH api/v1/content/catalog/textbook-series/{param}",
+            "POST api/v1/content/catalog/textbook-series/{param}/archive",
+            "POST api/v1/content/catalog/textbook-series/{param}/reactivate",
+            "GET api/v1/content/catalog/editions",
+            "GET api/v1/content/catalog/editions/{param}",
+            "POST api/v1/content/catalog/editions",
+            "PUT api/v1/content/catalog/editions/{param}",
+            "PATCH api/v1/content/catalog/editions/{param}",
+            "POST api/v1/content/catalog/editions/{param}/archive",
+            "POST api/v1/content/catalog/editions/{param}/reactivate",
+            "GET api/v1/content/catalog/compatibility-mapping"
         };
 
         // Verify total registered count is exactly 236 baseline + 5 approved extensions
