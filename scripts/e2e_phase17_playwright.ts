@@ -4,7 +4,7 @@ import fs from 'fs'
 import path from 'path'
 import { resolveDotnet10Environment } from './utils/dotnetRuntime'
 import { assertSafeTestDatabase } from './utils/databaseSafetyGuard'
-import { createDisposableTestDatabase } from './utils/disposableDb'
+import { createDisposableTestDatabase, killProcessTreeAndWait } from './utils/disposableDb'
 
 const BACKEND_PORT = 5292
 const FRONTEND_PORT = 4175
@@ -13,9 +13,8 @@ const FRONTEND_URL = `http://127.0.0.1:${FRONTEND_PORT}`
 const QA_DIR = path.join('docs', 'visual-qa', 'phase-17')
 
 // Dedicated test database connection string to preserve StudyAIDb
-const _disposableDb = process.env.ConnectionStrings__DefaultConnection ? null : createDisposableTestDatabase('e2e_phase17_playwright')
+const _disposableDb = process.env.ConnectionStrings__DefaultConnection ? null : await createDisposableTestDatabase('e2e_phase17_playwright')
 const E2E_CONNECTION_STRING = process.env.ConnectionStrings__DefaultConnection || _disposableDb!.connectionString
-if (_disposableDb) { process.on('exit', () => { void _disposableDb.cleanup() }) }
 
 // Fail-closed database safety guard: abort immediately if targeting StudyAIDb or an invalid/unauthorized DB
 assertSafeTestDatabase(E2E_CONNECTION_STRING, 'Phase 17 Playwright E2E')
@@ -773,8 +772,11 @@ async function run() {
     await browser.close()
   } finally {
     console.log('Shutting down frontend and backend server processes...')
-    killProcessTree(frontendProc)
-    killProcessTree(backendProc)
+    await killProcessTreeAndWait(frontendProc)
+    await killProcessTreeAndWait(backendProc)
+    if (_disposableDb) {
+      await _disposableDb.cleanup()
+    }
   }
 
   const totalTimeSec = ((Date.now() - startTime) / 1000).toFixed(2)

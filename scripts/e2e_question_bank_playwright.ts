@@ -4,7 +4,7 @@ import fs from 'fs'
 import path from 'path'
 import { resolveDotnet10Environment } from './utils/dotnetRuntime'
 import { assertSafeTestDatabase } from './utils/databaseSafetyGuard'
-import { createDisposableTestDatabase } from './utils/disposableDb'
+import { createDisposableTestDatabase, killProcessTreeAndWait } from './utils/disposableDb'
 
 const BACKEND_PORT = 5298
 const FRONTEND_PORT = 4181
@@ -12,9 +12,8 @@ const BACKEND_URL = `http://127.0.0.1:${BACKEND_PORT}`
 const FRONTEND_URL = `http://127.0.0.1:${FRONTEND_PORT}`
 const QA_DIR = path.join('docs', 'visual-qa', 'question-bank')
 
-const _disposableDb = process.env.ConnectionStrings__DefaultConnection ? null : createDisposableTestDatabase('e2e_question_bank_playwright')
+const _disposableDb = process.env.ConnectionStrings__DefaultConnection ? null : await createDisposableTestDatabase('e2e_question_bank_playwright')
 const E2E_CONNECTION_STRING = process.env.ConnectionStrings__DefaultConnection || _disposableDb!.connectionString
-if (_disposableDb) { process.on('exit', () => { void _disposableDb.cleanup() }) }
 
 assertSafeTestDatabase(E2E_CONNECTION_STRING, 'Question Bank Playwright E2E')
 
@@ -498,8 +497,11 @@ async function run() {
     process.exitCode = 1
   } finally {
     if (browser) await browser.close()
-    killProcessTree(frontendProc)
-    killProcessTree(backendProc)
+    await killProcessTreeAndWait(frontendProc)
+    await killProcessTreeAndWait(backendProc)
+    if (_disposableDb) {
+      await _disposableDb.cleanup()
+    }
   }
 
   console.log('\n=== E2E SCENARIOS SUMMARY (20/20) ===')

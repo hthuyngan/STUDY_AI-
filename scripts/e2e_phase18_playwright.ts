@@ -1,10 +1,10 @@
 import { chromium } from 'playwright'
-import { spawn, ChildProcess } from 'child_process'
+import { spawn } from 'child_process'
 import fs from 'fs'
 import path from 'path'
 import { resolveDotnet10Environment } from './utils/dotnetRuntime'
 import { assertSafeTestDatabase } from './utils/databaseSafetyGuard'
-import { createDisposableTestDatabase, queryValidatedDisposableDatabase } from './utils/disposableDb'
+import { createDisposableTestDatabase, killProcessTreeAndWait, queryValidatedDisposableDatabase } from './utils/disposableDb'
 
 const BACKEND_PORT = 5294
 const FRONTEND_PORT = 4177
@@ -13,7 +13,7 @@ const FRONTEND_URL = `http://127.0.0.1:${FRONTEND_PORT}`
 const QA_DIR = path.join('docs', 'visual-qa', 'phase-18')
 
 // Dedicated disposable test database connection string to strictly protect StudyAIDb
-const _disposableDb = process.env.ConnectionStrings__DefaultConnection ? null : createDisposableTestDatabase('e2e_phase18_playwright')
+const _disposableDb = process.env.ConnectionStrings__DefaultConnection ? null : await createDisposableTestDatabase('e2e_phase18_playwright')
 const E2E_CONNECTION_STRING = process.env.ConnectionStrings__DefaultConnection || _disposableDb!.connectionString
 const TARGET_DB_NAME = assertSafeTestDatabase(E2E_CONNECTION_STRING, 'Phase 18 Playwright E2E')
 
@@ -29,19 +29,6 @@ if (fs.existsSync(QA_DIR)) {
   }
 } else {
   fs.mkdirSync(QA_DIR, { recursive: true })
-}
-
-function killProcessTree(proc: ChildProcess | undefined) {
-  if (!proc || !proc.pid) return
-  try {
-    if (process.platform === 'win32') {
-      spawn('taskkill', ['/pid', proc.pid.toString(), '/T', '/F'])
-    } else {
-      proc.kill('SIGKILL')
-    }
-  } catch {
-    // ignore
-  }
 }
 
 async function waitForUrl(url: string, timeoutMs = 35000): Promise<void> {
@@ -520,8 +507,8 @@ async function run() {
   } finally {
     // Teardown
     console.log('\nTearing down processes and cleaning temp files...')
-    killProcessTree(backendProc)
-    killProcessTree(frontendProc)
+    await killProcessTreeAndWait(backendProc)
+    await killProcessTreeAndWait(frontendProc)
     for (const f of tempFilesToClean) {
       try {
         if (fs.existsSync(f)) fs.unlinkSync(f)

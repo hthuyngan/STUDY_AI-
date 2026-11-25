@@ -1,5 +1,5 @@
 import { chromium } from 'playwright'
-import { spawn, ChildProcess } from 'child_process'
+import { spawn } from 'child_process'
 import fs from 'fs'
 import path from 'path'
 import { resolveDotnet10Environment } from './utils/dotnetRuntime'
@@ -13,19 +13,6 @@ const FRONTEND_URL = `http://localhost:${FRONTEND_PORT}`
 const QA_DIR = path.join('docs', 'visual-qa', 'catalog-p01')
 
 fs.mkdirSync(QA_DIR, { recursive: true })
-
-function killProcessTree(proc: ChildProcess | undefined) {
-  if (!proc || !proc.pid) return
-  try {
-    if (process.platform === 'win32') {
-      spawn('taskkill', ['/pid', proc.pid.toString(), '/T', '/F'])
-    } else {
-      proc.kill('SIGKILL')
-    }
-  } catch {
-    // ignore
-  }
-}
 
 async function waitForUrl(url: string, timeoutMs = 40000): Promise<void> {
   const start = Date.now()
@@ -54,7 +41,7 @@ async function loginApi(email: string, password: string): Promise<string> {
 
 async function run() {
   console.log('=== STARTING P01 MULTI-SUBJECT CATALOG E2E PLAYWRIGHT SUITE ===')
-  const disposableDb = createDisposableTestDatabase('P01 Multi-Subject Catalog Playwright E2E')
+  const disposableDb = await createDisposableTestDatabase('P01 Multi-Subject Catalog Playwright E2E')
   assertSafeTestDatabase(disposableDb.connectionString, 'P01 Multi-Subject Catalog Playwright E2E')
   console.log(`Target Disposable Database: ${disposableDb.dbName} (DatabaseSafetyGuard verified)`)
 

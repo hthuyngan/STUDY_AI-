@@ -3,7 +3,26 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import { execFileSync, spawn, ChildProcess } from 'child_process'
-import { assertSafeTestDatabase } from './databaseSafetyGuard'
+import { assertSafeTestDatabase, isAuthorizedTestDatabase } from './databaseSafetyGuard'
+
+const GUID_N_OR_D_REGEX =
+  /^(?:[0-9a-fA-F]{32}|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/
+const VALID_MANIFEST_STATUSES = new Set(['provisioning', 'active', 'cleaning', 'failed_cleanup'])
+
+export type SqlCmdRunner = (
+  server: string,
+  userId: string | undefined,
+  password: string | undefined,
+  query: string,
+  database?: string
+) => string
+
+export interface KillProcessDeps {
+  platform?: NodeJS.Platform
+  spawnFn?: typeof spawn
+  isPidAliveFn?: (pid: number) => boolean
+  pollIntervalMs?: number
+}
 
 export interface DisposableDbManifestEntry {
   runId: string
@@ -140,13 +159,47 @@ function writeManifestAtomic(manifestDir: string, entry: DisposableDbManifestEnt
   return targetPath
 }
 
-function readManifestFile(filePath: string): DisposableDbManifestEntry | null {
+function readManifestFile(filePath: string, expectedFileName?: string): DisposableDbManifestEntry | null {
   if (!fs.existsSync(filePath)) return null
   try {
-    return JSON.parse(fs.readFileSync(filePath, 'utf8')) as DisposableDbManifestEntry
+    const raw = JSON.parse(fs.readFileSync(filePath, 'utf8')) as unknown
+    return validateManifestEntry(raw, expectedFileName)
   } catch {
     return null
   }
+}
+
+function assertValidatedDbIdentifier(dbName: string, callerContext: string): string {
+  if (!isAuthorizedTestDatabase(dbName)) {
+    assertSafeTestDatabase(`Server=.\\SQLEXPRESS;Database=${dbName};Trusted_Connection=True;`, callerContext)
+  }
+  return dbName.trim().replace(/^\[|\]$/g, '')
+}
+
+function validateManifestEntry(raw: unknown, expectedFileName?: string): DisposableDbManifestEntry | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null
+  const e = raw as Record<string, unknown>
+
+  if (typeof e.runId !== 'string' || !GUID_N_OR_D_REGEX.test(e.runId.trim())) return null
+  if (expectedFileName && expectedFileName !== `${e.runId.trim()}.json`) return null
+  if (typeof e.ownershipToken !== 'string' || !GUID_N_OR_D_REGEX.test(e.ownershipToken.trim())) return null
+  if (typeof e.databaseName !== 'string' || !isAuthorizedTestDatabase(e.databaseName)) return null
+  if (typeof e.pid !== 'number' || !Number.isInteger(e.pid) || e.pid <= 0) return null
+  if (
+    typeof e.processStartTimeUtc !== 'string' ||
+    e.processStartTimeUtc.trim().length === 0 ||
+    Number.isNaN(Date.parse(e.processStartTimeUtc))
+  ) {
+    return null
+  }
+  if (typeof e.machineName !== 'string' || e.machineName.trim().length === 0) return null
+  if (typeof e.server !== 'string' || e.server.trim().length === 0) return null
+  if (typeof e.status !== 'string' || !VALID_MANIFEST_STATUSES.has(e.status)) return null
+  if (typeof e.callerContext !== 'string' || e.callerContext.trim().length === 0) return null
+  if (typeof e.createdAtUtc !== 'string' || Number.isNaN(Date.parse(e.createdAtUtc))) return null
+  if (typeof e.updatedAtUtc !== 'string' || Number.isNaN(Date.parse(e.updatedAtUtc))) return null
+
+  return raw as DisposableDbManifestEntry
 }
 
 function verifyDbOwnershipToken(
@@ -154,37 +207,45 @@ function verifyDbOwnershipToken(
   userId: string | undefined,
   password: string | undefined,
   dbName: string,
-  expectedToken: string
+  expectedToken: string,
+  sqlRunner: SqlCmdRunner = runSqlCmd
 ): boolean {
-  const existsOut = runSqlCmd(
+  if (!expectedToken || !GUID_N_OR_D_REGEX.test(expectedToken.trim())) {
+    return false
+  }
+  const safeDb = assertValidatedDbIdentifier(dbName, 'VerifyDbOwnershipToken')
+  const existsOut = sqlRunner(
     server,
     userId,
     password,
-    `SET NOCOUNT ON; SELECT CASE WHEN DB_ID('${dbName}') IS NULL THEN '0' ELSE '1' END;`
+    `SET NOCOUNT ON; SELECT CASE WHEN DB_ID('${safeDb}') IS NULL THEN '0' ELSE '1' END;`
   )
   if (existsOut.trim() !== '1') {
-    throw new Error(`Disposable database '${dbName}' does not exist during ownership verification.`)
+    throw new Error(`Disposable database '${safeDb}' does not exist during ownership verification.`)
   }
-  const tokenOut = runSqlCmd(
+  const tokenOut = sqlRunner(
     server,
     userId,
     password,
-    `SET NOCOUNT ON; SELECT ISNULL(CAST(value AS nvarchar(128)), '') FROM [${dbName}].sys.extended_properties WHERE class = 0 AND name = N'StudyAI_OwnershipToken';`
+    `SET NOCOUNT ON; SELECT ISNULL(CAST(value AS nvarchar(128)), '') FROM [${safeDb}].sys.extended_properties WHERE class = 0 AND name = N'StudyAI_OwnershipToken';`
   )
-  return tokenOut.trim() === expectedToken
+  const actual = tokenOut.trim()
+  return actual.length > 0 && actual === expectedToken.trim()
 }
 
 function countActiveSqlSessions(
   server: string,
   userId: string | undefined,
   password: string | undefined,
-  dbName: string
+  dbName: string,
+  sqlRunner: SqlCmdRunner = runSqlCmd
 ): number {
-  const out = runSqlCmd(
+  const safeDb = assertValidatedDbIdentifier(dbName, 'CountActiveSqlSessions')
+  const out = sqlRunner(
     server,
     userId,
     password,
-    `SET NOCOUNT ON; SELECT COUNT(*) FROM sys.dm_exec_sessions WHERE database_id = DB_ID('${dbName}') AND session_id <> @@SPID;`
+    `SET NOCOUNT ON; SELECT COUNT(*) FROM sys.dm_exec_sessions WHERE database_id = DB_ID('${safeDb}') AND session_id <> @@SPID;`
   )
   const parsed = Number.parseInt(out.trim(), 10)
   return Number.isNaN(parsed) ? 0 : parsed
@@ -194,10 +255,11 @@ async function safeDropOwnedDatabase(
   manifestDir: string,
   entry: DisposableDbManifestEntry,
   userId: string | undefined,
-  password: string | undefined
+  password: string | undefined,
+  sqlRunner: SqlCmdRunner = runSqlCmd
 ): Promise<void> {
   const manifestPath = getManifestFilePath(manifestDir, entry.runId)
-  const diskEntry = readManifestFile(manifestPath)
+  const diskEntry = readManifestFile(manifestPath, `${entry.runId}.json`)
   if (
     !diskEntry ||
     diskEntry.databaseName !== entry.databaseName ||
@@ -208,35 +270,45 @@ async function safeDropOwnedDatabase(
     )
   }
 
-  assertSafeTestDatabase(`Server=${entry.server};Database=${entry.databaseName};Trusted_Connection=True;`, 'SafeDrop')
+  const safeDb = assertSafeTestDatabase(
+    `Server=${entry.server};Database=${entry.databaseName};Trusted_Connection=True;`,
+    'SafeDrop'
+  )
   diskEntry.status = 'cleaning'
   writeManifestAtomic(manifestDir, diskEntry)
 
   try {
-    const tokenMatches = verifyDbOwnershipToken(entry.server, userId, password, entry.databaseName, entry.ownershipToken)
+    const tokenMatches = verifyDbOwnershipToken(
+      entry.server,
+      userId,
+      password,
+      safeDb,
+      entry.ownershipToken,
+      sqlRunner
+    )
     if (!tokenMatches) {
       throw new Error(
-        `CRITICAL CLEANUP GUARD: Refusing to drop '${entry.databaseName}' because SQL StudyAI_OwnershipToken does not match run '${entry.runId}'.`
+        `CRITICAL CLEANUP GUARD: Refusing to drop '${safeDb}' because SQL StudyAI_OwnershipToken does not match run '${entry.runId}'.`
       )
     }
 
-    let activeSessions = countActiveSqlSessions(entry.server, userId, password, entry.databaseName)
+    let activeSessions = countActiveSqlSessions(entry.server, userId, password, safeDb, sqlRunner)
     for (let i = 0; i < 5 && activeSessions > 0; i++) {
       await new Promise((r) => setTimeout(r, 200))
-      activeSessions = countActiveSqlSessions(entry.server, userId, password, entry.databaseName)
+      activeSessions = countActiveSqlSessions(entry.server, userId, password, safeDb, sqlRunner)
     }
 
     if (activeSessions > 0) {
       throw new Error(
-        `CRITICAL CLEANUP GUARD: Refusing to drop '${entry.databaseName}' while ${activeSessions} active SQL session(s) remain open (SINGLE_USER WITH ROLLBACK IMMEDIATE is forbidden).`
+        `CRITICAL CLEANUP GUARD: Refusing to drop '${safeDb}' while ${activeSessions} active SQL session(s) remain open (SINGLE_USER WITH ROLLBACK IMMEDIATE is forbidden).`
       )
     }
 
-    runSqlCmd(
+    sqlRunner(
       entry.server,
       userId,
       password,
-      `SET LOCK_TIMEOUT 3000; DROP DATABASE [${entry.databaseName}];`
+      `SET LOCK_TIMEOUT 3000; DROP DATABASE [${safeDb}];`
     )
 
     if (fs.existsSync(manifestPath)) {
@@ -250,19 +322,26 @@ async function safeDropOwnedDatabase(
 }
 
 /**
- * Recovers and drops ONLY disposable databases recorded in per-run manifests whose owning process is dead
- * (verifying PID + processStartTimeUtc + machineName), whose SQL `StudyAI_OwnershipToken` matches,
- * and that have zero active SQL sessions. Never drops unowned/orphan `StudyAIDb_Clean_*` databases.
+ * Recovers and drops ONLY disposable databases recorded in per-run manifests whose schema, GUIDs,
+ * and server scope are valid, whose owning process is dead (verifying PID + processStartTimeUtc + machineName),
+ * whose SQL `StudyAI_OwnershipToken` matches, and that have zero active SQL sessions.
+ * Never drops unowned/orphan `StudyAIDb_Clean_*` databases or non-disposable databases.
  */
 export async function recoverInterruptedOwnedDatabases(
   manifestDir = DEFAULT_MANIFEST_DIR,
   templateConnection = process.env.E2E_SQL_SERVER_CONNECTION || process.env.ConnectionStrings__DefaultConnection || '',
-  pidAliveCheck: (pid: number, expectedStartTimeUtc?: string, machineName?: string) => boolean = isOwnerProcessAlive
+  pidAliveCheck: (pid: number, expectedStartTimeUtc?: string, machineName?: string) => boolean = isOwnerProcessAlive,
+  sqlRunner: SqlCmdRunner = runSqlCmd
 ): Promise<{ recovered: string[]; skipped: string[] }> {
   if (!fs.existsSync(manifestDir)) {
     return { recovered: [], skipped: [] }
   }
 
+  const expectedServer = (
+    extractConnPart(templateConnection, /(?:Server|Data\s+Source)\s*=\s*([^;]+)/i) || '.\\SQLEXPRESS'
+  )
+    .trim()
+    .toLowerCase()
   const userId = extractConnPart(templateConnection, /(?:User\s+Id|UID)\s*=\s*([^;]+)/i)
   const password = extractConnPart(templateConnection, /(?:Password|PWD)\s*=\s*([^;]+)/i)
   const recovered: string[] = []
@@ -271,118 +350,188 @@ export async function recoverInterruptedOwnedDatabases(
   for (const fileName of fs.readdirSync(manifestDir)) {
     if (!fileName.endsWith('.json') || fileName.includes('.tmp.')) continue
     const filePath = path.join(manifestDir, fileName)
-    const entry = readManifestFile(filePath)
-    if (!entry || !entry.databaseName || !entry.ownershipToken) continue
+    const entry = readManifestFile(filePath, fileName)
+    if (!entry) {
+      skipped.push(fileName)
+      continue
+    }
 
+    if (entry.server.trim().toLowerCase() !== expectedServer) {
+      skipped.push(entry.databaseName)
+      continue
+    }
+
+    let safeDb: string
     try {
-      assertSafeTestDatabase(`Server=${entry.server};Database=${entry.databaseName};Trusted_Connection=True;`, 'InterruptedRunRecovery')
+      safeDb = assertSafeTestDatabase(
+        `Server=${entry.server};Database=${entry.databaseName};Trusted_Connection=True;`,
+        'InterruptedRunRecovery'
+      )
     } catch {
       skipped.push(entry.databaseName)
       continue
     }
 
     if (pidAliveCheck(entry.pid, entry.processStartTimeUtc, entry.machineName)) {
-      skipped.push(entry.databaseName)
+      skipped.push(safeDb)
       continue
     }
 
-    const existsOut = runSqlCmd(
+    const existsOut = sqlRunner(
       entry.server,
       userId,
       password,
-      `SET NOCOUNT ON; SELECT CASE WHEN DB_ID('${entry.databaseName}') IS NULL THEN '0' ELSE '1' END;`
+      `SET NOCOUNT ON; SELECT CASE WHEN DB_ID('${safeDb}') IS NULL THEN '0' ELSE '1' END;`
     )
     if (existsOut.trim() !== '1') {
       fs.unlinkSync(filePath)
       continue
     }
 
-    const ownsDb = verifyDbOwnershipToken(entry.server, userId, password, entry.databaseName, entry.ownershipToken)
+    const ownsDb = verifyDbOwnershipToken(
+      entry.server,
+      userId,
+      password,
+      safeDb,
+      entry.ownershipToken,
+      sqlRunner
+    )
     if (!ownsDb) {
-      skipped.push(entry.databaseName)
+      skipped.push(safeDb)
       continue
     }
 
-    if (countActiveSqlSessions(entry.server, userId, password, entry.databaseName) > 0) {
-      skipped.push(entry.databaseName)
+    if (countActiveSqlSessions(entry.server, userId, password, safeDb, sqlRunner) > 0) {
+      skipped.push(safeDb)
       continue
     }
 
-    await safeDropOwnedDatabase(manifestDir, entry, userId, password)
-    recovered.push(entry.databaseName)
+    await safeDropOwnedDatabase(manifestDir, entry, userId, password, sqlRunner)
+    recovered.push(safeDb)
   }
 
   return { recovered, skipped }
 }
 
-/**
- * Terminates a spawned child process tree and awaits process exit before SQL cleanup.
- */
-export async function killProcessTreeAndWait(proc: ChildProcess | undefined, timeoutMs = 5000): Promise<void> {
-  if (!proc || !proc.pid) return
-  if (proc.exitCode !== null) return
-
-  const exitPromise = new Promise<void>((resolve) => {
-    proc.once('exit', () => resolve())
-    setTimeout(() => resolve(), timeoutMs)
-  })
-
+function defaultIsPidAlive(pid: number): boolean {
+  if (!pid || pid <= 0) return false
   try {
-    if (process.platform === 'win32') {
-      spawn('taskkill', ['/pid', proc.pid.toString(), '/T', '/F'])
-    } else {
-      proc.kill('SIGKILL')
-    }
+    process.kill(pid, 0)
+    return true
   } catch {
-    // ignore if already exited
+    return false
   }
-
-  await exitPromise
 }
 
 /**
- * Recovers interrupted owned runs, creates a fresh disposable `StudyAIDb_Clean_{Guid:N}`,
- * stamps `StudyAI_OwnershipToken` + `StudyAI_RunId`, writes an atomic per-run manifest,
- * and returns a fail-loudly `cleanup()` callback.
+ * Terminates a spawned child process tree, awaits termination command completion and target process exit,
+ * verifies the process is no longer alive, and throws on failure or timeout.
  */
-export function createDisposableTestDatabase(
+export async function killProcessTreeAndWait(
+  proc: ChildProcess | undefined,
+  timeoutMs = 5000,
+  deps: KillProcessDeps = {}
+): Promise<void> {
+  if (!proc || !proc.pid) return
+
+  const platform = deps.platform ?? process.platform
+  const spawnFn = deps.spawnFn ?? spawn
+  const isPidAliveFn = deps.isPidAliveFn ?? defaultIsPidAlive
+  const pollIntervalMs = deps.pollIntervalMs ?? 50
+  const pid = proc.pid
+  const hasExited = () => proc.exitCode !== null || proc.signalCode !== null
+
+  if (hasExited() && !isPidAliveFn(pid)) return
+
+  const deadline = Date.now() + timeoutMs
+
+  const exitPromise = new Promise<void>((resolve, reject) => {
+    if (hasExited()) {
+      resolve()
+      return
+    }
+    const timer = setTimeout(() => {
+      proc.removeListener('exit', onExit)
+      proc.removeListener('close', onExit)
+      reject(new Error(`Process ${pid} did not exit within ${timeoutMs}ms.`))
+    }, timeoutMs)
+
+    const onExit = () => {
+      clearTimeout(timer)
+      proc.removeListener('exit', onExit)
+      proc.removeListener('close', onExit)
+      resolve()
+    }
+
+    proc.once('exit', onExit)
+    proc.once('close', onExit)
+  })
+
+  if (platform === 'win32') {
+    await new Promise<void>((resolve, reject) => {
+      const killer = spawnFn('taskkill', ['/pid', pid.toString(), '/T', '/F'], {
+        stdio: 'ignore',
+      })
+      const killTimer = setTimeout(() => {
+        reject(new Error(`taskkill timed out for PID ${pid} after ${timeoutMs}ms.`))
+      }, timeoutMs)
+
+      killer.once('error', (err) => {
+        clearTimeout(killTimer)
+        if (hasExited() && !isPidAliveFn(pid)) {
+          resolve()
+        } else {
+          reject(new Error(`taskkill failed to start for PID ${pid}: ${err.message}`))
+        }
+      })
+
+      killer.once('exit', (code) => {
+        clearTimeout(killTimer)
+        if (code === 0 || (hasExited() && !isPidAliveFn(pid))) {
+          resolve()
+        } else {
+          reject(new Error(`taskkill exited with code ${code} for PID ${pid}.`))
+        }
+      })
+    })
+  } else {
+    try {
+      proc.kill('SIGKILL')
+    } catch (err) {
+      if (!hasExited() || isPidAliveFn(pid)) {
+        throw err
+      }
+    }
+  }
+
+  await exitPromise
+
+  while (isPidAliveFn(pid) && Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, pollIntervalMs))
+  }
+
+  if (!hasExited() || isPidAliveFn(pid)) {
+    throw new Error(`Process ${pid} remained alive after termination verification.`)
+  }
+}
+
+/**
+ * Recovers interrupted owned runs via `recoverInterruptedOwnedDatabases()`, creates a fresh disposable
+ * `StudyAIDb_Clean_{Guid:N}`, stamps `StudyAI_OwnershipToken` + `StudyAI_RunId`, writes an atomic per-run
+ * manifest, and returns a fail-loudly `cleanup()` callback.
+ */
+export async function createDisposableTestDatabase(
   callerContext = 'Playwright E2E',
   manifestDir = DEFAULT_MANIFEST_DIR,
   skipAutoRecovery = false
-): DisposableTestDatabase {
+): Promise<DisposableTestDatabase> {
   const template = process.env.E2E_SQL_SERVER_CONNECTION || process.env.ConnectionStrings__DefaultConnection || ''
   const server = extractConnPart(template, /(?:Server|Data\s+Source)\s*=\s*([^;]+)/i) || '.\\SQLEXPRESS'
   const userId = extractConnPart(template, /(?:User\s+Id|UID)\s*=\s*([^;]+)/i)
   const password = extractConnPart(template, /(?:Password|PWD)\s*=\s*([^;]+)/i)
 
   if (!skipAutoRecovery) {
-    // Best-effort pre-provisioning recovery of dead owned runs only
-    try {
-      const recoveredRuns = fs.existsSync(manifestDir) ? fs.readdirSync(manifestDir).filter((f) => f.endsWith('.json') && !f.includes('.tmp.')) : []
-      for (const fileName of recoveredRuns) {
-        const entry = readManifestFile(path.join(manifestDir, fileName))
-        if (!entry || isOwnerProcessAlive(entry.pid, entry.processStartTimeUtc, entry.machineName)) continue
-        const existsOut = runSqlCmd(
-          entry.server,
-          userId,
-          password,
-          `SET NOCOUNT ON; SELECT CASE WHEN DB_ID('${entry.databaseName}') IS NULL THEN '0' ELSE '1' END;`
-        )
-        if (existsOut.trim() !== '1') {
-          fs.unlinkSync(path.join(manifestDir, fileName))
-          continue
-        }
-        if (
-          verifyDbOwnershipToken(entry.server, userId, password, entry.databaseName, entry.ownershipToken) &&
-          countActiveSqlSessions(entry.server, userId, password, entry.databaseName) === 0
-        ) {
-          runSqlCmd(entry.server, userId, password, `SET LOCK_TIMEOUT 3000; DROP DATABASE [${entry.databaseName}];`)
-          fs.unlinkSync(path.join(manifestDir, fileName))
-        }
-      }
-    } catch {
-      // Do not silently drop anything if verification fails
-    }
+    await recoverInterruptedOwnedDatabases(manifestDir, template)
   }
 
   const guidN = crypto.randomUUID().replace(/-/g, '')

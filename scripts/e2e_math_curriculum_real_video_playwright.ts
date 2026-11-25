@@ -4,7 +4,7 @@ import fs from 'fs'
 import path from 'path'
 import { resolveDotnet10Environment } from './utils/dotnetRuntime'
 import { assertSafeTestDatabase } from './utils/databaseSafetyGuard'
-import { createDisposableTestDatabase } from './utils/disposableDb'
+import { createDisposableTestDatabase, killProcessTreeAndWait } from './utils/disposableDb'
 
 const BACKEND_PORT = 8000
 const FRONTEND_PORT = 4185
@@ -13,7 +13,7 @@ const FRONTEND_URL = `http://localhost:${FRONTEND_PORT}`
 const QA_DIR = path.join('docs', 'visual-qa', 'math-curriculum')
 
 // Dedicated test database connection string to strictly protect StudyAIDb
-const _disposableDb = process.env.ConnectionStrings__DefaultConnection ? null : createDisposableTestDatabase('e2e_math_curriculum_real_video_playwright')
+const _disposableDb = process.env.ConnectionStrings__DefaultConnection ? null : await createDisposableTestDatabase('e2e_math_curriculum_real_video_playwright')
 const E2E_CONNECTION_STRING = process.env.ConnectionStrings__DefaultConnection || _disposableDb!.connectionString
 if (_disposableDb) { process.on('exit', () => { void _disposableDb.cleanup() }) }
 
@@ -463,8 +463,11 @@ async function run() {
     console.log('=============================================================\n')
   } finally {
     console.log('Cleaning up child processes...')
-    killProcessTree(backendProc)
-    killProcessTree(frontendProc)
+    await killProcessTreeAndWait(backendProc)
+    await killProcessTreeAndWait(frontendProc)
+    if (_disposableDb) {
+      await _disposableDb.cleanup()
+    }
   }
 }
 
