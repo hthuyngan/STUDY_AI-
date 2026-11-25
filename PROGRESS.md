@@ -15,11 +15,11 @@
 |---|---|
 | Active delivery phase | **P02 — edition chapter/lesson lifecycle**, remediation/re-review stage |
 | Implementation branch (local) | `feature/p02-multi-subject-curriculum-lifecycle` |
-| Local HEAD | `2cecbc36aa05fdb31679cb626344b68fdaf1cc19` (2 commits ahead of remote when observed) |
+| Local HEAD | `01f79669154e3e84d9910f4673c110b6b8140dc7` (3 commits ahead of remote when observed) |
 | Remote PR HEAD | `fddea7116a0f475f7559fa9c780e0c4aa9f1b3b7` |
 | Pull request | [#27 — Draft, OPEN](https://github.com/hthuyngan/STUDY_AI-/pull/27), base `feature/backend-redesign-modular-monolith` |
 | PR review/acceptance | No submitted review and no recorded owner acceptance; `reviewDecision` empty |
-| Working tree at observation | P02 worktree had 4 modified frontend files; preserve them and do not overwrite |
+| Working tree at observation | P02 worktree had 3 modified CI/frontend/E2E files; preserve them and do not overwrite |
 | Protected database | `StudyAIDb` untouched by this docs task; tests may use only guarded `StudyAIDb_Clean_{GUID}` |
 | Overall verdict | **IMPLEMENTED + BLOCKED**, not `COMPLETED` |
 
@@ -43,7 +43,8 @@ Observed remediation after the remote PR head:
 
 - `8b7c6c5c`: migration Down guard, slug uniqueness, archive-first retention and canonical learner visibility.
 - `2cecbc36`: RowVersion propagation in lesson editing and learner UI wiring to edition-aware projection.
-- Uncommitted P02 UI/test work remained in `CurriculumWorkspacePage.{tsx,css,test.tsx}` and `SubjectDetailPage.tsx`; ownership remains with the active P02 agent.
+- `01f79669`: full-scope reorder, URL page size/history, catalog error surfacing and responsive workspace UI (F06/F07).
+- Uncommitted P02 work remained in `.github/workflows/ci.yml`, `SubjectDetailPage.tsx` and `e2e_p02_curriculum_workspace_playwright.ts`; ownership remains with the active P02 agent.
 
 Blocking conditions:
 
@@ -58,7 +59,7 @@ Open historical PRs #6, #9, #12 and #13 remain overlap risks. Use [`PR_RECONCILI
 
 - GitHub CI [run 45638944076](https://github.com/hthuyngan/STUDY_AI-/actions/runs/45638944076) passed at remote SHA `fddea711`: frontend lint/test/build and two isolated .NET build/test runs.
 - P02 report records backend unit `295/295`, integration `265/265` twice on independent disposable DBs, and curriculum/catalog Playwright scenarios. Treat these as evidence for `fddea711` only.
-- No test was run by this documentation-only task. Status for local `2cecbc36` plus uncommitted files: **NOT VERIFIED**.
+- No test was run by this documentation-only task. Status for local `01f79669` plus uncommitted files: **NOT VERIFIED**.
 
 ## Next action
 
