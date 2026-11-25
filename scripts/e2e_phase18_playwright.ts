@@ -1,9 +1,10 @@
 import { chromium } from 'playwright'
-import { spawn, ChildProcess } from 'child_process'
+import { spawn } from 'child_process'
 import fs from 'fs'
 import path from 'path'
 import { resolveDotnet10Environment } from './utils/dotnetRuntime'
 import { assertSafeTestDatabase } from './utils/databaseSafetyGuard'
+import { createDisposableTestDatabase, killProcessTreeAndWait, queryValidatedDisposableDatabase } from './utils/disposableDb'
 
 const BACKEND_PORT = 5294
 const FRONTEND_PORT = 4177
@@ -11,13 +12,10 @@ const BACKEND_URL = `http://127.0.0.1:${BACKEND_PORT}`
 const FRONTEND_URL = `http://127.0.0.1:${FRONTEND_PORT}`
 const QA_DIR = path.join('docs', 'visual-qa', 'phase-18')
 
-// Dedicated test database connection string to strictly protect StudyAIDb
-const E2E_CONNECTION_STRING =
-  process.env.ConnectionStrings__DefaultConnection ||
-  'Server=.\\SQLEXPRESS;Database=StudyAIDb_E2E;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True'
-
-// Fail-closed database safety guard: abort immediately if targeting StudyAIDb
-assertSafeTestDatabase(E2E_CONNECTION_STRING, 'Phase 18 Playwright E2E')
+// Dedicated disposable test database connection string to strictly protect StudyAIDb
+const _disposableDb = process.env.ConnectionStrings__DefaultConnection ? null : await createDisposableTestDatabase('e2e_phase18_playwright')
+const E2E_CONNECTION_STRING = process.env.ConnectionStrings__DefaultConnection || _disposableDb!.connectionString
+const TARGET_DB_NAME = assertSafeTestDatabase(E2E_CONNECTION_STRING, 'Phase 18 Playwright E2E')
 
 if (fs.existsSync(QA_DIR)) {
   for (const file of fs.readdirSync(QA_DIR)) {
@@ -31,19 +29,6 @@ if (fs.existsSync(QA_DIR)) {
   }
 } else {
   fs.mkdirSync(QA_DIR, { recursive: true })
-}
-
-function killProcessTree(proc: ChildProcess | undefined) {
-  if (!proc || !proc.pid) return
-  try {
-    if (process.platform === 'win32') {
-      spawn('taskkill', ['/pid', proc.pid.toString(), '/T', '/F'])
-    } else {
-      proc.kill('SIGKILL')
-    }
-  } catch {
-    // ignore
-  }
 }
 
 async function waitForUrl(url: string, timeoutMs = 35000): Promise<void> {
@@ -72,22 +57,14 @@ interface ScenarioReport {
 }
 
 async function querySql(query: string): Promise<string> {
-  const { execSync } = await import('child_process')
-  const escapedQuery = query.replace(/"/g, '""')
-  const cmd = `sqlcmd -S .\\SQLEXPRESS -d StudyAIDb_E2E -E -C -h -1 -W -Q "${escapedQuery}"`
-  try {
-    const output = execSync(cmd, { encoding: 'utf8' })
-    return output.trim()
-  } catch (err: any) {
-    return `SQLCMD_ERROR: ${err.message}`
-  }
+  return queryValidatedDisposableDatabase(E2E_CONNECTION_STRING, query, 'Phase 18 SQL Assertion')
 }
 
 async function run() {
   const startTime = Date.now()
   console.log('=== STARTING PHASE 18 CURRICULUM IMPORT E2E PLAYWRIGHT SUITE ===')
   console.log(`Timestamp: ${new Date().toISOString()}`)
-  console.log(`Target E2E Database: StudyAIDb_E2E (Isolated test database)`)
+  console.log(`Target Disposable Database: ${TARGET_DB_NAME} (Isolated test database)`)
 
   const reports: ScenarioReport[] = []
 
@@ -101,14 +78,14 @@ async function run() {
   console.log(`Starting ASP.NET Core API on ${BACKEND_URL}...`)
   const backendProc: ChildProcess = spawn(
     dotnetBin,
-    ['run', '--project', path.join('backend', 'src', 'StudyAI.Api'), '--urls', BACKEND_URL, '--no-build'],
+    ['run', '--project', path.join('backend', 'src', 'StudyAI.Api'), '--urls', BACKEND_URL, '--no-build', '--no-launch-profile'],
     {
       cwd: process.cwd(),
       env: {
         ...process.env,
         PATH: customPath,
         DOTNET_ROOT: dotnetRoot,
-        ASPNETCORE_ENVIRONMENT: 'Development',
+        ASPNETCORE_ENVIRONMENT: 'Testing',
         ConnectionStrings__DefaultConnection: E2E_CONNECTION_STRING,
       },
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -530,14 +507,18 @@ async function run() {
   } finally {
     // Teardown
     console.log('\nTearing down processes and cleaning temp files...')
-    killProcessTree(backendProc)
-    killProcessTree(frontendProc)
+    await killProcessTreeAndWait(backendProc)
+    await killProcessTreeAndWait(frontendProc)
     for (const f of tempFilesToClean) {
       try {
         if (fs.existsSync(f)) fs.unlinkSync(f)
       } catch {
         // ignore
       }
+    }
+    if (_disposableDb) {
+      await _disposableDb.cleanup()
+      console.log(`Cleaned up disposable database: ${_disposableDb.dbName}`)
     }
   }
 

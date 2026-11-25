@@ -1,13 +1,13 @@
 {
-  "timestamp": "2026-11-10T08:11:15.497Z",
-  "totalTime": 16668,
+  "timestamp": "2026-11-25T07:24:15.008Z",
+  "totalTime": 17885,
   "allPassed": true,
   "reports": [
     {
       "id": 1,
       "name": "Content Staff Login & Navigation to /content/import",
       "status": "PASS",
-      "durationMs": 5633,
+      "durationMs": 3614,
       "screenshots": [
         "docs\\visual-qa\\phase-18\\phase18_01_import_page_loaded.png"
       ],
@@ -17,7 +17,7 @@
       "id": 2,
       "name": "Client-side Validation of file format",
       "status": "PASS",
-      "durationMs": 140,
+      "durationMs": 106,
       "screenshots": [
         "docs\\visual-qa\\phase-18\\phase18_02_client_validation_error.png"
       ],
@@ -27,7 +27,7 @@
       "id": 3,
       "name": "Strict-only Fail-Closed Preview on Validation Error",
       "status": "PASS",
-      "durationMs": 937,
+      "durationMs": 593,
       "screenshots": [
         "docs\\visual-qa\\phase-18\\phase18_03_preview_strict_error_blocked.png"
       ],
@@ -37,7 +37,7 @@
       "id": 4,
       "name": "Preview Valid File with Strict Readiness",
       "status": "PASS",
-      "durationMs": 148,
+      "durationMs": 188,
       "screenshots": [
         "docs\\visual-qa\\phase-18\\phase18_04_preview_valid_success.png"
       ],
@@ -47,7 +47,7 @@
       "id": 5,
       "name": "Execute Confirm Import with Audit Note",
       "status": "PASS",
-      "durationMs": 1137,
+      "durationMs": 1335,
       "screenshots": [
         "docs\\visual-qa\\phase-18\\phase18_05_confirm_success_result.png"
       ],
@@ -57,19 +57,19 @@
       "id": 6,
       "name": "SQL Server Database Verification (StudyAIDb_E2E)",
       "status": "PASS",
-      "durationMs": 1173,
+      "durationMs": 664,
       "screenshots": [],
-      "notes": "Verified: Subject=1\r\n\r\n(1 rows affected), Chapter=1\r\n\r\n(1 rows affected), LessonStatus=draft\r\n\r\n(1 rows affected) (draft), Question=1\r\n\r\n(1 rows affected), AuditLog=4\r\n\r\n(1 rows affected)"
+      "notes": "Verified: Subject=1\r\n\r\n(1 rows affected), Chapter=1\r\n\r\n(1 rows affected), LessonStatus=draft\r\n\r\n(1 rows affected) (draft), Question=1\r\n\r\n(1 rows affected), AuditLog=1\r\n\r\n(1 rows affected)"
     },
     {
       "id": 7,
       "name": "Content Workspace & Backend API Acceptance Verification",
       "status": "PASS",
-      "durationMs": 2205,
+      "durationMs": 2558,
       "screenshots": [
         "docs\\visual-qa\\phase-18\\phase18_06_content_workspace_verified.png"
       ],
-      "notes": "Verified navigation to subjects & lessons workspace. Backend API confirmed subject MATH_E2E_5UP8R1 and draft lesson ham-so-luy-thua-e2e-5up8r1."
+      "notes": "Verified navigation to subjects & lessons workspace. Backend API confirmed subject MATH_E2E_RWBY6V and draft lesson ham-so-luy-thua-e2e-rwby6v."
     }
   ]
 }

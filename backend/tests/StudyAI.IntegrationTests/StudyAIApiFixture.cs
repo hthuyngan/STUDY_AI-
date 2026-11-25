@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
@@ -20,12 +21,17 @@ namespace StudyAI.IntegrationTests;
 
 public class StudyAIApiFixture : WebApplicationFactory<Program>
 {
-    public const string DefaultTestConnectionString =
-        "Server=.\\SQLEXPRESS;Database=StudyAIDb_E2E;Trusted_Connection=True;TrustServerCertificate=True";
+    private string? _ownedDisposableDbName;
+    private string? _ownedMasterConnStr;
+    private string? _ownedRunId;
+    private string? _ownedOwnershipToken;
+    private string? _resolvedConnStr;
+    private bool _disposed;
 
     /// <summary>
     /// Explicit override for testing the database safety guard.
-    /// When null, defaults to environment variable ConnectionStrings__DefaultConnection or DefaultTestConnectionString.
+    /// When null, defaults to environment variable ConnectionStrings__DefaultConnection (if pointing to StudyAIDb_Clean_{GUID})
+    /// or automatically creates &amp; disposes a fresh StudyAIDb_Clean_{GUID} database.
     /// </summary>
     public string? TestConnectionStringOverride { get; set; }
 
@@ -35,13 +41,101 @@ public class StudyAIApiFixture : WebApplicationFactory<Program>
         DatabaseSafetyGuard.IsTestExecutionContext = true;
     }
 
+    private string ResolveOrProvisionTestConnectionString()
+    {
+        if (TestConnectionStringOverride != null)
+        {
+            return TestConnectionStringOverride;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_resolvedConnStr))
+        {
+            return _resolvedConnStr;
+        }
+
+        var envConn = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
+        if (!string.IsNullOrWhiteSpace(envConn))
+        {
+            // Validate strictly (rejects StudyAIDb, StudyAIDb_Dev, StudyAIDb_E2E)
+            var dbName = DatabaseSafetyGuard.EnsureSafeTestDatabase(envConn, "StudyAIApiFixture.EnvConnection");
+            var masterBuilder = new SqlConnectionStringBuilder(envConn) { InitialCatalog = "master" };
+
+            // Recover any dead interrupted runs owned by manifests before proceeding
+            DisposableDatabaseOrchestrator.RecoverInterruptedOwnedDatabases(masterBuilder.ConnectionString);
+
+            using var checkConn = new SqlConnection(masterBuilder.ConnectionString);
+            checkConn.Open();
+            if (!DisposableDatabaseOrchestrator.DatabaseExists(checkConn, dbName))
+            {
+                // Fixture creates the DB if it didn't exist -> fixture owns its manifest & cleanup
+                var entry = DisposableDatabaseOrchestrator.CreateOwnedDatabase(
+                    masterBuilder.ConnectionString,
+                    dbName,
+                    "StudyAIApiFixture.EnvProvision");
+                _ownedMasterConnStr = masterBuilder.ConnectionString;
+                _ownedDisposableDbName = entry.DatabaseName;
+                _ownedRunId = entry.RunId;
+                _ownedOwnershipToken = entry.OwnershipToken;
+            }
+
+            _resolvedConnStr = envConn;
+            return _resolvedConnStr;
+        }
+
+        // Provision a fresh disposable StudyAIDb_Clean_{GUID} on local .\SQLEXPRESS after recovering interrupted runs
+        var cleanDbName = $"StudyAIDb_Clean_{Guid.NewGuid():N}";
+        var localMaster = "Server=.\\SQLEXPRESS;Database=master;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true;";
+        DisposableDatabaseOrchestrator.RecoverInterruptedOwnedDatabases(localMaster);
+
+        var ownedEntry = DisposableDatabaseOrchestrator.CreateOwnedDatabase(
+            localMaster,
+            cleanDbName,
+            "StudyAIApiFixture.AutoProvision");
+
+        _ownedMasterConnStr = localMaster;
+        _ownedDisposableDbName = ownedEntry.DatabaseName;
+        _ownedRunId = ownedEntry.RunId;
+        _ownedOwnershipToken = ownedEntry.OwnershipToken;
+        _resolvedConnStr = new SqlConnectionStringBuilder(localMaster) { InitialCatalog = cleanDbName }.ConnectionString;
+        return _resolvedConnStr;
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+        if (!disposing || _disposed)
+        {
+            return;
+        }
+        _disposed = true;
+
+        var dbName = _ownedDisposableDbName;
+        var masterConn = _ownedMasterConnStr;
+        var runId = _ownedRunId;
+        var token = _ownedOwnershipToken;
+        _ownedDisposableDbName = null;
+        _ownedMasterConnStr = null;
+        _ownedRunId = null;
+        _ownedOwnershipToken = null;
+
+        if (!string.IsNullOrWhiteSpace(dbName) &&
+            !string.IsNullOrWhiteSpace(masterConn) &&
+            !string.IsNullOrWhiteSpace(runId) &&
+            !string.IsNullOrWhiteSpace(token))
+        {
+            DisposableDatabaseOrchestrator.SafeDropOwnedDatabase(
+                masterConn,
+                dbName,
+                runId,
+                token);
+        }
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.UseEnvironment("Development");
+        builder.UseEnvironment("Testing");
 
-        var effectiveConn = TestConnectionStringOverride
-            ?? Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
-            ?? DefaultTestConnectionString;
+        var effectiveConn = ResolveOrProvisionTestConnectionString();
 
         // 1. Fail-closed configuration: Inject the explicit test connection string into configuration
         builder.ConfigureAppConfiguration((context, configBuilder) =>

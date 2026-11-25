@@ -2,12 +2,18 @@ import { chromium } from 'playwright'
 import { spawn, ChildProcess } from 'child_process'
 import fs from 'fs'
 import path from 'path'
+import { assertSafeTestDatabase } from './utils/databaseSafetyGuard'
+import { createDisposableTestDatabase, killProcessTreeAndWait } from './utils/disposableDb'
 
 const BACKEND_PORT = 5290
 const FRONTEND_PORT = 4173
 const BACKEND_URL = `http://127.0.0.1:${BACKEND_PORT}`
 const FRONTEND_URL = `http://localhost:${FRONTEND_PORT}`
 const QA_DIR = path.join('docs', 'visual-qa', 'phase-15')
+const _disposableDb = process.env.ConnectionStrings__DefaultConnection ? null : await createDisposableTestDatabase('e2e_phase15_playwright')
+const E2E_CONNECTION_STRING = process.env.ConnectionStrings__DefaultConnection || _disposableDb!.connectionString
+
+assertSafeTestDatabase(E2E_CONNECTION_STRING, 'Phase 15 Playwright E2E')
 
 if (!fs.existsSync(QA_DIR)) {
   fs.mkdirSync(QA_DIR, { recursive: true })
@@ -39,14 +45,15 @@ async function run() {
   console.log(`Starting ASP.NET Core API on ${BACKEND_URL}...`)
   const backendProc: ChildProcess = spawn(
     'dotnet',
-    ['run', '--project', path.join('backend', 'src', 'StudyAI.Api'), '--urls', BACKEND_URL, '--no-build'],
+    ['run', '--project', path.join('backend', 'src', 'StudyAI.Api'), '--urls', BACKEND_URL, '--no-build', '--no-launch-profile'],
     {
       cwd: process.cwd(),
       env: {
         ...process.env,
         DOTNET_ROOT: dotnetRoot,
         PATH: customPath,
-        ASPNETCORE_ENVIRONMENT: 'Development',
+        ASPNETCORE_ENVIRONMENT: 'Testing',
+        ConnectionStrings__DefaultConnection: E2E_CONNECTION_STRING,
       },
       stdio: ['ignore', 'pipe', 'pipe'],
     }
@@ -254,8 +261,7 @@ async function run() {
 
     // ── Scenario 8: Backend Offline Resilience ───────────────────────────────
     console.log('Scenario 8: Testing backend offline graceful handling...')
-    backendProc.kill()
-    await new Promise((r) => setTimeout(r, 1500))
+    await killProcessTreeAndWait(backendProc)
     await page.goto(`${FRONTEND_URL}/curriculum`, { waitUntil: 'networkidle' })
     await page.waitForTimeout(1000)
     await page.screenshot({ path: path.join(QA_DIR, '10_backend_offline_graceful_desktop.png') })
@@ -296,16 +302,20 @@ async function run() {
 
     console.log('=== ALL PHASE 15 FULLSTACK PLAYWRIGHT E2E SCENARIOS COMPLETED SUCCESSFULLY ===')
   } finally {
-    await browser.close()
     try {
-      backendProc.kill()
-    } catch {
-      // ignore
-    }
-    try {
-      frontendProc.kill()
-    } catch {
-      // ignore
+      await browser.close()
+    } finally {
+      const terminationResults = await Promise.allSettled([
+        killProcessTreeAndWait(backendProc),
+        killProcessTreeAndWait(frontendProc),
+      ])
+      const terminationFailure = terminationResults.find((result) => result.status === 'rejected')
+      if (terminationFailure?.status === 'rejected') {
+        throw terminationFailure.reason
+      }
+      if (_disposableDb) {
+        await _disposableDb.cleanup()
+      }
     }
   }
 }

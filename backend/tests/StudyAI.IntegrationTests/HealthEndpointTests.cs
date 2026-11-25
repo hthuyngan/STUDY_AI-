@@ -25,6 +25,11 @@ public class HealthEndpointTests : IClassFixture<StudyAIApiFixture>
 
         Assert.Equal("ok", root.GetProperty("status").GetString());
         Assert.Equal("STUDY_AI", root.GetProperty("app").GetString());
+        Assert.Equal("Testing", root.GetProperty("environment").GetString());
+        var dbName = root.GetProperty("databaseName").GetString();
+        Assert.False(string.IsNullOrWhiteSpace(dbName));
+        Assert.DoesNotContain("Password", body, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Trusted_Connection", body, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -39,6 +44,12 @@ public class HealthEndpointTests : IClassFixture<StudyAIApiFixture>
 
         Assert.Equal("ok", root.GetProperty("status").GetString());
         Assert.Equal("connected", root.GetProperty("database").GetString());
+        Assert.Equal("Testing", root.GetProperty("environment").GetString());
+        var dbName = root.GetProperty("databaseName").GetString();
+        Assert.False(string.IsNullOrWhiteSpace(dbName));
+        Assert.DoesNotContain("StudyAIDb_Dev", dbName, StringComparison.OrdinalIgnoreCase);
+        Assert.NotEqual("StudyAIDb", dbName, StringComparer.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Password", body, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

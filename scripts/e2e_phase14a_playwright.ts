@@ -2,12 +2,18 @@ import { chromium } from 'playwright'
 import { spawn, ChildProcess } from 'child_process'
 import fs from 'fs'
 import path from 'path'
+import { assertSafeTestDatabase } from './utils/databaseSafetyGuard'
+import { createDisposableTestDatabase, killProcessTreeAndWait } from './utils/disposableDb'
 
 const BACKEND_PORT = 5275
 const FRONTEND_PORT = 4195
 const BACKEND_URL = `http://127.0.0.1:${BACKEND_PORT}`
 const FRONTEND_URL = `http://localhost:${FRONTEND_PORT}`
 const QA_DIR = path.join('docs', 'visual-qa', 'phase-14a')
+const _disposableDb = process.env.ConnectionStrings__DefaultConnection ? null : await createDisposableTestDatabase('e2e_phase14a_playwright')
+const E2E_CONNECTION_STRING = process.env.ConnectionStrings__DefaultConnection || _disposableDb!.connectionString
+
+assertSafeTestDatabase(E2E_CONNECTION_STRING, 'Phase 14A Playwright E2E')
 
 if (!fs.existsSync(QA_DIR)) {
   fs.mkdirSync(QA_DIR, { recursive: true })
@@ -36,12 +42,13 @@ async function run() {
   console.log(`Starting ASP.NET Core API on ${BACKEND_URL}...`)
   const backendProc: ChildProcess = spawn(
     'dotnet',
-    ['run', '--project', path.join('backend', 'src', 'StudyAI.Api'), '--urls', BACKEND_URL, '--no-build'],
+    ['run', '--project', path.join('backend', 'src', 'StudyAI.Api'), '--urls', BACKEND_URL, '--no-build', '--no-launch-profile'],
     {
       cwd: process.cwd(),
       env: {
         ...process.env,
-        ASPNETCORE_ENVIRONMENT: 'Development',
+        ASPNETCORE_ENVIRONMENT: 'Testing',
+        ConnectionStrings__DefaultConnection: E2E_CONNECTION_STRING,
       },
       stdio: ['ignore', 'pipe', 'pipe'],
     }
@@ -158,9 +165,21 @@ async function run() {
 
     console.log('=== ALL E2E SCREENSHOTS AND API PARITY VERIFICATIONS SUCCEEDED ===')
   } finally {
-    await browser.close()
-    backendProc.kill()
-    frontendProc.kill()
+    try {
+      await browser.close()
+    } finally {
+      const terminationResults = await Promise.allSettled([
+        killProcessTreeAndWait(backendProc),
+        killProcessTreeAndWait(frontendProc),
+      ])
+      const terminationFailure = terminationResults.find((result) => result.status === 'rejected')
+      if (terminationFailure?.status === 'rejected') {
+        throw terminationFailure.reason
+      }
+      if (_disposableDb) {
+        await _disposableDb.cleanup()
+      }
+    }
   }
 }
 

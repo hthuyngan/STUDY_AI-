@@ -13,6 +13,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import { chromium, type Browser, type Page, type Response } from 'playwright'
+import { isAuthorizedTestDatabase } from './utils/databaseSafetyGuard'
 
 const baseUrl = process.env.E2E_FRONTEND_URL ?? ''
 const backendUrl = process.env.E2E_BACKEND_URL ?? ''
@@ -26,7 +27,7 @@ function requireLocal(urlText: string, name: string) {
     throw new Error(`${name} must be a local HTTP endpoint; remote/production servers are forbidden`)
   }
 }
-if (process.env.E2E_DB_NAME !== 'StudyAIDb_E2E') throw new Error('E2E_DB_NAME must equal StudyAIDb_E2E')
+if (!isAuthorizedTestDatabase(process.env.E2E_DB_NAME)) throw new Error('E2E_DB_NAME must strictly match StudyAIDb_Clean_{GUID}')
 if (!email || !password) throw new Error('Test-only E2E_ADMIN_EMAIL and E2E_ADMIN_PASSWORD are required')
 requireLocal(baseUrl, 'E2E_FRONTEND_URL')
 requireLocal(backendUrl, 'E2E_BACKEND_URL')

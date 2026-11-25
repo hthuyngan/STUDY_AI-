@@ -1,9 +1,10 @@
 import { chromium } from 'playwright'
-import { spawn, ChildProcess } from 'child_process'
+import { spawn } from 'child_process'
 import fs from 'fs'
 import path from 'path'
 import { resolveDotnet10Environment } from './utils/dotnetRuntime'
 import { assertSafeTestDatabase } from './utils/databaseSafetyGuard'
+import { createDisposableTestDatabase, killProcessTreeAndWait, queryValidatedDisposableDatabase } from './utils/disposableDb'
 
 const BACKEND_PORT = 5295
 const FRONTEND_PORT = 4178
@@ -11,13 +12,10 @@ const BACKEND_URL = `http://127.0.0.1:${BACKEND_PORT}`
 const FRONTEND_URL = `http://127.0.0.1:${FRONTEND_PORT}`
 const QA_DIR = path.join('docs', 'visual-qa', 'phase-19')
 
-// Dedicated test database connection string to strictly protect StudyAIDb
-const E2E_CONNECTION_STRING =
-  process.env.ConnectionStrings__DefaultConnection ||
-  'Server=.\\SQLEXPRESS;Database=StudyAIDb_E2E;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True'
-
-// Fail-closed database safety guard: abort immediately if targeting StudyAIDb
-assertSafeTestDatabase(E2E_CONNECTION_STRING, 'Phase 19 Playwright E2E')
+// Dedicated disposable test database connection string to strictly protect StudyAIDb
+const _disposableDb = process.env.ConnectionStrings__DefaultConnection ? null : await createDisposableTestDatabase('e2e_phase19_playwright')
+const E2E_CONNECTION_STRING = process.env.ConnectionStrings__DefaultConnection || _disposableDb!.connectionString
+const TARGET_DB_NAME = assertSafeTestDatabase(E2E_CONNECTION_STRING, 'Phase 19 Playwright E2E')
 
 if (fs.existsSync(QA_DIR)) {
   for (const file of fs.readdirSync(QA_DIR)) {
@@ -31,19 +29,6 @@ if (fs.existsSync(QA_DIR)) {
   }
 } else {
   fs.mkdirSync(QA_DIR, { recursive: true })
-}
-
-function killProcessTree(proc: ChildProcess | undefined) {
-  if (!proc || !proc.pid) return
-  try {
-    if (process.platform === 'win32') {
-      spawn('taskkill', ['/pid', proc.pid.toString(), '/T', '/F'])
-    } else {
-      proc.kill('SIGKILL')
-    }
-  } catch {
-    // ignore
-  }
 }
 
 async function waitForUrl(url: string, timeoutMs = 35000): Promise<void> {
@@ -72,22 +57,14 @@ interface ScenarioReport {
 }
 
 async function querySql(query: string): Promise<string> {
-  const { execSync } = await import('child_process')
-  const escapedQuery = query.replace(/"/g, '""')
-  const cmd = `sqlcmd -S .\\SQLEXPRESS -d StudyAIDb_E2E -E -C -h -1 -W -Q "${escapedQuery}"`
-  try {
-    const output = execSync(cmd, { encoding: 'utf8' })
-    return output.trim()
-  } catch (err: any) {
-    return `SQLCMD_ERROR: ${err.message}`
-  }
+  return queryValidatedDisposableDatabase(E2E_CONNECTION_STRING, query, 'Phase 19 SQL Assertion')
 }
 
 async function run() {
   const startTime = Date.now()
   console.log('=== STARTING PHASE 19 REAL AI TUTOR E2E PLAYWRIGHT SUITE ===')
   console.log(`Timestamp: ${new Date().toISOString()}`)
-  console.log(`Target E2E Database: StudyAIDb_E2E (Isolated test database)`)
+  console.log(`Target Disposable Database: ${TARGET_DB_NAME} (Isolated test database)`)
 
   const reports: ScenarioReport[] = []
 
@@ -101,14 +78,14 @@ async function run() {
   console.log(`Starting ASP.NET Core API on ${BACKEND_URL}...`)
   const backendProc: ChildProcess = spawn(
     dotnetBin,
-    ['run', '--project', path.join('backend', 'src', 'StudyAI.Api'), '--urls', BACKEND_URL, '--no-build'],
+    ['run', '--project', path.join('backend', 'src', 'StudyAI.Api'), '--urls', BACKEND_URL, '--no-build', '--no-launch-profile'],
     {
       cwd: process.cwd(),
       env: {
         ...process.env,
         PATH: customPath,
         DOTNET_ROOT: dotnetRoot,
-        ASPNETCORE_ENVIRONMENT: 'Development',
+        ASPNETCORE_ENVIRONMENT: 'Testing',
         ConnectionStrings__DefaultConnection: E2E_CONNECTION_STRING,
       },
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -343,14 +320,41 @@ async function run() {
     })
 
     // ──────────────────────────────────────────────────────────
-    // SCENARIO 6: Page Reload & History Reloading from Database
+    // SCENARIO 6: Page Reload & History Reloading from Database (Limited Diagnostic)
     // ──────────────────────────────────────────────────────────
     console.log('\n--- Scenario 6: Page Reload & History Reloading from Database ---')
     const s6Start = Date.now()
     const s6Snaps: string[] = []
 
+    const convRespPromise = page.waitForResponse(
+      (r) => r.url().includes('/api/v1/ai/conversations') && r.request().method() === 'GET'
+    )
+    const authRefreshPromise = page
+      .waitForResponse((r) => r.url().includes('/api/v1/auth/refresh') && r.request().method() === 'POST', {
+        timeout: 5000,
+      })
+      .catch(() => null)
+
     // Reload the page
     await page.reload()
+    const refreshResp = await authRefreshPromise
+    console.log(`[Scenario 6 Diagnostic] Current URL after reload: ${page.url()}`)
+    console.log(
+      `[Scenario 6 Diagnostic] POST /api/v1/auth/refresh status: ${refreshResp ? refreshResp.status() : 'not-fired'}`
+    )
+    const convResp = await convRespPromise.catch(() => null)
+    if (!convResp) {
+      throw new Error(
+        `[Scenario 6 Diagnostic] GET /api/v1/ai/conversations was NOT fired after reload (current URL: ${page.url()}, refresh status: ${refreshResp ? refreshResp.status() : 'not-fired'})`
+      )
+    }
+    const convStatus = convResp.status()
+    const convBodyText = await convResp.text()
+    console.log(`[Scenario 6 Diagnostic] GET /api/v1/ai/conversations status=${convStatus}, body=${convBodyText.slice(0, 300)}`)
+    if (convStatus !== 200) {
+      throw new Error(`[Scenario 6 Diagnostic] Expected 200 on GET /api/v1/ai/conversations, got ${convStatus}`)
+    }
+
     await page.waitForLoadState('networkidle')
     await page.waitForSelector('.ai-tutor-layout', { timeout: 10000 })
 
@@ -373,8 +377,12 @@ async function run() {
   } finally {
     // Teardown
     console.log('\nTearing down processes...')
-    killProcessTree(backendProc)
-    killProcessTree(frontendProc)
+    await killProcessTreeAndWait(backendProc)
+    await killProcessTreeAndWait(frontendProc)
+    if (_disposableDb) {
+      await _disposableDb.cleanup()
+      console.log(`Cleaned up disposable database: ${_disposableDb.dbName}`)
+    }
   }
 
   const totalTime = Date.now() - startTime

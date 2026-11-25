@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
+using StudyAI.Data;
 
 namespace StudyAI.Features.Admin;
 
@@ -8,12 +10,14 @@ public class SystemHealthService : ISystemHealthService
 {
     private readonly IApplicationDbContext _db;
     private readonly IConfiguration _configuration;
+    private readonly IHostEnvironment? _env;
     private static readonly DateTimeOffset ProcessStartTime = DateTimeOffset.UtcNow;
 
-    public SystemHealthService(IApplicationDbContext db, IConfiguration configuration)
+    public SystemHealthService(IApplicationDbContext db, IConfiguration configuration, IHostEnvironment? env = null)
     {
         _db = db;
         _configuration = configuration;
+        _env = env;
     }
 
     public async Task<SystemHealthReportDto> GetSystemHealthAsync(CancellationToken cancellationToken = default)
@@ -81,12 +85,21 @@ public class SystemHealthService : ISystemHealthService
         var components = new List<ComponentHealthDto>();
 
         // DB Component
+        string? envDbSuffix = null;
+        if (_env != null && (_env.IsDevelopment() || _env.IsEnvironment("Testing")))
+        {
+            var meta = DatabaseSafetyGuard.GetSafeDatabaseMetadata(_configuration.GetConnectionString("DefaultConnection"));
+            envDbSuffix = $" [{_env.EnvironmentName}: {meta.DatabaseName}@{meta.DataSource}]";
+        }
+
         components.Add(new ComponentHealthDto
         {
             Name = "Microsoft SQL Server",
             Status = canConnect ? (dbPingMs < 200 ? "healthy" : "degraded") : "unhealthy",
             LatencyMs = dbPingMs,
-            Details = canConnect ? $"Connection verified ({userCount} users, {lessonCount} lessons, {questionCount} questions)" : "Unable to establish database connection",
+            Details = canConnect
+                ? $"Connection verified ({userCount} users, {lessonCount} lessons, {questionCount} questions){envDbSuffix}"
+                : $"Unable to establish database connection{envDbSuffix}",
             LastChecked = now
         });
 
