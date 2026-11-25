@@ -82,6 +82,22 @@ Base route: `/api/v1/content/catalog` (`ContentCatalogController`)
   - `docs/visual-qa/catalog-p01/02_mobile_390.png`
 - **Database Safety:** `StudyAIDb` was never written, migrated, seeded, or modified.
 
+### 4.1 Clean-DB CI Remediation (Run `45538309179` -> Fixed)
+- **CI Before Fix (Run `45538309179` on `df914ee7`):** `234/236` integration tests passed (`ContentCatalogIntegrationTests` 6/6 PASS; 2 pre-existing `CurriculumImportConfirmIntegrationTests` failed on clean CI SQL container).
+- **Root Cause Analysis (Test Setup Isolation — No P01 Production Regression):**
+  1. `Confirm_ConcurrentExecution_OneSucceedsOneFails`: CSV hardcoded `subjectCode = MATH12` without seeding an isolated `ContentSubject`, causing `CurriculumImportValidator` to emit `PARENT_SUBJECT_NOT_FOUND` on a clean DB (`HAS_CRITICAL_ERRORS` / `400 BadRequest` on both requests).
+  2. `Confirm_AmbiguousLessonReference_ReturnsConflict409`: CSV omitted `subjectCode`, causing `CurriculumImportParser` (`GetCol("subjectcode", "MATH12")`) to fall back to `MATH12` instead of the test's own isolated `AMB_*` subject, triggering `PARENT_SUBJECT_NOT_FOUND` (`400 BadRequest`) before reaching ambiguous `lessonCode` resolution (`409 AMBIGUOUS_PARENT_REFERENCE`).
+  3. `Confirm_DuplicateFlatQuestionsInSameLesson_ReturnsConflict409`: Also hardcoded `MATH12`; updated to seed an isolated GUID subject.
+- **Files Changed:**
+  - `backend/tests/StudyAI.IntegrationTests/CurriculumImportConfirmIntegrationTests.cs`
+  - `docs/curriculum-refactor/PHASE-P01-CATALOG-REPORT.md`
+- **Clean Disposable DB Verification (`StudyAIDb_Clean_3ce77853d21c45e182eb5f033b2ced8a`, `DatabaseSafetyGuard` verified & dropped after run):**
+  - Targeted import tests (`Confirm_ConcurrentExecution_OneSucceedsOneFails`, `Confirm_AmbiguousLessonReference_ReturnsConflict409`): **PASS (2/2)**
+  - `CurriculumImportConfirmIntegrationTests`: **PASS (16/16)**
+  - `ContentCatalogIntegrationTests`: **PASS (6/6)**
+  - Full `StudyAI.IntegrationTests` suite: **PASS (236/236)**
+- **GitHub CI After Fix:** Triggered on commit `fix(tests): resolve curriculum import failures on clean SQL database` (see PR #25 checks).
+
 ---
 
 ## 5. Remaining Risks & P02 Move Gate
