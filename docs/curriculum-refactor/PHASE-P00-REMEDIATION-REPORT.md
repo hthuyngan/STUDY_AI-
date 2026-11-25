@@ -80,4 +80,24 @@ All 9 failures occurred on a fresh empty `StudyAIDb_E2E` in CI because runtime s
 - `CURR-003` / `CURR-004` / `CURR-005` / `CURR-011` (Multi-subject catalog schema, content blocks, draft defaults, learner grade->subject->edition flow): **P01–P06**.
 - `CURR-008` (`AiHintService` fake provider / Math 12 fallback): **P07**.
 - `CURR-001` / `CURR-010` (Import consolidation & dry-run cleanup tooling): **P08–P09**.
-- Minor pre-existing `AdminDashboardService.cs:72` (`l.Status == "in_review"`): tracked for cleanup in P02/P10 alongside status governance.
+- Remaining findings (P01–P10 out of scope)
+
+---
+
+## 7. Final P00 Remediation — Practice Test Isolation (CI Run `45526969484`)
+
+- **CI Before Fix (Run `45526969484`):** **228/230 PASS, 2 FAIL**:
+  1. `PracticeIntegrationTests.Practice_ExamMode_CheckQuestionBeforeSubmit_ReturnsForbidden` (`ArgumentOutOfRangeException` at `session.Questions[0].Options[0]`)
+  2. `PracticeIntegrationTests.PracticeFlow_Create_Answer_Submit_And_CheckStats` (`Assert.NotEmpty(firstQ.Options)` failed)
+- **Root Cause:** `PracticeIntegrationTests.InitializeAsync()` seeded shared `sub_math10`/`sub_math12` via `SampleCurriculumFixtureSeeder.SeedAsync(db)`. On `sub_math12`, seeded question data included a question with empty `Options`, and sharing fixed IDs across tests created cross-test coupling.
+- **Fixture Isolation Strategy:**
+  - Removed `IAsyncLifetime` / `SampleCurriculumFixtureSeeder.SeedAsync(db)` from `PracticeIntegrationTests`.
+  - Added `SeedIsolatedPracticeFixtureAsync(...)` creating unique GUID-scoped `SubjectId`, `ChapterId`, `LessonId`, `AlternateLessonId`, `QuestionIds`, and valid published `multiple-choice` questions (`OptionsJson = "[\"A\", \"B\", \"C\", \"D\"]"`, `CorrectAnswer = "A"`, `Status = "published"`) per test.
+  - Updated all curriculum/question-dependent tests in `PracticeIntegrationTests.cs` to query only their own isolated `SubjectId`/`LessonId` (leaving `Practice_Unauthenticated_ReturnsUnauthorized` and `Me_Bookmarks_Add_Query_Delete_PersistedInSql` free of unnecessary curriculum seeding).
+- **Files Changed:**
+  - `backend/tests/StudyAI.IntegrationTests/PracticeIntegrationTests.cs`
+  - `docs/curriculum-refactor/PHASE-P00-REMEDIATION-REPORT.md`
+- **Local Test Results (after final edit, on `StudyAIDb_E2E` / `StudyAIDb_Clean_{Guid}`):**
+  - Targeted 2 failing tests: **2/2 PASS**
+  - Repeated `PracticeIntegrationTests`: **12/12 PASS**
+  - Full `StudyAI.IntegrationTests` (including `DatabaseSafetyGuardTests` & `EmptyDatabaseStartupTests`): **230/230 PASS** (0 failed, 0 skipped)
