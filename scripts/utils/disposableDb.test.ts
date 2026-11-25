@@ -326,3 +326,51 @@ describe('killProcessTreeAndWait Verified Process Termination', () => {
     expect(cleanupCalled).toBe(false)
   })
 })
+
+describe('Disposable Playwright runner teardown regression guard', () => {
+  it('requires awaited provisioning, verified process termination, and awaited cleanup', () => {
+    const scriptsDir = path.resolve(import.meta.dir, '..')
+    const runnerFiles = fs
+      .readdirSync(scriptsDir)
+      .filter((fileName) => fileName.endsWith('.ts'))
+      .filter((fileName) =>
+        fs.readFileSync(path.join(scriptsDir, fileName), 'utf8').includes('createDisposableTestDatabase(')
+      )
+
+    expect(runnerFiles.length).toBeGreaterThan(0)
+
+    for (const fileName of runnerFiles) {
+      const source = fs.readFileSync(path.join(scriptsDir, fileName), 'utf8')
+      expect(source, `${fileName} must await disposable database provisioning`).toMatch(
+        /await\s+createDisposableTestDatabase\(/
+      )
+      expect(source, `${fileName} must not directly kill managed backend/frontend processes`).not.toMatch(
+        /\b(?:backendProc|frontendProc)\.kill\(/
+      )
+      expect(source, `${fileName} must await owned disposable database cleanup`).toMatch(
+        /await\s+(?:_?disposableDb)\??\.cleanup\(\)/
+      )
+
+      if (/\b(?:backendProc|frontendProc)\b/.test(source)) {
+        expect(source, `${fileName} must await verified process termination`).toMatch(
+          /await\s+(?:Promise\.allSettled\(\[\s*)?[\s\S]*killProcessTreeAndWait\(/
+        )
+      }
+    }
+
+    for (const fileName of [
+      'e2e_phase14a_playwright.ts',
+      'e2e_phase14b_playwright.ts',
+      'e2e_phase15_playwright.ts',
+    ]) {
+      const source = fs.readFileSync(path.join(scriptsDir, fileName), 'utf8')
+      expect(source, `${fileName} must not rely on asynchronous process exit cleanup`).not.toMatch(
+        /process\.on\(['"]exit['"][\s\S]*?cleanup\(\)/
+      )
+      expect(
+        source.lastIndexOf('await _disposableDb.cleanup()'),
+        `${fileName} must cleanup only after verified process termination`
+      ).toBeGreaterThan(source.lastIndexOf('killProcessTreeAndWait('))
+    }
+  })
+})

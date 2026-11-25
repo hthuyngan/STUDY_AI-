@@ -3,7 +3,7 @@ import { spawn, ChildProcess } from 'child_process'
 import fs from 'fs'
 import path from 'path'
 import { assertSafeTestDatabase } from './utils/databaseSafetyGuard'
-import { createDisposableTestDatabase } from './utils/disposableDb'
+import { createDisposableTestDatabase, killProcessTreeAndWait } from './utils/disposableDb'
 
 const BACKEND_PORT = 5285
 const FRONTEND_PORT = 4173
@@ -12,7 +12,6 @@ const FRONTEND_URL = `http://localhost:${FRONTEND_PORT}`
 const QA_DIR = path.join('docs', 'visual-qa', 'phase-14b')
 const _disposableDb = process.env.ConnectionStrings__DefaultConnection ? null : await createDisposableTestDatabase('e2e_phase14b_playwright')
 const E2E_CONNECTION_STRING = process.env.ConnectionStrings__DefaultConnection || _disposableDb!.connectionString
-if (_disposableDb) { process.on('exit', () => { void _disposableDb.cleanup() }) }
 
 assertSafeTestDatabase(E2E_CONNECTION_STRING, 'Phase 14B Playwright E2E')
 
@@ -210,8 +209,7 @@ async function run() {
 
     // Scenario 6: Backend Offline Graceful Handling
     console.log('Scenario 6: Testing Backend Offline resilience...')
-    backendProc.kill()
-    await new Promise((r) => setTimeout(r, 1500))
+    await killProcessTreeAndWait(backendProc)
     await desktopPage.goto(`${FRONTEND_URL}/curriculum`, { waitUntil: 'networkidle' })
     await desktopPage.waitForTimeout(1000)
     await desktopPage.screenshot({ path: path.join(QA_DIR, '06_backend_offline_desktop.png') })
@@ -244,16 +242,20 @@ async function run() {
 
     console.log('=== ALL PHASE 14B PLAYWRIGHT E2E SCENARIOS PASSED WITH EVIDENCE SAVED ===')
   } finally {
-    await browser.close()
     try {
-      backendProc.kill()
-    } catch {
-      // ignore
-    }
-    try {
-      frontendProc.kill()
-    } catch {
-      // ignore
+      await browser.close()
+    } finally {
+      const terminationResults = await Promise.allSettled([
+        killProcessTreeAndWait(backendProc),
+        killProcessTreeAndWait(frontendProc),
+      ])
+      const terminationFailure = terminationResults.find((result) => result.status === 'rejected')
+      if (terminationFailure?.status === 'rejected') {
+        throw terminationFailure.reason
+      }
+      if (_disposableDb) {
+        await _disposableDb.cleanup()
+      }
     }
   }
 }
