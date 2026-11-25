@@ -289,6 +289,7 @@ public class ControllerRouteDiscoveryTests
             "POST api/v1/content/chapters/{param}/reactivate",
             "POST api/v1/content/lessons/{param}/archive",
             "POST api/v1/content/lessons/{param}/reactivate",
+            "GET api/v1/curriculum/editions",
             "GET api/v1/curriculum/editions/{param}/chapters",
             "GET api/v1/content/catalog/compatibility-mapping"
         };

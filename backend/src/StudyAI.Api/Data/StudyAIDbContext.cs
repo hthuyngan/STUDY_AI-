@@ -566,6 +566,10 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
             entity.HasIndex(e => e.Slug);
 
+            entity.HasIndex(e => new { e.ChapterId, e.Slug })
+                .IsUnique()
+                .HasFilter("[Status] <> 'archived'");
+
             entity.HasIndex(e => e.AuthorId);
 
 

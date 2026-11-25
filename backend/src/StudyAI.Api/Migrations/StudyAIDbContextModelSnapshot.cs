@@ -968,6 +968,10 @@ namespace StudyAI.Migrations
                         .IsUnique()
                         .HasFilter("[Code] IS NOT NULL AND [Status] <> 'archived'");
 
+                    b.HasIndex("ChapterId", "Slug")
+                        .IsUnique()
+                        .HasFilter("[Status] <> 'archived'");
+
                     b.ToTable("content_lessons", (string)null);
                 });
 

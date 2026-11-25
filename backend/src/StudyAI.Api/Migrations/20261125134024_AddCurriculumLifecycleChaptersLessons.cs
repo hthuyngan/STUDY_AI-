@@ -65,6 +65,13 @@ namespace StudyAI.Migrations
                 filter: "[Code] IS NOT NULL AND [Status] <> 'archived'");
 
             migrationBuilder.CreateIndex(
+                name: "IX_content_lessons_ChapterId_Slug",
+                table: "content_lessons",
+                columns: new[] { "ChapterId", "Slug" },
+                unique: true,
+                filter: "[Status] <> 'archived'");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_content_chapters_CurriculumEditionId",
                 table: "content_chapters",
                 column: "CurriculumEditionId");
@@ -88,12 +95,22 @@ namespace StudyAI.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.Sql(@"
+                IF EXISTS (SELECT 1 FROM [content_chapters] WHERE [SubjectId] IS NULL)
+                BEGIN
+                    THROW 50001, 'Cannot rollback AddCurriculumLifecycleChaptersLessons while canonical content_chapters rows with NULL SubjectId exist. Archive/remap or restore from pre-migration backup instead.', 1;
+                END");
+
             migrationBuilder.DropForeignKey(
                 name: "FK_content_chapters_curriculum_editions_CurriculumEditionId",
                 table: "content_chapters");
 
             migrationBuilder.DropIndex(
                 name: "IX_content_lessons_ChapterId_Code",
+                table: "content_lessons");
+
+            migrationBuilder.DropIndex(
+                name: "IX_content_lessons_ChapterId_Slug",
                 table: "content_lessons");
 
             migrationBuilder.DropIndex(

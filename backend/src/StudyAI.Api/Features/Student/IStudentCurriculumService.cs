@@ -6,6 +6,7 @@ public interface IStudentCurriculumService
     Task<List<LearnerSubjectDto>> GetSubjectsAsync(string? grade = null, string? search = null, CancellationToken ct = default);
     Task<LearnerSubjectWithChaptersDto> GetSubjectDetailAsync(string subjectId, CancellationToken ct = default);
     Task<List<LearnerChapterDto>> GetSubjectChaptersAsync(string subjectId, CancellationToken ct = default);
+    Task<List<object>> GetPublishedEditionsAsync(string? gradeLevelId = null, string? subjectId = null, CancellationToken ct = default);
     Task<List<LearnerChapterDto>> GetEditionChaptersAsync(string editionId, CancellationToken ct = default);
     Task<LearnerChapterDto> GetChapterDetailAsync(string chapterId, CancellationToken ct = default);
     Task<LearnerTopicDto> GetTopicDetailAsync(string topicId, CancellationToken ct = default);

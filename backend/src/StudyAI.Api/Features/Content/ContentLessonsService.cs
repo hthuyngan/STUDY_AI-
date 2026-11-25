@@ -158,7 +158,7 @@ public class ContentLessonsService : IContentLessonsService
         {
             try
             {
-                await _db.SaveChangesAsync(ct);
+                await SaveWithConcurrencyAsync(ct);
                 return;
             }
             catch (DbUpdateException ex) when (attempt < maxAttempts && IsRevisionVersionConflict(ex))
@@ -316,15 +316,13 @@ public class ContentLessonsService : IContentLessonsService
 
         _db.ContentLessons.Add(les);
 
-        await _auditWriter.WriteStaffAuditAsync(
+        await WriteAuditAndSaveAsync(
             "lesson_created",
             "content_lesson",
             les.Id,
             null,
             JsonSerializer.Serialize(new { title = les.Title, chapterId = les.ChapterId }),
             ct);
-
-        await _db.SaveChangesAsync(ct);
 
         var author = await _db.Users.FindAsync(new object[] { currentUserId }, ct);
         return FormatLesson(les, author);
@@ -394,15 +392,13 @@ public class ContentLessonsService : IContentLessonsService
 
         les.UpdatedAt = _clock.UtcNow;
 
-        await _auditWriter.WriteStaffAuditAsync(
+        await WriteAuditAndSaveAsync(
             "lesson_updated",
             "content_lesson",
             les.Id,
             null,
             JsonSerializer.Serialize(new { title = les.Title }),
             ct);
-
-        await SaveWithConcurrencyAsync(ct);
         return FormatLesson(les, les.Author);
     }
 
@@ -417,10 +413,25 @@ public class ContentLessonsService : IContentLessonsService
             throw new ForbiddenException("Bạn không có quyền xóa bài học của tác giả khác.");
         }
 
-        var progressExists = await _db.LessonProgresses.AnyAsync(p => p.LessonId == lessonId, ct);
-        if (progressExists)
+        if (les.Status != "draft")
         {
-            throw new ValidationException("Lesson", "Không thể xóa bài học này vì đã có dữ liệu tiến độ học tập của học viên. Vui lòng chuyển trạng thái sang 'archived' thay vì xóa.");
+            throw new ValidationException("Lesson", "Chỉ bài học ở trạng thái bản nháp ('draft') chưa có dữ liệu liên quan mới được phép xóa. Vui lòng sử dụng thao tác lưu trữ ('archive').");
+        }
+
+        var hasDependents =
+            await _db.LessonProgresses.AnyAsync(p => p.LessonId == lessonId, ct) ||
+            await _db.ContentLessonVideos.AnyAsync(v => v.LessonId == lessonId, ct) ||
+            await _db.ContentAssessments.AnyAsync(a => a.LessonId == lessonId, ct) ||
+            await _db.ContentQuestions.AnyAsync(q => q.LessonId == lessonId, ct) ||
+            await _db.AiConversations.AnyAsync(c => c.LessonId == lessonId, ct) ||
+            await _db.AiLearningRecommendations.AnyAsync(r => r.LessonId == lessonId, ct) ||
+            await _db.UserSectionBookmarks.AnyAsync(b => b.LessonId == lessonId, ct) ||
+            await _db.UserStudyNotes.AnyAsync(n => n.LessonId == lessonId, ct) ||
+            await _db.ContentRevisions.AnyAsync(r => r.ContentId == lessonId && r.ContentType == "lesson", ct);
+
+        if (hasDependents)
+        {
+            throw new ValidationException("Lesson", "Không thể xóa bài học đã có tài nguyên, câu hỏi, đánh giá, ghi chú hoặc lịch sử học tập liên quan. Vui lòng chuyển trạng thái sang 'archived' thay vì xóa.");
         }
 
         _db.ContentLessons.Remove(les);
@@ -433,7 +444,7 @@ public class ContentLessonsService : IContentLessonsService
             JsonSerializer.Serialize(new { title = les.Title }),
             ct);
 
-        await _db.SaveChangesAsync(ct);
+        await SaveWithConcurrencyAsync(ct);
         return true;
     }
 
@@ -695,18 +706,21 @@ public class ContentLessonsService : IContentLessonsService
         if (les.Status != "archived")
             throw new ValidationException("Status", "Chỉ bài học đã lưu trữ mới có thể khôi phục về bản nháp.");
 
+        if (!string.IsNullOrWhiteSpace(les.Slug) && await _db.ContentLessons.AnyAsync(l => l.Id != les.Id && l.ChapterId == les.ChapterId && l.Slug == les.Slug && l.Status != "archived", ct))
+            throw new ConflictException("Slug bài học đã tồn tại trong chương.");
+        if (!string.IsNullOrWhiteSpace(les.Code) && await _db.ContentLessons.AnyAsync(l => l.Id != les.Id && l.ChapterId == les.ChapterId && l.Code == les.Code && l.Status != "archived", ct))
+            throw new ConflictException("Mã bài học đã tồn tại trong chương.");
+
         les.Status = "draft";
         les.UpdatedAt = _clock.UtcNow;
 
-        await _auditWriter.WriteStaffAuditAsync(
+        await WriteAuditAndSaveAsync(
             "lesson_reactivated",
             "content_lesson",
             les.Id,
             null,
             JsonSerializer.Serialize(new { title = les.Title, actorUserId = currentUserId, reason = action?.Reason }),
             ct);
-
-        await SaveWithConcurrencyAsync(ct);
         return FormatLesson(les, les.Author);
     }
 
@@ -818,9 +832,48 @@ public class ContentLessonsService : IContentLessonsService
         _db.Entry(lesson).Property(nameof(lesson.RowVersion)).OriginalValue = bytes;
     }
 
+    private async Task WriteAuditAndSaveAsync(
+        string action,
+        string targetType,
+        string? targetId,
+        string? beforeState,
+        string? afterState,
+        CancellationToken ct)
+    {
+        try
+        {
+            await _auditWriter.WriteStaffAuditAsync(action, targetType, targetId, beforeState, afterState, ct);
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException) { throw new ConflictException("Dữ liệu đã được thay đổi bởi người dùng khác."); }
+        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        {
+            throw new ConflictException("Mã hoặc slug bài học đã tồn tại trong chương.");
+        }
+    }
+
     private async Task SaveWithConcurrencyAsync(CancellationToken ct)
     {
         try { await _db.SaveChangesAsync(ct); }
         catch (DbUpdateConcurrencyException) { throw new ConflictException("Dữ liệu đã được thay đổi bởi người dùng khác."); }
+        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        {
+            throw new ConflictException("Mã hoặc slug bài học đã tồn tại trong chương.");
+        }
+    }
+
+    private static bool IsUniqueConstraintViolation(DbUpdateException ex)
+    {
+        for (Exception? cur = ex.InnerException; cur != null; cur = cur.InnerException)
+        {
+            if (cur is Microsoft.Data.SqlClient.SqlException sqlEx && (sqlEx.Number == 2601 || sqlEx.Number == 2627))
+            {
+                return true;
+            }
+        }
+
+        var baseMsg = ex.GetBaseException().Message;
+        return baseMsg.Contains("UNIQUE", StringComparison.OrdinalIgnoreCase) ||
+               baseMsg.Contains("duplicate key", StringComparison.OrdinalIgnoreCase);
     }
 }

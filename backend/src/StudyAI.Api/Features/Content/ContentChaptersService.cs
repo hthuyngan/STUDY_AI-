@@ -52,7 +52,8 @@ public class ContentChaptersService(IApplicationDbContext db, IAuditWriter audit
         var e = new Models.ContentChapter { Id = ids.NewId("chp"), SubjectId = legacySubject?.Id, CurriculumEditionId = edition?.Id, Code = code,
             Title = req.Title.Trim(), Description = req.Description?.Trim(), OrderIndex = req.OrderIndex, IsActive = req.IsActive,
             Status = edition == null ? "published" : "draft", SourceName = req.SourceName?.Trim(), SourceUrl = req.SourceUrl?.Trim(), CreatedAt = now, UpdatedAt = now };
-        db.ContentChapters.Add(e); await WriteAudit("chapter_created", e, actor, null, ct); await db.SaveChangesAsync(ct);
+        db.ContentChapters.Add(e);
+        await SaveWithAuditAsync(() => WriteAudit("chapter_created", e, actor, null, ct), ct);
         e.Subject = legacySubject; e.CurriculumEdition = edition; return Map(e);
     }
 
@@ -64,7 +65,7 @@ public class ContentChaptersService(IApplicationDbContext db, IAuditWriter audit
             if (e.CurriculumEditionId != null && await db.ContentChapters.AnyAsync(x => x.Id != e.Id && x.CurriculumEditionId == e.CurriculumEditionId && x.Code == code && x.Status != "archived", ct)) throw new ConflictException("Mã chương đã tồn tại."); e.Code = code; }
         if (req.Description != null) e.Description = req.Description.Trim(); if (req.OrderIndex.HasValue) e.OrderIndex = req.OrderIndex.Value;
         if (req.IsActive.HasValue) e.IsActive = req.IsActive.Value; if (req.SourceName != null) e.SourceName = req.SourceName.Trim(); if (req.SourceUrl != null) e.SourceUrl = req.SourceUrl.Trim();
-        e.UpdatedAt = clock.UtcNow; await WriteAudit("chapter_updated", e, actor, null, ct); await Save(ct); return Map(e);
+        e.UpdatedAt = clock.UtcNow; await SaveWithAuditAsync(() => WriteAudit("chapter_updated", e, actor, null, ct), ct); return Map(e);
     }
 
     public Task<ContentChapterItemDto> SubmitReviewAsync(string id, ContentStatusActionDto? a, string actor, CancellationToken ct = default) => Transition(id, a, actor, ["draft", "changes-requested"], "in-review", false, ct);
@@ -81,7 +82,8 @@ public class ContentChaptersService(IApplicationDbContext db, IAuditWriter audit
         if (!from.Contains(e.Status)) throw new ValidationException("Status", $"Không thể chuyển từ '{e.Status}' sang '{to}'.");
         if (reviewer) { var author = await db.StaffAuditLogs.AsNoTracking().Where(x => x.TargetId == id && (x.Action == "chapter_created" || x.Action == "chapter_updated" || x.Action == "chapter_submitted")).OrderByDescending(x => x.CreatedAt).Select(x => x.ActorUserId).FirstOrDefaultAsync(ct); if (author == actor) throw new ForbiddenException("Quy tắc four-eyes: người biên soạn không được tự kiểm duyệt."); }
         if (to == "published" && e.CurriculumEditionId != null && (e.CurriculumEdition?.Status != "published" || e.CurriculumEdition.Curriculum?.Status != "published")) throw new ValidationException("CurriculumEditionId", "Giáo trình và phiên bản phải được xuất bản trước chương.");
-        e.Status = to; e.IsActive = to != "archived"; e.UpdatedAt = clock.UtcNow; await WriteAudit($"chapter_{to.Replace('-', '_')}", e, actor, a?.Reason, ct); await Save(ct); return Map(e);
+        if (to == "draft" && e.CurriculumEditionId != null && !string.IsNullOrWhiteSpace(e.Code) && await db.ContentChapters.AnyAsync(x => x.Id != e.Id && x.CurriculumEditionId == e.CurriculumEditionId && x.Code == e.Code && x.Status != "archived", ct)) throw new ConflictException("Mã chương đã tồn tại trong cùng phiên bản giáo trình.");
+        e.Status = to; e.IsActive = to != "archived"; e.UpdatedAt = clock.UtcNow; await SaveWithAuditAsync(() => WriteAudit($"chapter_{to.Replace('-', '_')}", e, actor, a?.Reason, ct), ct); return Map(e);
     }
 
     public async Task<bool> ReorderChaptersAsync(ReorderChaptersRequestDto req, string actor, CancellationToken ct = default)
@@ -117,6 +119,34 @@ public class ContentChaptersService(IApplicationDbContext db, IAuditWriter audit
     private static string Version(byte[]? b) => b is { Length: > 0 } ? Convert.ToBase64String(b) : "";
     private static ContentChapterItemDto Map(Models.ContentChapter x) => new() { Id = x.Id, SubjectId = x.SubjectId ?? x.CurriculumEdition?.Curriculum?.SubjectId, SubjectName = x.Subject?.Name ?? x.CurriculumEdition?.Curriculum?.Subject?.Name ?? "", CurriculumEditionId = x.CurriculumEditionId, CurriculumEditionName = x.CurriculumEdition?.EditionName, Code = x.Code, Title = x.Title, Description = x.Description ?? "", OrderIndex = x.OrderIndex, IsActive = x.IsActive, Status = x.Status, SourceName = x.SourceName, SourceUrl = x.SourceUrl, LessonCount = x.Lessons.Count, CreatedAt = x.CreatedAt.ToString("o"), UpdatedAt = x.UpdatedAt.ToString("o"), RowVersion = Version(x.RowVersion) };
     private void CheckVersion(Models.ContentChapter e, string? expected) { if ((e.RowVersion.Length == 0 || e.CurriculumEditionId == null) && string.IsNullOrWhiteSpace(expected)) return; if (string.IsNullOrWhiteSpace(expected)) throw new ValidationException("RowVersion", "Thiếu RowVersion."); byte[] b; try { b = Convert.FromBase64String(expected); } catch { throw new ValidationException("RowVersion", "RowVersion không đúng Base64."); } if (!e.RowVersion.SequenceEqual(b)) throw new ConflictException("Dữ liệu đã được thay đổi bởi người dùng khác."); db.Entry(e).Property(nameof(e.RowVersion)).OriginalValue = b; }
-    private async Task Save(CancellationToken ct) { try { await db.SaveChangesAsync(ct); } catch (DbUpdateConcurrencyException) { throw new ConflictException("Dữ liệu đã được thay đổi bởi người dùng khác."); } }
+    private async Task SaveWithAuditAsync(Func<Task> writeAudit, CancellationToken ct)
+    {
+        try
+        {
+            await writeAudit();
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException) { throw new ConflictException("Dữ liệu đã được thay đổi bởi người dùng khác."); }
+        catch (DbUpdateException ex) when (
+            (ex.GetBaseException() is Microsoft.Data.SqlClient.SqlException sqlEx && (sqlEx.Number == 2601 || sqlEx.Number == 2627)) ||
+            (ex.GetBaseException().Message.Contains("UNIQUE", StringComparison.OrdinalIgnoreCase) ||
+             ex.GetBaseException().Message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new ConflictException("Mã chương đã tồn tại trong cùng phiên bản giáo trình.");
+        }
+    }
+
+    private async Task Save(CancellationToken ct)
+    {
+        try { await db.SaveChangesAsync(ct); }
+        catch (DbUpdateConcurrencyException) { throw new ConflictException("Dữ liệu đã được thay đổi bởi người dùng khác."); }
+        catch (DbUpdateException ex) when (
+            (ex.GetBaseException() is Microsoft.Data.SqlClient.SqlException sqlEx && (sqlEx.Number == 2601 || sqlEx.Number == 2627)) ||
+            (ex.GetBaseException().Message.Contains("UNIQUE", StringComparison.OrdinalIgnoreCase) ||
+             ex.GetBaseException().Message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new ConflictException("Mã chương đã tồn tại trong cùng phiên bản giáo trình.");
+        }
+    }
     private Task WriteAudit(string action, Models.ContentChapter e, string actor, string? reason, CancellationToken ct) => audit.WriteStaffAuditAsync(action, "content_chapter", e.Id, null, JsonSerializer.Serialize(new { actorUserId = actor, e.Title, e.Code, e.CurriculumEditionId, reason }), ct);
 }

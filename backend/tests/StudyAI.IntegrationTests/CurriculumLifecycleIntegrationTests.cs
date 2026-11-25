@@ -3,6 +3,8 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.DependencyInjection;
 using StudyAI.Data;
 using StudyAI.Features.Content;
@@ -263,6 +265,209 @@ public class CurriculumLifecycleIntegrationTests : IClassFixture<StudyAIApiFixtu
         await Send<CurriculumEditionDto>(HttpMethod.Post, $"/api/v1/content/catalog/editions/{histEd.Id}/archive", admin, new { histEd.RowVersion });
         Assert.Equal(HttpStatusCode.NotFound, (await _client.GetAsync($"/api/v1/curriculum/editions/{histEd.Id}/chapters")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await _client.GetAsync($"/api/v1/curriculum/lessons/{histPubLesson.Id}")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Remediation_DuplicateSlugOrCode_And_DeleteLessonGuards_EnforceConflictAndDraftOnly()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
+        var admin = await Login("admin@studyai.internal", "Admin@123456");
+        var reviewer = await Login("content@studyai.internal", "Content@123456");
+
+        var grade = await Send<GradeLevelDto>(HttpMethod.Post, "/api/v1/content/catalog/grades", admin, new { code = $"GR{suffix}", name = $"Khối {suffix}", orderIndex = 1 });
+        var subject = await Send<CatalogSubjectDto>(HttpMethod.Post, "/api/v1/content/catalog/subjects", admin, new { code = $"SR{suffix}", name = $"Môn {suffix}" });
+        var curriculum = await Send<CurriculumDto>(HttpMethod.Post, "/api/v1/content/catalog/curricula", admin, new { code = $"CR{suffix}", gradeLevelId = grade.Id, subjectId = subject.Id, name = $"CT {suffix}", framework = "CT2018" });
+        curriculum = await Send<CurriculumDto>(HttpMethod.Post, $"/api/v1/content/catalog/curricula/{curriculum.Id}/publish", admin, new { curriculum.RowVersion });
+        var edition = await Send<CurriculumEditionDto>(HttpMethod.Post, "/api/v1/content/catalog/editions", admin, new { code = $"ER{suffix}", curriculumId = curriculum.Id, editionName = $"Bản {suffix}" });
+        edition = await Send<CurriculumEditionDto>(HttpMethod.Post, $"/api/v1/content/catalog/editions/{edition.Id}/publish", admin, new { edition.RowVersion });
+
+        var ch = await Send<ContentChapterItemDto>(HttpMethod.Post, "/api/v1/content/chapters", admin, new { curriculumEditionId = edition.Id, code = "CHR1", title = "Chương R1", orderIndex = 1 });
+        ch = await Send<ContentChapterItemDto>(HttpMethod.Post, $"/api/v1/content/chapters/{ch.Id}/submit-review", admin, new { ch.RowVersion });
+        ch = await Send<ContentChapterItemDto>(HttpMethod.Post, $"/api/v1/content/chapters/{ch.Id}/approve", reviewer, new { ch.RowVersion });
+        ch = await Send<ContentChapterItemDto>(HttpMethod.Post, $"/api/v1/content/chapters/{ch.Id}/publish", reviewer, new { ch.RowVersion });
+
+        // Duplicate chapter code in same edition returns 409 Conflict
+        using (var dupChapter = new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/chapters")
+        {
+            Content = JsonContent.Create(new { curriculumEditionId = edition.Id, code = "CHR1", title = "Chương Trùng", orderIndex = 2 })
+        })
+        {
+            dupChapter.Headers.Authorization = new AuthenticationHeaderValue("Bearer", admin);
+            Assert.Equal(HttpStatusCode.Conflict, (await _client.SendAsync(dupChapter)).StatusCode);
+        }
+
+        // Create lesson, verify duplicate slug in same chapter returns 409
+        var sharedSlug = $"rem-slug-{suffix.ToLowerInvariant()}";
+        var l1 = await Send<ContentLessonDetailDto>(HttpMethod.Post, "/api/v1/content/lessons", admin, new { chapterId = ch.Id, code = "LR1", title = "Bài R1", slug = sharedSlug, orderIndex = 1 });
+
+        using (var dupSlug = new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/lessons")
+        {
+            Content = JsonContent.Create(new { chapterId = ch.Id, code = "LR2", title = "Bài R2", slug = sharedSlug, orderIndex = 2 })
+        })
+        {
+            dupSlug.Headers.Authorization = new AuthenticationHeaderValue("Bearer", admin);
+            Assert.Equal(HttpStatusCode.Conflict, (await _client.SendAsync(dupSlug)).StatusCode);
+        }
+
+        // Publish l1 -> delete must return 400 (non-draft cannot be deleted)
+        l1 = await Send<ContentLessonDetailDto>(HttpMethod.Post, $"/api/v1/content/lessons/{l1.Id}/submit-review", admin, new { l1.RowVersion });
+        l1 = await Send<ContentLessonDetailDto>(HttpMethod.Post, $"/api/v1/content/lessons/{l1.Id}/approve", reviewer, new { l1.RowVersion });
+        l1 = await Send<ContentLessonDetailDto>(HttpMethod.Post, $"/api/v1/content/lessons/{l1.Id}/publish", reviewer, new { l1.RowVersion });
+
+        using (var delPublished = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/content/lessons/{l1.Id}"))
+        {
+            delPublished.Headers.Authorization = new AuthenticationHeaderValue("Bearer", admin);
+            Assert.Equal(HttpStatusCode.BadRequest, (await _client.SendAsync(delPublished)).StatusCode);
+        }
+
+        // Archive l1 -> new lesson can reuse slug, then reactivating l1 returns 409 Conflict
+        l1 = await Send<ContentLessonDetailDto>(HttpMethod.Post, $"/api/v1/content/lessons/{l1.Id}/archive", reviewer, new { l1.RowVersion });
+        var l2 = await Send<ContentLessonDetailDto>(HttpMethod.Post, "/api/v1/content/lessons", admin, new { chapterId = ch.Id, code = "LR3", title = "Bài R3", slug = sharedSlug, orderIndex = 3 });
+
+        using (var reactivateConflict = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{l1.Id}/reactivate")
+        {
+            Content = JsonContent.Create(new { l1.RowVersion })
+        })
+        {
+            reactivateConflict.Headers.Authorization = new AuthenticationHeaderValue("Bearer", admin);
+            var reactivateResp = await _client.SendAsync(reactivateConflict);
+            var reactivateBody = await reactivateResp.Content.ReadAsStringAsync();
+            Assert.True(reactivateResp.StatusCode == HttpStatusCode.Conflict, $"Expected 409 Conflict, got {(int)reactivateResp.StatusCode}: {reactivateBody}");
+        }
+
+        // Clean draft lesson l2 can be deleted
+        using (var delDraft = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/content/lessons/{l2.Id}"))
+        {
+            delDraft.Headers.Authorization = new AuthenticationHeaderValue("Bearer", admin);
+            var delResp = await _client.SendAsync(delDraft);
+            Assert.True(delResp.IsSuccessStatusCode, $"Expected 2xx deleting clean draft lesson, got {(int)delResp.StatusCode}");
+        }
+    }
+
+    [Fact]
+    public async Task F04_ConcurrentDuplicateSlug_Returns409_And_F05_ArchiveFirstRetention_Enforced()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
+        var admin = await Login("admin@studyai.internal", "Admin@123456");
+        var reviewer = await Login("content@studyai.internal", "Content@123456");
+
+        var grade = await Send<GradeLevelDto>(HttpMethod.Post, "/api/v1/content/catalog/grades", admin, new { code = $"GF{suffix}", name = $"Khối {suffix}", orderIndex = 3 });
+        var subject = await Send<CatalogSubjectDto>(HttpMethod.Post, "/api/v1/content/catalog/subjects", admin, new { code = $"SF{suffix}", name = $"Sinh {suffix}" });
+        var curriculum = await Send<CurriculumDto>(HttpMethod.Post, "/api/v1/content/catalog/curricula", admin, new { code = $"CF{suffix}", gradeLevelId = grade.Id, subjectId = subject.Id, name = $"CT {suffix}", framework = "CT2018" });
+        curriculum = await Send<CurriculumDto>(HttpMethod.Post, $"/api/v1/content/catalog/curricula/{curriculum.Id}/publish", admin, new { curriculum.RowVersion });
+        var edition = await Send<CurriculumEditionDto>(HttpMethod.Post, "/api/v1/content/catalog/editions", admin, new { code = $"EF{suffix}", curriculumId = curriculum.Id, editionName = $"Ed {suffix}" });
+        edition = await Send<CurriculumEditionDto>(HttpMethod.Post, $"/api/v1/content/catalog/editions/{edition.Id}/publish", admin, new { edition.RowVersion });
+        var chapter = await Send<ContentChapterItemDto>(HttpMethod.Post, "/api/v1/content/chapters", admin, new { curriculumEditionId = edition.Id, code = $"CHF{suffix}", title = "Chương F04/F05", orderIndex = 1 });
+        chapter = await Send<ContentChapterItemDto>(HttpMethod.Post, $"/api/v1/content/chapters/{chapter.Id}/submit-review", admin, new { chapter.RowVersion });
+        chapter = await Send<ContentChapterItemDto>(HttpMethod.Post, $"/api/v1/content/chapters/{chapter.Id}/approve", reviewer, new { chapter.RowVersion });
+        chapter = await Send<ContentChapterItemDto>(HttpMethod.Post, $"/api/v1/content/chapters/{chapter.Id}/publish", reviewer, new { chapter.RowVersion });
+
+        var sharedSlug = $"dup-slug-{suffix.ToLowerInvariant()}";
+        var t1 = _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/lessons")
+        {
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", admin) },
+            Content = JsonContent.Create(new { chapterId = chapter.Id, code = $"C1{suffix}", title = "Bài A", slug = sharedSlug, orderIndex = 1 })
+        });
+        var t2 = _client.SendAsync(new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/lessons")
+        {
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", admin) },
+            Content = JsonContent.Create(new { chapterId = chapter.Id, code = $"C2{suffix}", title = "Bài B", slug = sharedSlug, orderIndex = 2 })
+        });
+        var responses = await Task.WhenAll(t1, t2);
+        var statuses = responses.Select(r => r.StatusCode).OrderBy(s => (int)s).ToArray();
+        Assert.Equal([HttpStatusCode.Created, HttpStatusCode.Conflict], statuses);
+
+        var pubLesson = await Send<ContentLessonDetailDto>(HttpMethod.Post, "/api/v1/content/lessons", admin, new { chapterId = chapter.Id, code = $"PL{suffix}", title = "Bài xuất bản", slug = $"pub-{suffix.ToLowerInvariant()}", orderIndex = 4 });
+        pubLesson = await Send<ContentLessonDetailDto>(HttpMethod.Post, $"/api/v1/content/lessons/{pubLesson.Id}/submit-review", admin, new { pubLesson.RowVersion });
+        pubLesson = await Send<ContentLessonDetailDto>(HttpMethod.Post, $"/api/v1/content/lessons/{pubLesson.Id}/approve", reviewer, new { pubLesson.RowVersion });
+        pubLesson = await Send<ContentLessonDetailDto>(HttpMethod.Post, $"/api/v1/content/lessons/{pubLesson.Id}/publish", reviewer, new { pubLesson.RowVersion });
+        using (var delDenied = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/content/lessons/{pubLesson.Id}") { Headers = { Authorization = new AuthenticationHeaderValue("Bearer", admin) } })
+        {
+            Assert.Equal(HttpStatusCode.BadRequest, (await _client.SendAsync(delDenied)).StatusCode);
+        }
+
+        using var scope = _fixture.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+        var migrator = db.GetService<IMigrator>();
+        await Assert.ThrowsAnyAsync<Exception>(() => migrator.MigrateAsync("20261125023144_AddMultiSubjectCatalogFoundations"));
+    }
+
+    [Fact]
+    public async Task F03_DualLinked_CannotBypassUnpublishedAncestor_And_CanonicalQuestionsWorkWithoutLegacySubject()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
+        var admin = await Login("admin@studyai.internal", "Admin@123456");
+        var reviewer = await Login("content@studyai.internal", "Content@123456");
+        var learner = await Login("learner@studyai.internal", "Learner@123456");
+
+        var grade = await Send<GradeLevelDto>(HttpMethod.Post, "/api/v1/content/catalog/grades", admin, new { code = $"GQ{suffix}", name = $"Khối {suffix}", orderIndex = 4 });
+        var subject = await Send<CatalogSubjectDto>(HttpMethod.Post, "/api/v1/content/catalog/subjects", admin, new { code = $"SQ{suffix}", name = $"Địa {suffix}" });
+        var curriculum = await Send<CurriculumDto>(HttpMethod.Post, "/api/v1/content/catalog/curricula", admin, new { code = $"CQ{suffix}", gradeLevelId = grade.Id, subjectId = subject.Id, name = $"CT {suffix}", framework = "CT2018" });
+        curriculum = await Send<CurriculumDto>(HttpMethod.Post, $"/api/v1/content/catalog/curricula/{curriculum.Id}/publish", admin, new { curriculum.RowVersion });
+        var edition = await Send<CurriculumEditionDto>(HttpMethod.Post, "/api/v1/content/catalog/editions", admin, new { code = $"EQ{suffix}", curriculumId = curriculum.Id, editionName = $"Ed {suffix}" });
+        edition = await Send<CurriculumEditionDto>(HttpMethod.Post, $"/api/v1/content/catalog/editions/{edition.Id}/publish", admin, new { edition.RowVersion });
+
+        var chapter = await Send<ContentChapterItemDto>(HttpMethod.Post, "/api/v1/content/chapters", admin, new { curriculumEditionId = edition.Id, code = $"CHQ{suffix}", title = "Chương canonical", orderIndex = 1 });
+        chapter = await Send<ContentChapterItemDto>(HttpMethod.Post, $"/api/v1/content/chapters/{chapter.Id}/submit-review", admin, new { chapter.RowVersion });
+        chapter = await Send<ContentChapterItemDto>(HttpMethod.Post, $"/api/v1/content/chapters/{chapter.Id}/approve", reviewer, new { chapter.RowVersion });
+        chapter = await Send<ContentChapterItemDto>(HttpMethod.Post, $"/api/v1/content/chapters/{chapter.Id}/publish", reviewer, new { chapter.RowVersion });
+
+        var lesson = await Send<ContentLessonDetailDto>(HttpMethod.Post, "/api/v1/content/lessons", admin, new { chapterId = chapter.Id, code = $"LQ{suffix}", title = "Bài canonical", slug = $"canon-{suffix.ToLowerInvariant()}", orderIndex = 1 });
+        lesson = await Send<ContentLessonDetailDto>(HttpMethod.Post, $"/api/v1/content/lessons/{lesson.Id}/submit-review", admin, new { lesson.RowVersion });
+        lesson = await Send<ContentLessonDetailDto>(HttpMethod.Post, $"/api/v1/content/lessons/{lesson.Id}/approve", reviewer, new { lesson.RowVersion });
+        lesson = await Send<ContentLessonDetailDto>(HttpMethod.Post, $"/api/v1/content/lessons/{lesson.Id}/publish", reviewer, new { lesson.RowVersion });
+
+        using (var scope = _fixture.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            db.ContentQuestions.Add(new Models.ContentQuestion
+            {
+                Id = $"q_{suffix.ToLowerInvariant()}",
+                LessonId = lesson.Id,
+                ChapterId = chapter.Id,
+                SubjectId = subject.Id,
+                Prompt = "Câu hỏi canonical?",
+                OptionsJson = "[\"A1\",\"B2\"]",
+                CorrectAnswer = "A1",
+                Status = "published",
+                OrderIndex = 1
+            });
+            await db.SaveChangesAsync();
+        }
+
+        var qList = await _client.GetAsync($"/api/v1/curriculum/lessons/{lesson.Id}/questions");
+        Assert.Equal(HttpStatusCode.OK, qList.StatusCode);
+        Assert.Contains($"q_{suffix.ToLowerInvariant()}", await qList.Content.ReadAsStringAsync());
+
+        using (var checkReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/curriculum/lessons/{lesson.Id}/questions/q_{suffix.ToLowerInvariant()}/check")
+        {
+            Headers = { Authorization = new AuthenticationHeaderValue("Bearer", learner) },
+            Content = JsonContent.Create(new { selectedOption = "A1" })
+        })
+        {
+            var checkResp = await _client.SendAsync(checkReq);
+            Assert.Equal(HttpStatusCode.OK, checkResp.StatusCode);
+            Assert.Contains("\"isCorrect\":true", await checkResp.Content.ReadAsStringAsync(), StringComparison.OrdinalIgnoreCase);
+        }
+
+        var edListResp = await _client.GetAsync("/api/v1/curriculum/editions");
+        Assert.Equal(HttpStatusCode.OK, edListResp.StatusCode);
+        Assert.Contains(edition.Id, await edListResp.Content.ReadAsStringAsync());
+
+        using (var scope = _fixture.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            db.ContentSubjects.Add(new Models.ContentSubject { Id = $"sub_leg_{suffix.ToLowerInvariant()}", Code = $"LEG{suffix}", Name = "Legacy Active", Grade = "12", IsActive = true, OrderIndex = 1 });
+            var ch = await db.ContentChapters.FindAsync(chapter.Id);
+            ch!.SubjectId = $"sub_leg_{suffix.ToLowerInvariant()}";
+            await db.SaveChangesAsync();
+        }
+
+        chapter = await Send<ContentChapterItemDto>(HttpMethod.Get, $"/api/v1/content/chapters/{chapter.Id}", admin);
+        chapter = await Send<ContentChapterItemDto>(HttpMethod.Post, $"/api/v1/content/chapters/{chapter.Id}/unpublish", reviewer, new { chapter.RowVersion });
+        Assert.Equal("approved", chapter.Status);
+        Assert.Equal(HttpStatusCode.NotFound, (await _client.GetAsync($"/api/v1/curriculum/lessons/{lesson.Id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await _client.GetAsync($"/api/v1/curriculum/lessons/{lesson.Id}/questions")).StatusCode);
     }
 
     private sealed class FailingAuditWriter : IAuditWriter
