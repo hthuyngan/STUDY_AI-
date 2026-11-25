@@ -1,0 +1,83 @@
+﻿{
+    "snapshot":  {
+                     "indexCount":  126,
+                     "foreignKeysTotal":  43,
+                     "migrationCount":  17,
+                     "foreignKeysUntrusted":  0,
+                     "rowCounts":  {
+                                       "content_chapters":  18,
+                                       "lesson_progress":  20,
+                                       "content_subjects":  21,
+                                       "users":  134,
+                                       "ai_conversations":  38,
+                                       "content_questions":  16693,
+                                       "content_lessons":  35,
+                                       "assessment_attempts":  21
+                                   },
+                     "migrations":  [
+                                        "20261107094945_InitialSqlServerCreate",
+                                        "20261108144723_AddUserSoftDelete",
+                                        "20261108162500_EnhanceCurriculumAndQuestions",
+                                        "20261109001500_FixContentDefaultConstraints",
+                                        "20261110001600_AddAiChatConversationsAndMessages",
+                                        "20261111072919_AddClassroomsAndAssignments",
+                                        "20261112144701_AddContentQuestionBankEnhancements",
+                                        "20261115200026_AddAiIntelligenceTables",
+                                        "20261120032910_AddTeacherProfiles",
+                                        "20261121014815_AddStaffAuditLogCompositeIndex",
+                                        "20261121140925_AddContentRevisions",
+                                        "20261121141742_AddClassroomAlerts",
+                                        "20261121164154_AddAssessmentMetadataAndUniqueRevisionIndex",
+                                        "20261122073548_AddCurriculumHierarchyAndVideoMetadata",
+                                        "20261124162618_AddSystemSettingsTable",
+                                        "20261124164959_AddUserNotesAndBookmarksTables",
+                                        "20261125023144_AddMultiSubjectCatalogFoundations"
+                                    ],
+                     "foreignKeysDisabled":  0
+                 },
+    "cloneDatabase":  "StudyAIDb_Clean_2bfdade9fc6842219f04e22d8fbf06cd",
+    "p01NewTableCounts":  {
+                              "catalog_subjects":  0,
+                              "textbook_series":  0,
+                              "grade_levels":  0,
+                              "curriculum_editions":  0,
+                              "curricula":  0
+                          },
+    "duplicateEmailCount":  0,
+    "apiCompatibilitySmoke":  {
+                                  "healthDb":  {
+                                                   "status":  "ok",
+                                                   "database":  "connected",
+                                                   "environment":  "Testing",
+                                                   "databaseName":  "StudyAIDb_Clean_2bfdade9fc6842219f04e22d8fbf06cd",
+                                                   "dataSource":  ".\\SQLEXPRESS"
+                                               },
+                                  "createGradeStatus":  201,
+                                  "createdGradeInitialStatus":  "draft",
+                                  "legacySubjectsStatus":  200,
+                                  "loginStatus":  200,
+                                  "compatibilityMapping":  {
+                                                               "conflictCount":  8,
+                                                               "unmappedCount":  13,
+                                                               "legacySubjectCount":  21,
+                                                               "mappedCount":  0
+                                                           }
+                              },
+    "p01UniqueIndexes":  [
+                             "IX_catalog_subjects_Code|",
+                             "IX_curricula_Code|",
+                             "IX_curricula_GradeLevelId_SubjectId_Framework_AcademicYearFrom_AcademicYearTo|([Status]\u003c\u003e\u0027archived\u0027)",
+                             "IX_curriculum_editions_Code|",
+                             "IX_curriculum_editions_CurriculumId_TextbookSeriesId_Version_Volume_PublicationYear|([Status]\u003c\u003e\u0027archived\u0027)",
+                             "IX_grade_levels_Code|",
+                             "IX_textbook_series_Code|",
+                             "PK_catalog_subjects|",
+                             "PK_curricula|",
+                             "PK_curriculum_editions|",
+                             "PK_grade_levels|",
+                             "PK_textbook_series|"
+                         ],
+    "duplicateLegacySubjectCodeCount":  0,
+    "applicationSha":  "e9f46ed81892d29682850901ab1d599421025cec",
+    "dbccCheckConstraintsViolations":  0
+}

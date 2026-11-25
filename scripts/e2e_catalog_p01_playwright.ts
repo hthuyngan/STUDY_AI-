@@ -4,7 +4,7 @@ import fs from 'fs'
 import path from 'path'
 import { resolveDotnet10Environment } from './utils/dotnetRuntime'
 import { assertSafeTestDatabase } from './utils/databaseSafetyGuard'
-import { createDisposableTestDatabase } from './utils/disposableDb'
+import { createDisposableTestDatabase, killProcessTreeAndWait } from './utils/disposableDb'
 
 const BACKEND_PORT = 8000
 const FRONTEND_PORT = 4191
@@ -308,8 +308,8 @@ async function run() {
     console.log('=== P01 CATALOG PLAYWRIGHT SUITE: 7/7 PASSED ===')
   } finally {
     await browser.close()
-    killProcessTree(backendProc)
-    killProcessTree(frontendProc)
+    await killProcessTreeAndWait(backendProc)
+    await killProcessTreeAndWait(frontendProc)
     await disposableDb.cleanup()
     console.log(`Cleaned up disposable database: ${disposableDb.dbName}`)
   }

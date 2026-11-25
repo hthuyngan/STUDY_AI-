@@ -10,10 +10,10 @@
    ```powershell
    sqlcmd -S ".\SQLEXPRESS" -d "StudyAIDb" -E -C -Q "SELECT MigrationId FROM [__EFMigrationsHistory] ORDER BY MigrationId;"
    ```
-3. Take a verified `COPY_ONLY` backup in SQL Server's backup directory (never inside the Git repo; omit `COMPRESSION` on SQL Server Express):
+3. Take a verified `COPY_ONLY, CHECKSUM` backup in SQL Server's backup directory (never inside the Git repo; omit `COMPRESSION` on SQL Server Express):
    ```powershell
-   sqlcmd -S ".\SQLEXPRESS" -E -C -b -Q "BACKUP DATABASE [StudyAIDb] TO DISK = N'<SQL_BACKUP_DIR>\StudyAIDb_pre_p01_upgrade.bak' WITH INIT, COPY_ONLY;"
-   sqlcmd -S ".\SQLEXPRESS" -E -C -b -Q "RESTORE VERIFYONLY FROM DISK = N'<SQL_BACKUP_DIR>\StudyAIDb_pre_p01_upgrade.bak';"
+   sqlcmd -S ".\SQLEXPRESS" -E -C -b -Q "BACKUP DATABASE [StudyAIDb] TO DISK = N'<SQL_BACKUP_DIR>\StudyAIDb_pre_p01_upgrade.bak' WITH INIT, COPY_ONLY, CHECKSUM;"
+   sqlcmd -S ".\SQLEXPRESS" -E -C -b -Q "RESTORE VERIFYONLY FROM DISK = N'<SQL_BACKUP_DIR>\StudyAIDb_pre_p01_upgrade.bak' WITH CHECKSUM;"
    ```
 
 ---
@@ -35,14 +35,9 @@ Post-migration verification (read-only):
 ---
 
 ## 3. Rollback Plan
-- **Option A — Schema-Only EF Downgrade (if no new P01 catalog data is needed):**
+- **Primary Rollback (Default) — Full Restore from Verified `COPY_ONLY, CHECKSUM` `.bak`:**
+  Rehearsed on `StudyAIDb_Clean_2bfdade9fc6842219f04e22d8fbf06cd` (`matchesPreMigrationBaseline: true`). Stop `StudyAI.Api` and any active `StudyAIDb` connections cleanly before restoring:
   ```powershell
-  cd backend
-  dotnet ef database update 20261115200026_AddAiIntelligenceTables `
-    --project src/StudyAI.Api/StudyAI.Api.csproj `
-    --connection "Server=.\SQLEXPRESS;Database=StudyAIDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;"
+  sqlcmd -S ".\SQLEXPRESS" -E -C -b -Q "RESTORE DATABASE [StudyAIDb] FROM DISK = N'<SQL_BACKUP_DIR>\StudyAIDb_pre_p01_upgrade.bak' WITH REPLACE;"
   ```
-- **Option B — Full Point-in-Time Restore from Verified `.bak` (preferred if any unexpected state occurs):**
-  ```powershell
-  sqlcmd -S ".\SQLEXPRESS" -E -C -b -Q "ALTER DATABASE [StudyAIDb] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; RESTORE DATABASE [StudyAIDb] FROM DISK = N'<SQL_BACKUP_DIR>\StudyAIDb_pre_p01_upgrade.bak' WITH REPLACE; ALTER DATABASE [StudyAIDb] SET MULTI_USER;"
-  ```
+- **Note on EF Core Downgrade (`dotnet ef database update <prev>`):** **Not a safe default rollback** (`efDowngradeDefault: false`). Because these 9 migrations drop/re-add foreign keys, alter unique indexes, and add 11 tables, schema downgrade is NOT rehearsed as a primary rollback path; use the verified `.bak` full restore above.

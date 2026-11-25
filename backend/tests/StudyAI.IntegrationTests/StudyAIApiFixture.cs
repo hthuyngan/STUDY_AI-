@@ -23,8 +23,10 @@ public class StudyAIApiFixture : WebApplicationFactory<Program>
 {
     private string? _ownedDisposableDbName;
     private string? _ownedMasterConnStr;
+    private string? _ownedRunId;
     private string? _ownedOwnershipToken;
     private string? _resolvedConnStr;
+    private bool _disposed;
 
     /// <summary>
     /// Explicit override for testing the database safety guard.
@@ -57,73 +59,75 @@ public class StudyAIApiFixture : WebApplicationFactory<Program>
             // Validate strictly (rejects StudyAIDb, StudyAIDb_Dev, StudyAIDb_E2E)
             var dbName = DatabaseSafetyGuard.EnsureSafeTestDatabase(envConn, "StudyAIApiFixture.EnvConnection");
             var masterBuilder = new SqlConnectionStringBuilder(envConn) { InitialCatalog = "master" };
-            EnsureCleanDatabaseExists(masterBuilder.ConnectionString, dbName);
+
+            // Recover any dead interrupted runs owned by manifests before proceeding
+            DisposableDatabaseOrchestrator.RecoverInterruptedOwnedDatabases(masterBuilder.ConnectionString);
+
+            using var checkConn = new SqlConnection(masterBuilder.ConnectionString);
+            checkConn.Open();
+            if (!DisposableDatabaseOrchestrator.DatabaseExists(checkConn, dbName))
+            {
+                // Fixture creates the DB if it didn't exist -> fixture owns its manifest & cleanup
+                var entry = DisposableDatabaseOrchestrator.CreateOwnedDatabase(
+                    masterBuilder.ConnectionString,
+                    dbName,
+                    "StudyAIApiFixture.EnvProvision");
+                _ownedMasterConnStr = masterBuilder.ConnectionString;
+                _ownedDisposableDbName = entry.DatabaseName;
+                _ownedRunId = entry.RunId;
+                _ownedOwnershipToken = entry.OwnershipToken;
+            }
+
             _resolvedConnStr = envConn;
             return _resolvedConnStr;
         }
 
-        // Provision a fresh disposable StudyAIDb_Clean_{GUID} on local .\SQLEXPRESS and stamp run ownership token
+        // Provision a fresh disposable StudyAIDb_Clean_{GUID} on local .\SQLEXPRESS after recovering interrupted runs
         var cleanDbName = $"StudyAIDb_Clean_{Guid.NewGuid():N}";
-        var ownershipToken = Guid.NewGuid().ToString("N");
         var localMaster = "Server=.\\SQLEXPRESS;Database=master;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true;";
-        var cleanConn = new SqlConnectionStringBuilder(localMaster) { InitialCatalog = cleanDbName }.ConnectionString;
-        DatabaseSafetyGuard.EnsureSafeTestDatabase(cleanConn, "StudyAIApiFixture.AutoProvision");
-        CreateOwnedDisposableDatabase(localMaster, cleanDbName, ownershipToken);
+        DisposableDatabaseOrchestrator.RecoverInterruptedOwnedDatabases(localMaster);
+
+        var ownedEntry = DisposableDatabaseOrchestrator.CreateOwnedDatabase(
+            localMaster,
+            cleanDbName,
+            "StudyAIApiFixture.AutoProvision");
 
         _ownedMasterConnStr = localMaster;
-        _ownedDisposableDbName = cleanDbName;
-        _ownedOwnershipToken = ownershipToken;
-        _resolvedConnStr = cleanConn;
+        _ownedDisposableDbName = ownedEntry.DatabaseName;
+        _ownedRunId = ownedEntry.RunId;
+        _ownedOwnershipToken = ownedEntry.OwnershipToken;
+        _resolvedConnStr = new SqlConnectionStringBuilder(localMaster) { InitialCatalog = cleanDbName }.ConnectionString;
         return _resolvedConnStr;
-    }
-
-    private static void CreateOwnedDisposableDatabase(string masterConnStr, string dbName, string ownershipToken)
-    {
-        using var conn = new SqlConnection(masterConnStr);
-        conn.Open();
-        using var cmd = conn.CreateCommand();
-        // Strict CREATE DATABASE (no IF DB_ID IS NULL) ensures this run created and owns it
-        cmd.CommandText = $@"
-            CREATE DATABASE [{dbName}];
-            EXEC [{dbName}].sys.sp_addextendedproperty @name = N'StudyAI_OwnershipToken', @value = N'{ownershipToken}';";
-        cmd.ExecuteNonQuery();
-    }
-
-    private static void EnsureCleanDatabaseExists(string masterConnStr, string dbName)
-    {
-        using var conn = new SqlConnection(masterConnStr);
-        conn.Open();
-        using var cmd = conn.CreateCommand();
-        cmd.CommandText = $"IF DB_ID('{dbName}') IS NULL CREATE DATABASE [{dbName}];";
-        cmd.ExecuteNonQuery();
     }
 
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
-        if (disposing && !string.IsNullOrWhiteSpace(_ownedDisposableDbName) && !string.IsNullOrWhiteSpace(_ownedMasterConnStr))
+        if (!disposing || _disposed)
         {
-            SqlConnection.ClearAllPools();
-            using var conn = new SqlConnection(_ownedMasterConnStr);
-            conn.Open();
+            return;
+        }
+        _disposed = true;
 
-            using var verifyCmd = conn.CreateCommand();
-            verifyCmd.CommandText = $@"
-                SELECT ISNULL(CAST(value AS nvarchar(128)), '')
-                FROM [{_ownedDisposableDbName}].sys.extended_properties
-                WHERE class = 0 AND name = N'StudyAI_OwnershipToken';";
-            var dbToken = verifyCmd.ExecuteScalar()?.ToString();
-            if (!string.Equals(dbToken, _ownedOwnershipToken, StringComparison.Ordinal))
-            {
-                throw new InvalidOperationException(
-                    $"CRITICAL CLEANUP GUARD: Refusing to drop '{_ownedDisposableDbName}' because StudyAI_OwnershipToken did not match current fixture run.");
-            }
+        var dbName = _ownedDisposableDbName;
+        var masterConn = _ownedMasterConnStr;
+        var runId = _ownedRunId;
+        var token = _ownedOwnershipToken;
+        _ownedDisposableDbName = null;
+        _ownedMasterConnStr = null;
+        _ownedRunId = null;
+        _ownedOwnershipToken = null;
 
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = $@"
-                ALTER DATABASE [{_ownedDisposableDbName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
-                DROP DATABASE [{_ownedDisposableDbName}];";
-            cmd.ExecuteNonQuery();
+        if (!string.IsNullOrWhiteSpace(dbName) &&
+            !string.IsNullOrWhiteSpace(masterConn) &&
+            !string.IsNullOrWhiteSpace(runId) &&
+            !string.IsNullOrWhiteSpace(token))
+        {
+            DisposableDatabaseOrchestrator.SafeDropOwnedDatabase(
+                masterConn,
+                dbName,
+                runId,
+                token);
         }
     }
 

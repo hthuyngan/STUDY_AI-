@@ -1,0 +1,34 @@
+﻿{
+    "applicationSha":  "e9f46ed81892d29682850901ab1d599421025cec",
+    "matchesPreMigrationBaseline":  true,
+    "cloneDatabase":  "StudyAIDb_Clean_2bfdade9fc6842219f04e22d8fbf06cd",
+    "snapshot":  {
+                     "indexCount":  89,
+                     "foreignKeysTotal":  30,
+                     "migrationCount":  8,
+                     "foreignKeysUntrusted":  0,
+                     "rowCounts":  {
+                                       "content_chapters":  18,
+                                       "lesson_progress":  20,
+                                       "content_subjects":  21,
+                                       "users":  134,
+                                       "ai_conversations":  38,
+                                       "content_questions":  16693,
+                                       "content_lessons":  35,
+                                       "assessment_attempts":  21
+                                   },
+                     "migrations":  [
+                                        "20261107094945_InitialSqlServerCreate",
+                                        "20261108144723_AddUserSoftDelete",
+                                        "20261108162500_EnhanceCurriculumAndQuestions",
+                                        "20261109001500_FixContentDefaultConstraints",
+                                        "20261110001600_AddAiChatConversationsAndMessages",
+                                        "20261111072919_AddClassroomsAndAssignments",
+                                        "20261112144701_AddContentQuestionBankEnhancements",
+                                        "20261115200026_AddAiIntelligenceTables"
+                                    ],
+                     "foreignKeysDisabled":  0
+                 },
+    "efDowngradeDefault":  false,
+    "rollbackMethod":  "FULL_RESTORE_FROM_VERIFIED_COPY_ONLY_CHECKSUM_BACKUP"
+}

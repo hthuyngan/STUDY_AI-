@@ -333,14 +333,41 @@ async function run() {
     })
 
     // ──────────────────────────────────────────────────────────
-    // SCENARIO 6: Page Reload & History Reloading from Database
+    // SCENARIO 6: Page Reload & History Reloading from Database (Limited Diagnostic)
     // ──────────────────────────────────────────────────────────
     console.log('\n--- Scenario 6: Page Reload & History Reloading from Database ---')
     const s6Start = Date.now()
     const s6Snaps: string[] = []
 
+    const convRespPromise = page.waitForResponse(
+      (r) => r.url().includes('/api/v1/ai/conversations') && r.request().method() === 'GET'
+    )
+    const authRefreshPromise = page
+      .waitForResponse((r) => r.url().includes('/api/v1/auth/refresh') && r.request().method() === 'POST', {
+        timeout: 5000,
+      })
+      .catch(() => null)
+
     // Reload the page
     await page.reload()
+    const refreshResp = await authRefreshPromise
+    console.log(`[Scenario 6 Diagnostic] Current URL after reload: ${page.url()}`)
+    console.log(
+      `[Scenario 6 Diagnostic] POST /api/v1/auth/refresh status: ${refreshResp ? refreshResp.status() : 'not-fired'}`
+    )
+    const convResp = await convRespPromise.catch(() => null)
+    if (!convResp) {
+      throw new Error(
+        `[Scenario 6 Diagnostic] GET /api/v1/ai/conversations was NOT fired after reload (current URL: ${page.url()}, refresh status: ${refreshResp ? refreshResp.status() : 'not-fired'})`
+      )
+    }
+    const convStatus = convResp.status()
+    const convBodyText = await convResp.text()
+    console.log(`[Scenario 6 Diagnostic] GET /api/v1/ai/conversations status=${convStatus}, body=${convBodyText.slice(0, 300)}`)
+    if (convStatus !== 200) {
+      throw new Error(`[Scenario 6 Diagnostic] Expected 200 on GET /api/v1/ai/conversations, got ${convStatus}`)
+    }
+
     await page.waitForLoadState('networkidle')
     await page.waitForSelector('.ai-tutor-layout', { timeout: 10000 })
 

@@ -13,7 +13,7 @@ This repository implements an education system for Vietnamese high-school studen
 - **StudyAIDb is the single persistent database for Development website runtime and Production.** Never execute automated tests, test fixtures, Playwright, auto-migrations, sample curriculum seeding, test-account bootstrap, reset, truncate, drop, or unapproved data import on `StudyAIDb`. Migrations on `StudyAIDb` must be applied explicitly under controlled maintenance.
 - **Strict 2-tier separation (ENV-01 Single Persistent DB):**
   - `StudyAIDb`: single persistent website/production database (`Development` and `Production` only, via explicit `ConnectionStrings:DefaultConnection`).
-  - `StudyAIDb_Clean_{GUID}` (`Guid:N` or `Guid:D`): the ONLY authorized database for `Testing`, xUnit Integration Tests, CI, and Playwright E2E — auto-created before tests and dropped in `finally` / `Dispose`. Static `StudyAIDb_E2E` and `StudyAIDb_Dev` are forbidden in test runners.
+  - `StudyAIDb_Clean_{GUID}` (`Guid:N` or `Guid:D`): the ONLY authorized database for `Testing`, xUnit Integration Tests, CI, and Playwright E2E — auto-created before tests with per-run atomic ownership manifests, interrupted-run recovery before provisioning, and safe `LOCK_TIMEOUT` drop in `finally` / `Dispose` (never `SINGLE_USER WITH ROLLBACK IMMEDIATE`). Static `StudyAIDb_E2E` and `StudyAIDb_Dev` are forbidden in test runners.
 - Startup must fail closed when `ConnectionStrings:DefaultConnection` is missing or empty; no hardcoded fallback connection string is allowed in `Program.cs`, `appsettings.json`, or `appsettings.Testing.json`.
 - Do not log credentials, student private data or commit real production dumps.
 
