@@ -269,21 +269,37 @@ public class AiChatIntegrationTests : IClassFixture<StudyAIApiFixture>, IAsyncLi
     {
         var learnerToken = await GetLearnerTokenAsync();
 
-        // Seed a draft lesson in database
+        // Seed an isolated subject, chapter, and draft lesson in database
         var draftLessonId = $"les_draft_{Guid.NewGuid():N}";
+        var isolatedSubjectId = $"sub_aichat_{Guid.NewGuid():N}"[..20];
+        var isolatedChapterId = $"ch_aichat_{Guid.NewGuid():N}"[..20];
         using (var scope = _fixture.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
             var author = await db.Users.FirstAsync();
-            var subject = await db.ContentSubjects.FirstAsync();
-            var chapter = await db.ContentChapters.FirstOrDefaultAsync(c => c.SubjectId == subject.Id)
-                ?? new ContentChapter { Id = $"ch_{Guid.NewGuid():N}", SubjectId = subject.Id, Title = "Chương Test", OrderIndex = 1 };
-            if (db.Entry(chapter).State == EntityState.Detached) db.ContentChapters.Add(chapter);
+            db.ContentSubjects.Add(new ContentSubject
+            {
+                Id = isolatedSubjectId,
+                Name = "Môn Test AI Chat",
+                Code = $"CODE_{Guid.NewGuid():N}"[..16],
+                Grade = "12",
+                IsActive = true,
+                CreatedAt = DateTimeOffset.UtcNow
+            });
+            db.ContentChapters.Add(new ContentChapter
+            {
+                Id = isolatedChapterId,
+                SubjectId = isolatedSubjectId,
+                Title = "Chương Test",
+                OrderIndex = 1,
+                Status = "published",
+                IsActive = true
+            });
 
             db.ContentLessons.Add(new ContentLesson
             {
                 Id = draftLessonId,
-                ChapterId = chapter.Id,
+                ChapterId = isolatedChapterId,
                 Title = "Bài học mật nháp",
                 Slug = $"slug-{Guid.NewGuid():N}",
                 Status = "draft",

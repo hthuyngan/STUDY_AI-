@@ -414,4 +414,115 @@ public class LessonVideoGovernanceIntegrationTests : IClassFixture<StudyAIApiFix
         Assert.Contains(logs, l => l.Action == "lesson_video_unpublished");
         Assert.Contains(logs, l => l.Action == "lesson_video_rejected");
     }
+
+    [Fact]
+    public async Task VideoGovernance_UpdateSourceUrl_ResetsVerification_AndUnpublishes()
+    {
+        await EnsureProvisionedAccountsExistAsync();
+        var contentToken = await LoginAsync("content@gmail.com", _contentPassword);
+        var (_, _, lessonId) = await CreateIsolatedCurriculumFixtureAsync();
+
+        // 1. Add video
+        var createPayload = new CreateLessonVideoRequestDto
+        {
+            Title = "Video Ban Đầu",
+            SourceUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            VerificationStatus = "pending",
+            IsPublished = false
+        };
+        using var createReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lessonId}/videos");
+        createReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        createReq.Content = new StringContent(JsonSerializer.Serialize(createPayload), Encoding.UTF8, "application/json");
+
+        var createResp = await _client.SendAsync(createReq);
+        createResp.EnsureSuccessStatusCode();
+        var video = JsonSerializer.Deserialize<ContentLessonVideoItemDto>(await createResp.Content.ReadAsStringAsync(), JsonOpts);
+        Assert.NotNull(video);
+        string videoId = video.Id;
+
+        // 2. Verify and Publish
+        using var verifyReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/videos/{videoId}/verify");
+        verifyReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        var verifyResp = await _client.SendAsync(verifyReq);
+        verifyResp.EnsureSuccessStatusCode();
+
+        using var publishReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/videos/{videoId}/publish");
+        publishReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        var publishResp = await _client.SendAsync(publishReq);
+        publishResp.EnsureSuccessStatusCode();
+
+        // 3. Update Source URL to a new YouTube URL
+        var updatePayload = new UpdateLessonVideoRequestDto
+        {
+            SourceUrl = "https://www.youtube.com/watch?v=9bZkp7q19f0"
+        };
+        using var updateReq = new HttpRequestMessage(HttpMethod.Patch, $"/api/v1/content/videos/{videoId}");
+        updateReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        updateReq.Content = new StringContent(JsonSerializer.Serialize(updatePayload), Encoding.UTF8, "application/json");
+
+        var updateResp = await _client.SendAsync(updateReq);
+        updateResp.EnsureSuccessStatusCode();
+        var updated = JsonSerializer.Deserialize<ContentLessonVideoItemDto>(await updateResp.Content.ReadAsStringAsync(), JsonOpts);
+        Assert.NotNull(updated);
+
+        // CURR-003: When source URL changes, reset verification and unpublish!
+        Assert.Equal("pending", updated.VerificationStatus);
+        Assert.False(updated.IsPublished);
+        Assert.Null(updated.VerifiedAt);
+    }
+
+    [Fact]
+    public async Task VideoGovernance_LearnerApi_ReturnsOnlyPublishedAndVerifiedVideos()
+    {
+        await EnsureProvisionedAccountsExistAsync();
+        var contentToken = await LoginAsync("content@gmail.com", _contentPassword);
+        var (_, _, lessonId) = await CreateIsolatedCurriculumFixtureAsync();
+
+        // 1. Add video
+        var createPayload = new CreateLessonVideoRequestDto
+        {
+            Title = "Video Kiểm Tra Learner API",
+            SourceUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            VerificationStatus = "pending",
+            IsPublished = false
+        };
+        using var createReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lessonId}/videos");
+        createReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        createReq.Content = new StringContent(JsonSerializer.Serialize(createPayload), Encoding.UTF8, "application/json");
+
+        var createResp = await _client.SendAsync(createReq);
+        createResp.EnsureSuccessStatusCode();
+        var video = JsonSerializer.Deserialize<ContentLessonVideoItemDto>(await createResp.Content.ReadAsStringAsync(), JsonOpts);
+        Assert.NotNull(video);
+        string videoId = video.Id;
+
+        // 2. Pending video -> Learner API MUST NOT return it
+        var learnerVideosResp = await _client.GetAsync($"/api/v1/curriculum/lessons/{lessonId}/videos");
+        learnerVideosResp.EnsureSuccessStatusCode();
+        var learnerVideos = JsonSerializer.Deserialize<List<LearnerVideoDto>>(await learnerVideosResp.Content.ReadAsStringAsync(), JsonOpts);
+        Assert.Empty(learnerVideos!);
+
+        // 3. Verify video but leave unpublished -> Learner API MUST NOT return it
+        using var verifyReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/videos/{videoId}/verify");
+        verifyReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        var verifyResp = await _client.SendAsync(verifyReq);
+        verifyResp.EnsureSuccessStatusCode();
+
+        learnerVideosResp = await _client.GetAsync($"/api/v1/curriculum/lessons/{lessonId}/videos");
+        learnerVideosResp.EnsureSuccessStatusCode();
+        learnerVideos = JsonSerializer.Deserialize<List<LearnerVideoDto>>(await learnerVideosResp.Content.ReadAsStringAsync(), JsonOpts);
+        Assert.Empty(learnerVideos!);
+
+        // 4. Publish verified video -> Learner API MUST now return it
+        using var publishReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/videos/{videoId}/publish");
+        publishReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        var publishResp = await _client.SendAsync(publishReq);
+        publishResp.EnsureSuccessStatusCode();
+
+        learnerVideosResp = await _client.GetAsync($"/api/v1/curriculum/lessons/{lessonId}/videos");
+        learnerVideosResp.EnsureSuccessStatusCode();
+        learnerVideos = JsonSerializer.Deserialize<List<LearnerVideoDto>>(await learnerVideosResp.Content.ReadAsStringAsync(), JsonOpts);
+        Assert.Single(learnerVideos!);
+        Assert.Equal(videoId, learnerVideos![0].Id);
+    }
 }

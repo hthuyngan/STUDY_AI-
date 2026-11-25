@@ -51,19 +51,27 @@ public class ContentSubjectsService : IContentSubjectsService
             .ThenBy(s => s.Name)
             .ToListAsync(ct);
 
-        var result = subjects.Select(s => new ContentSubjectItemDto
+        var result = subjects.Select(s =>
         {
-            Id = s.Id,
-            Name = s.Name,
-            Code = s.Code,
-            Grade = s.Grade,
-            Description = s.Description ?? "",
-            OrderIndex = s.OrderIndex,
-            IsActive = s.IsActive,
-            ChapterCount = s.Chapters.Count,
-            LessonCount = s.Chapters.Sum(c => c.Lessons.Count),
-            CreatedAt = s.CreatedAt.ToString("o"),
-            UpdatedAt = s.UpdatedAt.ToString("o")
+            var totalLessons = s.Chapters.Sum(c => c.Lessons.Count);
+            var publishedLessons = s.Chapters.Sum(c => c.Lessons.Count(l => l.Status == "published"));
+            var publishedPercent = totalLessons > 0 ? (int)Math.Round((double)publishedLessons / totalLessons * 100) : 0;
+            return new ContentSubjectItemDto
+            {
+                Id = s.Id,
+                Name = s.Name,
+                Code = s.Code,
+                Grade = s.Grade,
+                Description = s.Description ?? "",
+                OrderIndex = s.OrderIndex,
+                IsActive = s.IsActive,
+                ChapterCount = s.Chapters.Count,
+                LessonCount = totalLessons,
+                PublishedLessonCount = publishedLessons,
+                PublishedPercent = publishedPercent,
+                CreatedAt = s.CreatedAt.ToString("o"),
+                UpdatedAt = s.UpdatedAt.ToString("o")
+            };
         }).ToList();
 
         return new ContentSubjectListResponseDto
@@ -100,6 +108,10 @@ public class ContentSubjectsService : IContentSubjectsService
             }).ToList()
         }).ToList();
 
+        var totalLessons = s.Chapters.Sum(c => c.Lessons.Count);
+        var publishedLessons = s.Chapters.Sum(c => c.Lessons.Count(l => l.Status == "published"));
+        var publishedPercent = totalLessons > 0 ? (int)Math.Round((double)publishedLessons / totalLessons * 100) : 0;
+
         return new
         {
             id = s.Id,
@@ -109,6 +121,10 @@ public class ContentSubjectsService : IContentSubjectsService
             description = s.Description ?? "",
             orderIndex = s.OrderIndex,
             isActive = s.IsActive,
+            chapterCount = s.Chapters.Count,
+            lessonCount = totalLessons,
+            publishedLessonCount = publishedLessons,
+            publishedPercent,
             createdAt = s.CreatedAt.ToString("o"),
             updatedAt = s.UpdatedAt.ToString("o"),
             chapters

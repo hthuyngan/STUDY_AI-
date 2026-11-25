@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react'
 import { MathView } from '@/components/common/MathView'
 import { VariationTable } from '@/components/lesson/VariationTable'
 import { FunctionGraph } from '@/components/lesson/FunctionGraph'
-import { curriculumRepository } from '@/repositories/curriculum.repository'
+import { curriculumRepository } from '@/test/fixtures/curriculum.mock'
 import { learningProgressRepository } from '@/repositories/learningProgress.repository'
 import { learningContextService } from '@/services/learningContext.service'
 

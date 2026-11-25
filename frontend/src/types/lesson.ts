@@ -95,8 +95,8 @@ export interface LessonDetail {
   topicTitle?: string
   lessonNumber: number
   title: string
-  durationMinutes: number
-  xp: number
+  durationMinutes?: number
+  xp?: number
   isCompleted: boolean
   isBookmarked?: boolean
   quizId?: string
@@ -133,7 +133,7 @@ export interface LessonOutlineItem {
   lessonNumber: number
   title: string
   status: 'completed' | 'in-progress' | 'available' | 'locked'
-  durationMinutes: number
+  durationMinutes?: number
   topicId?: string
   topicTitle?: string
   contentType?: 'video' | 'article' | 'exercise' | 'test'

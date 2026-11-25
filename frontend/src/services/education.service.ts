@@ -34,6 +34,8 @@ export const educationService = {
         isActive: boolean
         chapterCount: number
         lessonCount: number
+        publishedLessonCount?: number
+        publishedPercent?: number
         updatedAt: string
       }>
       total: number
@@ -44,13 +46,13 @@ export const educationService = {
         id: s.id,
         name: s.name,
         code: s.code,
-        grade: s.grade ? (s.grade.startsWith('Lớp') ? s.grade : `Lớp ${s.grade}`) : 'Lớp 12',
+        grade: s.grade ? (s.grade.startsWith('Lớp') ? s.grade : `Lớp ${s.grade}`) : '',
         icon: resolveSubjectIcon(s.code, s.name, undefined, s.description),
         description: s.description || '',
         chapterCount: s.chapterCount || 0,
         lessonCount: s.lessonCount || 0,
         assessmentCount: 0,
-        publishedPercent: s.isActive ? 100 : 0,
+        publishedPercent: typeof s.publishedPercent === 'number' ? s.publishedPercent : 0,
         status: s.isActive ? 'published' : 'draft',
         updatedAt: s.updatedAt,
       }))
@@ -82,13 +84,13 @@ export const educationService = {
           id: s.id,
           name: s.name,
           code: s.code,
-          grade: s.grade ? (s.grade.startsWith('Lớp') ? s.grade : `Lớp ${s.grade}`) : 'Lớp 12',
+          grade: s.grade ? (s.grade.startsWith('Lớp') ? s.grade : `Lớp ${s.grade}`) : '',
           icon: resolveSubjectIcon(s.code, s.name, undefined, s.description),
           description: s.description || '',
           chapterCount,
           lessonCount,
           assessmentCount: 0,
-          publishedPercent: s.isActive ? 100 : 0,
+          publishedPercent: typeof (s as any).publishedPercent === 'number' ? (s as any).publishedPercent : 0,
           status: s.isActive ? 'published' : 'draft',
           updatedAt: s.updatedAt,
         }
@@ -132,13 +134,13 @@ export const educationService = {
       id: created.id,
       name: created.name,
       code: created.code,
-      grade: created.grade ? (created.grade.startsWith('Lớp') ? created.grade : `Lớp ${created.grade}`) : 'Lớp 12',
+      grade: created.grade ? (created.grade.startsWith('Lớp') ? created.grade : `Lớp ${created.grade}`) : '',
       icon: resolveSubjectIcon(created.code, created.name, input.icon, created.description),
       description: created.description || '',
       chapterCount: created.chapterCount || 0,
       lessonCount: created.lessonCount || 0,
       assessmentCount: 0,
-      publishedPercent: created.isActive ? 100 : 0,
+      publishedPercent: typeof (created as any).publishedPercent === 'number' ? (created as any).publishedPercent : 0,
       status: created.isActive ? 'published' : 'draft',
       updatedAt: created.updatedAt,
     }
@@ -152,7 +154,7 @@ export const educationService = {
     const body: Record<string, any> = {}
     if (updates.name !== undefined) body.name = updates.name.trim()
     if (updates.code !== undefined) body.code = updates.code.trim().toUpperCase()
-    if (updates.grade !== undefined) body.grade = updates.grade.replace(/[^0-9]/g, '') || '12'
+    if (updates.grade !== undefined) body.grade = updates.grade.replace(/[^0-9]/g, '')
     if (updates.description !== undefined) body.description = updates.description.trim()
     if (updates.status !== undefined) body.isActive = updates.status === 'published'
 
@@ -175,13 +177,13 @@ export const educationService = {
       id: updated.id,
       name: updated.name,
       code: updated.code,
-      grade: updated.grade ? (updated.grade.startsWith('Lớp') ? updated.grade : `Lớp ${updated.grade}`) : 'Lớp 12',
+      grade: updated.grade ? (updated.grade.startsWith('Lớp') ? updated.grade : `Lớp ${updated.grade}`) : '',
       icon: resolveSubjectIcon(updated.code, updated.name, updates.icon, updated.description),
       description: updated.description || '',
       chapterCount: updated.chapterCount || 0,
       lessonCount: updated.lessonCount || 0,
       assessmentCount: 0,
-      publishedPercent: updated.isActive ? 100 : 0,
+      publishedPercent: typeof (updated as any).publishedPercent === 'number' ? (updated as any).publishedPercent : 0,
       status: updated.isActive ? 'published' : 'draft',
       updatedAt: updated.updatedAt,
     }

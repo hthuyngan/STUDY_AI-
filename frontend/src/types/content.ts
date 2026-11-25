@@ -24,19 +24,58 @@ export interface ContentLessonItem {
   hasAssessment: boolean
 }
 
+export interface StructuredDefinitionItem {
+  id?: string
+  term: string
+  content: string
+}
+
+export interface StructuredFormulaItem {
+  id?: string
+  label: string
+  formula: string
+  note?: string
+}
+
+export interface StructuredExampleStep {
+  step: number
+  explanation: string
+  math?: string
+}
+
+export interface StructuredExampleItem {
+  id?: string
+  title: string
+  problem: string
+  solutionSteps?: StructuredExampleStep[]
+  conclusion?: string
+}
+
+export interface StructuredLearningObjective {
+  id?: string
+  code?: string
+  description: string
+  bloomLevel?: string
+}
+
 export interface LessonEditorData {
   id: string
   title: string
   subjectId: string
+  subjectName?: string
   chapterId: string
+  chapterTitle?: string
   status: ContentStatus
   introduction: string
-  definitions: string
-  formulas: string
-  examples: string
-  notes: string
-  summary: string
+  learningObjectives?: Array<string | StructuredLearningObjective>
+  definitions: StructuredDefinitionItem[]
+  formulas: StructuredFormulaItem[]
+  examples: StructuredExampleItem[]
+  notes: string[]
+  summary: string[]
+  questionsCount?: number
   assessmentId?: string
+  assessmentTitle?: string
   lastSavedAt?: string
 }
 

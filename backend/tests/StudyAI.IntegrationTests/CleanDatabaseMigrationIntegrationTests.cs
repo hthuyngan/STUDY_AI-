@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using StudyAI.Models;
 using StudyAI.Data;
+using StudyAI.IntegrationTests.Fixtures;
 using Xunit;
 
 namespace StudyAI.IntegrationTests;
@@ -67,8 +68,8 @@ public class CleanDatabaseMigrationIntegrationTests
             var appliedMigrations = (await db.Database.GetAppliedMigrationsAsync()).ToList();
             Assert.Contains(appliedMigrations, m => m.Contains("FixContentDefaultConstraints"));
 
-            // 4. Seed Reference Data (Verifies sub_math12 with IsActive=true does not trigger Error 515)
-            await DbInitializer.SeedReferenceDataAsync(db);
+            // 4. Seed Isolated Test Fixture Data (Verifies sub_math12 with IsActive=true does not trigger Error 515)
+            await SampleCurriculumFixtureSeeder.SeedAsync(db);
 
             var seededSubject = await db.ContentSubjects.FirstOrDefaultAsync(s => s.Code == "MATH12");
             Assert.NotNull(seededSubject);

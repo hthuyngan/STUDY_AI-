@@ -1,18 +1,13 @@
 import { curriculumService, type LearnerLessonDetail } from '@/services/curriculum.service'
-import { getLessonProgress, saveLessonProgress, LESSON_PROGRESS_STORAGE_KEY } from '@/services/lessonProgress.service'
+import { getLessonProgress, saveLessonProgress } from '@/services/lessonProgress.service'
+import { learningProgressRepository } from '@/repositories/learningProgress.repository'
 import type { LessonProgressState } from '@/types/assessment'
 import type { CourseOutlineChapter, ExampleItem, ExampleStep, FormulaItem, LessonDetail, LessonOutlineItem } from '@/types/lesson'
 
 const LESSON_BOOKMARKS_STORAGE_KEY = 'study_ai.lesson_bookmarks.v1'
 
 function getSavedLessonProgressMap(): Record<string, LessonProgressState> {
-  if (typeof window === 'undefined') return {}
-  try {
-    const raw = localStorage.getItem(LESSON_PROGRESS_STORAGE_KEY)
-    return raw ? JSON.parse(raw) : {}
-  } catch {
-    return {}
-  }
+  return learningProgressRepository.getAll()
 }
 
 function getBookmarkedLessons(): Set<string> {
@@ -163,30 +158,30 @@ function mapLearnerDetailToLessonDetail(
       }
     : {
         hasVideo: false,
-        sourceReferenceUrl: 'https://vi.khanacademy.org/math/toan-lop-12-viet-nam',
-        licenseNotice: 'Nội dung lý thuyết trọng tâm GDPT 2018',
+        sourceReferenceUrl: detail.sourceUrl || undefined,
+        licenseNotice: detail.sourceLicense || undefined,
       }
 
   return {
     id: detail.id,
     courseId: detail.subjectId || courseOrSubjectId,
-    courseTitle: `Giáo trình ${detail.subjectName || 'Môn học'}`,
+    courseTitle: detail.subjectName ? `Giáo trình ${detail.subjectName}` : '',
     subjectId: detail.subjectId,
-    subjectName: detail.subjectName || 'Môn học',
+    subjectName: detail.subjectName || '',
     chapterId: detail.chapterId,
-    chapterTitle: detail.chapterTitle || 'Chương học',
+    chapterTitle: detail.chapterTitle || '',
     lessonNumber: detail.orderIndex || 1,
     title: detail.title,
-    durationMinutes: 45,
-    xp: 50,
+    durationMinutes: (detail as any).durationMinutes || undefined,
+    xp: (detail as any).xp || undefined,
     isCompleted,
     isBookmarked,
     topicId: detail.topicId,
     topicTitle: detail.topicTitle,
-    contentType: (detail.contentType as any) || 'video',
+    contentType: (detail.contentType as any) || undefined,
     video: videoMeta,
     videos: mappedVideos,
-    sourceReferenceUrl: firstVideo?.sourceUrl || 'https://vi.khanacademy.org/math/toan-lop-12-viet-nam',
+    sourceReferenceUrl: firstVideo?.sourceUrl || detail.sourceUrl || undefined,
     content: {
       introduction: detail.introduction || '',
       definitions: parseDefinitions(detail.definitions),
@@ -198,12 +193,9 @@ function mapLearnerDetailToLessonDetail(
     learningObjectives:
       detail.learningObjectives && detail.learningObjectives.length > 0
         ? parseStringList(detail.learningObjectives)
-        : [
-            `Hiểu rõ và vận dụng kiến thức lý thuyết của ${detail.title}.`,
-            'Vận dụng công thức và phương pháp giải để làm bài tập trắc nghiệm chuẩn đề thi.',
-          ],
-    curriculumVersion: 'GDPT 2018',
-    textbookAlignment: 'general_standard',
+        : [],
+    curriculumVersion: (detail as any).curriculumVersion || undefined,
+    textbookAlignment: (detail as any).textbookAlignment || undefined,
   }
 }
 
@@ -263,10 +255,10 @@ export async function getCourseOutline(courseOrSubjectId: string): Promise<Cours
           lessonNumber: l.orderIndex || idx + 1,
           title: l.title,
           status,
-          durationMinutes: 45,
+          durationMinutes: (l as any).durationMinutes || undefined,
           topicId: l.topicId,
           topicTitle: l.topicTitle,
-          contentType: (l.contentType as any) || 'video',
+          contentType: (l.contentType as any) || undefined,
           hasVideo: !!l.hasVideo,
         }
       })

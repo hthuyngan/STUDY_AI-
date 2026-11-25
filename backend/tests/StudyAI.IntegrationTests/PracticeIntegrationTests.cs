@@ -27,6 +27,111 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
         });
     }
 
+    private sealed record IsolatedPracticeFixture(
+        string SubjectId,
+        string ChapterId,
+        string LessonId,
+        string AlternateLessonId,
+        List<string> QuestionIds);
+
+    private async Task<IsolatedPracticeFixture> SeedIsolatedPracticeFixtureAsync(
+        int mcQuestionCount = 3,
+        string skill1 = "Kỹ năng A",
+        string skill2 = "Kỹ năng B")
+    {
+        var token = Guid.NewGuid().ToString("N")[..10];
+        var subjectId = $"sub_prac_{token}";
+        var chapterId = $"chp_prac_{token}";
+        var lessonId = $"les_prac_{token}_1";
+        var altLessonId = $"les_prac_{token}_2";
+        var questionIds = new List<string>();
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+        var author = await db.Users.FirstAsync();
+
+        db.ContentSubjects.Add(new ContentSubject
+        {
+            Id = subjectId,
+            Name = $"Môn Practice {token}",
+            Code = $"PRAC_{token}".ToUpperInvariant(),
+            Grade = "12",
+            Description = "Isolated integration test subject",
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        db.ContentChapters.Add(new ContentChapter
+        {
+            Id = chapterId,
+            SubjectId = subjectId,
+            Title = $"Chương Practice {token}",
+            OrderIndex = 1,
+            Status = "published",
+            IsActive = true,
+            CreatedAt = DateTimeOffset.UtcNow
+        });
+
+        db.ContentLessons.AddRange(
+            new ContentLesson
+            {
+                Id = lessonId,
+                ChapterId = chapterId,
+                Title = $"Bài học Practice {token}",
+                Slug = $"bai-hoc-{token}-1",
+                Introduction = "Giới thiệu bài học kiểm thử độc lập",
+                FormulasJson = "[{\"name\":\"Công thức kiểm thử\",\"expression\":\"y' = 3x^2\",\"description\":\"Đạo hàm cơ bản\"}]",
+                OrderIndex = 1,
+                Status = "published",
+                AuthorId = author.Id,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            },
+            new ContentLesson
+            {
+                Id = altLessonId,
+                ChapterId = chapterId,
+                Title = $"Bài học Practice phụ {token}",
+                Slug = $"bai-hoc-{token}-2",
+                OrderIndex = 2,
+                Status = "published",
+                AuthorId = author.Id,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            });
+
+        for (int i = 0; i < mcQuestionCount; i++)
+        {
+            var qId = $"q_prac_{token}_{i + 1}";
+            questionIds.Add(qId);
+            db.ContentQuestions.Add(new ContentQuestion
+            {
+                Id = qId,
+                SubjectId = subjectId,
+                ChapterId = chapterId,
+                LessonId = lessonId,
+                Prompt = $"Câu hỏi kiểm thử {i + 1} ({token})",
+                OptionsJson = "[\"A\", \"B\", \"C\", \"D\"]",
+                CorrectAnswer = "A",
+                Explanation = "Lời giải chi tiết cho câu hỏi kiểm thử.",
+                Topic = i == 0 ? skill1 : skill2,
+                Difficulty = i % 2 == 0 ? "medium" : "easy",
+                Type = "multiple-choice",
+                Status = "published",
+                AuthorId = author.Id,
+                ReviewedBy = author.Id,
+                SourceType = "manual",
+                CopyrightStatus = "proprietary",
+                OrderIndex = i + 1,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            });
+        }
+
+        await db.SaveChangesAsync();
+        return new IsolatedPracticeFixture(subjectId, chapterId, lessonId, altLessonId, questionIds);
+    }
+
     private async Task<string> LoginAsync(string email, string password)
     {
         var loginDto = new UserLoginRequestDto
@@ -51,12 +156,13 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
     [Fact]
     public async Task PracticeFlow_Create_Answer_Submit_And_CheckStats()
     {
+        var fix = await SeedIsolatedPracticeFixtureAsync(mcQuestionCount: 3);
         var token = await GetLearnerTokenAsync();
 
         // 1. Create Practice Session (Zero-Leak)
         var createReq = new CreatePracticeSessionRequest
         {
-            SubjectId = "sub_math12",
+            SubjectId = fix.SubjectId,
             QuestionCount = 3,
             Mode = "practice"
         };
@@ -75,7 +181,8 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
 
         Assert.NotNull(session);
         Assert.NotEmpty(session.SessionId);
-        Assert.NotEmpty(session.Questions);
+        Assert.Equal(3, session.Questions.Count);
+        Assert.All(session.Questions, q => Assert.Contains(q.Id, fix.QuestionIds));
         Assert.Equal("in_progress", session.Status);
 
         // Verify Zero-Leak: Ensure JSON response doesn't contain "correctAnswer" or "explanation"
@@ -170,12 +277,13 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
     [Fact]
     public async Task Practice_ExamMode_CheckQuestionBeforeSubmit_ReturnsForbidden()
     {
+        var fix = await SeedIsolatedPracticeFixtureAsync(mcQuestionCount: 2);
         var token = await GetLearnerTokenAsync();
 
         // 1. Create Exam Session
         var createReq = new CreatePracticeSessionRequest
         {
-            SubjectId = "sub_math12",
+            SubjectId = fix.SubjectId,
             QuestionCount = 2,
             Mode = "exam"
         };
@@ -192,6 +300,9 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
         var session = JsonSerializer.Deserialize<PracticeSessionResponseDto>(
             await createResp.Content.ReadAsStringAsync(), _jsonOptions);
         Assert.NotNull(session);
+        Assert.Equal(2, session.Questions.Count);
+        Assert.All(session.Questions, q => Assert.Contains(q.Id, fix.QuestionIds));
+        Assert.NotEmpty(session.Questions[0].Options);
 
         // 2. Try to peek answer in exam mode before submit -> MUST BE FORBIDDEN (403)
         var checkReq = new CheckQuestionRequest
@@ -225,10 +336,11 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
     [Fact]
     public async Task GetQuestionCount_ReturnsRealPublishedCountFromSql()
     {
+        var fix = await SeedIsolatedPracticeFixtureAsync(mcQuestionCount: 2);
         var token = await GetLearnerTokenAsync();
 
-        // 1. Query Question Count for seeded Math 10
-        var msg10 = new HttpRequestMessage(HttpMethod.Get, "/api/v1/practice/question-count?subjectId=sub_math10");
+        // 1. Query Question Count for isolated subject
+        var msg10 = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/practice/question-count?subjectId={fix.SubjectId}");
         msg10.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var resp10 = await _client.SendAsync(msg10);
         Assert.Equal(HttpStatusCode.OK, resp10.StatusCode);
@@ -236,10 +348,10 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
         var body10 = await resp10.Content.ReadAsStringAsync();
         using var doc10 = JsonDocument.Parse(body10);
         var count10 = doc10.RootElement.GetProperty("count").GetInt32();
-        Assert.True(count10 >= 2, $"Expected at least 2 questions for sub_math10, found {count10}");
+        Assert.Equal(2, count10);
 
         // 2. Query Question Count for non-existent chapter -> 0
-        var msgNonExistent = new HttpRequestMessage(HttpMethod.Get, "/api/v1/practice/question-count?subjectId=sub_math10&chapterId=chap_nonexistent_99");
+        var msgNonExistent = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/practice/question-count?subjectId={fix.SubjectId}&chapterId=chap_nonexistent_99");
         msgNonExistent.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var respNonExistent = await _client.SendAsync(msgNonExistent);
         Assert.Equal(HttpStatusCode.OK, respNonExistent.StatusCode);
@@ -301,10 +413,11 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
     [Fact]
     public async Task AssessmentAttempt_Update_PreservesAndAssignsLessonAndSubjectId()
     {
+        var fix = await SeedIsolatedPracticeFixtureAsync(mcQuestionCount: 1);
         var token = await GetLearnerTokenAsync();
         var attemptId = $"att_update_test_{Guid.NewGuid():N}";
-        var testLessonId = "les_math12_c1_b1";
-        var testSubjectId = "sub_math12";
+        var testLessonId = fix.LessonId;
+        var testSubjectId = fix.SubjectId;
 
         // 1. Initial attempt creation without lessonId
         var initDto = new AssessmentAttemptCreateDto
@@ -365,10 +478,11 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
     [Fact]
     public async Task GetQuestionCount_And_CreateSession_UseExactSamePredicate_Including_Skill_Type_Difficulty()
     {
+        var fix = await SeedIsolatedPracticeFixtureAsync(mcQuestionCount: 2, skill1: "Kỹ năng Đếm", skill2: "Kỹ năng Khác");
         var token = await GetLearnerTokenAsync();
 
-        // 1. Filter sub_math10 with skillId = "Mệnh đề toán học" -> 1 question
-        var countMsg1 = new HttpRequestMessage(HttpMethod.Get, "/api/v1/practice/question-count?subjectId=sub_math10&skillId=M%E1%BB%87nh%20%C4%91%E1%BB%81%20to%C3%A1n%20h%E1%BB%8Dc");
+        // 1. Filter isolated subject with skillId = "Kỹ năng Đếm" -> 1 question
+        var countMsg1 = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/practice/question-count?subjectId={fix.SubjectId}&skillId={Uri.EscapeDataString("Kỹ năng Đếm")}");
         countMsg1.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var resp1 = await _client.SendAsync(countMsg1);
         Assert.Equal(HttpStatusCode.OK, resp1.StatusCode);
@@ -376,8 +490,8 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
         using var doc1 = JsonDocument.Parse(body1);
         Assert.Equal(1, doc1.RootElement.GetProperty("count").GetInt32());
 
-        // 2. Filter sub_math10 with non-existent skill -> count = 0
-        var countMsg2 = new HttpRequestMessage(HttpMethod.Get, "/api/v1/practice/question-count?subjectId=sub_math10&skillId=NON_EXISTENT_SKILL_99");
+        // 2. Filter isolated subject with non-existent skill -> count = 0
+        var countMsg2 = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/practice/question-count?subjectId={fix.SubjectId}&skillId=NON_EXISTENT_SKILL_99");
         countMsg2.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var resp2 = await _client.SendAsync(countMsg2);
         Assert.Equal(HttpStatusCode.OK, resp2.StatusCode);
@@ -390,7 +504,7 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
         {
             Content = new StringContent(JsonSerializer.Serialize(new CreatePracticeSessionRequest
             {
-                SubjectId = "sub_math10",
+                SubjectId = fix.SubjectId,
                 SkillId = "NON_EXISTENT_SKILL_99",
                 QuestionCount = 5
             }), Encoding.UTF8, MediaTypeHeaderValue.Parse("application/json"))
@@ -399,8 +513,8 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
         var createResp = await _client.SendAsync(createMsg);
         Assert.Equal(HttpStatusCode.NotFound, createResp.StatusCode);
 
-        // 4. QuestionType filter: multiple-choice on sub_math10 -> 2 questions
-        var countMsg3 = new HttpRequestMessage(HttpMethod.Get, "/api/v1/practice/question-count?subjectId=sub_math10&questionType=multiple_choice");
+        // 4. QuestionType filter: multiple_choice on isolated subject -> 2 questions
+        var countMsg3 = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/practice/question-count?subjectId={fix.SubjectId}&questionType=multiple_choice");
         countMsg3.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var resp3 = await _client.SendAsync(countMsg3);
         Assert.Equal(HttpStatusCode.OK, resp3.StatusCode);
@@ -408,8 +522,8 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
         using var doc3 = JsonDocument.Parse(body3);
         Assert.Equal(2, doc3.RootElement.GetProperty("count").GetInt32());
 
-        // 5. QuestionType filter: short_answer on sub_math10 -> 0 questions
-        var countMsg4 = new HttpRequestMessage(HttpMethod.Get, "/api/v1/practice/question-count?subjectId=sub_math10&questionType=short_answer");
+        // 5. QuestionType filter: short_answer on isolated subject -> 0 questions
+        var countMsg4 = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/practice/question-count?subjectId={fix.SubjectId}&questionType=short_answer");
         countMsg4.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var resp4 = await _client.SendAsync(countMsg4);
         Assert.Equal(HttpStatusCode.OK, resp4.StatusCode);
@@ -421,6 +535,7 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
     [Fact]
     public async Task AssessmentAttempt_Completed_IsImmutable_And_CannotChangeLessonId()
     {
+        var fix = await SeedIsolatedPracticeFixtureAsync(mcQuestionCount: 1);
         var token = await GetLearnerTokenAsync();
         var attemptId = $"att_immut_{Guid.NewGuid():N}";
 
@@ -430,8 +545,8 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
             Content = new StringContent(JsonSerializer.Serialize(new AssessmentAttemptCreateDto
             {
                 Id = attemptId,
-                LessonId = "les_math12_c1_b1",
-                SubjectId = "sub_math12",
+                LessonId = fix.LessonId,
+                SubjectId = fix.SubjectId,
                 CompletionStatus = "incomplete",
                 StartedAt = DateTimeOffset.UtcNow
             }), Encoding.UTF8, MediaTypeHeaderValue.Parse("application/json"))
@@ -446,8 +561,8 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
             Content = new StringContent(JsonSerializer.Serialize(new AssessmentAttemptCreateDto
             {
                 Id = attemptId,
-                LessonId = "les_math10_c1_b1", // changed lesson
-                SubjectId = "sub_math12"
+                LessonId = fix.AlternateLessonId, // changed lesson
+                SubjectId = fix.SubjectId
             }), Encoding.UTF8, MediaTypeHeaderValue.Parse("application/json"))
         };
         changeLessonReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -460,8 +575,8 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
             Content = new StringContent(JsonSerializer.Serialize(new AssessmentAttemptCreateDto
             {
                 Id = attemptId,
-                LessonId = "les_math12_c1_b1",
-                SubjectId = "sub_math12",
+                LessonId = fix.LessonId,
+                SubjectId = fix.SubjectId,
                 CompletionStatus = "completed",
                 CompletedAt = DateTimeOffset.UtcNow
             }), Encoding.UTF8, MediaTypeHeaderValue.Parse("application/json"))
@@ -476,7 +591,7 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
             Content = new StringContent(JsonSerializer.Serialize(new AssessmentAttemptCreateDto
             {
                 Id = attemptId,
-                LessonId = "les_math12_c1_b1",
+                LessonId = fix.LessonId,
                 ScoreRaw = 100
             }), Encoding.UTF8, MediaTypeHeaderValue.Parse("application/json"))
         };
@@ -488,9 +603,10 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
     [Fact]
     public async Task Curriculum_GetMaterials_ReturnsRealPublishedLessonsAndFormulas()
     {
+        var fix = await SeedIsolatedPracticeFixtureAsync(mcQuestionCount: 1);
         var token = await GetLearnerTokenAsync();
 
-        var msg = new HttpRequestMessage(HttpMethod.Get, "/api/v1/curriculum/materials?subjectId=sub_math12");
+        var msg = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/curriculum/materials?subjectId={fix.SubjectId}");
         msg.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         var resp = await _client.SendAsync(msg);
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
@@ -503,20 +619,21 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
         var first = items.First();
         Assert.NotEmpty(first.GetProperty("title").GetString()!);
         Assert.NotEmpty(first.GetProperty("category").GetString()!);
-        Assert.Equal("sub_math12", first.GetProperty("subjectId").GetString());
+        Assert.Equal(fix.SubjectId, first.GetProperty("subjectId").GetString());
     }
 
     [Fact]
     public async Task AdaptiveMode_AdheresToAllFilters_And_NeverReturnsQuestionsOutsideFilter()
     {
+        var fix = await SeedIsolatedPracticeFixtureAsync(mcQuestionCount: 2);
         var token = await GetLearnerTokenAsync();
 
-        // 1. Adaptive mode with short_answer on sub_math10 (where 0 short_answer questions exist) -> 404 NotFound
+        // 1. Adaptive mode with short_answer on isolated subject (where 0 short_answer questions exist) -> 404 NotFound
         var req1 = new HttpRequestMessage(HttpMethod.Post, "/api/v1/practice/sessions")
         {
             Content = new StringContent(JsonSerializer.Serialize(new CreatePracticeSessionRequest
             {
-                SubjectId = "sub_math10",
+                SubjectId = fix.SubjectId,
                 QuestionType = "short_answer",
                 Mode = "adaptive",
                 QuestionCount = 5
@@ -526,12 +643,12 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
         var resp1 = await _client.SendAsync(req1);
         Assert.Equal(HttpStatusCode.NotFound, resp1.StatusCode);
 
-        // 2. Adaptive mode with multiple-choice on sub_math10 -> 200 OK, all returned questions must be multiple-choice
+        // 2. Adaptive mode with multiple-choice on isolated subject -> 200 OK, all returned questions must be multiple-choice
         var req2 = new HttpRequestMessage(HttpMethod.Post, "/api/v1/practice/sessions")
         {
             Content = new StringContent(JsonSerializer.Serialize(new CreatePracticeSessionRequest
             {
-                SubjectId = "sub_math10",
+                SubjectId = fix.SubjectId,
                 QuestionType = "multiple_choice",
                 Mode = "adaptive",
                 QuestionCount = 5
@@ -546,7 +663,7 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
         Assert.True(questions.Count > 0);
         foreach (var q in questions)
         {
-            Assert.Equal("sub_math10", q.GetProperty("subjectId").GetString());
+            Assert.Equal(fix.SubjectId, q.GetProperty("subjectId").GetString());
             var qType = q.GetProperty("type").GetString();
             Assert.True(qType == "multiple-choice" || qType == "multiple_choice", $"Expected multiple-choice, got {qType}");
         }
@@ -574,13 +691,14 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
     [Fact]
     public async Task GetSessionResult_Lifecycle_Auth_Ownership_And_ResultPersistence()
     {
+        var fix = await SeedIsolatedPracticeFixtureAsync(mcQuestionCount: 2);
         var token = await GetLearnerTokenAsync();
         var otherToken = await RegisterOtherLearnerTokenAsync();
 
         // 1. Create a session
         var createReq = new CreatePracticeSessionRequest
         {
-            SubjectId = "sub_math10",
+            SubjectId = fix.SubjectId,
             QuestionCount = 2,
             Mode = "practice"
         };
@@ -655,6 +773,7 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
     [Fact]
     public async Task Practice_RBAC_Student_Teacher_Content_Admin_Isolation()
     {
+        var fix = await SeedIsolatedPracticeFixtureAsync(mcQuestionCount: 2);
         var learnerAToken = await GetLearnerTokenAsync();
         var learnerBToken = await RegisterOtherLearnerTokenAsync();
 
@@ -756,7 +875,7 @@ public class PracticeIntegrationTests : IClassFixture<StudyAIApiFixture>
         // 2. Learner A creates a practice session
         var createReq = new CreatePracticeSessionRequest
         {
-            SubjectId = "sub_math12",
+            SubjectId = fix.SubjectId,
             QuestionCount = 2,
             Mode = "practice"
         };

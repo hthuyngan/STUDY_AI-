@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { curriculumRepository } from './curriculum.repository'
+import { curriculumRepository } from '@/test/fixtures/curriculum.mock'
 
 describe('CurriculumRepository (GDPT 2018 Foundation)', () => {
   it('loads all 9 GDPT 2018 standard subjects', async () => {

@@ -1,16 +1,16 @@
 {
-  "timestamp": "2026-11-22T08:24:33.768Z",
+  "timestamp": "2026-11-24T17:54:00.213Z",
   "task": "P20-002-MATH-CURRICULUM",
   "totalScenarios": 5,
   "passed": 5,
   "failed": 0,
-  "totalDurationMs": 9701,
+  "totalDurationMs": 12281,
   "scenarios": [
     {
       "id": 1,
       "name": "High School Math 10-12 Curriculum Hub & Grade Filters",
       "status": "PASS",
-      "durationMs": 3038,
+      "durationMs": 3184,
       "screenshots": [
         "math_01_all_grades.png",
         "math_02_filter_grade10.png",
@@ -22,7 +22,7 @@
       "id": 2,
       "name": "Math 10 Chapters, Topics & Lessons Hierarchy",
       "status": "PASS",
-      "durationMs": 414,
+      "durationMs": 470,
       "screenshots": [
         "math_04_toan10_hierarchy.png"
       ],
@@ -32,7 +32,7 @@
       "id": 3,
       "name": "Real Video Integration & Attribution Verification",
       "status": "PASS",
-      "durationMs": 363,
+      "durationMs": 379,
       "screenshots": [
         "math_05_real_video_player.png"
       ],
@@ -42,7 +42,7 @@
       "id": 4,
       "name": "KaTeX Mathematical Formula Rendering",
       "status": "PASS",
-      "durationMs": 47,
+      "durationMs": 57,
       "screenshots": [
         "math_06_katex_formulas.png"
       ],
@@ -52,7 +52,7 @@
       "id": 5,
       "name": "Backend Reorder & SSRF Protection API Test",
       "status": "PASS",
-      "durationMs": 611,
+      "durationMs": 855,
       "screenshots": [],
       "notes": "Verified SSRF guard (rejects loopback/private IPs), real oEmbed video preview, curriculum dry-run, and strict RBAC enforcement."
     }

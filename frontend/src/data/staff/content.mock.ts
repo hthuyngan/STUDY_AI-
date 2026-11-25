@@ -196,11 +196,43 @@ export const INITIAL_MOCK_LESSON_CONTENT: Record<string, LessonEditorData> = {
     chapterId: 'ch-01',
     status: 'published',
     introduction: 'Hàm số bậc nhất trên bậc nhất y = (ax + b) / (cx + d) (với c khác 0 và ad - bc khác 0) là dạng đồ thị hyperbol quen thuộc trong chương trình Toán 12.',
-    definitions: 'Tập xác định D = R \\ {-d/c}. Đạo hàm y\' = (ad - bc) / (cx + d)^2. Do đó hàm số luôn đồng biến hoặc luôn nghịch biến trên từng khoảng xác định.',
-    formulas: 'y\' = (ad - bc) / (cx + d)^2\nTiệm cận đứng: x = -d / c\nTiệm cận ngang: y = a / c\nTâm đối xứng: I(-d/c, a/c)',
-    examples: 'Ví dụ 1: Khảo sát hàm số y = (2x + 1) / (x - 1).\n- TXĐ: D = R \\ {1}\n- Đạo hàm: y\' = -3 / (x - 1)^2 < 0 với mọi x khác 1.\n- Tiệm cận đứng x = 1, tiệm cận ngang y = 2.',
-    notes: 'Lưu ý: Không dùng ký hiệu đồng biến trên R \\ {-d/c} mà phải ghi rõ trên từng khoảng (-vô cùng; -d/c) và (-d/c; +vô cùng).',
-    summary: 'Ghi nhớ công thức tính nhanh đạo hàm và xác định tọa độ giao điểm tiệm cận làm tâm đối xứng của hyperbol.',
+    definitions: [
+      {
+        term: 'Tập xác định & Đạo hàm',
+        content: "Tập xác định D = R \\ {-d/c}. Đạo hàm y' = (ad - bc) / (cx + d)^2. Do đó hàm số luôn đồng biến hoặc luôn nghịch biến trên từng khoảng xác định."
+      }
+    ],
+    formulas: [
+      {
+        label: 'Đạo hàm',
+        formula: "y' = \\frac{ad - bc}{(cx + d)^2}"
+      },
+      {
+        label: 'Tiệm cận đứng',
+        formula: 'x = -\\frac{d}{c}'
+      },
+      {
+        label: 'Tiệm cận ngang',
+        formula: 'y = \\frac{a}{c}'
+      }
+    ],
+    examples: [
+      {
+        title: 'Ví dụ 1',
+        problem: 'Khảo sát hàm số y = (2x + 1) / (x - 1)',
+        solutionSteps: [
+          { step: 1, explanation: 'TXĐ: D = R \\ {1}' },
+          { step: 2, explanation: "Đạo hàm: y' = -3 / (x - 1)^2 < 0 với mọi x khác 1." },
+          { step: 3, explanation: 'Tiệm cận đứng x = 1, tiệm cận ngang y = 2.' }
+        ]
+      }
+    ],
+    notes: [
+      'Lưu ý: Không dùng ký hiệu đồng biến trên R \\ {-d/c} mà phải ghi rõ trên từng khoảng (-vô cùng; -d/c) và (-d/c; +vô cùng).'
+    ],
+    summary: [
+      'Ghi nhớ công thức tính nhanh đạo hàm và xác định tọa độ giao điểm tiệm cận làm tâm đối xứng của hyperbol.'
+    ],
     assessmentId: 'asm-math-08',
     lastSavedAt: '2026-10-27T08:30:00Z',
   },

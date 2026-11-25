@@ -76,7 +76,7 @@ export const LessonVideoPlayer: React.FC<LessonVideoPlayerProps> = ({
   // CASE 1: Khan Academy or Non-Embeddable Video -> Show official external partner button
   const isKhan = currentVideo?.provider === 'khan_academy' || (effectiveRefUrl && /khanacademy\.org/i.test(effectiveRefUrl))
   if (currentVideo && (!currentVideo.embedAllowed || isKhan)) {
-    const khanUrl = currentVideo.sourceUrl || effectiveRefUrl || 'https://vi.khanacademy.org'
+    const partnerUrl = currentVideo.sourceUrl || effectiveRefUrl || ''
     return (
       <section className="lesson-video-container" aria-label="Bài giảng Khan Academy">
         <div className="video-card-header">
@@ -100,26 +100,29 @@ export const LessonVideoPlayer: React.FC<LessonVideoPlayerProps> = ({
             </div>
           </div>
           <div className="video-ref-actions" style={{ marginTop: '1rem' }}>
-            <a
-              href={khanUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-khan-ref"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                backgroundColor: '#14a38b',
-                color: '#ffffff',
-                padding: '0.6rem 1.2rem',
-                borderRadius: '8px',
-                fontWeight: 600,
-                textDecoration: 'none'
-              }}
-            >
-              <ExternalLink size={16} aria-hidden />
-              <span>Xem trên Khan Academy</span>
-            </a>
+            {partnerUrl ? (
+              <a
+                href={partnerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-khan-ref"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  backgroundColor: '#14a38b',
+                  color: '#ffffff',
+                  padding: '0.6rem 1.2rem',
+                  borderRadius: '8px',
+                  fontWeight: 600,
+                  fontSize: '0.9rem',
+                  textDecoration: 'none',
+                }}
+              >
+                <span>Mở bài giảng nguồn</span>
+                <ExternalLink size={16} aria-hidden />
+              </a>
+            ) : null}
           </div>
         </div>
       </section>
