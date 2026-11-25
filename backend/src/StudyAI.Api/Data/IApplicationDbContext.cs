@@ -37,6 +37,11 @@ public interface IApplicationDbContext
     DbSet<SystemSetting> SystemSettings { get; }
     DbSet<UserStudyNote> UserStudyNotes { get; }
     DbSet<UserSectionBookmark> UserSectionBookmarks { get; }
+    DbSet<GradeLevel> GradeLevels { get; }
+    DbSet<CatalogSubject> CatalogSubjects { get; }
+    DbSet<Curriculum> Curricula { get; }
+    DbSet<TextbookSeries> TextbookSeries { get; }
+    DbSet<CurriculumEdition> CurriculumEditions { get; }
 
     EntityEntry<TEntity> Entry<TEntity>(TEntity entity) where TEntity : class;
 

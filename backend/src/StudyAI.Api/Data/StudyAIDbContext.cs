@@ -39,6 +39,16 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
     public DbSet<ContentSubject> ContentSubjects => Set<ContentSubject>();
 
+    public DbSet<GradeLevel> GradeLevels => Set<GradeLevel>();
+
+    public DbSet<CatalogSubject> CatalogSubjects => Set<CatalogSubject>();
+
+    public DbSet<Curriculum> Curricula => Set<Curriculum>();
+
+    public DbSet<TextbookSeries> TextbookSeries => Set<TextbookSeries>();
+
+    public DbSet<CurriculumEdition> CurriculumEditions => Set<CurriculumEdition>();
+
     public DbSet<ContentChapter> ContentChapters => Set<ContentChapter>();
 
     public DbSet<ContentTopic> ContentTopics => Set<ContentTopic>();
@@ -1148,6 +1158,113 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
                 .WithMany()
                 .HasForeignKey(e => e.LessonId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // P01: Multi-subject catalog foundations
+        modelBuilder.Entity<GradeLevel>(entity =>
+        {
+            entity.ToTable("grade_levels");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.Code).HasMaxLength(32).IsRequired();
+            entity.Property(e => e.Name).HasMaxLength(128).IsRequired();
+            entity.Property(e => e.OrderIndex).HasDefaultValue(0);
+            entity.Property(e => e.Status).HasMaxLength(32).HasDefaultValue("draft").IsRequired();
+            entity.Property(e => e.RowVersion).IsRowVersion();
+            entity.HasIndex(e => e.Code).IsUnique();
+            entity.HasIndex(e => new { e.Status, e.OrderIndex });
+        });
+
+        modelBuilder.Entity<CatalogSubject>(entity =>
+        {
+            entity.ToTable("catalog_subjects");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.Code).HasMaxLength(32).IsRequired();
+            entity.Property(e => e.Name).HasMaxLength(128).IsRequired();
+            entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.Property(e => e.Status).HasMaxLength(32).HasDefaultValue("draft").IsRequired();
+            entity.Property(e => e.RowVersion).IsRowVersion();
+            entity.HasIndex(e => e.Code).IsUnique();
+            entity.HasIndex(e => new { e.Status, e.Name });
+        });
+
+        modelBuilder.Entity<Curriculum>(entity =>
+        {
+            entity.ToTable("curricula");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.Code).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.GradeLevelId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.SubjectId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Framework).HasMaxLength(128).IsRequired();
+            entity.Property(e => e.Status).HasMaxLength(32).HasDefaultValue("draft").IsRequired();
+            entity.Property(e => e.SourceName).HasMaxLength(256);
+            entity.Property(e => e.SourceUrl).HasMaxLength(512);
+            entity.Property(e => e.SourceLicense).HasMaxLength(256);
+            entity.Property(e => e.RowVersion).IsRowVersion();
+            entity.HasIndex(e => e.Code).IsUnique();
+            entity.HasIndex(e => new { e.GradeLevelId, e.SubjectId, e.Framework, e.AcademicYearFrom, e.AcademicYearTo })
+                .IsUnique()
+                .HasFilter("[Status] <> 'archived'");
+            entity.HasOne(e => e.GradeLevel)
+                .WithMany(g => g.Curricula)
+                .HasForeignKey(e => e.GradeLevelId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.Subject)
+                .WithMany(s => s.Curricula)
+                .HasForeignKey(e => e.SubjectId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<TextbookSeries>(entity =>
+        {
+            entity.ToTable("textbook_series");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.Code).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Publisher).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.Property(e => e.Status).HasMaxLength(32).HasDefaultValue("draft").IsRequired();
+            entity.Property(e => e.SourceName).HasMaxLength(256);
+            entity.Property(e => e.SourceUrl).HasMaxLength(512);
+            entity.Property(e => e.SourceLicense).HasMaxLength(256);
+            entity.Property(e => e.RowVersion).IsRowVersion();
+            entity.HasIndex(e => e.Code).IsUnique();
+            entity.HasIndex(e => new { e.Status, e.Name });
+        });
+
+        modelBuilder.Entity<CurriculumEdition>(entity =>
+        {
+            entity.ToTable("curriculum_editions");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.Code).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.CurriculumId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.TextbookSeriesId).HasMaxLength(64);
+            entity.Property(e => e.EditionName).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Volume).HasMaxLength(64);
+            entity.Property(e => e.Version).HasMaxLength(64);
+            entity.Property(e => e.Status).HasMaxLength(32).HasDefaultValue("draft").IsRequired();
+            entity.Property(e => e.SourceName).HasMaxLength(256);
+            entity.Property(e => e.SourceUrl).HasMaxLength(512);
+            entity.Property(e => e.SourceLicense).HasMaxLength(256);
+            entity.Property(e => e.ReviewedBy).HasMaxLength(64);
+            entity.Property(e => e.RowVersion).IsRowVersion();
+            entity.HasIndex(e => e.Code).IsUnique();
+            entity.HasIndex(e => new { e.CurriculumId, e.TextbookSeriesId, e.Version, e.Volume, e.PublicationYear })
+                .IsUnique()
+                .HasFilter("[Status] <> 'archived'");
+            entity.HasOne(e => e.Curriculum)
+                .WithMany(c => c.Editions)
+                .HasForeignKey(e => e.CurriculumId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.TextbookSeries)
+                .WithMany(t => t.Editions)
+                .HasForeignKey(e => e.TextbookSeriesId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 

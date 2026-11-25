@@ -74,6 +74,7 @@ builder.Services.AddScoped<ILearningDataConsistencyService, LearningDataConsiste
 
 // Content Services
 builder.Services.AddScoped<IContentSubjectsService, ContentSubjectsService>();
+builder.Services.AddScoped<IContentCatalogService, ContentCatalogService>();
 builder.Services.AddScoped<IContentChaptersService, ContentChaptersService>();
 builder.Services.AddScoped<IContentTopicsService, ContentTopicsService>();
 builder.Services.AddScoped<IContentVideosService, ContentVideosService>();
