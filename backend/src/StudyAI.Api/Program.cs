@@ -515,7 +515,8 @@ using (var scope = app.Services.CreateScope())
 
         var applyMigrationsDefault = !app.Environment.IsProduction();
         var shouldMigrate = resolvedConfiguration.GetValue<bool>("Database:ApplyMigrationsOnStartup", applyMigrationsDefault);
-        // CURR-006: Seed reference/demo data must be explicit opt-in only and blocked on shared environments
+        // CURR-002 (P00): Runtime sample curriculum seeding is permanently removed from StudyAI.Api.
+        // Empty databases start empty; isolated test fixtures live in StudyAI.IntegrationTests.
         var shouldSeed = resolvedConfiguration.GetValue<bool>("Database:SeedReferenceData", false);
 
         if (app.Environment.IsDevelopment() || shouldMigrate || shouldSeed || DatabaseSafetyGuard.IsTestExecutionContext)
@@ -534,9 +535,9 @@ using (var scope = app.Services.CreateScope())
 
         if (shouldSeed)
         {
-            // CURR-006: Reference data seeding strictly restricted to test/disposable database
-            DatabaseSafetyGuard.EnsureSafeTestDatabase(activeConn, "Program.cs Reference Data Seeding");
-            await DbInitializer.SeedReferenceDataAsync(db);
+            throw new InvalidOperationException(
+                "Database:SeedReferenceData is disabled in runtime StudyAI.Api (CURR-002). " +
+                "Use isolated test fixtures in StudyAI.IntegrationTests instead.");
         }
         if (app.Environment.IsDevelopment())
         {
