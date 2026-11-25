@@ -1,9 +1,13 @@
 # P02 Final Review — Multi-Subject Curriculum — PR #27
 
-**Review date:** 2026-11-25  
-**PR:** [#27](https://github.com/hthuyngan/STUDY_AI-/pull/27)  
-**Base:** `f109952ffd4141ec3c0855185fb7caa4c3ad3072`  
-**Reviewed HEAD:** `fddea7116a0f475f7559fa9c780e0c4aa9f1b3b7`  
+**Review date:** 2026-11-25
+
+**PR:** [#27](https://github.com/hthuyngan/STUDY_AI-/pull/27)
+
+**Base:** `f109952ffd4141ec3c0855185fb7caa4c3ad3072`
+
+**Reviewed HEAD:** `fddea7116a0f475f7559fa9c780e0c4aa9f1b3b7`
+
 **CI:** [45638944076](https://github.com/hthuyngan/STUDY_AI-/actions/runs/45638944076), success on the reviewed HEAD
 
 ## Verdict
