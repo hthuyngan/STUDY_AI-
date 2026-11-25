@@ -264,6 +264,7 @@ public class ControllerRouteDiscoveryTests
             "PATCH api/v1/content/catalog/curricula/{param}",
             "POST api/v1/content/catalog/curricula/{param}/archive",
             "POST api/v1/content/catalog/curricula/{param}/reactivate",
+            "POST api/v1/content/catalog/curricula/{param}/publish",
             "GET api/v1/content/catalog/textbook-series",
             "GET api/v1/content/catalog/textbook-series/{param}",
             "POST api/v1/content/catalog/textbook-series",
@@ -278,6 +279,17 @@ public class ControllerRouteDiscoveryTests
             "PATCH api/v1/content/catalog/editions/{param}",
             "POST api/v1/content/catalog/editions/{param}/archive",
             "POST api/v1/content/catalog/editions/{param}/reactivate",
+            "POST api/v1/content/catalog/editions/{param}/publish",
+            "POST api/v1/content/chapters/{param}/submit-review",
+            "POST api/v1/content/chapters/{param}/approve",
+            "POST api/v1/content/chapters/{param}/publish",
+            "POST api/v1/content/chapters/{param}/unpublish",
+            "POST api/v1/content/chapters/{param}/request-changes",
+            "POST api/v1/content/chapters/{param}/archive",
+            "POST api/v1/content/chapters/{param}/reactivate",
+            "POST api/v1/content/lessons/{param}/archive",
+            "POST api/v1/content/lessons/{param}/reactivate",
+            "GET api/v1/curriculum/editions/{param}/chapters",
             "GET api/v1/content/catalog/compatibility-mapping"
         };
 

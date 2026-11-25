@@ -233,7 +233,7 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
             entity.Property(e => e.LessonId).HasMaxLength(64).IsRequired();
 
-            entity.Property(e => e.SubjectId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.SubjectId).HasMaxLength(64);
 
             entity.Property(e => e.AssessmentStatus).HasMaxLength(32).HasDefaultValue("not-attempted");
 
@@ -411,7 +411,11 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
             entity.Property(e => e.Id).HasMaxLength(64);
 
-            entity.Property(e => e.SubjectId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.SubjectId).HasMaxLength(64);
+
+            entity.Property(e => e.CurriculumEditionId).HasMaxLength(64);
+
+            entity.Property(e => e.Code).HasMaxLength(64);
 
             entity.Property(e => e.Title).HasMaxLength(255).IsRequired();
 
@@ -429,9 +433,22 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
             entity.Property(e => e.UpdatedAt).IsRequired();
 
+            entity.Property(e => e.RowVersion).IsRowVersion();
+
 
 
             entity.HasIndex(e => e.SubjectId);
+
+            entity.HasIndex(e => e.CurriculumEditionId);
+
+            entity.HasIndex(e => new { e.CurriculumEditionId, e.Code })
+                .IsUnique()
+                .HasFilter("[CurriculumEditionId] IS NOT NULL AND [Code] IS NOT NULL AND [Status] <> 'archived'");
+
+            entity.HasOne(e => e.CurriculumEdition)
+                .WithMany(e => e.Chapters)
+                .HasForeignKey(e => e.CurriculumEditionId)
+                .OnDelete(DeleteBehavior.Restrict);
 
 
 
@@ -513,6 +530,8 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
             entity.Property(e => e.ChapterId).HasMaxLength(64).IsRequired();
 
+            entity.Property(e => e.Code).HasMaxLength(64);
+
             entity.Property(e => e.TopicId).HasMaxLength(64);
 
             entity.Property(e => e.Title).HasMaxLength(255).IsRequired();
@@ -533,9 +552,15 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
             entity.Property(e => e.SourceLicense).HasMaxLength(255);
 
+            entity.Property(e => e.RowVersion).IsRowVersion();
+
 
 
             entity.HasIndex(e => e.ChapterId);
+
+            entity.HasIndex(e => new { e.ChapterId, e.Code })
+                .IsUnique()
+                .HasFilter("[Code] IS NOT NULL AND [Status] <> 'archived'");
 
             entity.HasIndex(e => e.TopicId);
 

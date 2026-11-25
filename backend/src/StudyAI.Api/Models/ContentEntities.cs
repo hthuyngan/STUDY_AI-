@@ -18,7 +18,11 @@ public class ContentSubject
 public class ContentChapter
 {
     public string Id { get; set; } = string.Empty;
-    public string SubjectId { get; set; } = string.Empty;
+    public string? SubjectId { get; set; }
+    /// <summary>P02 canonical parent. Null only for unmigrated legacy chapters.</summary>
+    public string? CurriculumEditionId { get; set; }
+    /// <summary>Stable business key within an edition.</summary>
+    public string? Code { get; set; }
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public int OrderIndex { get; set; } = 0;
@@ -28,8 +32,10 @@ public class ContentChapter
     public string? SourceUrl { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
     public ContentSubject? Subject { get; set; }
+    public CurriculumEdition? CurriculumEdition { get; set; }
     public ICollection<ContentTopic> Topics { get; set; } = new List<ContentTopic>();
     public ICollection<ContentLesson> Lessons { get; set; } = new List<ContentLesson>();
 }
@@ -53,6 +59,8 @@ public class ContentLesson
 {
     public string Id { get; set; } = string.Empty;
     public string ChapterId { get; set; } = string.Empty;
+    /// <summary>Stable business key within a chapter.</summary>
+    public string? Code { get; set; }
     public string? TopicId { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
@@ -74,6 +82,7 @@ public class ContentLesson
 
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
     public ContentChapter? Chapter { get; set; }
     public ContentTopic? Topic { get; set; }

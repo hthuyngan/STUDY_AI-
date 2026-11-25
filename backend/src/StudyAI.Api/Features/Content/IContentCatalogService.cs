@@ -25,6 +25,7 @@ public interface IContentCatalogService
     Task<CurriculumDto> UpdateCurriculumAsync(string id, UpdateCurriculumRequestDto req, string actorUserId, CancellationToken ct = default);
     Task<CurriculumDto> ArchiveCurriculumAsync(string id, CatalogStatusActionDto? action, string actorUserId, CancellationToken ct = default);
     Task<CurriculumDto> ReactivateCurriculumAsync(string id, CatalogStatusActionDto? action, string actorUserId, CancellationToken ct = default);
+    Task<CurriculumDto> PublishCurriculumAsync(string id, CatalogStatusActionDto? action, string actorUserId, CancellationToken ct = default);
 
     // TextbookSeries
     Task<CatalogPagedResponseDto<TextbookSeriesDto>> ListTextbookSeriesAsync(CatalogListQueryDto query, CancellationToken ct = default);
@@ -41,6 +42,7 @@ public interface IContentCatalogService
     Task<CurriculumEditionDto> UpdateEditionAsync(string id, UpdateCurriculumEditionRequestDto req, string actorUserId, CancellationToken ct = default);
     Task<CurriculumEditionDto> ArchiveEditionAsync(string id, CatalogStatusActionDto? action, string actorUserId, CancellationToken ct = default);
     Task<CurriculumEditionDto> ReactivateEditionAsync(string id, CatalogStatusActionDto? action, string actorUserId, CancellationToken ct = default);
+    Task<CurriculumEditionDto> PublishEditionAsync(string id, CatalogStatusActionDto? action, string actorUserId, CancellationToken ct = default);
 
     // Read-only Compatibility Mapping Report
     Task<CompatibilityMappingReportDto> GetCompatibilityMappingReportAsync(CancellationToken ct = default);

@@ -218,7 +218,7 @@ public class ContentAuthorizationAndOwnershipTests
         Assert.Equal(StatusCodes.Status200OK, okResult.StatusCode);
 
         var updated = await context.ContentLessons.FindAsync("les_author1");
-        Assert.Equal("published", updated!.Status);
+        Assert.Equal("approved", updated!.Status);
         Assert.Equal("usr_content_reviewer", updated.ReviewedBy);
     }
 
