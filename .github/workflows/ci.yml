@@ -176,7 +176,7 @@ jobs:
       - name: Install Root & Frontend Dependencies + Playwright Chromium
         run: |
           bun install --frozen-lockfile
-          (cd frontend && bun install --frozen-lockfile)
+          (cd frontend && bun install --frozen-lockfile && bun run build)
           bunx playwright install chromium --with-deps
 
       - name: Restore & Build Backend
