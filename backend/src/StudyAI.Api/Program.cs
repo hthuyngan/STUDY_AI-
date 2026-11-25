@@ -465,8 +465,30 @@ if (args.Contains("--export-endpoint-inventory"))
 }
 
 // CLI Bootstrap Admin Command Support: --bootstrap-admin
+// Fail-closed BEFORE resolving DbContext or executing any SQL query/write:
+// strictly permitted ONLY in Testing environment targeting an authorized disposable StudyAIDb_Clean_{GUID} database.
 if (args.Contains("--bootstrap-admin"))
 {
+    if (!app.Environment.IsEnvironment("Testing"))
+    {
+        Console.Error.WriteLine(
+            $"CRITICAL DATABASE SAFETY GUARD TRIGGERED [CLI --bootstrap-admin]: " +
+            $"--bootstrap-admin is strictly forbidden in '{app.Environment.EnvironmentName}' and against 'StudyAIDb'. " +
+            "Only Testing environment with a disposable StudyAIDb_Clean_{GUID} database is permitted.");
+        Environment.Exit(1);
+    }
+
+    try
+    {
+        var cliConn = app.Configuration.GetConnectionString("DefaultConnection");
+        DatabaseSafetyGuard.EnsureSafeDatabaseForEnvironment(cliConn, app.Environment.EnvironmentName, "CLI --bootstrap-admin");
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"FATAL: {ex.Message}");
+        Environment.Exit(1);
+    }
+
     if (args.Any(a => a.StartsWith("--admin-password", StringComparison.OrdinalIgnoreCase)))
     {
         Console.Error.WriteLine("SECURITY ERROR: Passing passwords via command-line arguments is forbidden because it exposes credentials in process listings. Use the ADMIN_BOOTSTRAP_PASSWORD environment variable or enter it securely via the interactive console prompt.");

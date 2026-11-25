@@ -217,7 +217,6 @@ public class DatabaseSafetyGuardTests
     [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb;Trusted_Connection=True;", "Development", "Startup Migration")]
     [InlineData("Server=.\\SQLEXPRESS;Database=studyaidb;Trusted_Connection=True;", "Development", "DbSeed")]
     [InlineData("Server=.\\SQLEXPRESS;Database=[StudyAIDb];Trusted_Connection=True;", "Production", "Migration")]
-    [InlineData("Server=.\\SQLEXPRESS;Initial Catalog=StudyAIDb;Trusted_Connection=True;", "Staging", "DbSeed")]
     [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb;Trusted_Connection=True;", "Testing", "ImportScript")]
     public void Guard_Blocks_StudyAIDb_In_Migrations_Seeds_And_Testing(string connStr, string env, string context)
     {
@@ -227,6 +226,18 @@ public class DatabaseSafetyGuardTests
         Assert.Contains("CRITICAL DATABASE SAFETY GUARD TRIGGERED", ex.Message);
         Assert.Contains("strictly FORBIDDEN", ex.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("StudyAIDb", ex.Message);
+    }
+
+    [Theory]
+    [InlineData("Server=.\\SQLEXPRESS;Initial Catalog=StudyAIDb;Trusted_Connection=True;", "Staging", "DbSeed")]
+    [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb;Trusted_Connection=True;", "QA", "Startup")]
+    [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb;Trusted_Connection=True;", "", "Startup")]
+    public void Guard_Blocks_Unrecognized_Environments(string connStr, string env, string context)
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            DatabaseSafetyGuard.EnsureSafeDatabaseForEnvironment(connStr, env, context));
+
+        Assert.Contains("CRITICAL DATABASE SAFETY GUARD TRIGGERED", ex.Message);
     }
 
     [Theory]

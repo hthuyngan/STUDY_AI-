@@ -4,7 +4,7 @@ import fs from 'fs'
 import path from 'path'
 import { resolveDotnet10Environment } from './utils/dotnetRuntime'
 import { assertSafeTestDatabase } from './utils/databaseSafetyGuard'
-import { createDisposableTestDatabase } from './utils/disposableDb'
+import { createDisposableTestDatabase, queryValidatedDisposableDatabase } from './utils/disposableDb'
 
 const BACKEND_PORT = 5295
 const FRONTEND_PORT = 4178
@@ -12,13 +12,10 @@ const BACKEND_URL = `http://127.0.0.1:${BACKEND_PORT}`
 const FRONTEND_URL = `http://127.0.0.1:${FRONTEND_PORT}`
 const QA_DIR = path.join('docs', 'visual-qa', 'phase-19')
 
-// Dedicated test database connection string to strictly protect StudyAIDb
+// Dedicated disposable test database connection string to strictly protect StudyAIDb
 const _disposableDb = process.env.ConnectionStrings__DefaultConnection ? null : createDisposableTestDatabase('e2e_phase19_playwright')
 const E2E_CONNECTION_STRING = process.env.ConnectionStrings__DefaultConnection || _disposableDb!.connectionString
-if (_disposableDb) { process.on('exit', () => { void _disposableDb.cleanup() }) }
-
-// Fail-closed database safety guard: abort immediately if targeting StudyAIDb
-assertSafeTestDatabase(E2E_CONNECTION_STRING, 'Phase 19 Playwright E2E')
+const TARGET_DB_NAME = assertSafeTestDatabase(E2E_CONNECTION_STRING, 'Phase 19 Playwright E2E')
 
 if (fs.existsSync(QA_DIR)) {
   for (const file of fs.readdirSync(QA_DIR)) {
@@ -73,22 +70,14 @@ interface ScenarioReport {
 }
 
 async function querySql(query: string): Promise<string> {
-  const { execSync } = await import('child_process')
-  const escapedQuery = query.replace(/"/g, '""')
-  const cmd = `sqlcmd -S .\\SQLEXPRESS -d StudyAIDb_E2E -E -C -h -1 -W -Q "${escapedQuery}"`
-  try {
-    const output = execSync(cmd, { encoding: 'utf8' })
-    return output.trim()
-  } catch (err: any) {
-    return `SQLCMD_ERROR: ${err.message}`
-  }
+  return queryValidatedDisposableDatabase(E2E_CONNECTION_STRING, query, 'Phase 19 SQL Assertion')
 }
 
 async function run() {
   const startTime = Date.now()
   console.log('=== STARTING PHASE 19 REAL AI TUTOR E2E PLAYWRIGHT SUITE ===')
   console.log(`Timestamp: ${new Date().toISOString()}`)
-  console.log(`Target E2E Database: StudyAIDb_E2E (Isolated test database)`)
+  console.log(`Target Disposable Database: ${TARGET_DB_NAME} (Isolated test database)`)
 
   const reports: ScenarioReport[] = []
 
@@ -376,6 +365,10 @@ async function run() {
     console.log('\nTearing down processes...')
     killProcessTree(backendProc)
     killProcessTree(frontendProc)
+    if (_disposableDb) {
+      await _disposableDb.cleanup()
+      console.log(`Cleaned up disposable database: ${_disposableDb.dbName}`)
+    }
   }
 
   const totalTime = Date.now() - startTime

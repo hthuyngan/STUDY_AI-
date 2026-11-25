@@ -23,6 +23,7 @@ public class StudyAIApiFixture : WebApplicationFactory<Program>
 {
     private string? _ownedDisposableDbName;
     private string? _ownedMasterConnStr;
+    private string? _ownedOwnershipToken;
     private string? _resolvedConnStr;
 
     /// <summary>
@@ -61,17 +62,31 @@ public class StudyAIApiFixture : WebApplicationFactory<Program>
             return _resolvedConnStr;
         }
 
-        // Provision a fresh disposable StudyAIDb_Clean_{GUID} on local .\SQLEXPRESS and own its cleanup
+        // Provision a fresh disposable StudyAIDb_Clean_{GUID} on local .\SQLEXPRESS and stamp run ownership token
         var cleanDbName = $"StudyAIDb_Clean_{Guid.NewGuid():N}";
+        var ownershipToken = Guid.NewGuid().ToString("N");
         var localMaster = "Server=.\\SQLEXPRESS;Database=master;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true;";
         var cleanConn = new SqlConnectionStringBuilder(localMaster) { InitialCatalog = cleanDbName }.ConnectionString;
         DatabaseSafetyGuard.EnsureSafeTestDatabase(cleanConn, "StudyAIApiFixture.AutoProvision");
-        EnsureCleanDatabaseExists(localMaster, cleanDbName);
+        CreateOwnedDisposableDatabase(localMaster, cleanDbName, ownershipToken);
 
         _ownedMasterConnStr = localMaster;
         _ownedDisposableDbName = cleanDbName;
+        _ownedOwnershipToken = ownershipToken;
         _resolvedConnStr = cleanConn;
         return _resolvedConnStr;
+    }
+
+    private static void CreateOwnedDisposableDatabase(string masterConnStr, string dbName, string ownershipToken)
+    {
+        using var conn = new SqlConnection(masterConnStr);
+        conn.Open();
+        using var cmd = conn.CreateCommand();
+        // Strict CREATE DATABASE (no IF DB_ID IS NULL) ensures this run created and owns it
+        cmd.CommandText = $@"
+            CREATE DATABASE [{dbName}];
+            EXEC [{dbName}].sys.sp_addextendedproperty @name = N'StudyAI_OwnershipToken', @value = N'{ownershipToken}';";
+        cmd.ExecuteNonQuery();
     }
 
     private static void EnsureCleanDatabaseExists(string masterConnStr, string dbName)
@@ -88,24 +103,27 @@ public class StudyAIApiFixture : WebApplicationFactory<Program>
         base.Dispose(disposing);
         if (disposing && !string.IsNullOrWhiteSpace(_ownedDisposableDbName) && !string.IsNullOrWhiteSpace(_ownedMasterConnStr))
         {
-            try
+            SqlConnection.ClearAllPools();
+            using var conn = new SqlConnection(_ownedMasterConnStr);
+            conn.Open();
+
+            using var verifyCmd = conn.CreateCommand();
+            verifyCmd.CommandText = $@"
+                SELECT ISNULL(CAST(value AS nvarchar(128)), '')
+                FROM [{_ownedDisposableDbName}].sys.extended_properties
+                WHERE class = 0 AND name = N'StudyAI_OwnershipToken';";
+            var dbToken = verifyCmd.ExecuteScalar()?.ToString();
+            if (!string.Equals(dbToken, _ownedOwnershipToken, StringComparison.Ordinal))
             {
-                SqlConnection.ClearAllPools();
-                using var conn = new SqlConnection(_ownedMasterConnStr);
-                conn.Open();
-                using var cmd = conn.CreateCommand();
-                cmd.CommandText = $@"
-                    IF DB_ID('{_ownedDisposableDbName}') IS NOT NULL
-                    BEGIN
-                        ALTER DATABASE [{_ownedDisposableDbName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
-                        DROP DATABASE [{_ownedDisposableDbName}];
-                    END";
-                cmd.ExecuteNonQuery();
+                throw new InvalidOperationException(
+                    $"CRITICAL CLEANUP GUARD: Refusing to drop '{_ownedDisposableDbName}' because StudyAI_OwnershipToken did not match current fixture run.");
             }
-            catch
-            {
-                // Best-effort cleanup of disposable test DB
-            }
+
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = $@"
+                ALTER DATABASE [{_ownedDisposableDbName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+                DROP DATABASE [{_ownedDisposableDbName}];";
+            cmd.ExecuteNonQuery();
         }
     }
 

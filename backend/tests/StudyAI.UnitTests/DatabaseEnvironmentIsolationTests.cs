@@ -69,16 +69,33 @@ public class DatabaseEnvironmentIsolationTests
     [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb_E2E;Trusted_Connection=True;", "Development")]
     [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb_Dev;Trusted_Connection=True;", "Development")]
     [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb_Clean_a1b2c3d4e5f60718293a4b5c6d7e8f90;Trusted_Connection=True;", "Development")]
+    [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb_E2E;Trusted_Connection=True;", "Production")]
+    [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb_Dev;Trusted_Connection=True;", "Production")]
+    [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb_Clean_a1b2c3d4e5f60718293a4b5c6d7e8f90;Trusted_Connection=True;", "Production")]
+    [InlineData("Server=.\\SQLEXPRESS;Database=OtherDb;Trusted_Connection=True;", "Production")]
     [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb;Trusted_Connection=True;", "Testing")]
     [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb_Dev;Trusted_Connection=True;", "Testing")]
     [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb_E2E;Trusted_Connection=True;", "Testing")]
     [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb;Trusted_Connection=True;", "Staging")]
-    public void Guard_Blocks_CrossEnvironment_And_Legacy_Database_Access(string connStr, string envName)
+    [InlineData("Server=.\\SQLEXPRESS;Database=StagingDb;Trusted_Connection=True;", "Staging")]
+    [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb;Trusted_Connection=True;", "QA")]
+    [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb;Trusted_Connection=True;", "")]
+    public void Guard_Blocks_CrossEnvironment_Unrecognized_And_Legacy_Database_Access(string connStr, string envName)
     {
         var ex = Assert.Throws<InvalidOperationException>(() =>
             DatabaseSafetyGuard.EnsureSafeDatabaseForEnvironment(connStr, envName, "PrecedenceTest"));
 
         Assert.Contains("CRITICAL DATABASE SAFETY GUARD TRIGGERED", ex.Message);
+    }
+
+    [Theory]
+    [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb;Trusted_Connection=True;", "Development", "StudyAIDb")]
+    [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb;Trusted_Connection=True;", "Production", "StudyAIDb")]
+    [InlineData("Server=.\\SQLEXPRESS;Database=StudyAIDb_Clean_a1b2c3d4e5f60718293a4b5c6d7e8f90;Trusted_Connection=True;", "Testing", "StudyAIDb_Clean_a1b2c3d4e5f60718293a4b5c6d7e8f90")]
+    public void Guard_Allows_Exact_Environment_Database_Matrix(string connStr, string envName, string expectedDb)
+    {
+        var resolved = DatabaseSafetyGuard.EnsureSafeDatabaseForEnvironment(connStr, envName, "MatrixTest");
+        Assert.Equal(expectedDb, resolved);
     }
 
     [Fact]

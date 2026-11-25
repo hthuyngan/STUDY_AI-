@@ -165,15 +165,31 @@ public static class DatabaseSafetyGuard
 
         var normalizedDb = rawDbName.Trim().Trim('[', ']');
 
+        if (string.IsNullOrWhiteSpace(environmentName))
+        {
+            throw new InvalidOperationException(
+                $"CRITICAL DATABASE SAFETY GUARD TRIGGERED [{callerContext}]: " +
+                "Host environment name is missing or empty. Execution is blocked (fail-closed).");
+        }
+
         bool isDevelopment = string.Equals(environmentName, "Development", StringComparison.OrdinalIgnoreCase);
+        bool isProduction = string.Equals(environmentName, "Production", StringComparison.OrdinalIgnoreCase);
         bool isTesting = string.Equals(environmentName, "Testing", StringComparison.OrdinalIgnoreCase);
-        bool isStaging = string.Equals(environmentName, "Staging", StringComparison.OrdinalIgnoreCase);
+
+        if (!isDevelopment && !isProduction && !isTesting)
+        {
+            throw new InvalidOperationException(
+                $"CRITICAL DATABASE SAFETY GUARD TRIGGERED [{callerContext}]: " +
+                $"Unrecognized or unconfigured environment '{environmentName}'. " +
+                "Only 'Development', 'Production' (targeting StudyAIDb), and 'Testing' (targeting StudyAIDb_Clean_{GUID}) are permitted.");
+        }
 
         bool isAutoMutationContext =
             callerContext.Contains("Startup Migration", StringComparison.OrdinalIgnoreCase) ||
             callerContext.Contains("Migration", StringComparison.OrdinalIgnoreCase) ||
             callerContext.Contains("Seed", StringComparison.OrdinalIgnoreCase) ||
-            callerContext.Contains("Import", StringComparison.OrdinalIgnoreCase);
+            callerContext.Contains("Import", StringComparison.OrdinalIgnoreCase) ||
+            callerContext.Contains("Bootstrap", StringComparison.OrdinalIgnoreCase);
 
         if (isTesting)
         {
@@ -183,30 +199,27 @@ public static class DatabaseSafetyGuard
                     $"CRITICAL DATABASE SAFETY GUARD TRIGGERED [{callerContext}]: " +
                     $"Testing environment resolved to '{normalizedDb}', which is NOT an authorized disposable test database. " +
                     "Testing is strictly forbidden from targeting 'StudyAIDb', 'StudyAIDb_Dev', or 'StudyAIDb_E2E', " +
-                    "and must strictly target 'StudyAIDb_Clean_{{GUID}}' (Guid:N or Guid:D).");
+                    "and must strictly target 'StudyAIDb_Clean_{GUID}' (Guid:N or Guid:D).");
             }
 
             return normalizedDb;
         }
 
-        if (string.Equals(normalizedDb, ProductionDatabaseName, StringComparison.OrdinalIgnoreCase) &&
-            (isStaging || isAutoMutationContext))
+        // Development & Production MUST strictly target StudyAIDb only (never fallback to StudyAIDb_E2E, StudyAIDb_Dev, or arbitrary DBs)
+        if (!string.Equals(normalizedDb, ProductionDatabaseName, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"CRITICAL DATABASE SAFETY GUARD TRIGGERED [{callerContext}]: " +
+                $"{environmentName} environment resolved to '{normalizedDb}', which is NOT authorized. " +
+                $"{environmentName} must strictly target 'StudyAIDb' and is forbidden from connecting to '{normalizedDb}'.");
+        }
+
+        if (isAutoMutationContext)
         {
             throw new InvalidOperationException(
                 $"CRITICAL DATABASE SAFETY GUARD TRIGGERED [{callerContext}]: " +
                 $"Operation BLOCKED! Target database resolved to primary database '{normalizedDb}'. " +
-                "Automatic migrations, reference seeding, and automated import scripts are strictly FORBIDDEN on 'StudyAIDb'.");
-        }
-
-        if (isDevelopment)
-        {
-            if (!string.Equals(normalizedDb, ProductionDatabaseName, StringComparison.OrdinalIgnoreCase))
-            {
-                throw new InvalidOperationException(
-                    $"CRITICAL DATABASE SAFETY GUARD TRIGGERED [{callerContext}]: " +
-                    $"Development environment resolved to '{normalizedDb}', which is NOT authorized for Development. " +
-                    "Development website runtime must target 'StudyAIDb' explicitly and must not target 'StudyAIDb_E2E', 'StudyAIDb_Dev', or disposable test databases.");
-            }
+                "Automatic migrations, reference seeding, CLI bootstrap, and automated import scripts are strictly FORBIDDEN on 'StudyAIDb'.");
         }
 
         return normalizedDb;
