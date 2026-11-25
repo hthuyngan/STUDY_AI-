@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ArrowRight, BookOpen, CheckCircle2, Clock, Search } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/Button'
@@ -8,18 +8,47 @@ import { PageErrorState } from '@/components/ui/PageErrorState'
 import { Progress } from '@/components/ui/Progress'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { useSubjects } from '@/hooks/useSubjects'
+import { curriculumService, type LearnerEditionSummary } from '@/services/curriculum.service'
 import './SubjectsPage.css'
 
 export function SubjectsPage() {
   const { subjects, isLoading, error, reload } = useSubjects()
+  const [editions, setEditions] = useState<LearnerEditionSummary[]>([])
+  const [editionsLoading, setEditionsLoading] = useState(true)
+  const [editionsError, setEditionsError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedGrade, setSelectedGrade] = useState<'all' | '10' | '11' | '12'>('all')
 
-  const mathSubjects = subjects.filter((s) => {
-    return /toán|math/i.test(s.name) || /math/i.test(s.id)
+  const loadEditions = () => {
+    setEditionsLoading(true)
+    setEditionsError(null)
+    curriculumService
+      .getPublishedEditions()
+      .then((list) => setEditions(Array.isArray(list) ? list : []))
+      .catch((err) => setEditionsError(err instanceof Error ? err.message : 'Không thể tải danh sách phiên bản giáo trình.'))
+      .finally(() => setEditionsLoading(false))
+  }
+
+  useEffect(() => {
+    loadEditions()
+  }, [])
+
+  const filteredEditions = editions.filter((ed) => {
+    const matchesGrade =
+      selectedGrade === 'all' ||
+      ed.gradeName.includes(selectedGrade) ||
+      ed.curriculumName.includes(selectedGrade)
+    const q = searchQuery.trim().toLowerCase()
+    const matchesSearch =
+      !q ||
+      ed.editionName.toLowerCase().includes(q) ||
+      ed.subjectName.toLowerCase().includes(q) ||
+      ed.curriculumName.toLowerCase().includes(q) ||
+      ed.code.toLowerCase().includes(q)
+    return matchesGrade && matchesSearch
   })
 
-  const filteredSubjects = mathSubjects.filter((s) => {
+  const filteredSubjects = subjects.filter((s) => {
     const matchesGrade =
       selectedGrade === 'all' ||
       s.grade === selectedGrade ||
@@ -71,8 +100,8 @@ export function SubjectsPage() {
       {/* Header */}
       <div className="page-header-row">
         <div>
-          <h1 className="page-title">Giáo trình Toán THPT</h1>
-          <p className="page-subtitle">Chương trình chuẩn GDPT 2018 (Lớp 10, 11, 12) với video bài giảng kiểm chứng và hệ thống luyện tập tương tác.</p>
+          <h1 className="page-title">Giáo trình học tập THPT</h1>
+          <p className="page-subtitle">Chương trình đa môn theo phiên bản GDPT 2018 với bài học và hệ thống luyện tập tương tác.</p>
         </div>
 
         {/* Search */}
@@ -93,9 +122,9 @@ export function SubjectsPage() {
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         {[
           { key: 'all', label: 'Tất cả các khối' },
-          { key: '10', label: 'Toán 10' },
-          { key: '11', label: 'Toán 11' },
-          { key: '12', label: 'Toán 12' },
+          { key: '10', label: 'Khối 10' },
+          { key: '11', label: 'Khối 11' },
+          { key: '12', label: 'Khối 12' },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -119,7 +148,52 @@ export function SubjectsPage() {
         ))}
       </div>
 
-      {filteredSubjects.length === 0 ? (
+      {editionsError && (
+        <div role="alert" style={{ marginBottom: '1rem', padding: '12px', borderRadius: '8px', border: '1px solid var(--danger-500, #dc2626)', color: 'var(--danger-600, #dc2626)' }}>
+          {editionsError}
+        </div>
+      )}
+
+      {!editionsLoading && filteredEditions.length > 0 && (
+        <section aria-label="Giáo trình theo phiên bản" style={{ marginBottom: '2rem' }}>
+          <h2 style={{ fontSize: '1.1rem', marginBottom: '0.75rem' }}>Giáo trình theo phiên bản</h2>
+          <div className="subjects-grid">
+            {filteredEditions.map((ed) => (
+              <Card key={ed.id} className="subject-item-card is-available">
+                <div className="subject-card-top">
+                  <div className="subject-card-meta">
+                    <div className="subject-badge-row">
+                      <span className="subject-badge-grade">
+                        {ed.gradeName} · {ed.framework || ed.curriculumName}
+                      </span>
+                      <span className="subject-status-badge available">
+                        <CheckCircle2 size={11} aria-hidden /> {ed.publishedLessonCount} bài học
+                      </span>
+                    </div>
+                    <h3 className="subject-name">{ed.subjectName} — {ed.editionName}</h3>
+                  </div>
+                </div>
+                <p className="subject-desc">
+                  {ed.curriculumName}{ed.textbookSeriesName ? ` · Bộ sách: ${ed.textbookSeriesName}` : ''} · {ed.publishedChapterCount} chương
+                </p>
+                <div className="subject-card-footer">
+                  <Link
+                    to={`/subjects/edition/${ed.id}`}
+                    state={{ editionMeta: ed }}
+                    style={{ textDecoration: 'none', width: '100%' }}
+                  >
+                    <Button variant="primary" icon={ArrowRight} fullWidth>
+                      Mở giáo trình
+                    </Button>
+                  </Link>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {filteredEditions.length === 0 && filteredSubjects.length === 0 ? (
         <EmptyState
           icon={BookOpen}
           title="Chưa tìm thấy giáo trình phù hợp"

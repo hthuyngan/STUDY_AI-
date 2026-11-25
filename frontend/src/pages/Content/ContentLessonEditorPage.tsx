@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import { useAuth } from '@/auth/useAuth'
 import { useLessonEditor } from '@/hooks/useContent'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -16,17 +17,29 @@ import './ContentPages.css'
 interface LessonEditorFormProps {
   lessonData: LessonEditorData
   isSaving: boolean
-  onSaveDraft: (updates: Partial<LessonEditorData>) => Promise<unknown>
-  onSubmitReview: () => Promise<unknown>
-  onPublish: () => Promise<unknown>
+  isReviewer: boolean
+  onSaveDraft: (updates: Partial<LessonEditorData>) => Promise<LessonEditorData | undefined>
+  onSubmitReview: (rowVersion?: string) => Promise<unknown>
+  onApprove: (rowVersion?: string) => Promise<unknown>
+  onPublish: (rowVersion?: string) => Promise<unknown>
+  onUnpublish: (rowVersion?: string) => Promise<unknown>
+  onRequestChanges: (reason?: string, rowVersion?: string) => Promise<unknown>
+  onArchive: (reason?: string, rowVersion?: string) => Promise<unknown>
+  onReactivate: (rowVersion?: string) => Promise<unknown>
 }
 
 function LessonEditorForm({
   lessonData,
   isSaving,
+  isReviewer,
   onSaveDraft,
   onSubmitReview,
+  onApprove,
   onPublish,
+  onUnpublish,
+  onRequestChanges,
+  onArchive,
+  onReactivate,
 }: LessonEditorFormProps) {
   const [title, setTitle] = useState(lessonData.title)
   const [introduction, setIntroduction] = useState(lessonData.introduction)
@@ -191,8 +204,7 @@ function LessonEditorForm({
     setSaveStatus('saving')
     setSaveError(null)
     try {
-      // First persist any pending draft edits
-      await onSaveDraft({
+      const saved = await onSaveDraft({
         title,
         introduction,
         definitions,
@@ -200,9 +212,9 @@ function LessonEditorForm({
         examples,
         notes: notes.filter((n) => n.trim().length > 0),
         summary: summary.filter((s) => s.trim().length > 0),
+        rowVersion: lessonData.rowVersion,
       })
-      // Then call dedicated submit review endpoint
-      await onSubmitReview()
+      await onSubmitReview(saved?.rowVersion ?? lessonData.rowVersion)
       setSuccessMessage('✓ Đã gửi bài học sang hàng đợi kiểm duyệt thành công!')
       setSaveStatus('saved')
       setIsDirty(false)
@@ -213,29 +225,22 @@ function LessonEditorForm({
     }
   }
 
-  const handlePublish = async () => {
+  const handleLifecycleAction = async (
+    fn: () => Promise<unknown>,
+    successMsg: string,
+    fallbackErr: string
+  ) => {
     setSaveStatus('saving')
     setSaveError(null)
     try {
-      // First persist any pending draft edits
-      await onSaveDraft({
-        title,
-        introduction,
-        definitions,
-        formulas,
-        examples,
-        notes: notes.filter((n) => n.trim().length > 0),
-        summary: summary.filter((s) => s.trim().length > 0),
-      })
-      // Then call dedicated publish workflow endpoint
-      await onPublish()
-      setSuccessMessage('✓ Đã xuất bản bài học thành công cho học sinh!')
+      await fn()
+      setSuccessMessage(successMsg)
       setSaveStatus('saved')
       setIsDirty(false)
       setTimeout(() => setSaveStatus('idle'), 3000)
     } catch (err: unknown) {
       setSaveStatus('error')
-      setSaveError(err instanceof Error ? err.message : 'Lỗi khi xuất bản bài học')
+      setSaveError(err instanceof Error ? err.message : fallbackErr)
     }
   }
 
@@ -730,30 +735,96 @@ function LessonEditorForm({
             : 'Chưa lưu thay đổi'}
         </div>
         <div className="editor-sticky-bar-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <button
-            type="button"
-            className="staff-btn staff-btn-secondary"
-            onClick={handleSaveDraft}
-            disabled={saveStatus === 'saving' || isSaving}
-          >
-            Lưu bản nháp
-          </button>
-          <button
-            type="button"
-            className="staff-btn staff-btn-secondary"
-            onClick={handleSubmitReview}
-            disabled={saveStatus === 'saving' || isSaving}
-          >
-            Gửi kiểm duyệt
-          </button>
-          <button
-            type="button"
-            className="staff-btn staff-btn-primary"
-            onClick={handlePublish}
-            disabled={saveStatus === 'saving' || isSaving}
-          >
-            {saveStatus === 'saving' ? 'Đang lưu...' : 'Xuất bản bài học'}
-          </button>
+          {(lessonData.status === 'draft' || lessonData.status === 'changes-requested') && (
+            <>
+              <button
+                type="button"
+                className="staff-btn staff-btn-secondary"
+                onClick={handleSaveDraft}
+                disabled={saveStatus === 'saving' || isSaving}
+              >
+                Lưu bản nháp
+              </button>
+              <button
+                type="button"
+                className="staff-btn staff-btn-primary"
+                onClick={handleSubmitReview}
+                disabled={saveStatus === 'saving' || isSaving}
+              >
+                Gửi kiểm duyệt
+              </button>
+            </>
+          )}
+          {isReviewer && lessonData.status === 'in-review' && (
+            <>
+              <button
+                type="button"
+                className="staff-btn staff-btn-secondary"
+                onClick={() => handleLifecycleAction(() => onRequestChanges(undefined, lessonData.rowVersion), '✓ Đã yêu cầu chỉnh sửa bài học.', 'Lỗi khi yêu cầu chỉnh sửa')}
+                disabled={saveStatus === 'saving' || isSaving}
+              >
+                Yêu cầu sửa
+              </button>
+              <button
+                type="button"
+                className="staff-btn staff-btn-primary"
+                onClick={() => handleLifecycleAction(() => onApprove(lessonData.rowVersion), '✓ Đã phê duyệt bài học thành công!', 'Lỗi khi phê duyệt bài học')}
+                disabled={saveStatus === 'saving' || isSaving}
+              >
+                Phê duyệt
+              </button>
+            </>
+          )}
+          {isReviewer && lessonData.status === 'approved' && (
+            <>
+              <button
+                type="button"
+                className="staff-btn staff-btn-secondary"
+                onClick={() => handleLifecycleAction(() => onRequestChanges(undefined, lessonData.rowVersion), '✓ Đã yêu cầu chỉnh sửa bài học.', 'Lỗi khi yêu cầu chỉnh sửa')}
+                disabled={saveStatus === 'saving' || isSaving}
+              >
+                Yêu cầu sửa
+              </button>
+              <button
+                type="button"
+                className="staff-btn staff-btn-primary"
+                onClick={() => handleLifecycleAction(() => onPublish(lessonData.rowVersion), '✓ Đã xuất bản bài học thành công cho học sinh!', 'Lỗi khi xuất bản bài học')}
+                disabled={saveStatus === 'saving' || isSaving}
+              >
+                {saveStatus === 'saving' ? 'Đang lưu...' : 'Xuất bản bài học'}
+              </button>
+            </>
+          )}
+          {isReviewer && lessonData.status === 'published' && (
+            <button
+              type="button"
+              className="staff-btn staff-btn-secondary"
+              onClick={() => handleLifecycleAction(() => onUnpublish(lessonData.rowVersion), '✓ Đã gỡ xuất bản bài học.', 'Lỗi khi gỡ xuất bản bài học')}
+              disabled={saveStatus === 'saving' || isSaving}
+            >
+              Gỡ xuất bản
+            </button>
+          )}
+          {isReviewer && lessonData.status !== 'archived' && (
+            <button
+              type="button"
+              className="staff-btn staff-btn-secondary"
+              onClick={() => handleLifecycleAction(() => onArchive(undefined, lessonData.rowVersion), '✓ Đã lưu trữ bài học.', 'Lỗi khi lưu trữ bài học')}
+              disabled={saveStatus === 'saving' || isSaving}
+            >
+              Lưu trữ
+            </button>
+          )}
+          {isReviewer && lessonData.status === 'archived' && (
+            <button
+              type="button"
+              className="staff-btn staff-btn-primary"
+              onClick={() => handleLifecycleAction(() => onReactivate(lessonData.rowVersion), '✓ Đã khôi phục bài học về bản nháp.', 'Lỗi khi khôi phục bài học')}
+              disabled={saveStatus === 'saving' || isSaving}
+            >
+              Khôi phục bản nháp
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -762,7 +833,9 @@ function LessonEditorForm({
 
 export function ContentLessonEditorPage() {
   const { id } = useParams<{ id: string }>()
-  const { lessonData, loading, isSaving, error, saveDraft, submitReview, publish, refresh } =
+  const { user } = useAuth()
+  const isReviewer = ['admin', 'content_admin', 'content', 'reviewer'].includes((user?.role || '').toLowerCase())
+  const { lessonData, loading, isSaving, error, saveDraft, submitReview, approve, publish, unpublish, requestChanges, archive, reactivate, refresh } =
     useLessonEditor(id || '')
 
   // CURR-009: Missing lesson ID must display error, never fallback to demo lesson
@@ -807,9 +880,15 @@ export function ContentLessonEditorPage() {
       key={lessonData.id}
       lessonData={lessonData}
       isSaving={isSaving}
+      isReviewer={isReviewer}
       onSaveDraft={saveDraft}
       onSubmitReview={submitReview}
+      onApprove={approve}
       onPublish={publish}
+      onUnpublish={unpublish}
+      onRequestChanges={requestChanges}
+      onArchive={archive}
+      onReactivate={reactivate}
     />
   )
 }
