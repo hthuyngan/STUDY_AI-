@@ -45,6 +45,17 @@ async function waitForUrl(url: string, timeoutMs = 40000): Promise<void> {
   throw new Error(`Service at ${url} did not become ready within ${timeoutMs}ms`)
 }
 
+async function loginApi(email: string, password: string): Promise<string> {
+  const res = await fetch(`${BACKEND_URL}/api/v1/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  })
+  if (!res.ok) throw new Error(`Login failed for ${email}: ${res.status}`)
+  const json = (await res.json()) as { accessToken: string }
+  return json.accessToken
+}
+
 async function run() {
   console.log('=== STARTING P01 MULTI-SUBJECT CATALOG E2E PLAYWRIGHT SUITE ===')
   console.log('Target E2E Database: StudyAIDb_E2E (DatabaseSafetyGuard verified)')
@@ -85,28 +96,49 @@ async function run() {
     await waitForUrl(FRONTEND_URL)
     console.log('-> Backend & Frontend ready.')
 
-    // 1. Verify 401 & 403 via real HTTP
+    // 1. Unauthenticated 401 & Student/Teacher 403
     const unauth = await fetch(`${BACKEND_URL}/api/v1/content/catalog/subjects`)
     if (unauth.status !== 401) throw new Error(`Expected 401, got ${unauth.status}`)
 
-    const learnerLogin = await fetch(`${BACKEND_URL}/api/v1/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'learner@studyai.internal', password: 'Learner@123456' }),
+    const learnerToken = await loginApi('learner@studyai.internal', 'Learner@123456')
+    const learnerGet = await fetch(`${BACKEND_URL}/api/v1/content/catalog/subjects`, {
+      headers: { Authorization: `Bearer ${learnerToken}` },
     })
-    const learnerJson = (await learnerLogin.json()) as { accessToken: string }
+    if (learnerGet.status !== 403) throw new Error(`Expected 403 for learner GET, got ${learnerGet.status}`)
+
     const learnerPost = await fetch(`${BACKEND_URL}/api/v1/content/catalog/grades`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${learnerJson.accessToken}`,
-      },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${learnerToken}` },
       body: JSON.stringify({ code: '99', name: 'Forbidden', orderIndex: 99 }),
     })
-    if (learnerPost.status !== 403) throw new Error(`Expected 403 for learner, got ${learnerPost.status}`)
-    console.log('[PASS] Scenario 1: 401 unauthenticated & 403 learner mutation rejected')
+    if (learnerPost.status !== 403) throw new Error(`Expected 403 for learner POST, got ${learnerPost.status}`)
 
-    // 2. Real browser UI flow with Admin
+    // Register a teacher account on isolated StudyAIDb_E2E and verify 403
+    const teacherEmail = `teacher.p01.${Date.now()}@studyai.internal`
+    await fetch(`${BACKEND_URL}/api/v1/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: teacherEmail,
+        password: 'Teacher@123456',
+        displayName: 'Teacher P01 Check',
+        role: 'teacher',
+        grade: '10',
+      }),
+    })
+    const teacherToken = await loginApi(teacherEmail, 'Teacher@123456')
+    const teacherPost = await fetch(`${BACKEND_URL}/api/v1/content/catalog/subjects`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${teacherToken}` },
+      body: JSON.stringify({ code: 'TCH_FORB', name: 'Teacher Forbidden' }),
+    })
+    if (teacherPost.status !== 403 && teacherPost.status !== 401) {
+      throw new Error(`Expected 403 for teacher POST, got ${teacherPost.status}`)
+    }
+    console.log('[PASS] Scenario 1: 401 unauthenticated & 403 Student/Teacher rejected')
+
+    // 2. Real browser UI flow with Admin (1440px desktop):
+    //    No duplicate logout controls, empty state, Math/History/Biology coexistence, pagination/sort/search, refresh persistence
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
     const page = await context.newPage()
     const suffix = Date.now().toString(36).toUpperCase()
@@ -117,11 +149,25 @@ async function run() {
     await page.click('button[type="submit"]')
     await page.waitForURL((u) => !u.pathname.includes('/login'), { timeout: 15000 })
 
-    await page.goto(`${FRONTEND_URL}/content/catalog`, { waitUntil: 'networkidle' })
-    await page.waitForSelector('text=Danh mục giáo trình đa môn')
+    // Verify sidebar navigation link exists for /content/catalog
+    await page.goto(`${FRONTEND_URL}/content`, { waitUntil: 'networkidle' })
+    await page.click('a[href="/content/catalog"]')
+    await page.waitForSelector('h1:has-text("Danh mục giáo trình đa môn")')
 
-    // Create History & Biology subjects through real UI -> API -> SQL
+    // Assert NO duplicate WorkspaceShell user/logout controls
+    const logoutBtnCount = await page.locator('button[aria-label="Đăng xuất"]').count()
+    if (logoutBtnCount > 1) {
+      throw new Error(`Expected at most 1 logout button (WorkspaceShell only), found ${logoutBtnCount}`)
+    }
+
+    // Empty search state check (honest empty state, no sample rows)
+    await page.fill('input[type="search"]', `NON_EXISTENT_${suffix}`)
+    await page.waitForSelector('text=Chưa có môn học nào', { timeout: 10000 })
+    await page.click('button:has-text("Đặt lại")')
+
+    // Create Math, History, Biology subjects through real UI -> API -> SQL
     for (const item of [
+      { code: `MATH_${suffix}`, name: `Toán học (${suffix})` },
       { code: `HIST_${suffix}`, name: `Lịch sử (${suffix})` },
       { code: `BIO_${suffix}`, name: `Sinh học (${suffix})` },
     ]) {
@@ -129,34 +175,116 @@ async function run() {
       await page.fill('#cat-code', item.code)
       await page.fill('#cat-name', item.name)
       await page.click('button:has-text("Tạo bản nháp")')
-      await page.waitForSelector(`text=${item.name}`, { timeout: 10000 })
+      await page.waitForSelector('#cat-code', { state: 'detached', timeout: 10000 })
     }
 
-    // Search & refresh persistence
+    // Search, sort & refresh persistence
     await page.fill('input[type="search"]', suffix)
-    await page.waitForSelector(`text=HIST_${suffix}`)
-    await page.reload({ waitUntil: 'networkidle' })
+    await page.waitForSelector(`text=Toán học (${suffix})`, { timeout: 10000 })
+    await page.waitForSelector(`text=Lịch sử (${suffix})`, { timeout: 10000 })
+    await page.waitForSelector(`text=Sinh học (${suffix})`, { timeout: 10000 })
+    await page.waitForSelector(`text=MATH_${suffix}`)
     await page.waitForSelector(`text=HIST_${suffix}`)
     await page.waitForSelector(`text=BIO_${suffix}`)
+    await page.reload({ waitUntil: 'networkidle' })
+    await page.waitForSelector(`text=HIST_${suffix}`)
     await page.screenshot({ path: path.join(QA_DIR, '01_desktop_1440.png'), fullPage: true })
-    console.log('[PASS] Scenario 2: Admin multi-subject CRUD + refresh persistence + search (1440px)')
+    console.log('[PASS] Scenario 2: Admin Math/History/Biology CRUD, empty state, nav link, search & refresh (1440px)')
 
-    // 3. Duplicate conflict (409) keeps dialog open
+    // 3. Duplicate conflict (409) & Stale Concurrency conflict (409) via real API
     await page.locator('button:has-text("Tạo môn học")').first().click()
     await page.fill('#cat-code', `HIST_${suffix}`)
     await page.fill('#cat-name', 'Duplicate History')
     await page.click('button:has-text("Tạo bản nháp")')
     await page.waitForSelector('[role="alert"]', { timeout: 10000 })
     await page.click('button:has-text("Hủy")')
-    console.log('[PASS] Scenario 3: Duplicate code 409 conflict handled without closing form')
 
-    // 4. Mobile 390px viewport check
+    const adminToken = await loginApi('admin@studyai.internal', 'Admin@123456')
+    const listRes = await fetch(`${BACKEND_URL}/api/v1/content/catalog/subjects?search=HIST_${suffix}`, {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    })
+    const listJson = (await listRes.json()) as { items: Array<{ id: string; rowVersion: string }> }
+    const histRow = listJson.items[0]
+    const update1 = await fetch(`${BACKEND_URL}/api/v1/content/catalog/subjects/${histRow.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
+      body: JSON.stringify({ name: `Lịch sử v2 (${suffix})`, rowVersion: histRow.rowVersion }),
+    })
+    if (!update1.ok) throw new Error(`Expected 200 on first update, got ${update1.status}`)
+    const staleUpdate = await fetch(`${BACKEND_URL}/api/v1/content/catalog/subjects/${histRow.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
+      body: JSON.stringify({ name: 'Stale overwrite', rowVersion: histRow.rowVersion }),
+    })
+    if (staleUpdate.status !== 409) throw new Error(`Expected 409 on stale RowVersion, got ${staleUpdate.status}`)
+    console.log('[PASS] Scenario 3: Duplicate 409 & Stale RowVersion 409 verified')
+
+    // 4. Content role CRUD check
+    const contentToken = await loginApi('content@studyai.internal', 'Content@123456')
+    const contentGradeRes = await fetch(`${BACKEND_URL}/api/v1/content/catalog/grades`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${contentToken}` },
+      body: JSON.stringify({ code: `G_${suffix}`, name: `Khối 10 (${suffix})`, orderIndex: 10 }),
+    })
+    if (contentGradeRes.status !== 201) throw new Error(`Expected 201 for content role, got ${contentGradeRes.status}`)
+    console.log('[PASS] Scenario 4: Content role CRUD verified')
+
+    // 5. Server pagination check (pageSize=10 / page=2 when > 2 items with pageSize=2 via API & UI)
+    const pagedRes = await fetch(`${BACKEND_URL}/api/v1/content/catalog/subjects?search=${suffix}&page=2&pageSize=2&sort=code&direction=asc`, {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    })
+    const pagedJson = (await pagedRes.json()) as { items: unknown[]; total: number; page: number }
+    if (pagedJson.total !== 3 || pagedJson.items.length !== 1 || pagedJson.page !== 2) {
+      throw new Error(`Expected server pagination page 2 of 3 items -> 1 item, got ${JSON.stringify(pagedJson)}`)
+    }
+    console.log('[PASS] Scenario 5: Server pagination & sorting verified')
+
+    // 6. API/network failure with no false success (intercept only POST /subjects to simulate 500)
+    await page.route('**/api/v1/content/catalog/subjects', async (route) => {
+      if (route.request().method() === 'POST') {
+        await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ detail: 'Simulated 500 error' }) })
+      } else {
+        await route.continue()
+      }
+    })
+    await page.locator('button:has-text("Tạo môn học")').first().click()
+    await page.fill('#cat-code', `FAIL_${suffix}`)
+    await page.fill('#cat-name', 'Should Not Succeed')
+    await page.click('button:has-text("Tạo bản nháp")')
+    await page.waitForSelector('[role="alert"]', { timeout: 10000 })
+    await page.click('button:has-text("Hủy")')
+    await page.unroute('**/api/v1/content/catalog/subjects')
+    console.log('[PASS] Scenario 6: API 500 failure preserves dialog & shows no false success')
+
+    // 7. Mobile 390x844 functional + visual assertions
     await page.setViewportSize({ width: 390, height: 844 })
     await page.waitForTimeout(300)
+    const mobileAudit = await page.evaluate(() => {
+      const h1 = document.querySelector('.catalog-page-title') as HTMLElement | null
+      const createBtn = document.querySelector('.catalog-page-header button') as HTMLElement | null
+      const tab = document.querySelector('.catalog-tab') as HTMLElement | null
+      const h1Rect = h1?.getBoundingClientRect()
+      const btnRect = createBtn?.getBoundingClientRect()
+      const overlap = h1Rect && btnRect ? !(h1Rect.bottom <= btnRect.top + 1 || btnRect.bottom <= h1Rect.top + 1) && !(h1Rect.right <= btnRect.left || btnRect.right <= h1Rect.left) : false
+      return {
+        btnHeight: btnRect?.height ?? 0,
+        tabHeight: tab?.getBoundingClientRect().height ?? 0,
+        overlap,
+        docWidth: document.documentElement.clientWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+      }
+    })
+    if (mobileAudit.overlap) throw new Error(`Mobile 390px header title & button overlap: ${JSON.stringify(mobileAudit)}`)
+    if (mobileAudit.btnHeight < 44 || mobileAudit.tabHeight < 44) {
+      throw new Error(`Mobile 390px touch targets < 44px: ${JSON.stringify(mobileAudit)}`)
+    }
+    // Switch tab interactively on 390px
+    await page.click('button[role="tab"]:has-text("Khối lớp")')
+    await page.waitForSelector(`text=G_${suffix}`, { timeout: 10000 })
     await page.screenshot({ path: path.join(QA_DIR, '02_mobile_390.png'), fullPage: true })
-    console.log('[PASS] Scenario 4: Mobile 390px layout & visual evidence captured')
+    console.log(`[PASS] Scenario 7: Mobile 390px functional & layout verified (${JSON.stringify(mobileAudit)})`)
 
-    console.log('=== P01 CATALOG PLAYWRIGHT SUITE: 4/4 PASSED ===')
+    console.log('=== P01 CATALOG PLAYWRIGHT SUITE: 7/7 PASSED ===')
   } finally {
     await browser.close()
     killProcessTree(backendProc)

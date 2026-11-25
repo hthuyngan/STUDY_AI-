@@ -21,7 +21,19 @@ public record CatalogListQueryDto(
     string? TextbookSeriesId = null,
     int? PublicationYear = null);
 
-public record CatalogStatusActionDto(string? Reason = null, string? RowVersion = null);
+public class CatalogStatusActionDto
+{
+    public CatalogStatusActionDto() { }
+
+    public CatalogStatusActionDto(string? rowVersion, string? reason = null)
+    {
+        RowVersion = rowVersion ?? string.Empty;
+        Reason = reason;
+    }
+
+    public string RowVersion { get; set; } = string.Empty;
+    public string? Reason { get; set; }
+}
 
 // ─── GradeLevel ──────────────────────────────────────────────────────────────
 
@@ -139,6 +151,8 @@ public class CreateCurriculumRequestDto
 
     public int? AcademicYearFrom { get; set; }
     public int? AcademicYearTo { get; set; }
+    public bool ClearAcademicYearFrom { get; set; }
+    public bool ClearAcademicYearTo { get; set; }
 
     [MaxLength(256)]
     public string? SourceName { get; set; }
@@ -169,6 +183,8 @@ public class UpdateCurriculumRequestDto
 
     public int? AcademicYearFrom { get; set; }
     public int? AcademicYearTo { get; set; }
+    public bool ClearAcademicYearFrom { get; set; }
+    public bool ClearAcademicYearTo { get; set; }
 
     [MaxLength(256)]
     public string? SourceName { get; set; }
@@ -324,6 +340,7 @@ public class UpdateCurriculumEditionRequestDto
     public string? Version { get; set; }
 
     public int? PublicationYear { get; set; }
+    public bool ClearPublicationYear { get; set; }
 
     [MaxLength(256)]
     public string? SourceName { get; set; }

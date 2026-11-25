@@ -13,12 +13,14 @@
   - Existing `ContentSubject` (`content_subjects`), `ContentChapter`, `ContentLesson` tables and `/api/v1/content/subjects` compatibility routes preserved untouched.
   - Existing `IAuditWriter` (`StaffAuditLogs`), `IClock`, `ConflictException`, `ValidationException`, `NotFoundException`, `DatabaseSafetyGuard`.
   - Existing Authorization Policies in `Program.cs`: `ContentAuthor` (read) and `ContentAdminOnly` (write/archive/reactivate).
-  - Existing Frontend primitives: `tokens.css`, `ManagementHeader`, `ManagementFilter`, `ManagementTable`, `ManagementPagination`, `ManagementDialog`, `ManagementEmptyState`, `ManagementErrorState`, `Breadcrumb`, `Button`, `ConfirmDialog`, `Skeleton`, `StatusBadge`.
-- **New (P01-only, no per-subject CRUD):**
+  - Existing Frontend primitives: `tokens.css`, `WorkspaceShell`, `ManagementFilter`, `ManagementTable`, `ManagementPagination`, `ManagementDialog`, `ManagementEmptyState`, `ManagementErrorState`, `Breadcrumb`, `Button`, `ConfirmDialog`, `Skeleton`, `StatusBadge`.
+- **New / Updated (P01-only, no per-subject CRUD):**
   - `backend/src/StudyAI.Api/Models/CatalogEntities.cs`
   - `backend/src/StudyAI.Api/Migrations/*_AddMultiSubjectCatalogFoundations.cs`
   - `backend/src/StudyAI.Api/Features/Content/{ContentCatalogDTOs.cs, IContentCatalogService.cs, ContentCatalogService.cs, ContentCatalogController.cs}`
   - `frontend/src/types/catalog.ts`, `frontend/src/services/catalog.service.ts`
+  - `frontend/src/components/layout/workspaceNavigation.ts` (`/content/catalog` sidebar entry)
+  - `frontend/src/pages/Content/components/CatalogParentSelect.tsx` (server-side search & pagination for parent selection beyond 100 rows)
   - `frontend/src/pages/Content/{ContentCatalogPage.tsx, ContentCatalogPage.css, ContentCatalogPage.test.tsx}`
   - `scripts/e2e_catalog_p01_playwright.ts`
 
@@ -35,9 +37,12 @@
 
 ### 2.2 Migration, Compatibility & Rollback Rehearsal
 - Verified on disposable `StudyAIDb_Clean_{Guid}` in `ContentCatalogIntegrationTests.Catalog_MigrationUpgradeAndRollback_OnDisposableDb_PreservesLegacyRows`:
-  - Legacy `ContentSubject` row (`sub_legacy_keep`) preserved across upgrade -> rollback (`20261124164959_AddUserNotesAndBookmarksTables`) -> re-upgrade.
-  - Empty upgraded DB has `0` rows in all 5 new catalog tables (zero sample seeding).
-  - Read-only compatibility mapping endpoint `GET /api/v1/content/catalog/compatibility-mapping` reports `LegacySubjectCount`, `MappedCount`, `UnmappedCount`, `ConflictCount`, and per-row candidates without mutating `StudyAIDb` or legacy rows.
+  - **Before/after counts:** Legacy `ContentSubject` row (`sub_legacy_keep`) count is `1` before upgrade, `1` after upgrade to `AddMultiSubjectCatalogFoundations`, `1` after rollback to `20261124164959_AddUserNotesAndBookmarksTables`, and `1` after re-upgrade.
+  - **Zero sample seeding:** Empty upgraded DB has `0` rows in all 5 new catalog tables (`grade_levels`, `catalog_subjects`, `curricula`, `textbook_series`, `curriculum_editions`).
+  - **Unique-key, FK & compatibility validation (`StudyAIDb_E2E`):**
+    - Read-only `GET /api/v1/content/catalog/compatibility-mapping` reports `LegacySubjectCount`, `MappedCount`, `UnmappedCount`, `ConflictCount`, and per-row candidates (`Mapped`/`Unmapped`/`Conflict`) without mutating `StudyAIDb` or legacy rows.
+    - Filtered unique indexes & FK `Restrict` constraints verified via `409 Conflict` on duplicate codes, active-child archive blocks, and stale `RowVersion` tokens across all 5 entities.
+    - Atomic transaction rollback verified via `Catalog_ForcedAuditFailure_RollsBackBusinessMutation` (forced `IAuditWriter` failure rolls back the catalog mutation).
 - **Rollback:** `dotnet ef database update 20261124164959_AddUserNotesAndBookmarksTables` drops only the 5 new P01 tables cleanly without touching legacy tables.
 
 ---
@@ -64,13 +69,13 @@ Base route: `/api/v1/content/catalog` (`ContentCatalogController`)
 
 | Gate | Command | Result |
 |---|---|---|
-| Backend Build | `dotnet build StudyAI.sln` | **PASS** (0 warnings, 0 errors) |
-| Backend Unit Tests | `dotnet test tests/StudyAI.UnitTests/StudyAI.UnitTests.csproj` | **PASS (274/274)** (includes 5 new `ContentCatalogServiceUnitTests` + updated `ControllerRouteDiscoveryTests`) |
-| Backend Integration Tests | `dotnet test tests/StudyAI.IntegrationTests/StudyAI.IntegrationTests.csproj` | **PASS (233/233)** (includes 3 new `ContentCatalogIntegrationTests` on `StudyAIDb_E2E` & `StudyAIDb_Clean_{Guid}`) |
-| Frontend Lint | `bun run lint` (`oxlint --deny-warnings`) | **PASS** (0 warnings, 0 errors, 496 files) |
-| Frontend Unit Tests | `bun run test` (`vitest run`) | **PASS (85 files, 573/573 tests)** (includes 4 new `ContentCatalogPage.test.tsx` tests) |
+| Backend Build | `dotnet build StudyAI.sln --no-restore` | **PASS** (0 errors; 2 pre-existing `xUnit2012` warnings in `LearnerNotesAndBookmarksIntegrationTests.cs`) |
+| Backend Unit Tests | `dotnet test tests/StudyAI.UnitTests/StudyAI.UnitTests.csproj --no-build` | **PASS (274/274)** |
+| Backend Integration Tests | `dotnet test tests/StudyAI.IntegrationTests/StudyAI.IntegrationTests.csproj --no-build` | **PASS (236/236)** (on `StudyAIDb_E2E` & `StudyAIDb_Clean_{Guid}`; includes forced audit rollback, `RowVersion` archive/reactivate across all 5 entities, explicit year-clearing PATCH, RBAC, and migration/rollback) |
+| Frontend Lint | `bun run lint` (`oxlint --deny-warnings`) | **PASS** (0 warnings, 0 errors, 497 files) |
+| Frontend Unit Tests | `bun run test` (`vitest run`) | **PASS (85 files, 574/574 tests)** (includes `ContentCatalogPage.test.tsx` with server-paginated parent search beyond 100 records) |
 | Frontend Build | `bun run build` (`tsc -b && vite build`) | **PASS** |
-| Playwright E2E (Live API + `StudyAIDb_E2E`) | `bun scripts/e2e_catalog_p01_playwright.ts` | **PASS (4/4)** — 401/403, multi-subject CRUD + refresh persistence, 409 conflict, 1440px & 390px screenshots |
+| Playwright E2E (Live API + `StudyAIDb_E2E`) | `bun scripts/e2e_catalog_p01_playwright.ts` | **PASS (7/7)** — 401/403, Admin Math/History/Biology CRUD + empty state + `/content/catalog` nav link + refresh persistence (1440px), duplicate & stale `RowVersion` 409, Content role CRUD, server pagination/sorting, API 500 no false success, mobile 390px layout & 44px targets (`overlap: false`, `scrollWidth: 390`) |
 
 - **Visual Artifacts:**
   - `docs/visual-qa/catalog-p01/01_desktop_1440.png`
@@ -81,5 +86,4 @@ Base route: `/api/v1/content/catalog` (`ContentCatalogController`)
 
 ## 5. Remaining Risks & P02 Move Gate
 
-- **Note:** `frontend/src/components/layout/workspaceNavigation.ts` was not modified (file permission lock on local disk); `/content/catalog` route is live in `contentRoutes.tsx` and verified end-to-end. Adding the sidebar link can be done in P02 or when file permissions allow.
 - **Stop Gate:** P01 stops here for Codex review. Do not start P02 (`CurriculumWorkspace`, chapters/lessons lifecycle) until P01 is approved.

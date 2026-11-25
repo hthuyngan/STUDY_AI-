@@ -281,7 +281,7 @@ public class ContentCatalogIntegrationTests : IClassFixture<StudyAIApiFixture>
         // 6. Archive dependency check: cannot archive Curriculum while active Edition exists -> 409
         using (var badArchive = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/catalog/curricula/{curMath.Id}/archive")
         {
-            Content = JsonContent.Create(new CatalogStatusActionDto("Test dependency"))
+            Content = JsonContent.Create(new CatalogStatusActionDto(curMath.RowVersion, "Test dependency"))
         })
         {
             badArchive.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
@@ -290,15 +290,15 @@ public class ContentCatalogIntegrationTests : IClassFixture<StudyAIApiFixture>
 
         // Archive Edition -> then Archive Curriculum -> Reactivate Curriculum
         var archivedEd = await PostAuthAsync<CurriculumEditionDto>(adminToken, $"/api/v1/content/catalog/editions/{editionWithSeries.Id}/archive",
-            new CatalogStatusActionDto("Retire edition"));
+            new CatalogStatusActionDto(editionWithSeries.RowVersion, "Retire edition"));
         Assert.Equal("archived", archivedEd.Status);
 
         var archivedCur = await PostAuthAsync<CurriculumDto>(adminToken, $"/api/v1/content/catalog/curricula/{curMath.Id}/archive",
-            new CatalogStatusActionDto("Retire curriculum"));
+            new CatalogStatusActionDto(curMath.RowVersion, "Retire curriculum"));
         Assert.Equal("archived", archivedCur.Status);
 
         var reactivatedCur = await PostAuthAsync<CurriculumDto>(adminToken, $"/api/v1/content/catalog/curricula/{curMath.Id}/reactivate",
-            new CatalogStatusActionDto("Restore curriculum"));
+            new CatalogStatusActionDto(archivedCur.RowVersion, "Restore curriculum"));
         Assert.Equal("draft", reactivatedCur.Status);
 
         // 7. Pagination & Search
@@ -321,6 +321,221 @@ public class ContentCatalogIntegrationTests : IClassFixture<StudyAIApiFixture>
         mapReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
         var mapResp = await _client.SendAsync(mapReq);
         Assert.Equal(HttpStatusCode.OK, mapResp.StatusCode);
+    }
+
+    private sealed class FailingAuditWriter : StudyAI.Common.Utilities.IAuditWriter
+    {
+        public Task WriteStaffAuditAsync(string action, string targetType, string? targetId = null, string? beforeState = null, string? afterState = null, System.Threading.CancellationToken cancellationToken = default)
+            => throw new InvalidOperationException("Simulated audit sink failure");
+    }
+
+    [Fact]
+    public async Task Catalog_ForcedAuditFailure_RollsBackBusinessMutation()
+    {
+        var adminToken = await LoginAsync("admin@studyai.internal", "Admin@123456");
+        var uniqueCode = $"ROLLBACK_{Guid.NewGuid():N}"[..14].ToUpperInvariant();
+
+        using var failingFactory = _factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureServices(services =>
+            {
+                var existing = System.Linq.Enumerable.FirstOrDefault(services, d => d.ServiceType == typeof(StudyAI.Common.Utilities.IAuditWriter));
+                if (existing != null) services.Remove(existing);
+                services.AddScoped<StudyAI.Common.Utilities.IAuditWriter, FailingAuditWriter>();
+            });
+        });
+        using var failingClient = failingFactory.CreateClient();
+
+        using var req = new HttpRequestMessage(HttpMethod.Post, "/api/v1/content/catalog/subjects")
+        {
+            Content = JsonContent.Create(new CreateCatalogSubjectRequestDto
+            {
+                Code = uniqueCode,
+                Name = "Should Rollback On Audit Failure"
+            })
+        };
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var resp = await failingClient.SendAsync(req);
+        Assert.Equal(HttpStatusCode.InternalServerError, resp.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+        Assert.False(await db.CatalogSubjects.AnyAsync(s => s.Code == uniqueCode));
+    }
+
+    [Fact]
+    public async Task Catalog_ArchiveAndReactivate_RequireValidRowVersion_AcrossAllFiveEntities()
+    {
+        var adminToken = await LoginAsync("admin@studyai.internal", "Admin@123456");
+        var sfx = Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+
+        var grade = await PostAuthAsync<GradeLevelDto>(adminToken, "/api/v1/content/catalog/grades",
+            new CreateGradeLevelRequestDto { Code = $"RVG_{sfx}", Name = $"Grade {sfx}", OrderIndex = 1 });
+        var subj = await PostAuthAsync<CatalogSubjectDto>(adminToken, "/api/v1/content/catalog/subjects",
+            new CreateCatalogSubjectRequestDto { Code = $"RVS_{sfx}", Name = $"Subject {sfx}" });
+        var cur = await PostAuthAsync<CurriculumDto>(adminToken, "/api/v1/content/catalog/curricula",
+            new CreateCurriculumRequestDto { Code = $"RVC_{sfx}", GradeLevelId = grade.Id, SubjectId = subj.Id, Name = $"Cur {sfx}", Framework = "GDPT 2018" });
+        var series = await PostAuthAsync<TextbookSeriesDto>(adminToken, "/api/v1/content/catalog/textbook-series",
+            new CreateTextbookSeriesRequestDto { Code = $"RVT_{sfx}", Name = $"Series {sfx}", Publisher = "NXB" });
+        var ed = await PostAuthAsync<CurriculumEditionDto>(adminToken, "/api/v1/content/catalog/editions",
+            new CreateCurriculumEditionRequestDto { Code = $"RVE_{sfx}", CurriculumId = cur.Id, TextbookSeriesId = series.Id, EditionName = $"Ed {sfx}" });
+
+        var targets = new (string Path, string RowVersion)[]
+        {
+            ($"/api/v1/content/catalog/editions/{ed.Id}", ed.RowVersion),
+            ($"/api/v1/content/catalog/textbook-series/{series.Id}", series.RowVersion),
+            ($"/api/v1/content/catalog/curricula/{cur.Id}", cur.RowVersion),
+            ($"/api/v1/content/catalog/subjects/{subj.Id}", subj.RowVersion),
+            ($"/api/v1/content/catalog/grades/{grade.Id}", grade.RowVersion),
+        };
+
+        var staleToken = Convert.ToBase64String(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 });
+        var archivedVersions = new List<(string BasePath, string StaleRv, string ArchivedRv)>();
+
+        // Archive child-to-parent: missing -> 400, malformed -> 400, stale -> 409, valid -> 200
+        foreach (var (basePath, validRv) in targets)
+        {
+            using var missingReq = new HttpRequestMessage(HttpMethod.Post, $"{basePath}/archive")
+            {
+                Content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json")
+            };
+            missingReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+            Assert.Equal(HttpStatusCode.BadRequest, (await _client.SendAsync(missingReq)).StatusCode);
+
+            using var malformedReq = new HttpRequestMessage(HttpMethod.Post, $"{basePath}/archive")
+            {
+                Content = JsonContent.Create(new CatalogStatusActionDto("not-valid-base64!!!"))
+            };
+            malformedReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+            Assert.Equal(HttpStatusCode.BadRequest, (await _client.SendAsync(malformedReq)).StatusCode);
+
+            using var staleReq = new HttpRequestMessage(HttpMethod.Post, $"{basePath}/archive")
+            {
+                Content = JsonContent.Create(new CatalogStatusActionDto(staleToken))
+            };
+            staleReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+            Assert.Equal(HttpStatusCode.Conflict, (await _client.SendAsync(staleReq)).StatusCode);
+
+            using var okArchive = new HttpRequestMessage(HttpMethod.Post, $"{basePath}/archive")
+            {
+                Content = JsonContent.Create(new CatalogStatusActionDto(validRv))
+            };
+            okArchive.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+            var okArchiveResp = await _client.SendAsync(okArchive);
+            Assert.Equal(HttpStatusCode.OK, okArchiveResp.StatusCode);
+            var archivedJson = await okArchiveResp.Content.ReadFromJsonAsync<JsonElement>(_jsonOptions);
+            var newRv = archivedJson.GetProperty("rowVersion").GetString()!;
+            archivedVersions.Add((basePath, validRv, newRv));
+        }
+
+        // Reactivate parent-to-child: missing -> 400, stale -> 409, valid -> 200
+        for (int i = archivedVersions.Count - 1; i >= 0; i--)
+        {
+            var (basePath, staleRv, archivedRv) = archivedVersions[i];
+
+            using var missingReactivate = new HttpRequestMessage(HttpMethod.Post, $"{basePath}/reactivate")
+            {
+                Content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json")
+            };
+            missingReactivate.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+            Assert.Equal(HttpStatusCode.BadRequest, (await _client.SendAsync(missingReactivate)).StatusCode);
+
+            using var staleReactivate = new HttpRequestMessage(HttpMethod.Post, $"{basePath}/reactivate")
+            {
+                Content = JsonContent.Create(new CatalogStatusActionDto(staleRv))
+            };
+            staleReactivate.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+            Assert.Equal(HttpStatusCode.Conflict, (await _client.SendAsync(staleReactivate)).StatusCode);
+
+            using var okReactivate = new HttpRequestMessage(HttpMethod.Post, $"{basePath}/reactivate")
+            {
+                Content = JsonContent.Create(new CatalogStatusActionDto(archivedRv))
+            };
+            okReactivate.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+            Assert.Equal(HttpStatusCode.OK, (await _client.SendAsync(okReactivate)).StatusCode);
+        }
+    }
+
+    [Fact]
+    public async Task Catalog_Update_PreservesOmittedYearsOnPatch_AndClearsExplicitly()
+    {
+        var adminToken = await LoginAsync("admin@studyai.internal", "Admin@123456");
+        var sfx = Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+
+        var grade = await PostAuthAsync<GradeLevelDto>(adminToken, "/api/v1/content/catalog/grades",
+            new CreateGradeLevelRequestDto { Code = $"YRG_{sfx}", Name = $"Grade {sfx}", OrderIndex = 1 });
+        var subj = await PostAuthAsync<CatalogSubjectDto>(adminToken, "/api/v1/content/catalog/subjects",
+            new CreateCatalogSubjectRequestDto { Code = $"YRS_{sfx}", Name = $"Subject {sfx}" });
+        var cur = await PostAuthAsync<CurriculumDto>(adminToken, "/api/v1/content/catalog/curricula",
+            new CreateCurriculumRequestDto
+            {
+                Code = $"YRC_{sfx}",
+                GradeLevelId = grade.Id,
+                SubjectId = subj.Id,
+                Name = $"Cur {sfx}",
+                Framework = "GDPT 2018",
+                AcademicYearFrom = 2024,
+                AcademicYearTo = 2027
+            });
+        var ed = await PostAuthAsync<CurriculumEditionDto>(adminToken, "/api/v1/content/catalog/editions",
+            new CreateCurriculumEditionRequestDto
+            {
+                Code = $"YRE_{sfx}",
+                CurriculumId = cur.Id,
+                EditionName = $"Ed {sfx}",
+                PublicationYear = 2025
+            });
+
+        using var patchCurReq = new HttpRequestMessage(HttpMethod.Patch, $"/api/v1/content/catalog/curricula/{cur.Id}")
+        {
+            Content = JsonContent.Create(new { name = $"Cur Updated {sfx}", rowVersion = cur.RowVersion })
+        };
+        patchCurReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var patchCurResp = await _client.SendAsync(patchCurReq);
+        Assert.Equal(HttpStatusCode.OK, patchCurResp.StatusCode);
+        var patchedCur = await patchCurResp.Content.ReadFromJsonAsync<CurriculumDto>(_jsonOptions)!;
+        Assert.Equal(2024, patchedCur!.AcademicYearFrom);
+        Assert.Equal(2027, patchedCur.AcademicYearTo);
+
+        using var clearCurReq = new HttpRequestMessage(HttpMethod.Patch, $"/api/v1/content/catalog/curricula/{cur.Id}")
+        {
+            Content = JsonContent.Create(new UpdateCurriculumRequestDto
+            {
+                ClearAcademicYearFrom = true,
+                ClearAcademicYearTo = true,
+                RowVersion = patchedCur.RowVersion
+            })
+        };
+        clearCurReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var clearCurResp = await _client.SendAsync(clearCurReq);
+        Assert.Equal(HttpStatusCode.OK, clearCurResp.StatusCode);
+        var clearedCur = await clearCurResp.Content.ReadFromJsonAsync<CurriculumDto>(_jsonOptions)!;
+        Assert.Null(clearedCur!.AcademicYearFrom);
+        Assert.Null(clearedCur.AcademicYearTo);
+
+        using var patchEdReq = new HttpRequestMessage(HttpMethod.Patch, $"/api/v1/content/catalog/editions/{ed.Id}")
+        {
+            Content = JsonContent.Create(new { editionName = $"Ed Updated {sfx}", rowVersion = ed.RowVersion })
+        };
+        patchEdReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var patchEdResp = await _client.SendAsync(patchEdReq);
+        Assert.Equal(HttpStatusCode.OK, patchEdResp.StatusCode);
+        var patchedEd = await patchEdResp.Content.ReadFromJsonAsync<CurriculumEditionDto>(_jsonOptions)!;
+        Assert.Equal(2025, patchedEd!.PublicationYear);
+
+        using var clearEdReq = new HttpRequestMessage(HttpMethod.Patch, $"/api/v1/content/catalog/editions/{ed.Id}")
+        {
+            Content = JsonContent.Create(new UpdateCurriculumEditionRequestDto
+            {
+                ClearPublicationYear = true,
+                RowVersion = patchedEd.RowVersion
+            })
+        };
+        clearEdReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
+        var clearEdResp = await _client.SendAsync(clearEdReq);
+        Assert.Equal(HttpStatusCode.OK, clearEdResp.StatusCode);
+        var clearedEd = await clearEdResp.Content.ReadFromJsonAsync<CurriculumEditionDto>(_jsonOptions)!;
+        Assert.Null(clearedEd!.PublicationYear);
     }
 
     private async Task<T> PostAuthAsync<T>(string token, string url, object body)

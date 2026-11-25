@@ -183,4 +183,51 @@ describe('ContentCatalogPage (P01 Multi-Subject Catalog Shell)', () => {
     expect((screen.getByLabelText(/Mã chuẩn/i) as HTMLInputElement).value).toBe('HIST')
     expect((screen.getByLabelText(/Tên hiển thị/i) as HTMLInputElement).value).toBe('Lịch sử')
   })
+
+  it('supports server-paginated parent search beyond 100 records in Curricula tab', async () => {
+    const user = userEvent.setup()
+    vi.mocked(catalogService.listCurricula).mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      pageSize: 20,
+    })
+    vi.mocked(catalogService.listGrades).mockImplementation(async (params) => {
+      if (params?.page === 2) {
+        return {
+          items: [
+            { id: 'grd_101', code: 'G101', name: 'Khối 101', orderIndex: 101, status: 'draft', rowVersion: 'AA', createdAt: '', updatedAt: '' },
+          ],
+          total: 105,
+          page: 2,
+          pageSize: 20,
+        }
+      }
+      return {
+        items: [
+          { id: 'grd_1', code: '10', name: 'Khối 10', orderIndex: 10, status: 'draft', rowVersion: 'AA', createdAt: '', updatedAt: '' },
+        ],
+        total: 105,
+        page: 1,
+        pageSize: 20,
+      }
+    })
+    vi.mocked(catalogService.listSubjects).mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      pageSize: 20,
+    })
+
+    renderCatalog('/content/catalog?tab=curricula')
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Tải thêm \(1\/105\)/i })).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: /Tải thêm \(1\/105\)/i }))
+    await waitFor(() => {
+      expect(screen.getByRole('option', { name: 'Khối 101 (G101)' })).toBeInTheDocument()
+    })
+  })
 })

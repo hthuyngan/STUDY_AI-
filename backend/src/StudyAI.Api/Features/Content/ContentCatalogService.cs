@@ -164,6 +164,32 @@ public class ContentCatalogService : IContentCatalogService
         await _auditWriter.WriteStaffAuditAsync(action, targetType, targetId, beforeJson, afterJson, ct);
     }
 
+    private async Task SaveWithAuditAtomicallyAsync(
+        string duplicateMessage,
+        string action,
+        string targetType,
+        string targetId,
+        object? before,
+        object? after,
+        CancellationToken ct)
+    {
+        if (!_db.Database.IsRelational())
+        {
+            await SaveChangesWithConflictGuardAsync(duplicateMessage, ct);
+            await WriteAuditAsync(action, targetType, targetId, before, after, ct);
+            return;
+        }
+
+        var strategy = _db.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var tx = await _db.Database.BeginTransactionAsync(ct);
+            await SaveChangesWithConflictGuardAsync(duplicateMessage, ct);
+            await WriteAuditAsync(action, targetType, targetId, before, after, ct);
+            await tx.CommitAsync(ct);
+        });
+    }
+
     // ─── GradeLevels ─────────────────────────────────────────────────────────
 
     public async Task<CatalogPagedResponseDto<GradeLevelDto>> ListGradeLevelsAsync(CatalogListQueryDto query, CancellationToken ct = default)
@@ -227,8 +253,9 @@ public class ContentCatalogService : IContentCatalogService
         };
 
         _db.GradeLevels.Add(entity);
-        await SaveChangesWithConflictGuardAsync($"Mã khối lớp '{code}' đã tồn tại.", ct);
-        await WriteAuditAsync("catalog_grade_created", "GradeLevel", entity.Id, null, new { entity.Code, entity.Name, entity.Status, actorUserId }, ct);
+        await SaveWithAuditAtomicallyAsync(
+            $"Mã khối lớp '{code}' đã tồn tại.",
+            "catalog_grade_created", "GradeLevel", entity.Id, null, new { entity.Code, entity.Name, entity.Status, actorUserId }, ct);
         return ToGradeDto(entity);
     }
 
@@ -251,8 +278,9 @@ public class ContentCatalogService : IContentCatalogService
         if (req.OrderIndex.HasValue) entity.OrderIndex = req.OrderIndex.Value;
         entity.UpdatedAt = _clock.UtcNow;
 
-        await SaveChangesWithConflictGuardAsync("Mã khối lớp bị trùng lặp.", ct);
-        await WriteAuditAsync("catalog_grade_updated", "GradeLevel", entity.Id, before, new { entity.Code, entity.Name, entity.OrderIndex, actorUserId }, ct);
+        await SaveWithAuditAtomicallyAsync(
+            "Mã khối lớp bị trùng lặp.",
+            "catalog_grade_updated", "GradeLevel", entity.Id, before, new { entity.Code, entity.Name, entity.OrderIndex, actorUserId }, ct);
         return ToGradeDto(entity);
     }
 
@@ -261,8 +289,7 @@ public class ContentCatalogService : IContentCatalogService
         var entity = await _db.GradeLevels.FirstOrDefaultAsync(x => x.Id == id, ct)
             ?? throw new NotFoundException($"Không tìm thấy khối lớp '{id}'.");
 
-        if (!string.IsNullOrWhiteSpace(action?.RowVersion))
-            ApplyExpectedRowVersion(entity, entity.RowVersion, action.RowVersion);
+        ApplyExpectedRowVersion(entity, entity.RowVersion, action?.RowVersion);
 
         if (entity.Status == "archived")
             return ToGradeDto(entity);
@@ -274,8 +301,9 @@ public class ContentCatalogService : IContentCatalogService
         entity.Status = "archived";
         entity.UpdatedAt = _clock.UtcNow;
 
-        await SaveChangesWithConflictGuardAsync("Xung đột khi lưu trữ khối lớp.", ct);
-        await WriteAuditAsync("catalog_grade_archived", "GradeLevel", entity.Id, before, new { entity.Status, reason = action?.Reason, actorUserId }, ct);
+        await SaveWithAuditAtomicallyAsync(
+            "Xung đột khi lưu trữ khối lớp.",
+            "catalog_grade_archived", "GradeLevel", entity.Id, before, new { entity.Status, reason = action?.Reason, actorUserId }, ct);
         return ToGradeDto(entity);
     }
 
@@ -284,8 +312,7 @@ public class ContentCatalogService : IContentCatalogService
         var entity = await _db.GradeLevels.FirstOrDefaultAsync(x => x.Id == id, ct)
             ?? throw new NotFoundException($"Không tìm thấy khối lớp '{id}'.");
 
-        if (!string.IsNullOrWhiteSpace(action?.RowVersion))
-            ApplyExpectedRowVersion(entity, entity.RowVersion, action.RowVersion);
+        ApplyExpectedRowVersion(entity, entity.RowVersion, action?.RowVersion);
 
         if (entity.Status != "archived")
             throw new ValidationException("Status", "Chỉ có thể khôi phục khối lớp đang ở trạng thái 'archived'.");
@@ -294,8 +321,9 @@ public class ContentCatalogService : IContentCatalogService
         entity.Status = "draft";
         entity.UpdatedAt = _clock.UtcNow;
 
-        await SaveChangesWithConflictGuardAsync("Xung đột khi khôi phục khối lớp.", ct);
-        await WriteAuditAsync("catalog_grade_reactivated", "GradeLevel", entity.Id, before, new { entity.Status, reason = action?.Reason, actorUserId }, ct);
+        await SaveWithAuditAtomicallyAsync(
+            "Xung đột khi khôi phục khối lớp.",
+            "catalog_grade_reactivated", "GradeLevel", entity.Id, before, new { entity.Status, reason = action?.Reason, actorUserId }, ct);
         return ToGradeDto(entity);
     }
 
@@ -361,8 +389,9 @@ public class ContentCatalogService : IContentCatalogService
         };
 
         _db.CatalogSubjects.Add(entity);
-        await SaveChangesWithConflictGuardAsync($"Mã môn học '{code}' đã tồn tại.", ct);
-        await WriteAuditAsync("catalog_subject_created", "CatalogSubject", entity.Id, null, new { entity.Code, entity.Name, entity.Status, actorUserId }, ct);
+        await SaveWithAuditAtomicallyAsync(
+            $"Mã môn học '{code}' đã tồn tại.",
+            "catalog_subject_created", "CatalogSubject", entity.Id, null, new { entity.Code, entity.Name, entity.Status, actorUserId }, ct);
         return ToSubjectDto(entity);
     }
 
@@ -385,8 +414,9 @@ public class ContentCatalogService : IContentCatalogService
         if (req.Description != null) entity.Description = NormalizeOptional(req.Description);
         entity.UpdatedAt = _clock.UtcNow;
 
-        await SaveChangesWithConflictGuardAsync("Mã môn học bị trùng lặp.", ct);
-        await WriteAuditAsync("catalog_subject_updated", "CatalogSubject", entity.Id, before, new { entity.Code, entity.Name, entity.Description, actorUserId }, ct);
+        await SaveWithAuditAtomicallyAsync(
+            "Mã môn học bị trùng lặp.",
+            "catalog_subject_updated", "CatalogSubject", entity.Id, before, new { entity.Code, entity.Name, entity.Description, actorUserId }, ct);
         return ToSubjectDto(entity);
     }
 
@@ -395,8 +425,7 @@ public class ContentCatalogService : IContentCatalogService
         var entity = await _db.CatalogSubjects.FirstOrDefaultAsync(x => x.Id == id, ct)
             ?? throw new NotFoundException($"Không tìm thấy môn học '{id}'.");
 
-        if (!string.IsNullOrWhiteSpace(action?.RowVersion))
-            ApplyExpectedRowVersion(entity, entity.RowVersion, action.RowVersion);
+        ApplyExpectedRowVersion(entity, entity.RowVersion, action?.RowVersion);
 
         if (entity.Status == "archived")
             return ToSubjectDto(entity);
@@ -408,8 +437,9 @@ public class ContentCatalogService : IContentCatalogService
         entity.Status = "archived";
         entity.UpdatedAt = _clock.UtcNow;
 
-        await SaveChangesWithConflictGuardAsync("Xung đột khi lưu trữ môn học.", ct);
-        await WriteAuditAsync("catalog_subject_archived", "CatalogSubject", entity.Id, before, new { entity.Status, reason = action?.Reason, actorUserId }, ct);
+        await SaveWithAuditAtomicallyAsync(
+            "Xung đột khi lưu trữ môn học.",
+            "catalog_subject_archived", "CatalogSubject", entity.Id, before, new { entity.Status, reason = action?.Reason, actorUserId }, ct);
         return ToSubjectDto(entity);
     }
 
@@ -418,8 +448,7 @@ public class ContentCatalogService : IContentCatalogService
         var entity = await _db.CatalogSubjects.FirstOrDefaultAsync(x => x.Id == id, ct)
             ?? throw new NotFoundException($"Không tìm thấy môn học '{id}'.");
 
-        if (!string.IsNullOrWhiteSpace(action?.RowVersion))
-            ApplyExpectedRowVersion(entity, entity.RowVersion, action.RowVersion);
+        ApplyExpectedRowVersion(entity, entity.RowVersion, action?.RowVersion);
 
         if (entity.Status != "archived")
             throw new ValidationException("Status", "Chỉ có thể khôi phục môn học đang ở trạng thái 'archived'.");
@@ -428,8 +457,9 @@ public class ContentCatalogService : IContentCatalogService
         entity.Status = "draft";
         entity.UpdatedAt = _clock.UtcNow;
 
-        await SaveChangesWithConflictGuardAsync("Xung đột khi khôi phục môn học.", ct);
-        await WriteAuditAsync("catalog_subject_reactivated", "CatalogSubject", entity.Id, before, new { entity.Status, reason = action?.Reason, actorUserId }, ct);
+        await SaveWithAuditAtomicallyAsync(
+            "Xung đột khi khôi phục môn học.",
+            "catalog_subject_reactivated", "CatalogSubject", entity.Id, before, new { entity.Status, reason = action?.Reason, actorUserId }, ct);
         return ToSubjectDto(entity);
     }
 
@@ -536,8 +566,9 @@ public class ContentCatalogService : IContentCatalogService
         };
 
         _db.Curricula.Add(entity);
-        await SaveChangesWithConflictGuardAsync("Chương trình học bị trùng mã hoặc trùng khóa nghiệp vụ.", ct);
-        await WriteAuditAsync("catalog_curriculum_created", "Curriculum", entity.Id, null, new { entity.Code, entity.GradeLevelId, entity.SubjectId, entity.Framework, actorUserId }, ct);
+        await SaveWithAuditAtomicallyAsync(
+            "Chương trình học bị trùng mã hoặc trùng khóa nghiệp vụ.",
+            "catalog_curriculum_created", "Curriculum", entity.Id, null, new { entity.Code, entity.GradeLevelId, entity.SubjectId, entity.Framework, actorUserId }, ct);
 
         return new CurriculumDto(
             entity.Id, entity.Code, entity.GradeLevelId, grade.Name, entity.SubjectId, subject.Name,
@@ -581,8 +612,10 @@ public class ContentCatalogService : IContentCatalogService
 
         if (req.Name != null) entity.Name = RequireText(req.Name, "Name");
         if (req.Framework != null) entity.Framework = RequireText(req.Framework, "Framework");
-        if (req.AcademicYearFrom.HasValue) entity.AcademicYearFrom = req.AcademicYearFrom;
-        if (req.AcademicYearTo.HasValue) entity.AcademicYearTo = req.AcademicYearTo;
+        if (req.ClearAcademicYearFrom) entity.AcademicYearFrom = null;
+        else if (req.AcademicYearFrom.HasValue) entity.AcademicYearFrom = req.AcademicYearFrom;
+        if (req.ClearAcademicYearTo) entity.AcademicYearTo = null;
+        else if (req.AcademicYearTo.HasValue) entity.AcademicYearTo = req.AcademicYearTo;
         ValidateAcademicYears(entity.AcademicYearFrom, entity.AcademicYearTo);
 
         if (req.SourceUrl != null) ValidateOptionalUrl(req.SourceUrl, "SourceUrl");
@@ -591,8 +624,9 @@ public class ContentCatalogService : IContentCatalogService
         if (req.SourceLicense != null) entity.SourceLicense = NormalizeOptional(req.SourceLicense);
         entity.UpdatedAt = _clock.UtcNow;
 
-        await SaveChangesWithConflictGuardAsync("Chương trình học bị trùng mã hoặc trùng khóa nghiệp vụ.", ct);
-        await WriteAuditAsync("catalog_curriculum_updated", "Curriculum", entity.Id, before, new { entity.Code, entity.GradeLevelId, entity.SubjectId, entity.Name, entity.Framework, actorUserId }, ct);
+        await SaveWithAuditAtomicallyAsync(
+            "Chương trình học bị trùng mã hoặc trùng khóa nghiệp vụ.",
+            "catalog_curriculum_updated", "Curriculum", entity.Id, before, new { entity.Code, entity.GradeLevelId, entity.SubjectId, entity.Name, entity.Framework, entity.AcademicYearFrom, entity.AcademicYearTo, actorUserId }, ct);
         return ToCurriculumDto(entity);
     }
 
@@ -604,8 +638,7 @@ public class ContentCatalogService : IContentCatalogService
             .FirstOrDefaultAsync(x => x.Id == id, ct)
             ?? throw new NotFoundException($"Không tìm thấy chương trình '{id}'.");
 
-        if (!string.IsNullOrWhiteSpace(action?.RowVersion))
-            ApplyExpectedRowVersion(entity, entity.RowVersion, action.RowVersion);
+        ApplyExpectedRowVersion(entity, entity.RowVersion, action?.RowVersion);
 
         if (entity.Status == "archived")
             return ToCurriculumDto(entity);
@@ -617,8 +650,9 @@ public class ContentCatalogService : IContentCatalogService
         entity.Status = "archived";
         entity.UpdatedAt = _clock.UtcNow;
 
-        await SaveChangesWithConflictGuardAsync("Xung đột khi lưu trữ chương trình.", ct);
-        await WriteAuditAsync("catalog_curriculum_archived", "Curriculum", entity.Id, before, new { entity.Status, reason = action?.Reason, actorUserId }, ct);
+        await SaveWithAuditAtomicallyAsync(
+            "Xung đột khi lưu trữ chương trình.",
+            "catalog_curriculum_archived", "Curriculum", entity.Id, before, new { entity.Status, reason = action?.Reason, actorUserId }, ct);
         return ToCurriculumDto(entity);
     }
 
@@ -630,8 +664,7 @@ public class ContentCatalogService : IContentCatalogService
             .FirstOrDefaultAsync(x => x.Id == id, ct)
             ?? throw new NotFoundException($"Không tìm thấy chương trình '{id}'.");
 
-        if (!string.IsNullOrWhiteSpace(action?.RowVersion))
-            ApplyExpectedRowVersion(entity, entity.RowVersion, action.RowVersion);
+        ApplyExpectedRowVersion(entity, entity.RowVersion, action?.RowVersion);
 
         if (entity.Status != "archived")
             throw new ValidationException("Status", "Chỉ có thể khôi phục chương trình đang ở trạng thái 'archived'.");
@@ -640,8 +673,9 @@ public class ContentCatalogService : IContentCatalogService
         entity.Status = "draft";
         entity.UpdatedAt = _clock.UtcNow;
 
-        await SaveChangesWithConflictGuardAsync("Trùng khóa nghiệp vụ khi khôi phục chương trình.", ct);
-        await WriteAuditAsync("catalog_curriculum_reactivated", "Curriculum", entity.Id, before, new { entity.Status, reason = action?.Reason, actorUserId }, ct);
+        await SaveWithAuditAtomicallyAsync(
+            "Trùng khóa nghiệp vụ khi khôi phục chương trình.",
+            "catalog_curriculum_reactivated", "Curriculum", entity.Id, before, new { entity.Status, reason = action?.Reason, actorUserId }, ct);
         return ToCurriculumDto(entity);
     }
 
@@ -714,8 +748,9 @@ public class ContentCatalogService : IContentCatalogService
         };
 
         _db.TextbookSeries.Add(entity);
-        await SaveChangesWithConflictGuardAsync($"Mã bộ sách '{code}' đã tồn tại.", ct);
-        await WriteAuditAsync("catalog_series_created", "TextbookSeries", entity.Id, null, new { entity.Code, entity.Name, entity.Publisher, actorUserId }, ct);
+        await SaveWithAuditAtomicallyAsync(
+            $"Mã bộ sách '{code}' đã tồn tại.",
+            "catalog_series_created", "TextbookSeries", entity.Id, null, new { entity.Code, entity.Name, entity.Publisher, actorUserId }, ct);
         return ToSeriesDto(entity);
     }
 
@@ -743,8 +778,9 @@ public class ContentCatalogService : IContentCatalogService
         if (req.SourceLicense != null) entity.SourceLicense = NormalizeOptional(req.SourceLicense);
         entity.UpdatedAt = _clock.UtcNow;
 
-        await SaveChangesWithConflictGuardAsync("Mã bộ sách bị trùng lặp.", ct);
-        await WriteAuditAsync("catalog_series_updated", "TextbookSeries", entity.Id, before, new { entity.Code, entity.Name, entity.Publisher, actorUserId }, ct);
+        await SaveWithAuditAtomicallyAsync(
+            "Mã bộ sách bị trùng lặp.",
+            "catalog_series_updated", "TextbookSeries", entity.Id, before, new { entity.Code, entity.Name, entity.Publisher, actorUserId }, ct);
         return ToSeriesDto(entity);
     }
 
@@ -753,8 +789,7 @@ public class ContentCatalogService : IContentCatalogService
         var entity = await _db.TextbookSeries.FirstOrDefaultAsync(x => x.Id == id, ct)
             ?? throw new NotFoundException($"Không tìm thấy bộ sách '{id}'.");
 
-        if (!string.IsNullOrWhiteSpace(action?.RowVersion))
-            ApplyExpectedRowVersion(entity, entity.RowVersion, action.RowVersion);
+        ApplyExpectedRowVersion(entity, entity.RowVersion, action?.RowVersion);
 
         if (entity.Status == "archived")
             return ToSeriesDto(entity);
@@ -766,8 +801,9 @@ public class ContentCatalogService : IContentCatalogService
         entity.Status = "archived";
         entity.UpdatedAt = _clock.UtcNow;
 
-        await SaveChangesWithConflictGuardAsync("Xung đột khi lưu trữ bộ sách.", ct);
-        await WriteAuditAsync("catalog_series_archived", "TextbookSeries", entity.Id, before, new { entity.Status, reason = action?.Reason, actorUserId }, ct);
+        await SaveWithAuditAtomicallyAsync(
+            "Xung đột khi lưu trữ bộ sách.",
+            "catalog_series_archived", "TextbookSeries", entity.Id, before, new { entity.Status, reason = action?.Reason, actorUserId }, ct);
         return ToSeriesDto(entity);
     }
 
@@ -776,8 +812,7 @@ public class ContentCatalogService : IContentCatalogService
         var entity = await _db.TextbookSeries.FirstOrDefaultAsync(x => x.Id == id, ct)
             ?? throw new NotFoundException($"Không tìm thấy bộ sách '{id}'.");
 
-        if (!string.IsNullOrWhiteSpace(action?.RowVersion))
-            ApplyExpectedRowVersion(entity, entity.RowVersion, action.RowVersion);
+        ApplyExpectedRowVersion(entity, entity.RowVersion, action?.RowVersion);
 
         if (entity.Status != "archived")
             throw new ValidationException("Status", "Chỉ có thể khôi phục bộ sách đang ở trạng thái 'archived'.");
@@ -786,8 +821,9 @@ public class ContentCatalogService : IContentCatalogService
         entity.Status = "draft";
         entity.UpdatedAt = _clock.UtcNow;
 
-        await SaveChangesWithConflictGuardAsync("Xung đột khi khôi phục bộ sách.", ct);
-        await WriteAuditAsync("catalog_series_reactivated", "TextbookSeries", entity.Id, before, new { entity.Status, reason = action?.Reason, actorUserId }, ct);
+        await SaveWithAuditAtomicallyAsync(
+            "Xung đột khi khôi phục bộ sách.",
+            "catalog_series_reactivated", "TextbookSeries", entity.Id, before, new { entity.Status, reason = action?.Reason, actorUserId }, ct);
         return ToSeriesDto(entity);
     }
 
@@ -904,8 +940,9 @@ public class ContentCatalogService : IContentCatalogService
         };
 
         _db.CurriculumEditions.Add(entity);
-        await SaveChangesWithConflictGuardAsync("Phiên bản chương trình bị trùng mã hoặc trùng khóa nghiệp vụ.", ct);
-        await WriteAuditAsync("catalog_edition_created", "CurriculumEdition", entity.Id, null, new { entity.Code, entity.CurriculumId, entity.TextbookSeriesId, entity.EditionName, actorUserId }, ct);
+        await SaveWithAuditAtomicallyAsync(
+            "Phiên bản chương trình bị trùng mã hoặc trùng khóa nghiệp vụ.",
+            "catalog_edition_created", "CurriculumEdition", entity.Id, null, new { entity.Code, entity.CurriculumId, entity.TextbookSeriesId, entity.EditionName, actorUserId }, ct);
 
         return new CurriculumEditionDto(
             entity.Id, entity.Code, entity.CurriculumId, curriculum.Name,
@@ -958,7 +995,11 @@ public class ContentCatalogService : IContentCatalogService
         if (req.EditionName != null) entity.EditionName = RequireText(req.EditionName, "EditionName");
         if (req.Volume != null) entity.Volume = NormalizeOptional(req.Volume);
         if (req.Version != null) entity.Version = NormalizeOptional(req.Version);
-        if (req.PublicationYear.HasValue)
+        if (req.ClearPublicationYear)
+        {
+            entity.PublicationYear = null;
+        }
+        else if (req.PublicationYear.HasValue)
         {
             ValidatePublicationYear(req.PublicationYear);
             entity.PublicationYear = req.PublicationYear;
@@ -970,8 +1011,9 @@ public class ContentCatalogService : IContentCatalogService
         if (req.SourceLicense != null) entity.SourceLicense = NormalizeOptional(req.SourceLicense);
         entity.UpdatedAt = _clock.UtcNow;
 
-        await SaveChangesWithConflictGuardAsync("Phiên bản chương trình bị trùng mã hoặc trùng khóa nghiệp vụ.", ct);
-        await WriteAuditAsync("catalog_edition_updated", "CurriculumEdition", entity.Id, before, new { entity.Code, entity.CurriculumId, entity.TextbookSeriesId, entity.EditionName, actorUserId }, ct);
+        await SaveWithAuditAtomicallyAsync(
+            "Phiên bản chương trình bị trùng mã hoặc trùng khóa nghiệp vụ.",
+            "catalog_edition_updated", "CurriculumEdition", entity.Id, before, new { entity.Code, entity.CurriculumId, entity.TextbookSeriesId, entity.EditionName, entity.PublicationYear, actorUserId }, ct);
         return ToEditionDto(entity);
     }
 
@@ -983,8 +1025,7 @@ public class ContentCatalogService : IContentCatalogService
             .FirstOrDefaultAsync(x => x.Id == id, ct)
             ?? throw new NotFoundException($"Không tìm thấy phiên bản chương trình '{id}'.");
 
-        if (!string.IsNullOrWhiteSpace(action?.RowVersion))
-            ApplyExpectedRowVersion(entity, entity.RowVersion, action.RowVersion);
+        ApplyExpectedRowVersion(entity, entity.RowVersion, action?.RowVersion);
 
         if (entity.Status == "archived")
             return ToEditionDto(entity);
@@ -993,8 +1034,9 @@ public class ContentCatalogService : IContentCatalogService
         entity.Status = "archived";
         entity.UpdatedAt = _clock.UtcNow;
 
-        await SaveChangesWithConflictGuardAsync("Xung đột khi lưu trữ phiên bản.", ct);
-        await WriteAuditAsync("catalog_edition_archived", "CurriculumEdition", entity.Id, before, new { entity.Status, reason = action?.Reason, actorUserId }, ct);
+        await SaveWithAuditAtomicallyAsync(
+            "Xung đột khi lưu trữ phiên bản.",
+            "catalog_edition_archived", "CurriculumEdition", entity.Id, before, new { entity.Status, reason = action?.Reason, actorUserId }, ct);
         return ToEditionDto(entity);
     }
 
@@ -1006,8 +1048,7 @@ public class ContentCatalogService : IContentCatalogService
             .FirstOrDefaultAsync(x => x.Id == id, ct)
             ?? throw new NotFoundException($"Không tìm thấy phiên bản chương trình '{id}'.");
 
-        if (!string.IsNullOrWhiteSpace(action?.RowVersion))
-            ApplyExpectedRowVersion(entity, entity.RowVersion, action.RowVersion);
+        ApplyExpectedRowVersion(entity, entity.RowVersion, action?.RowVersion);
 
         if (entity.Status != "archived")
             throw new ValidationException("Status", "Chỉ có thể khôi phục phiên bản đang ở trạng thái 'archived'.");
@@ -1016,8 +1057,9 @@ public class ContentCatalogService : IContentCatalogService
         entity.Status = "draft";
         entity.UpdatedAt = _clock.UtcNow;
 
-        await SaveChangesWithConflictGuardAsync("Trùng khóa nghiệp vụ khi khôi phục phiên bản.", ct);
-        await WriteAuditAsync("catalog_edition_reactivated", "CurriculumEdition", entity.Id, before, new { entity.Status, reason = action?.Reason, actorUserId }, ct);
+        await SaveWithAuditAtomicallyAsync(
+            "Trùng khóa nghiệp vụ khi khôi phục phiên bản.",
+            "catalog_edition_reactivated", "CurriculumEdition", entity.Id, before, new { entity.Status, reason = action?.Reason, actorUserId }, ct);
         return ToEditionDto(entity);
     }
 

@@ -6,7 +6,6 @@ import {
   ManagementEmptyState,
   ManagementErrorState,
   ManagementFilter,
-  ManagementHeader,
   ManagementPagination,
   ManagementTable,
   type ManagementColumn,
@@ -16,6 +15,7 @@ import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { StatusBadge } from '@/components/ui/StatusBadge'
+import { CatalogParentSelect } from '@/pages/Content/components/CatalogParentSelect'
 import { catalogService } from '@/services/catalog.service'
 import type {
   CatalogPagedResponse,
@@ -86,11 +86,11 @@ export const ContentCatalogPage: React.FC = () => {
   const [errorInfo, setErrorInfo] = useState<{ status?: number; message: string } | null>(null)
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null)
 
-  // Parent option lists loaded from real APIs when needed
-  const [gradeOptions, setGradeOptions] = useState<GradeLevelItem[]>([])
-  const [subjectOptions, setSubjectOptions] = useState<CatalogSubjectItem[]>([])
-  const [curriculumOptions, setCurriculumOptions] = useState<CurriculumItem[]>([])
-  const [seriesOptions, setSeriesOptions] = useState<TextbookSeriesItem[]>([])
+  // Selected parent fallback labels when editing a record
+  const [fGradeLabel, setFGradeLabel] = useState('')
+  const [fSubjectLabel, setFSubjectLabel] = useState('')
+  const [fCurriculumLabel, setFCurriculumLabel] = useState('')
+  const [fSeriesLabel, setFSeriesLabel] = useState('')
 
   // Create / Edit Dialog state
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -142,21 +142,24 @@ export const ContentCatalogPage: React.FC = () => {
     [searchParams, setSearchParams]
   )
 
-  const loadParentOptions = useCallback(async () => {
-    try {
-      const [g, s, c, sr] = await Promise.all([
-        catalogService.listGrades({ page: 1, pageSize: 100 }),
-        catalogService.listSubjects({ page: 1, pageSize: 100 }),
-        catalogService.listCurricula({ page: 1, pageSize: 100 }),
-        catalogService.listSeries({ page: 1, pageSize: 100 }),
-      ])
-      setGradeOptions(g.items)
-      setSubjectOptions(s.items)
-      setCurriculumOptions(c.items)
-      setSeriesOptions(sr.items)
-    } catch {
-      // Parent selectors remain empty if user lacks read access; main fetch handles error UI
-    }
+  const fetchGradeOptionsPage = useCallback(async (term: string, targetPage: number) => {
+    const res = await catalogService.listGrades({ search: term || undefined, page: targetPage, pageSize: 20 })
+    return { items: res.items.map((g) => ({ id: g.id, label: `${g.name} (${g.code})` })), total: res.total }
+  }, [])
+
+  const fetchSubjectOptionsPage = useCallback(async (term: string, targetPage: number) => {
+    const res = await catalogService.listSubjects({ search: term || undefined, page: targetPage, pageSize: 20 })
+    return { items: res.items.map((s) => ({ id: s.id, label: `${s.name} (${s.code})` })), total: res.total }
+  }, [])
+
+  const fetchCurriculumOptionsPage = useCallback(async (term: string, targetPage: number) => {
+    const res = await catalogService.listCurricula({ search: term || undefined, page: targetPage, pageSize: 20 })
+    return { items: res.items.map((c) => ({ id: c.id, label: `${c.name} (${c.code})` })), total: res.total }
+  }, [])
+
+  const fetchSeriesOptionsPage = useCallback(async (term: string, targetPage: number) => {
+    const res = await catalogService.listSeries({ search: term || undefined, page: targetPage, pageSize: 20 })
+    return { items: res.items.map((sr) => ({ id: sr.id, label: `${sr.name} (${sr.code})` })), total: res.total }
   }, [])
 
   const fetchList = useCallback(async () => {
@@ -194,12 +197,6 @@ export const ContentCatalogPage: React.FC = () => {
     void fetchList()
   }, [fetchList])
 
-  useEffect(() => {
-    if (activeTab === 'curricula' || activeTab === 'editions') {
-      void loadParentOptions()
-    }
-  }, [activeTab, loadParentOptions])
-
   const openCreateModal = () => {
     setEditingRow(null)
     setFormError(null)
@@ -207,14 +204,18 @@ export const ContentCatalogPage: React.FC = () => {
     setFName('')
     setFDescription('')
     setFOrderIndex('0')
-    setFGradeLevelId(gradeOptions[0]?.id ?? '')
-    setFSubjectId(subjectOptions[0]?.id ?? '')
+    setFGradeLevelId('')
+    setFGradeLabel('')
+    setFSubjectId('')
+    setFSubjectLabel('')
     setFFramework('GDPT 2018')
     setFYearFrom('')
     setFYearTo('')
     setFPublisher('')
-    setFCurriculumId(curriculumOptions[0]?.id ?? '')
+    setFCurriculumId('')
+    setFCurriculumLabel('')
     setFSeriesId('')
+    setFSeriesLabel('')
     setFEditionName('')
     setFVolume('')
     setFVersion('')
@@ -223,7 +224,6 @@ export const ContentCatalogPage: React.FC = () => {
     setFSourceUrl('')
     setFSourceLicense('')
     setDialogOpen(true)
-    void loadParentOptions()
   }
 
   const openEditModal = useCallback((row: AnyCatalogRow) => {
@@ -234,13 +234,17 @@ export const ContentCatalogPage: React.FC = () => {
     setFDescription(String((row as { description?: string }).description ?? ''))
     setFOrderIndex(String((row as { orderIndex?: number }).orderIndex ?? 0))
     setFGradeLevelId(String((row as { gradeLevelId?: string }).gradeLevelId ?? ''))
+    setFGradeLabel(String((row as { gradeLevelName?: string }).gradeLevelName ?? ''))
     setFSubjectId(String((row as { subjectId?: string }).subjectId ?? ''))
+    setFSubjectLabel(String((row as { subjectName?: string }).subjectName ?? ''))
     setFFramework(String((row as { framework?: string }).framework ?? 'GDPT 2018'))
     setFYearFrom((row as { academicYearFrom?: number | null }).academicYearFrom ? String((row as { academicYearFrom?: number }).academicYearFrom) : '')
     setFYearTo((row as { academicYearTo?: number | null }).academicYearTo ? String((row as { academicYearTo?: number }).academicYearTo) : '')
     setFPublisher(String((row as { publisher?: string }).publisher ?? ''))
     setFCurriculumId(String((row as { curriculumId?: string }).curriculumId ?? ''))
+    setFCurriculumLabel(String((row as { curriculumName?: string }).curriculumName ?? ''))
     setFSeriesId(String((row as { textbookSeriesId?: string }).textbookSeriesId ?? ''))
+    setFSeriesLabel(String((row as { textbookSeriesName?: string }).textbookSeriesName ?? ''))
     setFEditionName(String((row as { editionName?: string }).editionName ?? ''))
     setFVolume(String((row as { volume?: string }).volume ?? ''))
     setFVersion(String((row as { version?: string }).version ?? ''))
@@ -249,8 +253,7 @@ export const ContentCatalogPage: React.FC = () => {
     setFSourceUrl(String((row as { sourceUrl?: string }).sourceUrl ?? ''))
     setFSourceLicense(String((row as { sourceLicense?: string }).sourceLicense ?? ''))
     setDialogOpen(true)
-    void loadParentOptions()
-  }, [loadParentOptions])
+  }, [])
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -302,6 +305,8 @@ export const ContentCatalogPage: React.FC = () => {
             framework: fFramework,
             academicYearFrom: yFrom,
             academicYearTo: yTo,
+            clearAcademicYearFrom: yFrom === null,
+            clearAcademicYearTo: yTo === null,
             sourceName: fSourceName || undefined,
             sourceUrl: fSourceUrl || undefined,
             sourceLicense: fSourceLicense || undefined,
@@ -355,6 +360,7 @@ export const ContentCatalogPage: React.FC = () => {
             volume: fVolume || undefined,
             version: fVersion || undefined,
             publicationYear: pubYear,
+            clearPublicationYear: pubYear === null,
             sourceName: fSourceName || undefined,
             sourceUrl: fSourceUrl || undefined,
             sourceLicense: fSourceLicense || undefined,
@@ -523,15 +529,18 @@ export const ContentCatalogPage: React.FC = () => {
         ]}
       />
 
-      <ManagementHeader
-        title="Danh mục giáo trình đa môn"
-        actions={
-          <Button variant="primary" onClick={openCreateModal}>
-            <Plus size={16} aria-hidden="true" />
-            <span>{activeTabMeta.createLabel}</span>
-          </Button>
-        }
-      />
+      <div className="catalog-page-header">
+        <div>
+          <h1 className="catalog-page-title">Danh mục giáo trình đa môn</h1>
+          <p className="catalog-page-subtitle">
+            Quản lý khối lớp, môn học, chương trình, bộ sách và phiên bản theo chuẩn dữ liệu.
+          </p>
+        </div>
+        <Button variant="primary" onClick={openCreateModal}>
+          <Plus size={16} aria-hidden="true" />
+          <span>{activeTabMeta.createLabel}</span>
+        </Button>
+      </div>
 
         {feedbackMessage && (
           <div className="catalog-feedback-banner" role="status">
@@ -595,63 +604,47 @@ export const ContentCatalogPage: React.FC = () => {
 
           {activeTab === 'curricula' && (
             <>
-              <select
-                className="mgmt-select"
-                aria-label="Lọc khối lớp"
+              <CatalogParentSelect
+                id="filter-grade"
+                label="Khối lớp"
                 value={gradeLevelId}
-                onChange={(e) => updateParams({ gradeLevelId: e.target.value || null, page: '1' })}
-              >
-                <option value="">Tất cả khối lớp</option>
-                {gradeOptions.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.name} ({g.code})
-                  </option>
-                ))}
-              </select>
-              <select
-                className="mgmt-select"
-                aria-label="Lọc môn học"
+                emptyOptionLabel="Tất cả khối lớp"
+                placeholder="Tìm khối lớp..."
+                onChange={(v) => updateParams({ gradeLevelId: v || null, page: '1' })}
+                fetchPage={fetchGradeOptionsPage}
+              />
+              <CatalogParentSelect
+                id="filter-subject"
+                label="Môn học"
                 value={subjectId}
-                onChange={(e) => updateParams({ subjectId: e.target.value || null, page: '1' })}
-              >
-                <option value="">Tất cả môn học</option>
-                {subjectOptions.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} ({s.code})
-                  </option>
-                ))}
-              </select>
+                emptyOptionLabel="Tất cả môn học"
+                placeholder="Tìm môn học..."
+                onChange={(v) => updateParams({ subjectId: v || null, page: '1' })}
+                fetchPage={fetchSubjectOptionsPage}
+              />
             </>
           )}
 
           {activeTab === 'editions' && (
             <>
-              <select
-                className="mgmt-select"
-                aria-label="Lọc chương trình"
+              <CatalogParentSelect
+                id="filter-curriculum"
+                label="Chương trình"
                 value={curriculumId}
-                onChange={(e) => updateParams({ curriculumId: e.target.value || null, page: '1' })}
-              >
-                <option value="">Tất cả chương trình</option>
-                {curriculumOptions.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} ({c.code})
-                  </option>
-                ))}
-              </select>
-              <select
-                className="mgmt-select"
-                aria-label="Lọc bộ sách"
+                emptyOptionLabel="Tất cả chương trình"
+                placeholder="Tìm chương trình..."
+                onChange={(v) => updateParams({ curriculumId: v || null, page: '1' })}
+                fetchPage={fetchCurriculumOptionsPage}
+              />
+              <CatalogParentSelect
+                id="filter-series"
+                label="Bộ sách"
                 value={textbookSeriesId}
-                onChange={(e) => updateParams({ textbookSeriesId: e.target.value || null, page: '1' })}
-              >
-                <option value="">Tất cả bộ sách</option>
-                {seriesOptions.map((sr) => (
-                  <option key={sr.id} value={sr.id}>
-                    {sr.name}
-                  </option>
-                ))}
-              </select>
+                emptyOptionLabel="Tất cả bộ sách"
+                placeholder="Tìm bộ sách..."
+                onChange={(v) => updateParams({ textbookSeriesId: v || null, page: '1' })}
+                fetchPage={fetchSeriesOptionsPage}
+              />
             </>
           )}
         </ManagementFilter>
@@ -821,44 +814,28 @@ export const ContentCatalogPage: React.FC = () => {
             {activeTab === 'curricula' && (
               <>
                 <div className="catalog-form-row">
-                  <div className="catalog-form-field">
-                    <label className="catalog-form-label" htmlFor="cat-grade-sel">
-                      Khối lớp *
-                    </label>
-                    <select
-                      id="cat-grade-sel"
-                      className="catalog-form-select"
-                      value={fGradeLevelId}
-                      onChange={(e) => setFGradeLevelId(e.target.value)}
-                      required
-                    >
-                      <option value="">-- Chọn khối lớp --</option>
-                      {gradeOptions.map((g) => (
-                        <option key={g.id} value={g.id}>
-                          {g.name} ({g.code})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="catalog-form-field">
-                    <label className="catalog-form-label" htmlFor="cat-subj-sel">
-                      Môn học *
-                    </label>
-                    <select
-                      id="cat-subj-sel"
-                      className="catalog-form-select"
-                      value={fSubjectId}
-                      onChange={(e) => setFSubjectId(e.target.value)}
-                      required
-                    >
-                      <option value="">-- Chọn môn học --</option>
-                      {subjectOptions.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name} ({s.code})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <CatalogParentSelect
+                    id="cat-grade-sel"
+                    label="Khối lớp"
+                    value={fGradeLevelId}
+                    fallbackLabel={fGradeLabel}
+                    emptyOptionLabel="-- Chọn khối lớp --"
+                    placeholder="Tìm khối lớp..."
+                    required
+                    onChange={setFGradeLevelId}
+                    fetchPage={fetchGradeOptionsPage}
+                  />
+                  <CatalogParentSelect
+                    id="cat-subj-sel"
+                    label="Môn học"
+                    value={fSubjectId}
+                    fallbackLabel={fSubjectLabel}
+                    emptyOptionLabel="-- Chọn môn học --"
+                    placeholder="Tìm môn học..."
+                    required
+                    onChange={setFSubjectId}
+                    fetchPage={fetchSubjectOptionsPage}
+                  />
                 </div>
                 <div className="catalog-form-row">
                   <div className="catalog-form-field">
@@ -906,43 +883,27 @@ export const ContentCatalogPage: React.FC = () => {
             {activeTab === 'editions' && (
               <>
                 <div className="catalog-form-row">
-                  <div className="catalog-form-field">
-                    <label className="catalog-form-label" htmlFor="cat-cur-sel">
-                      Chương trình *
-                    </label>
-                    <select
-                      id="cat-cur-sel"
-                      className="catalog-form-select"
-                      value={fCurriculumId}
-                      onChange={(e) => setFCurriculumId(e.target.value)}
-                      required
-                    >
-                      <option value="">-- Chọn chương trình --</option>
-                      {curriculumOptions.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name} ({c.code})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="catalog-form-field">
-                    <label className="catalog-form-label" htmlFor="cat-ser-sel">
-                      Bộ sách (tùy chọn)
-                    </label>
-                    <select
-                      id="cat-ser-sel"
-                      className="catalog-form-select"
-                      value={fSeriesId}
-                      onChange={(e) => setFSeriesId(e.target.value)}
-                    >
-                      <option value="">Không gắn bộ sách (Chuẩn khung)</option>
-                      {seriesOptions.map((sr) => (
-                        <option key={sr.id} value={sr.id}>
-                          {sr.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <CatalogParentSelect
+                    id="cat-cur-sel"
+                    label="Chương trình"
+                    value={fCurriculumId}
+                    fallbackLabel={fCurriculumLabel}
+                    emptyOptionLabel="-- Chọn chương trình --"
+                    placeholder="Tìm chương trình..."
+                    required
+                    onChange={setFCurriculumId}
+                    fetchPage={fetchCurriculumOptionsPage}
+                  />
+                  <CatalogParentSelect
+                    id="cat-ser-sel"
+                    label="Bộ sách (tùy chọn)"
+                    value={fSeriesId}
+                    fallbackLabel={fSeriesLabel}
+                    emptyOptionLabel="Không gắn bộ sách (Chuẩn khung)"
+                    placeholder="Tìm bộ sách..."
+                    onChange={setFSeriesId}
+                    fetchPage={fetchSeriesOptionsPage}
+                  />
                 </div>
                 <div className="catalog-form-row">
                   <div className="catalog-form-field">

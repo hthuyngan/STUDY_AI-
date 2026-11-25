@@ -78,6 +78,8 @@ export const catalogService = {
       framework?: string
       academicYearFrom?: number | null
       academicYearTo?: number | null
+      clearAcademicYearFrom?: boolean
+      clearAcademicYearTo?: boolean
       sourceName?: string
       sourceUrl?: string
       sourceLicense?: string
@@ -144,6 +146,7 @@ export const catalogService = {
       volume?: string
       version?: string
       publicationYear?: number | null
+      clearPublicationYear?: boolean
       sourceName?: string
       sourceUrl?: string
       sourceLicense?: string

@@ -1,4 +1,4 @@
-import type { LucideIcon } from 'lucide-react'
+﻿import type { LucideIcon } from 'lucide-react'
 import {
   Activity,
   AlertTriangle,
@@ -235,6 +235,12 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
         id: 'curriculum',
         title: 'QUẢN LÝ HỌC TẬP',
         items: [
+          {
+            id: 'content-catalog',
+            label: 'Danh mục chuẩn',
+            path: '/content/catalog',
+            icon: BookOpen,
+          },
           {
             id: 'content-subjects',
             label: 'Môn học',
