@@ -668,9 +668,25 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
             entity.Property(e => e.UpdatedAt).IsRequired();
 
-
+            entity.Property(e => e.ResourceType).HasMaxLength(32).HasDefaultValue("video").IsRequired();
+            entity.Property(e => e.Status).HasMaxLength(32).HasDefaultValue("draft").IsRequired();
+            entity.Property(e => e.MimeType).HasMaxLength(128);
+            entity.Property(e => e.StorageKey).HasMaxLength(500);
+            entity.Property(e => e.Checksum).HasMaxLength(128);
+            entity.Property(e => e.SourceName).HasMaxLength(255);
+            entity.Property(e => e.SourceLicense).HasMaxLength(255);
+            entity.Property(e => e.CreatedBy).HasMaxLength(64);
+            entity.Property(e => e.ReviewedBy).HasMaxLength(64);
+            entity.Property(e => e.ReviewedAt);
+            entity.Property(e => e.RejectionReason).HasMaxLength(1000);
+            entity.Property(e => e.IsArchived).HasDefaultValue(false).IsRequired();
+            entity.Property(e => e.ArchivedAt);
+            entity.Property(e => e.ArchivedBy).HasMaxLength(64);
+            entity.Property(e => e.RowVersion).IsRowVersion();
 
             entity.HasIndex(e => e.LessonId);
+            entity.HasIndex(e => new { e.LessonId, e.IsArchived, e.SortOrder });
+            entity.HasIndex(e => new { e.LessonId, e.ResourceType, e.Status });
 
         });
 

@@ -88,6 +88,7 @@ export interface LearnerLessonDetail {
   importantNotes: string[]
   summaryPoints: string[]
   videos?: LearnerVideo[]
+  resources?: import('@/types/content').LearnerResourceItem[]
   contentBlocks?: import('@/types/content').LessonContentBlock[]
   objectives?: string[]
 }

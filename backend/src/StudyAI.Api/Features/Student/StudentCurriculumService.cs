@@ -509,8 +509,14 @@ public class StudentCurriculumService : ILearnerCurriculumService
             throw new NotFoundException("Bài học không tồn tại hoặc chưa được xuất bản.");
 
         return lesson.Videos
-            .Where(v => v.IsPublished && v.VerificationStatus == "verified" && v.EmbedAllowed)
+            .Where(v => !v.IsArchived &&
+                        v.IsPublished &&
+                        v.VerificationStatus == "verified" &&
+                        v.EmbedAllowed &&
+                        (string.IsNullOrWhiteSpace(v.ResourceType) || v.ResourceType == LessonResourceTypes.Video) &&
+                        LessonResourceValidator.IsSafeLearnerUrl(v.SourceUrl, v.ResourceType))
             .OrderBy(v => v.SortOrder)
+            .ThenBy(v => v.CreatedAt)
             .Select(v => new LearnerVideoDto
             {
                 Id = v.Id,
@@ -545,9 +551,18 @@ public class StudentCurriculumService : ILearnerCurriculumService
         if (!IsLessonVisibleToLearner(lesson))
             throw new NotFoundException("Bài học không tồn tại hoặc chưa được xuất bản.");
 
-        var publishedVideos = lesson.Videos
-            .Where(v => v.IsPublished && v.VerificationStatus == "verified" && v.EmbedAllowed)
+        var safePublishedResources = lesson.Videos
+            .Where(v => !v.IsArchived &&
+                        v.IsPublished &&
+                        v.VerificationStatus == "verified" &&
+                        LessonResourceValidator.IsSafeLearnerUrl(v.SourceUrl, v.ResourceType))
             .OrderBy(v => v.SortOrder)
+            .ThenBy(v => v.CreatedAt)
+            .ToList();
+
+        var publishedVideos = safePublishedResources
+            .Where(v => v.EmbedAllowed &&
+                        (string.IsNullOrWhiteSpace(v.ResourceType) || v.ResourceType == LessonResourceTypes.Video))
             .Select(v => new LearnerVideoDto
             {
                 Id = v.Id,
@@ -564,6 +579,30 @@ public class StudentCurriculumService : ILearnerCurriculumService
                 ThumbnailUrl = v.ThumbnailUrl,
                 EmbedAllowed = v.EmbedAllowed,
                 VerificationStatus = v.VerificationStatus
+            })
+            .ToList();
+
+        var publishedResources = safePublishedResources
+            .Select(v => new LearnerResourceDto
+            {
+                Id = v.Id,
+                ResourceType = string.IsNullOrWhiteSpace(v.ResourceType) ? LessonResourceTypes.Video : v.ResourceType,
+                Title = v.Title,
+                Description = v.Description,
+                Provider = v.Provider,
+                SourceUrl = v.SourceUrl,
+                EmbedUrl = v.EmbedUrl,
+                YouTubeVideoId = v.YouTubeVideoId,
+                ChannelName = v.ChannelName,
+                IsPrimary = v.IsPrimary,
+                AttributionText = v.AttributionText,
+                SourceName = v.SourceName,
+                SourceLicense = v.SourceLicense,
+                MimeType = v.MimeType,
+                DurationSeconds = v.DurationSeconds,
+                ThumbnailUrl = v.ThumbnailUrl,
+                SortOrder = v.SortOrder,
+                EmbedAllowed = v.EmbedAllowed
             })
             .ToList();
 
@@ -622,6 +661,7 @@ public class StudentCurriculumService : ILearnerCurriculumService
             ImportantNotes = SafeJsonArray(lesson.ImportantNotesJson),
             SummaryPoints = SafeJsonArray(lesson.SummaryPointsJson),
             Videos = publishedVideos,
+            Resources = publishedResources,
             ContentBlocks = learnerBlocks,
             Objectives = learnerObjectives
         };

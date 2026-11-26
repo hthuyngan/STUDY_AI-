@@ -133,6 +133,23 @@ export const LessonVideoPlayer: React.FC<LessonVideoPlayerProps> = ({
   if (currentVideo && (currentVideo.youTubeVideoId || currentVideo.embedUrl)) {
     const isYouTube = currentVideo.provider === 'youtube' || !!currentVideo.youTubeVideoId
     const ytId = currentVideo.youTubeVideoId || (currentVideo.embedUrl?.match(/embed\/([\w-]{11})/)?.[1])
+    const rawPlaybackUrl = currentVideo.embedUrl || currentVideo.sourceUrl || ''
+    const isSafeHttpsUrl = /^https:\/\//i.test(rawPlaybackUrl)
+    const isValidYouTube = isYouTube && !!ytId && /^[\w-]{11}$/.test(ytId)
+
+    if (!isValidYouTube && !isSafeHttpsUrl) {
+      return (
+        <section className="lesson-video-container" aria-label="Video bài giảng không khả dụng">
+          <div className="lesson-video-unavailable" role="status">
+            <div>
+              <strong>Video bài giảng không hợp lệ hoặc không được hỗ trợ</strong>
+              <p>Đường dẫn video không đạt chuẩn bảo mật. Bạn vẫn có thể học toàn bộ nội dung lý thuyết bên dưới.</p>
+            </div>
+          </div>
+        </section>
+      )
+    }
+
     const channelAttribution = currentVideo.channelName
       ? `Kênh: ${currentVideo.channelName}`
       : currentVideo.attributionText || (isYouTube ? 'YouTube GDPT 2018' : 'STUDY_AI Official')

@@ -303,7 +303,16 @@ public class ControllerRouteDiscoveryTests
             "GET api/v1/content/curricula/{param}/skills",
             "POST api/v1/content/curricula/{param}/skills",
             "POST api/v1/content/curricula/{param}/{param}/{param}/publish",
-            "GET api/v1/content/curricula/{param}/lessons"
+            "GET api/v1/content/curricula/{param}/lessons",
+            "GET api/v1/content/lessons/{param}/resources",
+            "POST api/v1/content/lessons/{param}/resources",
+            "PATCH api/v1/content/resources/{param}",
+            "POST api/v1/content/resources/reorder",
+            "POST api/v1/content/resources/{param}/archive",
+            "POST api/v1/content/resources/{param}/verify",
+            "POST api/v1/content/resources/{param}/reject",
+            "POST api/v1/content/resources/{param}/publish",
+            "POST api/v1/content/resources/{param}/unpublish"
         };
 
         // Verify total registered count is exactly 236 baseline + 5 approved extensions

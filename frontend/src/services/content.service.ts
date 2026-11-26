@@ -425,4 +425,74 @@ export const contentService = {
   ): Promise<import('@/types/content').CurriculumNodeRef> {
     return apiClient.post(`/api/v1/content/curricula/${curriculumId}/${nodeType}/${nodeId}/publish`, {})
   },
+
+  async listLessonResources(
+    lessonId: string,
+    includeArchived = false
+  ): Promise<{ items: import('@/types/content').LessonResourceItem[]; total: number }> {
+    const q = includeArchived ? '?includeArchived=true' : ''
+    return apiClient.get(`/api/v1/content/lessons/${lessonId}/resources${q}`)
+  },
+
+  async createLessonResource(
+    lessonId: string,
+    payload: import('@/types/content').CreateLessonResourcePayload
+  ): Promise<import('@/types/content').LessonResourceItem> {
+    return apiClient.post(`/api/v1/content/lessons/${lessonId}/resources`, payload)
+  },
+
+  async updateLessonResource(
+    resourceId: string,
+    payload: import('@/types/content').UpdateLessonResourcePayload
+  ): Promise<import('@/types/content').LessonResourceItem> {
+    return apiClient.patch(`/api/v1/content/resources/${resourceId}`, payload)
+  },
+
+  async reorderLessonResources(
+    lessonId: string,
+    items: Array<{ resourceId: string; rowVersion: string }>
+  ): Promise<{ success: boolean; items: import('@/types/content').LessonResourceItem[]; total: number }> {
+    return apiClient.post('/api/v1/content/resources/reorder', {
+      lessonId,
+      resourceIds: items.map((i) => i.resourceId),
+      items,
+    })
+  },
+
+  async archiveLessonResource(
+    resourceId: string,
+    rowVersion: string,
+    reason?: string
+  ): Promise<import('@/types/content').LessonResourceItem> {
+    return apiClient.post(`/api/v1/content/resources/${resourceId}/archive`, { rowVersion, reason })
+  },
+
+  async verifyLessonResource(
+    resourceId: string,
+    rowVersion: string
+  ): Promise<import('@/types/content').LessonResourceItem> {
+    return apiClient.post(`/api/v1/content/resources/${resourceId}/verify`, { rowVersion })
+  },
+
+  async rejectLessonResource(
+    resourceId: string,
+    rowVersion: string,
+    reason?: string
+  ): Promise<import('@/types/content').LessonResourceItem> {
+    return apiClient.post(`/api/v1/content/resources/${resourceId}/reject`, { rowVersion, reason })
+  },
+
+  async publishLessonResource(
+    resourceId: string,
+    rowVersion: string
+  ): Promise<import('@/types/content').LessonResourceItem> {
+    return apiClient.post(`/api/v1/content/resources/${resourceId}/publish`, { rowVersion })
+  },
+
+  async unpublishLessonResource(
+    resourceId: string,
+    rowVersion: string
+  ): Promise<import('@/types/content').LessonResourceItem> {
+    return apiClient.post(`/api/v1/content/resources/${resourceId}/unpublish`, { rowVersion })
+  },
 }

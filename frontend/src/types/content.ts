@@ -184,3 +184,97 @@ export interface LessonRevisionPage {
   pageSize: number
   totalCount: number
 }
+
+export type LessonResourceType = 'video' | 'image' | 'document' | 'link' | 'attachment'
+
+export interface LessonResourceItem {
+  id: string
+  lessonId: string
+  lessonTitle: string
+  resourceType: LessonResourceType
+  status: string
+  title: string
+  description: string
+  provider: string
+  sourceUrl: string
+  embedUrl?: string | null
+  youTubeVideoId?: string | null
+  channelName?: string | null
+  isPrimary: boolean
+  attributionText?: string | null
+  sourceName?: string | null
+  sourceLicense?: string | null
+  mimeType?: string | null
+  storageKey?: string | null
+  checksum?: string | null
+  language: string
+  durationSeconds: number
+  thumbnailUrl?: string | null
+  sortOrder: number
+  embedAllowed: boolean
+  verificationStatus: string
+  verifiedAt?: string | null
+  lastVerifiedAt?: string | null
+  reviewedBy?: string | null
+  reviewedAt?: string | null
+  rejectionReason?: string | null
+  isPublished: boolean
+  isArchived: boolean
+  archivedAt?: string | null
+  createdBy?: string | null
+  createdAt: string
+  updatedAt: string
+  rowVersion: string
+}
+
+export interface CreateLessonResourcePayload {
+  resourceType: LessonResourceType
+  title: string
+  description?: string
+  provider?: string
+  sourceUrl: string
+  sourceName?: string
+  sourceLicense?: string
+  mimeType?: string
+  storageKey?: string
+  durationSeconds?: number
+  isPrimary?: boolean
+  embedAllowed?: boolean
+}
+
+export interface UpdateLessonResourcePayload {
+  resourceType?: LessonResourceType
+  title?: string
+  description?: string
+  provider?: string
+  sourceUrl?: string
+  sourceName?: string
+  sourceLicense?: string
+  mimeType?: string
+  storageKey?: string
+  durationSeconds?: number
+  isPrimary?: boolean
+  embedAllowed?: boolean
+  rowVersion: string
+}
+
+export interface LearnerResourceItem {
+  id: string
+  resourceType: LessonResourceType
+  title: string
+  description?: string | null
+  provider: string
+  sourceUrl: string
+  embedUrl?: string | null
+  youTubeVideoId?: string | null
+  channelName?: string | null
+  isPrimary?: boolean
+  attributionText?: string | null
+  sourceName?: string | null
+  sourceLicense?: string | null
+  mimeType?: string | null
+  durationSeconds: number
+  thumbnailUrl?: string | null
+  sortOrder: number
+  embedAllowed: boolean
+}
