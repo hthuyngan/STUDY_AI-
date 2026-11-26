@@ -316,5 +316,45 @@ public class QuestionMappingAndAssessmentIntegrityTests : IClassFixture<StudyAIA
         var fin2 = await fin2Resp.Content.ReadFromJsonAsync<JsonElement>(JsonOpts);
         Assert.Equal(3.0, fin2.GetProperty("scoreRaw").GetDouble());
         Assert.Equal("passed", fin2.GetProperty("successStatus").GetString());
+
+        // P05-002 extended: null SubjectId rejected at compose; unpublishing composed question blocks assessment publish & attempt finalization
+        var noSubjQ = await (await reviewer.PostAsJsonAsync("/api/v1/content/questions", new
+        {
+            prompt = $"No Subject Q {key}",
+            options = new[] { "A", "B" },
+            correctAnswer = "A"
+        })).Content.ReadFromJsonAsync<JsonElement>(JsonOpts);
+        var noSubjQId = noSubjQ.GetProperty("id").GetString()!;
+        (await reviewer.PostAsync($"/api/v1/content/questions/{noSubjQId}/submit-review", null)).EnsureSuccessStatusCode();
+        (await otherUser.PostAsync($"/api/v1/content/questions/{noSubjQId}/approve", null)).EnsureSuccessStatusCode();
+        (await otherUser.PostAsync($"/api/v1/content/questions/{noSubjQId}/publish", null)).EnsureSuccessStatusCode();
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PutAsJsonAsync($"/api/v1/content/assessments/{assessId}/questions", new
+        {
+            items = new[] { new { questionId = noSubjQId, points = 1 } }
+        })).StatusCode);
+
+        // Start att3 on assessId (currently composed with published msQId), then unpublish msQId
+        var att3 = await (await student.PostAsJsonAsync("/api/v1/me/assessment-attempts", new
+        {
+            assessmentId = assessId,
+            lessonId,
+            subjectId = subj.GetProperty("id").GetString()!,
+            completionStatus = "incomplete"
+        })).Content.ReadFromJsonAsync<JsonElement>(JsonOpts);
+        var att3Id = att3.GetProperty("id").GetString()!;
+
+        (await otherUser.PostAsync($"/api/v1/content/questions/{msQId}/unpublish", null)).EnsureSuccessStatusCode();
+
+        // Publishing assessment with withdrawn/unpublished question fails (400)
+        var pubWithdrawn = await admin.PutAsJsonAsync($"/api/v1/content/assessments/{assessId}/status", new { status = "published" });
+        Assert.Equal(HttpStatusCode.BadRequest, pubWithdrawn.StatusCode);
+
+        // Finalizing attempt with withdrawn/unpublished question fails closed (409)
+        var finWithdrawn = await student.PostAsJsonAsync($"/api/v1/me/assessment-attempts/{att3Id}/finalize", new
+        {
+            answers = new Dictionary<string, List<string>> { [msQId] = new() { "A", "B" } }
+        });
+        Assert.Equal(HttpStatusCode.Conflict, finWithdrawn.StatusCode);
     }
 }

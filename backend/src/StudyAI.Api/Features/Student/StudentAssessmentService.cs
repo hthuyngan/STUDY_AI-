@@ -300,16 +300,37 @@ public class StudentAssessmentService : ILearnerAssessmentService
                 .ToListAsync(cancellationToken)
             : new List<AssessmentQuestion>();
 
+        ContentAssessment? assessmentEntity = null;
+        if (!string.IsNullOrWhiteSpace(attempt.AssessmentId))
+        {
+            assessmentEntity = await _db.ContentAssessments
+                .AsNoTracking()
+                .Include(a => a.Lesson)
+                    .ThenInclude(l => l!.Chapter)
+                .FirstOrDefaultAsync(a => a.Id == attempt.AssessmentId, cancellationToken);
+        }
+
         List<(ContentQuestion Question, string QuestionType, string CorrectAnswer, int Points)> gradingItems;
         if (pinnedLinks.Count > 0)
         {
             gradingItems = new List<(ContentQuestion, string, string, int)>();
             foreach (var link in pinnedLinks)
             {
-                if (link.Question == null || link.Question.IsDeleted ||
-                    (link.Question.Status != "published" && link.Question.Status != "approved"))
+                try
                 {
-                    throw new ConflictException($"Câu hỏi '{link.QuestionId}' trong bài đánh giá đã bị xóa hoặc thu hồi.");
+                    if (assessmentEntity != null)
+                    {
+                        Features.Content.ContentAssessmentsService.ValidateMappedQuestionEligibility(assessmentEntity, link.Question, link.QuestionId);
+                    }
+                    else if (link.Question == null || link.Question.IsDeleted ||
+                             (link.Question.Status != "published" && link.Question.Status != "approved"))
+                    {
+                        throw new ConflictException($"Câu hỏi '{link.QuestionId}' trong bài đánh giá đã bị xóa hoặc thu hồi.");
+                    }
+                }
+                catch (ValidationException ex)
+                {
+                    throw new ConflictException(ex.Message);
                 }
 
                 // Grade from immutable pinned snapshot; fail closed if legacy un-snapshotted link drifted
