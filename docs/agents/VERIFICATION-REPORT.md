@@ -76,3 +76,10 @@ Executed end-to-end on isolated git fixture `%TEMP%\studyai-e2e-full-loop` (`bas
 ### Post-Edit Regression Verification
 
 - `Test-SafeAgentBridge.ps1 -SkipLiveCodex`: **`12/12 PASS`** (DB safety, secret redaction, process lock, stale SHA, invalid output, P0 PASS block, max 3 rounds, dirty worktree, log filter, usage metrics).
+
+## 6. Post-Remediation Security & Adversarial Verification (2026-11-26)
+
+- **Windows PowerShell `5.1.26100.9818`**:
+  - `Test-SafeAgentAdversarial.ps1`: **`34/34 PASS`** (R01 strict SQL parser & ownership manifest, R02 real 2-process lock + PID reuse + `vi-VN` culture, R03 allowlist secret isolation, R04 Job Object parent->child->grandchild cleanup, R05 exact 40-char SHA + lineage + full schemas, R06 executable routing + scope expansion, R07 path traversal/spaces/metachars).
+  - `Test-SafeAgentBridge.ps1`: **`15/15 PASS`** (including live `codex-plan.ps1`, `codex-review.ps1`, cache hit in `268 ms`, `summarize-logs.ps1`, and `usage.jsonl`).
+- **PowerShell 7 (`pwsh`)**: **NOT RUN locally** (`pwsh` is not installed on this Windows host); covered in `.github/workflows/safe-agent-bridge.yml` `windows-latest` CI matrix (`powershell` + `pwsh`).

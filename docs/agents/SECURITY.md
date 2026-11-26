@@ -7,18 +7,17 @@
 - **Dirty Worktree Protection**: `Assert-CleanWorktree` blocks automated review when uncommitted changes exist, preventing stale or unattributed reviews.
 - **Process Locking**: `Acquire-AgentLock` uses atomic `FileMode.CreateNew` lockfiles in `$env:TEMP\studyai-agent-locks` to enforce at most 1 concurrent implementation/review call.
 
-## 2. Secret Isolation & Prompt Injection Defense
+## 2. Secret Isolation, Process Tree & Path Hardening
 
-- **Environment Scrubbing**: `Invoke-CodexSandboxed` removes `GITHUB_TOKEN`, `GH_TOKEN`, `OPENAI_API_KEY`, `ANTIGRAVITY_CSRF_TOKEN`, `ConnectionStrings__DefaultConnection`, `STUDYAI_CONNECTION_STRING`, `DATABASE_URL`, `SQL_CONNECTION_STRING`, and `AZURE_CLIENT_SECRET` from the child process environment. Codex uses only its existing ChatGPT login (`~/.codex/auth.json`).
-- **Audit Log Redaction**: `Redact-SensitiveText` strips SQL connection strings/passwords, `Bearer` tokens, `gho_*`, and `sk-*` keys before writing to `$env:TEMP\studyai-agent-audit`.
-- **Untrusted Data Delimiters**: Diffs, source code, and task descriptions are wrapped in `<UNTRUSTED_*>` tags. Scripts never `Invoke-Expression` or execute shell commands extracted from Codex output.
-- **Strict Output Validation**: `Test-ReviewOutputValid` rejects non-JSON output, missing schema fields, `PASS` verdicts containing `P0`/`P1` findings, and any review whose `head_sha` does not match the expected snapshot SHA.
+- **Allowlist Environment Scrubbing**: `Invoke-CodexSandboxed` clears `$psi.EnvironmentVariables` and passes **only** the minimal allowlist (`PATH`, `SYSTEMROOT`, `COMSPEC`, `TEMP`, `TMP`, `USERPROFILE`, `LOCALAPPDATA`, `APPDATA`, `HOMEDRIVE`, `HOMEPATH`, `CODEX_HOME`, `PATHEXT`, `WINDIR`, `OS`, `NUMBER_OF_PROCESSORS`, `PROCESSOR_ARCHITECTURE`). Arbitrary secrets, cloud keys, SQL connection strings, and proxy credentials are never inherited.
+- **Job Object Process-Tree Cleanup**: Codex processes are assigned to a Windows `JobObjectHost` (`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` + `TerminateJobObject`) and verified via `Win32_Process` before releasing locks or removing snapshots.
+- **Path Canonicalization**: `Resolve-ApprovedArtifactPath` rejects `..` traversal, symlinks/junctions (`ReparsePoint`), and any path outside `%TEMP%` or `docs/agents/.artifacts/`, preventing artifact writes from overwriting source or config files.
+- **Native Subagent Lock Limitation**: Antigravity's `invoke_subagent` runtime does not enforce OS-level file locks natively; single-writer enforcement relies on `Enter-WorkerLock` / `Exit-WorkerLock` in PowerShell orchestration and Orchestrator discipline (at most 1 active `implementation-worker`).
 
 ## 3. Database Safety (ENV-01 / ENV-02)
 
-- `StudyAIDb` (persistent dev/prod database) and `StudyAIDb_E2E` (forbidden) are blocked by `Assert-DatabaseSafety` whenever detected in connection-string environment variables.
-- Only `StudyAIDb_Clean_{GUID}` managed by `DatabaseSafetyGuard` may be used for automated tests.
-- Codex Reviewer has zero SQL MCP tools and zero database credentials.
+- `Parse-SqlConnectionStringStrict` parses quoted values, rejects malformed syntax and conflicting duplicate `Database` / `Initial Catalog` keys, validates via `SqlConnectionStringBuilder`, and allows **only** `StudyAIDb_Clean_{Guid:N|Guid:D}` (plus ownership manifest verification via `Assert-DatabaseOwnershipManifest` when `-RequireOwnership` is active).
+- `StudyAIDb`, `StudyAIDb_E2E`, `OtherProduction`, and unknown databases fail closed.
 
 ## 4. Rollback Instructions
 
