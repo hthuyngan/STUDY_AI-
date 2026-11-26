@@ -406,22 +406,38 @@ public class ContentAssessmentsService : IContentAssessmentsService
         if (assessment.Status == "published")
             throw new ConflictException("Không thể thay đổi danh sách câu hỏi của bài đánh giá đang xuất bản. Vui lòng gỡ xuất bản trước.");
 
-        var itemIds = (req.Items ?? new List<ComposeAssessmentQuestionsItemDto>())
-            .Select(i => i.QuestionId?.Trim() ?? string.Empty)
-            .Where(qid => !string.IsNullOrEmpty(qid))
-            .ToList();
+        var rawItems = req.Items ?? new List<ComposeAssessmentQuestionsItemDto>();
+        var normalizedItems = new List<(string QuestionId, int Points)>();
+        foreach (var item in rawItems)
+        {
+            if (item == null || string.IsNullOrWhiteSpace(item.QuestionId))
+                throw new ValidationException("Items", "Mã câu hỏi trong danh sách không được để trống.");
+            normalizedItems.Add((item.QuestionId.Trim(), Math.Max(1, item.Points)));
+        }
 
-        if (itemIds.Distinct().Count() != itemIds.Count)
+        var itemIds = normalizedItems.Select(i => i.QuestionId).ToList();
+        if (itemIds.Distinct(StringComparer.Ordinal).Count() != itemIds.Count)
             throw new ValidationException("Items", "Danh sách câu hỏi không được chứa mã trùng lặp.");
 
         var loadedQuestions = await _db.ContentQuestions
             .Where(q => itemIds.Contains(q.Id) && !q.IsDeleted)
             .ToDictionaryAsync(q => q.Id, ct);
 
+        var assessmentSubjectId = assessment.Lesson?.Chapter?.SubjectId;
         foreach (var qid in itemIds)
         {
-            if (!loadedQuestions.ContainsKey(qid))
+            if (!loadedQuestions.TryGetValue(qid, out var q))
                 throw new NotFoundException($"Câu hỏi '{qid}' không tồn tại hoặc đã bị xóa.");
+
+            if (q.Status != "published" && q.Status != "approved")
+                throw new ValidationException("Items", $"Câu hỏi '{qid}' chưa được phê duyệt/xuất bản (trạng thái hiện tại: {q.Status}).");
+
+            if (!string.IsNullOrWhiteSpace(assessment.LessonId) && !string.Equals(q.LessonId, assessment.LessonId, StringComparison.Ordinal))
+                throw new ValidationException("Items", $"Câu hỏi '{qid}' không thuộc bài học của bài đánh giá này.");
+
+            if (!string.IsNullOrWhiteSpace(assessmentSubjectId) && !string.IsNullOrWhiteSpace(q.SubjectId) &&
+                !string.Equals(q.SubjectId, assessmentSubjectId, StringComparison.Ordinal))
+                throw new ValidationException("Items", $"Câu hỏi '{qid}' không thuộc môn học của bài đánh giá này.");
         }
 
         foreach (var existing in assessment.AssessmentQuestions.ToList())
@@ -431,10 +447,10 @@ public class ContentAssessmentsService : IContentAssessmentsService
         }
 
         var now = _clock.UtcNow;
-        for (int i = 0; i < req.Items!.Count; i++)
+        for (int i = 0; i < normalizedItems.Count; i++)
         {
-            var item = req.Items[i];
-            var q = loadedQuestions[item.QuestionId.Trim()];
+            var (qid, pts) = normalizedItems[i];
+            var q = loadedQuestions[qid];
             var link = new AssessmentQuestion
             {
                 Id = _idGenerator.NewId("aq"),
@@ -443,7 +459,10 @@ public class ContentAssessmentsService : IContentAssessmentsService
                 OrderIndex = i + 1,
                 PinnedVersion = q.Version,
                 PinnedFingerprint = q.ContentFingerprint,
-                Points = Math.Max(1, item.Points),
+                PinnedQuestionType = q.Type,
+                PinnedOptionsJson = q.OptionsJson,
+                PinnedCorrectAnswer = q.CorrectAnswer,
+                Points = pts,
                 CreatedAt = now
             };
             _db.AssessmentQuestions.Add(link);

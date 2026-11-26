@@ -401,6 +401,16 @@ namespace StudyAI.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
+                    b.Property<string>("PinnedCorrectAnswer")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PinnedOptionsJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PinnedQuestionType")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
                     b.Property<int>("PinnedVersion")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")

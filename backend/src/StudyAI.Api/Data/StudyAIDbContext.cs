@@ -729,6 +729,9 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.OrderIndex).HasDefaultValue(1);
             entity.Property(e => e.PinnedVersion).HasDefaultValue(1);
             entity.Property(e => e.PinnedFingerprint).HasMaxLength(128);
+            entity.Property(e => e.PinnedQuestionType).HasMaxLength(32);
+            entity.Property(e => e.PinnedOptionsJson).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.PinnedCorrectAnswer).HasColumnType("nvarchar(max)");
             entity.Property(e => e.Points).HasDefaultValue(1);
             entity.Property(e => e.CreatedAt).IsRequired();
 

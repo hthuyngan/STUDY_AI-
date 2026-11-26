@@ -72,6 +72,9 @@ namespace StudyAI.Migrations
                     OrderIndex = table.Column<int>(type: "int", nullable: false, defaultValue: 1),
                     PinnedVersion = table.Column<int>(type: "int", nullable: false, defaultValue: 1),
                     PinnedFingerprint = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: true),
+                    PinnedQuestionType = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: true),
+                    PinnedOptionsJson = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    PinnedCorrectAnswer = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Points = table.Column<int>(type: "int", nullable: false, defaultValue: 1),
                     CreatedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false)
                 },

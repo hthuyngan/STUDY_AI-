@@ -249,5 +249,72 @@ public class QuestionMappingAndAssessmentIntegrityTests : IClassFixture<StudyAIA
         Assert.Equal(qFp, pin!.PinnedFingerprint);
         Assert.True(await db.StaffAuditLogs.AnyAsync(a => a.TargetId == qId && a.Action == "question_created"));
         Assert.True(await db.StaffAuditLogs.AnyAsync(a => a.TargetId == assessId && a.Action == "assessment_questions_composed"));
+
+        // P05-002 & P05-004: Reject draft question, cross-lesson question, and blank QuestionId in Compose
+        var draftQ = await (await reviewer.PostAsJsonAsync("/api/v1/content/questions", new
+        {
+            lessonId,
+            prompt = $"Draft Q {key}",
+            options = new[] { "A", "B" },
+            correctAnswer = "A"
+        })).Content.ReadFromJsonAsync<JsonElement>(JsonOpts);
+        var draftQId = draftQ.GetProperty("id").GetString()!;
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PutAsJsonAsync($"/api/v1/content/assessments/{assessId}/questions", new
+        {
+            items = new[] { new { questionId = draftQId, points = 1 } }
+        })).StatusCode);
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PutAsJsonAsync($"/api/v1/content/assessments/{assessId}/questions", new
+        {
+            items = new[] { new { questionId = "   ", points = 1 } }
+        })).StatusCode);
+
+        // P05-001 & P05-003: Pinned snapshot grading survives source edit + order-insensitive multi-select grading
+        var msQ = await (await reviewer.PostAsJsonAsync("/api/v1/content/questions", new
+        {
+            lessonId,
+            type = "multiple-select",
+            prompt = $"Chọn các số chẵn {key}",
+            options = new[] { "A", "B", "C", "D" },
+            correctAnswer = "A,B"
+        })).Content.ReadFromJsonAsync<JsonElement>(JsonOpts);
+        var msQId = msQ.GetProperty("id").GetString()!;
+        var msQRv = msQ.GetProperty("rowVersion").GetString()!;
+        (await reviewer.PostAsync($"/api/v1/content/questions/{msQId}/submit-review", null)).EnsureSuccessStatusCode();
+        (await otherUser.PostAsync($"/api/v1/content/questions/{msQId}/approve", null)).EnsureSuccessStatusCode();
+        (await otherUser.PostAsync($"/api/v1/content/questions/{msQId}/publish", null)).EnsureSuccessStatusCode();
+
+        (await admin.PutAsJsonAsync($"/api/v1/content/assessments/{assessId}/questions", new
+        {
+            items = new[] { new { questionId = msQId, points = 3 } }
+        })).EnsureSuccessStatusCode();
+
+        var att2 = await (await student.PostAsJsonAsync("/api/v1/me/assessment-attempts", new
+        {
+            assessmentId = assessId,
+            lessonId,
+            subjectId = subj.GetProperty("id").GetString()!,
+            completionStatus = "incomplete"
+        })).Content.ReadFromJsonAsync<JsonElement>(JsonOpts);
+        var att2Id = att2.GetProperty("id").GetString()!;
+
+        // Edit source question's CorrectAnswer AFTER attempt started
+        var msLatest = await (await reviewer.GetAsync($"/api/v1/content/questions/{msQId}")).Content.ReadFromJsonAsync<JsonElement>(JsonOpts);
+        (await reviewer.PutAsJsonAsync($"/api/v1/content/questions/{msQId}", new
+        {
+            correctAnswer = "C,D",
+            rowVersion = msLatest.GetProperty("rowVersion").GetString()
+        })).EnsureSuccessStatusCode();
+
+        // Student submits ["B", "A"] (reversed order) -> grades against pinned snapshot "A,B" as 3/3!
+        var fin2Resp = await student.PostAsJsonAsync($"/api/v1/me/assessment-attempts/{att2Id}/finalize", new
+        {
+            answers = new Dictionary<string, List<string>> { [msQId] = new() { "B", "A" } }
+        });
+        fin2Resp.EnsureSuccessStatusCode();
+        var fin2 = await fin2Resp.Content.ReadFromJsonAsync<JsonElement>(JsonOpts);
+        Assert.Equal(3.0, fin2.GetProperty("scoreRaw").GetDouble());
+        Assert.Equal("passed", fin2.GetProperty("successStatus").GetString());
     }
 }

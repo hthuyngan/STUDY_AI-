@@ -192,6 +192,9 @@ public class AssessmentQuestion
     public int OrderIndex { get; set; } = 1;
     public int PinnedVersion { get; set; } = 1;
     public string? PinnedFingerprint { get; set; }
+    public string? PinnedQuestionType { get; set; }
+    public string? PinnedOptionsJson { get; set; }
+    public string? PinnedCorrectAnswer { get; set; }
     public int Points { get; set; } = 1;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 

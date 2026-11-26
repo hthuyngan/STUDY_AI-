@@ -300,32 +300,54 @@ public class StudentAssessmentService : ILearnerAssessmentService
                 .ToListAsync(cancellationToken)
             : new List<AssessmentQuestion>();
 
-        List<ContentQuestion> authoritativeQuestions;
-        Dictionary<string, int> pointsByQuestion;
+        List<(ContentQuestion Question, string QuestionType, string CorrectAnswer, int Points)> gradingItems;
         if (pinnedLinks.Count > 0)
         {
-            authoritativeQuestions = pinnedLinks
-                .Where(l => l.Question != null)
-                .Select(l => l.Question!)
-                .ToList();
-            pointsByQuestion = pinnedLinks.ToDictionary(l => l.QuestionId, l => Math.Max(1, l.Points));
+            gradingItems = new List<(ContentQuestion, string, string, int)>();
+            foreach (var link in pinnedLinks)
+            {
+                if (link.Question == null || link.Question.IsDeleted ||
+                    (link.Question.Status != "published" && link.Question.Status != "approved"))
+                {
+                    throw new ConflictException($"Câu hỏi '{link.QuestionId}' trong bài đánh giá đã bị xóa hoặc thu hồi.");
+                }
+
+                // Grade from immutable pinned snapshot; fail closed if legacy un-snapshotted link drifted
+                string effectiveType = link.PinnedQuestionType ?? link.Question.Type;
+                string effectiveAnswer;
+                if (link.PinnedCorrectAnswer != null)
+                {
+                    effectiveAnswer = link.PinnedCorrectAnswer;
+                }
+                else
+                {
+                    if (link.Question.Version != link.PinnedVersion ||
+                        !string.Equals(link.Question.ContentFingerprint, link.PinnedFingerprint, StringComparison.Ordinal))
+                    {
+                        throw new ConflictException($"Câu hỏi '{link.QuestionId}' đã thay đổi so với phiên bản được ghim.");
+                    }
+                    effectiveAnswer = link.Question.CorrectAnswer;
+                }
+
+                gradingItems.Add((link.Question, effectiveType, effectiveAnswer, Math.Max(1, link.Points)));
+            }
         }
         else
         {
-            authoritativeQuestions = await _db.ContentQuestions
+            var fallbackQuestions = await _db.ContentQuestions
                 .AsNoTracking()
                 .Where(q => !q.IsDeleted && q.Status == "published" &&
                             ((!string.IsNullOrEmpty(attempt.AssessmentId) && q.AssessmentId == attempt.AssessmentId) ||
                              (!string.IsNullOrEmpty(attempt.LessonId) && q.LessonId == attempt.LessonId)))
                 .OrderBy(q => q.OrderIndex)
                 .ToListAsync(cancellationToken);
-            pointsByQuestion = authoritativeQuestions.ToDictionary(q => q.Id, _ => 1);
+            gradingItems = fallbackQuestions.Select(q => (q, q.Type, q.CorrectAnswer, 1)).ToList();
         }
 
-        if (authoritativeQuestions.Count == 0)
+        if (gradingItems.Count == 0)
             throw new ValidationException("AssessmentId", "Bài đánh giá không có câu hỏi hợp lệ để chấm điểm.");
 
-        var qMap = authoritativeQuestions.ToDictionary(q => q.Id);
+        var qMap = gradingItems.ToDictionary(x => x.Question.Id);
         if (dto.Answers != null)
         {
             foreach (var qid in dto.Answers.Keys)
@@ -337,20 +359,18 @@ public class StudentAssessmentService : ILearnerAssessmentService
 
         var now = _clock.UtcNow;
         double earned = 0;
-        double totalPoints = pointsByQuestion.Values.Sum();
+        double totalPoints = gradingItems.Sum(x => x.Points);
 
-        foreach (var q in authoritativeQuestions)
+        foreach (var (q, qType, correctAns, pts) in gradingItems)
         {
             var selected = (dto.Answers != null && dto.Answers.TryGetValue(q.Id, out var ansList))
                 ? (ansList ?? new List<string>())
                 : new List<string>();
-            var studentAnswer = string.Join(",", selected.Select(s => s?.Trim() ?? string.Empty).Where(s => s.Length > 0));
-            var isCorrect = !string.IsNullOrWhiteSpace(studentAnswer) &&
-                            string.Equals(studentAnswer, q.CorrectAnswer.Trim(), StringComparison.OrdinalIgnoreCase);
+            var isCorrect = EvaluateAttemptAnswer(qType, correctAns, selected);
 
             if (isCorrect)
             {
-                earned += pointsByQuestion.GetValueOrDefault(q.Id, 1);
+                earned += pts;
             }
 
             var resp = attempt.Responses.FirstOrDefault(r => r.QuestionId == q.Id);
@@ -409,5 +429,35 @@ public class StudentAssessmentService : ILearnerAssessmentService
         }
 
         return FormatAttempt(attempt);
+    }
+
+    private static bool EvaluateAttemptAnswer(string? questionType, string? correctAnswer, List<string> selected)
+    {
+        var normSelected = selected
+            .Select(s => s?.Trim() ?? string.Empty)
+            .Where(s => s.Length > 0)
+            .ToList();
+
+        if (normSelected.Count == 0 || string.IsNullOrWhiteSpace(correctAnswer))
+            return false;
+
+        var normType = (questionType ?? "multiple-choice").Trim().ToLowerInvariant();
+        if (normType == "multiple-select")
+        {
+            var expectedSet = correctAnswer
+                .Split(new[] { ',', ';', '|' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim().ToLowerInvariant())
+                .Where(s => s.Length > 0)
+                .ToHashSet();
+
+            var actualSet = normSelected
+                .Select(s => s.ToLowerInvariant())
+                .ToHashSet();
+
+            return expectedSet.Count > 0 && expectedSet.SetEquals(actualSet);
+        }
+
+        var singleSelected = string.Join(",", normSelected);
+        return string.Equals(singleSelected, correctAnswer.Trim(), StringComparison.OrdinalIgnoreCase);
     }
 }
