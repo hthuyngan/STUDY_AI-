@@ -1,7 +1,7 @@
 {
   "schemaVersion": "2.0.0",
   "project": "STUDY_AI-",
-  "workflowModel": "dual-agent",
+  "workflowModel": "dual-agent-trusted-local",
   "disabledFeatures": [
     "invoke_subagent",
     "multi_worker",
@@ -81,8 +81,8 @@
     "autoPhaseAdvance": false,
     "persistentDatabaseWrites": false,
     "databaseOperationsViaBridgeEnabled": false,
-    "automatedCodexEnabled": false,
-    "manualFallbackWorkflow": "Antigravity implements -> User opens independent Codex review -> Antigravity fixes findings",
+    "automatedCodexEnabled": true,
+    "manualFallbackWorkflow": "Trusted local developer workflow (same Windows user; CLI read-only sandbox + JobObject containment). Manual independent review fallback if quota is exhausted.",
     "allowDirtyWorktreeForReview": false,
     "requireImmutableSnapshot": true,
     "protectedDatabases": [

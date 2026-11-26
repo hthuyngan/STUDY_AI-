@@ -26,31 +26,26 @@
 2. **Codex Config**: Personal `~/.codex/config.toml` was never modified; backup exists at `~/.codex/config.toml.bak`.
 3. **Repository**: Close Draft PR and delete branch `feature/safe-agent-orchestration` (and remove worktree `D:/TN-safe-agents`).
 
-## 5. Separate-Identity Reviewer Architecture & Implementation
+## 5. Trusted Local Developer Workflow Model
 
-To prevent Codex reviewer from inheriting the Antigravity developer logon token and accessing `%USERPROFILE%` secrets or production databases, a real separate Windows identity launcher is implemented:
+This workflow operates under a **Trusted Local Developer** security model:
 
-1. **Dedicated Local Identity (`StudyAICodexReviewer`)**:
-   - Standard non-administrator user account created via `scripts/agents/setup-reviewer-identity.ps1`.
-   - Has an isolated SID (`Assert-DifferentProcessSid`).
-   - Explicitly denied access to developer profile directory (`C:\Users\<developer>`).
-2. **Protected IPC Directories with Asymmetric NTFS ACLs**:
-   - `C:\ProgramData\StudyAI\ReviewIPC\requests`:
-     - Main user (Antigravity): Modify (Write requests, Read status).
-     - Reviewer: ReadAndExecute + Delete (Processes request).
-   - `C:\ProgramData\StudyAI\ReviewIPC\reviews`:
-     - Reviewer: Modify (Writes review and provenance).
-     - Main user (Antigravity): **Read-Only** (Worker CANNOT modify or forge reviews once generated).
-3. **Cryptographic Provenance & Tamper-Proofing (`Test-ReviewFileProvenance`)**:
-   - Reviewer computes SHA256 of review output and signs with provenance metadata (reviewer SID, execution time, request ID).
-   - Antigravity validates that the review output matches the signed SHA256 hash and originated from the distinct reviewer SID. Any post-generation modification throws `TAMPER_DETECTED`.
-4. **Triggered Execution (`StudyAICodexWorker`)**:
-   - Standard user triggers `schtasks.exe /run /tn "StudyAICodexWorker"` without administrative privileges.
-   - Worker runs `Invoke-CodexReviewerWorker.ps1` in the security context of `StudyAICodexReviewer`.
+1. **Execution Identity**: Both Antigravity and Codex CLI run under the developer's existing local Windows session. No secondary Windows user, Scheduled Task, IPC directory, or Administrator privileges are required.
+2. **Process-Level Sandbox**:
+   - Codex is strictly launched with `--ignore-user-config --disable plugins -s read-only --ephemeral`.
+   - Codex inspects code only from an immutable, detached Git snapshot worktree at the exact committed `HeadSha`.
+   - Process tree containment via Win32 `JobObjectHost.RunSuspendedInJob` (`CREATE_SUSPENDED` + `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`), terminating orphan child processes on timeout.
+3. **Secret & Credential Boundaries**:
+   - Environment variables are filtered to a strict allowlist. Sensitive keys (`AWS_SECRET_ACCESS_KEY`, `STUDYAI_CANARY_SECRET`, `HTTP_PROXY`, etc.) are stripped.
+   - Git credential helpers and interactive prompts are disabled (`GIT_CONFIG_NOSYSTEM=1`, `GIT_CONFIG_GLOBAL=NUL`, `GCM_PROVIDER=none`, `GIT_ASKPASS=""`, `SSH_ASKPASS=""`).
+   - Codex is never provided database credentials or SQL access.
+4. **Database Guardrails (ENV-01 / ENV-02)**:
+   - `StudyAIDb` and `StudyAIDb_E2E` are strictly protected. Database operations via Agent Bridge fail closed.
+5. **Quota & Audit Guardrails**:
+   - When Codex reports `CODEX_QUOTA_EXCEEDED`, the bridge halts immediately, saves the progress checkpoint, and reports `BLOCKED`. It never fakes PASS results.
+   - Exact 40-character commit SHA lineage and schema validation are enforced.
 
-### Administrative Provisioning (Requires Explicit Approval)
-Running setup requires Administrator elevation:
+Readiness inspection:
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\agents\setup-reviewer-identity.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\agents\Test-DualAgentReadiness.ps1
 ```
-Until this provisioning is executed on the local machine and verified via `Test-DualAgentReadiness.ps1`, `automatedCodexEnabled` remains `false` (fail-closed).
