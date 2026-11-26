@@ -242,15 +242,15 @@ try {
         Test-TestSummaryValid -JsonText $staleSum -ExpectedHeadSha ("f" * 40)
     } "STALE_TEST_SUMMARY:*"
 
-    # Auth failure & Quota failure detection
-    $psExe2 = (Get-Process -Id $PID).Path
+    # Auth failure & Quota failure detection via JobObjectHost
+    $cmdExe = (Get-Command "cmd.exe").Source
     $jobFail = New-Object StudyAI.SafeAgent.JobObjectHost
     try {
         $envFail = New-Object 'System.Collections.Generic.Dictionary[string,string]' ([System.StringComparer]::OrdinalIgnoreCase)
         foreach ($n in @("PATH", "SYSTEMROOT", "COMSPEC", "TEMP", "TMP")) { $v = [Environment]::GetEnvironmentVariable($n); if ($v) { $envFail[$n] = $v } }
-        $rAuth = $jobFail.RunSuspendedInJob($psExe2, @("-NoProfile", "-Command", "Write-Output '401 unauthorized please run codex login'; exit 1"), $env:TEMP, $envFail, "", 15000)
+        $rAuth = $jobFail.RunSuspendedInJob($cmdExe, @("/d", "/c", "echo 401 unauthorized please run codex login & exit /b 1"), $env:TEMP, $envFail, "", 10000)
         Assert-True "R04_AuthFailurePatternDetected" ($rAuth.ExitCode -ne 0 -and $rAuth.StdOut -match '(?i)(not logged in|401 unauthorized|please run codex login)') "Auth failure detected"
-        $rQuota = $jobFail.RunSuspendedInJob($psExe2, @("-NoProfile", "-Command", "Write-Output 'rate_limit_exceeded 429'; exit 1"), $env:TEMP, $envFail, "", 15000)
+        $rQuota = $jobFail.RunSuspendedInJob($cmdExe, @("/d", "/c", "echo rate_limit_exceeded 429 & exit /b 1"), $env:TEMP, $envFail, "", 10000)
         Assert-True "R04_QuotaFailurePatternDetected" ($rQuota.ExitCode -ne 0 -and $rQuota.StdOut -match '(?i)(insufficient_quota|rate_limit_exceeded|429)') "Quota failure detected"
     } finally { $jobFail.Dispose() }
 
