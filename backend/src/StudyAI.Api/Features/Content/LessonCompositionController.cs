@@ -16,10 +16,26 @@ public class LessonCompositionController : ControllerBase
         _compositionService = compositionService;
     }
 
-    private string CurrentUserId =>
-        User.FindFirstValue(ClaimTypes.NameIdentifier) ??
-        User.FindFirstValue("sub") ??
-        "staff";
+    private bool TryGetCurrentUserId(out string userId)
+    {
+        var claim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        if (string.IsNullOrWhiteSpace(claim))
+        {
+            userId = string.Empty;
+            return false;
+        }
+        userId = claim.Trim();
+        return true;
+    }
+
+    private bool IsAuthorizedReviewer =>
+        !User.HasClaim("reviewer", "false") &&
+        (User.IsInRole("content") ||
+         User.IsInRole("admin") ||
+         User.IsInRole("content_admin") ||
+         User.IsInRole("reviewer") ||
+         User.HasClaim("permission", "content.approve") ||
+         User.HasClaim("reviewer", "true"));
 
     [HttpGet("lessons/{lessonId}/composition")]
     public async Task<IActionResult> GetComposition(string lessonId, CancellationToken ct = default)
@@ -37,9 +53,10 @@ public class LessonCompositionController : ControllerBase
         [FromBody] ReplaceLessonCompositionRequestDto request,
         CancellationToken ct = default)
     {
+        if (!TryGetCurrentUserId(out var actorId)) return Unauthorized(new { detail = "Thiếu định danh người dùng xác thực." });
         try
         {
-            return Ok(await _compositionService.ReplaceLessonCompositionAsync(lessonId, request, CurrentUserId, ct));
+            return Ok(await _compositionService.ReplaceLessonCompositionAsync(lessonId, request, actorId, ct));
         }
         catch (NotFoundException ex) { return NotFound(new { detail = ex.Message }); }
         catch (ValidationException ex) { return BadRequest(new { detail = ex.Message }); }
@@ -67,9 +84,10 @@ public class LessonCompositionController : ControllerBase
         [FromBody] RollbackLessonRevisionRequestDto request,
         CancellationToken ct = default)
     {
+        if (!TryGetCurrentUserId(out var actorId)) return Unauthorized(new { detail = "Thiếu định danh người dùng xác thực." });
         try
         {
-            return Ok(await _compositionService.RollbackToRevisionAsync(lessonId, revisionId, request, CurrentUserId, ct));
+            return Ok(await _compositionService.RollbackToRevisionAsync(lessonId, revisionId, request, actorId, ct));
         }
         catch (NotFoundException ex) { return NotFound(new { detail = ex.Message }); }
         catch (ValidationException ex) { return BadRequest(new { detail = ex.Message }); }
@@ -86,7 +104,8 @@ public class LessonCompositionController : ControllerBase
     [HttpPost("curricula/{curriculumId}/objectives")]
     public async Task<IActionResult> CreateObjective(string curriculumId, [FromBody] CreateCurriculumNodeRequestDto request, CancellationToken ct = default)
     {
-        try { return Ok(await _compositionService.CreateObjectiveAsync(curriculumId, request, CurrentUserId, ct)); }
+        if (!TryGetCurrentUserId(out var actorId)) return Unauthorized(new { detail = "Thiếu định danh người dùng xác thực." });
+        try { return Ok(await _compositionService.CreateObjectiveAsync(curriculumId, request, actorId, ct)); }
         catch (NotFoundException ex) { return NotFound(new { detail = ex.Message }); }
         catch (ValidationException ex) { return BadRequest(new { detail = ex.Message }); }
         catch (ConflictException ex) { return Conflict(new { detail = ex.Message }); }
@@ -102,7 +121,8 @@ public class LessonCompositionController : ControllerBase
     [HttpPost("curricula/{curriculumId}/knowledge-units")]
     public async Task<IActionResult> CreateKnowledgeUnit(string curriculumId, [FromBody] CreateCurriculumNodeRequestDto request, CancellationToken ct = default)
     {
-        try { return Ok(await _compositionService.CreateKnowledgeUnitAsync(curriculumId, request, CurrentUserId, ct)); }
+        if (!TryGetCurrentUserId(out var actorId)) return Unauthorized(new { detail = "Thiếu định danh người dùng xác thực." });
+        try { return Ok(await _compositionService.CreateKnowledgeUnitAsync(curriculumId, request, actorId, ct)); }
         catch (NotFoundException ex) { return NotFound(new { detail = ex.Message }); }
         catch (ValidationException ex) { return BadRequest(new { detail = ex.Message }); }
         catch (ConflictException ex) { return Conflict(new { detail = ex.Message }); }
@@ -118,7 +138,19 @@ public class LessonCompositionController : ControllerBase
     [HttpPost("curricula/{curriculumId}/skills")]
     public async Task<IActionResult> CreateSkill(string curriculumId, [FromBody] CreateCurriculumNodeRequestDto request, CancellationToken ct = default)
     {
-        try { return Ok(await _compositionService.CreateSkillAsync(curriculumId, request, CurrentUserId, ct)); }
+        if (!TryGetCurrentUserId(out var actorId)) return Unauthorized(new { detail = "Thiếu định danh người dùng xác thực." });
+        try { return Ok(await _compositionService.CreateSkillAsync(curriculumId, request, actorId, ct)); }
+        catch (NotFoundException ex) { return NotFound(new { detail = ex.Message }); }
+        catch (ValidationException ex) { return BadRequest(new { detail = ex.Message }); }
+        catch (ConflictException ex) { return Conflict(new { detail = ex.Message }); }
+    }
+
+    [HttpPost("curricula/{curriculumId}/{nodeType}/{nodeId}/publish")]
+    public async Task<IActionResult> PublishCurriculumNode(string curriculumId, string nodeType, string nodeId, CancellationToken ct = default)
+    {
+        if (!TryGetCurrentUserId(out var reviewerId)) return Unauthorized(new { detail = "Thiếu định danh người dùng xác thực." });
+        if (!IsAuthorizedReviewer) return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Chỉ Người kiểm duyệt nội dung (Content) hoặc Quản trị viên mới có quyền xuất bản." });
+        try { return Ok(await _compositionService.PublishCurriculumNodeAsync(curriculumId, nodeType, nodeId, reviewerId, ct)); }
         catch (NotFoundException ex) { return NotFound(new { detail = ex.Message }); }
         catch (ValidationException ex) { return BadRequest(new { detail = ex.Message }); }
         catch (ConflictException ex) { return Conflict(new { detail = ex.Message }); }

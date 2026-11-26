@@ -1,4 +1,7 @@
+using System.Security.Claims;
 using System.Text.Json;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using StudyAI.Features.Content;
 
 namespace StudyAI.UnitTests;
@@ -60,5 +63,49 @@ public class LessonContentBlockValidationTests
         Assert.True(sanitized.TryGetProperty("hint", out _));
         Assert.False(sanitized.TryGetProperty("solution", out _));
         Assert.False(sanitized.TryGetProperty("answerKey", out _));
+    }
+
+    [Fact]
+    public async Task LessonCompositionController_RejectsMutatingRequestsWithoutStableUserIdentity()
+    {
+        var controller = new LessonCompositionController(new StubLessonCompositionService())
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "content") }, "TestAuth"))
+                }
+            }
+        };
+
+        var replaceResult = await controller.ReplaceComposition(
+            "les_1",
+            new ReplaceLessonCompositionRequestDto("rv", new(), new(), new(), new(), new(), null));
+        Assert.IsType<UnauthorizedObjectResult>(replaceResult);
+
+        var createObjResult = await controller.CreateObjective(
+            "curr_1",
+            new CreateCurriculumNodeRequestDto("O1", "Title", null, null, null, null, null));
+        Assert.IsType<UnauthorizedObjectResult>(createObjResult);
+
+        var publishNodeResult = await controller.PublishCurriculumNode("curr_1", "objectives", "obj_1");
+        Assert.IsType<UnauthorizedObjectResult>(publishNodeResult);
+    }
+
+    private sealed class StubLessonCompositionService : ILessonCompositionService
+    {
+        public Task<LessonCompositionDto> GetLessonCompositionAsync(string lessonId, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<LessonCompositionDto> ReplaceLessonCompositionAsync(string lessonId, ReplaceLessonCompositionRequestDto request, string actorId, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<LessonRevisionPageDto> GetRevisionsAsync(string lessonId, int page = 1, int pageSize = 20, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<LessonCompositionDto> RollbackToRevisionAsync(string lessonId, string revisionId, RollbackLessonRevisionRequestDto request, string actorId, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<List<CurriculumNodeRefDto>> ListObjectivesAsync(string curriculumId, string? search = null, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<CurriculumNodeRefDto> CreateObjectiveAsync(string curriculumId, CreateCurriculumNodeRequestDto request, string actorId, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<List<CurriculumNodeRefDto>> ListKnowledgeUnitsAsync(string curriculumId, string? search = null, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<CurriculumNodeRefDto> CreateKnowledgeUnitAsync(string curriculumId, CreateCurriculumNodeRequestDto request, string actorId, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<List<CurriculumNodeRefDto>> ListSkillsAsync(string curriculumId, string? search = null, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<CurriculumNodeRefDto> CreateSkillAsync(string curriculumId, CreateCurriculumNodeRequestDto request, string actorId, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<CurriculumNodeRefDto> PublishCurriculumNodeAsync(string curriculumId, string nodeType, string nodeId, string reviewerId, CancellationToken ct = default) => throw new NotImplementedException();
+        public Task<List<PrerequisiteLessonDto>> ListCurriculumLessonsAsync(string curriculumId, string? excludeLessonId = null, string? search = null, CancellationToken ct = default) => throw new NotImplementedException();
     }
 }

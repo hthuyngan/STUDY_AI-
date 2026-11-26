@@ -285,12 +285,12 @@ public class LessonCompositionService : ILessonCompositionService
             Title = title,
             Description = request.Description?.Trim(),
             CognitiveLevel = request.CognitiveLevel?.Trim(),
-            Status = "published",
+            Status = "draft",
             SourceName = request.SourceName?.Trim(),
             SourceUrl = request.SourceUrl?.Trim(),
             SourceLicense = request.SourceLicense?.Trim(),
-            ReviewedBy = actorId,
-            ReviewedAt = now,
+            ReviewedBy = null,
+            ReviewedAt = null,
             CreatedAt = now,
             UpdatedAt = now
         };
@@ -339,12 +339,12 @@ public class LessonCompositionService : ILessonCompositionService
             Code = code,
             Title = title,
             Description = request.Description?.Trim(),
-            Status = "published",
+            Status = "draft",
             SourceName = request.SourceName?.Trim(),
             SourceUrl = request.SourceUrl?.Trim(),
             SourceLicense = request.SourceLicense?.Trim(),
-            ReviewedBy = actorId,
-            ReviewedAt = now,
+            ReviewedBy = null,
+            ReviewedAt = null,
             CreatedAt = now,
             UpdatedAt = now
         };
@@ -393,12 +393,12 @@ public class LessonCompositionService : ILessonCompositionService
             Code = code,
             Title = title,
             Description = request.Description?.Trim(),
-            Status = "published",
+            Status = "draft",
             SourceName = request.SourceName?.Trim(),
             SourceUrl = request.SourceUrl?.Trim(),
             SourceLicense = request.SourceLicense?.Trim(),
-            ReviewedBy = actorId,
-            ReviewedAt = now,
+            ReviewedBy = null,
+            ReviewedAt = null,
             CreatedAt = now,
             UpdatedAt = now
         };
@@ -406,6 +406,74 @@ public class LessonCompositionService : ILessonCompositionService
         _db.Skills.Add(entity);
         await SaveChangesMappingConflictsAsync(ct);
         return new CurriculumNodeRefDto(entity.Id, entity.CurriculumId, entity.Code, entity.Title, entity.Description, null, entity.Status);
+    }
+
+    public async Task<CurriculumNodeRefDto> PublishCurriculumNodeAsync(
+        string curriculumId,
+        string nodeType,
+        string nodeId,
+        string reviewerId,
+        CancellationToken ct = default)
+    {
+        await EnsureCurriculumExistsAsync(curriculumId, ct);
+        var now = DateTimeOffset.UtcNow;
+
+        switch (nodeType)
+        {
+            case "objectives":
+            {
+                var node = await _db.LearningObjectives.FirstOrDefaultAsync(o => o.Id == nodeId && o.CurriculumId == curriculumId, ct)
+                    ?? throw new NotFoundException("Mục tiêu không tồn tại.");
+                EnsureProvenancePresent(node.SourceName, node.SourceLicense, node.SourceUrl);
+                node.Status = "published";
+                node.ReviewedBy = reviewerId;
+                node.ReviewedAt = now;
+                node.UpdatedAt = now;
+                await _auditWriter.WriteStaffAuditAsync("learning_objective_published", "learning_objective", node.Id, null, JsonSerializer.Serialize(new { reviewerId, node.Code }), ct);
+                await SaveChangesMappingConflictsAsync(ct);
+                return new CurriculumNodeRefDto(node.Id, node.CurriculumId, node.Code, node.Title, node.Description, node.CognitiveLevel, node.Status);
+            }
+            case "knowledge-units":
+            {
+                var node = await _db.KnowledgeUnits.FirstOrDefaultAsync(k => k.Id == nodeId && k.CurriculumId == curriculumId, ct)
+                    ?? throw new NotFoundException("Đơn vị kiến thức không tồn tại.");
+                EnsureProvenancePresent(node.SourceName, node.SourceLicense, node.SourceUrl);
+                node.Status = "published";
+                node.ReviewedBy = reviewerId;
+                node.ReviewedAt = now;
+                node.UpdatedAt = now;
+                await _auditWriter.WriteStaffAuditAsync("knowledge_unit_published", "knowledge_unit", node.Id, null, JsonSerializer.Serialize(new { reviewerId, node.Code }), ct);
+                await SaveChangesMappingConflictsAsync(ct);
+                return new CurriculumNodeRefDto(node.Id, node.CurriculumId, node.Code, node.Title, node.Description, null, node.Status);
+            }
+            case "skills":
+            {
+                var node = await _db.Skills.FirstOrDefaultAsync(s => s.Id == nodeId && s.CurriculumId == curriculumId, ct)
+                    ?? throw new NotFoundException("Kỹ năng không tồn tại.");
+                EnsureProvenancePresent(node.SourceName, node.SourceLicense, node.SourceUrl);
+                node.Status = "published";
+                node.ReviewedBy = reviewerId;
+                node.ReviewedAt = now;
+                node.UpdatedAt = now;
+                await _auditWriter.WriteStaffAuditAsync("skill_published", "skill", node.Id, null, JsonSerializer.Serialize(new { reviewerId, node.Code }), ct);
+                await SaveChangesMappingConflictsAsync(ct);
+                return new CurriculumNodeRefDto(node.Id, node.CurriculumId, node.Code, node.Title, node.Description, null, node.Status);
+            }
+            default:
+                throw new ValidationException("nodeType", $"Loại node '{nodeType}' không hợp lệ.");
+        }
+    }
+
+    private static void EnsureProvenancePresent(string? sourceName, string? sourceLicense, string? sourceUrl)
+    {
+        if (string.IsNullOrWhiteSpace(sourceName) && string.IsNullOrWhiteSpace(sourceUrl))
+        {
+            throw new ValidationException("sourceName", "Yêu cầu thông tin nguồn (SourceName hoặc SourceUrl) trước khi xuất bản.");
+        }
+        if (string.IsNullOrWhiteSpace(sourceLicense))
+        {
+            throw new ValidationException("sourceLicense", "Yêu cầu thông tin bản quyền (SourceLicense) trước khi xuất bản.");
+        }
     }
 
     public async Task<List<PrerequisiteLessonDto>> ListCurriculumLessonsAsync(string curriculumId, string? excludeLessonId = null, string? search = null, CancellationToken ct = default)

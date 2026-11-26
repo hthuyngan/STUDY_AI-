@@ -15,6 +15,7 @@ public interface ILessonCompositionService
 
     Task<List<CurriculumNodeRefDto>> ListSkillsAsync(string curriculumId, string? search = null, CancellationToken ct = default);
     Task<CurriculumNodeRefDto> CreateSkillAsync(string curriculumId, CreateCurriculumNodeRequestDto request, string actorId, CancellationToken ct = default);
+    Task<CurriculumNodeRefDto> PublishCurriculumNodeAsync(string curriculumId, string nodeType, string nodeId, string reviewerId, CancellationToken ct = default);
 
     Task<List<PrerequisiteLessonDto>> ListCurriculumLessonsAsync(string curriculumId, string? excludeLessonId = null, string? search = null, CancellationToken ct = default);
 }

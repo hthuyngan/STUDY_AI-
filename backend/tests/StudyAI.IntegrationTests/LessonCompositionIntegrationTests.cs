@@ -105,13 +105,31 @@ public class LessonCompositionIntegrationTests : IClassFixture<StudyAIApiFixture
         Assert.Equal(HttpStatusCode.Forbidden, (await student.GetAsync($"/api/v1/content/lessons/{lessonAId}/composition")).StatusCode);
 
         // 3. Create curriculum-scoped Objective, KnowledgeUnit, Skill (+ Bio objective for cross-curriculum test)
-        var objHist = await (await admin.PostAsJsonAsync($"/api/v1/content/curricula/{histCurrId}/objectives", new { code = $"OBJ_{key}", title = "Phân tích sự kiện" })).Content.ReadFromJsonAsync<JsonElement>();
-        var kuHist = await (await admin.PostAsJsonAsync($"/api/v1/content/curricula/{histCurrId}/knowledge-units", new { code = $"KU_{key}", title = "Mốc 1945" })).Content.ReadFromJsonAsync<JsonElement>();
-        var skHist = await (await admin.PostAsJsonAsync($"/api/v1/content/curricula/{histCurrId}/skills", new { code = $"SK_{key}", title = "Đọc dòng thời gian" })).Content.ReadFromJsonAsync<JsonElement>();
+        // P03-REV-001: Nodes start as draft; publishing requires provenance and authorized reviewer
+        var objNoProv = await (await admin.PostAsJsonAsync($"/api/v1/content/curricula/{histCurrId}/objectives", new { code = $"OBJ_{key}", title = "Phân tích sự kiện" })).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("draft", objNoProv.GetProperty("status").GetString());
+        var pubNoProv = await reviewer.PostAsync($"/api/v1/content/curricula/{histCurrId}/objectives/{objNoProv.GetProperty("id").GetString()}/publish", null);
+        Assert.Equal(HttpStatusCode.BadRequest, pubNoProv.StatusCode);
+
+        var objHist = await (await admin.PostAsJsonAsync($"/api/v1/content/curricula/{histCurrId}/objectives", new { code = $"OBJ2_{key}", title = "Phân tích sự kiện 1945", sourceName = "SGK Sử 12", sourceLicense = "Internal-Approved" })).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("draft", objHist.GetProperty("status").GetString());
+        Assert.Equal(HttpStatusCode.Forbidden, (await student.PostAsync($"/api/v1/content/curricula/{histCurrId}/objectives/{objHist.GetProperty("id").GetString()}/publish", null)).StatusCode);
+        var pubObjResp = await reviewer.PostAsync($"/api/v1/content/curricula/{histCurrId}/objectives/{objHist.GetProperty("id").GetString()}/publish", null);
+        pubObjResp.EnsureSuccessStatusCode();
+        Assert.Equal("published", (await pubObjResp.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("status").GetString());
+
+        var kuHist = await (await admin.PostAsJsonAsync($"/api/v1/content/curricula/{histCurrId}/knowledge-units", new { code = $"KU_{key}", title = "Mốc 1945", sourceName = "SGK Sử 12", sourceLicense = "Internal-Approved" })).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("draft", kuHist.GetProperty("status").GetString());
+        (await reviewer.PostAsync($"/api/v1/content/curricula/{histCurrId}/knowledge-units/{kuHist.GetProperty("id").GetString()}/publish", null)).EnsureSuccessStatusCode();
+
+        var skHist = await (await admin.PostAsJsonAsync($"/api/v1/content/curricula/{histCurrId}/skills", new { code = $"SK_{key}", title = "Đọc dòng thời gian", sourceName = "SGK Sử 12", sourceLicense = "Internal-Approved" })).Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("draft", skHist.GetProperty("status").GetString());
+        (await reviewer.PostAsync($"/api/v1/content/curricula/{histCurrId}/skills/{skHist.GetProperty("id").GetString()}/publish", null)).EnsureSuccessStatusCode();
+
         var objBio = await (await admin.PostAsJsonAsync($"/api/v1/content/curricula/{bioCurrId}/objectives", new { code = $"OBJB_{key}", title = "Tế bào" })).Content.ReadFromJsonAsync<JsonElement>();
 
         // Duplicate code -> 409 Conflict
-        var dupObj = await admin.PostAsJsonAsync($"/api/v1/content/curricula/{histCurrId}/objectives", new { code = $"obj_{key.ToLowerInvariant()}", title = "Trùng mã" });
+        var dupObj = await admin.PostAsJsonAsync($"/api/v1/content/curricula/{histCurrId}/objectives", new { code = $"obj2_{key.ToLowerInvariant()}", title = "Trùng mã" });
         Assert.Equal(HttpStatusCode.Conflict, dupObj.StatusCode);
 
         // 4. Reject invalid block type, cross-curriculum objective, and stale RowVersion

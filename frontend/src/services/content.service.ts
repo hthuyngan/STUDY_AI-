@@ -417,4 +417,12 @@ export const contentService = {
     const q = excludeLessonId ? `?excludeLessonId=${encodeURIComponent(excludeLessonId)}` : ''
     return apiClient.get(`/api/v1/content/curricula/${curriculumId}/lessons${q}`)
   },
+
+  async publishCurriculumNode(
+    curriculumId: string,
+    nodeType: 'objectives' | 'knowledge-units' | 'skills',
+    nodeId: string
+  ): Promise<import('@/types/content').CurriculumNodeRef> {
+    return apiClient.post(`/api/v1/content/curricula/${curriculumId}/${nodeType}/${nodeId}/publish`, {})
+  },
 }

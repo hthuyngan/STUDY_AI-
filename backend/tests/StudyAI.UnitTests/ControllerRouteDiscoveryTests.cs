@@ -302,6 +302,7 @@ public class ControllerRouteDiscoveryTests
             "POST api/v1/content/curricula/{param}/knowledge-units",
             "GET api/v1/content/curricula/{param}/skills",
             "POST api/v1/content/curricula/{param}/skills",
+            "POST api/v1/content/curricula/{param}/{param}/{param}/publish",
             "GET api/v1/content/curricula/{param}/lessons"
         };
 

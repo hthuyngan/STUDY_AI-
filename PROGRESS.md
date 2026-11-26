@@ -35,7 +35,7 @@
 - **P03-W1/W2/W3 (BE)**: `LessonContentBlock` (12 closed types, `SchemaVersion=1`, `PayloadJson`), `LearningObjective`, `KnowledgeUnit`, `Skill`, relational joins + `QuestionSkill`, `LessonPrerequisite` cycle prevention under `Serializable` transaction, `ContentRevision` (`SnapshotSchemaVersion=2`) + rollback, learner `ContentBlocks` projection with `exercise` answer stripping, migration `AddValidatedLessonComposition`.
 - **P03-W3/W4 (FE)**: `LessonContentBlockRenderer` (12 types + explicit alert on unsupported type/version + safe Markdown subset), `LessonPage` integration, `LessonCompositionPanel` in `ContentLessonEditorPage` (Objectives, Blocks, Knowledge & Skills, Prerequisites, Revisions & `ConfirmDialog` rollback).
 - **Local tests (2026-11-26)**:
-  - `StudyAI.UnitTests`: **320/320 PASS** (incl. 25 `LessonContentBlockValidationTests` + 11 P03 routes in `ControllerRouteDiscoveryTests`).
+  - `StudyAI.UnitTests`: **321/321 PASS** (incl. 25+ `LessonContentBlockValidationTests` + 12 P03 routes in `ControllerRouteDiscoveryTests`).
   - `StudyAI.IntegrationTests` (`StudyAIDb_Clean_{GUID}`): **269/269 PASS** (incl. `LessonCompositionIntegrationTests`).
   - `frontend` `oxlint` (0 warnings/errors), `vitest` (**88 files / 587 tests PASS**), `vite build` **PASS**.
   - `bun scripts/e2e_p03_lesson_composition_playwright.ts` (`StudyAIDb_Clean_{GUID}`): **PASS**.
