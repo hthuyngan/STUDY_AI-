@@ -104,6 +104,32 @@ public class StudentAssessmentService : ILearnerAssessmentService
 
         if (attempt == null)
         {
+            if (!string.IsNullOrWhiteSpace(dto.AssessmentId))
+            {
+                var assessmentEntity = await _db.ContentAssessments
+                    .AsNoTracking()
+                    .Include(a => a.Lesson)
+                        .ThenInclude(l => l!.Chapter)
+                    .Include(a => a.AssessmentQuestions)
+                        .ThenInclude(aq => aq.Question)
+                    .FirstOrDefaultAsync(a => a.Id == dto.AssessmentId, cancellationToken);
+
+                if (assessmentEntity != null && assessmentEntity.AssessmentQuestions.Count > 0)
+                {
+                    foreach (var link in assessmentEntity.AssessmentQuestions)
+                    {
+                        try
+                        {
+                            Features.Content.ContentAssessmentsService.ValidateMappedQuestionEligibility(assessmentEntity, link.Question, link.QuestionId);
+                        }
+                        catch (ValidationException ex)
+                        {
+                            throw new ConflictException(ex.Message);
+                        }
+                    }
+                }
+            }
+
             attempt = new AssessmentAttempt
             {
                 Id = id,

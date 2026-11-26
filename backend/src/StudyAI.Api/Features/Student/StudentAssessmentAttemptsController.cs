@@ -70,6 +70,7 @@ public class StudentAssessmentAttemptsController : ControllerBase
         }
         catch (ForbiddenException) { return Forbid(); }
         catch (ValidationException ex) { return BadRequest(new { detail = ex.Message }); }
+        catch (ConflictException ex) { return Conflict(new { detail = ex.Message }); }
     }
 
     [HttpPut("api/v1/users/{userId}/assessment-attempts/{attemptId}")]

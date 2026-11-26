@@ -356,5 +356,15 @@ public class QuestionMappingAndAssessmentIntegrityTests : IClassFixture<StudyAIA
             answers = new Dictionary<string, List<string>> { [msQId] = new() { "A", "B" } }
         });
         Assert.Equal(HttpStatusCode.Conflict, finWithdrawn.StatusCode);
+
+        // Starting a new attempt after question withdrawal/unpublish also fails closed (409)
+        var startWithdrawn = await student.PostAsJsonAsync("/api/v1/me/assessment-attempts", new
+        {
+            assessmentId = assessId,
+            lessonId,
+            subjectId = subj.GetProperty("id").GetString()!,
+            completionStatus = "incomplete"
+        });
+        Assert.Equal(HttpStatusCode.Conflict, startWithdrawn.StatusCode);
     }
 }
