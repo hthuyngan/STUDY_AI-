@@ -20,7 +20,7 @@ if (-not (Test-Path $LogPath)) {
     throw "LOG_NOT_FOUND: $LogPath"
 }
 
-$lines = @(Get-Content $LogPath -Encoding UTF8)
+$lines = @(Get-Content $LogPath -Encoding UTF8 | ForEach-Object { $_ -replace '\x1b\[[0-9;]*m', '' })
 $passed = 0
 $failed = 0
 $skipped = 0
@@ -55,6 +55,7 @@ foreach ($line in $lines) {
 $errorLines = @(
     $lines | Where-Object {
         ($_ -notmatch '^\s*0\s+fail\b') -and
+        ($_ -notmatch '^stderr\s+\|') -and
         ($_ -match '(?i)(^|\s)(error\s+[A-Z]+\d+|FAIL\b|\(fail\)|Exception:|Unhandled|Assert\.|DB_SAFETY_VIOLATION|StackTrace)')
     } | ForEach-Object { [string]$_ } | Select-Object -First $MaxErrorLines
 )

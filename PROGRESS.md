@@ -18,7 +18,7 @@
 | Pull request | [#27 — Draft, OPEN](https://github.com/hthuyngan/STUDY_AI-/pull/27), base `feature/backend-redesign-modular-monolith` |
 | Dual-Agent Workflow | Integrated from PR #28 (`Trusted Local Developer Workflow`); `Test-SafeAgentBridge.ps1` 14/14 PASS |
 | Protected database | `StudyAIDb` untouched; tests may use only guarded `StudyAIDb_Clean_{GUID}` |
-| Overall verdict | **IMPLEMENTED + VERIFIED LOCALLY**, awaiting CI & owner acceptance |
+| Overall verdict | **IMPLEMENTED + BLOCKED**, awaiting CI `playwright-e2e` & owner acceptance |
 
 ## Phase ledger
 
