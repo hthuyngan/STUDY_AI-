@@ -42,6 +42,7 @@ async function api(path: string, token: string, body?: object, method?: string) 
 let backendProc: ChildProcess | null = null
 let frontendProc: ChildProcess | null = null
 let browser: Awaited<ReturnType<typeof chromium.launch>> | null = null
+let frontendLogs = ''
 try {
   backendProc = spawn(
     'dotnet',
@@ -65,11 +66,21 @@ try {
     }
   )
   await waitFor(`${backendUrl}/health/db`)
-  frontendProc = spawn('bun', ['run', 'preview', '--', '--port', '4198', '--strictPort'], {
-    cwd: `${process.cwd()}/frontend`,
-    env: { ...process.env, VITE_BACKEND_URL: backendUrl },
-    stdio: 'pipe',
-    shell: true,
+  frontendProc = spawn(
+    'bun',
+    ['run', 'preview', '--', '--host', 'localhost', '--port', '4198', '--strictPort'],
+    {
+      cwd: `${process.cwd()}/frontend`,
+      env: { ...process.env, VITE_BACKEND_URL: backendUrl },
+      stdio: 'pipe',
+      shell: process.platform === 'win32',
+    }
+  )
+  frontendProc.stdout?.on('data', (d) => {
+    frontendLogs = (frontendLogs + d.toString()).slice(-4000)
+  })
+  frontendProc.stderr?.on('data', (d) => {
+    frontendLogs = (frontendLogs + d.toString()).slice(-4000)
   })
   await waitFor(frontendUrl)
 
@@ -140,7 +151,9 @@ try {
   browser = await chromium.launch({ headless: true })
   const desktop = await browser.newContext({ viewport: { width: 1440, height: 900 } })
   const page = await desktop.newPage()
-  await page.goto(`${frontendUrl}/login`)
+  page.on('pageerror', (err) => console.error('[Playwright pageerror]', err.message))
+  await page.goto(`${frontendUrl}/login`, { waitUntil: 'domcontentloaded' })
+  await page.locator('input[type=email]').waitFor({ state: 'visible', timeout: 30_000 })
   await page.locator('input[type=email]').fill('admin@studyai.internal')
   await page.locator('input[type=password]').fill('Admin@123456')
   await page.locator('button[type=submit]').click()
@@ -373,6 +386,11 @@ try {
   console.log(
     'P02 Playwright E2E PASS: empty, CRUD, lesson editor, page>1 reorder, lifecycle round-trip, learner edition UI, 401/403, stale 409, API 500, tablet 1024/768 & mobile 390/375px'
   )
+} catch (err) {
+  if (frontendLogs) {
+    console.error('[Frontend preview logs]\n' + frontendLogs)
+  }
+  throw err
 } finally {
   if (browser) await browser.close()
   const processes = [backendProc, frontendProc].filter((p): p is ChildProcess => p !== null)

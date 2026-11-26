@@ -15,11 +15,10 @@
 |---|---|
 | Active delivery phase | **P02 — edition chapter/lesson lifecycle**, remediation/E2E verification stage |
 | Implementation branch | `feature/p02-multi-subject-curriculum-lifecycle` |
-| Local & Remote HEAD | `f0f525e2` (prior to Dual-Agent workflow integration commit) |
 | Pull request | [#27 — Draft, OPEN](https://github.com/hthuyngan/STUDY_AI-/pull/27), base `feature/backend-redesign-modular-monolith` |
-| Dual-Agent Workflow | Integrated from PR #28 (`Trusted Local Developer Workflow`: Antigravity Medium + Codex Local CLI) |
+| Dual-Agent Workflow | Integrated from PR #28 (`Trusted Local Developer Workflow`); `Test-SafeAgentBridge.ps1` 14/14 PASS |
 | Protected database | `StudyAIDb` untouched; tests may use only guarded `StudyAIDb_Clean_{GUID}` |
-| Overall verdict | **IMPLEMENTED + BLOCKED**, not `COMPLETED` |
+| Overall verdict | **IMPLEMENTED + VERIFIED LOCALLY**, awaiting CI & owner acceptance |
 
 ## Phase ledger
 
@@ -46,12 +45,13 @@ Blocking conditions:
 
 ## Test evidence (SHA-scoped)
 
+- Local verification (2026-11-26):
+  - `Test-SafeAgentBridge.ps1`: **14/14 PASS** (including `LiveCodex_Plan` and `LiveCodex_Review_ReadOnly_And_Schema`).
+  - `bun scripts/e2e_p02_curriculum_workspace_playwright.ts` on `StudyAIDb_Clean_{GUID}`: **PASS** (empty, CRUD, lesson editor, page>1 reorder, lifecycle round-trip, learner edition UI, 401/403, stale 409, API 500, tablet 1024/768 & mobile 390/375px).
+  - `frontend` `bun run lint && bun run test && bun run build`: **PASS**.
 - GitHub CI [run 45651751110](https://github.com/hthuyngan/STUDY_AI-/actions/runs/45651751110) at `f0f525e2`:
-  - `Frontend Lint, Test & Build`: **PASS**
-  - `.NET 10 Backend Build & Tests (Isolated Run 1 & 2)`: **PASS**
-  - `P02 Playwright E2E (Real SQL Server Disposable DB)`: **FAIL**
+  - `Frontend Lint, Test & Build` & `.NET 10 Backend Build & Tests (Isolated Run 1 & 2)`: **PASS**; `P02 Playwright E2E`: **FAIL** (addressed by E2E host/spawn hardening; re-verify on push).
 
 ## Next action
 
-1. Verify Dual-Agent Workflow (`Test-DualAgentReadiness.ps1`, `Test-SafeAgentBridge.ps1`, and a real STANDARD task with `codex-review.ps1`).
-2. Diagnose and fix the failing `P02 Playwright E2E` CI job and any remaining P02 findings/acceptance criteria, then re-verify, review with Codex, update `PROGRESS.md`, and push to PR #27.
+Complete automated Codex review on `feature/p02-multi-subject-curriculum-lifecycle`, push to PR #27, confirm CI `playwright-e2e` passes on `ubuntu-latest`, and request explicit owner acceptance/move gate before merging PR #27 or starting P03.
