@@ -276,5 +276,23 @@ public class LessonResourceIntegrationTests : IClassFixture<StudyAIApiFixture>
         Assert.Contains("lesson_resource_published", auditActions);
         Assert.Contains("lesson_resources_reordered", auditActions);
         Assert.Contains("lesson_resource_archived", auditActions);
+
+        // 11. Legacy /api/v1/content/videos compatibility: no RBAC or provenance bypass
+        var legacyCreate = await reviewer.PostAsJsonAsync($"/api/v1/content/lessons/{lessonId}/videos", new
+        {
+            title = "Legacy Video",
+            sourceUrl = "https://youtu.be/dQw4w9WgXcQ",
+            embedAllowed = true
+        });
+        Assert.Equal(HttpStatusCode.Created, legacyCreate.StatusCode);
+        var legacyDto = await legacyCreate.Content.ReadFromJsonAsync<JsonElement>(JsonOpts);
+        var legacyId = legacyDto.GetProperty("id").GetString()!;
+
+        // ContentAuthor-only gets 403 on legacy verify/publish
+        Assert.Equal(HttpStatusCode.Forbidden, (await reviewer.PostAsync($"/api/v1/content/videos/{legacyId}/verify", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await reviewer.PostAsync($"/api/v1/content/videos/{legacyId}/publish", null)).StatusCode);
+
+        // Admin (reviewer) gets 400 if provenance is missing
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsync($"/api/v1/content/videos/{legacyId}/verify", null)).StatusCode);
     }
 }

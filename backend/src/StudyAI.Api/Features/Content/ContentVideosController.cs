@@ -19,13 +19,11 @@ public class ContentVideosController : ControllerBase
     private string CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub") ?? "staff";
 
     private bool IsAuthorizedReviewer =>
-        !User.HasClaim("reviewer", "false") &&
-        (User.IsInRole("content") ||
-         User.IsInRole("admin") ||
-         User.IsInRole("content_admin") ||
-         User.IsInRole("reviewer") ||
-         User.HasClaim("permission", "content.approve") ||
-         User.HasClaim("reviewer", "true"));
+        User.IsInRole("admin") ||
+        User.IsInRole("content_admin") ||
+        User.IsInRole("reviewer") ||
+        User.HasClaim("permission", "content.approve") ||
+        User.HasClaim("reviewer", "true");
 
     [HttpGet("lessons/{lessonId}/videos")]
     public async Task<IActionResult> ListLessonVideos(string lessonId, CancellationToken ct = default)
