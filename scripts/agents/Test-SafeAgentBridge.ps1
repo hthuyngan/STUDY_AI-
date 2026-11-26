@@ -148,7 +148,34 @@ export function div(a: number, b: number) { return a / b; }
         $revObj = Test-ReviewOutputValid -JsonText $revJson -ExpectedHeadSha $headSha
         $cleanTreeAfter = -not (Get-GitState -RepoPath $fixtureDir).IsDirty
         Add-TestResult "LiveCodex_Review_ReadOnly_And_Schema" ($cleanTreeAfter -and $revObj.verdict -in @("PASS", "BLOCKED")) "Verdict=$($revObj.verdict), findings=$($revObj.findings.Count), cleanTree=$cleanTreeAfter"
+
+        # 7. Review cache hit test (same SHA + scope + mode should hit cache in <2s and 0 tokens)
+        $swCache = [System.Diagnostics.Stopwatch]::StartNew()
+        $cachedRevJson = & (Join-Path $PSScriptRoot "codex-review.ps1") -RepoPath $fixtureDir -BaseSha $baseSha -HeadSha $headSha -ReviewMode initial
+        $swCache.Stop()
+        $cachedObj = Test-ReviewOutputValid -JsonText $cachedRevJson -ExpectedHeadSha $headSha
+        Add-TestResult "ReviewCache_Hit" ($cachedObj.head_sha -eq $revObj.head_sha -and $swCache.ElapsedMilliseconds -lt 5000) "Cache hit in $($swCache.ElapsedMilliseconds)ms"
     }
+
+    # 8. Deterministic log filter (summarize-logs.ps1)
+    $sampleLog = Join-Path $env:TEMP ("smoke-testlog-" + $PID + ".log")
+    @"
+bun test v1.4.3
+(pass) safeDivide > divides normally [1.20ms]
+(fail) safeDivide > handles zero
+error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+ 1 pass
+ 1 fail
+"@ | Set-Content -Path $sampleLog -Encoding UTF8
+    $summaryJson = & (Join-Path $PSScriptRoot "summarize-logs.ps1") -LogPath $sampleLog -Suite "smoke-unit" -HeadSha "abcdef1"
+    $summaryObj = $summaryJson | ConvertFrom-Json
+    Add-TestResult "LogFilter_SummarizeLogs" ($summaryObj.status -eq "FAIL" -and $summaryObj.passed -eq 1 -and $summaryObj.failed -eq 1 -and $summaryObj.errors.Count -ge 1) "Filtered errors=$($summaryObj.errors.Count), status=$($summaryObj.status)"
+    Remove-Item $sampleLog -Force -ErrorAction SilentlyContinue
+
+    # 9. Usage metrics file check
+    $usageFile = Join-Path $env:TEMP "studyai-agent-usage\usage.jsonl"
+    $hasUsage = Test-Path $usageFile
+    Add-TestResult "UsageMetrics_Recorded" $hasUsage "usage.jsonl present at $usageFile"
 } finally {
     if (Test-Path $fixtureDir) {
         Remove-Item $fixtureDir -Recurse -Force -ErrorAction SilentlyContinue

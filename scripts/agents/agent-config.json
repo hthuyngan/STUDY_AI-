@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "project": "STUDY_AI-",
   "orchestrator": {
     "platform": "Antigravity",
@@ -29,6 +29,42 @@
     "timeoutSeconds": 1200,
     "maxAutomaticReviewRounds": 3,
     "maxConcurrentReviews": 1
+  },
+  "taskRouting": {
+    "FAST": {
+      "requirePlan": false,
+      "reviewAtWorkstreamEnd": true,
+      "canBypassSecurityOrDbGates": false
+    },
+    "STANDARD": {
+      "requirePlan": false,
+      "requireTargetedTests": true,
+      "requireCodexReview": true
+    },
+    "STRICT": {
+      "requirePlan": true,
+      "requireFullAcceptanceGates": true,
+      "requireIndependentReview": true,
+      "requireUserApproval": true
+    }
+  },
+  "reviewCache": {
+    "enabled": true,
+    "ttlHours": 24,
+    "invalidateOn": ["base_sha", "head_sha", "review_mode", "scope", "policy_hash"]
+  },
+  "tokenOptimization": {
+    "maxDiffChars": 60000,
+    "excludeDiffPaths": [
+      "node_modules",
+      "bin",
+      "obj",
+      "dist",
+      "package-lock.json",
+      "bun.lockb"
+    ],
+    "maxLogErrorLines": 25,
+    "usageMetricsEnabled": true
   },
   "policies": {
     "autoMerge": false,

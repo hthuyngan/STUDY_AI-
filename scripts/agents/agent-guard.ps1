@@ -231,6 +231,7 @@ function Invoke-CodexSandboxed {
         "--disable", "plugins",
         "-s", "read-only",
         "--ephemeral",
+        "--json",
         "--color", "never",
         "-c", ('model="{0}"' -f $Model),
         "-c", ('model_reasoning_effort="{0}"' -f $ReasoningEffort),
@@ -270,6 +271,7 @@ function Invoke-CodexSandboxed {
         }
     }
 
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
     $proc = New-Object System.Diagnostics.Process
     $proc.StartInfo = $psi
     if (-not $proc.Start()) {
@@ -283,6 +285,7 @@ function Invoke-CodexSandboxed {
     $stderrTask = $proc.StandardError.ReadToEndAsync()
 
     $exited = $proc.WaitForExit($TimeoutSeconds * 1000)
+    $sw.Stop()
     if (-not $exited) {
         try { $proc.Kill() } catch {}
         throw "CODEX_TIMEOUT: Codex execution exceeded ${TimeoutSeconds}s and was terminated."
@@ -306,7 +309,112 @@ function Invoke-CodexSandboxed {
     if (-not (Test-Path $OutputFile)) {
         throw "INVALID_REVIEW_OUTPUT: Codex did not produce output file '$OutputFile'."
     }
+
+    # Parse real usage metrics from codex exec --json output
+    $usage = @{ input_tokens = 0; cached_input_tokens = 0; output_tokens = 0; reasoning_output_tokens = 0 }
+    foreach ($line in ($stdout -split "`r?`n")) {
+        if ([string]::IsNullOrWhiteSpace($line) -or -not $line.TrimStart().StartsWith("{")) { continue }
+        try {
+            $evt = $line | ConvertFrom-Json -ErrorAction Stop
+            if ($evt.type -eq "turn.completed" -and $null -ne $evt.usage) {
+                $usage.input_tokens = [int]$evt.usage.input_tokens
+                $usage.cached_input_tokens = [int]$evt.usage.cached_input_tokens
+                $usage.output_tokens = [int]$evt.usage.output_tokens
+                $usage.reasoning_output_tokens = [int]$evt.usage.reasoning_output_tokens
+            }
+        } catch {}
+    }
+    Write-UsageMetric -Action "codex_exec" -Model $Model -ReasoningEffort $ReasoningEffort `
+        -DurationMs ([int]$sw.ElapsedMilliseconds) -CacheHit $false `
+        -InputTokens $usage.input_tokens -CachedInputTokens $usage.cached_input_tokens `
+        -OutputTokens $usage.output_tokens -ReasoningOutputTokens $usage.reasoning_output_tokens
+
     return (Get-Content $OutputFile -Raw -Encoding UTF8)
+}
+
+function Write-UsageMetric {
+    param(
+        [string]$Action,
+        [string]$Model,
+        [string]$ReasoningEffort,
+        [int]$DurationMs,
+        [bool]$CacheHit,
+        [int]$InputTokens = 0,
+        [int]$CachedInputTokens = 0,
+        [int]$OutputTokens = 0,
+        [int]$ReasoningOutputTokens = 0,
+        [string]$UsageDir = (Join-Path $env:TEMP "studyai-agent-usage")
+    )
+    if (-not (Test-Path $UsageDir)) {
+        New-Item -ItemType Directory -Path $UsageDir -Force | Out-Null
+    }
+    $entry = [ordered]@{
+        timestamp               = (Get-Date).ToString("o")
+        action                  = $Action
+        model                   = $Model
+        reasoning_effort        = $ReasoningEffort
+        duration_ms             = $DurationMs
+        cache_hit               = $CacheHit
+        input_tokens            = $InputTokens
+        cached_input_tokens     = $CachedInputTokens
+        output_tokens           = $OutputTokens
+        reasoning_output_tokens = $ReasoningOutputTokens
+    } | ConvertTo-Json -Compress
+    Add-Content -Path (Join-Path $UsageDir "usage.jsonl") -Value $entry -Encoding UTF8
+}
+
+function Get-StringSha256 {
+    param([string]$InputText)
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($InputText)
+        $hash = $sha.ComputeHash($bytes)
+        return ([System.BitConverter]::ToString($hash) -replace '-', '').ToLowerInvariant()
+    } finally {
+        $sha.Dispose()
+    }
+}
+
+function Get-ReviewCacheKey {
+    param(
+        [string]$BaseSha,
+        [string]$HeadSha,
+        [string]$ReviewMode,
+        [string]$ScopeSignature,
+        [string]$PolicyHash
+    )
+    return (Get-StringSha256 -InputText "$BaseSha|$HeadSha|$ReviewMode|$ScopeSignature|$PolicyHash")
+}
+
+function Get-CachedReview {
+    param(
+        [string]$CacheKey,
+        [string]$ExpectedHeadSha,
+        [int]$TtlHours = 24,
+        [string]$CacheDir = (Join-Path $env:TEMP "studyai-agent-cache")
+    )
+    $path = Join-Path $CacheDir "$CacheKey.json"
+    if (-not (Test-Path $path)) { return $null }
+    $item = Get-Item $path
+    if (((Get-Date) - $item.LastWriteTime).TotalHours -gt $TtlHours) {
+        Remove-Item $path -Force -ErrorAction SilentlyContinue
+        return $null
+    }
+    $raw = Get-Content $path -Raw -Encoding UTF8
+    $null = Test-ReviewOutputValid -JsonText $raw -ExpectedHeadSha $ExpectedHeadSha
+    return $raw
+}
+
+function Set-CachedReview {
+    param(
+        [string]$CacheKey,
+        [string]$ReviewJson,
+        [string]$CacheDir = (Join-Path $env:TEMP "studyai-agent-cache")
+    )
+    if (-not (Test-Path $CacheDir)) {
+        New-Item -ItemType Directory -Path $CacheDir -Force | Out-Null
+    }
+    Set-Content -Path (Join-Path $CacheDir "$CacheKey.json") -Value $ReviewJson -Encoding UTF8
 }
 
 # End of agent-guard.ps1 helper module

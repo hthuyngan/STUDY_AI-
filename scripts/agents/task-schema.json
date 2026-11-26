@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "task_id",
+    "route",
+    "objective",
+    "base_sha",
+    "scope_files",
+    "constraints",
+    "acceptance_criteria"
+  ],
+  "properties": {
+    "task_id": { "type": "string", "minLength": 1 },
+    "route": { "type": "string", "enum": ["FAST", "STANDARD", "STRICT"] },
+    "objective": { "type": "string", "minLength": 1 },
+    "base_sha": { "type": "string", "minLength": 7, "maxLength": 40 },
+    "plan_ref": { "type": "string" },
+    "scope_files": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "constraints": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}
