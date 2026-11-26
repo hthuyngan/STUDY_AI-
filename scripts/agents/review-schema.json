@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "base_sha",
+    "head_sha",
+    "reviewed_scope",
+    "verdict",
+    "summary",
+    "findings"
+  ],
+  "properties": {
+    "base_sha": {
+      "type": "string",
+      "minLength": 7,
+      "maxLength": 40
+    },
+    "head_sha": {
+      "type": "string",
+      "minLength": 7,
+      "maxLength": 40
+    },
+    "reviewed_scope": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["PASS", "BLOCKED", "ERROR"]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "finding_id",
+          "severity",
+          "file_path",
+          "line_range",
+          "evidence",
+          "root_cause",
+          "recommended_fix",
+          "required_regression_test"
+        ],
+        "properties": {
+          "finding_id": { "type": "string", "minLength": 1 },
+          "severity": { "type": "string", "enum": ["P0", "P1", "P2", "P3"] },
+          "file_path": { "type": "string", "minLength": 1 },
+          "line_range": { "type": "string", "minLength": 1 },
+          "evidence": { "type": "string", "minLength": 1 },
+          "root_cause": { "type": "string", "minLength": 1 },
+          "recommended_fix": { "type": "string", "minLength": 1 },
+          "required_regression_test": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

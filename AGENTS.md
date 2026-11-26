@@ -2,6 +2,17 @@
 
 This repository implements an education system for Vietnamese high-school students. Before coding or reviewing, read `docs/plans/AI_TUTOR_MATH10_12_IMPLEMENTATION_PLAN.md` and `docs/prompts/ANTIGRAVITY_MATH10_12_MASTER_PROMPT.md`.
 
+## Persistent progress & Dual-Agent workflow (Trusted Local Developer Workflow)
+
+When the user enters a feature/fix prompt in Antigravity Hydrogen Medium, restore context and route the task automatically. The workflow operates under the Trusted Local Developer model (Antigravity Medium as primary implementer + Codex Local CLI as read-only reviewer; same Windows user, process-level sandbox, no secondary OS accounts or admin requirements). Run read-only `scripts/agents/Test-DualAgentReadiness.ps1` to inspect readiness. Follow these workflow steps:
+1. **Receive & Restore Context**: Read `AGENTS.md`, `PROGRESS.md`, active `TASK.json`/`PLAN.json`/unresolved findings, and verify local Git `HEAD`/worktree and PR state. Never re-read the full repository or chat history.
+2. **Classify (`ECO` / `STANDARD`)**: Validate `TASK.json` via `scripts/agents/invoke-dual-agent.ps1` (`ECO` for docs/formatting only; `STANDARD` default for code/API/UI/DB/security). `ADVANCED`, `invoke_subagent`, and parallel workers are disabled.
+3. **Plan**: Reuse approved PLAN or skip for simple tasks; for complex tasks, call `scripts/agents/codex-plan.ps1` (`medium` reasoning).
+4. **Implement (Single Writer)**: Antigravity directly edits scoped files under cooperative `Enter-WorkerLock` (`invoke-dual-agent.ps1`). Never spawn implementation subagents.
+5. **Test**: Run targeted tests (full gates for high-risk/phase) and filter output via `scripts/agents/summarize-logs.ps1` -> `TEST-SUMMARY.json`.
+6. **Review & Remediate (Max 3 Attempts)**: Run `scripts/agents/codex-review.ps1` (`medium` initial, `low` delta re-review) via automated invocation under read-only sandbox. If quota is exhausted (`CODEX_QUOTA_EXCEEDED`), halt and record BLOCKED checkpoint. Fix findings directly and re-verify.
+7. **Checkpoint & Deliver**: Update `PROGRESS.md` (< 150 lines, no secrets; writer checkpoints are handoff aids, not independent acceptance) and commit/push only when permitted. Never auto-merge, auto-advance phase, or write `StudyAIDb`.
+
 ## Stack and baseline
 
 - React 19, TypeScript, Vite, Bun; .NET 10, ASP.NET Core, EF Core, SQL Server. Preserve Clean Architecture and existing API contracts. 

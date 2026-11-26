@@ -1,0 +1,54 @@
+name: Safe Agent Bridge CI
+
+on:
+  push:
+    branches:
+      - feature/safe-agent-orchestration
+    paths:
+      - 'scripts/agents/**'
+      - 'docs/agents/**'
+      - '.github/workflows/safe-agent-bridge.yml'
+  pull_request:
+    branches:
+      - feature/backend-redesign-modular-monolith
+      - main
+    paths:
+      - 'scripts/agents/**'
+      - 'docs/agents/**'
+      - '.github/workflows/safe-agent-bridge.yml'
+  workflow_dispatch:
+
+jobs:
+  bridge-ps51:
+    name: Bridge Guardrails (Windows PowerShell 5.1)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run hermetic Safe Agent Bridge & Adversarial suites (PS 5.1)
+        shell: powershell
+        run: |
+          $cleanTemp = Join-Path $env:RUNNER_TEMP ("bridge-ci-ps51-" + [guid]::NewGuid().ToString("N"))
+          New-Item -ItemType Directory -Path $cleanTemp -Force | Out-Null
+          $env:TEMP = $cleanTemp
+          $env:TMP = $cleanTemp
+          ./scripts/agents/Test-SafeAgentBridge.ps1 -SkipLiveCodex
+          ./scripts/agents/Test-SafeAgentAdversarial.ps1
+
+  bridge-ps7:
+    name: Bridge Guardrails (PowerShell 7)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run hermetic Safe Agent Bridge & Adversarial suites (PS 7)
+        shell: pwsh
+        run: |
+          $cleanTemp = Join-Path $env:RUNNER_TEMP ("bridge-ci-ps7-" + [guid]::NewGuid().ToString("N"))
+          New-Item -ItemType Directory -Path $cleanTemp -Force | Out-Null
+          $env:TEMP = $cleanTemp
+          $env:TMP = $cleanTemp
+          ./scripts/agents/Test-SafeAgentBridge.ps1 -SkipLiveCodex
+          ./scripts/agents/Test-SafeAgentAdversarial.ps1

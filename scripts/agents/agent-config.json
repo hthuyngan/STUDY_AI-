@@ -1,0 +1,109 @@
+{
+  "schemaVersion": "2.0.0",
+  "project": "STUDY_AI-",
+  "workflowModel": "dual-agent-trusted-local",
+  "disabledFeatures": [
+    "invoke_subagent",
+    "multi_worker",
+    "parallel_workers",
+    "advanced_three_agent",
+    "high_orchestrator"
+  ],
+  "mainAgent": {
+    "name": "Agent 1 — Antigravity Hydrogen Medium",
+    "platform": "Antigravity",
+    "model": "Gemini 4 Hydrogen (Medium)",
+    "roles": [
+      "Orchestrator",
+      "Implementation Developer",
+      "Debugger",
+      "Test Executor",
+      "Progress Manager"
+    ],
+    "singleWriterOnly": true
+  },
+  "reviewer": {
+    "name": "Agent 2 — Codex Local CLI",
+    "platform": "Codex Local CLI",
+    "model": "gpt-5.6-sol",
+    "sandbox": "read-only",
+    "ignoreUserConfig": true,
+    "disablePlugins": true,
+    "reasoning": {
+      "planning": "medium",
+      "initialReview": "medium",
+      "simpleReReview": "low",
+      "complexSecurityReview": "medium"
+    },
+    "timeoutSeconds": 1200,
+    "maxAutomaticReviewRounds": 3,
+    "maxConcurrentReviews": 1
+  },
+  "taskRouting": {
+    "defaultRoute": "STANDARD",
+    "supportedRoutes": ["ECO", "STANDARD"],
+    "ECO": {
+      "agents": "Antigravity Hydrogen Medium",
+      "requirePlan": false,
+      "requireCodexReview": false,
+      "canBypassSecurityOrDbGates": false,
+      "useWhen": "Docs, formatting, and truly low-risk non-code edits only"
+    },
+    "STANDARD": {
+      "agents": "Antigravity Hydrogen Medium + Codex Local CLI",
+      "requirePlan": false,
+      "requirePlanWhenComplex": true,
+      "requireTargetedTests": true,
+      "requireCodexReview": true,
+      "canBypassSecurityOrDbGates": false,
+      "useWhen": "Default for CRUD, API, frontend, backend, AI Tutor, DB-related code, security, and refactoring"
+    }
+  },
+  "reviewCache": {
+    "enabled": false,
+    "reason": "Disabled by default because local TEMP cache lacks independent cryptographic provenance."
+  },
+  "tokenOptimization": {
+    "maxDiffChars": 60000,
+    "excludeDiffPaths": [
+      "node_modules",
+      "bin",
+      "obj",
+      "dist",
+      "package-lock.json",
+      "bun.lockb"
+    ],
+    "maxLogErrorLines": 25,
+    "usageMetricsEnabled": true
+  },
+  "policies": {
+    "autoMerge": false,
+    "autoPhaseAdvance": false,
+    "persistentDatabaseWrites": false,
+    "databaseOperationsViaBridgeEnabled": false,
+    "automatedCodexEnabled": true,
+    "manualFallbackWorkflow": "Trusted local developer workflow (same Windows user; CLI read-only sandbox + JobObject containment). Manual independent review fallback if quota is exhausted.",
+    "allowDirtyWorktreeForReview": false,
+    "requireImmutableSnapshot": true,
+    "protectedDatabases": [
+      "StudyAIDb",
+      "StudyAIDb_E2E"
+    ],
+    "allowedTestDatabasePrefix": "StudyAIDb_Clean_",
+    "protectedBranches": [
+      "main",
+      "feature/backend-redesign-modular-monolith",
+      "feature/p02-multi-subject-curriculum-lifecycle"
+    ]
+  },
+  "mcpAllocation": {
+    "antigravity": [
+      "serena",
+      "context7",
+      "chrome_devtools",
+      "playwright",
+      "microsoft-learn"
+    ],
+    "codexReviewer": []
+  }
+}
