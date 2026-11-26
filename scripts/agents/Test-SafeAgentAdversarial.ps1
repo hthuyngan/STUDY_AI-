@@ -264,3 +264,4 @@ try {
 
 Write-Host "ADVERSARIAL SUITE SUMMARY: $passed PASS, $failed FAIL"
 if ($failed -gt 0) { throw "Adversarial suite failed with $failed failure(s)." }
+exit 0

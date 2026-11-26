@@ -186,3 +186,4 @@ if ($failedCount -gt 0) {
     throw "Smoke test suite failed with $failedCount failure(s)."
 }
 Write-Host "ALL SMOKE TESTS PASSED ($($results.Count)/$($results.Count))."
+exit 0
