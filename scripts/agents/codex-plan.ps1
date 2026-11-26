@@ -16,6 +16,7 @@ $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "agent-guard.ps1")
 
 $config = Get-AgentConfig
+if ($AllowLocalUserBoundary) { Assert-LocalFixtureOptIn -RepoPath $RepoPath }
 Assert-DatabaseSafety | Out-Null
 $gitState = Get-GitState -RepoPath $RepoPath
 $baseSha = Resolve-GitCommitSha -RepoPath $RepoPath -ShaOrRef $gitState.HeadSha

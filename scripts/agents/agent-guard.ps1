@@ -931,6 +931,141 @@ function Test-CodexConfigArgsSafe {
     }
 }
 
+# The current JobObjectHost uses CreateProcessW and therefore inherits the caller's
+# Windows logon token. A dedicated local account does not change this by itself.
+# Never let changing a JSON switch silently turn this into unattended execution.
+function Assert-CodexAutomationIdentity {
+    param([bool]$AutomationEnabled, [switch]$AllowLocalUserBoundary)
+    if ($AllowLocalUserBoundary) { return }
+    if (-not $AutomationEnabled) {
+        throw "AUTOMATED_CODEX_DISABLED: No verified isolated reviewer execution identity. Manual review remains required."
+    }
+    throw "REVIEWER_OS_IDENTITY_NOT_ENFORCED: JobObjectHost.CreateProcessW inherits the Antigravity Windows identity. Implement and independently verify a separate-identity launcher before unattended Codex can be enabled."
+}
+
+# Local-user opt-in is exclusively a testing convenience, not an OS security boundary.
+# Block accidental reuse on D:\\TN and other real worktrees.
+function Assert-LocalFixtureOptIn {
+    param([Parameter(Mandatory = $true)][string]$RepoPath)
+    $resolved = (Resolve-Path -LiteralPath $RepoPath -ErrorAction Stop).ProviderPath.TrimEnd([char[]]@('\\','/'))
+    $temp = ([System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath())).TrimEnd([char[]]@('\\','/'))
+    $prefix = $temp + [System.IO.Path]::DirectorySeparatorChar
+    $name = [System.IO.Path]::GetFileName($resolved)
+    if (-not $resolved.StartsWith($prefix, [System.StringComparison]::OrdinalIgnoreCase) -or
+        $name -notmatch '^studyai-(agent-fixture|e2e|dual|bridge|fixture)([-_][A-Za-z0-9_-]+)?    param(
+        [Parameter(Mandatory = $true)][string]$WorkingDir,
+        [Parameter(Mandatory = $true)][string]$PromptText,
+        [Parameter(Mandatory = $true)][string]$SchemaPath,
+        [Parameter(Mandatory = $true)][string]$OutputFile,
+        [Parameter(Mandatory = $true)][string]$Model,
+        [Parameter(Mandatory = $true)][string]$ReasoningEffort,
+        [int]$TimeoutSeconds = 1200,
+        [switch]$AllowLocalUserBoundary
+    )
+
+    $config = Get-AgentConfig
+    Assert-CodexAutomationIdentity -AutomationEnabled ([bool]$config.policies.automatedCodexEnabled) -AllowLocalUserBoundary:$AllowLocalUserBoundary
+
+    Test-CodexConfigArgsSafe -Model $Model -ReasoningEffort $ReasoningEffort
+    $resolved = Resolve-CodexExecutable
+
+    $argList = New-Object System.Collections.Generic.List[string]
+    foreach ($pa in $resolved.PrefixArgs) { $argList.Add($pa) }
+    @(
+        "exec", "--ignore-user-config", "--disable", "plugins",
+        "-s", "read-only", "--ephemeral", "--json", "--color", "never",
+        "-c", ('model="{0}"' -f $Model),
+        "-c", ('model_reasoning_effort="{0}"' -f $ReasoningEffort),
+        "--output-schema", $SchemaPath,
+        "-o", $OutputFile,
+        "-C", $WorkingDir,
+        "-"
+    ) | ForEach-Object { $argList.Add($_) }
+
+    # R03: Strict minimal allowlist + Git credential helper isolation
+    $allowlist = @("PATH", "SYSTEMROOT", "COMSPEC", "TEMP", "TMP", "USERPROFILE", "LOCALAPPDATA", "APPDATA", "HOMEDRIVE", "HOMEPATH", "CODEX_HOME", "PATHEXT", "WINDIR", "OS", "NUMBER_OF_PROCESSORS", "PROCESSOR_ARCHITECTURE")
+    $envDict = New-Object 'System.Collections.Generic.Dictionary[string,string]' ([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($name in $allowlist) {
+        $val = [Environment]::GetEnvironmentVariable($name)
+        if (-not [string]::IsNullOrEmpty($val)) { $envDict[$name] = $val }
+    }
+    $envDict["GIT_CONFIG_NOSYSTEM"] = "1"
+    $envDict["GIT_CONFIG_GLOBAL"] = "NUL"
+    $envDict["GIT_TERMINAL_PROMPT"] = "0"
+    $envDict["GCM_PROVIDER"] = "none"
+    $envDict["GCM_INTERACTIVE"] = "never"
+    $envDict["GIT_ASKPASS"] = ""
+    $envDict["SSH_ASKPASS"] = ""
+
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    $job = New-Object StudyAI.SafeAgent.JobObjectHost
+    try {
+        $res = $job.RunSuspendedInJob($resolved.ExePath, $argList.ToArray(), $WorkingDir, $envDict, $PromptText, ($TimeoutSeconds * 1000))
+        $sw.Stop()
+
+        if ($res.TimedOut) {
+            $remaining = @(Get-ChildProcessIds -ParentPid $res.ProcessId)
+            if ($remaining.Count -gt 0) { throw "PROCESS_CLEANUP_FAILED: Orphan descendant processes remained after timeout." }
+            throw "CODEX_TIMEOUT: Codex execution exceeded ${TimeoutSeconds}s and process tree was terminated."
+        }
+
+        $combined = "$($res.StdOut)`n$($res.StdErr)"
+        if ($combined -match '(?i)(insufficient_quota|rate_limit_exceeded|usage limit|quota exceeded|too many requests|429)') {
+            throw "CODEX_QUOTA_EXCEEDED: Codex reported quota or rate limit exhaustion."
+        }
+        if ($combined -match '(?i)(not logged in|authentication failed|invalid_api_key|401 unauthorized|please run codex login)') {
+            throw "CODEX_AUTH_FAILURE: Codex authentication failed. Run 'codex login status' to verify."
+        }
+        if ($res.ExitCode -ne 0) {
+            throw ("CODEX_EXEC_ERROR: Codex exited with code $($res.ExitCode). Details: " + (Redact-SensitiveText -Text $res.StdErr))
+        }
+        if (-not (Test-Path $OutputFile)) { throw "INVALID_REVIEW_OUTPUT: Codex did not produce output file '$OutputFile'." }
+
+        $usage = @{ input_tokens = 0; cached_input_tokens = 0; output_tokens = 0; reasoning_output_tokens = 0 }
+        foreach ($line in ($res.StdOut -split "`r?`n")) {
+            if ([string]::IsNullOrWhiteSpace($line) -or -not $line.TrimStart().StartsWith("{")) { continue }
+            try {
+                $evt = $line | ConvertFrom-Json -ErrorAction Stop
+                if ($evt.type -eq "turn.completed" -and $null -ne $evt.usage) {
+                    $usage.input_tokens = [int]$evt.usage.input_tokens
+                    $usage.cached_input_tokens = [int]$evt.usage.cached_input_tokens
+                    $usage.output_tokens = [int]$evt.usage.output_tokens
+                    $usage.reasoning_output_tokens = [int]$evt.usage.reasoning_output_tokens
+                }
+            } catch {}
+        }
+        Write-UsageMetric -Action "codex_exec" -Model $Model -ReasoningEffort $ReasoningEffort `
+            -DurationMs ([int]$sw.ElapsedMilliseconds) -CacheHit $false `
+            -InputTokens $usage.input_tokens -CachedInputTokens $usage.cached_input_tokens `
+            -OutputTokens $usage.output_tokens -ReasoningOutputTokens $usage.reasoning_output_tokens
+
+        return (Get-Content $OutputFile -Raw -Encoding UTF8)
+    } finally {
+        $job.Dispose()
+    }
+}
+
+function Write-UsageMetric {
+    param(
+        [string]$Action, [string]$Model, [string]$ReasoningEffort, [int]$DurationMs, [bool]$CacheHit,
+        [int]$InputTokens = 0, [int]$CachedInputTokens = 0, [int]$OutputTokens = 0, [int]$ReasoningOutputTokens = 0,
+        [string]$UsageDir = (Join-Path $env:TEMP "studyai-agent-usage")
+    )
+    if (-not (Test-Path $UsageDir)) { New-Item -ItemType Directory -Path $UsageDir -Force | Out-Null }
+    $entry = [ordered]@{
+        timestamp = (Get-Date).ToUniversalTime().ToString("o", [System.Globalization.CultureInfo]::InvariantCulture)
+        action = $Action; model = $Model; reasoning_effort = $ReasoningEffort; duration_ms = $DurationMs; cache_hit = $CacheHit
+        input_tokens = $InputTokens; cached_input_tokens = $CachedInputTokens
+        uncached_input_tokens = [Math]::Max(0, ($InputTokens - $CachedInputTokens))
+        output_tokens = $OutputTokens; reasoning_output_tokens = $ReasoningOutputTokens
+    } | ConvertTo-Json -Compress
+    Add-Content -Path (Join-Path $UsageDir "usage.jsonl") -Value $entry -Encoding UTF8
+}
+) {
+        throw "LOCAL_BOUNDARY_FIXTURE_ONLY: -AllowLocalUserBoundary may only be used with a clearly named, isolated temporary test repository, never a real project worktree."
+    }
+}
+
 function Invoke-CodexSandboxed {
     param(
         [Parameter(Mandatory = $true)][string]$WorkingDir,

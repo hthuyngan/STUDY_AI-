@@ -2,9 +2,9 @@
 
 This repository implements an education system for Vietnamese high-school students. Before coding or reviewing, read `docs/plans/AI_TUTOR_MATH10_12_IMPLEMENTATION_PLAN.md` and `docs/prompts/ANTIGRAVITY_MATH10_12_MASTER_PROMPT.md`.
 
-## Persistent progress & Dual-Agent workflow (Auto-Activated)
+## Persistent progress & Dual-Agent workflow (auto-routing; Codex automation gated)
 
-When the user enters any feature/fix prompt in Antigravity Hydrogen Medium, automatically execute this 10-step Dual-Agent workflow without asking the user to paste long prompts or open Codex manually:
+When the user enters a feature/fix prompt in Antigravity Hydrogen Medium, restore context and route the task automatically. **Full unattended Codex invocation is currently BLOCKED** pending an independently verified different-identity Windows launcher and available Codex quota; do not claim that a one-prompt review loop is operational. Run read-only `scripts/agents/Test-DualAgentReadiness.ps1` to inspect blockers. Follow these workflow steps:
 1. **Receive & Restore Context**: Read `AGENTS.md`, `PROGRESS.md`, active `TASK.json`/`PLAN.json`/unresolved findings, and verify local Git `HEAD`/worktree and PR state. Never re-read the full repository or chat history.
 2. **Classify (`ECO` / `STANDARD`)**: Validate `TASK.json` via `scripts/agents/invoke-dual-agent.ps1` (`ECO` for docs/formatting only; `STANDARD` default for code/API/UI/DB/security). `ADVANCED`, `invoke_subagent`, and parallel workers are disabled.
 3. **Plan**: Reuse approved PLAN or skip for simple tasks; for complex tasks, call `scripts/agents/codex-plan.ps1` (`medium` reasoning).

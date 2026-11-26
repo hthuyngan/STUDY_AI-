@@ -144,6 +144,18 @@ try {
     Assert-ThrowsLike "R03_AutomatedCodexDisabledByDefault" {
         Invoke-CodexSandboxed -WorkingDir $env:TEMP -PromptText "x" -SchemaPath "x" -OutputFile "x" -Model "gpt-5.6-sol" -ReasoningEffort "low"
     } "AUTOMATED_CODEX_DISABLED:*"
+    Assert-ThrowsLike "R03_SwitchAloneCannotEnableAutomation" {
+        Assert-CodexAutomationIdentity -AutomationEnabled $true
+    } "REVIEWER_OS_IDENTITY_NOT_ENFORCED:*"
+    Assert-ThrowsLike "R03_LocalOptInBlockedOnRealWorktree" {
+        Assert-LocalFixtureOptIn -RepoPath $PSScriptRoot
+    } "LOCAL_BOUNDARY_FIXTURE_ONLY:*"
+    $tempFixture = Join-Path $env:TEMP ("studyai-agent-fixture-" + $PID)
+    New-Item -ItemType Directory -Path $tempFixture -Force | Out-Null
+    try {
+        Assert-LocalFixtureOptIn -RepoPath $tempFixture
+        Assert-True "R03_LocalOptInAllowsNamedFixture" $true "Named isolated TEMP fixture"
+    } finally { Remove-Item $tempFixture -Recurse -Force -ErrorAction SilentlyContinue }
 } finally {
     Remove-Item Env:STUDYAI_CANARY_SECRET, Env:AWS_SECRET_ACCESS_KEY, Env:HTTP_PROXY, Env:GIT_ASKPASS -ErrorAction SilentlyContinue
 }
