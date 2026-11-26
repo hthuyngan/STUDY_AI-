@@ -177,9 +177,29 @@ public class ContentAssessment
     public int DurationMinutes { get; set; } = 15;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
     public ContentLesson? Lesson { get; set; }
     public ICollection<ContentQuestion> Questions { get; set; } = new List<ContentQuestion>();
+    public ICollection<AssessmentQuestion> AssessmentQuestions { get; set; } = new List<AssessmentQuestion>();
+}
+
+public class AssessmentQuestion
+{
+    public string Id { get; set; } = string.Empty;
+    public string AssessmentId { get; set; } = string.Empty;
+    public string QuestionId { get; set; } = string.Empty;
+    public int OrderIndex { get; set; } = 1;
+    public int PinnedVersion { get; set; } = 1;
+    public string? PinnedFingerprint { get; set; }
+    public string? PinnedQuestionType { get; set; }
+    public string? PinnedOptionsJson { get; set; }
+    public string? PinnedCorrectAnswer { get; set; }
+    public int Points { get; set; } = 1;
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    public ContentAssessment? Assessment { get; set; }
+    public ContentQuestion? Question { get; set; }
 }
 
 public class ContentQuestion
@@ -221,6 +241,9 @@ public class ContentQuestion
     public string CopyrightStatus { get; set; } = "proprietary"; // verified, pending_proof, proprietary, public_domain
     public string? CopyrightProofRef { get; set; }
     public int Version { get; set; } = 1;
+    public string? QuestionKey { get; set; }
+    public string? ContentFingerprint { get; set; }
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
@@ -228,4 +251,5 @@ public class ContentQuestion
     public ContentAssessment? Assessment { get; set; }
     public ContentLesson? Lesson { get; set; }
     public User? Author { get; set; }
+    public ICollection<QuestionSkill> QuestionSkills { get; set; } = new List<QuestionSkill>();
 }

@@ -302,12 +302,24 @@ public class ContentAssessmentsService : IContentAssessmentsService
                 .ThenInclude(l => l!.Chapter)
                     .ThenInclude(c => c!.Subject)
             .Include(a => a.Questions.Where(q => !q.IsDeleted))
+            .Include(a => a.AssessmentQuestions)
+                .ThenInclude(aq => aq.Question)
             .FirstOrDefaultAsync(a => a.Id == id, ct);
 
         if (assessment == null)
             throw new NotFoundException("Bài kiểm tra / đánh giá không tồn tại.");
 
-        assessment.Status = status.Trim();
+        var normalizedStatus = status.Trim();
+        if (string.Equals(normalizedStatus, "published", StringComparison.OrdinalIgnoreCase) &&
+            assessment.AssessmentQuestions.Count > 0)
+        {
+            foreach (var link in assessment.AssessmentQuestions)
+            {
+                ValidateMappedQuestionEligibility(assessment, link.Question, link.QuestionId);
+            }
+        }
+
+        assessment.Status = normalizedStatus;
         assessment.UpdatedAt = _clock.UtcNow;
 
         await _auditWriter.WriteStaffAuditAsync(
@@ -375,5 +387,124 @@ public class ContentAssessmentsService : IContentAssessmentsService
         await _db.SaveChangesAsync(ct);
         assessment.Questions.Add(q);
         return FormatAssessmentDetail(assessment);
+    }
+
+    public async Task<ContentAssessmentItemDto> ComposeAssessmentQuestionsAsync(
+        string id,
+        ComposeAssessmentQuestionsRequestDto req,
+        string currentUserId,
+        CancellationToken ct = default)
+    {
+        var assessment = await _db.ContentAssessments
+            .Include(a => a.Lesson)
+                .ThenInclude(l => l!.Chapter)
+                    .ThenInclude(c => c!.Subject)
+            .Include(a => a.Questions.Where(q => !q.IsDeleted))
+            .Include(a => a.AssessmentQuestions)
+            .FirstOrDefaultAsync(a => a.Id == id, ct);
+
+        if (assessment == null)
+            throw new NotFoundException("Bài kiểm tra / đánh giá không tồn tại.");
+
+        if (!string.IsNullOrWhiteSpace(req.RowVersion))
+        {
+            byte[] clientVer;
+            try { clientVer = Convert.FromBase64String(req.RowVersion.Trim()); }
+            catch (FormatException) { throw new ValidationException("RowVersion", "RowVersion không đúng định dạng Base64."); }
+            if (assessment.RowVersion.Length == 0 || !assessment.RowVersion.SequenceEqual(clientVer))
+                throw new ConflictException("Bài đánh giá đã bị thay đổi bởi phiên khác (xung đột RowVersion).");
+        }
+
+        if (assessment.Status == "published")
+            throw new ConflictException("Không thể thay đổi danh sách câu hỏi của bài đánh giá đang xuất bản. Vui lòng gỡ xuất bản trước.");
+
+        var rawItems = req.Items ?? new List<ComposeAssessmentQuestionsItemDto>();
+        var normalizedItems = new List<(string QuestionId, int Points)>();
+        foreach (var item in rawItems)
+        {
+            if (item == null || string.IsNullOrWhiteSpace(item.QuestionId))
+                throw new ValidationException("Items", "Mã câu hỏi trong danh sách không được để trống.");
+            normalizedItems.Add((item.QuestionId.Trim(), Math.Max(1, item.Points)));
+        }
+
+        var itemIds = normalizedItems.Select(i => i.QuestionId).ToList();
+        if (itemIds.Distinct(StringComparer.Ordinal).Count() != itemIds.Count)
+            throw new ValidationException("Items", "Danh sách câu hỏi không được chứa mã trùng lặp.");
+
+        var loadedQuestions = await _db.ContentQuestions
+            .Where(q => itemIds.Contains(q.Id) && !q.IsDeleted)
+            .ToDictionaryAsync(q => q.Id, ct);
+
+        foreach (var qid in itemIds)
+        {
+            if (!loadedQuestions.TryGetValue(qid, out var q))
+                throw new NotFoundException($"Câu hỏi '{qid}' không tồn tại hoặc đã bị xóa.");
+
+            ValidateMappedQuestionEligibility(assessment, q, qid);
+        }
+
+        foreach (var existing in assessment.AssessmentQuestions.ToList())
+        {
+            _db.AssessmentQuestions.Remove(existing);
+            assessment.AssessmentQuestions.Remove(existing);
+        }
+
+        var now = _clock.UtcNow;
+        for (int i = 0; i < normalizedItems.Count; i++)
+        {
+            var (qid, pts) = normalizedItems[i];
+            var q = loadedQuestions[qid];
+            var link = new AssessmentQuestion
+            {
+                Id = _idGenerator.NewId("aq"),
+                AssessmentId = assessment.Id,
+                QuestionId = q.Id,
+                OrderIndex = i + 1,
+                PinnedVersion = q.Version,
+                PinnedFingerprint = q.ContentFingerprint,
+                PinnedQuestionType = q.Type,
+                PinnedOptionsJson = q.OptionsJson,
+                PinnedCorrectAnswer = q.CorrectAnswer,
+                Points = pts,
+                CreatedAt = now
+            };
+            _db.AssessmentQuestions.Add(link);
+            assessment.AssessmentQuestions.Add(link);
+        }
+
+        assessment.UpdatedAt = now;
+
+        await _auditWriter.WriteStaffAuditAsync(
+            "assessment_questions_composed",
+            "content_assessment",
+            assessment.Id,
+            null,
+            JsonSerializer.Serialize(new { assessmentId = assessment.Id, questionIds = itemIds, actor = currentUserId }),
+            ct);
+
+        await _db.SaveChangesAsync(ct);
+        return FormatAssessmentDetail(assessment);
+    }
+
+    public static void ValidateMappedQuestionEligibility(ContentAssessment assessment, ContentQuestion? q, string questionId)
+    {
+        if (q == null || q.IsDeleted)
+            throw new ValidationException("Items", $"Câu hỏi '{questionId}' không tồn tại hoặc đã bị xóa.");
+
+        if (q.Status != "published" && q.Status != "approved")
+            throw new ValidationException("Items", $"Câu hỏi '{questionId}' chưa được phê duyệt/xuất bản (trạng thái hiện tại: {q.Status}).");
+
+        if (!string.IsNullOrWhiteSpace(assessment.LessonId) && !string.Equals(q.LessonId, assessment.LessonId, StringComparison.Ordinal))
+            throw new ValidationException("Items", $"Câu hỏi '{questionId}' không thuộc bài học của bài đánh giá này.");
+
+        var assessmentSubjectId = assessment.Lesson?.Chapter?.SubjectId;
+        if (!string.IsNullOrWhiteSpace(assessmentSubjectId))
+        {
+            if (string.IsNullOrWhiteSpace(q.SubjectId) ||
+                !string.Equals(q.SubjectId, assessmentSubjectId, StringComparison.Ordinal))
+            {
+                throw new ValidationException("Items", $"Câu hỏi '{questionId}' thiếu SubjectId hoặc không thuộc môn học của bài đánh giá này.");
+            }
+        }
     }
 }

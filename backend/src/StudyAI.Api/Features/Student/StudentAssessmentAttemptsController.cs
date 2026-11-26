@@ -70,6 +70,7 @@ public class StudentAssessmentAttemptsController : ControllerBase
         }
         catch (ForbiddenException) { return Forbid(); }
         catch (ValidationException ex) { return BadRequest(new { detail = ex.Message }); }
+        catch (ConflictException ex) { return Conflict(new { detail = ex.Message }); }
     }
 
     [HttpPut("api/v1/users/{userId}/assessment-attempts/{attemptId}")]
@@ -91,5 +92,26 @@ public class StudentAssessmentAttemptsController : ControllerBase
         catch (ForbiddenException) { return Forbid(); }
         catch (NotFoundException ex) { return NotFound(new { detail = ex.Message }); }
         catch (ValidationException ex) { return BadRequest(new { detail = ex.Message }); }
+        catch (ConflictException ex) { return Conflict(new { detail = ex.Message }); }
+    }
+
+    [HttpPost("api/v1/users/{userId}/assessment-attempts/{attemptId}/finalize")]
+    [HttpPost("api/v1/me/assessment-attempts/{attemptId}/finalize")]
+    public async Task<IActionResult> FinalizeAttempt(
+        string attemptId,
+        [FromBody] FinalizeAssessmentAttemptDto dto,
+        string? userId = null,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var targetId = userId ?? CurrentUserId;
+            var result = await _assessmentService.FinalizeAttemptAsync(CurrentUserId, targetId, attemptId, dto, ct);
+            return Ok(result);
+        }
+        catch (ForbiddenException) { return Forbid(); }
+        catch (NotFoundException ex) { return NotFound(new { detail = ex.Message }); }
+        catch (ValidationException ex) { return BadRequest(new { detail = ex.Message }); }
+        catch (ConflictException ex) { return Conflict(new { detail = ex.Message }); }
     }
 }

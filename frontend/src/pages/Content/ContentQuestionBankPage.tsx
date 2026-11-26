@@ -269,7 +269,10 @@ export const ContentQuestionBankPage: React.FC = () => {
       if (editingItem) {
         // Exclude status from direct update payload so moderation workflow endpoints (/approve, /publish) are respected
         const { status: _status, ...updatePayload } = payload
-        await contentQuestionBankService.updateQuestion(editingItem.id, updatePayload)
+        await contentQuestionBankService.updateQuestion(editingItem.id, {
+          ...updatePayload,
+          rowVersion: editingItem.rowVersion,
+        })
         showToast('Đã cập nhật câu hỏi thành công!')
       } else {
         await contentQuestionBankService.createQuestion(payload)
@@ -279,7 +282,7 @@ export const ContentQuestionBankPage: React.FC = () => {
       setFormOpen(false)
       refreshData()
     } catch (err: any) {
-      setFormError(err?.message || 'Có lỗi xảy ra khi lưu câu hỏi.')
+      setFormError(err?.detail || err?.message || 'Có lỗi xảy ra khi lưu câu hỏi.')
     } finally {
       setSubmitting(false)
     }

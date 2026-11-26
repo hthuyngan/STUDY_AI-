@@ -312,7 +312,11 @@ public class ControllerRouteDiscoveryTests
             "POST api/v1/content/resources/{param}/verify",
             "POST api/v1/content/resources/{param}/reject",
             "POST api/v1/content/resources/{param}/publish",
-            "POST api/v1/content/resources/{param}/unpublish"
+            "POST api/v1/content/resources/{param}/unpublish",
+            "PUT api/v1/content/questions/{param}/skills",
+            "PUT api/v1/content/assessments/{param}/questions",
+            "POST api/v1/users/{param}/assessment-attempts/{param}/finalize",
+            "POST api/v1/me/assessment-attempts/{param}/finalize"
         };
 
         // Verify total registered count is exactly 236 baseline + 5 approved extensions

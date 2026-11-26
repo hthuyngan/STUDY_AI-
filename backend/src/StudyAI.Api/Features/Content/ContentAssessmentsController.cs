@@ -92,4 +92,14 @@ public class ContentAssessmentsController : ControllerBase
         var result = await _assessmentsService.AddAssessmentQuestionAsync(id, req, CurrentUserId, ct);
         return StatusCode(201, result);
     }
+
+    [HttpPut("{id}/questions")]
+    public async Task<IActionResult> ComposeAssessmentQuestions(string id, [FromBody] ComposeAssessmentQuestionsRequestDto req, CancellationToken ct = default)
+    {
+        if (!IsContentStaffOrAdmin)
+            return StatusCode(StatusCodes.Status403Forbidden, new { detail = "Chỉ Content staff hoặc quản trị viên được cấu hình câu hỏi bài đánh giá." });
+
+        var result = await _assessmentsService.ComposeAssessmentQuestionsAsync(id, req, CurrentUserId, ct);
+        return Ok(result);
+    }
 }

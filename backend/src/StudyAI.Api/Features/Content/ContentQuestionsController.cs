@@ -212,4 +212,11 @@ public class ContentQuestionsController : ControllerBase
         var result = await _questionsService.ImportQuestionsAsync(req, CurrentUserId, ct);
         return Ok(result);
     }
+
+    [HttpPut("{questionId}/skills")]
+    public async Task<IActionResult> UpdateQuestionSkills(string questionId, [FromBody] UpdateQuestionSkillsRequestDto req, CancellationToken ct = default)
+    {
+        var result = await _questionsService.UpdateQuestionSkillsAsync(questionId, req, CurrentUserId, IsContentStaffOrAdmin, ct);
+        return Ok(result);
+    }
 }
