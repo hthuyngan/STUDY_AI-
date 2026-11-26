@@ -19,23 +19,34 @@ on:
   workflow_dispatch:
 
 jobs:
-  bridge-security-tests:
-    name: Bridge Guardrails (${{ matrix.shell }})
+  bridge-ps51:
+    name: Bridge Guardrails (Windows PowerShell 5.1)
     runs-on: windows-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        shell:
-          - powershell
-          - pwsh
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Run hermetic Safe Agent Bridge & Adversarial suites
-        shell: ${{ matrix.shell }}
+      - name: Run hermetic Safe Agent Bridge & Adversarial suites (PS 5.1)
+        shell: powershell
         run: |
-          $cleanTemp = Join-Path $env:RUNNER_TEMP ("bridge-ci-" + [guid]::NewGuid().ToString("N"))
+          $cleanTemp = Join-Path $env:RUNNER_TEMP ("bridge-ci-ps51-" + [guid]::NewGuid().ToString("N"))
+          New-Item -ItemType Directory -Path $cleanTemp -Force | Out-Null
+          $env:TEMP = $cleanTemp
+          $env:TMP = $cleanTemp
+          ./scripts/agents/Test-SafeAgentBridge.ps1 -SkipLiveCodex
+          ./scripts/agents/Test-SafeAgentAdversarial.ps1
+
+  bridge-ps7:
+    name: Bridge Guardrails (PowerShell 7)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run hermetic Safe Agent Bridge & Adversarial suites (PS 7)
+        shell: pwsh
+        run: |
+          $cleanTemp = Join-Path $env:RUNNER_TEMP ("bridge-ci-ps7-" + [guid]::NewGuid().ToString("N"))
           New-Item -ItemType Directory -Path $cleanTemp -Force | Out-Null
           $env:TEMP = $cleanTemp
           $env:TMP = $cleanTemp
