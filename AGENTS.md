@@ -2,13 +2,16 @@
 
 This repository implements an education system for Vietnamese high-school students. Before coding or reviewing, read `docs/plans/AI_TUTOR_MATH10_12_IMPLEMENTATION_PLAN.md` and `docs/prompts/ANTIGRAVITY_MATH10_12_MASTER_PROMPT.md`.
 
-## Persistent progress & Dual-Agent workflow
+## Persistent progress & Dual-Agent workflow (Auto-Activated)
 
-- At the start of every new session: read `AGENTS.md`, read `PROGRESS.md`, verify local Git `HEAD`/worktree and GitHub PR state, read active `TASK.json`/`PLAN.json`/unresolved findings, and continue without re-reading the full repository or chat history.
-- Supported model: **Dual-Agent** (`Agent 1`: Antigravity Hydrogen Medium as Main Agent & single writer; `Agent 2`: Codex Local CLI as read-only Planner/Reviewer). `ADVANCED` / `invoke_subagent` / multi-worker modes are disabled.
-- Adaptive routing: `ECO` (docs/formatting only) and `STANDARD` (default for code/API/UI/DB/security). Never downgrade high-risk changes to `ECO`.
-- Checkpoints created by the implementation writer are handoff aids, not independent acceptance evidence. Never put secrets, tokens, or connection strings in `PROGRESS.md`.
-- Update `PROGRESS.md` after workstreams, blockers, reviews, remediations, commits/pushes, and before ending a session.
+When the user enters any feature/fix prompt in Antigravity Hydrogen Medium, automatically execute this 10-step Dual-Agent workflow without asking the user to paste long prompts or open Codex manually:
+1. **Receive & Restore Context**: Read `AGENTS.md`, `PROGRESS.md`, active `TASK.json`/`PLAN.json`/unresolved findings, and verify local Git `HEAD`/worktree and PR state. Never re-read the full repository or chat history.
+2. **Classify (`ECO` / `STANDARD`)**: Validate `TASK.json` via `scripts/agents/invoke-dual-agent.ps1` (`ECO` for docs/formatting only; `STANDARD` default for code/API/UI/DB/security). `ADVANCED`, `invoke_subagent`, and parallel workers are disabled.
+3. **Plan**: Reuse approved PLAN or skip for simple tasks; for complex tasks, call `scripts/agents/codex-plan.ps1` (`medium` reasoning).
+4. **Implement (Single Writer)**: Antigravity directly edits scoped files under cooperative `Enter-WorkerLock` (`invoke-dual-agent.ps1`). Never spawn implementation subagents.
+5. **Test**: Run targeted tests (full gates for high-risk/phase) and filter output via `scripts/agents/summarize-logs.ps1` -> `TEST-SUMMARY.json`.
+6. **Review & Remediate (Max 3 Attempts)**: Run `scripts/agents/codex-review.ps1` (`medium` initial, `low` delta re-review) when `automatedCodexEnabled` is verified and enabled (or use manual independent Codex review fallback while `automatedCodexEnabled: false`). Fix findings directly and re-verify.
+7. **Checkpoint & Deliver**: Update `PROGRESS.md` (< 150 lines, no secrets; writer checkpoints are handoff aids, not independent acceptance) and commit/push only when permitted. Never auto-merge, auto-advance phase, or write `StudyAIDb`.
 
 ## Stack and baseline
 

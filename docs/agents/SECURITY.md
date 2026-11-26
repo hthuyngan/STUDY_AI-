@@ -25,3 +25,16 @@
 1. **Antigravity MCP Config**: Restore `~/.gemini/config/mcp_config.json` from `~/.gemini/config/mcp_config.json.bak`.
 2. **Codex Config**: Personal `~/.codex/config.toml` was never modified; backup exists at `~/.codex/config.toml.bak`.
 3. **Repository**: Close Draft PR and delete branch `feature/safe-agent-orchestration` (and remove worktree `D:/TN-safe-agents`).
+
+## 5. One-Time OS Execution Identity Setup (Required Before Enabling `automatedCodexEnabled: true`)
+
+Because single-user Windows processes share OS filesystem ACLs to `%USERPROFILE%` credential stores (`.ssh`, `.aws`, `.git-credentials`), `automatedCodexEnabled` remains **`false`** by default. To enable unattended automated Codex execution on real repository code:
+
+1. **Create a dedicated low-privilege Windows user** (requires Administrator approval):
+   ```powershell
+   # Run once in elevated PowerShell
+   net user StudyAICodexReviewer "<strong-random-password>" /add /passwordchg:no
+   ```
+2. **Isolate `CODEX_HOME`**: Create `C:\ProgramData\StudyAICodexReviewer\.codex`, grant `StudyAICodexReviewer` read/write ONLY on that directory (and read-only on `D:\TN-safe-agents` / snapshot temp dir), and sign in once as `StudyAICodexReviewer` (`codex login`).
+3. **Verify**: Confirm `StudyAICodexReviewer` receives `Access Denied` on `C:\Users\nguyen\.ssh`, `.aws`, and `.git-credentials`.
+4. **Enable**: Update `policies.automatedCodexEnabled: true` in `agent-config.json` after independent security acceptance.

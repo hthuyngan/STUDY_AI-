@@ -225,15 +225,34 @@ try {
     Assert-ThrowsLike "R07_ArgumentInjectionModelBlocked" { Test-CodexConfigArgsSafe -Model "gpt-5.6-sol;calc" -ReasoningEffort "low" } "ARGUMENT_INJECTION_BLOCKED:*"
     Assert-ThrowsLike "R07_ArgumentInjectionReasoningBlocked" { Test-CodexConfigArgsSafe -Model "gpt-5.6-sol" -ReasoningEffort "high --bypass" } "ARGUMENT_INJECTION_BLOCKED:*"
 
-    # Mandatory entrypoint invoke-dual-agent.ps1 + Context Recovery
+    # Mandatory entrypoint invoke-dual-agent.ps1 + Missing Mandatory Review + Context Recovery
     $tEntry = "$env:TEMP\r06-entry-$PID.json"
     @{ task_id="T_ECO"; route="ECO"; objective="Update README"; base_sha=$bSha; scope_files=@("README.md"); constraints=@("none"); acceptance_criteria=@("clean") } | ConvertTo-Json | Set-Content $tEntry -Encoding UTF8
     $entryOut = (& (Join-Path $PSScriptRoot "invoke-dual-agent.ps1") -TaskPacketPath $tEntry -RepoPath $r06Dir) | ConvertFrom-Json
     Assert-True "R06_InvokeDualAgentEntrypoint" ($entryOut.effective_route -eq "ECO" -and $entryOut.status -eq "ROUTED") "Single entrypoint enforced"
+
+    $tMissingRev = "$env:TEMP\r06-missingrev-$PID.json"
+    @{ task_id="T_STD_MISS"; route="STANDARD"; objective="Update item"; base_sha=$bSha; scope_files=@("extra.ts"); constraints=@("none"); acceptance_criteria=@("test") } | ConvertTo-Json | Set-Content $tMissingRev -Encoding UTF8
+    Assert-ThrowsLike "R06_MissingMandatoryReviewBlocked" {
+        & (Join-Path $PSScriptRoot "invoke-dual-agent.ps1") -TaskPacketPath $tMissingRev -RepoPath $r06Dir -EvaluateCompletion
+    } "ACCEPTANCE_BLOCKED:*"
+
     Assert-ThrowsLike "ContextRecovery_RejectsStaleSummary" {
         $staleSum = @{ head_sha=$bSha; suite="s"; status="PASS"; passed=1; failed=0; skipped=0; errors=@(); raw_log_path="x" } | ConvertTo-Json
         Test-TestSummaryValid -JsonText $staleSum -ExpectedHeadSha ("f" * 40)
     } "STALE_TEST_SUMMARY:*"
+
+    # Auth failure & Quota failure detection
+    $psExe2 = (Get-Process -Id $PID).Path
+    $jobFail = New-Object StudyAI.SafeAgent.JobObjectHost
+    try {
+        $envFail = New-Object 'System.Collections.Generic.Dictionary[string,string]' ([System.StringComparer]::OrdinalIgnoreCase)
+        foreach ($n in @("PATH", "SYSTEMROOT", "COMSPEC", "TEMP", "TMP")) { $v = [Environment]::GetEnvironmentVariable($n); if ($v) { $envFail[$n] = $v } }
+        $rAuth = $jobFail.RunSuspendedInJob($psExe2, @("-NoProfile", "-Command", "Write-Output '401 unauthorized please run codex login'; exit 1"), $env:TEMP, $envFail, "", 5000)
+        Assert-True "R04_AuthFailurePatternDetected" ($rAuth.ExitCode -ne 0 -and $rAuth.StdOut -match '(?i)(not logged in|401 unauthorized|please run codex login)') "Auth failure detected"
+        $rQuota = $jobFail.RunSuspendedInJob($psExe2, @("-NoProfile", "-Command", "Write-Output 'rate_limit_exceeded 429'; exit 1"), $env:TEMP, $envFail, "", 5000)
+        Assert-True "R04_QuotaFailurePatternDetected" ($rQuota.ExitCode -ne 0 -and $rQuota.StdOut -match '(?i)(insufficient_quota|rate_limit_exceeded|429)') "Quota failure detected"
+    } finally { $jobFail.Dispose() }
 
     # Scope expansion + missing approval + missing review
     "code" | Set-Content "$r06Dir\extra.ts" -Encoding UTF8
