@@ -1,55 +1,26 @@
-# Safe Multi-Agent Orchestration Workflow (STUDY_AI-)
+# Safe Dual-Agent Workflow (STUDY_AI-)
 
-## 1. Capability Discovery Reality (Antigravity 44.9.1 + Codex CLI 0.163.0)
+## 1. Supported Model (Dual-Agent Only)
 
-| Capability | Status | Details & Constraints |
-|---|---|---|
-| Native subagents | **Supported** | `define_subagent`, `invoke_subagent`, `manage_subagents`, `send_message` |
-| Isolated subagent workspace | **Supported** | `Workspace: "share"` (git worktree-like) or `"branch"` (isolated clone) |
-| Subagent `Model` parameter | **Partial** | Enum is `inherit`, `flash_lite`, `flash`, `pro` |
-| Per-subagent reasoning effort | **Not supported** | `invoke_subagent` has no `reasoning_effort` parameter; `inherit` uses the parent session's model and reasoning setting |
-| Codex non-interactive CLI | **Supported** | `codex exec --ignore-user-config --disable plugins -s read-only --ephemeral --output-schema ...` |
-| Codex reasoning per call | **Supported** | `-c 'model_reasoning_effort="medium"'` (plan/initial) or `"low"` (simple re-review) |
+- **Agent 1 — Antigravity Hydrogen Medium**: Main Agent, Orchestrator, Implementation Developer, Debugger, Test Executor, and Progress Manager. Directly edits code, runs tests, and manages `PROGRESS.md`.
+- **Agent 2 — Codex Local CLI**: Independent Architecture Planner (`medium`), Initial Reviewer (`medium`), Simple Re-reviewer (`low`), and Security Auditor (`medium`). Always `read-only`, never edits application code.
 
-### Session Topology (Single-Session Hydrogen Medium)
+### Disabled 3-Agent Features (Executable Enforcement)
 
-- **Recommended (1 Antigravity session)**: Open a single Antigravity session on **Gemini 4 Hydrogen (Medium)**.
-  - **Agent 1 (Orchestrator)**: Runs in the parent session (`Gemini 4 Hydrogen (Medium)`), never edits application code directly, and only consumes `TASK.json`, `TEST-SUMMARY.json`, `REVIEW.json`, and blockers.
-  - **Agent 2 (Implementation Worker)**: Invoked via `invoke_subagent(TypeName="implementation-worker", Model="inherit", Workspace="share")`, inheriting **Gemini 4 Hydrogen (Medium)** from the parent session. Only 1 worker runs at a time.
-  - **Agent 3 (Independent Reviewer)**: Invoked via `scripts/agents/codex-plan.ps1` (`medium`) and `scripts/agents/codex-review.ps1` (`medium` initial / `low` re-review) in `-s read-only`.
+`ADVANCED` three-agent mode, `invoke_subagent`, `multi_worker`, `parallel_workers`, and separate High Orchestrator paths are **disabled executably** in `agent-config.json`, `task-schema.json`, `agent-guard.ps1`, and `route-task.ps1` (`UNSUPPORTED_MODE_ERROR`).
 
-## 2. Agent Roles
+## 2. Adaptive Execution Modes (`invoke-dual-agent.ps1` / `route-task.ps1`)
 
-1. **Agent 01 — Orchestrator (Antigravity)**
-   - Reads `AGENTS.md` and `PROGRESS.md`, verifies Git/GitHub state.
-   - Calls `scripts/agents/codex-plan.ps1` to generate a structured plan.
-   - Stops for human approval if `requires_human_approval` is `true` or `risk_level` is `HIGH`.
-   - Assigns scoped workstreams to Agent 02 (only 1 active Implementation Worker at a time).
-   - Calls `scripts/agents/codex-review.ps1` after tests pass and working tree is clean.
-   - Manages max 3 automatic review rounds; stops on `ERROR`, quota, auth, timeout, or round > 3.
-2. **Agent 02 — Implementation Worker (Antigravity)**
-   - Implements frontend, backend, and guarded test database layer changes on a dedicated feature branch.
-   - Runs targeted tests and full required gates before requesting review.
-   - Fixes valid Codex findings; never changes phase or merges PRs.
-3. **Agent 03 — Independent Reviewer (Codex Local CLI)**
-   - Runs strictly in `-s read-only --ephemeral --ignore-user-config --disable plugins` on an immutable detached git snapshot.
-   - Never edits application code, never accesses `StudyAIDb`, and never executes GitHub writes.
+- **ECO**: Antigravity Hydrogen Medium only. Restricted to docs/formatting/low-risk non-code edits. Cannot downgrade security, auth, RBAC, migration, database, or architecture tasks.
+- **STANDARD (Default)**: Antigravity Hydrogen Medium + Codex Local CLI. Used for CRUD, API, frontend, backend, AI Tutor, DB-related code, security, and refactoring.
 
-## 3. Adaptive Task Routing (`scripts/agents/agent-config.json`)
+## 3. Daily 10-Step Workflow & Manual Fallback
 
-- **ECO** (`1 Anti Medium`): Trivial docs/formatting/local-only edits with zero security, DB, or API impact. Never bypasses DB/safety guards.
-- **STANDARD** (`1 Anti Medium + Codex`, **default**): Normal coding tasks (CRUD, API, UI, bugfixes). Skips `codex-plan.ps1` when requirements are clear; runs targeted tests + `codex-review.ps1` (`medium` initial, `low` delta re-review).
-- **ADVANCED** (`2 Anti Medium [Orchestrator + Worker] + Codex`): Large phases, security, RBAC, database/migrations, concurrency, or architecture. Requires `codex-plan.ps1` (`medium`), user approval if `requires_human_approval=true`, full acceptance gates, and independent Codex review.
-
-## 4. End-to-End Execution Loop (`ADVANCED` / `STANDARD`)
-
-```text
-User Request
-  -> Step 1: Orchestrator reads AGENTS.md, PROGRESS.md, Git state
-  -> Step 2: codex-plan.ps1 (reasoning=medium) -> PLAN + Acceptance Criteria
-  -> Step 3: Implementation Worker edits code + runs targeted tests + commits to feature branch
-  -> Step 4: codex-review.ps1 -ReviewMode initial (reasoning=medium) -> JSON Verdict
-  -> Step 5: If BLOCKED -> Worker fixes findings + runs regression tests -> codex-review.ps1 -ReviewMode rereview (reasoning=low) [max 3 rounds]
-  -> Step 6: If PASS -> Run full gates -> Verify HEAD SHA matches review -> Update PROGRESS.md -> Push Draft PR
-  -> Step 7: Report to user and wait for human acceptance
-```
+1. **Receive Task** -> **Preflight**: Read `AGENTS.md`, `PROGRESS.md`, verify Git `HEAD`/worktree and PR state.
+2. **Classify**: Validate `TASK.json` via `invoke-dual-agent.ps1` / `route-task.ps1` (`ECO` or `STANDARD`).
+3. **Plan**: Reuse approved PLAN or run `codex-plan.ps1` for complex tasks.
+4. **Implement**: Antigravity directly edits scoped files (single writer under `Enter-WorkerLock`).
+5. **Test**: Run targeted tests (full gates for high-risk), filter output via `summarize-logs.ps1` -> `TEST-SUMMARY.json`.
+6. **Review**: Run `codex-review.ps1` (if `-AllowLocalUserBoundary` opted in) **or** use **Manual Fallback** (user runs independent Codex review in a separate Codex session) since `automatedCodexEnabled` is `false` by default on single-user Windows.
+7. **Remediation & Re-review**: Antigravity fixes findings; Codex re-reviews remediation diff (max 3 attempts).
+8. **Checkpoint**: Update `PROGRESS.md`, evaluate completion via `invoke-dual-agent.ps1 -EvaluateCompletion`, commit/push when permitted (never auto-merge or auto-advance phase).

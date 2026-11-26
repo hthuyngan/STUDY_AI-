@@ -40,8 +40,8 @@ try {
 
 try {
     $env:ConnectionStrings__DefaultConnection = "Server=localhost;Database=StudyAIDb_Clean_1234567890abcdef1234567890abcdef;Trusted_Connection=True;"
-    $allowedClean = Assert-DatabaseSafety
-    Add-TestResult "DatabaseSafety_Allows_CleanGuidDb" ([bool]$allowedClean) "Allowed StudyAIDb_Clean_{GUID}"
+    $allowedClean = Assert-DatabaseSafety -AllowCleanGuidEnv
+    Add-TestResult "DatabaseSafety_Allows_CleanGuidDb" ([bool]$allowedClean) "Allowed StudyAIDb_Clean_{GUID} with -AllowCleanGuidEnv"
 } finally {
     Remove-Item Env:ConnectionStrings__DefaultConnection -ErrorAction SilentlyContinue
 }
@@ -142,22 +142,15 @@ export function div(a: number, b: number) { return a / b; }
 
     if (-not $SkipLiveCodex) {
         $planOut = Join-Path $env:TEMP ("smoke-plan-" + $PID + ".json")
-        $planJson = & (Join-Path $PSScriptRoot "codex-plan.ps1") -RepoPath $fixtureDir -TaskPrompt "Add zero-divisor guard to div() in math.ts" -OutFile $planOut
+        $planJson = & (Join-Path $PSScriptRoot "codex-plan.ps1") -RepoPath $fixtureDir -TaskPrompt "Add zero-divisor guard to div() in math.ts" -OutFile $planOut -AllowLocalUserBoundary
         $planObj = $planJson | ConvertFrom-Json
         Add-TestResult "LiveCodex_Plan" ($null -ne $planObj.task_title -and $planObj.workstreams.Count -ge 1) "Plan generated for fixture ($($planObj.risk_level))"
 
         $revOut = Join-Path $env:TEMP ("smoke-review-" + $PID + ".json")
-        $revJson = & (Join-Path $PSScriptRoot "codex-review.ps1") -RepoPath $fixtureDir -BaseSha $baseSha -HeadSha $headSha -ReviewMode initial -OutFile $revOut
+        $revJson = & (Join-Path $PSScriptRoot "codex-review.ps1") -RepoPath $fixtureDir -BaseSha $baseSha -HeadSha $headSha -ReviewMode initial -OutFile $revOut -AllowLocalUserBoundary
         $revObj = Test-ReviewOutputValid -JsonText $revJson -ExpectedHeadSha $headSha
         $cleanTreeAfter = -not (Get-GitState -RepoPath $fixtureDir).IsDirty
         Add-TestResult "LiveCodex_Review_ReadOnly_And_Schema" ($cleanTreeAfter -and $revObj.verdict -in @("PASS", "BLOCKED")) "Verdict=$($revObj.verdict), findings=$($revObj.findings.Count), cleanTree=$cleanTreeAfter"
-
-        # 7. Review cache hit test (same SHA + scope + mode should hit cache in <2s and 0 tokens)
-        $swCache = [System.Diagnostics.Stopwatch]::StartNew()
-        $cachedRevJson = & (Join-Path $PSScriptRoot "codex-review.ps1") -RepoPath $fixtureDir -BaseSha $baseSha -HeadSha $headSha -ReviewMode initial
-        $swCache.Stop()
-        $cachedObj = Test-ReviewOutputValid -JsonText $cachedRevJson -ExpectedHeadSha $headSha
-        Add-TestResult "ReviewCache_Hit" ($cachedObj.head_sha -eq $revObj.head_sha -and $swCache.ElapsedMilliseconds -lt 5000) "Cache hit in $($swCache.ElapsedMilliseconds)ms"
     }
 
     # 8. Deterministic log filter (summarize-logs.ps1)
@@ -175,10 +168,13 @@ error TS2345: Argument of type 'string' is not assignable to parameter of type '
     Add-TestResult "LogFilter_SummarizeLogs" ($summaryObj.status -eq "FAIL" -and $summaryObj.passed -eq 1 -and $summaryObj.failed -eq 1 -and $summaryObj.errors.Count -ge 1) "Filtered errors=$($summaryObj.errors.Count), status=$($summaryObj.status)"
     Remove-Item $sampleLog -Force -ErrorAction SilentlyContinue
 
-    # 9. Usage metrics file check
-    $usageFile = Join-Path $env:TEMP "studyai-agent-usage\usage.jsonl"
-    $hasUsage = Test-Path $usageFile
-    Add-TestResult "UsageMetrics_Recorded" $hasUsage "usage.jsonl present at $usageFile"
+    # 9. Hermetic usage metrics file check (does not depend on prior live Codex run)
+    $hermeticUsageDir = Join-Path $env:TEMP ("studyai-hermetic-usage-" + $PID)
+    Write-UsageMetric -Action "hermetic_smoke" -Model "gpt-5.6-sol" -ReasoningEffort "low" -DurationMs 10 -CacheHit $false -InputTokens 100 -CachedInputTokens 50 -OutputTokens 20 -ReasoningOutputTokens 5 -UsageDir $hermeticUsageDir
+    $hermeticUsageFile = Join-Path $hermeticUsageDir "usage.jsonl"
+    $hasUsage = (Test-Path $hermeticUsageFile) -and ((Get-Content $hermeticUsageFile -Raw) -match '"uncached_input_tokens":50')
+    Add-TestResult "UsageMetrics_Recorded" $hasUsage "usage.jsonl verified at $hermeticUsageFile"
+    Remove-Item $hermeticUsageDir -Recurse -Force -ErrorAction SilentlyContinue
 } finally {
     if (Test-Path $fixtureDir) {
         Remove-Item $fixtureDir -Recurse -Force -ErrorAction SilentlyContinue

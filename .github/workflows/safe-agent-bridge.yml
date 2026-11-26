@@ -1,6 +1,13 @@
 name: Safe Agent Bridge CI
 
 on:
+  push:
+    branches:
+      - feature/safe-agent-orchestration
+    paths:
+      - 'scripts/agents/**'
+      - 'docs/agents/**'
+      - '.github/workflows/safe-agent-bridge.yml'
   pull_request:
     branches:
       - feature/backend-redesign-modular-monolith
@@ -25,8 +32,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Run deterministic Safe Agent Bridge suite
-        shell: ${{ matrix.shell }} -NoProfile -ExecutionPolicy Bypass -Command {0}
+      - name: Run hermetic Safe Agent Bridge & Adversarial suites
+        shell: ${{ matrix.shell }}
         run: |
+          $cleanTemp = Join-Path $env:RUNNER_TEMP ("bridge-ci-" + [guid]::NewGuid().ToString("N"))
+          New-Item -ItemType Directory -Path $cleanTemp -Force | Out-Null
+          $env:TEMP = $cleanTemp
+          $env:TMP = $cleanTemp
           ./scripts/agents/Test-SafeAgentBridge.ps1 -SkipLiveCodex
           ./scripts/agents/Test-SafeAgentAdversarial.ps1

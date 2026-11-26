@@ -56,27 +56,16 @@ foreach ($c in $r01BlockedCases) {
     }
 }
 
-# Valid Guid:N and Guid:D + Ownership manifest tests
-$manifestDir = Join-Path $env:TEMP ("studyai-r01-manifest-" + $PID)
-New-Item -ItemType Directory -Path $manifestDir -Force | Out-Null
+# Valid Guid:N and Guid:D: Bridge DB ops disabled by default, allowed only with -AllowCleanGuidEnv
 try {
     $env:ConnectionStrings__DefaultConnection = "Server=localhost;Database=StudyAIDb_Clean_$validGuidN;Trusted_Connection=True;"
-    Assert-True "R01_ValidGuidN_NoOwnershipReq" (Assert-DatabaseSafety) "Guid:N allowed when ownership not required"
-    Assert-ThrowsLike "R01_ValidName_MissingOwnership" { Assert-DatabaseSafety -RequireOwnership -ManifestDir $manifestDir } "DB_SAFETY_VIOLATION:*"
-
-    @{
-        runId = "run-1"; databaseName = "StudyAIDb_Clean_$validGuidN"; ownershipToken = "tok-abc"
-        pid = $PID; status = "active"
-    } | ConvertTo-Json | Set-Content (Join-Path $manifestDir "run-1.json") -Encoding UTF8
-
-    Assert-ThrowsLike "R01_OwnershipMismatch" { Assert-DatabaseSafety -RequireOwnership -ManifestDir $manifestDir -ExpectedOwnershipToken "tok-wrong" } "DB_SAFETY_VIOLATION:*"
-    Assert-True "R01_OwnershipMatch" (Assert-DatabaseSafety -RequireOwnership -ManifestDir $manifestDir -ExpectedOwnershipToken "tok-abc") "Exact ownership verified"
+    Assert-ThrowsLike "R01_BridgeDisabledByDefault" { Assert-DatabaseSafety } "DB_BRIDGE_DISABLED:*"
+    Assert-True "R01_ValidGuidN_AllowCleanGuidEnv" (Assert-DatabaseSafety -AllowCleanGuidEnv) "Guid:N allowed with -AllowCleanGuidEnv"
 
     $env:ConnectionStrings__DefaultConnection = "Server=localhost;Initial Catalog=`"StudyAIDb_Clean_$validGuidD`";Trusted_Connection=True;"
-    Assert-True "R01_ValidQuotedGuidD" (Assert-DatabaseSafety) "Quoted Guid:D allowed"
+    Assert-True "R01_ValidQuotedGuidD_AllowCleanGuidEnv" (Assert-DatabaseSafety -AllowCleanGuidEnv) "Quoted Guid:D allowed with -AllowCleanGuidEnv"
 } finally {
     Remove-Item Env:ConnectionStrings__DefaultConnection -ErrorAction SilentlyContinue
-    Remove-Item $manifestDir -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 # ============================================================================
@@ -131,7 +120,7 @@ try {
 }
 
 # ============================================================================
-# R03 — ALLOWLIST SECRET ISOLATION
+# R03 — ALLOWLIST SECRET ISOLATION, GIT CREDENTIAL ISOLATION & FAIL-CLOSED CODEX
 # ============================================================================
 try {
     $env:STUDYAI_CANARY_SECRET = "canary-value-999"
@@ -139,46 +128,41 @@ try {
     $env:HTTP_PROXY = "http://user:pass@proxy.local:8080"
     $env:GIT_ASKPASS = "C:\secret-askpass.bat"
 
-    $allowlist = @("PATH", "SYSTEMROOT", "COMSPEC", "TEMP", "TMP", "USERPROFILE", "LOCALAPPDATA", "APPDATA", "HOMEDRIVE", "HOMEPATH", "CODEX_HOME", "PATHEXT", "WINDIR", "OS", "NUMBER_OF_PROCESSORS", "PROCESSOR_ARCHITECTURE")
-    $psi = New-Object System.Diagnostics.ProcessStartInfo
-    $psi.FileName = (Get-Process -Id $PID).Path
-    $psi.Arguments = "-NoProfile -Command ""[Environment]::GetEnvironmentVariables().Keys -join ','"""
-    $psi.UseShellExecute = $false
-    $psi.RedirectStandardOutput = $true
-    $psi.CreateNoWindow = $true
-    $saved = @{}
-    foreach ($n in $allowlist) { $v = [Environment]::GetEnvironmentVariable($n); if ($v) { $saved[$n] = $v } }
-    $psi.EnvironmentVariables.Clear()
-    foreach ($kv in $saved.GetEnumerator()) { $psi.EnvironmentVariables[$kv.Key] = $kv.Value }
-    $p = [System.Diagnostics.Process]::Start($psi)
-    $childKeys = $p.StandardOutput.ReadToEnd()
-    $p.WaitForExit()
-    $leaked = ($childKeys -match 'STUDYAI_CANARY_SECRET|AWS_SECRET_ACCESS_KEY|HTTP_PROXY|GIT_ASKPASS')
-    Assert-True "R03_AllowlistBlocksAllCanaries" (-not $leaked) "Child env keys isolated"
+    $envDict = New-Object 'System.Collections.Generic.Dictionary[string,string]' ([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($n in @("PATH", "SYSTEMROOT", "COMSPEC", "TEMP", "TMP", "USERPROFILE", "LOCALAPPDATA", "APPDATA", "HOMEDRIVE", "HOMEPATH", "CODEX_HOME", "PATHEXT", "WINDIR", "OS", "NUMBER_OF_PROCESSORS", "PROCESSOR_ARCHITECTURE")) {
+        $v = [Environment]::GetEnvironmentVariable($n); if ($v) { $envDict[$n] = $v }
+    }
+    $envDict["GIT_CONFIG_NOSYSTEM"] = "1"; $envDict["GIT_CONFIG_GLOBAL"] = "NUL"; $envDict["GCM_PROVIDER"] = "none"; $envDict["GIT_ASKPASS"] = ""
+    $psExe = (Get-Process -Id $PID).Path
+    $jobEnv = New-Object StudyAI.SafeAgent.JobObjectHost
+    try {
+        $resEnv = $jobEnv.RunSuspendedInJob($psExe, @("-NoProfile", "-Command", "[Environment]::GetEnvironmentVariables().Keys -join ','"), $env:TEMP, $envDict, "", 5000)
+        $leaked = ($resEnv.StdOut -match 'STUDYAI_CANARY_SECRET|AWS_SECRET_ACCESS_KEY|HTTP_PROXY')
+        Assert-True "R03_AllowlistBlocksAllCanaries" (-not $leaked -and $resEnv.ExitCode -eq 0) "Child env keys isolated"
+    } finally { $jobEnv.Dispose() }
+
+    Assert-ThrowsLike "R03_AutomatedCodexDisabledByDefault" {
+        Invoke-CodexSandboxed -WorkingDir $env:TEMP -PromptText "x" -SchemaPath "x" -OutputFile "x" -Model "gpt-5.6-sol" -ReasoningEffort "low"
+    } "AUTOMATED_CODEX_DISABLED:*"
 } finally {
     Remove-Item Env:STUDYAI_CANARY_SECRET, Env:AWS_SECRET_ACCESS_KEY, Env:HTTP_PROXY, Env:GIT_ASKPASS -ErrorAction SilentlyContinue
 }
 
 # ============================================================================
-# R04 — JOB OBJECT PROCESS TREE CLEANUP (PARENT -> CHILD -> GRANDCHILD)
+# R04 — RACE-FREE CREATE_SUSPENDED + JOB OBJECT PROCESS TREE CLEANUP
 # ============================================================================
 $psExe = (Get-Process -Id $PID).Path
 $job = New-Object StudyAI.SafeAgent.JobObjectHost
-$psiTree = New-Object System.Diagnostics.ProcessStartInfo
-$psiTree.FileName = $psExe
-$psiTree.Arguments = "-NoProfile -Command ""Start-Process '$psExe' -ArgumentList '-NoProfile -Command Start-Sleep 60' -WindowStyle Hidden; Start-Sleep 60"""
-$psiTree.UseShellExecute = $false
-$psiTree.CreateNoWindow = $true
-$treeProc = [System.Diagnostics.Process]::Start($psiTree)
-$job.AssignProcess($treeProc)
-Start-Sleep -Milliseconds 1200
-$childrenBefore = @(Get-ChildProcessIds -ParentPid $treeProc.Id)
-$job.TerminateAll(137)
-$null = $treeProc.WaitForExit(5000)
-$job.Dispose()
-$childrenAfter = @(Get-ChildProcessIds -ParentPid $treeProc.Id)
-$grandChildrenAlive = @($childrenBefore | Where-Object { $null -ne (Get-Process -Id $_ -ErrorAction SilentlyContinue) })
-Assert-True "R04_JobObjectKillsTree" ($treeProc.HasExited -and $childrenAfter.Count -eq 0 -and $grandChildrenAlive.Count -eq 0) "Before=$($childrenBefore.Count), AliveAfter=$($grandChildrenAlive.Count)"
+try {
+    $envTree = New-Object 'System.Collections.Generic.Dictionary[string,string]' ([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($n in @("PATH", "SYSTEMROOT", "COMSPEC", "TEMP", "TMP")) { $v = [Environment]::GetEnvironmentVariable($n); if ($v) { $envTree[$n] = $v } }
+    $treeCmd = "Start-Process '$psExe' -ArgumentList '-NoProfile -Command Start-Sleep 60' -WindowStyle Hidden; Start-Sleep 60"
+    $resTree = $job.RunSuspendedInJob($psExe, @("-NoProfile", "-Command", $treeCmd), $env:TEMP, $envTree, "", 1500)
+    $childrenAfter = @(Get-ChildProcessIds -ParentPid $resTree.ProcessId)
+    Assert-True "R04_SuspendedJobObjectKillsTree" ($resTree.TimedOut -and $childrenAfter.Count -eq 0) "TimedOut=$($resTree.TimedOut), Orphans=$($childrenAfter.Count)"
+} finally {
+    $job.Dispose()
+}
 
 # ============================================================================
 # R05 — SHA, LINEAGE & FULL SCHEMA VALIDATION
@@ -227,10 +211,29 @@ try {
     $ecoRes = (& (Join-Path $PSScriptRoot "route-task.ps1") -TaskPacketPath $tEco -RepoPath $r06Dir) | ConvertFrom-Json
     Assert-True "R06_EcoDocsTask" ($ecoRes.effective_route -eq "ECO") "ECO accepted for docs"
 
-    # Security change affecting 1 file -> ECO & STANDARD rejected
+    # Security change affecting 1 file -> ECO rejected; ADVANCED disabled
     $tSecBad = "$env:TEMP\r06-secbad-$PID.json"
-    @{ task_id="T2"; route="STANDARD"; objective="Fix auth token check"; base_sha=$bSha; scope_files=@("src/auth.ts"); constraints=@("none"); acceptance_criteria=@("test") } | ConvertTo-Json | Set-Content $tSecBad -Encoding UTF8
-    Assert-ThrowsLike "R06_SecurityRejectsStandard" { & (Join-Path $PSScriptRoot "route-task.ps1") -TaskPacketPath $tSecBad -RepoPath $r06Dir } "ROUTING_POLICY_VIOLATION:*"
+    @{ task_id="T2"; route="ECO"; objective="Fix auth token check"; base_sha=$bSha; scope_files=@("src/auth.ts"); constraints=@("none"); acceptance_criteria=@("test") } | ConvertTo-Json | Set-Content $tSecBad -Encoding UTF8
+    Assert-ThrowsLike "R06_SecurityRejectsEco" { & (Join-Path $PSScriptRoot "route-task.ps1") -TaskPacketPath $tSecBad -RepoPath $r06Dir } "ROUTING_POLICY_VIOLATION:*"
+
+    $tAdv = "$env:TEMP\r06-adv-$PID.json"
+    @{ task_id="T2b"; route="ADVANCED"; objective="Add feature"; base_sha=$bSha; scope_files=@("src/app.ts"); constraints=@("none"); acceptance_criteria=@("test") } | ConvertTo-Json | Set-Content $tAdv -Encoding UTF8
+    Assert-ThrowsLike "R06_AdvancedDisabled" { & (Join-Path $PSScriptRoot "route-task.ps1") -TaskPacketPath $tAdv -RepoPath $r06Dir } "UNSUPPORTED_MODE_ERROR:*"
+
+    # Malformed test summary & argument injection
+    Assert-ThrowsLike "R05_MalformedTestSummaryBlocked" { Test-TestSummaryValid -JsonText '{"head_sha":"bad","status":"PASS","passed":1,"failed":1,"skipped":0,"errors":[],"raw_log_path":"x","suite":"s"}' } "INVALID_TEST_SUMMARY:*"
+    Assert-ThrowsLike "R07_ArgumentInjectionModelBlocked" { Test-CodexConfigArgsSafe -Model "gpt-5.6-sol;calc" -ReasoningEffort "low" } "ARGUMENT_INJECTION_BLOCKED:*"
+    Assert-ThrowsLike "R07_ArgumentInjectionReasoningBlocked" { Test-CodexConfigArgsSafe -Model "gpt-5.6-sol" -ReasoningEffort "high --bypass" } "ARGUMENT_INJECTION_BLOCKED:*"
+
+    # Mandatory entrypoint invoke-dual-agent.ps1 + Context Recovery
+    $tEntry = "$env:TEMP\r06-entry-$PID.json"
+    @{ task_id="T_ECO"; route="ECO"; objective="Update README"; base_sha=$bSha; scope_files=@("README.md"); constraints=@("none"); acceptance_criteria=@("clean") } | ConvertTo-Json | Set-Content $tEntry -Encoding UTF8
+    $entryOut = (& (Join-Path $PSScriptRoot "invoke-dual-agent.ps1") -TaskPacketPath $tEntry -RepoPath $r06Dir) | ConvertFrom-Json
+    Assert-True "R06_InvokeDualAgentEntrypoint" ($entryOut.effective_route -eq "ECO" -and $entryOut.status -eq "ROUTED") "Single entrypoint enforced"
+    Assert-ThrowsLike "ContextRecovery_RejectsStaleSummary" {
+        $staleSum = @{ head_sha=$bSha; suite="s"; status="PASS"; passed=1; failed=0; skipped=0; errors=@(); raw_log_path="x" } | ConvertTo-Json
+        Test-TestSummaryValid -JsonText $staleSum -ExpectedHeadSha ("f" * 40)
+    } "STALE_TEST_SUMMARY:*"
 
     # Scope expansion + missing approval + missing review
     "code" | Set-Content "$r06Dir\extra.ts" -Encoding UTF8

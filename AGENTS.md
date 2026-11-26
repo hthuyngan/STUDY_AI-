@@ -2,6 +2,14 @@
 
 This repository implements an education system for Vietnamese high-school students. Before coding or reviewing, read `docs/plans/AI_TUTOR_MATH10_12_IMPLEMENTATION_PLAN.md` and `docs/prompts/ANTIGRAVITY_MATH10_12_MASTER_PROMPT.md`.
 
+## Persistent progress & Dual-Agent workflow
+
+- At the start of every new session: read `AGENTS.md`, read `PROGRESS.md`, verify local Git `HEAD`/worktree and GitHub PR state, read active `TASK.json`/`PLAN.json`/unresolved findings, and continue without re-reading the full repository or chat history.
+- Supported model: **Dual-Agent** (`Agent 1`: Antigravity Hydrogen Medium as Main Agent & single writer; `Agent 2`: Codex Local CLI as read-only Planner/Reviewer). `ADVANCED` / `invoke_subagent` / multi-worker modes are disabled.
+- Adaptive routing: `ECO` (docs/formatting only) and `STANDARD` (default for code/API/UI/DB/security). Never downgrade high-risk changes to `ECO`.
+- Checkpoints created by the implementation writer are handoff aids, not independent acceptance evidence. Never put secrets, tokens, or connection strings in `PROGRESS.md`.
+- Update `PROGRESS.md` after workstreams, blockers, reviews, remediations, commits/pushes, and before ending a session.
+
 ## Stack and baseline
 
 - React 19, TypeScript, Vite, Bun; .NET 10, ASP.NET Core, EF Core, SQL Server. Preserve Clean Architecture and existing API contracts. 

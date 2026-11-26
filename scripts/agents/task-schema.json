@@ -13,7 +13,7 @@
   ],
   "properties": {
     "task_id": { "type": "string", "minLength": 1 },
-    "route": { "type": "string", "enum": ["ECO", "STANDARD", "ADVANCED"] },
+    "route": { "type": "string", "enum": ["ECO", "STANDARD"] },
     "objective": { "type": "string", "minLength": 1 },
     "base_sha": { "type": "string", "minLength": 7, "maxLength": 40 },
     "plan_ref": { "type": "string" },

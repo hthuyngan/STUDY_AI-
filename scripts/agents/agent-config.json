@@ -1,21 +1,29 @@
 {
-  "schemaVersion": "1.1.0",
+  "schemaVersion": "2.0.0",
   "project": "STUDY_AI-",
-  "orchestrator": {
+  "workflowModel": "dual-agent",
+  "disabledFeatures": [
+    "invoke_subagent",
+    "multi_worker",
+    "parallel_workers",
+    "advanced_three_agent",
+    "high_orchestrator"
+  ],
+  "mainAgent": {
+    "name": "Agent 1 — Antigravity Hydrogen Medium",
     "platform": "Antigravity",
-    "recommendedModel": "Gemini 4 Hydrogen (Medium)",
-    "canModifyAppCode": false,
-    "nativeSubagentModelEnum": ["inherit", "flash_lite", "flash", "pro"],
-    "defaultWorkerModel": "inherit",
-    "note": "Single-session Hydrogen Medium topology: Orchestrator and implementation-worker (Model: inherit) both run on Gemini 4 Hydrogen (Medium). Codex CLI handles read-only planning and review."
-  },
-  "implementationWorker": {
-    "platform": "Antigravity",
-    "recommendedModel": "Gemini 4 Hydrogen (Medium)",
-    "canModifyAppCode": true,
-    "maxConcurrentWorkers": 1
+    "model": "Gemini 4 Hydrogen (Medium)",
+    "roles": [
+      "Orchestrator",
+      "Implementation Developer",
+      "Debugger",
+      "Test Executor",
+      "Progress Manager"
+    ],
+    "singleWriterOnly": true
   },
   "reviewer": {
+    "name": "Agent 2 — Codex Local CLI",
     "platform": "Codex Local CLI",
     "model": "gpt-5.6-sol",
     "sandbox": "read-only",
@@ -33,35 +41,27 @@
   },
   "taskRouting": {
     "defaultRoute": "STANDARD",
+    "supportedRoutes": ["ECO", "STANDARD"],
     "ECO": {
-      "agents": "1 Anti Medium",
+      "agents": "Antigravity Hydrogen Medium",
       "requirePlan": false,
       "requireCodexReview": false,
       "canBypassSecurityOrDbGates": false,
-      "useWhen": "Trivial docs/formatting/local-only edits with zero security, DB, or API impact"
+      "useWhen": "Docs, formatting, and truly low-risk non-code edits only"
     },
     "STANDARD": {
-      "agents": "1 Anti Medium + Codex",
+      "agents": "Antigravity Hydrogen Medium + Codex Local CLI",
       "requirePlan": false,
+      "requirePlanWhenComplex": true,
       "requireTargetedTests": true,
       "requireCodexReview": true,
       "canBypassSecurityOrDbGates": false,
-      "useWhen": "Default for normal coding tasks (CRUD, API, UI, bugfixes) without architectural/DB risk"
-    },
-    "ADVANCED": {
-      "agents": "2 Anti Medium (Orchestrator + Worker) + Codex",
-      "requirePlan": true,
-      "requireFullAcceptanceGates": true,
-      "requireIndependentReview": true,
-      "requireUserApproval": true,
-      "canBypassSecurityOrDbGates": false,
-      "useWhen": "Large phases, security, RBAC, database/migrations, concurrency, or architecture changes"
+      "useWhen": "Default for CRUD, API, frontend, backend, AI Tutor, DB-related code, security, and refactoring"
     }
   },
   "reviewCache": {
-    "enabled": true,
-    "ttlHours": 24,
-    "invalidateOn": ["base_sha", "head_sha", "review_mode", "scope", "policy_hash"]
+    "enabled": false,
+    "reason": "Disabled by default because local TEMP cache lacks independent cryptographic provenance."
   },
   "tokenOptimization": {
     "maxDiffChars": 60000,
@@ -80,6 +80,9 @@
     "autoMerge": false,
     "autoPhaseAdvance": false,
     "persistentDatabaseWrites": false,
+    "databaseOperationsViaBridgeEnabled": false,
+    "automatedCodexEnabled": false,
+    "manualFallbackWorkflow": "Antigravity implements -> User opens independent Codex review -> Antigravity fixes findings",
     "allowDirtyWorktreeForReview": false,
     "requireImmutableSnapshot": true,
     "protectedDatabases": [

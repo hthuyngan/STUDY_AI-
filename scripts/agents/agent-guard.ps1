@@ -1,23 +1,39 @@
 ﻿<#
 .SYNOPSIS
-  Hardened safety guardrails, DB ownership verification, culture-invariant atomic locking,
-  allowlist secret isolation, Windows Job Object process-tree cleanup, strict SHA/schema
-  validation, path canonicalization, and atomic review state for STUDY_AI-.
+  Hardened Dual-Agent security guardrails for STUDY_AI-:
+  - SQL Server connection-string parser + StudyAIDb_Clean_{GUID} whitelist + bridge DB disablement
+  - Culture-invariant & PS 5.1/7-compatible atomic repo-scoped locking with PID-reuse guard
+  - Race-free Win32 CREATE_SUSPENDED + Job Object process-tree cleanup
+  - Strict allowlist environment + Git credential helper isolation
+  - Exact 40-char SHA, lineage, and full JSON schema validation (Task, Plan, Review, TestSummary)
+  - Path canonicalization, reparse-point checks, and atomic review state
 #>
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-# Compile Windows Job Object helper once per PowerShell session (compatible with PS 5.1 and PS 7)
 if (-not ([System.Management.Automation.PSTypeName]'StudyAI.SafeAgent.JobObjectHost').Type) {
     Add-Type -TypeDefinition @"
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading.Tasks;
+using Microsoft.Win32.SafeHandles;
 
 namespace StudyAI.SafeAgent
 {
+    public sealed class ProcessRunResult
+    {
+        public int ProcessId;
+        public int ExitCode;
+        public bool TimedOut;
+        public string StdOut;
+        public string StdErr;
+    }
+
     public sealed class JobObjectHost : IDisposable
     {
         private IntPtr _handle;
@@ -58,8 +74,54 @@ namespace StudyAI.SafeAgent
             public UIntPtr PeakJobMemoryUsed;
         }
 
+        [StructLayout(LayoutKind.Sequential)]
+        private struct SECURITY_ATTRIBUTES
+        {
+            public int nLength;
+            public IntPtr lpSecurityDescriptor;
+            public bool bInheritHandle;
+        }
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        private struct STARTUPINFO
+        {
+            public int cb;
+            public string lpReserved;
+            public string lpDesktop;
+            public string lpTitle;
+            public int dwX;
+            public int dwY;
+            public int dwXSize;
+            public int dwYSize;
+            public int dwXCountChars;
+            public int dwYCountChars;
+            public int dwFillAttribute;
+            public int dwFlags;
+            public short wShowWindow;
+            public short cbReserved2;
+            public IntPtr lpReserved2;
+            public IntPtr hStdInput;
+            public IntPtr hStdOutput;
+            public IntPtr hStdError;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct PROCESS_INFORMATION
+        {
+            public IntPtr hProcess;
+            public IntPtr hThread;
+            public int dwProcessId;
+            public int dwThreadId;
+        }
+
         private const int JobObjectExtendedLimitInformation = 9;
         private const uint JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000;
+        private const uint CREATE_SUSPENDED = 0x00000004;
+        private const uint CREATE_UNICODE_ENVIRONMENT = 0x00000400;
+        private const uint CREATE_NO_WINDOW = 0x08000000;
+        private const int STARTF_USESTDHANDLES = 0x00000100;
+        private const uint HANDLE_FLAG_INHERIT = 0x00000001;
+        private const uint WAIT_OBJECT_0 = 0x00000000;
 
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         private static extern IntPtr CreateJobObjectW(IntPtr lpJobAttributes, string lpName);
@@ -75,6 +137,34 @@ namespace StudyAI.SafeAgent
 
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool CloseHandle(IntPtr hObject);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool CreatePipe(out SafeFileHandle hReadPipe, out SafeFileHandle hWritePipe, ref SECURITY_ATTRIBUTES lpPipeAttributes, int nSize);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool SetHandleInformation(SafeFileHandle hObject, uint dwMask, uint dwFlags);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern bool CreateProcessW(
+            string lpApplicationName,
+            StringBuilder lpCommandLine,
+            IntPtr lpProcessAttributes,
+            IntPtr lpThreadAttributes,
+            bool bInheritHandles,
+            uint dwCreationFlags,
+            IntPtr lpEnvironment,
+            string lpCurrentDirectory,
+            ref STARTUPINFO lpStartupInfo,
+            out PROCESS_INFORMATION lpProcessInformation);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern uint ResumeThread(IntPtr hThread);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern uint WaitForSingleObject(IntPtr hHandle, uint dwMilliseconds);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool GetExitCodeProcess(IntPtr hProcess, out uint lpExitCode);
 
         public JobObjectHost()
         {
@@ -98,28 +188,178 @@ namespace StudyAI.SafeAgent
             }
         }
 
-        public void AssignProcess(Process proc)
+        public static string QuoteArg(string arg)
+        {
+            if (arg == null) return "\"\"";
+            if (arg.Length == 0) return "\"\"";
+            bool needsQuotes = false;
+            foreach (char c in arg)
+            {
+                if (char.IsWhiteSpace(c) || c == '"') { needsQuotes = true; break; }
+            }
+            if (!needsQuotes) return arg;
+            var sb = new StringBuilder();
+            sb.Append('"');
+            int backslashes = 0;
+            foreach (char c in arg)
+            {
+                if (c == '\\') { backslashes++; }
+                else if (c == '"')
+                {
+                    sb.Append('\\', backslashes * 2 + 1);
+                    sb.Append('"');
+                    backslashes = 0;
+                }
+                else
+                {
+                    if (backslashes > 0) { sb.Append('\\', backslashes); backslashes = 0; }
+                    sb.Append(c);
+                }
+            }
+            if (backslashes > 0) sb.Append('\\', backslashes * 2);
+            sb.Append('"');
+            return sb.ToString();
+        }
+
+        public ProcessRunResult RunSuspendedInJob(
+            string exePath,
+            string[] args,
+            string workingDir,
+            IDictionary<string, string> envVars,
+            string stdinText,
+            int timeoutMs)
         {
             if (_handle == IntPtr.Zero) throw new ObjectDisposedException("JobObjectHost");
-            if (!AssignProcessToJobObject(_handle, proc.Handle))
-                throw new Win32Exception(Marshal.GetLastWin32Error(), "AssignProcessToJobObject failed.");
+
+            var sa = new SECURITY_ATTRIBUTES();
+            sa.nLength = Marshal.SizeOf(typeof(SECURITY_ATTRIBUTES));
+            sa.bInheritHandle = true;
+
+            SafeFileHandle stdinRead, stdinWrite, stdoutRead, stdoutWrite, stderrRead, stderrWrite;
+            if (!CreatePipe(out stdinRead, out stdinWrite, ref sa, 0)) throw new Win32Exception(Marshal.GetLastWin32Error());
+            if (!CreatePipe(out stdoutRead, out stdoutWrite, ref sa, 0)) throw new Win32Exception(Marshal.GetLastWin32Error());
+            if (!CreatePipe(out stderrRead, out stderrWrite, ref sa, 0)) throw new Win32Exception(Marshal.GetLastWin32Error());
+
+            SetHandleInformation(stdinWrite, HANDLE_FLAG_INHERIT, 0);
+            SetHandleInformation(stdoutRead, HANDLE_FLAG_INHERIT, 0);
+            SetHandleInformation(stderrRead, HANDLE_FLAG_INHERIT, 0);
+
+            var cmdLine = new StringBuilder();
+            cmdLine.Append(QuoteArg(exePath));
+            if (args != null)
+            {
+                foreach (var a in args) { cmdLine.Append(' ').Append(QuoteArg(a)); }
+            }
+
+            var envBuilder = new StringBuilder();
+            foreach (var kv in envVars)
+            {
+                envBuilder.Append(kv.Key).Append('=').Append(kv.Value ?? string.Empty).Append('\0');
+            }
+            envBuilder.Append('\0');
+            byte[] envBytes = Encoding.Unicode.GetBytes(envBuilder.ToString());
+            IntPtr envPtr = Marshal.AllocHGlobal(envBytes.Length);
+            Marshal.Copy(envBytes, 0, envPtr, envBytes.Length);
+
+            var si = new STARTUPINFO();
+            si.cb = Marshal.SizeOf(typeof(STARTUPINFO));
+            si.dwFlags = STARTF_USESTDHANDLES;
+            si.hStdInput = stdinRead.DangerousGetHandle();
+            si.hStdOutput = stdoutWrite.DangerousGetHandle();
+            si.hStdError = stderrWrite.DangerousGetHandle();
+
+            PROCESS_INFORMATION pi;
+            var result = new ProcessRunResult();
+            try
+            {
+                bool ok = CreateProcessW(
+                    exePath,
+                    cmdLine,
+                    IntPtr.Zero,
+                    IntPtr.Zero,
+                    true,
+                    CREATE_SUSPENDED | CREATE_UNICODE_ENVIRONMENT | CREATE_NO_WINDOW,
+                    envPtr,
+                    workingDir,
+                    ref si,
+                    out pi);
+
+                if (!ok)
+                    throw new Win32Exception(Marshal.GetLastWin32Error(), "CreateProcessW failed for " + exePath);
+
+                result.ProcessId = pi.dwProcessId;
+                stdinRead.Dispose();
+                stdoutWrite.Dispose();
+                stderrWrite.Dispose();
+
+                try
+                {
+                    if (!AssignProcessToJobObject(_handle, pi.hProcess))
+                    {
+                        TerminateJobObject(_handle, 1);
+                        throw new Win32Exception(Marshal.GetLastWin32Error(), "AssignProcessToJobObject failed.");
+                    }
+                    if (ResumeThread(pi.hThread) == unchecked((uint)-1))
+                        throw new Win32Exception(Marshal.GetLastWin32Error(), "ResumeThread failed.");
+                    CloseHandle(pi.hThread);
+                    pi.hThread = IntPtr.Zero;
+
+                    using (var sw = new StreamWriter(new FileStream(stdinWrite, FileAccess.Write), new UTF8Encoding(false)))
+                    {
+                        if (!string.IsNullOrEmpty(stdinText)) sw.Write(stdinText);
+                    }
+
+                    var outTask = Task.Run(() => {
+                        using (var sr = new StreamReader(new FileStream(stdoutRead, FileAccess.Read), Encoding.UTF8))
+                            return sr.ReadToEnd();
+                    });
+                    var errTask = Task.Run(() => {
+                        using (var sr = new StreamReader(new FileStream(stderrRead, FileAccess.Read), Encoding.UTF8))
+                            return sr.ReadToEnd();
+                    });
+
+                    uint waitRes = WaitForSingleObject(pi.hProcess, (uint)timeoutMs);
+                    if (waitRes != WAIT_OBJECT_0)
+                    {
+                        result.TimedOut = true;
+                        TerminateJobObject(_handle, 137);
+                        WaitForSingleObject(pi.hProcess, 5000);
+                    }
+
+                    uint exitCode = 1;
+                    GetExitCodeProcess(pi.hProcess, out exitCode);
+                    result.ExitCode = unchecked((int)exitCode);
+                    Task.WaitAll(new Task[] { outTask, errTask }, 5000);
+                    result.StdOut = outTask.IsCompleted ? outTask.Result : string.Empty;
+                    result.StdErr = errTask.IsCompleted ? errTask.Result : string.Empty;
+                    return result;
+                }
+                finally
+                {
+                    if (pi.hThread != IntPtr.Zero) CloseHandle(pi.hThread);
+                    if (pi.hProcess != IntPtr.Zero) CloseHandle(pi.hProcess);
+                }
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(envPtr);
+                stdinRead.Dispose();
+                stdinWrite.Dispose();
+                stdoutRead.Dispose();
+                stdoutWrite.Dispose();
+                stderrRead.Dispose();
+                stderrWrite.Dispose();
+            }
         }
 
         public void TerminateAll(uint exitCode)
         {
-            if (_handle != IntPtr.Zero)
-            {
-                TerminateJobObject(_handle, exitCode);
-            }
+            if (_handle != IntPtr.Zero) TerminateJobObject(_handle, exitCode);
         }
 
         public void Dispose()
         {
-            if (_handle != IntPtr.Zero)
-            {
-                CloseHandle(_handle);
-                _handle = IntPtr.Zero;
-            }
+            if (_handle != IntPtr.Zero) { CloseHandle(_handle); _handle = IntPtr.Zero; }
         }
     }
 }
@@ -128,10 +368,15 @@ namespace StudyAI.SafeAgent
 
 function Get-AgentConfig {
     param([string]$ConfigPath = (Join-Path $PSScriptRoot "agent-config.json"))
-    if (-not (Test-Path $ConfigPath)) {
-        throw "Agent config not found: $ConfigPath"
-    }
+    if (-not (Test-Path $ConfigPath)) { throw "Agent config not found: $ConfigPath" }
     return (Get-Content $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json)
+}
+
+function Assert-DualAgentModeOnly {
+    param([string]$RequestedRoute = "STANDARD")
+    if ($RequestedRoute -in @("ADVANCED", "MULTI_WORKER", "PARALLEL", "SUBAGENT")) {
+        throw "UNSUPPORTED_MODE_ERROR: Route '$RequestedRoute' is disabled. Only Dual-Agent ECO and STANDARD modes are supported."
+    }
 }
 
 function Get-StringSha256 {
@@ -141,9 +386,7 @@ function Get-StringSha256 {
         $bytes = [System.Text.Encoding]::UTF8.GetBytes($InputText)
         $hash = $sha.ComputeHash($bytes)
         return ([System.BitConverter]::ToString($hash) -replace '-', '').ToLowerInvariant()
-    } finally {
-        $sha.Dispose()
-    }
+    } finally { $sha.Dispose() }
 }
 
 function Redact-SensitiveText {
@@ -157,9 +400,7 @@ function Redact-SensitiveText {
         'sk-[A-Za-z0-9\-_]{16,}',
         '(?i)(ANTIGRAVITY_CSRF_TOKEN|GITHUB_TOKEN|GH_TOKEN|OPENAI_API_KEY|AWS_SECRET_ACCESS_KEY)\s*[:=]\s*[^\s"''\r\n]+'
     )
-    foreach ($p in $patterns) {
-        $redacted = [regex]::Replace($redacted, $p, '[REDACTED]')
-    }
+    foreach ($p in $patterns) { $redacted = [regex]::Replace($redacted, $p, '[REDACTED]') }
     return $redacted
 }
 
@@ -169,80 +410,65 @@ function Write-AgentAuditLog {
         [string]$Message,
         [string]$LogDir = (Join-Path $env:TEMP "studyai-agent-audit")
     )
-    if (-not (Test-Path $LogDir)) {
-        New-Item -ItemType Directory -Path $LogDir -Force | Out-Null
-    }
+    if (-not (Test-Path $LogDir)) { New-Item -ItemType Directory -Path $LogDir -Force | Out-Null }
     $logFile = Join-Path $LogDir ("audit-" + (Get-Date -Format "yyyy-MM-dd") + ".log")
     $entry = "{0} [{1}] {2}" -f (Get-Date).ToUniversalTime().ToString("o", [System.Globalization.CultureInfo]::InvariantCulture), $EventName, (Redact-SensitiveText -Text $Message)
     Add-Content -Path $logFile -Value $entry -Encoding UTF8
 }
 
+function ConvertTo-UtcDateTimeOffset {
+    param($Value)
+    if ($null -eq $Value) { return $null }
+    if ($Value -is [datetimeoffset]) { return $Value.ToUniversalTime() }
+    if ($Value -is [datetime]) { return ([datetimeoffset]$Value.ToUniversalTime()) }
+    $str = [string]$Value
+    if ([string]::IsNullOrWhiteSpace($str)) { return $null }
+    $parsed = [datetimeoffset]::MinValue
+    $ok = [datetimeoffset]::TryParseExact($str, "o", [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::RoundtripKind, [ref]$parsed)
+    if ($ok) { return $parsed.ToUniversalTime() }
+    $ok2 = [datetimeoffset]::TryParse($str, [System.Globalization.CultureInfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::AssumeUniversal, [ref]$parsed)
+    if ($ok2) { return $parsed.ToUniversalTime() }
+    return $null
+}
+
 # ============================================================================
-# R01 — DATABASE SAFETY (Strict Parser + Whitelist + Ownership Verification)
+# R01 — DATABASE SAFETY (Strict Parser + Whitelist + Bridge DB Disablement)
 # ============================================================================
 
 function Parse-SqlConnectionStringStrict {
     param([Parameter(Mandatory = $true)][string]$ConnectionString)
-
-    if ([string]::IsNullOrWhiteSpace($ConnectionString)) {
-        throw "DB_SAFETY_VIOLATION: Connection string is empty."
-    }
+    if ([string]::IsNullOrWhiteSpace($ConnectionString)) { throw "DB_SAFETY_VIOLATION: Connection string is empty." }
 
     $pairs = New-Object System.Collections.Generic.List[object]
-    $i = 0
-    $len = $ConnectionString.Length
+    $i = 0; $len = $ConnectionString.Length
     while ($i -lt $len) {
         while ($i -lt $len -and ($ConnectionString[$i] -eq ';' -or [char]::IsWhiteSpace($ConnectionString[$i]))) { $i++ }
         if ($i -ge $len) { break }
-
         $eqIdx = $ConnectionString.IndexOf('=', $i)
-        if ($eqIdx -lt 0) {
-            throw "DB_SAFETY_VIOLATION: Malformed connection string segment (missing '=')."
-        }
+        if ($eqIdx -lt 0) { throw "DB_SAFETY_VIOLATION: Malformed connection string segment (missing '=')." }
         $key = $ConnectionString.Substring($i, $eqIdx - $i).Trim()
-        if ([string]::IsNullOrWhiteSpace($key)) {
-            throw "DB_SAFETY_VIOLATION: Malformed connection string segment (empty key)."
-        }
+        if ([string]::IsNullOrWhiteSpace($key)) { throw "DB_SAFETY_VIOLATION: Malformed connection string segment (empty key)." }
         $i = $eqIdx + 1
         while ($i -lt $len -and [char]::IsWhiteSpace($ConnectionString[$i])) { $i++ }
-
         $valBuilder = New-Object System.Text.StringBuilder
         if ($i -lt $len -and ($ConnectionString[$i] -eq '"' -or $ConnectionString[$i] -eq "'")) {
-            $quote = $ConnectionString[$i]
-            $i++
-            $closed = $false
+            $quote = $ConnectionString[$i]; $i++; $closed = $false
             while ($i -lt $len) {
                 if ($ConnectionString[$i] -eq $quote) {
-                    if (($i + 1) -lt $len -and $ConnectionString[$i + 1] -eq $quote) {
-                        [void]$valBuilder.Append($quote)
-                        $i += 2
-                        continue
-                    }
-                    $i++
-                    $closed = $true
-                    break
+                    if (($i + 1) -lt $len -and $ConnectionString[$i + 1] -eq $quote) { [void]$valBuilder.Append($quote); $i += 2; continue }
+                    $i++; $closed = $true; break
                 }
-                [void]$valBuilder.Append($ConnectionString[$i])
-                $i++
+                [void]$valBuilder.Append($ConnectionString[$i]); $i++
             }
-            if (-not $closed) {
-                throw "DB_SAFETY_VIOLATION: Unterminated quoted value in connection string."
-            }
+            if (-not $closed) { throw "DB_SAFETY_VIOLATION: Unterminated quoted value in connection string." }
             while ($i -lt $len -and [char]::IsWhiteSpace($ConnectionString[$i])) { $i++ }
-            if ($i -lt $len -and $ConnectionString[$i] -ne ';') {
-                throw "DB_SAFETY_VIOLATION: Unexpected trailing characters after quoted value."
-            }
+            if ($i -lt $len -and $ConnectionString[$i] -ne ';') { throw "DB_SAFETY_VIOLATION: Unexpected trailing characters after quoted value." }
         } else {
-            while ($i -lt $len -and $ConnectionString[$i] -ne ';') {
-                [void]$valBuilder.Append($ConnectionString[$i])
-                $i++
-            }
+            while ($i -lt $len -and $ConnectionString[$i] -ne ';') { [void]$valBuilder.Append($ConnectionString[$i]); $i++ }
         }
-        $val = $valBuilder.ToString().Trim()
-        $pairs.Add([pscustomobject]@{ Key = $key; Value = $val })
+        $pairs.Add([pscustomobject]@{ Key = $key; Value = $valBuilder.ToString().Trim() })
     }
 
-    # Validate via SqlConnectionStringBuilder as secondary structural check
     try {
         Add-Type -AssemblyName System.Data -ErrorAction SilentlyContinue
         $builder = New-Object System.Data.SqlClient.SqlConnectionStringBuilder($ConnectionString)
@@ -251,91 +477,37 @@ function Parse-SqlConnectionStringStrict {
         throw "DB_SAFETY_VIOLATION: Connection string failed SQL Server parser validation."
     }
 
-    # Detect duplicate or conflicting Database / Initial Catalog keys
     $dbEntries = @($pairs | Where-Object { $_.Key -match '^(?i)(Database|Initial\s+Catalog)$' })
-    if ($dbEntries.Count -eq 0) {
-        throw "DB_SAFETY_VIOLATION: Connection string is missing Database or Initial Catalog."
-    }
+    if ($dbEntries.Count -eq 0) { throw "DB_SAFETY_VIOLATION: Connection string is missing Database or Initial Catalog." }
     $uniqueDbValues = @($dbEntries | ForEach-Object { $_.Value.Trim('[', ']') } | Select-Object -Unique)
     if ($dbEntries.Count -gt 1 -and $uniqueDbValues.Count -gt 1) {
         throw "DB_SAFETY_VIOLATION: Conflicting duplicate Database / Initial Catalog keys detected."
     }
-
     $dbName = $dbEntries[0].Value.Trim('[', ']')
-    if ([string]::IsNullOrWhiteSpace($dbName)) {
-        throw "DB_SAFETY_VIOLATION: Target database name is empty."
-    }
-
-    return [pscustomobject]@{
-        DatabaseName = $dbName
-        Pairs        = $pairs
-    }
+    if ([string]::IsNullOrWhiteSpace($dbName)) { throw "DB_SAFETY_VIOLATION: Target database name is empty." }
+    return [pscustomobject]@{ DatabaseName = $dbName; Pairs = $pairs }
 }
 
 function Test-AuthorizedDisposableDatabaseName {
     param([string]$DatabaseName)
     if ([string]::IsNullOrWhiteSpace($DatabaseName)) { return $false }
     $normalized = $DatabaseName.Trim().Trim('[', ']')
-    if ($normalized -match '^(?i)StudyAIDb_Clean_([0-9a-fA-F]{32}|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$') {
-        return $true
-    }
-    return $false
-}
-
-function Assert-DatabaseOwnershipManifest {
-    param(
-        [Parameter(Mandatory = $true)][string]$DatabaseName,
-        [string]$ManifestDir = $(if ($env:STUDYAI_DISPOSABLE_MANIFEST_DIR) { $env:STUDYAI_DISPOSABLE_MANIFEST_DIR } else { Join-Path $env:TEMP "studyai-disposable-runs" }),
-        [string]$ExpectedOwnershipToken = ""
-    )
-    if (-not (Test-Path $ManifestDir)) {
-        throw "DB_SAFETY_VIOLATION: Disposable database ownership manifest directory not found."
-    }
-    $manifestFiles = @(Get-ChildItem -Path $ManifestDir -Filter "*.json" -File -ErrorAction SilentlyContinue)
-    $matched = $null
-    foreach ($mf in $manifestFiles) {
-        try {
-            $entry = Get-Content $mf.FullName -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop
-            if ($entry.databaseName -eq $DatabaseName) {
-                $matched = $entry
-                break
-            }
-        } catch {}
-    }
-    if ($null -eq $matched) {
-        throw "DB_SAFETY_VIOLATION: Database '$DatabaseName' has no ownership manifest entry."
-    }
-    if ($matched.status -notin @("provisioning", "active")) {
-        throw "DB_SAFETY_VIOLATION: Database '$DatabaseName' manifest status '$($matched.status)' is not active."
-    }
-    if (-not [string]::IsNullOrWhiteSpace($ExpectedOwnershipToken) -and $matched.ownershipToken -ne $ExpectedOwnershipToken) {
-        throw "DB_SAFETY_VIOLATION: Ownership token mismatch for database '$DatabaseName'."
-    }
-    return $matched
+    return ($normalized -match '^(?i)StudyAIDb_Clean_([0-9a-fA-F]{32}|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$')
 }
 
 function Assert-DatabaseSafety {
-    param(
-        [switch]$RequireOwnership,
-        [string]$ManifestDir = $(if ($env:STUDYAI_DISPOSABLE_MANIFEST_DIR) { $env:STUDYAI_DISPOSABLE_MANIFEST_DIR } else { Join-Path $env:TEMP "studyai-disposable-runs" }),
-        [string]$ExpectedOwnershipToken = ""
-    )
+    param([switch]$AllowCleanGuidEnv)
     $envKeys = @("ConnectionStrings__DefaultConnection", "STUDYAI_CONNECTION_STRING", "DATABASE_URL", "SQL_CONNECTION_STRING")
-    $foundAny = $false
     foreach ($key in $envKeys) {
         $val = [Environment]::GetEnvironmentVariable($key)
         if ([string]::IsNullOrWhiteSpace($val)) { continue }
-        $foundAny = $true
         $parsed = Parse-SqlConnectionStringStrict -ConnectionString $val
         if (-not (Test-AuthorizedDisposableDatabaseName -DatabaseName $parsed.DatabaseName)) {
             throw "DB_SAFETY_VIOLATION: Database '$($parsed.DatabaseName)' in '$key' is rejected. Only StudyAIDb_Clean_{Guid:N|Guid:D} is permitted."
         }
-        if ($RequireOwnership -or $env:STUDYAI_ENFORCE_DB_OWNERSHIP -eq "1" -or -not [string]::IsNullOrWhiteSpace($ExpectedOwnershipToken)) {
-            $null = Assert-DatabaseOwnershipManifest -DatabaseName $parsed.DatabaseName -ManifestDir $ManifestDir -ExpectedOwnershipToken $ExpectedOwnershipToken
+        if (-not $AllowCleanGuidEnv) {
+            throw "DB_BRIDGE_DISABLED: Database operations via Agent Bridge are disabled without authoritative disposableDb runner ownership."
         }
-    }
-    if ($RequireOwnership -and -not $foundAny) {
-        throw "DB_SAFETY_VIOLATION: No database connection string found while ownership verification was requested."
     }
     return $true
 }
@@ -350,9 +522,7 @@ function Test-PathHasReparsePoint {
     while (-not [string]::IsNullOrWhiteSpace($current)) {
         if (Test-Path -LiteralPath $current) {
             $item = Get-Item -LiteralPath $current -Force -ErrorAction SilentlyContinue
-            if ($null -ne $item -and ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint)) {
-                return $true
-            }
+            if ($null -ne $item -and ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint)) { return $true }
         }
         $parent = Split-Path -Path $current -Parent
         if ($parent -eq $current) { break }
@@ -366,23 +536,15 @@ function Resolve-ApprovedArtifactPath {
         [Parameter(Mandatory = $true)][string]$CandidatePath,
         [string]$RepoPath = ""
     )
-    if ([string]::IsNullOrWhiteSpace($CandidatePath)) {
-        throw "PATH_VALIDATION_ERROR: Artifact path cannot be empty."
-    }
-    if ($CandidatePath -match '(^|[\\/])\.\.([\\/]|$)') {
-        throw "PATH_VALIDATION_ERROR: Path traversal ('..') is forbidden: $CandidatePath"
-    }
+    if ([string]::IsNullOrWhiteSpace($CandidatePath)) { throw "PATH_VALIDATION_ERROR: Artifact path cannot be empty." }
+    if ($CandidatePath -match '(^|[\\/])\.\.([\\/]|$)') { throw "PATH_VALIDATION_ERROR: Path traversal ('..') is forbidden: $CandidatePath" }
     $fullCandidate = [System.IO.Path]::GetFullPath($CandidatePath)
-    if (Test-PathHasReparsePoint -FullPath $fullCandidate) {
-        throw "PATH_VALIDATION_ERROR: Symlink or junction detected in path: $fullCandidate"
-    }
+    if (Test-PathHasReparsePoint -FullPath $fullCandidate) { throw "PATH_VALIDATION_ERROR: Symlink or junction detected in path: $fullCandidate" }
 
     $approvedRoots = New-Object System.Collections.Generic.List[string]
-    $tempRoot = [System.IO.Path]::GetFullPath($env:TEMP)
-    $approvedRoots.Add($tempRoot)
+    $approvedRoots.Add([System.IO.Path]::GetFullPath($env:TEMP))
     if (-not [string]::IsNullOrWhiteSpace($RepoPath)) {
-        $repoArtifacts = [System.IO.Path]::GetFullPath((Join-Path $RepoPath "docs\agents\.artifacts"))
-        $approvedRoots.Add($repoArtifacts)
+        $approvedRoots.Add([System.IO.Path]::GetFullPath((Join-Path $RepoPath "docs\agents\.artifacts")))
     }
 
     $inApprovedRoot = $false
@@ -390,15 +552,11 @@ function Resolve-ApprovedArtifactPath {
         $rootWithSep = $root.TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
         if ($fullCandidate.StartsWith($rootWithSep, [System.StringComparison]::OrdinalIgnoreCase) -or
             $fullCandidate.Equals($root, [System.StringComparison]::OrdinalIgnoreCase)) {
-            $inApprovedRoot = $true
-            break
+            $inApprovedRoot = $true; break
         }
     }
-    if (-not $inApprovedRoot) {
-        throw "PATH_VALIDATION_ERROR: Path '$fullCandidate' is outside approved artifact directories."
-    }
+    if (-not $inApprovedRoot) { throw "PATH_VALIDATION_ERROR: Path '$fullCandidate' is outside approved artifact directories." }
 
-    # Prevent overwriting source or config files even inside temp fixtures
     if (-not [string]::IsNullOrWhiteSpace($RepoPath)) {
         $fullRepo = [System.IO.Path]::GetFullPath($RepoPath).TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
         $repoArtifactsPrefix = [System.IO.Path]::GetFullPath((Join-Path $RepoPath "docs\agents\.artifacts")).TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
@@ -407,12 +565,11 @@ function Resolve-ApprovedArtifactPath {
             throw "PATH_VALIDATION_ERROR: Refusing artifact write inside repository source/config tree: $fullCandidate"
         }
     }
-
     return $fullCandidate
 }
 
 # ============================================================================
-# R02 — CULTURE-INVARIANT ATOMIC LOCKING & SINGLE-WRITER ENFORCEMENT
+# R02 — CULTURE-INVARIANT & PS 5.1/7 ATOMIC LOCKING
 # ============================================================================
 
 function Get-RepoLockScopeKey {
@@ -426,19 +583,13 @@ function Test-LockOwnerAlive {
     if ($null -eq $LockObj -or $null -eq $LockObj.pid) { return $false }
     $proc = Get-Process -Id ([int]$LockObj.pid) -ErrorAction SilentlyContinue
     if ($null -eq $proc) { return $false }
-    if (-not [string]::IsNullOrWhiteSpace([string]$LockObj.processStartTimeUtc)) {
+    $expectedStart = ConvertTo-UtcDateTimeOffset -Value $LockObj.processStartTimeUtc
+    if ($null -ne $expectedStart) {
         try {
-            $expectedStart = [datetimeoffset]::ParseExact([string]$LockObj.processStartTimeUtc, "o", [System.Globalization.CultureInfo]::InvariantCulture)
             $actualStart = [datetimeoffset]$proc.StartTime.ToUniversalTime()
-            # PID reuse guard: if start time differs by more than 2 seconds, it's a different process
-            if ([Math]::Abs(($actualStart - $expectedStart).TotalSeconds) -gt 2) {
-                return $false
-            }
+            if ([Math]::Abs(($actualStart - $expectedStart).TotalSeconds) -gt 2) { return $false }
         } catch {
-            # Some protected/elevated processes may deny StartTime access; check processName fallback
-            if (-not [string]::IsNullOrWhiteSpace([string]$LockObj.processName) -and $proc.ProcessName -ne $LockObj.processName) {
-                return $false
-            }
+            if (-not [string]::IsNullOrWhiteSpace([string]$LockObj.processName) -and $proc.ProcessName -ne $LockObj.processName) { return $false }
         }
     }
     return $true
@@ -452,49 +603,25 @@ function Acquire-AgentLock {
         [int]$StaleMinutes = 25,
         [string]$LockDir = (Join-Path $env:TEMP "studyai-agent-locks")
     )
-    if (-not (Test-Path $LockDir)) {
-        New-Item -ItemType Directory -Path $LockDir -Force | Out-Null
-    }
-    $scopedName = if ([string]::IsNullOrWhiteSpace($RepoPath)) {
-        $LockName
-    } else {
-        "$LockName-" + (Get-RepoLockScopeKey -RepoPath $RepoPath)
-    }
+    if (-not (Test-Path $LockDir)) { New-Item -ItemType Directory -Path $LockDir -Force | Out-Null }
+    $scopedName = if ([string]::IsNullOrWhiteSpace($RepoPath)) { $LockName } else { "$LockName-" + (Get-RepoLockScopeKey -RepoPath $RepoPath) }
     $lockPath = Join-Path $LockDir "$scopedName.lock"
 
     if (Test-Path $lockPath) {
         $existing = $null
-        try {
-            $existing = Get-Content $lockPath -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop
-        } catch {
-            throw "CONCURRENT_EXECUTION_BLOCKED: Unreadable lock file '$lockPath' exists; fail closed."
-        }
+        try { $existing = Get-Content $lockPath -Raw -Encoding UTF8 | ConvertFrom-Json -ErrorAction Stop }
+        catch { throw "CONCURRENT_EXECUTION_BLOCKED: Unreadable lock file '$lockPath' exists; fail closed." }
 
         $alive = Test-LockOwnerAlive -LockObj $existing
-        $createdUtc = [datetimeoffset]::MinValue
-        $parsedOk = $false
-        try {
-            $createdUtc = [datetimeoffset]::ParseExact(
-                [string]$existing.createdAtUtc,
-                "o",
-                [System.Globalization.CultureInfo]::InvariantCulture,
-                [System.Globalization.DateTimeStyles]::RoundtripKind
-            )
-            $parsedOk = $true
-        } catch {
-            $parsedOk = $false
-        }
-        if (-not $parsedOk) {
-            throw "CONCURRENT_EXECUTION_BLOCKED: Lock '$scopedName' has invalid timestamp; fail closed."
-        }
+        $createdUtc = ConvertTo-UtcDateTimeOffset -Value $existing.createdAtUtc
+        if ($null -eq $createdUtc) { throw "CONCURRENT_EXECUTION_BLOCKED: Lock '$scopedName' has invalid timestamp; fail closed." }
         $ageMinutes = ((Get-Date).ToUniversalTime() - $createdUtc.UtcDateTime).TotalMinutes
         if ($alive -and $ageMinutes -lt $StaleMinutes) {
-            throw "CONCURRENT_EXECUTION_BLOCKED: Lock '$scopedName' ($Role) held by live PID $($existing.pid) since $($existing.createdAtUtc)."
+            throw "CONCURRENT_EXECUTION_BLOCKED: Lock '$scopedName' ($Role) held by live PID $($existing.pid) since $($createdUtc.ToString('o'))."
         }
         if ($alive -and $ageMinutes -ge $StaleMinutes) {
             throw "CONCURRENT_EXECUTION_BLOCKED: Lock '$scopedName' ($Role) exceeds ${StaleMinutes}m but owner PID $($existing.pid) is still alive; never delete live lock."
         }
-        # Only remove lock when owner process is confirmed dead (stale or PID reused)
         Remove-Item $lockPath -Force -ErrorAction SilentlyContinue
     }
 
@@ -515,14 +642,9 @@ function Acquire-AgentLock {
     try {
         $bytes = [System.Text.Encoding]::UTF8.GetBytes($payload)
         $fs.Write($bytes, 0, $bytes.Length)
-    } finally {
-        $fs.Dispose()
-    }
-    return [pscustomobject]@{
-        LockPath = $lockPath
-        LockId   = $lockId
-        Pid      = $PID
-    }
+    } finally { $fs.Dispose() }
+
+    return [pscustomobject]@{ LockPath = $lockPath; LockId = $lockId; Pid = $PID }
 }
 
 function Release-AgentLock {
@@ -536,16 +658,14 @@ function Release-AgentLock {
             if ($existing.lockId -ne $LockHandle.LockId) {
                 throw "LOCK_OWNERSHIP_ERROR: Refusing to release lock owned by another run ($($existing.lockId))."
             }
-        } catch {
-            if ($_.Exception.Message -like "LOCK_OWNERSHIP_ERROR:*") { throw }
-        }
+        } catch { if ($_.Exception.Message -like "LOCK_OWNERSHIP_ERROR:*") { throw } }
     }
     Remove-Item $lockPath -Force -ErrorAction SilentlyContinue
 }
 
 function Enter-WorkerLock {
     param([Parameter(Mandatory = $true)][string]$RepoPath)
-    return (Acquire-AgentLock -LockName "studyai-worker" -RepoPath $RepoPath -Role "implementation-worker" -StaleMinutes 60)
+    return (Acquire-AgentLock -LockName "studyai-worker" -RepoPath $RepoPath -Role "main-agent-writer" -StaleMinutes 60)
 }
 
 function Exit-WorkerLock {
@@ -562,11 +682,8 @@ function Resolve-GitCommitSha {
         [Parameter(Mandatory = $true)][string]$RepoPath,
         [Parameter(Mandatory = $true)][AllowEmptyString()][string]$ShaOrRef
     )
-    if ([string]::IsNullOrWhiteSpace($ShaOrRef)) {
-        throw "SHA_VALIDATION_ERROR: Commit SHA or ref cannot be empty."
-    }
-    $prevEap = $ErrorActionPreference
-    $ErrorActionPreference = "Continue"
+    if ([string]::IsNullOrWhiteSpace($ShaOrRef)) { throw "SHA_VALIDATION_ERROR: Commit SHA or ref cannot be empty." }
+    $prevEap = $ErrorActionPreference; $ErrorActionPreference = "Continue"
     $resolved = (& git -C $RepoPath rev-parse --verify "$ShaOrRef^{commit}" 2>&1 | Out-String).Trim()
     $exitCode = $LASTEXITCODE
     $ErrorActionPreference = $prevEap
@@ -582,20 +699,16 @@ function Assert-AncestorSha {
         [Parameter(Mandatory = $true)][string]$AncestorSha,
         [Parameter(Mandatory = $true)][string]$DescendantSha
     )
-    $prevEap = $ErrorActionPreference
-    $ErrorActionPreference = "Continue"
+    $prevEap = $ErrorActionPreference; $ErrorActionPreference = "Continue"
     & git -C $RepoPath merge-base --is-ancestor $AncestorSha $DescendantSha 2>&1 | Out-Null
     $exitCode = $LASTEXITCODE
     $ErrorActionPreference = $prevEap
-    if ($exitCode -ne 0) {
-        throw "STALE_REVIEW_LINEAGE: SHA '$AncestorSha' is not an ancestor of '$DescendantSha'."
-    }
+    if ($exitCode -ne 0) { throw "STALE_REVIEW_LINEAGE: SHA '$AncestorSha' is not an ancestor of '$DescendantSha'." }
 }
 
 function Get-GitState {
     param([string]$RepoPath)
-    $prevEap = $ErrorActionPreference
-    $ErrorActionPreference = "Continue"
+    $prevEap = $ErrorActionPreference; $ErrorActionPreference = "Continue"
     $branch = (& git -C $RepoPath rev-parse --abbrev-ref HEAD 2>&1 | Out-String).Trim()
     if ($LASTEXITCODE -ne 0) { $ErrorActionPreference = $prevEap; throw "GIT_ERROR: Failed to read branch in $RepoPath" }
     $headSha = (& git -C $RepoPath rev-parse HEAD 2>&1 | Out-String).Trim()
@@ -605,19 +718,13 @@ function Get-GitState {
     $ErrorActionPreference = $prevEap
     $dirtyFiles = @($porcelain | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) })
     return [pscustomobject]@{
-        RepoPath   = $RepoPath
-        Branch     = $branch
-        HeadSha    = $headSha.ToLowerInvariant()
-        IsDirty    = ($dirtyFiles.Count -gt 0)
-        DirtyFiles = $dirtyFiles
+        RepoPath = $RepoPath; Branch = $branch; HeadSha = $headSha.ToLowerInvariant()
+        IsDirty = ($dirtyFiles.Count -gt 0); DirtyFiles = $dirtyFiles
     }
 }
 
 function Assert-CleanWorktree {
-    param(
-        [string]$RepoPath,
-        [switch]$AllowDirty
-    )
+    param([string]$RepoPath, [switch]$AllowDirty)
     $state = Get-GitState -RepoPath $RepoPath
     if ($state.IsDirty -and -not $AllowDirty) {
         throw ("DIRTY_WORKTREE: Refusing automated review/snapshot on dirty worktree ({0} uncommitted items)." -f $state.DirtyFiles.Count)
@@ -626,22 +733,13 @@ function Assert-CleanWorktree {
 }
 
 function Assert-ObjectMatchesSchema {
-    param(
-        [Parameter(Mandatory = $true)]$Obj,
-        [Parameter(Mandatory = $true)][string]$SchemaName,
-        [string[]]$RequiredProps,
-        [string[]]$AllowedProps
-    )
+    param([Parameter(Mandatory = $true)]$Obj, [Parameter(Mandatory = $true)][string]$SchemaName, [string[]]$RequiredProps, [string[]]$AllowedProps)
     if ($null -eq $Obj) { throw "SCHEMA_VALIDATION_ERROR: $SchemaName object is null." }
     foreach ($req in $RequiredProps) {
-        if ($null -eq $Obj.PSObject.Properties[$req]) {
-            throw "SCHEMA_VALIDATION_ERROR: $SchemaName missing required property '$req'."
-        }
+        if ($null -eq $Obj.PSObject.Properties[$req]) { throw "SCHEMA_VALIDATION_ERROR: $SchemaName missing required property '$req'." }
     }
     foreach ($prop in $Obj.PSObject.Properties) {
-        if ($prop.Name -notin $AllowedProps) {
-            throw "SCHEMA_VALIDATION_ERROR: $SchemaName contains disallowed property '$($prop.Name)'."
-        }
+        if ($prop.Name -notin $AllowedProps) { throw "SCHEMA_VALIDATION_ERROR: $SchemaName contains disallowed property '$($prop.Name)'." }
     }
 }
 
@@ -652,7 +750,8 @@ function Test-TaskPacketValid {
         -RequiredProps @("task_id", "route", "objective", "base_sha", "scope_files", "constraints", "acceptance_criteria") `
         -AllowedProps @("task_id", "route", "objective", "base_sha", "plan_ref", "scope_files", "constraints", "acceptance_criteria")
     if ([string]::IsNullOrWhiteSpace([string]$obj.task_id)) { throw "INVALID_TASK_PACKET: task_id is empty." }
-    if ($obj.route -notin @("ECO", "STANDARD", "ADVANCED")) { throw "INVALID_TASK_PACKET: Invalid route '$($obj.route)'." }
+    Assert-DualAgentModeOnly -RequestedRoute ([string]$obj.route)
+    if ($obj.route -notin @("ECO", "STANDARD")) { throw "INVALID_TASK_PACKET: Invalid route '$($obj.route)'. Only ECO and STANDARD are supported." }
     if ([string]::IsNullOrWhiteSpace([string]$obj.objective)) { throw "INVALID_TASK_PACKET: objective is empty." }
     if ([string]$obj.base_sha -notmatch '^[0-9a-fA-F]{40}$') { throw "INVALID_TASK_PACKET: base_sha must be a full 40-char hex SHA." }
     if ($obj.scope_files.Count -eq 0 -or $obj.constraints.Count -eq 0 -or $obj.acceptance_criteria.Count -eq 0) {
@@ -662,10 +761,7 @@ function Test-TaskPacketValid {
 }
 
 function Test-PlanOutputValid {
-    param(
-        [Parameter(Mandatory = $true)][string]$JsonText,
-        [string]$ExpectedBaseSha = ""
-    )
+    param([Parameter(Mandatory = $true)][string]$JsonText, [string]$ExpectedBaseSha = "")
     try { $obj = $JsonText | ConvertFrom-Json -ErrorAction Stop } catch { throw "INVALID_PLAN_OUTPUT: Not valid JSON." }
     Assert-ObjectMatchesSchema -Obj $obj -SchemaName "plan-schema" `
         -RequiredProps @("task_title", "base_sha", "scope_files", "risk_level", "requires_human_approval", "workstreams", "acceptance_criteria", "database_safety_notes") `
@@ -686,31 +782,35 @@ function Test-PlanOutputValid {
     return $obj
 }
 
-function Test-ReviewOutputValid {
-    param(
-        [Parameter(Mandatory = $true)][string]$JsonText,
-        [Parameter(Mandatory = $true)][string]$ExpectedHeadSha,
-        [string]$ExpectedBaseSha = ""
-    )
-    try {
-        $obj = $JsonText | ConvertFrom-Json -ErrorAction Stop
-    } catch {
-        throw "INVALID_REVIEW_OUTPUT: Output is not valid JSON."
+function Test-TestSummaryValid {
+    param([Parameter(Mandatory = $true)][string]$JsonText, [string]$ExpectedHeadSha = "")
+    try { $obj = $JsonText | ConvertFrom-Json -ErrorAction Stop } catch { throw "INVALID_TEST_SUMMARY: Not valid JSON." }
+    Assert-ObjectMatchesSchema -Obj $obj -SchemaName "test-summary-schema" `
+        -RequiredProps @("head_sha", "suite", "status", "passed", "failed", "skipped", "errors", "raw_log_path") `
+        -AllowedProps @("head_sha", "suite", "status", "passed", "failed", "skipped", "duration_ms", "errors", "raw_log_path")
+    if ([string]$obj.head_sha -notmatch '^[0-9a-fA-F]{40}$') { throw "INVALID_TEST_SUMMARY: head_sha must be a full 40-char hex SHA." }
+    if (-not [string]::IsNullOrWhiteSpace($ExpectedHeadSha) -and -not $obj.head_sha.Equals($ExpectedHeadSha, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "STALE_TEST_SUMMARY: head_sha '$($obj.head_sha)' does not match expected '$ExpectedHeadSha'."
     }
+    if ($obj.status -notin @("PASS", "FAIL", "ERROR")) { throw "INVALID_TEST_SUMMARY: Invalid status '$($obj.status)'." }
+    if ([int]$obj.passed -lt 0 -or [int]$obj.failed -lt 0 -or [int]$obj.skipped -lt 0) {
+        throw "INVALID_TEST_SUMMARY: Test counts cannot be negative."
+    }
+    if ($obj.status -eq "PASS" -and ([int]$obj.failed -gt 0 -or $obj.errors.Count -gt 0)) {
+        throw "INVALID_TEST_SUMMARY: status cannot be PASS when failed > 0 or errors are present."
+    }
+    return $obj
+}
 
+function Test-ReviewOutputValid {
+    param([Parameter(Mandatory = $true)][string]$JsonText, [Parameter(Mandatory = $true)][string]$ExpectedHeadSha, [string]$ExpectedBaseSha = "")
+    try { $obj = $JsonText | ConvertFrom-Json -ErrorAction Stop } catch { throw "INVALID_REVIEW_OUTPUT: Output is not valid JSON." }
     Assert-ObjectMatchesSchema -Obj $obj -SchemaName "review-schema" `
         -RequiredProps @("base_sha", "head_sha", "reviewed_scope", "verdict", "summary", "findings") `
         -AllowedProps @("base_sha", "head_sha", "reviewed_scope", "verdict", "summary", "findings")
-
-    if ($obj.verdict -notin @("PASS", "BLOCKED", "ERROR")) {
-        throw "INVALID_REVIEW_OUTPUT: Invalid verdict '$($obj.verdict)'."
-    }
-    if ([string]::IsNullOrWhiteSpace([string]$obj.summary)) {
-        throw "INVALID_REVIEW_OUTPUT: summary cannot be empty."
-    }
-
-    $actualHead = [string]$obj.head_sha
-    $actualBase = [string]$obj.base_sha
+    if ($obj.verdict -notin @("PASS", "BLOCKED", "ERROR")) { throw "INVALID_REVIEW_OUTPUT: Invalid verdict '$($obj.verdict)'." }
+    if ([string]::IsNullOrWhiteSpace([string]$obj.summary)) { throw "INVALID_REVIEW_OUTPUT: summary cannot be empty." }
+    $actualHead = [string]$obj.head_sha; $actualBase = [string]$obj.base_sha
     if ($actualHead -notmatch '^[0-9a-fA-F]{40}$' -or -not $actualHead.Equals($ExpectedHeadSha, [System.StringComparison]::OrdinalIgnoreCase)) {
         throw "STALE_REVIEW_REJECTED: Review head_sha '$actualHead' does not exactly match expected 40-char SHA '$ExpectedHeadSha'."
     }
@@ -718,28 +818,17 @@ function Test-ReviewOutputValid {
         ($actualBase -notmatch '^[0-9a-fA-F]{40}$' -or -not $actualBase.Equals($ExpectedBaseSha, [System.StringComparison]::OrdinalIgnoreCase))) {
         throw "STALE_REVIEW_REJECTED: Review base_sha '$actualBase' does not exactly match expected 40-char SHA '$ExpectedBaseSha'."
     }
-
     $findingProps = @("finding_id", "severity", "file_path", "line_range", "evidence", "root_cause", "recommended_fix", "required_regression_test")
     $hasBlockingFinding = $false
     foreach ($f in $obj.findings) {
         Assert-ObjectMatchesSchema -Obj $f -SchemaName "review-finding" -RequiredProps $findingProps -AllowedProps $findingProps
         foreach ($fp in $findingProps) {
-            if ([string]::IsNullOrWhiteSpace([string]$f.$fp)) {
-                throw "INVALID_REVIEW_OUTPUT: Finding field '$fp' cannot be empty."
-            }
+            if ([string]::IsNullOrWhiteSpace([string]$f.$fp)) { throw "INVALID_REVIEW_OUTPUT: Finding field '$fp' cannot be empty." }
         }
-        if ($f.severity -notin @("P0", "P1", "P2", "P3")) {
-            throw "INVALID_REVIEW_OUTPUT: Invalid finding severity '$($f.severity)'."
-        }
-        if ($f.severity -in @("P0", "P1")) {
-            $hasBlockingFinding = $true
-        }
+        if ($f.severity -notin @("P0", "P1", "P2", "P3")) { throw "INVALID_REVIEW_OUTPUT: Invalid finding severity '$($f.severity)'." }
+        if ($f.severity -in @("P0", "P1")) { $hasBlockingFinding = $true }
     }
-
-    if ($obj.verdict -eq "PASS" -and $hasBlockingFinding) {
-        throw "INVALID_REVIEW_OUTPUT: Verdict cannot be PASS when P0/P1 findings are present."
-    }
-
+    if ($obj.verdict -eq "PASS" -and $hasBlockingFinding) { throw "INVALID_REVIEW_OUTPUT: Verdict cannot be PASS when P0/P1 findings are present." }
     return $obj
 }
 
@@ -750,9 +839,7 @@ function Test-ReviewOutputValid {
 function Get-ReviewRoundStatePath {
     param([string]$Branch, [string]$BaseSha)
     $stateDir = Join-Path $env:TEMP "studyai-agent-state"
-    if (-not (Test-Path $stateDir)) {
-        New-Item -ItemType Directory -Path $stateDir -Force | Out-Null
-    }
+    if (-not (Test-Path $stateDir)) { New-Item -ItemType Directory -Path $stateDir -Force | Out-Null }
     $safeKey = (Get-StringSha256 -InputText "$Branch|$BaseSha").Substring(0, 20)
     return (Join-Path $stateDir "$safeKey-rounds.json")
 }
@@ -769,16 +856,7 @@ function Get-ReviewRoundState {
     param([string]$Branch, [string]$BaseSha)
     $path = Get-ReviewRoundStatePath -Branch $Branch -BaseSha $BaseSha
     if (-not (Test-Path $path)) {
-        return [pscustomobject]@{
-            branch               = $Branch
-            baseSha              = $BaseSha
-            attempted            = 0
-            completed            = 0
-            failed               = 0
-            lastReviewedSha      = ""
-            lastVerdict          = ""
-            unresolvedFindingIds = @()
-        }
+        return [pscustomobject]@{ branch = $Branch; baseSha = $BaseSha; attempted = 0; completed = 0; failed = 0; lastReviewedSha = ""; lastVerdict = ""; unresolvedFindingIds = @() }
     }
     return (Get-Content $path -Raw -Encoding UTF8 | ConvertFrom-Json)
 }
@@ -791,54 +869,65 @@ function Start-ReviewAttempt {
     }
     $newAttempt = [int]$state.attempted + 1
     $updated = [ordered]@{
-        branch               = $Branch
-        baseSha              = $BaseSha
-        attempted            = $newAttempt
-        completed            = [int]$state.completed
-        failed               = [int]$state.failed
-        lastReviewedSha      = [string]$state.lastReviewedSha
-        lastVerdict          = [string]$state.lastVerdict
+        branch = $Branch; baseSha = $BaseSha; attempted = $newAttempt
+        completed = [int]$state.completed; failed = [int]$state.failed
+        lastReviewedSha = [string]$state.lastReviewedSha; lastVerdict = [string]$state.lastVerdict
         unresolvedFindingIds = @($state.unresolvedFindingIds)
-        updatedAtUtc         = (Get-Date).ToUniversalTime().ToString("o", [System.Globalization.CultureInfo]::InvariantCulture)
+        updatedAtUtc = (Get-Date).ToUniversalTime().ToString("o", [System.Globalization.CultureInfo]::InvariantCulture)
     }
     Write-AtomicJsonFile -Path (Get-ReviewRoundStatePath -Branch $Branch -BaseSha $BaseSha) -Content ($updated | ConvertTo-Json -Depth 5)
     return $newAttempt
 }
 
 function Complete-ReviewAttempt {
-    param(
-        [string]$Branch,
-        [string]$BaseSha,
-        [string]$HeadSha,
-        [string]$Verdict,
-        [string[]]$UnresolvedFindingIds = @(),
-        [bool]$Failed = $false
-    )
+    param([string]$Branch, [string]$BaseSha, [string]$HeadSha, [string]$Verdict, [string[]]$UnresolvedFindingIds = @(), [bool]$Failed = $false)
     $state = Get-ReviewRoundState -Branch $Branch -BaseSha $BaseSha
     $updated = [ordered]@{
-        branch               = $Branch
-        baseSha              = $BaseSha
-        attempted            = [int]$state.attempted
-        completed            = $(if ($Failed) { [int]$state.completed } else { [int]$state.completed + 1 })
-        failed               = $(if ($Failed) { [int]$state.failed + 1 } else { [int]$state.failed })
-        lastReviewedSha      = $(if ($Failed) { [string]$state.lastReviewedSha } else { $HeadSha })
-        lastVerdict          = $(if ($Failed) { "ERROR" } else { $Verdict })
+        branch = $Branch; baseSha = $BaseSha; attempted = [int]$state.attempted
+        completed = $(if ($Failed) { [int]$state.completed } else { [int]$state.completed + 1 })
+        failed = $(if ($Failed) { [int]$state.failed + 1 } else { [int]$state.failed })
+        lastReviewedSha = $(if ($Failed) { [string]$state.lastReviewedSha } else { $HeadSha })
+        lastVerdict = $(if ($Failed) { "ERROR" } else { $Verdict })
         unresolvedFindingIds = @($UnresolvedFindingIds)
-        updatedAtUtc         = (Get-Date).ToUniversalTime().ToString("o", [System.Globalization.CultureInfo]::InvariantCulture)
+        updatedAtUtc = (Get-Date).ToUniversalTime().ToString("o", [System.Globalization.CultureInfo]::InvariantCulture)
     }
     Write-AtomicJsonFile -Path (Get-ReviewRoundStatePath -Branch $Branch -BaseSha $BaseSha) -Content ($updated | ConvertTo-Json -Depth 5)
 }
 
 # ============================================================================
-# R03 + R04 — ALLOWLIST SECRET ISOLATION & JOB OBJECT PROCESS TREE CLEANUP
+# R03 + R04 + R07 — CREDENTIAL ISOLATION, SAFE ARGS & SUSPENDED JOB OBJECT
 # ============================================================================
 
 function Get-ChildProcessIds {
     param([int]$ParentPid)
-    try {
-        return @(Get-CimInstance Win32_Process -Filter "ParentProcessId = $ParentPid" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty ProcessId)
-    } catch {
-        return @()
+    try { return @(Get-CimInstance Win32_Process -Filter "ParentProcessId = $ParentPid" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty ProcessId) }
+    catch { return @() }
+}
+
+function Resolve-CodexExecutable {
+    $codexExe = Get-Command "codex.exe" -ErrorAction SilentlyContinue
+    if ($null -ne $codexExe) {
+        return [pscustomobject]@{ ExePath = $codexExe.Source; PrefixArgs = @() }
+    }
+    $codexCmd = Get-Command "codex.cmd" -ErrorAction SilentlyContinue
+    if ($null -ne $codexCmd) {
+        $npmDir = Split-Path -Path $codexCmd.Source -Parent
+        $codexJs = Join-Path $npmDir "node_modules\@openai\codex\bin\codex.js"
+        $nodeExe = Get-Command "node.exe" -ErrorAction SilentlyContinue
+        if ((Test-Path $codexJs) -and $null -ne $nodeExe) {
+            return [pscustomobject]@{ ExePath = $nodeExe.Source; PrefixArgs = @($codexJs) }
+        }
+    }
+    throw "CODEX_NOT_FOUND: Neither codex.exe nor node+codex.js found in PATH."
+}
+
+function Test-CodexConfigArgsSafe {
+    param([string]$Model, [string]$ReasoningEffort)
+    if ($Model -notmatch '^[a-zA-Z0-9._-]+$') {
+        throw "ARGUMENT_INJECTION_BLOCKED: Invalid Codex model identifier '$Model'."
+    }
+    if ($ReasoningEffort -notin @("low", "medium", "high")) {
+        throw "ARGUMENT_INJECTION_BLOCKED: Invalid Codex reasoning effort '$ReasoningEffort'."
     }
 }
 
@@ -850,114 +939,72 @@ function Invoke-CodexSandboxed {
         [Parameter(Mandatory = $true)][string]$OutputFile,
         [Parameter(Mandatory = $true)][string]$Model,
         [Parameter(Mandatory = $true)][string]$ReasoningEffort,
-        [int]$TimeoutSeconds = 1200
+        [int]$TimeoutSeconds = 1200,
+        [switch]$AllowLocalUserBoundary
     )
 
-    $codexExe = Get-Command "codex.exe" -ErrorAction SilentlyContinue
-    $codexCmd = Get-Command "codex.cmd" -ErrorAction SilentlyContinue
-    $psi = New-Object System.Diagnostics.ProcessStartInfo
-    $argList = @(
-        "exec",
-        "--ignore-user-config",
-        "--disable", "plugins",
-        "-s", "read-only",
-        "--ephemeral",
-        "--json",
-        "--color", "never",
+    $config = Get-AgentConfig
+    if (-not $config.policies.automatedCodexEnabled -and -not $AllowLocalUserBoundary) {
+        throw "AUTOMATED_CODEX_DISABLED: Automated Codex invocation is disabled by default (single-user Windows shares filesystem ACLs to user credential stores). Use manual independent Codex review fallback or pass -AllowLocalUserBoundary on isolated fixtures."
+    }
+
+    Test-CodexConfigArgsSafe -Model $Model -ReasoningEffort $ReasoningEffort
+    $resolved = Resolve-CodexExecutable
+
+    $argList = New-Object System.Collections.Generic.List[string]
+    foreach ($pa in $resolved.PrefixArgs) { $argList.Add($pa) }
+    @(
+        "exec", "--ignore-user-config", "--disable", "plugins",
+        "-s", "read-only", "--ephemeral", "--json", "--color", "never",
         "-c", ('model="{0}"' -f $Model),
         "-c", ('model_reasoning_effort="{0}"' -f $ReasoningEffort),
-        "--output-schema", ('"{0}"' -f $SchemaPath),
-        "-o", ('"{0}"' -f $OutputFile),
-        "-C", ('"{0}"' -f $WorkingDir),
+        "--output-schema", $SchemaPath,
+        "-o", $OutputFile,
+        "-C", $WorkingDir,
         "-"
-    ) -join " "
+    ) | ForEach-Object { $argList.Add($_) }
 
-    if ($null -ne $codexExe) {
-        $psi.FileName = $codexExe.Source
-        $psi.Arguments = $argList
-    } elseif ($null -ne $codexCmd) {
-        $psi.FileName = "cmd.exe"
-        $psi.Arguments = '/d /s /c ""' + $codexCmd.Source + '" ' + $argList + '"'
-    } else {
-        throw "CODEX_NOT_FOUND: Neither codex.exe nor codex.cmd found in PATH."
-    }
-
-    $psi.UseShellExecute = $false
-    $psi.RedirectStandardInput = $true
-    $psi.RedirectStandardOutput = $true
-    $psi.RedirectStandardError = $true
-    $psi.CreateNoWindow = $true
-
-    # R03: Strict minimal environment allowlist (never inherit parent secrets)
-    $allowlist = @(
-        "PATH", "SYSTEMROOT", "COMSPEC", "TEMP", "TMP",
-        "USERPROFILE", "LOCALAPPDATA", "APPDATA", "HOMEDRIVE", "HOMEPATH",
-        "CODEX_HOME", "PATHEXT", "WINDIR", "OS",
-        "NUMBER_OF_PROCESSORS", "PROCESSOR_ARCHITECTURE"
-    )
-    $saved = @{}
+    # R03: Strict minimal allowlist + Git credential helper isolation
+    $allowlist = @("PATH", "SYSTEMROOT", "COMSPEC", "TEMP", "TMP", "USERPROFILE", "LOCALAPPDATA", "APPDATA", "HOMEDRIVE", "HOMEPATH", "CODEX_HOME", "PATHEXT", "WINDIR", "OS", "NUMBER_OF_PROCESSORS", "PROCESSOR_ARCHITECTURE")
+    $envDict = New-Object 'System.Collections.Generic.Dictionary[string,string]' ([System.StringComparer]::OrdinalIgnoreCase)
     foreach ($name in $allowlist) {
         $val = [Environment]::GetEnvironmentVariable($name)
-        if (-not [string]::IsNullOrEmpty($val)) {
-            $saved[$name] = $val
-        }
+        if (-not [string]::IsNullOrEmpty($val)) { $envDict[$name] = $val }
     }
-    $psi.EnvironmentVariables.Clear()
-    foreach ($kv in $saved.GetEnumerator()) {
-        $psi.EnvironmentVariables[$kv.Key] = $kv.Value
-    }
+    $envDict["GIT_CONFIG_NOSYSTEM"] = "1"
+    $envDict["GIT_CONFIG_GLOBAL"] = "NUL"
+    $envDict["GIT_TERMINAL_PROMPT"] = "0"
+    $envDict["GCM_PROVIDER"] = "none"
+    $envDict["GCM_INTERACTIVE"] = "never"
+    $envDict["GIT_ASKPASS"] = ""
+    $envDict["SSH_ASKPASS"] = ""
 
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
     $job = New-Object StudyAI.SafeAgent.JobObjectHost
-    $proc = New-Object System.Diagnostics.Process
-    $proc.StartInfo = $psi
-    $rootPid = 0
     try {
-        if (-not $proc.Start()) {
-            throw "CODEX_EXEC_ERROR: Failed to start codex process."
-        }
-        $rootPid = $proc.Id
-        $job.AssignProcess($proc)
-
-        $proc.StandardInput.Write($PromptText)
-        $proc.StandardInput.Close()
-
-        $stdoutTask = $proc.StandardOutput.ReadToEndAsync()
-        $stderrTask = $proc.StandardError.ReadToEndAsync()
-
-        $exited = $proc.WaitForExit($TimeoutSeconds * 1000)
+        $res = $job.RunSuspendedInJob($resolved.ExePath, $argList.ToArray(), $WorkingDir, $envDict, $PromptText, ($TimeoutSeconds * 1000))
         $sw.Stop()
-        if (-not $exited) {
-            $job.TerminateAll(137)
-            $null = $proc.WaitForExit(5000)
-            $remaining = @(Get-ChildProcessIds -ParentPid $rootPid)
-            if ($remaining.Count -gt 0 -or -not $proc.HasExited) {
-                throw "PROCESS_CLEANUP_FAILED: Orphan descendant processes remained after timeout."
-            }
+
+        if ($res.TimedOut) {
+            $remaining = @(Get-ChildProcessIds -ParentPid $res.ProcessId)
+            if ($remaining.Count -gt 0) { throw "PROCESS_CLEANUP_FAILED: Orphan descendant processes remained after timeout." }
             throw "CODEX_TIMEOUT: Codex execution exceeded ${TimeoutSeconds}s and process tree was terminated."
         }
 
-        $stdout = $stdoutTask.Result
-        $stderr = $stderrTask.Result
-        $combined = "$stdout`n$stderr"
-
+        $combined = "$($res.StdOut)`n$($res.StdErr)"
         if ($combined -match '(?i)(insufficient_quota|rate_limit_exceeded|usage limit|quota exceeded|too many requests|429)') {
             throw "CODEX_QUOTA_EXCEEDED: Codex reported quota or rate limit exhaustion."
         }
         if ($combined -match '(?i)(not logged in|authentication failed|invalid_api_key|401 unauthorized|please run codex login)') {
             throw "CODEX_AUTH_FAILURE: Codex authentication failed. Run 'codex login status' to verify."
         }
-        if ($proc.ExitCode -ne 0) {
-            $safeErr = Redact-SensitiveText -Text $stderr
-            throw "CODEX_EXEC_ERROR: Codex exited with code $($proc.ExitCode). Details: $safeErr"
+        if ($res.ExitCode -ne 0) {
+            throw ("CODEX_EXEC_ERROR: Codex exited with code $($res.ExitCode). Details: " + (Redact-SensitiveText -Text $res.StdErr))
         }
-
-        if (-not (Test-Path $OutputFile)) {
-            throw "INVALID_REVIEW_OUTPUT: Codex did not produce output file '$OutputFile'."
-        }
+        if (-not (Test-Path $OutputFile)) { throw "INVALID_REVIEW_OUTPUT: Codex did not produce output file '$OutputFile'." }
 
         $usage = @{ input_tokens = 0; cached_input_tokens = 0; output_tokens = 0; reasoning_output_tokens = 0 }
-        foreach ($line in ($stdout -split "`r?`n")) {
+        foreach ($line in ($res.StdOut -split "`r?`n")) {
             if ([string]::IsNullOrWhiteSpace($line) -or -not $line.TrimStart().StartsWith("{")) { continue }
             try {
                 $evt = $line | ConvertFrom-Json -ErrorAction Stop
@@ -976,88 +1023,23 @@ function Invoke-CodexSandboxed {
 
         return (Get-Content $OutputFile -Raw -Encoding UTF8)
     } finally {
-        try {
-            if ($null -ne $proc -and -not $proc.HasExited) {
-                $job.TerminateAll(1)
-                $null = $proc.WaitForExit(3000)
-            }
-        } catch {}
         $job.Dispose()
-        $proc.Dispose()
     }
 }
 
 function Write-UsageMetric {
     param(
-        [string]$Action,
-        [string]$Model,
-        [string]$ReasoningEffort,
-        [int]$DurationMs,
-        [bool]$CacheHit,
-        [int]$InputTokens = 0,
-        [int]$CachedInputTokens = 0,
-        [int]$OutputTokens = 0,
-        [int]$ReasoningOutputTokens = 0,
+        [string]$Action, [string]$Model, [string]$ReasoningEffort, [int]$DurationMs, [bool]$CacheHit,
+        [int]$InputTokens = 0, [int]$CachedInputTokens = 0, [int]$OutputTokens = 0, [int]$ReasoningOutputTokens = 0,
         [string]$UsageDir = (Join-Path $env:TEMP "studyai-agent-usage")
     )
-    if (-not (Test-Path $UsageDir)) {
-        New-Item -ItemType Directory -Path $UsageDir -Force | Out-Null
-    }
+    if (-not (Test-Path $UsageDir)) { New-Item -ItemType Directory -Path $UsageDir -Force | Out-Null }
     $entry = [ordered]@{
-        timestamp               = (Get-Date).ToUniversalTime().ToString("o", [System.Globalization.CultureInfo]::InvariantCulture)
-        action                  = $Action
-        model                   = $Model
-        reasoning_effort        = $ReasoningEffort
-        duration_ms             = $DurationMs
-        cache_hit               = $CacheHit
-        input_tokens            = $InputTokens
-        cached_input_tokens     = $CachedInputTokens
-        uncached_input_tokens   = [Math]::Max(0, ($InputTokens - $CachedInputTokens))
-        output_tokens           = $OutputTokens
-        reasoning_output_tokens = $ReasoningOutputTokens
+        timestamp = (Get-Date).ToUniversalTime().ToString("o", [System.Globalization.CultureInfo]::InvariantCulture)
+        action = $Action; model = $Model; reasoning_effort = $ReasoningEffort; duration_ms = $DurationMs; cache_hit = $CacheHit
+        input_tokens = $InputTokens; cached_input_tokens = $CachedInputTokens
+        uncached_input_tokens = [Math]::Max(0, ($InputTokens - $CachedInputTokens))
+        output_tokens = $OutputTokens; reasoning_output_tokens = $ReasoningOutputTokens
     } | ConvertTo-Json -Compress
     Add-Content -Path (Join-Path $UsageDir "usage.jsonl") -Value $entry -Encoding UTF8
-}
-
-function Get-ReviewCacheKey {
-    param(
-        [string]$BaseSha,
-        [string]$HeadSha,
-        [string]$ReviewMode,
-        [string]$ScopeSignature,
-        [string]$PolicyHash
-    )
-    return (Get-StringSha256 -InputText "$BaseSha|$HeadSha|$ReviewMode|$ScopeSignature|$PolicyHash")
-}
-
-function Get-CachedReview {
-    param(
-        [string]$CacheKey,
-        [string]$ExpectedHeadSha,
-        [string]$ExpectedBaseSha = "",
-        [int]$TtlHours = 24,
-        [string]$CacheDir = (Join-Path $env:TEMP "studyai-agent-cache")
-    )
-    $path = Join-Path $CacheDir "$CacheKey.json"
-    if (-not (Test-Path $path)) { return $null }
-    $item = Get-Item $path
-    if (((Get-Date) - $item.LastWriteTime).TotalHours -gt $TtlHours) {
-        Remove-Item $path -Force -ErrorAction SilentlyContinue
-        return $null
-    }
-    $raw = Get-Content $path -Raw -Encoding UTF8
-    $null = Test-ReviewOutputValid -JsonText $raw -ExpectedHeadSha $ExpectedHeadSha -ExpectedBaseSha $ExpectedBaseSha
-    return $raw
-}
-
-function Set-CachedReview {
-    param(
-        [string]$CacheKey,
-        [string]$ReviewJson,
-        [string]$CacheDir = (Join-Path $env:TEMP "studyai-agent-cache")
-    )
-    if (-not (Test-Path $CacheDir)) {
-        New-Item -ItemType Directory -Path $CacheDir -Force | Out-Null
-    }
-    Write-AtomicJsonFile -Path (Join-Path $CacheDir "$CacheKey.json") -Content $ReviewJson
 }

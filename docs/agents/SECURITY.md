@@ -9,15 +9,16 @@
 
 ## 2. Secret Isolation, Process Tree & Path Hardening
 
-- **Allowlist Environment Scrubbing**: `Invoke-CodexSandboxed` clears `$psi.EnvironmentVariables` and passes **only** the minimal allowlist (`PATH`, `SYSTEMROOT`, `COMSPEC`, `TEMP`, `TMP`, `USERPROFILE`, `LOCALAPPDATA`, `APPDATA`, `HOMEDRIVE`, `HOMEPATH`, `CODEX_HOME`, `PATHEXT`, `WINDIR`, `OS`, `NUMBER_OF_PROCESSORS`, `PROCESSOR_ARCHITECTURE`). Arbitrary secrets, cloud keys, SQL connection strings, and proxy credentials are never inherited.
-- **Job Object Process-Tree Cleanup**: Codex processes are assigned to a Windows `JobObjectHost` (`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` + `TerminateJobObject`) and verified via `Win32_Process` before releasing locks or removing snapshots.
-- **Path Canonicalization**: `Resolve-ApprovedArtifactPath` rejects `..` traversal, symlinks/junctions (`ReparsePoint`), and any path outside `%TEMP%` or `docs/agents/.artifacts/`, preventing artifact writes from overwriting source or config files.
-- **Native Subagent Lock Limitation**: Antigravity's `invoke_subagent` runtime does not enforce OS-level file locks natively; single-writer enforcement relies on `Enter-WorkerLock` / `Exit-WorkerLock` in PowerShell orchestration and Orchestrator discipline (at most 1 active `implementation-worker`).
+- **Fail-Closed Automated Codex Default**: `policies.automatedCodexEnabled` is `false` by default because on single-user Windows, child processes share OS filesystem ACLs to `%USERPROFILE%` credential stores. Local fixture runs require explicit `-AllowLocalUserBoundary`; production/untrusted workflows use the manual independent Codex review fallback.
+- **Allowlist Environment & Git Credential Isolation**: `Invoke-CodexSandboxed` clears the child environment and passes only a minimal allowlist plus `GIT_CONFIG_NOSYSTEM=1`, `GIT_CONFIG_GLOBAL=NUL`, `GIT_TERMINAL_PROMPT=0`, `GCM_PROVIDER=none`, `GCM_INTERACTIVE=never`, `GIT_ASKPASS=""`, `SSH_ASKPASS=""`.
+- **Race-Free `CREATE_SUSPENDED` + Job Object**: `JobObjectHost.RunSuspendedInJob` creates the child via Win32 `CreateProcessW` with `CREATE_SUSPENDED`, assigns it to `JobObjectHost` (`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`), and only then calls `ResumeThread`. Invokes `codex.exe` or `node.exe + codex.js` directly with Win32-quoted `ArgumentList` (no `cmd.exe`), validating `Model` and `ReasoningEffort`.
+- **Path Canonicalization**: `Resolve-ApprovedArtifactPath` rejects `..` traversal, symlinks/junctions (`ReparsePoint`), and any path outside `%TEMP%` or `docs/agents/.artifacts/`.
+- **Single-Writer Enforcement**: `invoke-dual-agent.ps1` acquires `Enter-WorkerLock` (culture-invariant ISO-8601 + PID-reuse guard) before workflow execution and releases in `finally`. Native `invoke_subagent` is disabled.
 
 ## 3. Database Safety (ENV-01 / ENV-02)
 
-- `Parse-SqlConnectionStringStrict` parses quoted values, rejects malformed syntax and conflicting duplicate `Database` / `Initial Catalog` keys, validates via `SqlConnectionStringBuilder`, and allows **only** `StudyAIDb_Clean_{Guid:N|Guid:D}` (plus ownership manifest verification via `Assert-DatabaseOwnershipManifest` when `-RequireOwnership` is active).
-- `StudyAIDb`, `StudyAIDb_E2E`, `OtherProduction`, and unknown databases fail closed.
+- `Parse-SqlConnectionStringStrict` parses quoted values, rejects malformed syntax and conflicting duplicate `Database` / `Initial Catalog` keys, validates via `SqlConnectionStringBuilder`, and allows **only** `StudyAIDb_Clean_{Guid:N|Guid:D}`.
+- **Bridge DB Operations Disabled**: `Assert-DatabaseSafety` rejects any DB connection string in Agent Bridge (`DB_BRIDGE_DISABLED`) unless `-AllowCleanGuidEnv` is explicitly passed by an authoritative disposable DB runner (`disposableDb.ts`). Writer-minted manifests are never trusted.
 
 ## 4. Rollback Instructions
 
