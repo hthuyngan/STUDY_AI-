@@ -303,6 +303,14 @@ namespace StudyAI.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
+                    b.Property<DateTimeOffset?>("FinalizedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<bool>("IsFinalized")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<DateTimeOffset>("LastActivityAt")
                         .HasColumnType("datetimeoffset");
 
@@ -313,6 +321,12 @@ namespace StudyAI.Migrations
 
                     b.Property<double>("ProgressMeasure")
                         .HasColumnType("float");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<int>("SchemaVersion")
                         .HasColumnType("int");
@@ -362,6 +376,56 @@ namespace StudyAI.Migrations
                     b.HasIndex("UserId", "LessonId");
 
                     b.ToTable("assessment_attempts", (string)null);
+                });
+
+            modelBuilder.Entity("StudyAI.Models.AssessmentQuestion", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("AssessmentId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("OrderIndex")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
+                    b.Property<string>("PinnedFingerprint")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<int>("PinnedVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
+                    b.Property<int>("Points")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
+                    b.Property<string>("QuestionId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuestionId");
+
+                    b.HasIndex("AssessmentId", "OrderIndex");
+
+                    b.HasIndex("AssessmentId", "QuestionId")
+                        .IsUnique();
+
+                    b.ToTable("assessment_questions", (string)null);
                 });
 
             modelBuilder.Entity("StudyAI.Models.AssessmentResponse", b =>
@@ -758,6 +822,12 @@ namespace StudyAI.Migrations
 
                     b.Property<int>("PassScore")
                         .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -1177,6 +1247,10 @@ namespace StudyAI.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
+                    b.Property<string>("ContentFingerprint")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
                     b.Property<string>("CopyrightProofRef")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
@@ -1245,6 +1319,10 @@ namespace StudyAI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("QuestionKey")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<string>("RejectionReason")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -1252,6 +1330,12 @@ namespace StudyAI.Migrations
                     b.Property<string>("ReviewedBy")
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<string>("SourceBatchId")
                         .HasMaxLength(64)
@@ -1312,11 +1396,17 @@ namespace StudyAI.Migrations
 
                     b.HasIndex("LessonId");
 
+                    b.HasIndex("QuestionKey")
+                        .IsUnique()
+                        .HasFilter("[QuestionKey] IS NOT NULL");
+
                     b.HasIndex("SourceType");
 
                     b.HasIndex("Status");
 
                     b.HasIndex("SubjectId");
+
+                    b.HasIndex("SubjectId", "ContentFingerprint", "IsDeleted");
 
                     b.ToTable("content_questions", (string)null);
                 });
@@ -2790,6 +2880,25 @@ namespace StudyAI.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("StudyAI.Models.AssessmentQuestion", b =>
+                {
+                    b.HasOne("StudyAI.Models.ContentAssessment", "Assessment")
+                        .WithMany("AssessmentQuestions")
+                        .HasForeignKey("AssessmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("StudyAI.Models.ContentQuestion", "Question")
+                        .WithMany()
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Assessment");
+
+                    b.Navigation("Question");
+                });
+
             modelBuilder.Entity("StudyAI.Models.AssessmentResponse", b =>
                 {
                     b.HasOne("StudyAI.Models.AssessmentAttempt", "Attempt")
@@ -3151,7 +3260,7 @@ namespace StudyAI.Migrations
             modelBuilder.Entity("StudyAI.Models.QuestionSkill", b =>
                 {
                     b.HasOne("StudyAI.Models.ContentQuestion", "Question")
-                        .WithMany()
+                        .WithMany("QuestionSkills")
                         .HasForeignKey("QuestionId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -3293,6 +3402,8 @@ namespace StudyAI.Migrations
 
             modelBuilder.Entity("StudyAI.Models.ContentAssessment", b =>
                 {
+                    b.Navigation("AssessmentQuestions");
+
                     b.Navigation("Questions");
                 });
 
@@ -3322,6 +3433,11 @@ namespace StudyAI.Migrations
                     b.Navigation("Questions");
 
                     b.Navigation("Videos");
+                });
+
+            modelBuilder.Entity("StudyAI.Models.ContentQuestion", b =>
+                {
+                    b.Navigation("QuestionSkills");
                 });
 
             modelBuilder.Entity("StudyAI.Models.ContentSubject", b =>

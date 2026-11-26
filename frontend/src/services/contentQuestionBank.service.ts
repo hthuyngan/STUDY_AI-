@@ -34,6 +34,10 @@ export interface ContentQuestionItem {
   copyrightStatus: string
   copyrightProofRef?: string
   version: number
+  questionKey?: string | null
+  contentFingerprint?: string | null
+  rowVersion?: string
+  skillIds?: string[]
   createdAt: string
   updatedAt: string
 }
@@ -79,9 +83,12 @@ export interface CreateQuestionPayload {
   sourceType?: string
   copyrightStatus?: string
   copyrightProofRef?: string
+  skillIds?: string[]
 }
 
-export interface UpdateQuestionPayload extends Partial<CreateQuestionPayload> {}
+export interface UpdateQuestionPayload extends Partial<CreateQuestionPayload> {
+  rowVersion?: string
+}
 
 export interface QuestionImportBatchPayload {
   sourceType: string
@@ -198,6 +205,17 @@ export const contentQuestionBankService = {
 
   async importBatch(payload: QuestionImportBatchPayload): Promise<QuestionImportResult> {
     return apiClient.post<QuestionImportResult>('/api/v1/content/questions/import', payload)
+  },
+
+  async updateQuestionSkills(
+    id: string,
+    skillIds: string[],
+    rowVersion: string
+  ): Promise<ContentQuestionItem> {
+    return apiClient.put<ContentQuestionItem>(`/api/v1/content/questions/${id}/skills`, {
+      skillIds,
+      rowVersion,
+    })
   },
 }
 

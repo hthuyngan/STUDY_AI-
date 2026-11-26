@@ -864,6 +864,7 @@ public class StudentCurriculumService : ILearnerCurriculumService
         CancellationToken ct = default)
     {
         var query = _db.ContentQuestions.AsNoTracking()
+            .Include(q => q.QuestionSkills)
             .Include(q => q.Lesson)
                 .ThenInclude(l => l!.Chapter)
                     .ThenInclude(c => c!.Subject)
@@ -1001,6 +1002,7 @@ public class StudentCurriculumService : ILearnerCurriculumService
     public async Task<object> GetQuestionBankDetailAsync(string questionId, bool isStaffOrAuthorized = false, CancellationToken ct = default)
     {
         var q = await _db.ContentQuestions.AsNoTracking()
+            .Include(x => x.QuestionSkills)
             .Include(x => x.Lesson)
                 .ThenInclude(l => l!.Chapter)
                     .ThenInclude(c => c!.Subject)
@@ -1127,7 +1129,7 @@ public class StudentCurriculumService : ILearnerCurriculumService
                     subjectId = resolvedSubjectId,
                     chapterId = q.ChapterId ?? q.Lesson?.ChapterId ?? "",
                     lessonId = q.LessonId ?? "",
-                    skillIds = new List<string> { q.Topic ?? "SKILL-GENERAL" },
+                    skillIds = q.QuestionSkills?.Select(qs => qs.SkillId).ToList() ?? new List<string>(),
                     type = normalizedType,
                     stem = q.Prompt,
                     difficulty = q.Difficulty,
@@ -1147,7 +1149,7 @@ public class StudentCurriculumService : ILearnerCurriculumService
                 subjectId = resolvedSubjectId,
                 chapterId = q.ChapterId ?? q.Lesson?.ChapterId ?? "",
                 lessonId = q.LessonId ?? "",
-                skillIds = new List<string> { q.Topic ?? "SKILL-GENERAL" },
+                skillIds = q.QuestionSkills?.Select(qs => qs.SkillId).ToList() ?? new List<string>(),
                 type = normalizedType,
                 stem = q.Prompt,
                 difficulty = q.Difficulty,
@@ -1225,7 +1227,7 @@ public class StudentCurriculumService : ILearnerCurriculumService
                     subjectId = resolvedSubjectId,
                     chapterId = q.ChapterId ?? q.Lesson?.ChapterId ?? "",
                     lessonId = q.LessonId ?? "",
-                    skillIds = new List<string> { q.Topic ?? "SKILL-GENERAL" },
+                    skillIds = q.QuestionSkills?.Select(qs => qs.SkillId).ToList() ?? new List<string>(),
                     type = normalizedType,
                     stem = q.Prompt,
                     difficulty = q.Difficulty,
@@ -1247,7 +1249,7 @@ public class StudentCurriculumService : ILearnerCurriculumService
                 subjectId = resolvedSubjectId,
                 chapterId = q.ChapterId ?? q.Lesson?.ChapterId ?? "",
                 lessonId = q.LessonId ?? "",
-                skillIds = new List<string> { q.Topic ?? "SKILL-GENERAL" },
+                skillIds = q.QuestionSkills?.Select(qs => qs.SkillId).ToList() ?? new List<string>(),
                 type = normalizedType,
                 stem = q.Prompt,
                 difficulty = q.Difficulty,
@@ -1268,7 +1270,7 @@ public class StudentCurriculumService : ILearnerCurriculumService
                 subjectId = resolvedSubjectId,
                 chapterId = q.ChapterId ?? q.Lesson?.ChapterId ?? "",
                 lessonId = q.LessonId ?? "",
-                skillIds = new List<string> { q.Topic ?? "SKILL-GENERAL" },
+                skillIds = q.QuestionSkills?.Select(qs => qs.SkillId).ToList() ?? new List<string>(),
                 type = normalizedType,
                 stem = q.Prompt,
                 difficulty = q.Difficulty,
@@ -1289,7 +1291,7 @@ public class StudentCurriculumService : ILearnerCurriculumService
             subjectId = resolvedSubjectId,
             chapterId = q.ChapterId ?? q.Lesson?.ChapterId ?? "",
             lessonId = q.LessonId ?? "",
-            skillIds = new List<string> { q.Topic ?? "SKILL-GENERAL" },
+            skillIds = q.QuestionSkills?.Select(qs => qs.SkillId).ToList() ?? new List<string>(),
             type = normalizedType,
             stem = q.Prompt,
             difficulty = q.Difficulty,

@@ -376,4 +376,91 @@ public class ContentAssessmentsService : IContentAssessmentsService
         assessment.Questions.Add(q);
         return FormatAssessmentDetail(assessment);
     }
+
+    public async Task<ContentAssessmentItemDto> ComposeAssessmentQuestionsAsync(
+        string id,
+        ComposeAssessmentQuestionsRequestDto req,
+        string currentUserId,
+        CancellationToken ct = default)
+    {
+        var assessment = await _db.ContentAssessments
+            .Include(a => a.Lesson)
+                .ThenInclude(l => l!.Chapter)
+                    .ThenInclude(c => c!.Subject)
+            .Include(a => a.Questions.Where(q => !q.IsDeleted))
+            .Include(a => a.AssessmentQuestions)
+            .FirstOrDefaultAsync(a => a.Id == id, ct);
+
+        if (assessment == null)
+            throw new NotFoundException("Bài kiểm tra / đánh giá không tồn tại.");
+
+        if (!string.IsNullOrWhiteSpace(req.RowVersion))
+        {
+            byte[] clientVer;
+            try { clientVer = Convert.FromBase64String(req.RowVersion.Trim()); }
+            catch (FormatException) { throw new ValidationException("RowVersion", "RowVersion không đúng định dạng Base64."); }
+            if (assessment.RowVersion.Length == 0 || !assessment.RowVersion.SequenceEqual(clientVer))
+                throw new ConflictException("Bài đánh giá đã bị thay đổi bởi phiên khác (xung đột RowVersion).");
+        }
+
+        if (assessment.Status == "published")
+            throw new ConflictException("Không thể thay đổi danh sách câu hỏi của bài đánh giá đang xuất bản. Vui lòng gỡ xuất bản trước.");
+
+        var itemIds = (req.Items ?? new List<ComposeAssessmentQuestionsItemDto>())
+            .Select(i => i.QuestionId?.Trim() ?? string.Empty)
+            .Where(qid => !string.IsNullOrEmpty(qid))
+            .ToList();
+
+        if (itemIds.Distinct().Count() != itemIds.Count)
+            throw new ValidationException("Items", "Danh sách câu hỏi không được chứa mã trùng lặp.");
+
+        var loadedQuestions = await _db.ContentQuestions
+            .Where(q => itemIds.Contains(q.Id) && !q.IsDeleted)
+            .ToDictionaryAsync(q => q.Id, ct);
+
+        foreach (var qid in itemIds)
+        {
+            if (!loadedQuestions.ContainsKey(qid))
+                throw new NotFoundException($"Câu hỏi '{qid}' không tồn tại hoặc đã bị xóa.");
+        }
+
+        foreach (var existing in assessment.AssessmentQuestions.ToList())
+        {
+            _db.AssessmentQuestions.Remove(existing);
+            assessment.AssessmentQuestions.Remove(existing);
+        }
+
+        var now = _clock.UtcNow;
+        for (int i = 0; i < req.Items!.Count; i++)
+        {
+            var item = req.Items[i];
+            var q = loadedQuestions[item.QuestionId.Trim()];
+            var link = new AssessmentQuestion
+            {
+                Id = _idGenerator.NewId("aq"),
+                AssessmentId = assessment.Id,
+                QuestionId = q.Id,
+                OrderIndex = i + 1,
+                PinnedVersion = q.Version,
+                PinnedFingerprint = q.ContentFingerprint,
+                Points = Math.Max(1, item.Points),
+                CreatedAt = now
+            };
+            _db.AssessmentQuestions.Add(link);
+            assessment.AssessmentQuestions.Add(link);
+        }
+
+        assessment.UpdatedAt = now;
+
+        await _auditWriter.WriteStaffAuditAsync(
+            "assessment_questions_composed",
+            "content_assessment",
+            assessment.Id,
+            null,
+            JsonSerializer.Serialize(new { assessmentId = assessment.Id, questionIds = itemIds, actor = currentUserId }),
+            ct);
+
+        await _db.SaveChangesAsync(ct);
+        return FormatAssessmentDetail(assessment);
+    }
 }

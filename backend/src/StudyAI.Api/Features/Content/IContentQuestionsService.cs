@@ -31,4 +31,5 @@ public interface IContentQuestionsService
     Task<ContentQuestionItemDto> UnpublishQuestionAsync(string questionId, string currentUserId, bool canPublish, CancellationToken ct = default);
     Task<ContentQuestionItemDto> RollbackQuestionAsync(string questionId, RollbackContentRequestDto? req, string currentUserId, bool isAuthorizedReviewer, CancellationToken ct = default);
     Task<QuestionImportResultDto> ImportQuestionsAsync(QuestionImportBatchRequestDto req, string currentUserId, CancellationToken ct = default);
+    Task<ContentQuestionItemDto> UpdateQuestionSkillsAsync(string questionId, UpdateQuestionSkillsRequestDto req, string currentUserId, bool isContentStaffOrAdmin, CancellationToken ct = default);
 }

@@ -573,7 +573,7 @@ public class StudentPracticeService : ILearnerPracticeService
 
         var now = _clock.UtcNow;
 
-        if (attempt.CompletionStatus == "completed")
+        if (attempt.IsFinalized || attempt.CompletionStatus == "completed")
         {
             return await GetSessionResultAsync(userId, userRole, sessionId, cancellationToken);
         }

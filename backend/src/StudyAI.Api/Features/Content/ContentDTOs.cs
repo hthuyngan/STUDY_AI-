@@ -511,7 +511,7 @@ public class CreateQuestionRequestDto
     public string? Topic { get; set; }
     public string Difficulty { get; set; } = "medium";
     public string Type { get; set; } = "multiple-choice";
-    public string Status { get; set; } = "published";
+    public string Status { get; set; } = "draft";
     public int OrderIndex { get; set; } = 0;
     public string? ImageUrl { get; set; }
     public string? MetadataJson { get; set; }
@@ -520,6 +520,7 @@ public class CreateQuestionRequestDto
     public string? SourceUrl { get; set; }
     public string CopyrightStatus { get; set; } = "proprietary";
     public string? CopyrightProofRef { get; set; }
+    public List<string>? SkillIds { get; set; }
 }
 
 public class UpdateQuestionRequestDto
@@ -543,6 +544,8 @@ public class UpdateQuestionRequestDto
     public string? SourceType { get; set; }
     public string? CopyrightStatus { get; set; }
     public string? CopyrightProofRef { get; set; }
+    public List<string>? SkillIds { get; set; }
+    public string? RowVersion { get; set; }
 }
 
 public class RejectQuestionRequestDto
@@ -575,7 +578,7 @@ public class ContentQuestionItemDto
     public string? Topic { get; set; }
     public string Difficulty { get; set; } = "medium";
     public string Type { get; set; } = "multiple-choice";
-    public string Status { get; set; } = "published";
+    public string Status { get; set; } = "draft";
     public int OrderIndex { get; set; } = 0;
     public string? ImageUrl { get; set; }
     public string? MetadataJson { get; set; }
@@ -592,8 +595,30 @@ public class ContentQuestionItemDto
     public string CopyrightStatus { get; set; } = "proprietary";
     public string? CopyrightProofRef { get; set; }
     public int Version { get; set; } = 1;
+    public string? QuestionKey { get; set; }
+    public string? ContentFingerprint { get; set; }
+    public string RowVersion { get; set; } = string.Empty;
+    public List<string> SkillIds { get; set; } = new();
     public string CreatedAt { get; set; } = string.Empty;
     public string UpdatedAt { get; set; } = string.Empty;
+}
+
+public class UpdateQuestionSkillsRequestDto
+{
+    public List<string> SkillIds { get; set; } = new();
+    public string RowVersion { get; set; } = string.Empty;
+}
+
+public class ComposeAssessmentQuestionsItemDto
+{
+    public string QuestionId { get; set; } = string.Empty;
+    public int Points { get; set; } = 1;
+}
+
+public class ComposeAssessmentQuestionsRequestDto
+{
+    public List<ComposeAssessmentQuestionsItemDto> Items { get; set; } = new();
+    public string? RowVersion { get; set; }
 }
 
 public class QuestionStatsDto

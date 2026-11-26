@@ -27,6 +27,9 @@ public class AssessmentAttempt
     public string? ExitReason { get; set; }
     public string? SuspendDataJson { get; set; }
     public int SchemaVersion { get; set; } = 1;
+    public bool IsFinalized { get; set; } = false;
+    public DateTimeOffset? FinalizedAt { get; set; }
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
     public ICollection<AssessmentResponse> Responses { get; set; } = new List<AssessmentResponse>();
 }

@@ -102,6 +102,7 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
     public DbSet<LessonSkill> LessonSkills => Set<LessonSkill>();
     public DbSet<LessonPrerequisite> LessonPrerequisites => Set<LessonPrerequisite>();
     public DbSet<QuestionSkill> QuestionSkills => Set<QuestionSkill>();
+    public DbSet<AssessmentQuestion> AssessmentQuestions => Set<AssessmentQuestion>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -288,6 +289,9 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.CurrentQuestionId).HasMaxLength(64);
 
             entity.Property(e => e.ExitReason).HasMaxLength(64);
+            entity.Property(e => e.IsFinalized).HasDefaultValue(false).IsRequired();
+            entity.Property(e => e.FinalizedAt);
+            entity.Property(e => e.RowVersion).IsRowVersion();
 
 
 
@@ -704,6 +708,7 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.DurationMinutes).HasDefaultValue(15);
             entity.Property(e => e.CreatedAt).IsRequired();
             entity.Property(e => e.UpdatedAt).IsRequired();
+            entity.Property(e => e.RowVersion).IsRowVersion();
 
             entity.HasIndex(e => e.LessonId);
             entity.HasIndex(e => e.Status);
@@ -712,6 +717,33 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
                 .WithOne(q => q.Assessment)
                 .HasForeignKey(q => q.AssessmentId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<AssessmentQuestion>(entity =>
+        {
+            entity.ToTable("assessment_questions");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.AssessmentId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.QuestionId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.OrderIndex).HasDefaultValue(1);
+            entity.Property(e => e.PinnedVersion).HasDefaultValue(1);
+            entity.Property(e => e.PinnedFingerprint).HasMaxLength(128);
+            entity.Property(e => e.Points).HasDefaultValue(1);
+            entity.Property(e => e.CreatedAt).IsRequired();
+
+            entity.HasIndex(e => new { e.AssessmentId, e.QuestionId }).IsUnique();
+            entity.HasIndex(e => new { e.AssessmentId, e.OrderIndex });
+
+            entity.HasOne(e => e.Assessment)
+                .WithMany(a => a.AssessmentQuestions)
+                .HasForeignKey(e => e.AssessmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Question)
+                .WithMany()
+                .HasForeignKey(e => e.QuestionId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
 
@@ -781,6 +813,9 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.CopyrightProofRef).HasMaxLength(255);
 
             entity.Property(e => e.Version).HasDefaultValue(1);
+            entity.Property(e => e.QuestionKey).HasMaxLength(64);
+            entity.Property(e => e.ContentFingerprint).HasMaxLength(128);
+            entity.Property(e => e.RowVersion).IsRowVersion();
 
             entity.Property(e => e.CreatedAt).IsRequired();
 
@@ -789,6 +824,8 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
 
             entity.HasIndex(e => e.Code);
+            entity.HasIndex(e => e.QuestionKey).IsUnique().HasFilter("[QuestionKey] IS NOT NULL");
+            entity.HasIndex(e => new { e.SubjectId, e.ContentFingerprint, e.IsDeleted });
 
             entity.HasIndex(e => e.AssessmentId);
 
@@ -1505,7 +1542,7 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.SkillId).HasMaxLength(64).IsRequired();
             entity.HasIndex(e => new { e.QuestionId, e.SkillId }).IsUnique();
             entity.HasOne(e => e.Question)
-                .WithMany()
+                .WithMany(q => q.QuestionSkills)
                 .HasForeignKey(e => e.QuestionId)
                 .OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(e => e.Skill)

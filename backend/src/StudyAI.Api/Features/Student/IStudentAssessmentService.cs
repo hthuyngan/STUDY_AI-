@@ -7,4 +7,5 @@ public interface IStudentAssessmentService
     Task<AssessmentAttemptResponseDto> GetSingleAttemptAsync(string requestingUserId, string targetUserId, bool isAdmin, string attemptId, CancellationToken cancellationToken = default);
     Task<AssessmentAttemptResponseDto> CreateAttemptAsync(string requestingUserId, string targetUserId, bool isAdmin, AssessmentAttemptCreateDto dto, CancellationToken cancellationToken = default);
     Task<AssessmentAttemptResponseDto> UpdateAttemptAsync(string requestingUserId, string targetUserId, bool isAdmin, string attemptId, AssessmentAttemptCreateDto dto, CancellationToken cancellationToken = default);
+    Task<AssessmentAttemptResponseDto> FinalizeAttemptAsync(string requestingUserId, string targetUserId, string attemptId, FinalizeAssessmentAttemptDto dto, CancellationToken cancellationToken = default);
 }

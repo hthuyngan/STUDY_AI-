@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
+using StudyAI.Models;
 
 namespace StudyAI.Features.Content;
 
@@ -104,6 +105,10 @@ public class ContentQuestionsService : IContentQuestionsService
             CopyrightStatus = q.CopyrightStatus,
             CopyrightProofRef = q.CopyrightProofRef,
             Version = q.Version,
+            QuestionKey = q.QuestionKey,
+            ContentFingerprint = q.ContentFingerprint,
+            RowVersion = q.RowVersion is { Length: > 0 } ? Convert.ToBase64String(q.RowVersion) : string.Empty,
+            SkillIds = q.QuestionSkills?.Select(qs => qs.SkillId).ToList() ?? new List<string>(),
             CreatedAt = q.CreatedAt.ToString("o"),
             UpdatedAt = q.UpdatedAt.ToString("o")
         };
@@ -204,6 +209,7 @@ public class ContentQuestionsService : IContentQuestionsService
     {
         var query = _db.ContentQuestions
             .Include(q => q.Author)
+            .Include(q => q.QuestionSkills)
             .Include(q => q.Lesson)
                 .ThenInclude(l => l!.Chapter)
                     .ThenInclude(c => c!.Subject)
@@ -289,6 +295,7 @@ public class ContentQuestionsService : IContentQuestionsService
     {
         var q = await _db.ContentQuestions
             .Include(x => x.Author)
+            .Include(x => x.QuestionSkills)
             .Include(x => x.Lesson)
                 .ThenInclude(l => l!.Chapter)
                     .ThenInclude(c => c!.Subject)
@@ -349,26 +356,62 @@ public class ContentQuestionsService : IContentQuestionsService
                     .ThenInclude(c => c!.Subject)
                 .FirstOrDefaultAsync(l => l.Id == req.LessonId, ct);
 
-            if (lesson != null)
+            if (lesson == null)
+                throw new NotFoundException($"Bài học '{req.LessonId}' không tồn tại.");
+
+            resolvedChapterId ??= lesson.ChapterId;
+            resolvedSubjectId ??= lesson.Chapter?.SubjectId;
+            resolvedGrade ??= lesson.Chapter?.Subject?.Grade;
+        }
+
+        if (!string.IsNullOrWhiteSpace(resolvedSubjectId))
+        {
+            var subjExists = await _db.ContentSubjects.AnyAsync(s => s.Id == resolvedSubjectId, ct) ||
+                             await _db.CatalogSubjects.AnyAsync(s => s.Id == resolvedSubjectId, ct);
+            if (!subjExists)
+                throw new ValidationException("SubjectId", $"Môn học '{resolvedSubjectId}' không tồn tại.");
+        }
+
+        var validatedSkillIds = new List<string>();
+        if (req.SkillIds is { Count: > 0 })
+        {
+            var distinctSkills = req.SkillIds.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s.Trim()).Distinct().ToList();
+            var existingSkills = await _db.Skills.Where(s => distinctSkills.Contains(s.Id)).Select(s => s.Id).ToListAsync(ct);
+            if (existingSkills.Count != distinctSkills.Count)
             {
-                resolvedChapterId ??= lesson.ChapterId;
-                resolvedSubjectId ??= lesson.Chapter?.SubjectId;
-                resolvedGrade ??= lesson.Chapter?.Subject?.Grade;
+                var missing = distinctSkills.Except(existingSkills).First();
+                throw new ValidationException("SkillIds", $"Kỹ năng '{missing}' không tồn tại.");
             }
+            validatedSkillIds.AddRange(distinctSkills);
+        }
+
+        var fingerprint = QuestionIdentityHelper.ComputeFingerprint(qType, req.Prompt, req.Options, req.CorrectAnswer);
+        var dup = await _db.ContentQuestions.AsNoTracking()
+            .Where(x => !x.IsDeleted && x.ContentFingerprint == fingerprint)
+            .Where(x => (resolvedSubjectId != null && x.SubjectId == resolvedSubjectId) ||
+                        (req.LessonId != null && x.LessonId == req.LessonId) ||
+                        (resolvedSubjectId == null && req.LessonId == null && x.SubjectId == null))
+            .Select(x => new { x.Id, x.QuestionKey })
+            .FirstOrDefaultAsync(ct);
+        if (dup != null)
+        {
+            throw new ConflictException($"Câu hỏi bị trùng lặp nội dung với câu hỏi hiện có (Key: {dup.QuestionKey ?? dup.Id}).");
         }
 
         var code = !string.IsNullOrWhiteSpace(req.Code)
             ? req.Code.Trim()
             : $"Q-{DateTime.UtcNow:yyMMdd}-{Guid.NewGuid():N}"[..16].ToUpperInvariant();
 
-        var defaultStatus = isContentStaffOrAdmin
-            ? (string.IsNullOrWhiteSpace(req.Status) ? "published" : req.Status)
+        var defaultStatus = isContentStaffOrAdmin && !string.IsNullOrWhiteSpace(req.Status)
+            ? req.Status.Trim().ToLowerInvariant()
             : "draft";
 
         var now = _clock.UtcNow;
         var question = new ContentQuestion
         {
             Id = _idGenerator.NewId("qst"),
+            QuestionKey = _idGenerator.NewId("qkey"),
+            ContentFingerprint = fingerprint,
             Code = code,
             LessonId = req.LessonId,
             ChapterId = resolvedChapterId,
@@ -399,12 +442,25 @@ public class ContentQuestionsService : IContentQuestionsService
 
         _db.ContentQuestions.Add(question);
 
+        foreach (var skillId in validatedSkillIds)
+        {
+            var link = new QuestionSkill
+            {
+                Id = _idGenerator.NewId("qsk"),
+                QuestionId = question.Id,
+                SkillId = skillId,
+                CreatedAt = now
+            };
+            _db.QuestionSkills.Add(link);
+            question.QuestionSkills.Add(link);
+        }
+
         await _auditWriter.WriteStaffAuditAsync(
             "question_created",
             "content_question",
             question.Id,
             null,
-            JsonSerializer.Serialize(new { code = question.Code, prompt = question.Prompt, type = question.Type }),
+            JsonSerializer.Serialize(new { code = question.Code, questionKey = question.QuestionKey, fingerprint = question.ContentFingerprint, skillIds = validatedSkillIds, prompt = question.Prompt, type = question.Type }),
             ct);
 
         await _db.SaveChangesAsync(ct);
@@ -420,6 +476,7 @@ public class ContentQuestionsService : IContentQuestionsService
     {
         var question = await _db.ContentQuestions
             .Include(q => q.Author)
+            .Include(q => q.QuestionSkills)
             .Include(q => q.Lesson)
                 .ThenInclude(l => l!.Chapter)
                     .ThenInclude(c => c!.Subject)
@@ -427,6 +484,11 @@ public class ContentQuestionsService : IContentQuestionsService
 
         if (question == null)
             throw new NotFoundException("Câu hỏi không tồn tại.");
+
+        if (!string.IsNullOrWhiteSpace(req.RowVersion))
+        {
+            VerifyQuestionRowVersion(question, req.RowVersion);
+        }
 
         if (!isContentStaffOrAdmin && question.AuthorId != currentUserId)
         {
@@ -436,6 +498,13 @@ public class ContentQuestionsService : IContentQuestionsService
         if (!string.IsNullOrWhiteSpace(req.Status) && req.Status.Trim().ToLowerInvariant() == "published")
         {
             throw new ValidationException("Status", "Không thể xuất bản trực tiếp qua API cập nhật câu hỏi. Vui lòng qua quy trình phê duyệt xuất bản.");
+        }
+
+        if (question.SourceType == "vnhsge" &&
+            ((req.SourceType != null && req.SourceType != "vnhsge") ||
+             (req.CopyrightStatus != null && string.IsNullOrWhiteSpace(req.CopyrightStatus))))
+        {
+            throw new ConflictException("Không được ghi đè nguồn gốc/bản quyền VNHSGE khi chưa có phê duyệt.");
         }
 
         if (!string.IsNullOrWhiteSpace(req.Prompt)) question.Prompt = req.Prompt.Trim();
@@ -451,7 +520,36 @@ public class ContentQuestionsService : IContentQuestionsService
         if (req.Grade != null) question.Grade = req.Grade.Trim();
         if (req.SubjectId != null) question.SubjectId = req.SubjectId.Trim();
         if (req.ChapterId != null) question.ChapterId = req.ChapterId.Trim();
-        if (req.LessonId != null) question.LessonId = req.LessonId.Trim();
+        if (req.LessonId != null)
+        {
+            var trimmedLesson = req.LessonId.Trim();
+            if (!string.IsNullOrEmpty(trimmedLesson))
+            {
+                var lessonExists = await _db.ContentLessons.AnyAsync(l => l.Id == trimmedLesson, ct);
+                if (!lessonExists)
+                    throw new NotFoundException($"Bài học '{trimmedLesson}' không tồn tại.");
+            }
+            question.LessonId = trimmedLesson;
+        }
+
+        List<string> parsedOptions;
+        try { parsedOptions = JsonSerializer.Deserialize<List<string>>(question.OptionsJson) ?? new List<string>(); } catch { parsedOptions = new List<string>(); }
+        var newFp = QuestionIdentityHelper.ComputeFingerprint(question.Type, question.Prompt, parsedOptions, question.CorrectAnswer);
+        var dup = await _db.ContentQuestions.AsNoTracking()
+            .Where(x => x.Id != question.Id && !x.IsDeleted && x.ContentFingerprint == newFp && x.SubjectId == question.SubjectId)
+            .Select(x => new { x.Id, x.QuestionKey })
+            .FirstOrDefaultAsync(ct);
+        if (dup != null)
+            throw new ConflictException($"Nội dung câu hỏi sau khi sửa bị trùng với câu hỏi '{dup.QuestionKey ?? dup.Id}'.");
+
+        question.ContentFingerprint = newFp;
+        if (string.IsNullOrWhiteSpace(question.QuestionKey))
+            question.QuestionKey = _idGenerator.NewId("qkey");
+
+        if (req.SkillIds != null)
+        {
+            await SyncQuestionSkillsInternalAsync(question, req.SkillIds, ct);
+        }
 
         question.Version++;
         question.UpdatedAt = _clock.UtcNow;
@@ -461,11 +559,124 @@ public class ContentQuestionsService : IContentQuestionsService
             "content_question",
             question.Id,
             null,
-            JsonSerializer.Serialize(new { code = question.Code, prompt = question.Prompt }),
+            JsonSerializer.Serialize(new { code = question.Code, questionKey = question.QuestionKey, fingerprint = question.ContentFingerprint, prompt = question.Prompt }),
             ct);
 
-        await _db.SaveChangesAsync(ct);
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new ConflictException("Câu hỏi đã bị cập nhật bởi phiên khác (xung đột RowVersion). Vui lòng tải lại.");
+        }
         return FormatQuestion(question);
+    }
+
+    public async Task<ContentQuestionItemDto> UpdateQuestionSkillsAsync(
+        string questionId,
+        UpdateQuestionSkillsRequestDto req,
+        string currentUserId,
+        bool isContentStaffOrAdmin,
+        CancellationToken ct = default)
+    {
+        var question = await _db.ContentQuestions
+            .Include(q => q.Author)
+            .Include(q => q.QuestionSkills)
+            .Include(q => q.Lesson)
+                .ThenInclude(l => l!.Chapter)
+                    .ThenInclude(c => c!.Subject)
+            .FirstOrDefaultAsync(q => q.Id == questionId, ct);
+
+        if (question == null)
+            throw new NotFoundException("Câu hỏi không tồn tại.");
+
+        VerifyQuestionRowVersion(question, req.RowVersion);
+
+        if (!isContentStaffOrAdmin && question.AuthorId != currentUserId)
+            throw new ForbiddenException("Bạn không có quyền chỉnh sửa liên kết kỹ năng của câu hỏi này.");
+
+        var beforeSkills = question.QuestionSkills.Select(qs => qs.SkillId).ToList();
+        await SyncQuestionSkillsInternalAsync(question, req.SkillIds ?? new List<string>(), ct);
+        question.UpdatedAt = _clock.UtcNow;
+
+        await _auditWriter.WriteStaffAuditAsync(
+            "question_skills_updated",
+            "content_question",
+            question.Id,
+            JsonSerializer.Serialize(new { skillIds = beforeSkills }),
+            JsonSerializer.Serialize(new { skillIds = question.QuestionSkills.Select(qs => qs.SkillId).ToList(), actor = currentUserId }),
+            ct);
+
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new ConflictException("Câu hỏi đã bị cập nhật bởi phiên khác (xung đột RowVersion).");
+        }
+        return FormatQuestion(question);
+    }
+
+    private async Task SyncQuestionSkillsInternalAsync(ContentQuestion question, List<string> skillIds, CancellationToken ct)
+    {
+        var distinct = skillIds.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s.Trim()).Distinct().ToList();
+        if (distinct.Count > 0)
+        {
+            var found = await _db.Skills.Where(s => distinct.Contains(s.Id)).Select(s => s.Id).ToListAsync(ct);
+            if (found.Count != distinct.Count)
+            {
+                var missing = distinct.Except(found).First();
+                throw new ValidationException("SkillIds", $"Kỹ năng '{missing}' không tồn tại.");
+            }
+        }
+
+        foreach (var existing in question.QuestionSkills.ToList())
+        {
+            if (!distinct.Contains(existing.SkillId))
+            {
+                _db.QuestionSkills.Remove(existing);
+                question.QuestionSkills.Remove(existing);
+            }
+        }
+
+        var currentSet = question.QuestionSkills.Select(qs => qs.SkillId).ToHashSet();
+        var now = _clock.UtcNow;
+        foreach (var sid in distinct)
+        {
+            if (!currentSet.Contains(sid))
+            {
+                var link = new QuestionSkill
+                {
+                    Id = _idGenerator.NewId("qsk"),
+                    QuestionId = question.Id,
+                    SkillId = sid,
+                    CreatedAt = now
+                };
+                _db.QuestionSkills.Add(link);
+                question.QuestionSkills.Add(link);
+            }
+        }
+    }
+
+    private static void VerifyQuestionRowVersion(ContentQuestion question, string? rowVersionBase64)
+    {
+        if (string.IsNullOrWhiteSpace(rowVersionBase64))
+            throw new ConflictException("Thiếu RowVersion để kiểm tra xung đột đồng thời.");
+
+        byte[] clientVersion;
+        try
+        {
+            clientVersion = Convert.FromBase64String(rowVersionBase64.Trim());
+        }
+        catch (FormatException)
+        {
+            throw new ValidationException("RowVersion", "RowVersion không đúng định dạng Base64.");
+        }
+
+        if (question.RowVersion.Length == 0 || !question.RowVersion.SequenceEqual(clientVersion))
+            throw new ConflictException("Câu hỏi đã bị cập nhật bởi phiên khác (xung đột RowVersion). Vui lòng tải lại.");
     }
 
     public async Task<bool> DeleteQuestionAsync(string questionId, string currentUserId, bool isContentStaffOrAdmin, CancellationToken ct = default)

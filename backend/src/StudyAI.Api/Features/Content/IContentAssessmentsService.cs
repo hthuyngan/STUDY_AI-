@@ -16,4 +16,5 @@ public interface IContentAssessmentsService
     Task<bool> DeleteAssessmentAsync(string id, string currentUserId, CancellationToken ct = default);
     Task<ContentAssessmentItemDto> UpdateAssessmentStatusAsync(string id, JsonObject body, string currentUserId, CancellationToken ct = default);
     Task<ContentAssessmentItemDto> AddAssessmentQuestionAsync(string id, AddAssessmentQuestionRequestDto req, string currentUserId, CancellationToken ct = default);
+    Task<ContentAssessmentItemDto> ComposeAssessmentQuestionsAsync(string id, ComposeAssessmentQuestionsRequestDto req, string currentUserId, CancellationToken ct = default);
 }

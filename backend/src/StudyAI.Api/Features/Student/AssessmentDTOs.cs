@@ -61,5 +61,15 @@ public class AssessmentAttemptResponseDto
     public string? ExitReason { get; set; }
     public JsonNode? SuspendData { get; set; }
     public int SchemaVersion { get; set; } = 1;
+    public bool IsFinalized { get; set; }
+    public DateTimeOffset? FinalizedAt { get; set; }
+    public string RowVersion { get; set; } = string.Empty;
     public Dictionary<string, AssessmentResponseItemDto> Responses { get; set; } = new();
+}
+
+public class FinalizeAssessmentAttemptDto
+{
+    public Dictionary<string, List<string>> Answers { get; set; } = new();
+    public int SessionTimeMs { get; set; } = 0;
+    public string? RowVersion { get; set; }
 }
