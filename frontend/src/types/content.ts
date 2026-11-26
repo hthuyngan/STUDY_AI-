@@ -1,4 +1,4 @@
-export type ContentStatus = 'draft' | 'in-review' | 'published' | 'archived'
+export type ContentStatus = 'draft' | 'in-review' | 'changes-requested' | 'approved' | 'published' | 'archived'
 
 export interface CurriculumSubjectItem {
   id: string
@@ -60,12 +60,16 @@ export interface StructuredLearningObjective {
 
 export interface LessonEditorData {
   id: string
+  code?: string
+  curriculumEditionId?: string
+  curriculumEditionName?: string
   title: string
   subjectId: string
   subjectName?: string
   chapterId: string
   chapterTitle?: string
   status: ContentStatus
+  rowVersion?: string
   introduction: string
   learningObjectives?: Array<string | StructuredLearningObjective>
   definitions: StructuredDefinitionItem[]

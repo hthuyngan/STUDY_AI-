@@ -679,6 +679,17 @@ public class ContentCatalogService : IContentCatalogService
         return ToCurriculumDto(entity);
     }
 
+    public async Task<CurriculumDto> PublishCurriculumAsync(string id, CatalogStatusActionDto? action, string actorUserId, CancellationToken ct = default)
+    {
+        var entity = await _db.Curricula.Include(x => x.GradeLevel).Include(x => x.Subject).FirstOrDefaultAsync(x => x.Id == id, ct)
+            ?? throw new NotFoundException($"Không tìm thấy chương trình '{id}'.");
+        ApplyExpectedRowVersion(entity, entity.RowVersion, action?.RowVersion);
+        if (entity.Status == "archived") throw new ValidationException("Status", "Không thể xuất bản chương trình đã lưu trữ.");
+        var before = new { entity.Status }; entity.Status = "published"; entity.UpdatedAt = _clock.UtcNow;
+        await SaveWithAuditAtomicallyAsync("Xung đột khi xuất bản chương trình.", "catalog_curriculum_published", "Curriculum", entity.Id, before, new { entity.Status, reason = action?.Reason, actorUserId }, ct);
+        return ToCurriculumDto(entity);
+    }
+
     // ─── TextbookSeries ──────────────────────────────────────────────────────
 
     public async Task<CatalogPagedResponseDto<TextbookSeriesDto>> ListTextbookSeriesAsync(CatalogListQueryDto query, CancellationToken ct = default)
@@ -1060,6 +1071,18 @@ public class ContentCatalogService : IContentCatalogService
         await SaveWithAuditAtomicallyAsync(
             "Trùng khóa nghiệp vụ khi khôi phục phiên bản.",
             "catalog_edition_reactivated", "CurriculumEdition", entity.Id, before, new { entity.Status, reason = action?.Reason, actorUserId }, ct);
+        return ToEditionDto(entity);
+    }
+
+    public async Task<CurriculumEditionDto> PublishEditionAsync(string id, CatalogStatusActionDto? action, string actorUserId, CancellationToken ct = default)
+    {
+        var entity = await _db.CurriculumEditions.Include(x => x.Curriculum).Include(x => x.TextbookSeries).FirstOrDefaultAsync(x => x.Id == id, ct)
+            ?? throw new NotFoundException($"Không tìm thấy phiên bản chương trình '{id}'.");
+        ApplyExpectedRowVersion(entity, entity.RowVersion, action?.RowVersion);
+        if (entity.Status == "archived") throw new ValidationException("Status", "Không thể xuất bản phiên bản đã lưu trữ.");
+        if (entity.Curriculum?.Status != "published") throw new ValidationException("CurriculumId", "Chương trình phải được xuất bản trước phiên bản.");
+        var before = new { entity.Status }; entity.Status = "published"; entity.UpdatedAt = _clock.UtcNow;
+        await SaveWithAuditAtomicallyAsync("Xung đột khi xuất bản phiên bản.", "catalog_edition_published", "CurriculumEdition", entity.Id, before, new { entity.Status, reason = action?.Reason, actorUserId }, ct);
         return ToEditionDto(entity);
     }
 

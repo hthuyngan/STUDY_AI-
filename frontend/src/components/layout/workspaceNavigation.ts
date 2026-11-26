@@ -242,6 +242,12 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
             icon: BookOpen,
           },
           {
+            id: 'content-curriculum-workspace',
+            label: 'Không gian giáo trình',
+            path: '/content/curriculum',
+            icon: Layers,
+          },
+          {
             id: 'content-subjects',
             label: 'Môn học',
             path: '/content/subjects',

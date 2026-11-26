@@ -53,23 +53,25 @@ public class ContentSubjectListResponseDto
 
 public class CreateChapterRequestDto
 {
-    public string SubjectId { get; set; } = string.Empty;
+    public string? SubjectId { get; set; }
+    public string? CurriculumEditionId { get; set; }
+    public string? Code { get; set; }
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public int OrderIndex { get; set; } = 0;
     public bool IsActive { get; set; } = true;
-    public string Status { get; set; } = "published";
     public string? SourceName { get; set; }
     public string? SourceUrl { get; set; }
 }
 
 public class UpdateChapterRequestDto
 {
+    public string? Code { get; set; }
     public string? Title { get; set; }
     public string? Description { get; set; }
     public int? OrderIndex { get; set; }
     public bool? IsActive { get; set; }
-    public string? Status { get; set; }
+    public string? RowVersion { get; set; }
     public string? SourceName { get; set; }
     public string? SourceUrl { get; set; }
 }
@@ -77,8 +79,11 @@ public class UpdateChapterRequestDto
 public class ContentChapterItemDto
 {
     public string Id { get; set; } = string.Empty;
-    public string SubjectId { get; set; } = string.Empty;
+    public string? SubjectId { get; set; }
     public string SubjectName { get; set; } = string.Empty;
+    public string? CurriculumEditionId { get; set; }
+    public string? CurriculumEditionName { get; set; }
+    public string? Code { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public int OrderIndex { get; set; } = 0;
@@ -89,11 +94,29 @@ public class ContentChapterItemDto
     public int LessonCount { get; set; }
     public string CreatedAt { get; set; } = string.Empty;
     public string UpdatedAt { get; set; } = string.Empty;
+    public string RowVersion { get; set; } = string.Empty;
+}
+
+public class ContentChapterListResponseDto
+{
+    public List<ContentChapterItemDto> Items { get; set; } = new();
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+    public int Total { get; set; }
+}
+
+public class ContentStatusActionDto
+{
+    public string? RowVersion { get; set; }
+    public string? Reason { get; set; }
 }
 
 public class ReorderChaptersRequestDto
 {
     public string SubjectId { get; set; } = string.Empty;
+    public string? CurriculumEditionId { get; set; }
+    public string? RowVersion { get; set; }
+    public Dictionary<string, string>? RowVersions { get; set; }
     public List<string> ChapterIds { get; set; } = new();
 }
 
@@ -239,6 +262,7 @@ public class CreateLessonRequestDto
     public string ChapterId { get; set; } = string.Empty;
     public string? TopicId { get; set; }
     public string Title { get; set; } = string.Empty;
+    public string? Code { get; set; }
     public string Slug { get; set; } = string.Empty;
     public int OrderIndex { get; set; } = 0;
     public string? Introduction { get; set; }
@@ -258,9 +282,12 @@ public class UpdateLessonRequestDto
     public string? ChapterId { get; set; }
     public string? TopicId { get; set; }
     public string? Title { get; set; }
+    public string? Code { get; set; }
     public string? Slug { get; set; }
     public int? OrderIndex { get; set; }
+    [Obsolete("Use explicit lifecycle endpoints.")]
     public string? Status { get; set; }
+    public string? RowVersion { get; set; }
     public string? Introduction { get; set; }
     public string? SourceName { get; set; }
     public string? SourceUrl { get; set; }
@@ -278,6 +305,7 @@ public class ReorderLessonsRequestDto
     public string ChapterId { get; set; } = string.Empty;
     public string? TopicId { get; set; }
     public List<string> LessonIds { get; set; } = new();
+    public Dictionary<string, string> RowVersions { get; set; } = new();
 }
 
 public class ReorderTopicsRequestDto
@@ -291,6 +319,9 @@ public class ContentLessonDetailDto
     public string Id { get; set; } = string.Empty;
     public string ChapterId { get; set; } = string.Empty;
     public string ChapterTitle { get; set; } = string.Empty;
+    public string? Code { get; set; }
+    public string? CurriculumEditionId { get; set; }
+    public string? CurriculumEditionName { get; set; }
     public string? TopicId { get; set; }
     public string? TopicTitle { get; set; }
     public string SubjectId { get; set; } = string.Empty;
@@ -316,6 +347,15 @@ public class ContentLessonDetailDto
     public int QuestionsCount { get; set; }
     public string CreatedAt { get; set; } = string.Empty;
     public string UpdatedAt { get; set; } = string.Empty;
+    public string RowVersion { get; set; } = string.Empty;
+}
+
+public class ContentLessonListResponseDto
+{
+    public List<ContentLessonDetailDto> Items { get; set; } = new();
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+    public int Total { get; set; }
 }
 
 #endregion
@@ -531,6 +571,10 @@ public class LearnerChapterDto
 {
     public string Id { get; set; } = string.Empty;
     public string SubjectId { get; set; } = string.Empty;
+    public string? GradeLevelId { get; set; }
+    public string? CatalogSubjectId { get; set; }
+    public string? CurriculumId { get; set; }
+    public string? CurriculumEditionId { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public int OrderIndex { get; set; } = 0;
@@ -565,6 +609,10 @@ public class LearnerLessonDetailDto
     public string? TopicTitle { get; set; }
     public string SubjectId { get; set; } = string.Empty;
     public string SubjectName { get; set; } = string.Empty;
+    public string? GradeLevelId { get; set; }
+    public string? CatalogSubjectId { get; set; }
+    public string? CurriculumId { get; set; }
+    public string? CurriculumEditionId { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
     public int OrderIndex { get; set; } = 0;

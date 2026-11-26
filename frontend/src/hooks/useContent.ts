@@ -203,6 +203,7 @@ export function useLessonEditor(lessonId: string) {
       const saved = await contentService.saveLessonContent({
         ...baseData,
         ...cleanUpdates,
+        rowVersion: updates.rowVersion ?? lessonData.rowVersion,
         id: lessonData.id,
       })
       setLessonData(saved)
@@ -212,16 +213,21 @@ export function useLessonEditor(lessonId: string) {
     }
   }
 
-  const submitReview = async () => {
+  const runTransition = async (
+    action: (id: string, rowVersion?: string, reason?: string) => Promise<{ status: LessonEditorData['status']; rowVersion?: string; updatedAt: string }>,
+    overrideRowVersion?: string,
+    reason?: string
+  ) => {
     if (!lessonData) return
     setIsSaving(true)
     try {
-      const res = await contentService.submitLessonReview(lessonData.id)
+      const res = await action(lessonData.id, overrideRowVersion ?? lessonData.rowVersion, reason)
       setLessonData((prev) =>
         prev
           ? {
               ...prev,
               status: res.status,
+              rowVersion: res.rowVersion ?? prev.rowVersion,
               lastSavedAt: res.updatedAt,
             }
           : prev
@@ -232,25 +238,15 @@ export function useLessonEditor(lessonId: string) {
     }
   }
 
-  const publish = async () => {
-    if (!lessonData) return
-    setIsSaving(true)
-    try {
-      const res = await contentService.publishLesson(lessonData.id)
-      setLessonData((prev) =>
-        prev
-          ? {
-              ...prev,
-              status: res.status,
-              lastSavedAt: res.updatedAt,
-            }
-          : prev
-      )
-      return res
-    } finally {
-      setIsSaving(false)
-    }
-  }
+  const submitReview = (rowVersion?: string) => runTransition((id, rv) => contentService.submitLessonReview(id, rv), rowVersion)
+  const approve = (rowVersion?: string) => runTransition((id, rv) => contentService.approveLesson(id, rv), rowVersion)
+  const publish = (rowVersion?: string) => runTransition((id, rv) => contentService.publishLesson(id, rv), rowVersion)
+  const unpublish = (rowVersion?: string) => runTransition((id, rv) => contentService.unpublishLesson(id, rv), rowVersion)
+  const requestChanges = (reason?: string, rowVersion?: string) =>
+    runTransition((id, rv, r) => contentService.requestLessonChanges(id, rv, r), rowVersion, reason)
+  const archive = (reason?: string, rowVersion?: string) =>
+    runTransition((id, rv, r) => contentService.archiveLesson(id, rv, r), rowVersion, reason)
+  const reactivate = (rowVersion?: string) => runTransition((id, rv) => contentService.reactivateLesson(id, rv), rowVersion)
 
   return {
     lessonData,
@@ -260,7 +256,12 @@ export function useLessonEditor(lessonId: string) {
     save: saveDraft,
     saveDraft,
     submitReview,
+    approve,
     publish,
+    unpublish,
+    requestChanges,
+    archive,
+    reactivate,
     refresh: load,
   }
 }

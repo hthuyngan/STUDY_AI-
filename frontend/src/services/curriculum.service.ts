@@ -110,7 +110,40 @@ export interface CheckAnswerResult {
   feedback: string
 }
 
+export interface LearnerEditionSummary {
+  id: string
+  code: string
+  editionName: string
+  version?: string
+  volume?: string
+  publicationYear?: number
+  curriculumId: string
+  curriculumName: string
+  framework: string
+  gradeLevelId: string
+  gradeName: string
+  catalogSubjectId: string
+  subjectCode: string
+  subjectName: string
+  textbookSeriesId?: string
+  textbookSeriesName?: string
+  publishedChapterCount: number
+  publishedLessonCount: number
+}
+
 export const curriculumService = {
+  async getPublishedEditions(gradeLevelId?: string, subjectId?: string): Promise<LearnerEditionSummary[]> {
+    const params = new URLSearchParams()
+    if (gradeLevelId) params.append('gradeLevelId', gradeLevelId)
+    if (subjectId) params.append('subjectId', subjectId)
+    const qs = params.toString() ? `?${params.toString()}` : ''
+    return apiClient.get<LearnerEditionSummary[]>(`/api/v1/curriculum/editions${qs}`)
+  },
+
+  async getEditionChapters(editionId: string): Promise<LearnerChapter[]> {
+    return apiClient.get<LearnerChapter[]>(`/api/v1/curriculum/editions/${editionId}/chapters`)
+  },
+
   async getSubjects(grade?: string, search?: string): Promise<LearnerSubject[]> {
     const params = new URLSearchParams()
     if (grade && grade !== 'all') params.append('grade', grade)

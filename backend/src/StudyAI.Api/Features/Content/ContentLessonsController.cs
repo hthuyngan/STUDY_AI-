@@ -34,6 +34,7 @@ public class ContentLessonsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> ListLessons(
         [FromQuery] string? subjectId = null,
+        [FromQuery] string? curriculumEditionId = null,
         [FromQuery] string? chapterId = null,
         [FromQuery] string? topicId = null,
         [FromQuery] string? status = null,
@@ -41,9 +42,11 @@ public class ContentLessonsController : ControllerBase
         [FromQuery] bool includeDeleted = false,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
+        [FromQuery] string sort = "orderIndex",
+        [FromQuery] string direction = "asc",
         CancellationToken ct = default)
     {
-        var result = await _lessonsService.ListLessonsAsync(subjectId, chapterId, topicId, status, search, includeDeleted, page, pageSize, ct);
+        var result = await _lessonsService.ListLessonsAsync(subjectId, curriculumEditionId, chapterId, topicId, status, search, includeDeleted, page, pageSize, sort, direction, ct);
         return Ok(result);
     }
 
@@ -109,11 +112,11 @@ public class ContentLessonsController : ControllerBase
     }
 
     [HttpPost("{lessonId}/submit-review")]
-    public async Task<IActionResult> SubmitReview(string lessonId, CancellationToken ct = default)
+    public async Task<IActionResult> SubmitReview(string lessonId, [FromBody] ContentStatusActionDto? action = null, CancellationToken ct = default)
     {
         try
         {
-            var result = await _lessonsService.SubmitReviewAsync(lessonId, CurrentUserId, IsContentStaffOrAdmin, ct);
+            var result = await _lessonsService.SubmitReviewAsync(lessonId, action, CurrentUserId, IsContentStaffOrAdmin, ct);
             return Ok(result);
         }
         catch (NotFoundException ex) { return NotFound(new { detail = ex.Message }); }
@@ -122,7 +125,7 @@ public class ContentLessonsController : ControllerBase
     }
 
     [HttpPost("{lessonId}/approve")]
-    public async Task<IActionResult> ApproveLesson(string lessonId, CancellationToken ct = default)
+    public async Task<IActionResult> ApproveLesson(string lessonId, [FromBody] ContentStatusActionDto? action = null, CancellationToken ct = default)
     {
         if (!IsAuthorizedReviewer)
         {
@@ -130,7 +133,7 @@ public class ContentLessonsController : ControllerBase
         }
         try
         {
-            var result = await _lessonsService.ApproveLessonAsync(lessonId, CurrentUserId, IsAuthorizedReviewer, ct);
+            var result = await _lessonsService.ApproveLessonAsync(lessonId, action, CurrentUserId, IsAuthorizedReviewer, ct);
             return Ok(result);
         }
         catch (NotFoundException ex) { return NotFound(new { detail = ex.Message }); }
@@ -139,7 +142,7 @@ public class ContentLessonsController : ControllerBase
     }
 
     [HttpPost("{lessonId}/publish")]
-    public async Task<IActionResult> PublishLesson(string lessonId, CancellationToken ct = default)
+    public async Task<IActionResult> PublishLesson(string lessonId, [FromBody] ContentStatusActionDto? action = null, CancellationToken ct = default)
     {
         if (!IsAuthorizedReviewer)
         {
@@ -147,7 +150,7 @@ public class ContentLessonsController : ControllerBase
         }
         try
         {
-            var result = await _lessonsService.PublishLessonAsync(lessonId, CurrentUserId, IsAuthorizedReviewer, ct);
+            var result = await _lessonsService.PublishLessonAsync(lessonId, action, CurrentUserId, IsAuthorizedReviewer, ct);
             return Ok(result);
         }
         catch (NotFoundException ex) { return NotFound(new { detail = ex.Message }); }
@@ -156,7 +159,7 @@ public class ContentLessonsController : ControllerBase
     }
 
     [HttpPost("{lessonId}/unpublish")]
-    public async Task<IActionResult> UnpublishLesson(string lessonId, CancellationToken ct = default)
+    public async Task<IActionResult> UnpublishLesson(string lessonId, [FromBody] ContentStatusActionDto? action = null, CancellationToken ct = default)
     {
         if (!IsAuthorizedReviewer)
         {
@@ -164,7 +167,7 @@ public class ContentLessonsController : ControllerBase
         }
         try
         {
-            var result = await _lessonsService.UnpublishLessonAsync(lessonId, CurrentUserId, IsAuthorizedReviewer, ct);
+            var result = await _lessonsService.UnpublishLessonAsync(lessonId, action, CurrentUserId, IsAuthorizedReviewer, ct);
             return Ok(result);
         }
         catch (NotFoundException ex) { return NotFound(new { detail = ex.Message }); }
@@ -204,6 +207,28 @@ public class ContentLessonsController : ControllerBase
         catch (NotFoundException ex) { return NotFound(new { detail = ex.Message }); }
         catch (ForbiddenException ex) { return StatusCode(StatusCodes.Status403Forbidden, new { detail = ex.Message }); }
         catch (ValidationException ex) { return BadRequest(new { detail = ex.Message }); }
+    }
+
+    [HttpPost("{lessonId}/archive")]
+    public async Task<IActionResult> ArchiveLesson(string lessonId, [FromBody] ContentStatusActionDto? action = null, CancellationToken ct = default)
+    {
+        if (!IsAuthorizedReviewer)
+        {
+            return StatusCode(403, new { detail = "Chỉ Người kiểm duyệt nội dung (Content) hoặc Quản trị viên mới có quyền lưu trữ bài học." });
+        }
+        var result = await _lessonsService.ArchiveLessonAsync(lessonId, action, CurrentUserId, IsAuthorizedReviewer, ct);
+        return Ok(result);
+    }
+
+    [HttpPost("{lessonId}/reactivate")]
+    public async Task<IActionResult> ReactivateLesson(string lessonId, [FromBody] ContentStatusActionDto? action = null, CancellationToken ct = default)
+    {
+        if (!IsAuthorizedReviewer)
+        {
+            return StatusCode(403, new { detail = "Chỉ Người kiểm duyệt nội dung (Content) hoặc Quản trị viên mới có quyền khôi phục bài học." });
+        }
+        var result = await _lessonsService.ReactivateLessonAsync(lessonId, action, CurrentUserId, IsAuthorizedReviewer, ct);
+        return Ok(result);
     }
 
     [HttpPost("{lessonId}/rollback")]

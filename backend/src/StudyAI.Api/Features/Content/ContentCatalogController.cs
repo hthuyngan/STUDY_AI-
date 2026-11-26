@@ -134,6 +134,11 @@ public class ContentCatalogController : ControllerBase
     public async Task<IActionResult> ReactivateCurriculum(string id, [FromBody] CatalogStatusActionDto? action, CancellationToken ct = default)
         => Ok(await _catalog.ReactivateCurriculumAsync(id, action, CurrentUserId, ct));
 
+    [Authorize(Policy = "ContentAdminOnly")]
+    [HttpPost("curricula/{id}/publish")]
+    public async Task<IActionResult> PublishCurriculum(string id, [FromBody] CatalogStatusActionDto? action, CancellationToken ct = default)
+        => Ok(await _catalog.PublishCurriculumAsync(id, action, CurrentUserId, ct));
+
     // ─── TextbookSeries ──────────────────────────────────────────────────────
 
     [HttpGet("textbook-series")]
@@ -213,6 +218,11 @@ public class ContentCatalogController : ControllerBase
     [HttpPost("editions/{id}/reactivate")]
     public async Task<IActionResult> ReactivateEdition(string id, [FromBody] CatalogStatusActionDto? action, CancellationToken ct = default)
         => Ok(await _catalog.ReactivateEditionAsync(id, action, CurrentUserId, ct));
+
+    [Authorize(Policy = "ContentAdminOnly")]
+    [HttpPost("editions/{id}/publish")]
+    public async Task<IActionResult> PublishEdition(string id, [FromBody] CatalogStatusActionDto? action, CancellationToken ct = default)
+        => Ok(await _catalog.PublishEditionAsync(id, action, CurrentUserId, ct));
 
     // ─── Read-Only Compatibility Mapping ─────────────────────────────────────
 

@@ -256,10 +256,96 @@ public class StudentCurriculumService : ILearnerCurriculumService
         }).ToList();
     }
 
+    private static bool IsChapterVisibleToLearner(ContentChapter? chapter)
+    {
+        if (chapter == null || !chapter.IsActive) return false;
+        if (!string.IsNullOrWhiteSpace(chapter.CurriculumEditionId))
+        {
+            return chapter.Status == "published"
+                && chapter.CurriculumEdition?.Status == "published"
+                && chapter.CurriculumEdition.Curriculum?.Status == "published"
+                && chapter.CurriculumEdition.Curriculum.GradeLevel?.Status != "archived"
+                && chapter.CurriculumEdition.Curriculum.Subject?.Status != "archived";
+        }
+        return chapter.Subject is { IsActive: true };
+    }
+
+    private static bool IsLessonVisibleToLearner(ContentLesson? lesson)
+        => lesson != null && lesson.Status == "published" && IsChapterVisibleToLearner(lesson.Chapter);
+
+    public async Task<List<object>> GetPublishedEditionsAsync(string? gradeLevelId = null, string? subjectId = null, CancellationToken ct = default)
+    {
+        var query = _db.CurriculumEditions.AsNoTracking()
+            .Include(e => e.Curriculum).ThenInclude(c => c!.GradeLevel)
+            .Include(e => e.Curriculum).ThenInclude(c => c!.Subject)
+            .Include(e => e.TextbookSeries)
+            .Where(e =>
+                e.Status == "published" &&
+                e.Curriculum != null &&
+                e.Curriculum.Status == "published" &&
+                e.Curriculum.GradeLevel != null &&
+                e.Curriculum.GradeLevel.Status != "archived" &&
+                e.Curriculum.Subject != null &&
+                e.Curriculum.Subject.Status != "archived");
+
+        if (!string.IsNullOrWhiteSpace(gradeLevelId))
+            query = query.Where(e => e.Curriculum!.GradeLevelId == gradeLevelId);
+        if (!string.IsNullOrWhiteSpace(subjectId))
+            query = query.Where(e => e.Curriculum!.SubjectId == subjectId);
+
+        var editions = await query
+            .OrderBy(e => e.Curriculum!.GradeLevel!.OrderIndex)
+            .ThenBy(e => e.Curriculum!.Subject!.Name)
+            .ThenBy(e => e.EditionName)
+            .ToListAsync(ct);
+
+        var editionIds = editions.Select(e => e.Id).ToList();
+        var chapterCounts = await _db.ContentChapters.AsNoTracking()
+            .Where(c => c.CurriculumEditionId != null && editionIds.Contains(c.CurriculumEditionId) && c.Status == "published" && c.IsActive)
+            .Select(c => new
+            {
+                c.CurriculumEditionId,
+                LessonCount = c.Lessons.Count(l => l.Status == "published")
+            })
+            .ToListAsync(ct);
+
+        var countByEdition = chapterCounts
+            .GroupBy(x => x.CurriculumEditionId!)
+            .ToDictionary(g => g.Key, g => (Chapters: g.Count(), Lessons: g.Sum(x => x.LessonCount)));
+
+        return editions.Select(e =>
+        {
+            countByEdition.TryGetValue(e.Id, out var counts);
+            return (object)new
+            {
+                id = e.Id,
+                code = e.Code,
+                editionName = e.EditionName,
+                version = e.Version,
+                volume = e.Volume,
+                publicationYear = e.PublicationYear,
+                curriculumId = e.CurriculumId,
+                curriculumName = e.Curriculum?.Name ?? "",
+                framework = e.Curriculum?.Framework ?? "",
+                gradeLevelId = e.Curriculum?.GradeLevelId ?? "",
+                gradeName = e.Curriculum?.GradeLevel?.Name ?? "",
+                catalogSubjectId = e.Curriculum?.SubjectId ?? "",
+                subjectCode = e.Curriculum?.Subject?.Code ?? "",
+                subjectName = e.Curriculum?.Subject?.Name ?? "",
+                textbookSeriesId = e.TextbookSeriesId,
+                textbookSeriesName = e.TextbookSeries?.Name,
+                publishedChapterCount = counts.Chapters,
+                publishedLessonCount = counts.Lessons,
+            };
+        }).ToList();
+    }
+
     public async Task<LearnerChapterDto> GetChapterDetailAsync(string chapterId, CancellationToken ct = default)
     {
         var chapter = await _db.ContentChapters
             .Include(c => c.Subject)
+            .Include(c => c.CurriculumEdition).ThenInclude(e => e!.Curriculum).ThenInclude(c => c!.GradeLevel)
+            .Include(c => c.CurriculumEdition).ThenInclude(e => e!.Curriculum).ThenInclude(c => c!.Subject)
             .Include(c => c.Topics)
             .Include(c => c.Lessons.Where(l => l.Status == "published"))
                 .ThenInclude(l => l.Topic)
@@ -268,7 +354,7 @@ public class StudentCurriculumService : ILearnerCurriculumService
             .AsNoTracking()
             .FirstOrDefaultAsync(c => c.Id == chapterId && c.IsActive, ct);
 
-        if (chapter == null || chapter.Subject == null || !chapter.Subject.IsActive)
+        if (!IsChapterVisibleToLearner(chapter))
             throw new NotFoundException($"Chương '{chapterId}' không tồn tại hoặc đã ngừng kích hoạt.");
 
         var publishedLessons = chapter.Lessons
@@ -322,17 +408,58 @@ public class StudentCurriculumService : ILearnerCurriculumService
         };
     }
 
+    public async Task<List<LearnerChapterDto>> GetEditionChaptersAsync(string editionId, CancellationToken ct = default)
+    {
+        var edition = await _db.CurriculumEditions.AsNoTracking()
+            .Include(e => e.Curriculum).ThenInclude(c => c!.GradeLevel)
+            .Include(e => e.Curriculum).ThenInclude(c => c!.Subject)
+            .FirstOrDefaultAsync(e =>
+                e.Id == editionId &&
+                e.Status == "published" &&
+                e.Curriculum != null &&
+                e.Curriculum.Status == "published" &&
+                e.Curriculum.GradeLevel != null &&
+                e.Curriculum.GradeLevel.Status != "archived" &&
+                e.Curriculum.Subject != null &&
+                e.Curriculum.Subject.Status != "archived", ct)
+            ?? throw new NotFoundException("Phiên bản giáo trình không tồn tại hoặc chưa xuất bản.");
+        var chapters = await _db.ContentChapters.AsNoTracking()
+            .Where(c => c.CurriculumEditionId == editionId && c.Status == "published" && c.IsActive)
+            .Include(c => c.Topics)
+            .Include(c => c.Lessons.Where(l => l.Status == "published")).ThenInclude(l => l.Topic)
+            .Include(c => c.Lessons.Where(l => l.Status == "published")).ThenInclude(l => l.Videos)
+            .OrderBy(c => c.OrderIndex).ThenBy(c => c.Id).ToListAsync(ct);
+        return chapters.Select(c => new LearnerChapterDto
+        {
+            Id = c.Id,
+            SubjectId = edition.Curriculum!.SubjectId,
+            GradeLevelId = edition.Curriculum.GradeLevelId,
+            CatalogSubjectId = edition.Curriculum.SubjectId,
+            CurriculumId = edition.CurriculumId,
+            CurriculumEditionId = edition.Id,
+            Title = c.Title,
+            Description = c.Description ?? "",
+            OrderIndex = c.OrderIndex,
+            Status = c.Status,
+            SourceName = c.SourceName,
+            SourceUrl = c.SourceUrl,
+            Lessons = c.Lessons.OrderBy(l => l.OrderIndex).Select(l => { var v = l.Videos.FirstOrDefault(x => x.IsPublished && x.EmbedAllowed && x.VerificationStatus == "verified"); return new LearnerLessonSummaryDto { Id = l.Id, TopicId = l.TopicId, TopicTitle = l.Topic?.Title, Title = l.Title, Slug = l.Slug, OrderIndex = l.OrderIndex, Status = l.Status, ContentType = v == null ? "text" : "video", HasVideo = v != null, VideoProvider = v?.Provider, YouTubeVideoId = v?.YouTubeVideoId }; }).ToList(),
+            Topics = c.Topics.Where(t => t.IsActive).OrderBy(t => t.OrderIndex).Select(t => new LearnerTopicDto { Id = t.Id, ChapterId = t.ChapterId, Title = t.Title, Description = t.Description ?? "", OrderIndex = t.OrderIndex }).ToList()
+        }).ToList();
+    }
+
     public async Task<LearnerTopicDto> GetTopicDetailAsync(string topicId, CancellationToken ct = default)
     {
         var topic = await _db.ContentTopics
-            .Include(t => t.Chapter)
-                .ThenInclude(c => c!.Subject)
+            .Include(t => t.Chapter).ThenInclude(c => c!.Subject)
+            .Include(t => t.Chapter).ThenInclude(c => c!.CurriculumEdition).ThenInclude(e => e!.Curriculum).ThenInclude(c => c!.GradeLevel)
+            .Include(t => t.Chapter).ThenInclude(c => c!.CurriculumEdition).ThenInclude(e => e!.Curriculum).ThenInclude(c => c!.Subject)
             .Include(t => t.Lessons.Where(l => l.Status == "published"))
                 .ThenInclude(l => l.Videos)
             .AsNoTracking()
             .FirstOrDefaultAsync(t => t.Id == topicId && t.IsActive, ct);
 
-        if (topic == null || topic.Chapter == null || !topic.Chapter.IsActive || topic.Chapter.Subject == null || !topic.Chapter.Subject.IsActive)
+        if (topic == null || !IsChapterVisibleToLearner(topic.Chapter))
             throw new NotFoundException($"Chủ đề '{topicId}' không tồn tại hoặc đã ngừng kích hoạt.");
 
         var publishedLessons = topic.Lessons
@@ -371,11 +498,14 @@ public class StudentCurriculumService : ILearnerCurriculumService
     public async Task<List<LearnerVideoDto>> GetLessonVideosAsync(string lessonId, CancellationToken ct = default)
     {
         var lesson = await _db.ContentLessons
+            .Include(l => l.Chapter).ThenInclude(c => c!.Subject)
+            .Include(l => l.Chapter).ThenInclude(c => c!.CurriculumEdition).ThenInclude(e => e!.Curriculum).ThenInclude(c => c!.GradeLevel)
+            .Include(l => l.Chapter).ThenInclude(c => c!.CurriculumEdition).ThenInclude(e => e!.Curriculum).ThenInclude(c => c!.Subject)
             .Include(l => l.Videos)
             .AsNoTracking()
             .FirstOrDefaultAsync(l => (l.Id == lessonId || l.Slug == lessonId) && l.Status == "published", ct);
 
-        if (lesson == null)
+        if (!IsLessonVisibleToLearner(lesson))
             throw new NotFoundException("Bài học không tồn tại hoặc chưa được xuất bản.");
 
         return lesson.Videos
@@ -404,14 +534,15 @@ public class StudentCurriculumService : ILearnerCurriculumService
     public async Task<LearnerLessonDetailDto> GetLessonDetailAsync(string lessonId, CancellationToken ct = default)
     {
         var lesson = await _db.ContentLessons
-            .Include(l => l.Chapter)
-                .ThenInclude(c => c!.Subject)
+            .Include(l => l.Chapter).ThenInclude(c => c!.Subject)
+            .Include(l => l.Chapter).ThenInclude(c => c!.CurriculumEdition).ThenInclude(e => e!.Curriculum).ThenInclude(c => c!.GradeLevel)
+            .Include(l => l.Chapter).ThenInclude(c => c!.CurriculumEdition).ThenInclude(e => e!.Curriculum).ThenInclude(c => c!.Subject)
             .Include(l => l.Topic)
             .Include(l => l.Videos)
             .AsNoTracking()
             .FirstOrDefaultAsync(l => l.Id == lessonId || l.Slug == lessonId, ct);
 
-        if (lesson == null || lesson.Status != "published" || lesson.Chapter == null || !lesson.Chapter.IsActive || lesson.Chapter.Subject == null || !lesson.Chapter.Subject.IsActive)
+        if (!IsLessonVisibleToLearner(lesson))
             throw new NotFoundException("Bài học không tồn tại hoặc chưa được xuất bản.");
 
         var publishedVideos = lesson.Videos
@@ -443,8 +574,12 @@ public class StudentCurriculumService : ILearnerCurriculumService
             ChapterTitle = lesson.Chapter.Title,
             TopicId = lesson.TopicId,
             TopicTitle = lesson.Topic?.Title,
-            SubjectId = lesson.Chapter.SubjectId,
-            SubjectName = lesson.Chapter.Subject.Name,
+            SubjectId = lesson.Chapter.SubjectId ?? lesson.Chapter.CurriculumEdition?.Curriculum?.SubjectId ?? "",
+            SubjectName = lesson.Chapter.Subject?.Name ?? lesson.Chapter.CurriculumEdition?.Curriculum?.Subject?.Name ?? "",
+            GradeLevelId = lesson.Chapter.CurriculumEdition?.Curriculum?.GradeLevelId,
+            CatalogSubjectId = lesson.Chapter.CurriculumEdition?.Curriculum?.SubjectId,
+            CurriculumId = lesson.Chapter.CurriculumEdition?.CurriculumId,
+            CurriculumEditionId = lesson.Chapter.CurriculumEditionId,
             Title = lesson.Title,
             Slug = lesson.Slug,
             OrderIndex = lesson.OrderIndex,
@@ -466,12 +601,13 @@ public class StudentCurriculumService : ILearnerCurriculumService
     public async Task<List<LearnerQuestionDto>> GetLessonQuestionsAsync(string lessonId, CancellationToken ct = default)
     {
         var lesson = await _db.ContentLessons
-            .Include(l => l.Chapter)
-                .ThenInclude(c => c!.Subject)
+            .Include(l => l.Chapter).ThenInclude(c => c!.Subject)
+            .Include(l => l.Chapter).ThenInclude(c => c!.CurriculumEdition).ThenInclude(e => e!.Curriculum).ThenInclude(c => c!.GradeLevel)
+            .Include(l => l.Chapter).ThenInclude(c => c!.CurriculumEdition).ThenInclude(e => e!.Curriculum).ThenInclude(c => c!.Subject)
             .AsNoTracking()
             .FirstOrDefaultAsync(l => (l.Id == lessonId || l.Slug == lessonId) && l.Status == "published", ct);
 
-        if (lesson == null || lesson.Chapter == null || !lesson.Chapter.IsActive || lesson.Chapter.Subject == null || !lesson.Chapter.Subject.IsActive)
+        if (!IsLessonVisibleToLearner(lesson))
             throw new NotFoundException("Bài học không tồn tại hoặc chưa được xuất bản.");
 
         var questions = await _db.ContentQuestions
@@ -515,14 +651,12 @@ public class StudentCurriculumService : ILearnerCurriculumService
         }
 
         var question = await _db.ContentQuestions
-            .Include(q => q.Lesson)
-                .ThenInclude(l => l!.Chapter)
-                    .ThenInclude(c => c!.Subject)
+            .Include(q => q.Lesson).ThenInclude(l => l!.Chapter).ThenInclude(c => c!.Subject)
+            .Include(q => q.Lesson).ThenInclude(l => l!.Chapter).ThenInclude(c => c!.CurriculumEdition).ThenInclude(e => e!.Curriculum).ThenInclude(c => c!.GradeLevel)
+            .Include(q => q.Lesson).ThenInclude(l => l!.Chapter).ThenInclude(c => c!.CurriculumEdition).ThenInclude(e => e!.Curriculum).ThenInclude(c => c!.Subject)
             .FirstOrDefaultAsync(q => q.Id == questionId && (q.LessonId == lessonId || (q.Lesson != null && q.Lesson.Slug == lessonId)) && q.Status == "published", ct);
 
-        if (question == null || question.Lesson == null || question.Lesson.Status != "published" ||
-            question.Lesson.Chapter == null || !question.Lesson.Chapter.IsActive ||
-            question.Lesson.Chapter.Subject == null || !question.Lesson.Chapter.Subject.IsActive)
+        if (question == null || !IsLessonVisibleToLearner(question.Lesson))
         {
             throw new NotFoundException("Câu hỏi hoặc bài học không tồn tại hoặc chưa xuất bản.");
         }
@@ -631,8 +765,8 @@ public class StudentCurriculumService : ILearnerCurriculumService
                 id = l.Id,
                 title = l.Title,
                 category = itemCategory,
-                subjectId = l.Chapter?.SubjectId ?? (l.Chapter?.Subject?.Code != null ? $"sub_{l.Chapter.Subject.Code.ToLowerInvariant()}" : "sub_math10"),
-                subjectName = l.Chapter?.Subject?.Name ?? "Toán học",
+                subjectId = l.Chapter?.CurriculumEdition?.Curriculum?.SubjectId ?? l.Chapter?.SubjectId ?? "",
+                subjectName = l.Chapter?.CurriculumEdition?.Curriculum?.Subject?.Name ?? l.Chapter?.Subject?.Name ?? "",
                 snippet = !string.IsNullOrWhiteSpace(l.Introduction) ? l.Introduction : l.Title,
                 pagesCount = Math.Max(3, (l.DefinitionsJson?.Length ?? 0) / 50 + 2),
                 updatedAt = l.UpdatedAt.ToString("dd/MM/yyyy")
@@ -833,7 +967,7 @@ public class StudentCurriculumService : ILearnerCurriculumService
             _ => "comprehension"
         };
 
-        var resolvedSubjectId = q.SubjectId ?? q.Lesson?.Chapter?.SubjectId ?? (q.Grade != null ? $"sub_math{q.Grade}" : "sub_math10");
+        var resolvedSubjectId = q.SubjectId ?? q.Lesson?.Chapter?.CurriculumEdition?.Curriculum?.SubjectId ?? q.Lesson?.Chapter?.SubjectId ?? "";
 
         if (normalizedType == "true_false_group")
         {

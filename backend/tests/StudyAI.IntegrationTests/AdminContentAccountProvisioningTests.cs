@@ -218,7 +218,11 @@ public class AdminContentAccountProvisioningTests : IClassFixture<StudyAIApiFixt
             lessonStatus: "draft");
         string lessonId = lesson.Id;
 
-        // Content role can directly approve and publish the lesson
+        // Content role submits for review, approves, publishes, and unpublishes the lesson
+        using var submitReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lessonId}/submit-review");
+        submitReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        Assert.Equal(HttpStatusCode.OK, (await _client.SendAsync(submitReq)).StatusCode);
+
         using var approveReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lessonId}/approve");
         approveReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
         var approveResp = await _client.SendAsync(approveReq);
@@ -226,9 +230,16 @@ public class AdminContentAccountProvisioningTests : IClassFixture<StudyAIApiFixt
 
         var approvedJson = await approveResp.Content.ReadAsStringAsync();
         using var approvedDoc = JsonDocument.Parse(approvedJson);
-        Assert.Equal("published", approvedDoc.RootElement.GetProperty("status").GetString());
+        Assert.Equal("approved", approvedDoc.RootElement.GetProperty("status").GetString());
 
-        // Content role can unpublish the lesson
+        using var pubReq1 = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lessonId}/publish");
+        pubReq1.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        var pubResp1 = await _client.SendAsync(pubReq1);
+        Assert.Equal(HttpStatusCode.OK, pubResp1.StatusCode);
+        using var pubDoc = JsonDocument.Parse(await pubResp1.Content.ReadAsStringAsync());
+        Assert.Equal("published", pubDoc.RootElement.GetProperty("status").GetString());
+
+        // Content role can unpublish the lesson (published -> approved)
         using var unpublishReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lessonId}/unpublish");
         unpublishReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
         var unpublishResp = await _client.SendAsync(unpublishReq);
@@ -236,13 +247,13 @@ public class AdminContentAccountProvisioningTests : IClassFixture<StudyAIApiFixt
 
         var unpublishedJson = await unpublishResp.Content.ReadAsStringAsync();
         using var unpubDoc = JsonDocument.Parse(unpublishedJson);
-        Assert.Equal("draft", unpubDoc.RootElement.GetProperty("status").GetString());
+        Assert.Equal("approved", unpubDoc.RootElement.GetProperty("status").GetString());
 
         // Content role can publish via dedicated endpoint
-        using var publishReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lessonId}/publish");
-        publishReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
-        var publishResp = await _client.SendAsync(publishReq);
-        Assert.Equal(HttpStatusCode.OK, publishResp.StatusCode);
+        using var republishReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lessonId}/publish");
+        republishReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        var republishResp = await _client.SendAsync(republishReq);
+        Assert.Equal(HttpStatusCode.OK, republishResp.StatusCode);
 
         // Content role can reject / request changes
         using var rejectReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lessonId}/reject");
@@ -373,10 +384,14 @@ public class AdminContentAccountProvisioningTests : IClassFixture<StudyAIApiFixt
             lessonStatus: "draft");
         string lessonId = lesson.Id;
 
-        // Attempting to publish VNHSGE content without rights must be rejected by backend
-        using var publishReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lessonId}/publish");
-        publishReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
-        var publishResp = await _client.SendAsync(publishReq);
+        // Attempting to approve/publish VNHSGE content without rights must be rejected by backend
+        using var submitReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lessonId}/submit-review");
+        submitReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        Assert.Equal(HttpStatusCode.OK, (await _client.SendAsync(submitReq)).StatusCode);
+
+        using var approveReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lessonId}/approve");
+        approveReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        var publishResp = await _client.SendAsync(approveReq);
 
         Assert.Equal(HttpStatusCode.Forbidden, publishResp.StatusCode);
         var errorBody = await publishResp.Content.ReadAsStringAsync();

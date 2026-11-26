@@ -789,8 +789,16 @@ namespace StudyAI.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
+                    b.Property<string>("Code")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("CurriculumEditionId")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
@@ -804,6 +812,12 @@ namespace StudyAI.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasDefaultValue(0);
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<string>("SourceName")
                         .HasMaxLength(255)
@@ -821,7 +835,6 @@ namespace StudyAI.Migrations
                         .HasDefaultValue("published");
 
                     b.Property<string>("SubjectId")
-                        .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
@@ -835,7 +848,13 @@ namespace StudyAI.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CurriculumEditionId");
+
                     b.HasIndex("SubjectId");
+
+                    b.HasIndex("CurriculumEditionId", "Code")
+                        .IsUnique()
+                        .HasFilter("[CurriculumEditionId] IS NOT NULL AND [Code] IS NOT NULL AND [Status] <> 'archived'");
 
                     b.ToTable("content_chapters", (string)null);
                 });
@@ -853,6 +872,10 @@ namespace StudyAI.Migrations
 
                     b.Property<string>("ChapterId")
                         .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Code")
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
@@ -885,6 +908,12 @@ namespace StudyAI.Migrations
                     b.Property<string>("ReviewedBy")
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<string>("Slug")
                         .IsRequired()
@@ -934,6 +963,14 @@ namespace StudyAI.Migrations
                     b.HasIndex("Slug");
 
                     b.HasIndex("TopicId");
+
+                    b.HasIndex("ChapterId", "Code")
+                        .IsUnique()
+                        .HasFilter("[Code] IS NOT NULL AND [Status] <> 'archived'");
+
+                    b.HasIndex("ChapterId", "Slug")
+                        .IsUnique()
+                        .HasFilter("[Status] <> 'archived'");
 
                     b.ToTable("content_lessons", (string)null);
                 });
@@ -2359,11 +2396,17 @@ namespace StudyAI.Migrations
 
             modelBuilder.Entity("StudyAI.Models.ContentChapter", b =>
                 {
+                    b.HasOne("StudyAI.Models.CurriculumEdition", "CurriculumEdition")
+                        .WithMany("Chapters")
+                        .HasForeignKey("CurriculumEditionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("StudyAI.Models.ContentSubject", "Subject")
                         .WithMany("Chapters")
                         .HasForeignKey("SubjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("CurriculumEdition");
 
                     b.Navigation("Subject");
                 });
@@ -2632,6 +2675,11 @@ namespace StudyAI.Migrations
             modelBuilder.Entity("StudyAI.Models.Curriculum", b =>
                 {
                     b.Navigation("Editions");
+                });
+
+            modelBuilder.Entity("StudyAI.Models.CurriculumEdition", b =>
+                {
+                    b.Navigation("Chapters");
                 });
 
             modelBuilder.Entity("StudyAI.Models.GradeLevel", b =>

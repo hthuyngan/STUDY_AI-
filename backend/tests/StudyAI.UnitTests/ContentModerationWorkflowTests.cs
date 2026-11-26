@@ -190,7 +190,7 @@ public class ContentModerationWorkflowTests
         Assert.IsType<OkObjectResult>(result);
         var updated = await context.ContentLessons.FindAsync("les_draft_1");
         Assert.NotNull(updated);
-        Assert.Equal("published", updated.Status);
+        Assert.Equal("approved", updated.Status);
 
         var auditLog = await context.StaffAuditLogs.FirstOrDefaultAsync(l => l.TargetId == "les_draft_1" && l.Action == "lesson_approved");
         Assert.NotNull(auditLog);

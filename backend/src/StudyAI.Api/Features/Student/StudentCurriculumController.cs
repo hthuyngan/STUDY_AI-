@@ -70,6 +70,17 @@ public class StudentCurriculumController : ControllerBase
         }
     }
 
+    [HttpGet("editions")]
+    public async Task<IActionResult> GetPublishedEditions([FromQuery] string? gradeLevelId = null, [FromQuery] string? subjectId = null, CancellationToken ct = default)
+        => Ok(await _curriculumService.GetPublishedEditionsAsync(gradeLevelId, subjectId, ct));
+
+    [HttpGet("editions/{editionId}/chapters")]
+    public async Task<IActionResult> GetEditionChapters(string editionId, CancellationToken ct = default)
+    {
+        try { return Ok(await _curriculumService.GetEditionChaptersAsync(editionId, ct)); }
+        catch (NotFoundException ex) { return NotFound(new { message = ex.Message }); }
+    }
+
     [HttpGet("topics/{topicId}")]
     public async Task<IActionResult> GetTopicDetail(string topicId, CancellationToken ct = default)
     {

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "head_sha",
+    "suite",
+    "status",
+    "passed",
+    "failed",
+    "skipped",
+    "errors",
+    "raw_log_path"
+  ],
+  "properties": {
+    "head_sha": { "type": "string", "minLength": 7, "maxLength": 40 },
+    "suite": { "type": "string", "minLength": 1 },
+    "status": { "type": "string", "enum": ["PASS", "FAIL", "ERROR"] },
+    "passed": { "type": "integer", "minimum": 0 },
+    "failed": { "type": "integer", "minimum": 0 },
+    "skipped": { "type": "integer", "minimum": 0 },
+    "duration_ms": { "type": "integer", "minimum": 0 },
+    "errors": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "raw_log_path": { "type": "string", "minLength": 1 }
+  }
+}

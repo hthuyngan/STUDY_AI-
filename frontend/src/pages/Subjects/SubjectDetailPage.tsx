@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, BookOpen, Bot, Clock, Compass, Play, Search, SlidersHorizontal } from 'lucide-react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { CurriculumChapterNav, type ChapterWithStats } from '@/components/subjects/CurriculumChapterNav'
@@ -11,14 +11,76 @@ import { Progress } from '@/components/ui/Progress'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { learningProgressRepository } from '@/repositories/learningProgress.repository'
 import { useSubjectDetail } from '@/hooks/useSubjects'
-import type { LessonFilter } from '@/types/subject'
+import { curriculumService } from '@/services/curriculum.service'
+import type { LessonFilter, SubjectDetail } from '@/types/subject'
 import './SubjectDetailPage.css'
 
 export function SubjectDetailPage() {
-  const { subjectId } = useParams<{ subjectId: string }>()
+  const { subjectId, editionId } = useParams<{ subjectId?: string; editionId?: string }>()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { subject, isLoading, error, reload } = useSubjectDetail(subjectId)
+  const legacyHook = useSubjectDetail(editionId ? undefined : subjectId)
+  const [editionDetail, setEditionDetail] = useState<SubjectDetail | null>(null)
+  const [editionLoading, setEditionLoading] = useState(Boolean(editionId))
+  const [editionError, setEditionError] = useState<string | null>(null)
+
+  const loadEdition = useCallback(() => {
+    if (!editionId) return
+    setEditionLoading(true)
+    setEditionError(null)
+    Promise.all([
+      curriculumService.getPublishedEditions(),
+      curriculumService.getEditionChapters(editionId),
+    ])
+      .then(([editions, chapters]) => {
+        const meta = editions.find((e) => e.id === editionId)
+        const mappedChapters = chapters.map((ch, idx) => ({
+          id: ch.id,
+          chapterNumber: ch.orderIndex || idx + 1,
+          title: ch.title,
+          description: ch.description || '',
+          lessons: (ch.lessons || []).map((l, lIdx) => ({
+            id: l.id,
+            subjectId: meta?.catalogSubjectId || editionId,
+            title: l.title,
+            orderIndex: l.orderIndex || lIdx + 1,
+            estimatedMinutes: 15,
+            durationMinutes: 15,
+            status: 'available' as const,
+            progress: 0,
+            hasVideo: Boolean(l.hasVideo),
+            videoCount: l.hasVideo ? 1 : 0,
+          })),
+        }))
+        setEditionDetail({
+          id: meta?.catalogSubjectId || editionId,
+          name: meta ? `${meta.subjectName} — ${meta.editionName}` : 'Giáo trình phiên bản',
+          grade: meta?.gradeName || '',
+          description: meta?.curriculumName || '',
+          icon: '📘',
+          color: '#2563eb',
+          bgColor: 'rgba(37, 99, 235, 0.1)',
+          curriculumLabel: meta?.framework || meta?.curriculumName || 'GDPT 2018',
+          totalLessons: mappedChapters.reduce((acc, c) => acc + c.lessons.length, 0),
+          completedLessons: 0,
+          progress: 0,
+          chapters: mappedChapters,
+        })
+      })
+      .catch((err) => setEditionError(err instanceof Error ? err.message : 'Không thể tải giáo trình phiên bản.'))
+      .finally(() => setEditionLoading(false))
+  }, [editionId])
+
+  useEffect(() => {
+    if (editionId) {
+      loadEdition()
+    }
+  }, [editionId, loadEdition])
+
+  const subject = editionId ? editionDetail : legacyHook.subject
+  const isLoading = editionId ? editionLoading : legacyHook.isLoading
+  const error = editionId ? editionError : legacyHook.error
+  const reload = editionId ? loadEdition : legacyHook.reload
 
   // Filter state synced with URL search params
   const activeTab = (searchParams.get('view') === 'in-progress' ? 'in-progress' : 'all') as LessonFilter
@@ -355,7 +417,7 @@ export function SubjectDetailPage() {
                 onClick={() => {
                   const secId = learningProgressRepository.getByLessonId(primaryContinueLesson.id)?.lastActiveSectionId
                   const hash = secId ? `#${secId}` : ''
-                  navigate(`/subjects/${subject.id}/lessons/${primaryContinueLesson.id}${hash}`)
+                  navigate(editionId ? `/subjects/edition/${editionId}/lessons/${primaryContinueLesson.id}${hash}` : `/subjects/${subject.id}/lessons/${primaryContinueLesson.id}${hash}`)
                 }}
               >
                 Tiếp tục bài đang học
@@ -457,7 +519,7 @@ export function SubjectDetailPage() {
             <CurriculumLessonsPanel
               chapter={activeChapter}
               lessons={visibleLessons}
-              subjectId={subject.id}
+              subjectId={editionId ? `edition/${editionId}` : subject.id}
               searchQuery={searchQuery}
               onClearSearch={() => setSearchQuery('')}
               activeTab={activeTab}

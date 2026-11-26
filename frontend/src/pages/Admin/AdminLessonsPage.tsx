@@ -191,6 +191,8 @@ export const AdminLessonsPage: React.FC = () => {
     const statusLabels: Record<ContentStatus, string> = {
       draft: 'Bản nháp',
       'in-review': 'Gửi kiểm duyệt',
+      'changes-requested': 'Yêu cầu chỉnh sửa',
+      approved: 'Đã phê duyệt',
       published: 'Đã xuất bản',
       archived: 'Lưu trữ',
     }

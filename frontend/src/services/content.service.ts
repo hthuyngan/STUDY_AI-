@@ -155,12 +155,16 @@ export const contentService = {
       if (lesson) {
         return {
           id: lesson.id,
+          code: lesson.code || undefined,
+          curriculumEditionId: lesson.curriculumEditionId || undefined,
+          curriculumEditionName: lesson.curriculumEditionName || undefined,
           title: lesson.title || 'Bài học mới',
           subjectId: lesson.subjectId || '',
           subjectName: lesson.subjectName || '',
           chapterId: lesson.chapterId || '',
           chapterTitle: lesson.chapterTitle || '',
           status: lesson.status || 'draft',
+          rowVersion: lesson.rowVersion || undefined,
           introduction: lesson.introduction || '',
           definitions: parseStructuredDefinitions(lesson.definitions),
           formulas: parseStructuredFormulas(lesson.formulas),
@@ -182,6 +186,7 @@ export const contentService = {
       throw new Error('Yêu cầu đăng nhập chuyên viên nội dung để lưu bài học.')
     }
     const payload: Record<string, unknown> = {}
+    if (data.rowVersion !== undefined) payload.rowVersion = data.rowVersion
     if (data.title !== undefined) payload.title = data.title
     if (data.introduction !== undefined) payload.introduction = data.introduction
     if (data.definitions !== undefined) {
@@ -209,12 +214,16 @@ export const contentService = {
     const updated = await apiClient.patch<any>(`/api/v1/content/lessons/${data.id}`, payload)
     return {
       id: updated?.id || data.id,
+      code: updated?.code ?? data.code,
+      curriculumEditionId: updated?.curriculumEditionId ?? data.curriculumEditionId,
+      curriculumEditionName: updated?.curriculumEditionName ?? data.curriculumEditionName,
       title: updated?.title || data.title || '',
       subjectId: updated?.subjectId || data.subjectId || '',
       subjectName: updated?.subjectName || data.subjectName,
       chapterId: updated?.chapterId || data.chapterId || '',
       chapterTitle: updated?.chapterTitle || data.chapterTitle,
       status: updated?.status || data.status || 'draft',
+      rowVersion: updated?.rowVersion ?? data.rowVersion,
       introduction: updated?.introduction ?? (data.introduction || ''),
       definitions: updated?.definitions ? parseStructuredDefinitions(updated.definitions) : (data.definitions as StructuredDefinitionItem[]) || [],
       formulas: updated?.formulas ? parseStructuredFormulas(updated.formulas) : (data.formulas as StructuredFormulaItem[]) || [],
@@ -231,26 +240,52 @@ export const contentService = {
     return this.saveLessonContent(data)
   },
 
-  async submitLessonReview(lessonId: string): Promise<{ status: ContentStatus; updatedAt: string }> {
+  async transitionLesson(
+    lessonId: string,
+    action: 'submit-review' | 'approve' | 'publish' | 'unpublish' | 'request-changes' | 'archive' | 'reactivate',
+    rowVersion?: string,
+    reason?: string
+  ): Promise<{ status: ContentStatus; rowVersion?: string; updatedAt: string }> {
     if (!getAccessToken()) {
-      throw new Error('Yêu cầu đăng nhập để gửi kiểm duyệt bài học.')
+      throw new Error('Yêu cầu đăng nhập để thực hiện thao tác quy trình bài học.')
     }
-    const res = await apiClient.post<any>(`/api/v1/content/lessons/${lessonId}/submit-review`)
+    const res = await apiClient.post<any>(`/api/v1/content/lessons/${lessonId}/${action}`, {
+      rowVersion,
+      reason,
+    })
     return {
-      status: res?.status || 'in-review',
+      status: res?.status || 'draft',
+      rowVersion: res?.rowVersion,
       updatedAt: res?.updatedAt || new Date().toISOString(),
     }
   },
 
-  async publishLesson(lessonId: string): Promise<{ status: ContentStatus; updatedAt: string }> {
-    if (!getAccessToken()) {
-      throw new Error('Yêu cầu đăng nhập để xuất bản bài học.')
-    }
-    const res = await apiClient.post<any>(`/api/v1/content/lessons/${lessonId}/publish`)
-    return {
-      status: res?.status || 'published',
-      updatedAt: res?.updatedAt || new Date().toISOString(),
-    }
+  async submitLessonReview(lessonId: string, rowVersion?: string): Promise<{ status: ContentStatus; rowVersion?: string; updatedAt: string }> {
+    return this.transitionLesson(lessonId, 'submit-review', rowVersion)
+  },
+
+  async approveLesson(lessonId: string, rowVersion?: string): Promise<{ status: ContentStatus; rowVersion?: string; updatedAt: string }> {
+    return this.transitionLesson(lessonId, 'approve', rowVersion)
+  },
+
+  async publishLesson(lessonId: string, rowVersion?: string): Promise<{ status: ContentStatus; rowVersion?: string; updatedAt: string }> {
+    return this.transitionLesson(lessonId, 'publish', rowVersion)
+  },
+
+  async unpublishLesson(lessonId: string, rowVersion?: string): Promise<{ status: ContentStatus; rowVersion?: string; updatedAt: string }> {
+    return this.transitionLesson(lessonId, 'unpublish', rowVersion)
+  },
+
+  async requestLessonChanges(lessonId: string, rowVersion?: string, reason?: string): Promise<{ status: ContentStatus; rowVersion?: string; updatedAt: string }> {
+    return this.transitionLesson(lessonId, 'request-changes', rowVersion, reason)
+  },
+
+  async archiveLesson(lessonId: string, rowVersion?: string, reason?: string): Promise<{ status: ContentStatus; rowVersion?: string; updatedAt: string }> {
+    return this.transitionLesson(lessonId, 'archive', rowVersion, reason)
+  },
+
+  async reactivateLesson(lessonId: string, rowVersion?: string): Promise<{ status: ContentStatus; rowVersion?: string; updatedAt: string }> {
+    return this.transitionLesson(lessonId, 'reactivate', rowVersion)
   },
 
   async getAssessments(): Promise<ContentAssessmentSummary[]> {

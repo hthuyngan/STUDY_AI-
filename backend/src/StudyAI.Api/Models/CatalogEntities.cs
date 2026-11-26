@@ -109,4 +109,5 @@ public class CurriculumEdition
 
     public Curriculum? Curriculum { get; set; }
     public TextbookSeries? TextbookSeries { get; set; }
+    public ICollection<ContentChapter> Chapters { get; set; } = new List<ContentChapter>();
 }

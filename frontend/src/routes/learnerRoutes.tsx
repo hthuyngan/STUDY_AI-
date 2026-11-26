@@ -77,6 +77,22 @@ export function LearnerRoutes() {
         }
       />
       <Route
+        path="/subjects/edition/:editionId"
+        element={
+          <AppShell>
+            <SubjectDetailPage />
+          </AppShell>
+        }
+      />
+      <Route
+        path="/subjects/edition/:editionId/lessons/:lessonId"
+        element={
+          <AppShell>
+            <LessonPage />
+          </AppShell>
+        }
+      />
+      <Route
         path="/subjects/:subjectId"
         element={
           <AppShell>

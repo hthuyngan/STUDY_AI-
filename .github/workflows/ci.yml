@@ -153,3 +153,83 @@ jobs:
         run: |
           docker stop mssql-ci || true
           docker rm mssql-ci || true
+
+  playwright-e2e:
+    name: P02 Playwright E2E (Real SQL Server Disposable DB)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [validate, backend-validate]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 'latest'
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install Root & Frontend Dependencies + Playwright Chromium
+        env:
+          VITE_BASE_URL: /
+        run: |
+          bun install --frozen-lockfile
+          (cd frontend && bun install --frozen-lockfile && bun run build)
+          bunx playwright install chromium --with-deps
+
+      - name: Restore & Build Backend
+        working-directory: backend
+        run: |
+          dotnet restore StudyAI.sln
+          dotnet build --no-restore StudyAI.sln
+
+      - name: Start Ephemeral SQL Server Container
+        run: |
+          SA_PASS="StudyAI_$(openssl rand -hex 8)_A1!"
+          JWT_KEY="ci_ephemeral_$(openssl rand -hex 16)_jwt_key"
+          CLEAN_DB="StudyAIDb_Clean_$(openssl rand -hex 16)"
+          echo "::add-mask::$SA_PASS"
+          echo "::add-mask::$JWT_KEY"
+          echo "MSSQL_SA_PASSWORD=$SA_PASS" >> $GITHUB_ENV
+          echo "CI_JWT_KEY=$JWT_KEY" >> $GITHUB_ENV
+          echo "CI_CLEAN_DB=$CLEAN_DB" >> $GITHUB_ENV
+          docker run -d \
+            --name mssql-e2e \
+            -e "ACCEPT_EULA=Y" \
+            -e "MSSQL_SA_PASSWORD=$SA_PASS" \
+            -p 1433:1433 \
+            mcr.microsoft.com/mssql/server:2022-latest
+          for i in {1..30}; do
+            if docker exec mssql-e2e /bin/bash -c "(/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"\$MSSQL_SA_PASSWORD\" -C -Q \"SELECT 1\" || /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"\$MSSQL_SA_PASSWORD\" -Q \"SELECT 1\")" > /dev/null 2>&1; then
+              docker exec mssql-e2e /bin/bash -c "(/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"\$MSSQL_SA_PASSWORD\" -C -Q \"CREATE DATABASE [$CLEAN_DB];\" || /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"\$MSSQL_SA_PASSWORD\" -Q \"CREATE DATABASE [$CLEAN_DB];\")"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "ERROR: Timed out waiting for SQL Server container."
+          exit 1
+
+      - name: Run P02 Playwright E2E
+        run: bun scripts/e2e_p02_curriculum_workspace_playwright.ts
+        env:
+          VITE_BASE_URL: /
+          ConnectionStrings__DefaultConnection: "Server=127.0.0.1,1433;Database=${{ env.CI_CLEAN_DB }};User Id=sa;Password=${{ env.MSSQL_SA_PASSWORD }};TrustServerCertificate=True;"
+          Jwt__SecretKey: ${{ env.CI_JWT_KEY }}
+
+      - name: Upload P02 Visual QA Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p02-playwright-visual-qa
+          path: docs/visual-qa/p02/
+
+      - name: Teardown SQL Server Container
+        if: always()
+        run: |
+          docker stop mssql-e2e || true
+          docker rm mssql-e2e || true
