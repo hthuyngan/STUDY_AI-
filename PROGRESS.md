@@ -13,12 +13,11 @@
 
 | Field | Observed state |
 |---|---|
-| Active delivery phase | **P03 — Validated lesson blocks, objectives, knowledge units, and skills**, **VERIFIED** & ready for owner merge approval |
-| Implementation branch | `feature/p03-lesson-composition-graph` (PR [#29 — Draft, OPEN](https://github.com/hthuyngan/STUDY_AI-/pull/29), base `feature/backend-redesign-modular-monolith`) |
-| P03 Plan | [`docs/curriculum-refactor/PLAN-P03.json`](docs/curriculum-refactor/PLAN-P03.json) (`P03-W0..P03-W5`) |
+| Active delivery phase | **P03 COMPLETED**; starting **P04 — Resources and video** |
+| Integration branch | `feature/backend-redesign-modular-monolith` (`7363b034`, PR #29 merged) |
 | Dual-Agent Workflow | Active (`Trusted Local Developer Workflow`: Antigravity Medium + Codex Local CLI) |
-| Protected database | `StudyAIDb` has P02 migration applied & P02 auth read-only smoke test PASS; P03 migration NOT applied to `StudyAIDb` |
-| Overall verdict | **P03 VERIFIED** (all CI gates, 2x disposable SQL runs, P02+P03 Playwright E2E, & Codex reviews PASS; awaiting owner merge approval) |
+| Protected database | `StudyAIDb` has P03 migration `20261126100005_AddValidatedLessonComposition` applied & verified (`DBCC CHECKDB` + auth smoke test PASS); P04 migration NOT applied |
+| Overall verdict | **P03 COMPLETED**; P04 in planning stage |
 
 ## Phase ledger
 
@@ -27,20 +26,10 @@
 | P00 curriculum refactor | **COMPLETED** | PR #24 merged |
 | P01 stable catalog | **VERIFIED** | PR #25 merged |
 | ENV-01 DB separation | **VERIFIED** | PR #26 merged |
-| P02 lifecycle | **COMPLETED** | PR #27 merged (`ea2e121e`); `StudyAIDb` P02 migration + `DBCC CHECKDB` + auth read-only smoke test (`200` on editions/chapters/lessons) PASS |
-| P03 lesson blocks/graph | **VERIFIED** | PR #29 CI [45819713775](https://github.com/hthuyngan/STUDY_AI-/actions/runs/45819713775) ALL PASS at `52a5dcdc`; Codex reviews PASS (`0` findings); awaiting owner merge approval |
-
-## P03 verification evidence (reconciled, no double-counting)
-
-- **GitHub CI [run 45819713775](https://github.com/hthuyngan/STUDY_AI-/actions/runs/45819713775) at `52a5dcdc`**:
-  - `Frontend Lint, Test & Build`: **PASS** (1m11s)
-  - `.NET 10 Backend Build & Tests (Isolated Run 1)` & `(Isolated Run 2)`: **PASS** on 2 independent `StudyAIDb_Clean_{GUID}` databases
-  - `Run P02 & P03 Playwright E2E` (`Real SQL Server Disposable DB`): **PASS** (2m25s)
-- **Local unique test breakdown (`1373d272`, 1,177 unique tests + 2 Playwright E2E suites)**:
-  - `StudyAI.UnitTests`: **321/321 PASS**; `StudyAI.IntegrationTests`: **269/269 PASS**; `frontend` `vitest`: **587/587 PASS** (`88` files; note `TEST-SUMMARY-P03-R3.json` summed `88` file-count lines + `1,177` tests = `1,265`).
-  - P03 migration `Up`/`Down`/`Up` rehearsal on disposable `StudyAIDb_Clean_{GUID}`: **PASS** (empty DB stays empty).
-- **Codex Local CLI Reviews**: `1373d272` (`rereview`, `low`) **PASS** (`0` findings); `52a5dcdc` (`rereview`, `low`) **PASS** (`0` findings).
+| P02 lifecycle | **COMPLETED** | PR #27 merged (`ea2e121e`); `StudyAIDb` P02 migration + `DBCC CHECKDB` + auth smoke test PASS |
+| P03 lesson blocks/graph | **COMPLETED** | PR #29 merged (`7363b034`); post-merge CI [45821709436](https://github.com/hthuyngan/STUDY_AI-/actions/runs/45821709436) ALL PASS; `StudyAIDb` P03 migration + `DBCC CHECKDB` + auth smoke test PASS |
+| P04 resources & video | **PLANNING** | Generating P04 plan via Codex Local CLI (`medium` reasoning) |
 
 ## Next action
 
-Owner: review [PR #29](https://github.com/hthuyngan/STUDY_AI-/pull/29), mark Ready for Review / approve merge, and approve controlled P03 migration on `StudyAIDb` when ready. Do not auto-merge or modify `StudyAIDb`.
+Review Codex P04 plan (`docs/curriculum-refactor/PLAN-P04.json`) and implement `LessonResource` (generalizing `ContentLessonVideo` while preserving existing video IDs/data) on `feature/p04-lesson-resources-video`.
