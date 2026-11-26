@@ -298,12 +298,10 @@ public class LessonResourcesService : ILessonResourcesService
         if (string.IsNullOrWhiteSpace(req.LessonId))
             throw new ValidationException("LessonId", "LessonId không được để trống khi sắp xếp tài nguyên.");
 
-        var orderedIds = req.Items is { Count: > 0 }
-            ? req.Items.Select(i => i.ResourceId).ToList()
-            : req.ResourceIds;
+        if (req.Items == null || req.Items.Count == 0)
+            throw new ConflictException("Thiếu RowVersion (items) cho danh sách tài nguyên cần sắp xếp.");
 
-        if (orderedIds == null || orderedIds.Count == 0)
-            throw new ValidationException("ResourceIds", "Danh sách tài nguyên không được rỗng.");
+        var orderedIds = req.Items.Select(i => i.ResourceId).ToList();
 
         if (orderedIds.Distinct(StringComparer.Ordinal).Count() != orderedIds.Count)
             throw new ValidationException("ResourceIds", "Danh sách tài nguyên chứa mã trùng lặp.");
@@ -326,12 +324,9 @@ public class LessonResourcesService : ILessonResourcesService
                 throw new ValidationException("ResourceIds", $"Tài nguyên '{id}' không thuộc bài học này.");
         }
 
-        if (req.Items is { Count: > 0 })
+        foreach (var item in req.Items)
         {
-            foreach (var item in req.Items)
-            {
-                VerifyRowVersion(map[item.ResourceId], item.RowVersion);
-            }
+            VerifyRowVersion(map[item.ResourceId], item.RowVersion);
         }
 
         var now = _clock.UtcNow;
@@ -463,6 +458,7 @@ public class LessonResourcesService : ILessonResourcesService
         switch (action)
         {
             case "verify":
+                EnsureProvenance(entity);
                 // Re-validate URL safety before marking verified
                 LessonResourceValidator.ValidateAndNormalize(
                     entity.ResourceType,
@@ -497,6 +493,7 @@ public class LessonResourcesService : ILessonResourcesService
                 break;
 
             case "publish":
+                EnsureProvenance(entity);
                 if (entity.VerificationStatus != "verified")
                     throw new ValidationException("VerificationStatus", "Chỉ có thể xuất bản tài nguyên đã được xác minh.");
                 entity.IsPublished = true;
@@ -536,6 +533,18 @@ public class LessonResourcesService : ILessonResourcesService
 
         await SaveChangesMappingConflictsAsync(ct);
         return MapToDto(entity, entity.Lesson?.Title ?? string.Empty);
+    }
+
+    private static void EnsureProvenance(ContentLessonVideo entity)
+    {
+        var hasSource = !string.IsNullOrWhiteSpace(entity.SourceName) ||
+                        !string.IsNullOrWhiteSpace(entity.AttributionText);
+        if (!hasSource || string.IsNullOrWhiteSpace(entity.SourceLicense))
+        {
+            throw new ValidationException(
+                "SourceName/SourceLicense",
+                "Phải có đầy đủ nguồn (SourceName hoặc AttributionText) và giấy phép (SourceLicense) trước khi xác minh hoặc xuất bản tài nguyên.");
+        }
     }
 
     private static void VerifyRowVersion(ContentLessonVideo entity, string? rowVersionBase64)

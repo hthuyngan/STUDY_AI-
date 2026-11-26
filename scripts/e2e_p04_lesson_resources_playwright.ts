@@ -160,16 +160,20 @@ try {
   await page.getByRole('button', { name: 'Thêm tài nguyên' }).click()
   await page.getByRole('alert').waitFor({ timeout: 10_000 })
 
-  // 4. Add valid YouTube video + Document
+  // 4. Add valid YouTube video + Document (with provenance)
   await page.getByLabel('Loại tài nguyên').selectOption('video')
   await page.getByLabel('Tiêu đề tài nguyên').fill('Video Hàm Số')
   await page.getByLabel('Đường dẫn URL tài nguyên').fill('https://youtu.be/dQw4w9WgXcQ')
+  await page.getByLabel('Nguồn tài nguyên').fill('YouTube GDPT 2018')
+  await page.getByLabel('Giấy phép tài nguyên').fill('Standard YouTube License')
   await page.getByRole('button', { name: 'Thêm tài nguyên' }).click()
   await page.getByText(/Video Hàm Số/).waitFor({ timeout: 10_000 })
 
   await page.getByLabel('Loại tài nguyên').selectOption('document')
   await page.getByLabel('Tiêu đề tài nguyên').fill('Phiếu bài tập PDF')
   await page.getByLabel('Đường dẫn URL tài nguyên').fill('https://cdn.example.org/worksheet.pdf')
+  await page.getByLabel('Nguồn tài nguyên').fill('SGK Chuẩn')
+  await page.getByLabel('Giấy phép tài nguyên').fill('CC BY-NC-SA 4.0')
   await page.getByRole('button', { name: 'Thêm tài nguyên' }).click()
   await page.getByText(/Phiếu bài tập PDF/).waitFor({ timeout: 10_000 })
 

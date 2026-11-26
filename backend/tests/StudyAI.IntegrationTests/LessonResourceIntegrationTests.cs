@@ -135,8 +135,8 @@ public class LessonResourceIntegrationTests : IClassFixture<StudyAIApiFixture>
         });
         Assert.Equal(HttpStatusCode.BadRequest, badSsrf.StatusCode);
 
-        // 4. Create video + document resources
-        var createVid = await admin.PostAsJsonAsync($"/api/v1/content/lessons/{lessonId}/resources", new
+        // 4. Create video (without provenance first to verify P04-PROV-003) + document resources
+        var createVid = await reviewer.PostAsJsonAsync($"/api/v1/content/lessons/{lessonId}/resources", new
         {
             resourceType = "video",
             title = "Video bài giảng",
@@ -150,17 +150,38 @@ public class LessonResourceIntegrationTests : IClassFixture<StudyAIApiFixture>
         Assert.Equal("youtube", vidDto.GetProperty("provider").GetString());
         Assert.Equal("draft", vidDto.GetProperty("status").GetString());
 
-        var createDoc = await admin.PostAsJsonAsync($"/api/v1/content/lessons/{lessonId}/resources", new
+        // P04-PROV-003: verify fails with 400 when provenance (SourceName/SourceLicense) is missing
+        var missingProvVerify = await admin.PostAsJsonAsync($"/api/v1/content/resources/{vidId}/verify", new { rowVersion = vidRv });
+        Assert.Equal(HttpStatusCode.BadRequest, missingProvVerify.StatusCode);
+
+        // Add provenance to video
+        var vidUpdated = await (await reviewer.PatchAsJsonAsync($"/api/v1/content/resources/{vidId}", new
+        {
+            sourceName = "YouTube GDPT 2018",
+            sourceLicense = "Standard YouTube License",
+            rowVersion = vidRv
+        })).Content.ReadFromJsonAsync<JsonElement>(JsonOpts);
+        vidRv = vidUpdated.GetProperty("rowVersion").GetString()!;
+
+        var createDoc = await reviewer.PostAsJsonAsync($"/api/v1/content/lessons/{lessonId}/resources", new
         {
             resourceType = "document",
             title = "Phiếu bài tập",
             sourceUrl = "https://cdn.example.org/worksheet.pdf",
-            mimeType = "application/pdf"
+            mimeType = "application/pdf",
+            sourceName = "SGK Chuẩn",
+            sourceLicense = "CC BY-NC-SA 4.0"
         });
         Assert.Equal(HttpStatusCode.Created, createDoc.StatusCode);
         var docDto = await createDoc.Content.ReadFromJsonAsync<JsonElement>(JsonOpts);
         var docId = docDto.GetProperty("id").GetString()!;
         var docRv = docDto.GetProperty("rowVersion").GetString()!;
+
+        // P04-AUTH-001: ContentAuthor-only user (content@studyai.internal, role=content) gets 403 on verify/reject/publish/unpublish
+        Assert.Equal(HttpStatusCode.Forbidden, (await reviewer.PostAsJsonAsync($"/api/v1/content/resources/{vidId}/verify", new { rowVersion = vidRv })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await reviewer.PostAsJsonAsync($"/api/v1/content/resources/{vidId}/reject", new { rowVersion = vidRv, reason = "no" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await reviewer.PostAsJsonAsync($"/api/v1/content/resources/{vidId}/publish", new { rowVersion = vidRv })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await reviewer.PostAsJsonAsync($"/api/v1/content/resources/{vidId}/unpublish", new { rowVersion = vidRv })).StatusCode);
 
         // 5. RowVersion stale conflict (409)
         var staleUpdate = await admin.PatchAsJsonAsync($"/api/v1/content/resources/{vidId}", new
@@ -170,9 +191,9 @@ public class LessonResourceIntegrationTests : IClassFixture<StudyAIApiFixture>
         });
         Assert.Equal(HttpStatusCode.Conflict, staleUpdate.StatusCode);
 
-        // 6. Verify + Publish both via reviewer
-        var vidVerified = await (await reviewer.PostAsJsonAsync($"/api/v1/content/resources/{vidId}/verify", new { rowVersion = vidRv })).Content.ReadFromJsonAsync<JsonElement>(JsonOpts);
-        var vidPublished = await (await reviewer.PostAsJsonAsync($"/api/v1/content/resources/{vidId}/publish", new { rowVersion = vidVerified.GetProperty("rowVersion").GetString() })).Content.ReadFromJsonAsync<JsonElement>(JsonOpts);
+        // 6. Verify + Publish both via authorized reviewer/admin
+        var vidVerified = await (await admin.PostAsJsonAsync($"/api/v1/content/resources/{vidId}/verify", new { rowVersion = vidRv })).Content.ReadFromJsonAsync<JsonElement>(JsonOpts);
+        var vidPublished = await (await admin.PostAsJsonAsync($"/api/v1/content/resources/{vidId}/publish", new { rowVersion = vidVerified.GetProperty("rowVersion").GetString() })).Content.ReadFromJsonAsync<JsonElement>(JsonOpts);
         var vidPubRv = vidPublished.GetProperty("rowVersion").GetString()!;
 
         // Cannot edit or archive published resource (409)
@@ -183,9 +204,17 @@ public class LessonResourceIntegrationTests : IClassFixture<StudyAIApiFixture>
         });
         Assert.Equal(HttpStatusCode.Conflict, editPublished.StatusCode);
 
-        var docVerified = await (await reviewer.PostAsJsonAsync($"/api/v1/content/resources/{docId}/verify", new { rowVersion = docRv })).Content.ReadFromJsonAsync<JsonElement>(JsonOpts);
-        var docPublished = await (await reviewer.PostAsJsonAsync($"/api/v1/content/resources/{docId}/publish", new { rowVersion = docVerified.GetProperty("rowVersion").GetString() })).Content.ReadFromJsonAsync<JsonElement>(JsonOpts);
+        var docVerified = await (await admin.PostAsJsonAsync($"/api/v1/content/resources/{docId}/verify", new { rowVersion = docRv })).Content.ReadFromJsonAsync<JsonElement>(JsonOpts);
+        var docPublished = await (await admin.PostAsJsonAsync($"/api/v1/content/resources/{docId}/publish", new { rowVersion = docVerified.GetProperty("rowVersion").GetString() })).Content.ReadFromJsonAsync<JsonElement>(JsonOpts);
         var docPubRv = docPublished.GetProperty("rowVersion").GetString()!;
+
+        // P04-CONC-002: Reorder without items/RowVersion is rejected (409)
+        var reorderNoVersion = await admin.PostAsJsonAsync("/api/v1/content/resources/reorder", new
+        {
+            lessonId,
+            resourceIds = new[] { docId, vidId }
+        });
+        Assert.Equal(HttpStatusCode.Conflict, reorderNoVersion.StatusCode);
 
         // 7. Reorder: put doc first, vid second
         var reorderResp = await admin.PostAsJsonAsync("/api/v1/content/resources/reorder", new
@@ -204,6 +233,19 @@ public class LessonResourceIntegrationTests : IClassFixture<StudyAIApiFixture>
         Assert.Equal(docId, reorderedItems[0].GetProperty("id").GetString());
         Assert.Equal(vidId, reorderedItems[1].GetProperty("id").GetString());
 
+        // P04-CONC-002: Stale reorder using pre-reorder RowVersions fails with 409 and preserves new order
+        var staleReorder = await admin.PostAsJsonAsync("/api/v1/content/resources/reorder", new
+        {
+            lessonId,
+            resourceIds = new[] { vidId, docId },
+            items = new[]
+            {
+                new { resourceId = vidId, rowVersion = vidPubRv },
+                new { resourceId = docId, rowVersion = docPubRv }
+            }
+        });
+        Assert.Equal(HttpStatusCode.Conflict, staleReorder.StatusCode);
+
         // 8. Learner sees ordered published+verified resources
         var learnerDetail = await (await student.GetAsync($"/api/v1/curriculum/lessons/{lessonId}")).Content.ReadFromJsonAsync<JsonElement>(JsonOpts);
         var learnerResources = learnerDetail.GetProperty("resources");
@@ -214,8 +256,8 @@ public class LessonResourceIntegrationTests : IClassFixture<StudyAIApiFixture>
 
         // 9. Unpublish + Archive doc, verify excluded from learner projection
         var docLatestRv = reorderedItems[0].GetProperty("rowVersion").GetString()!;
-        var docUnpub = await (await reviewer.PostAsJsonAsync($"/api/v1/content/resources/{docId}/unpublish", new { rowVersion = docLatestRv })).Content.ReadFromJsonAsync<JsonElement>(JsonOpts);
-        var docArch = await admin.PostAsJsonAsync($"/api/v1/content/resources/{docId}/archive", new { rowVersion = docUnpub.GetProperty("rowVersion").GetString(), reason = "Outdated" });
+        var docUnpub = await (await admin.PostAsJsonAsync($"/api/v1/content/resources/{docId}/unpublish", new { rowVersion = docLatestRv })).Content.ReadFromJsonAsync<JsonElement>(JsonOpts);
+        var docArch = await reviewer.PostAsJsonAsync($"/api/v1/content/resources/{docId}/archive", new { rowVersion = docUnpub.GetProperty("rowVersion").GetString(), reason = "Outdated" });
         docArch.EnsureSuccessStatusCode();
 
         var learnerAfterArchive = await (await student.GetAsync($"/api/v1/curriculum/lessons/{lessonId}")).Content.ReadFromJsonAsync<JsonElement>(JsonOpts);
