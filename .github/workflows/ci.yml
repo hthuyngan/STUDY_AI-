@@ -214,8 +214,10 @@ jobs:
           echo "ERROR: Timed out waiting for SQL Server container."
           exit 1
 
-      - name: Run P02 Playwright E2E
-        run: bun scripts/e2e_p02_curriculum_workspace_playwright.ts
+      - name: Run P02 & P03 Playwright E2E
+        run: |
+          bun scripts/e2e_p02_curriculum_workspace_playwright.ts
+          bun scripts/e2e_p03_lesson_composition_playwright.ts
         env:
           VITE_BASE_URL: /
           ConnectionStrings__DefaultConnection: "Server=127.0.0.1,1433;Database=${{ env.CI_CLEAN_DB }};User Id=sa;Password=${{ env.MSSQL_SA_PASSWORD }};TrustServerCertificate=True;"
