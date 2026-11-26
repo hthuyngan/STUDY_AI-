@@ -51,3 +51,28 @@ Executed end-to-end on isolated git fixture `%TEMP%\studyai-e2e-full-loop` (`bas
 9. **Orchestrator** aggregated results and cleaned up the temp fixture (`D:\TN` and `StudyAIDb` untouched).
 
 > **Note on runtime verification**: Antigravity does not expose a shell/tool API for subagent token counters or subagent model strings, so Worker's `Gemini 4 Hydrogen (Medium)` inheritance is verified by `invoke_subagent(Model="inherit")` from the active `Gemini 4 Hydrogen (Medium)` parent session. Codex CLI tokens and reasoning effort are directly measured via `codex exec --json`.
+
+## 5. Token Audit & A/B/C Benchmark (2026-11-26)
+
+### Token Audit Findings
+
+- **Usage aggregation verified**: `codex exec --json` emits a single `turn.completed` event per invocation; `Invoke-CodexSandboxed` does not double-count cumulative events.
+- **Fixed CLI baseline overhead**: A minimal single-turn `"Reply OK"` call to `codex exec --ignore-user-config --disable plugins -s read-only` consumed **`14,422` input tokens** (`11,264` cached, `3,158` uncached) due to Codex system prompt, built-in tool schemas, and `AGENTS.md` context.
+- **Variable overhead root cause**: Multi-turn tool calls inside Codex (`cat`, `bun test`, `git status`) multiply context per turn (`55k–60k`), and `rereview` previously sent the full `BaseSha..HeadSha` diff instead of `PreviousReviewedSha..HeadSha` + `TEST-SUMMARY.json`.
+
+### Benchmark Comparison (Equivalent `parsePositiveInt` Fixtures)
+
+| Metric | A. Baseline 3-Agent (`0359fed9`) | B. Optimized `STANDARD` | C. Optimized `ADVANCED` |
+|---|---|---|---|
+| Routing | Plan + Worker + Initial + Re-review | Skip Plan + Reused Worker + Initial Review (inline `TEST-SUMMARY.json`) | Plan + Worker + Initial + Delta Re-review (`-PreviousReviewedSha`) |
+| Codex Calls | 3 (`plan`, `initial`, `rereview`) | 1 (`initial`) | 2–3 (if findings require `rereview`) |
+| Codex Input Tokens | `160,879` (`55,041 + 60,535 + 45,303`) | `14,591` (**-90.9%** vs A) | Not separately benchmarked; shares B's single-turn `scopeHint` + delta `rereview` |
+| Codex Cached / Uncached | `120,576` cached / `40,303` uncached | `0` cached / `14,591` uncached | — |
+| Codex Output / Reasoning | `3,697` / `1,444` | `265` / `0` | — |
+| Codex Execution Time | `114,396 ms` | `14,985 ms` (**-86.9%** vs A) | — |
+| Antigravity Tokens | `unavailable` (not exposed by platform) | `unavailable` (not exposed by platform) | `unavailable` |
+| Findings / Tests | Caught `F-001` (P1), fixed, `5/5` `bun test` PASS | `0` findings (`PASS`), `5/5` `bun test` PASS | Full gates required |
+
+### Post-Edit Regression Verification
+
+- `Test-SafeAgentBridge.ps1 -SkipLiveCodex`: **`12/12 PASS`** (DB safety, secret redaction, process lock, stale SHA, invalid output, P0 PASS block, max 3 rounds, dirty worktree, log filter, usage metrics).

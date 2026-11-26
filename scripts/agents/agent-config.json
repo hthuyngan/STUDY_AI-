@@ -32,21 +32,30 @@
     "maxConcurrentReviews": 1
   },
   "taskRouting": {
-    "FAST": {
+    "defaultRoute": "STANDARD",
+    "ECO": {
+      "agents": "1 Anti Medium",
       "requirePlan": false,
-      "reviewAtWorkstreamEnd": true,
-      "canBypassSecurityOrDbGates": false
+      "requireCodexReview": false,
+      "canBypassSecurityOrDbGates": false,
+      "useWhen": "Trivial docs/formatting/local-only edits with zero security, DB, or API impact"
     },
     "STANDARD": {
+      "agents": "1 Anti Medium + Codex",
       "requirePlan": false,
       "requireTargetedTests": true,
-      "requireCodexReview": true
+      "requireCodexReview": true,
+      "canBypassSecurityOrDbGates": false,
+      "useWhen": "Default for normal coding tasks (CRUD, API, UI, bugfixes) without architectural/DB risk"
     },
-    "STRICT": {
+    "ADVANCED": {
+      "agents": "2 Anti Medium (Orchestrator + Worker) + Codex",
       "requirePlan": true,
       "requireFullAcceptanceGates": true,
       "requireIndependentReview": true,
-      "requireUserApproval": true
+      "requireUserApproval": true,
+      "canBypassSecurityOrDbGates": false,
+      "useWhen": "Large phases, security, RBAC, database/migrations, concurrency, or architecture changes"
     }
   },
   "reviewCache": {

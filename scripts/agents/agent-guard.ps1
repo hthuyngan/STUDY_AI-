@@ -357,6 +357,7 @@ function Write-UsageMetric {
         cache_hit               = $CacheHit
         input_tokens            = $InputTokens
         cached_input_tokens     = $CachedInputTokens
+        uncached_input_tokens   = [Math]::Max(0, ($InputTokens - $CachedInputTokens))
         output_tokens           = $OutputTokens
         reasoning_output_tokens = $ReasoningOutputTokens
     } | ConvertTo-Json -Compress

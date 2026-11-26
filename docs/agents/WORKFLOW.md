@@ -35,7 +35,13 @@
    - Runs strictly in `-s read-only --ephemeral --ignore-user-config --disable plugins` on an immutable detached git snapshot.
    - Never edits application code, never accesses `StudyAIDb`, and never executes GitHub writes.
 
-## 3. End-to-End Execution Loop
+## 3. Adaptive Task Routing (`scripts/agents/agent-config.json`)
+
+- **ECO** (`1 Anti Medium`): Trivial docs/formatting/local-only edits with zero security, DB, or API impact. Never bypasses DB/safety guards.
+- **STANDARD** (`1 Anti Medium + Codex`, **default**): Normal coding tasks (CRUD, API, UI, bugfixes). Skips `codex-plan.ps1` when requirements are clear; runs targeted tests + `codex-review.ps1` (`medium` initial, `low` delta re-review).
+- **ADVANCED** (`2 Anti Medium [Orchestrator + Worker] + Codex`): Large phases, security, RBAC, database/migrations, concurrency, or architecture. Requires `codex-plan.ps1` (`medium`), user approval if `requires_human_approval=true`, full acceptance gates, and independent Codex review.
+
+## 4. End-to-End Execution Loop (`ADVANCED` / `STANDARD`)
 
 ```text
 User Request
