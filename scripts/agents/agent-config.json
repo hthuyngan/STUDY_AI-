@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "1.0.0",
+  "project": "STUDY_AI-",
+  "orchestrator": {
+    "platform": "Antigravity",
+    "recommendedModel": "Gemini 4 Hydrogen (High)",
+    "canModifyAppCode": false,
+    "nativeSubagentModelEnum": ["inherit", "flash_lite", "flash", "pro"],
+    "note": "Antigravity invoke_subagent does not expose a per-subagent reasoning_effort parameter; inherit uses the parent session model/reasoning. Use Codex CLI for independent read-only planning and review."
+  },
+  "implementationWorker": {
+    "platform": "Antigravity",
+    "recommendedModel": "Gemini 4 Hydrogen (Medium)",
+    "canModifyAppCode": true,
+    "maxConcurrentWorkers": 1
+  },
+  "reviewer": {
+    "platform": "Codex Local CLI",
+    "model": "gpt-5.6-sol",
+    "sandbox": "read-only",
+    "ignoreUserConfig": true,
+    "disablePlugins": true,
+    "reasoning": {
+      "planning": "medium",
+      "initialReview": "medium",
+      "simpleReReview": "low",
+      "complexSecurityReview": "medium"
+    },
+    "timeoutSeconds": 1200,
+    "maxAutomaticReviewRounds": 3,
+    "maxConcurrentReviews": 1
+  },
+  "policies": {
+    "autoMerge": false,
+    "autoPhaseAdvance": false,
+    "persistentDatabaseWrites": false,
+    "allowDirtyWorktreeForReview": false,
+    "requireImmutableSnapshot": true,
+    "protectedDatabases": [
+      "StudyAIDb",
+      "StudyAIDb_E2E"
+    ],
+    "allowedTestDatabasePrefix": "StudyAIDb_Clean_",
+    "protectedBranches": [
+      "main",
+      "feature/backend-redesign-modular-monolith",
+      "feature/p02-multi-subject-curriculum-lifecycle"
+    ]
+  },
+  "mcpAllocation": {
+    "antigravity": [
+      "serena",
+      "context7",
+      "chrome_devtools",
+      "playwright",
+      "microsoft-learn"
+    ],
+    "codexReviewer": []
+  }
+}
