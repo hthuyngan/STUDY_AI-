@@ -39,7 +39,7 @@ try {
 }
 
 try {
-    $env:ConnectionStrings__DefaultConnection = "Server=localhost;Database=StudyAIDb_Clean_1234567890abcdef;Trusted_Connection=True;"
+    $env:ConnectionStrings__DefaultConnection = "Server=localhost;Database=StudyAIDb_Clean_1234567890abcdef1234567890abcdef;Trusted_Connection=True;"
     $allowedClean = Assert-DatabaseSafety
     Add-TestResult "DatabaseSafety_Allows_CleanGuidDb" ([bool]$allowedClean) "Allowed StudyAIDb_Clean_{GUID}"
 } finally {
@@ -67,10 +67,13 @@ try {
 }
 
 # 4. Invalid output & Stale SHA & P0 PASS rejection
+$sha1 = "1" * 40
+$sha2 = "2" * 40
+$sha3 = "3" * 40
 $staleRejected = $false
 try {
-    $badShaJson = '{"base_sha":"1111111","head_sha":"2222222","reviewed_scope":["a.ts"],"verdict":"PASS","summary":"ok","findings":[]}'
-    $null = Test-ReviewOutputValid -JsonText $badShaJson -ExpectedHeadSha "3333333abcdef"
+    $badShaJson = "{`"base_sha`":`"$sha1`",`"head_sha`":`"$sha2`",`"reviewed_scope`":[`"a.ts`"],`"verdict`":`"PASS`",`"summary`":`"ok`",`"findings`":[]}"
+    $null = Test-ReviewOutputValid -JsonText $badShaJson -ExpectedHeadSha $sha3
 } catch {
     $staleRejected = $_.Exception.Message -like "STALE_REVIEW_REJECTED:*"
 }
@@ -78,16 +81,16 @@ Add-TestResult "StaleSHA_Rejection" $staleRejected "Mismatched head_sha rejected
 
 $invalidRejected = $false
 try {
-    $null = Test-ReviewOutputValid -JsonText '{"verdict":"PASS"}' -ExpectedHeadSha "3333333"
+    $null = Test-ReviewOutputValid -JsonText '{"verdict":"PASS"}' -ExpectedHeadSha $sha3
 } catch {
-    $invalidRejected = $_.Exception.Message -like "INVALID_REVIEW_OUTPUT:*"
+    $invalidRejected = ($_.Exception.Message -like "INVALID_REVIEW_OUTPUT:*" -or $_.Exception.Message -like "SCHEMA_VALIDATION_ERROR:*")
 }
 Add-TestResult "InvalidOutput_Rejection" $invalidRejected "Incomplete JSON rejected"
 
 $p0PassRejected = $false
 try {
-    $p0Json = '{"base_sha":"1111111","head_sha":"3333333","reviewed_scope":["a.ts"],"verdict":"PASS","summary":"ok","findings":[{"finding_id":"F1","severity":"P0","file_path":"a.ts","line_range":"1-2","evidence":"x","root_cause":"y","recommended_fix":"z","required_regression_test":"t"}]}'
-    $null = Test-ReviewOutputValid -JsonText $p0Json -ExpectedHeadSha "3333333"
+    $p0Json = "{`"base_sha`":`"$sha1`",`"head_sha`":`"$sha3`",`"reviewed_scope`":[`"a.ts`"],`"verdict`":`"PASS`",`"summary`":`"ok`",`"findings`":[{`"finding_id`":`"F1`",`"severity`":`"P0`",`"file_path`":`"a.ts`",`"line_range`":`"1-2`",`"evidence`":`"x`",`"root_cause`":`"y`",`"recommended_fix`":`"z`",`"required_regression_test`":`"t`"}]}"
+    $null = Test-ReviewOutputValid -JsonText $p0Json -ExpectedHeadSha $sha3
 } catch {
     $p0PassRejected = $_.Exception.Message -like "INVALID_REVIEW_OUTPUT:*"
 }
@@ -95,15 +98,15 @@ Add-TestResult "P0Finding_CannotPass" $p0PassRejected "PASS with P0 finding reje
 
 # 5. Max review rounds (3)
 $testBranch = "smoke/rounds-" + $PID
-$testBase = "abcdef1234567"
+$testBase = $sha1
 $stateFile = Get-ReviewRoundStatePath -Branch $testBranch -BaseSha $testBase
 Remove-Item $stateFile -Force -ErrorAction SilentlyContinue
 try {
-    $r1 = Assert-AndIncrementReviewRound -Branch $testBranch -BaseSha $testBase -MaxRounds 3
-    $r2 = Assert-AndIncrementReviewRound -Branch $testBranch -BaseSha $testBase -MaxRounds 3
-    $r3 = Assert-AndIncrementReviewRound -Branch $testBranch -BaseSha $testBase -MaxRounds 3
+    $r1 = Start-ReviewAttempt -Branch $testBranch -BaseSha $testBase -MaxRounds 3
+    $r2 = Start-ReviewAttempt -Branch $testBranch -BaseSha $testBase -MaxRounds 3
+    $r3 = Start-ReviewAttempt -Branch $testBranch -BaseSha $testBase -MaxRounds 3
     $r4Blocked = $false
-    try { $null = Assert-AndIncrementReviewRound -Branch $testBranch -BaseSha $testBase -MaxRounds 3 } catch { $r4Blocked = $_.Exception.Message -like "MAX_REVIEW_ROUNDS_EXCEEDED:*" }
+    try { $null = Start-ReviewAttempt -Branch $testBranch -BaseSha $testBase -MaxRounds 3 } catch { $r4Blocked = $_.Exception.Message -like "MAX_REVIEW_ROUNDS_EXCEEDED:*" }
     Add-TestResult "MaxReviewRounds_Limit3" ($r1 -eq 1 -and $r2 -eq 2 -and $r3 -eq 3 -and $r4Blocked) "Rounds 1..3 allowed, round 4 blocked"
 } finally {
     Remove-Item $stateFile -Force -ErrorAction SilentlyContinue

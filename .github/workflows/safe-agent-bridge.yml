@@ -1,0 +1,32 @@
+name: Safe Agent Bridge CI
+
+on:
+  pull_request:
+    branches:
+      - feature/backend-redesign-modular-monolith
+      - main
+    paths:
+      - 'scripts/agents/**'
+      - 'docs/agents/**'
+      - '.github/workflows/safe-agent-bridge.yml'
+  workflow_dispatch:
+
+jobs:
+  bridge-security-tests:
+    name: Bridge Guardrails (${{ matrix.shell }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shell:
+          - powershell
+          - pwsh
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run deterministic Safe Agent Bridge suite
+        shell: ${{ matrix.shell }} -NoProfile -ExecutionPolicy Bypass -Command {0}
+        run: |
+          ./scripts/agents/Test-SafeAgentBridge.ps1 -SkipLiveCodex
+          ./scripts/agents/Test-SafeAgentAdversarial.ps1
