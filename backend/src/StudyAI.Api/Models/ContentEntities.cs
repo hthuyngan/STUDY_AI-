@@ -123,7 +123,48 @@ public class ContentLessonVideo
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 
+    // P04 generalized LessonResource fields (in-place additive columns on content_lesson_videos)
+    public string ResourceType { get; set; } = LessonResourceTypes.Video; // video, image, document, link, attachment
+    public string Status { get; set; } = LessonResourceStatuses.Draft; // draft, pending_review, verified, rejected, published, archived
+    public string? MimeType { get; set; }
+    public string? StorageKey { get; set; }
+    public string? Checksum { get; set; }
+    public string? SourceName { get; set; }
+    public string? SourceLicense { get; set; }
+    public string? CreatedBy { get; set; }
+    public string? ReviewedBy { get; set; }
+    public DateTimeOffset? ReviewedAt { get; set; }
+    public string? RejectionReason { get; set; }
+    public bool IsArchived { get; set; } = false;
+    public DateTimeOffset? ArchivedAt { get; set; }
+    public string? ArchivedBy { get; set; }
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+
     public ContentLesson? Lesson { get; set; }
+}
+
+public static class LessonResourceTypes
+{
+    public const string Video = "video";
+    public const string Image = "image";
+    public const string Document = "document";
+    public const string Link = "link";
+    public const string Attachment = "attachment";
+
+    public static readonly HashSet<string> All = new(StringComparer.OrdinalIgnoreCase)
+    {
+        Video, Image, Document, Link, Attachment
+    };
+}
+
+public static class LessonResourceStatuses
+{
+    public const string Draft = "draft";
+    public const string PendingReview = "pending_review";
+    public const string Verified = "verified";
+    public const string Rejected = "rejected";
+    public const string Published = "published";
+    public const string Archived = "archived";
 }
 
 public class ContentAssessment

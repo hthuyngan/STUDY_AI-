@@ -90,6 +90,7 @@ builder.Services.AddScoped<IContentCatalogService, ContentCatalogService>();
 builder.Services.AddScoped<IContentChaptersService, ContentChaptersService>();
 builder.Services.AddScoped<IContentTopicsService, ContentTopicsService>();
 builder.Services.AddScoped<IContentVideosService, ContentVideosService>();
+builder.Services.AddScoped<ILessonResourcesService, LessonResourcesService>();
 builder.Services.AddScoped<IContentLessonsService, ContentLessonsService>();
 builder.Services.AddScoped<ILessonCompositionService, LessonCompositionService>();
 builder.Services.AddScoped<IContentQuestionsService, ContentQuestionsService>();

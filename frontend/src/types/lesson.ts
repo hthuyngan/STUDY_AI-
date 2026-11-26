@@ -119,6 +119,7 @@ export interface LessonDetail {
     thumbnailUrl?: string | null
   }>
   sourceReferenceUrl?: string
+  resources?: import('./content').LearnerResourceItem[]
   content: LessonContent
   previousLessonId?: string
   nextLessonId?: string

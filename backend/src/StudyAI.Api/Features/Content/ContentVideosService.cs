@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
+using StudyAI.Models;
 
 namespace StudyAI.Features.Content;
 
@@ -81,7 +82,7 @@ public class ContentVideosService : IContentVideosService
             throw new NotFoundException("Bài học không tồn tại.");
 
         var videos = await _db.ContentLessonVideos
-            .Where(v => v.LessonId == lessonId)
+            .Where(v => v.LessonId == lessonId && !v.IsArchived && (string.IsNullOrWhiteSpace(v.ResourceType) || v.ResourceType == LessonResourceTypes.Video))
             .OrderBy(v => v.SortOrder)
             .ThenBy(v => v.CreatedAt)
             .ToListAsync(ct);
@@ -103,6 +104,17 @@ public class ContentVideosService : IContentVideosService
 
         if (string.IsNullOrWhiteSpace(req.SourceUrl) || string.IsNullOrWhiteSpace(req.Title))
             throw new ValidationException("SourceUrl/Title", "Tiêu đề và Đường dẫn URL video không được để trống.");
+
+        var validated = LessonResourceValidator.ValidateAndNormalize(
+            LessonResourceTypes.Video,
+            req.SourceUrl,
+            req.Provider,
+            req.EmbedUrl,
+            req.YouTubeVideoId,
+            req.ThumbnailUrl,
+            null,
+            null,
+            req.EmbedAllowed);
 
         if (_videoVerificationService != null)
         {
@@ -139,6 +151,11 @@ public class ContentVideosService : IContentVideosService
             }
         }
 
+        if ((vStatus == "verified" || req.IsPublished) && string.IsNullOrWhiteSpace(req.AttributionText))
+        {
+            throw new ValidationException("AttributionText", "Phải có thông tin nguồn/giấy phép (AttributionText) trước khi xác minh hoặc xuất bản video.");
+        }
+
         var (detectedProvider, ytId, embedUrl) = ParseVideoUrl(req.SourceUrl);
         var provider = !string.IsNullOrWhiteSpace(req.Provider) ? req.Provider : detectedProvider;
         var finalEmbedUrl = !string.IsNullOrWhiteSpace(req.EmbedUrl) ? req.EmbedUrl : embedUrl;
@@ -172,6 +189,13 @@ public class ContentVideosService : IContentVideosService
             VerifiedAt = vAt,
             LastVerifiedAt = vAt,
             IsPublished = req.IsPublished,
+            ResourceType = LessonResourceTypes.Video,
+            Status = req.IsPublished ? LessonResourceStatuses.Published : (vStatus == "verified" ? LessonResourceStatuses.Verified : (vStatus == "rejected" ? LessonResourceStatuses.Rejected : LessonResourceStatuses.Draft)),
+            SourceName = req.ChannelName,
+            SourceLicense = req.AttributionText,
+            CreatedBy = currentUserId,
+            ReviewedBy = vStatus == "verified" || vStatus == "rejected" ? currentUserId : null,
+            ReviewedAt = vStatus == "verified" || vStatus == "rejected" ? now : null,
             CreatedAt = now,
             UpdatedAt = now
         };
@@ -197,7 +221,7 @@ public class ContentVideosService : IContentVideosService
                 ct);
         }
 
-        if (video.IsPublished)
+        if (req.IsPublished)
         {
             await _auditWriter.WriteStaffAuditAsync(
                 "lesson_video_published",
@@ -368,10 +392,22 @@ public class ContentVideosService : IContentVideosService
         var video = await _db.ContentLessonVideos.Include(v => v.Lesson).FirstOrDefaultAsync(v => v.Id == videoId, ct);
         if (video == null)
             throw new NotFoundException("Video không tồn tại.");
+        if (video.IsArchived)
+            throw new ConflictException("Không thể xác minh video đã lưu trữ.");
 
+        var hasProvenance = !string.IsNullOrWhiteSpace(video.AttributionText) ||
+                            (!string.IsNullOrWhiteSpace(video.SourceName) && !string.IsNullOrWhiteSpace(video.SourceLicense));
+        if (!hasProvenance)
+            throw new ValidationException("AttributionText", "Phải có thông tin nguồn/giấy phép (AttributionText hoặc SourceName + SourceLicense) trước khi xác minh.");
+
+        var now = _clock.UtcNow;
         video.VerificationStatus = "verified";
-        video.VerifiedAt = _clock.UtcNow;
-        video.UpdatedAt = _clock.UtcNow;
+        video.Status = video.IsPublished ? LessonResourceStatuses.Published : LessonResourceStatuses.Verified;
+        video.VerifiedAt = now;
+        video.LastVerifiedAt = now;
+        video.ReviewedBy = currentUserId;
+        video.ReviewedAt = now;
+        video.UpdatedAt = now;
 
         await _auditWriter.WriteStaffAuditAsync(
             "lesson_video_verified",
@@ -393,12 +429,18 @@ public class ContentVideosService : IContentVideosService
         var video = await _db.ContentLessonVideos.Include(v => v.Lesson).FirstOrDefaultAsync(v => v.Id == videoId, ct);
         if (video == null)
             throw new NotFoundException("Video không tồn tại.");
+        if (video.IsArchived)
+            throw new ConflictException("Không thể từ chối video đã lưu trữ.");
 
+        var now = _clock.UtcNow;
         bool wasPublished = video.IsPublished;
         video.VerificationStatus = "rejected";
+        video.Status = LessonResourceStatuses.Rejected;
         video.VerifiedAt = null;
         video.IsPublished = false;
-        video.UpdatedAt = _clock.UtcNow;
+        video.ReviewedBy = currentUserId;
+        video.ReviewedAt = now;
+        video.UpdatedAt = now;
 
         await _auditWriter.WriteStaffAuditAsync(
             "lesson_video_rejected",
@@ -431,11 +473,19 @@ public class ContentVideosService : IContentVideosService
         var video = await _db.ContentLessonVideos.Include(v => v.Lesson).FirstOrDefaultAsync(v => v.Id == videoId, ct);
         if (video == null)
             throw new NotFoundException("Video không tồn tại.");
+        if (video.IsArchived)
+            throw new ConflictException("Không thể xuất bản video đã lưu trữ.");
 
         if (video.VerificationStatus != "verified")
             throw new ValidationException("VerificationStatus", "Không thể xuất bản video chưa được xác minh (VerificationStatus phải là 'verified').");
 
+        var hasProvenance = !string.IsNullOrWhiteSpace(video.AttributionText) ||
+                            (!string.IsNullOrWhiteSpace(video.SourceName) && !string.IsNullOrWhiteSpace(video.SourceLicense));
+        if (!hasProvenance)
+            throw new ValidationException("AttributionText", "Phải có thông tin nguồn/giấy phép trước khi xuất bản.");
+
         video.IsPublished = true;
+        video.Status = LessonResourceStatuses.Published;
         video.UpdatedAt = _clock.UtcNow;
 
         await _auditWriter.WriteStaffAuditAsync(
@@ -458,8 +508,11 @@ public class ContentVideosService : IContentVideosService
         var video = await _db.ContentLessonVideos.Include(v => v.Lesson).FirstOrDefaultAsync(v => v.Id == videoId, ct);
         if (video == null)
             throw new NotFoundException("Video không tồn tại.");
+        if (video.IsArchived)
+            throw new ConflictException("Không thể gỡ xuất bản video đã lưu trữ.");
 
         video.IsPublished = false;
+        video.Status = video.VerificationStatus == "verified" ? LessonResourceStatuses.Verified : LessonResourceStatuses.Draft;
         video.UpdatedAt = _clock.UtcNow;
 
         await _auditWriter.WriteStaffAuditAsync(
@@ -479,6 +532,8 @@ public class ContentVideosService : IContentVideosService
         var video = await _db.ContentLessonVideos.FindAsync(new object[] { videoId }, ct);
         if (video == null)
             throw new NotFoundException("Video không tồn tại.");
+        if (video.IsPublished)
+            throw new ConflictException("Không thể xóa video đang xuất bản. Vui lòng gỡ xuất bản trước.");
 
         _db.ContentLessonVideos.Remove(video);
 
@@ -506,7 +561,7 @@ public class ContentVideosService : IContentVideosService
             throw new ValidationException("VideoIds", "Danh sách videoIds chứa mã video trùng lặp.");
 
         var videos = await _db.ContentLessonVideos
-            .Where(v => v.LessonId == req.LessonId)
+            .Where(v => v.LessonId == req.LessonId && !v.IsArchived)
             .ToListAsync(ct);
 
         if (videos.Count != req.VideoIds.Count)

@@ -12,6 +12,7 @@ import { AssessmentModal } from '@/components/assessment/AssessmentModal'
 import { LessonAssessmentCard } from '@/components/assessment/LessonAssessmentCard'
 import { LessonProgressBar } from '@/components/lesson/LessonProgressBar'
 import { LessonVideoPlayer } from '@/components/lesson/LessonVideoPlayer'
+import { LessonResourcesList } from '@/components/lesson/LessonResourcesList'
 import { LessonContentBlockRenderer } from '@/components/lesson/LessonContentBlockRenderer'
 import {
   LessonHeading,
@@ -374,6 +375,9 @@ export function LessonPage() {
             </div>
           )}
         </section>
+
+        {/* P04 Generalized Learner Resources (images, documents, attachments, external links) */}
+        <LessonResourcesList resources={lesson.resources} />
 
         {/* ============================================================ */}
         {/* 4.5 NỘI DUNG LÝ THUYẾT & CÔNG THỨC TOÁN (KaTeX & Pedagogical Blocks) */}

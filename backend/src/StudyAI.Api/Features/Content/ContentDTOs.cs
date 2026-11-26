@@ -253,6 +253,141 @@ public class VideoPreviewResponseDto
     public string? ErrorMessage { get; set; }
 }
 
+#region Lesson Resource DTOs (P04)
+
+public class LessonResourceItemDto
+{
+    public string Id { get; set; } = string.Empty;
+    public string LessonId { get; set; } = string.Empty;
+    public string LessonTitle { get; set; } = string.Empty;
+    public string ResourceType { get; set; } = "video";
+    public string Status { get; set; } = "draft";
+    public string Title { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Provider { get; set; } = "external";
+    public string SourceUrl { get; set; } = string.Empty;
+    public string? EmbedUrl { get; set; }
+    public string? YouTubeVideoId { get; set; }
+    public string? ChannelName { get; set; }
+    public bool IsPrimary { get; set; } = false;
+    public string? AttributionText { get; set; }
+    public string? SourceName { get; set; }
+    public string? SourceLicense { get; set; }
+    public string? MimeType { get; set; }
+    public string? StorageKey { get; set; }
+    public string? Checksum { get; set; }
+    public string Language { get; set; } = "vi";
+    public int DurationSeconds { get; set; }
+    public string? ThumbnailUrl { get; set; }
+    public int SortOrder { get; set; } = 1;
+    public bool EmbedAllowed { get; set; } = false;
+    public string VerificationStatus { get; set; } = "pending";
+    public string? VerifiedAt { get; set; }
+    public string? LastVerifiedAt { get; set; }
+    public string? ReviewedBy { get; set; }
+    public string? ReviewedAt { get; set; }
+    public string? RejectionReason { get; set; }
+    public bool IsPublished { get; set; } = false;
+    public bool IsArchived { get; set; } = false;
+    public string? ArchivedAt { get; set; }
+    public string? CreatedBy { get; set; }
+    public string CreatedAt { get; set; } = string.Empty;
+    public string UpdatedAt { get; set; } = string.Empty;
+    public string RowVersion { get; set; } = string.Empty;
+}
+
+public class CreateLessonResourceRequestDto
+{
+    public string ResourceType { get; set; } = "video";
+    public string Title { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string? Provider { get; set; }
+    public string SourceUrl { get; set; } = string.Empty;
+    public string? EmbedUrl { get; set; }
+    public string? YouTubeVideoId { get; set; }
+    public string? ChannelName { get; set; }
+    public bool IsPrimary { get; set; } = false;
+    public string? AttributionText { get; set; }
+    public string? SourceName { get; set; }
+    public string? SourceLicense { get; set; }
+    public string? MimeType { get; set; }
+    public string? StorageKey { get; set; }
+    public string? Checksum { get; set; }
+    public string Language { get; set; } = "vi";
+    public int DurationSeconds { get; set; } = 0;
+    public string? ThumbnailUrl { get; set; }
+    public int SortOrder { get; set; } = 1;
+    public bool EmbedAllowed { get; set; } = true;
+}
+
+public class UpdateLessonResourceRequestDto
+{
+    public string? ResourceType { get; set; }
+    public string? Title { get; set; }
+    public string? Description { get; set; }
+    public string? Provider { get; set; }
+    public string? SourceUrl { get; set; }
+    public string? EmbedUrl { get; set; }
+    public string? YouTubeVideoId { get; set; }
+    public string? ChannelName { get; set; }
+    public bool? IsPrimary { get; set; }
+    public string? AttributionText { get; set; }
+    public string? SourceName { get; set; }
+    public string? SourceLicense { get; set; }
+    public string? MimeType { get; set; }
+    public string? StorageKey { get; set; }
+    public string? Checksum { get; set; }
+    public string? Language { get; set; }
+    public int? DurationSeconds { get; set; }
+    public string? ThumbnailUrl { get; set; }
+    public int? SortOrder { get; set; }
+    public bool? EmbedAllowed { get; set; }
+    public string RowVersion { get; set; } = string.Empty;
+}
+
+public class ReorderLessonResourcesItemDto
+{
+    public string ResourceId { get; set; } = string.Empty;
+    public string RowVersion { get; set; } = string.Empty;
+}
+
+public class ReorderLessonResourcesRequestDto
+{
+    public string LessonId { get; set; } = string.Empty;
+    public List<string> ResourceIds { get; set; } = new();
+    public List<ReorderLessonResourcesItemDto>? Items { get; set; }
+}
+
+public class LessonResourceActionRequestDto
+{
+    public string RowVersion { get; set; } = string.Empty;
+    public string? Reason { get; set; }
+}
+
+public class LearnerResourceDto
+{
+    public string Id { get; set; } = string.Empty;
+    public string ResourceType { get; set; } = "video";
+    public string Title { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string Provider { get; set; } = "external";
+    public string SourceUrl { get; set; } = string.Empty;
+    public string? EmbedUrl { get; set; }
+    public string? YouTubeVideoId { get; set; }
+    public string? ChannelName { get; set; }
+    public bool IsPrimary { get; set; } = false;
+    public string? AttributionText { get; set; }
+    public string? SourceName { get; set; }
+    public string? SourceLicense { get; set; }
+    public string? MimeType { get; set; }
+    public int DurationSeconds { get; set; }
+    public string? ThumbnailUrl { get; set; }
+    public int SortOrder { get; set; }
+    public bool EmbedAllowed { get; set; }
+}
+
+#endregion
+
 #endregion
 
 #region Lesson DTOs
@@ -628,6 +763,7 @@ public class LearnerLessonDetailDto
     public JsonArray ImportantNotes { get; set; } = new();
     public JsonArray SummaryPoints { get; set; } = new();
     public List<LearnerVideoDto> Videos { get; set; } = new();
+    public List<LearnerResourceDto> Resources { get; set; } = new();
     public List<LearnerContentBlockDto> ContentBlocks { get; set; } = new();
     public List<string> Objectives { get; set; } = new();
 }

@@ -43,6 +43,7 @@ describe('ContentLessonEditorPage (CURR-001, CURR-002, CURR-009)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.spyOn(contentService, 'getLessonEditor').mockResolvedValue(JSON.parse(JSON.stringify(MOCK_LESSON)))
+    vi.spyOn(contentService, 'listLessonResources').mockResolvedValue({ items: [], total: 0 })
     vi.spyOn(contentService, 'getLessonComposition').mockResolvedValue({
       lessonId: 'les_test_101',
       title: 'Hàm số lũy thừa và đồ thị',

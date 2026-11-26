@@ -197,6 +197,7 @@ function mapLearnerDetailToLessonDetail(
           ? parseStringList(detail.learningObjectives)
           : [],
     contentBlocks: detail.contentBlocks ?? [],
+    resources: detail.resources ?? [],
     objectives: detail.objectives ?? [],
     curriculumVersion: (detail as any).curriculumVersion || undefined,
     textbookAlignment: (detail as any).textbookAlignment || undefined,

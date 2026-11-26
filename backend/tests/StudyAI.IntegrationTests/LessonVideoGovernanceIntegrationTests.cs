@@ -242,7 +242,7 @@ public class LessonVideoGovernanceIntegrationTests : IClassFixture<StudyAIApiFix
     public async Task VideoGovernance_PublishUnverifiedVideo_Returns400BadRequest()
     {
         await EnsureProvisionedAccountsExistAsync();
-        var contentToken = await LoginAsync("content@gmail.com", _contentPassword);
+        var adminToken = await LoginAsync("admin@gmail.com", _adminPassword);
         var (_, _, lessonId) = await CreateIsolatedCurriculumFixtureAsync();
 
         // Attempting to create video with IsPublished=true while VerificationStatus is pending
@@ -254,7 +254,7 @@ public class LessonVideoGovernanceIntegrationTests : IClassFixture<StudyAIApiFix
             IsPublished = true
         };
         using var req = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/lessons/{lessonId}/videos");
-        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
         req.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
         var resp = await _client.SendAsync(req);
@@ -337,6 +337,7 @@ public class LessonVideoGovernanceIntegrationTests : IClassFixture<StudyAIApiFix
     {
         await EnsureProvisionedAccountsExistAsync();
         var contentToken = await LoginAsync("content@gmail.com", _contentPassword);
+        var adminToken = await LoginAsync("admin@gmail.com", _adminPassword);
         var (_, _, lessonId) = await CreateIsolatedCurriculumFixtureAsync();
 
         // 1. Add Lesson Video
@@ -345,6 +346,7 @@ public class LessonVideoGovernanceIntegrationTests : IClassFixture<StudyAIApiFix
             Title = "Bài giảng Hình học Không gian 12",
             Description = "Video hướng dẫn tính khoảng cách và thể tích",
             SourceUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            AttributionText = "Nguồn: YouTube / GDPT 2018",
             DurationSeconds = 600,
             VerificationStatus = "pending",
             IsPublished = false
@@ -363,7 +365,7 @@ public class LessonVideoGovernanceIntegrationTests : IClassFixture<StudyAIApiFix
 
         // 2. Verify Video
         using var verifyReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/videos/{videoId}/verify");
-        verifyReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        verifyReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
         var verifyResp = await _client.SendAsync(verifyReq);
         Assert.Equal(HttpStatusCode.OK, verifyResp.StatusCode);
         var verified = JsonSerializer.Deserialize<ContentLessonVideoItemDto>(await verifyResp.Content.ReadAsStringAsync(), JsonOpts);
@@ -373,7 +375,7 @@ public class LessonVideoGovernanceIntegrationTests : IClassFixture<StudyAIApiFix
 
         // 3. Publish Video
         using var publishReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/videos/{videoId}/publish");
-        publishReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        publishReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
         var publishResp = await _client.SendAsync(publishReq);
         Assert.Equal(HttpStatusCode.OK, publishResp.StatusCode);
         var published = JsonSerializer.Deserialize<ContentLessonVideoItemDto>(await publishResp.Content.ReadAsStringAsync(), JsonOpts);
@@ -382,7 +384,7 @@ public class LessonVideoGovernanceIntegrationTests : IClassFixture<StudyAIApiFix
 
         // 4. Unpublish Video
         using var unpublishReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/videos/{videoId}/unpublish");
-        unpublishReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        unpublishReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
         var unpublishResp = await _client.SendAsync(unpublishReq);
         Assert.Equal(HttpStatusCode.OK, unpublishResp.StatusCode);
         var unpublished = JsonSerializer.Deserialize<ContentLessonVideoItemDto>(await unpublishResp.Content.ReadAsStringAsync(), JsonOpts);
@@ -391,7 +393,7 @@ public class LessonVideoGovernanceIntegrationTests : IClassFixture<StudyAIApiFix
 
         // 5. Reject Video
         using var rejectReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/videos/{videoId}/reject");
-        rejectReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        rejectReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
         var rejectResp = await _client.SendAsync(rejectReq);
         Assert.Equal(HttpStatusCode.OK, rejectResp.StatusCode);
         var rejected = JsonSerializer.Deserialize<ContentLessonVideoItemDto>(await rejectResp.Content.ReadAsStringAsync(), JsonOpts);
@@ -420,6 +422,7 @@ public class LessonVideoGovernanceIntegrationTests : IClassFixture<StudyAIApiFix
     {
         await EnsureProvisionedAccountsExistAsync();
         var contentToken = await LoginAsync("content@gmail.com", _contentPassword);
+        var adminToken = await LoginAsync("admin@gmail.com", _adminPassword);
         var (_, _, lessonId) = await CreateIsolatedCurriculumFixtureAsync();
 
         // 1. Add video
@@ -427,6 +430,7 @@ public class LessonVideoGovernanceIntegrationTests : IClassFixture<StudyAIApiFix
         {
             Title = "Video Ban Đầu",
             SourceUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            AttributionText = "Nguồn: YouTube / GDPT 2018",
             VerificationStatus = "pending",
             IsPublished = false
         };
@@ -442,12 +446,12 @@ public class LessonVideoGovernanceIntegrationTests : IClassFixture<StudyAIApiFix
 
         // 2. Verify and Publish
         using var verifyReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/videos/{videoId}/verify");
-        verifyReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        verifyReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
         var verifyResp = await _client.SendAsync(verifyReq);
         verifyResp.EnsureSuccessStatusCode();
 
         using var publishReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/videos/{videoId}/publish");
-        publishReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        publishReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
         var publishResp = await _client.SendAsync(publishReq);
         publishResp.EnsureSuccessStatusCode();
 
@@ -476,6 +480,7 @@ public class LessonVideoGovernanceIntegrationTests : IClassFixture<StudyAIApiFix
     {
         await EnsureProvisionedAccountsExistAsync();
         var contentToken = await LoginAsync("content@gmail.com", _contentPassword);
+        var adminToken = await LoginAsync("admin@gmail.com", _adminPassword);
         var (_, _, lessonId) = await CreateIsolatedCurriculumFixtureAsync();
 
         // 1. Add video
@@ -483,6 +488,7 @@ public class LessonVideoGovernanceIntegrationTests : IClassFixture<StudyAIApiFix
         {
             Title = "Video Kiểm Tra Learner API",
             SourceUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            AttributionText = "Nguồn: YouTube / GDPT 2018",
             VerificationStatus = "pending",
             IsPublished = false
         };
@@ -504,7 +510,7 @@ public class LessonVideoGovernanceIntegrationTests : IClassFixture<StudyAIApiFix
 
         // 3. Verify video but leave unpublished -> Learner API MUST NOT return it
         using var verifyReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/videos/{videoId}/verify");
-        verifyReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        verifyReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
         var verifyResp = await _client.SendAsync(verifyReq);
         verifyResp.EnsureSuccessStatusCode();
 
@@ -515,7 +521,7 @@ public class LessonVideoGovernanceIntegrationTests : IClassFixture<StudyAIApiFix
 
         // 4. Publish verified video -> Learner API MUST now return it
         using var publishReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/content/videos/{videoId}/publish");
-        publishReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        publishReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
         var publishResp = await _client.SendAsync(publishReq);
         publishResp.EnsureSuccessStatusCode();
 
