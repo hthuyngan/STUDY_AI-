@@ -91,6 +91,7 @@ builder.Services.AddScoped<IContentChaptersService, ContentChaptersService>();
 builder.Services.AddScoped<IContentTopicsService, ContentTopicsService>();
 builder.Services.AddScoped<IContentVideosService, ContentVideosService>();
 builder.Services.AddScoped<IContentLessonsService, ContentLessonsService>();
+builder.Services.AddScoped<ILessonCompositionService, LessonCompositionService>();
 builder.Services.AddScoped<IContentQuestionsService, ContentQuestionsService>();
 builder.Services.AddScoped<IContentAssessmentsService, ContentAssessmentsService>();
 builder.Services.AddScoped<IContentReviewService, ContentReviewService>();

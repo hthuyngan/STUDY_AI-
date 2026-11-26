@@ -628,6 +628,17 @@ public class LearnerLessonDetailDto
     public JsonArray ImportantNotes { get; set; } = new();
     public JsonArray SummaryPoints { get; set; } = new();
     public List<LearnerVideoDto> Videos { get; set; } = new();
+    public List<LearnerContentBlockDto> ContentBlocks { get; set; } = new();
+    public List<string> Objectives { get; set; } = new();
+}
+
+public class LearnerContentBlockDto
+{
+    public string Id { get; set; } = string.Empty;
+    public string BlockType { get; set; } = string.Empty;
+    public int SchemaVersion { get; set; } = 1;
+    public System.Text.Json.JsonElement Payload { get; set; }
+    public int OrderIndex { get; set; }
 }
 
 /// <summary>

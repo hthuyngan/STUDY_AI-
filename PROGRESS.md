@@ -13,33 +13,33 @@
 
 | Field | Observed state |
 |---|---|
-| Active delivery phase | **P02 COMPLETED**; preparing **P03 — Validated lesson blocks, objectives, knowledge units, and skills** |
-| Integration branch | `feature/backend-redesign-modular-monolith` (`ea2e121e`, PR #27 merged) |
-| Pull request | [#27 — MERGED](https://github.com/hthuyngan/STUDY_AI-/pull/27) into `feature/backend-redesign-modular-monolith` |
+| Active delivery phase | **P03 — Validated lesson blocks, objectives, knowledge units, and skills**, local verification complete, awaiting Codex review & Draft PR CI |
+| Implementation branch | `feature/p03-lesson-composition-graph` (branched from `feature/backend-redesign-modular-monolith` at `2d23a154`) |
+| P03 Plan | [`docs/curriculum-refactor/PLAN-P03.json`](docs/curriculum-refactor/PLAN-P03.json) (`P03-W0..P03-W5`) |
 | Dual-Agent Workflow | Active (`Trusted Local Developer Workflow`: Antigravity Medium + Codex Local CLI) |
-| Protected database | `StudyAIDb` untouched (`20261125134024_AddCurriculumLifecycleChaptersLessons` pending controlled maintenance) |
-| Overall verdict | **P02 COMPLETED**; P03 in planning stage |
+| Protected database | `StudyAIDb` has P02 migration `20261125134024_AddCurriculumLifecycleChaptersLessons` applied; P03 migration NOT applied to `StudyAIDb` |
+| Overall verdict | **IMPLEMENTED / VERIFIED LOCALLY**, awaiting Codex review, CI & owner acceptance |
 
 ## Phase ledger
 
 | Scope | State | Evidence / qualification |
 |---|---|---|
-| P00 curriculum refactor | **COMPLETED** | Explicit PASS/move gate in [`FINAL-P00-REVIEW-AND-P01-MOVE-GATE.md`](docs/curriculum-refactor/FINAL-P00-REVIEW-AND-P01-MOVE-GATE.md); PR #24 merged |
-| P01 stable catalog | **VERIFIED** | PR #25 merged; green CI at `1baa9de8`: [`PHASE-P01-CATALOG-REPORT.md`](docs/curriculum-refactor/PHASE-P01-CATALOG-REPORT.md) |
-| ENV-01 DB separation | **VERIFIED** | PR #26 merged; CI green and guarded disposable DB evidence: [`ENV-01-FINAL-REMEDIATION-REPORT.md`](docs/curriculum-refactor/ENV-01-FINAL-REMEDIATION-REPORT.md) |
-| P02 lifecycle | **COMPLETED** | Owner approved & merged PR #27 (`ea2e121e`); post-merge CI [45793684250](https://github.com/hthuyngan/STUDY_AI-/actions/runs/45793684250) ALL PASS; Codex reviews PASS |
-| P03 lesson blocks/graph | **PLANNING** | Generating P03 plan via Codex Local CLI (`medium` reasoning) |
+| P00 curriculum refactor | **COMPLETED** | PR #24 merged |
+| P01 stable catalog | **VERIFIED** | PR #25 merged |
+| ENV-01 DB separation | **VERIFIED** | PR #26 merged |
+| P02 lifecycle | **COMPLETED** | PR #27 merged (`ea2e121e`); `StudyAIDb` P02 migration applied & verified (`DBCC CHECKDB` + smoke test PASS) |
+| P03 lesson blocks/graph | **IMPLEMENTED** | `P03-W0..P03-W5` implemented; local BE/FE/Playwright gates PASS; pending Codex review & Draft PR CI |
 
-## Test & review evidence (SHA-scoped)
+## P03 implementation & local test evidence
 
-- Post-merge GitHub CI [run 45793684250](https://github.com/hthuyngan/STUDY_AI-/actions/runs/45793684250) on `feature/backend-redesign-modular-monolith` (`ea2e121e`):
-  - `Frontend Lint, Test & Build`: **PASS**
-  - `.NET 10 Backend Build & Tests (Isolated Run 1 & 2)`: **PASS**
-  - `P02 Playwright E2E (Real SQL Server Disposable DB)`: **PASS**
-- Pre-merge Codex Local CLI Reviews: `0b0eca88` (`rereview`, `low`) **PASS** (`0` findings); `234b830c` (`initial`, `medium`) **PASS** (`0` findings).
-- Controlled DB check (read-only): `StudyAIDb` has `17` applied migrations (up to `20261125023144_AddMultiSubjectCatalogFoundations`); P02 migration `20261125134024_AddCurriculumLifecycleChaptersLessons` is pending explicit maintenance.
+- **P03-W1/W2/W3 (BE)**: `LessonContentBlock` (12 closed types, `SchemaVersion=1`, `PayloadJson`), `LearningObjective`, `KnowledgeUnit`, `Skill`, relational joins + `QuestionSkill`, `LessonPrerequisite` cycle prevention under `Serializable` transaction, `ContentRevision` (`SnapshotSchemaVersion=2`) + rollback, learner `ContentBlocks` projection with `exercise` answer stripping, migration `AddValidatedLessonComposition`.
+- **P03-W3/W4 (FE)**: `LessonContentBlockRenderer` (12 types + explicit alert on unsupported type/version + safe Markdown subset), `LessonPage` integration, `LessonCompositionPanel` in `ContentLessonEditorPage` (Objectives, Blocks, Knowledge & Skills, Prerequisites, Revisions & `ConfirmDialog` rollback).
+- **Local tests (2026-11-26)**:
+  - `StudyAI.UnitTests`: **320/320 PASS** (incl. 25 `LessonContentBlockValidationTests` + 11 P03 routes in `ControllerRouteDiscoveryTests`).
+  - `StudyAI.IntegrationTests` (`StudyAIDb_Clean_{GUID}`): **269/269 PASS** (incl. `LessonCompositionIntegrationTests`).
+  - `frontend` `oxlint` (0 warnings/errors), `vitest` (**88 files / 587 tests PASS**), `vite build` **PASS**.
+  - `bun scripts/e2e_p03_lesson_composition_playwright.ts` (`StudyAIDb_Clean_{GUID}`): **PASS**.
 
 ## Next action
 
-1. Apply P02 migration `20261125134024_AddCurriculumLifecycleChaptersLessons` to `StudyAIDb` only under explicit maintenance approval with pre-migration `.bak` backup.
-2. Review Codex P03 plan and start P03 vertical slice on a new feature branch from `feature/backend-redesign-modular-monolith`.
+Complete Codex Local CLI review on `feature/p03-lesson-composition-graph`, fix any findings, push, and open a Draft PR against `feature/backend-redesign-modular-monolith`. Do not auto-merge or apply P03 migration to `StudyAIDb`.

@@ -90,6 +90,12 @@ public class ContentLesson
     public ICollection<ContentAssessment> Assessments { get; set; } = new List<ContentAssessment>();
     public ICollection<ContentQuestion> Questions { get; set; } = new List<ContentQuestion>();
     public ICollection<ContentLessonVideo> Videos { get; set; } = new List<ContentLessonVideo>();
+    public ICollection<LessonContentBlock> ContentBlocks { get; set; } = new List<LessonContentBlock>();
+    public ICollection<LessonObjective> LessonObjectives { get; set; } = new List<LessonObjective>();
+    public ICollection<LessonKnowledgeUnit> LessonKnowledgeUnits { get; set; } = new List<LessonKnowledgeUnit>();
+    public ICollection<LessonSkill> LessonSkills { get; set; } = new List<LessonSkill>();
+    public ICollection<LessonPrerequisite> Prerequisites { get; set; } = new List<LessonPrerequisite>();
+    public ICollection<LessonPrerequisite> DependentLessons { get; set; } = new List<LessonPrerequisite>();
 }
 
 public class ContentLessonVideo

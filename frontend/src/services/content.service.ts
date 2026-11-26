@@ -345,4 +345,76 @@ export const contentService = {
   _resetMockState(): void {
     operationsService._resetMockState()
   },
+
+  async getLessonComposition(lessonId: string): Promise<import('@/types/content').LessonComposition> {
+    return apiClient.get(`/api/v1/content/lessons/${lessonId}/composition`)
+  },
+
+  async replaceLessonComposition(
+    lessonId: string,
+    payload: {
+      rowVersion?: string
+      blocks: import('@/types/content').LessonContentBlock[]
+      objectiveIds: string[]
+      knowledgeUnitIds: string[]
+      skillIds: string[]
+      prerequisiteLessonIds: string[]
+      reason?: string
+    }
+  ): Promise<import('@/types/content').LessonComposition> {
+    return apiClient.put(`/api/v1/content/lessons/${lessonId}/composition`, payload)
+  },
+
+  async getLessonRevisions(lessonId: string, page = 1, pageSize = 20): Promise<import('@/types/content').LessonRevisionPage> {
+    return apiClient.get(`/api/v1/content/lessons/${lessonId}/revisions?page=${page}&pageSize=${pageSize}`)
+  },
+
+  async rollbackLessonRevision(
+    lessonId: string,
+    revisionId: string,
+    payload: { rowVersion?: string; reason?: string }
+  ): Promise<import('@/types/content').LessonComposition> {
+    return apiClient.post(`/api/v1/content/lessons/${lessonId}/revisions/${revisionId}/rollback`, payload)
+  },
+
+  async listCurriculumObjectives(curriculumId: string, search?: string): Promise<import('@/types/content').CurriculumNodeRef[]> {
+    const q = search ? `?search=${encodeURIComponent(search)}` : ''
+    return apiClient.get(`/api/v1/content/curricula/${curriculumId}/objectives${q}`)
+  },
+
+  async createCurriculumObjective(
+    curriculumId: string,
+    payload: { code: string; title: string; description?: string; cognitiveLevel?: string }
+  ): Promise<import('@/types/content').CurriculumNodeRef> {
+    return apiClient.post(`/api/v1/content/curricula/${curriculumId}/objectives`, payload)
+  },
+
+  async listCurriculumKnowledgeUnits(curriculumId: string, search?: string): Promise<import('@/types/content').CurriculumNodeRef[]> {
+    const q = search ? `?search=${encodeURIComponent(search)}` : ''
+    return apiClient.get(`/api/v1/content/curricula/${curriculumId}/knowledge-units${q}`)
+  },
+
+  async createCurriculumKnowledgeUnit(
+    curriculumId: string,
+    payload: { code: string; title: string; description?: string }
+  ): Promise<import('@/types/content').CurriculumNodeRef> {
+    return apiClient.post(`/api/v1/content/curricula/${curriculumId}/knowledge-units`, payload)
+  },
+
+  async listCurriculumSkills(curriculumId: string, search?: string): Promise<import('@/types/content').CurriculumNodeRef[]> {
+    const q = search ? `?search=${encodeURIComponent(search)}` : ''
+    return apiClient.get(`/api/v1/content/curricula/${curriculumId}/skills${q}`)
+  },
+
+  async createCurriculumSkill(
+    curriculumId: string,
+    payload: { code: string; title: string; description?: string }
+  ): Promise<import('@/types/content').CurriculumNodeRef> {
+    return apiClient.post(`/api/v1/content/curricula/${curriculumId}/skills`, payload)
+  },
+
+  async listCurriculumLessons(curriculumId: string, excludeLessonId?: string): Promise<import('@/types/content').PrerequisiteLessonRef[]> {
+    const q = excludeLessonId ? `?excludeLessonId=${encodeURIComponent(excludeLessonId)}` : ''
+    return apiClient.get(`/api/v1/content/curricula/${curriculumId}/lessons${q}`)
+  },
 }

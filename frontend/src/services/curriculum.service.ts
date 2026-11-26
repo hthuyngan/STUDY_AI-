@@ -88,6 +88,8 @@ export interface LearnerLessonDetail {
   importantNotes: string[]
   summaryPoints: string[]
   videos?: LearnerVideo[]
+  contentBlocks?: import('@/types/content').LessonContentBlock[]
+  objectives?: string[]
 }
 
 export interface LearnerQuestion {

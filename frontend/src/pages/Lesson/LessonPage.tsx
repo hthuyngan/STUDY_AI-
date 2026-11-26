@@ -12,6 +12,7 @@ import { AssessmentModal } from '@/components/assessment/AssessmentModal'
 import { LessonAssessmentCard } from '@/components/assessment/LessonAssessmentCard'
 import { LessonProgressBar } from '@/components/lesson/LessonProgressBar'
 import { LessonVideoPlayer } from '@/components/lesson/LessonVideoPlayer'
+import { LessonContentBlockRenderer } from '@/components/lesson/LessonContentBlockRenderer'
 import {
   LessonHeading,
   LessonParagraph,
@@ -377,7 +378,11 @@ export function LessonPage() {
         {/* ============================================================ */}
         {/* 4.5 NỘI DUNG LÝ THUYẾT & CÔNG THỨC TOÁN (KaTeX & Pedagogical Blocks) */}
         {/* ============================================================ */}
-        {lesson.content && (
+        {lesson.contentBlocks && lesson.contentBlocks.length > 0 ? (
+          <section className="lesson-theory-section" aria-label="Nội dung bài học" style={{ marginTop: '24px' }}>
+            <LessonContentBlockRenderer blocks={lesson.contentBlocks} />
+          </section>
+        ) : lesson.content ? (
           <section className="lesson-theory-section" aria-label="Nội dung lý thuyết và công thức" style={{ marginTop: '24px' }}>
             {lesson.content.introduction && (
               <div
@@ -461,7 +466,7 @@ export function LessonPage() {
               </div>
             )}
           </section>
-        )}
+        ) : null}
 
         {/* ============================================================ */}
         {/* 5. BÀI TẬP THU HOẠCH (Collapsible Accordion, Mặc định thu gọn) */}

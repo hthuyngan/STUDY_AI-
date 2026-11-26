@@ -567,6 +567,33 @@ public class StudentCurriculumService : ILearnerCurriculumService
             })
             .ToList();
 
+        var publishedBlocks = await _db.LessonContentBlocks
+            .AsNoTracking()
+            .Where(b => b.LessonId == lesson.Id && b.Status == "published")
+            .OrderBy(b => b.OrderIndex)
+            .ToListAsync(ct);
+
+        var learnerBlocks = publishedBlocks.Select(b =>
+        {
+            using var doc = JsonDocument.Parse(b.PayloadJson);
+            var sanitized = LessonContentBlockValidator.SanitizePayloadForLearner(b.BlockType, doc.RootElement.Clone());
+            return new LearnerContentBlockDto
+            {
+                Id = b.Id,
+                BlockType = b.BlockType,
+                SchemaVersion = b.SchemaVersion,
+                Payload = sanitized,
+                OrderIndex = b.OrderIndex
+            };
+        }).ToList();
+
+        var learnerObjectives = await _db.LessonObjectives
+            .AsNoTracking()
+            .Where(lo => lo.LessonId == lesson.Id && lo.Objective != null && lo.Objective.Status == "published")
+            .OrderBy(lo => lo.OrderIndex)
+            .Select(lo => $"{lo.Objective!.Code}: {lo.Objective.Title}")
+            .ToListAsync(ct);
+
         return new LearnerLessonDetailDto
         {
             Id = lesson.Id,
@@ -594,7 +621,9 @@ public class StudentCurriculumService : ILearnerCurriculumService
             Examples = SafeJsonArray(lesson.ExamplesJson),
             ImportantNotes = SafeJsonArray(lesson.ImportantNotesJson),
             SummaryPoints = SafeJsonArray(lesson.SummaryPointsJson),
-            Videos = publishedVideos
+            Videos = publishedVideos,
+            ContentBlocks = learnerBlocks,
+            Objectives = learnerObjectives
         };
     }
 

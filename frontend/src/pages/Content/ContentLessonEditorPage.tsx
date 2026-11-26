@@ -12,6 +12,7 @@ import type {
   StructuredExampleItem,
 } from '@/types/content'
 import { MathView } from '@/components/common/MathView'
+import { LessonCompositionPanel } from './components/lesson-editor/LessonCompositionPanel'
 import './ContentPages.css'
 
 interface LessonEditorFormProps {
@@ -726,6 +727,9 @@ function LessonEditorForm({
           </div>
         </div>
       </div>
+
+      {/* P03 Validated Lesson Composition, Objectives, Graph & Revisions */}
+      <LessonCompositionPanel lessonId={lessonData.id} />
 
       {/* Sticky Action Bar (CURR-001) */}
       <div className="editor-sticky-bar">

@@ -389,7 +389,14 @@ public class CurriculumLifecycleIntegrationTests : IClassFixture<StudyAIApiFixtu
         using var scope = _fixture.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
         var migrator = db.GetService<IMigrator>();
-        await Assert.ThrowsAnyAsync<Exception>(() => migrator.MigrateAsync("20261125023144_AddMultiSubjectCatalogFoundations"));
+        try
+        {
+            await Assert.ThrowsAnyAsync<Exception>(() => migrator.MigrateAsync("20261125023144_AddMultiSubjectCatalogFoundations"));
+        }
+        finally
+        {
+            await migrator.MigrateAsync();
+        }
     }
 
     [Fact]
