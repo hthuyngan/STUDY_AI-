@@ -13,12 +13,11 @@
 
 | Field | Observed state |
 |---|---|
-| Active delivery phase | **P04 — Resources and video** (`VERIFIED`; Draft PR #30 awaiting CI & human approval) |
-| Integration branch | `feature/backend-redesign-modular-monolith` (`d4cb44b7`, PR #29 merged) |
-| Feature branch | `feature/p04-lesson-resources-video` (`c7e95700` + checkpoint) |
+| Active delivery phase | **P04 COMPLETED**; starting **P05 — Question mapping & assessment integrity** |
+| Integration branch | `feature/backend-redesign-modular-monolith` (`6b1c8a1d`, PR #30 merged) |
 | Dual-Agent Workflow | Active (`Trusted Local Developer Workflow`: Antigravity Medium + Codex Local CLI) |
-| Protected database | `StudyAIDb` has P03 migration `20261126100005_AddValidatedLessonComposition` applied & verified (`DBCC CHECKDB` + auth smoke test PASS); P04 migration `20261126125233_AddGeneralizedLessonResources` NOT applied |
-| Overall verdict | **P04 VERIFIED**; ready for CI on Draft PR #30 & human approval |
+| Protected database | `StudyAIDb` has P04 migration `20261126125233_AddGeneralizedLessonResources` applied & verified (`27/27` videos preserved, `DBCC CHECKDB` + auth smoke test PASS); P05 migration NOT applied |
+| Overall verdict | **P04 COMPLETED**; P05 in planning stage |
 
 ## Phase ledger
 
@@ -29,8 +28,9 @@
 | ENV-01 DB separation | **VERIFIED** | PR #26 merged |
 | P02 lifecycle | **COMPLETED** | PR #27 merged (`ea2e121e`); `StudyAIDb` P02 migration + `DBCC CHECKDB` + auth smoke test PASS |
 | P03 lesson blocks/graph | **COMPLETED** | PR #29 merged (`7363b034`); post-merge CI [45821709436](https://github.com/hthuyngan/STUDY_AI-/actions/runs/45821709436) ALL PASS; `StudyAIDb` P03 migration + `DBCC CHECKDB` + auth smoke test PASS |
-| P04 resources & video | **VERIFIED** | `c7e95700` (PR #30): UnitTests 351/351, 2x IntegrationTests 270/270 (`StudyAIDb_Clean_{GUID}`), P04 `Up/Down/Up` clone rehearsal PASS (27/27 legacy videos preserved), `oxlint` 0 errors, `vitest` 89/89 (591/591), `vite build` PASS, Playwright P04 PASS & added to CI; Codex `REVIEW-P04-R3.json` **PASS** (0 findings) |
+| P04 resources & video | **COMPLETED** | PR #30 merged (`6b1c8a1d`); post-merge CI [45835480689](https://github.com/hthuyngan/STUDY_AI-/actions/runs/45835480689) ALL PASS (incl. Playwright P02/P03/P04); `StudyAIDb` P04 migration (`27/27` videos preserved) + `DBCC CHECKDB` + auth smoke test PASS |
+| P05 question & assessment | **PLANNING** | Generating P05 plan via Codex Local CLI (`medium` reasoning) on `feature/p05-question-mapping-assessment-integrity` |
 
 ## Next action
 
-Wait for GitHub Actions CI on Draft PR #30 (`feature/p04-lesson-resources-video` -> `feature/backend-redesign-modular-monolith`) and explicit human approval before merge or P04 migration on `StudyAIDb`.
+Review Codex P05 plan (`docs/curriculum-refactor/PLAN-P05.json`) and implement P05 (question durable key/fingerprint, skill/lesson mapping, assessment integrity, immutable finalized attempts).
