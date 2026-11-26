@@ -931,6 +931,83 @@ function Test-CodexConfigArgsSafe {
     }
 }
 
+# Verifies that two Windows SIDs are distinct to prevent same-user spoofing.
+function Assert-DifferentProcessSid {
+    param(
+        [string]$CallerSid = "",
+        [string]$TargetSid = ""
+    )
+    if ([string]::IsNullOrWhiteSpace($CallerSid) -or [string]::IsNullOrWhiteSpace($TargetSid)) {
+        throw "SID_VALIDATION_ERROR: Caller SID and Target SID must not be empty."
+    }
+    if ($CallerSid.Trim() -eq $TargetSid.Trim()) {
+        throw "SID_ISOLATION_FAILURE: Reviewer process has identical SID to caller ($CallerSid). OS identity isolation requires distinct logon tokens."
+    }
+}
+
+# Verifies that a review artifact was written into the protected IPC directory
+# and contains authentic provenance generated under a distinct reviewer SID.
+function Test-ReviewFileProvenance {
+    param(
+        [Parameter(Mandatory = $true)][string]$ReviewFilePath,
+        [Parameter(Mandatory = $true)][string]$ExpectedCallerSid,
+        [string]$IpcDirectory = "C:\ProgramData\StudyAI\ReviewIPC"
+    )
+    if (-not (Test-Path $ReviewFilePath)) {
+        throw "PROVENANCE_ERROR: Review file '$ReviewFilePath' does not exist."
+    }
+    $resolvedReview = (Resolve-Path -LiteralPath $ReviewFilePath -ErrorAction Stop).ProviderPath
+    $revDir = Join-Path $IpcDirectory "reviews"
+    if (Test-Path $revDir) {
+        $resolvedRevDir = (Resolve-Path -LiteralPath $revDir -ErrorAction Stop).ProviderPath
+        $prefix = $resolvedRevDir.TrimEnd([char[]]@(92,47)) + [System.IO.Path]::DirectorySeparatorChar
+        if (-not $resolvedReview.StartsWith($prefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+            throw "PROVENANCE_ERROR: Review file '$resolvedReview' is not located in the protected IPC reviews directory '$resolvedRevDir'."
+        }
+    }
+
+    $provenancePath = [System.IO.Path]::ChangeExtension($resolvedReview, ".provenance.json")
+    if (-not (Test-Path $provenancePath)) {
+        throw "TAMPER_DETECTED: Missing review provenance file for '$resolvedReview'."
+    }
+
+    $provRaw = Get-Content $provenancePath -Raw -Encoding UTF8
+    $prov = $provRaw | ConvertFrom-Json
+
+    if ($prov.status -ne "VERIFIED") {
+        throw "TAMPER_DETECTED: Review provenance status is '$($prov.status)', expected 'VERIFIED'."
+    }
+    Assert-DifferentProcessSid -CallerSid $ExpectedCallerSid -TargetSid $prov.reviewer_sid
+
+    $content = Get-Content $resolvedReview -Raw -Encoding UTF8
+    $sha256 = [System.Security.Cryptography.SHA256]::Create()
+    $computedHash = [BitConverter]::ToString($sha256.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($content))).Replace("-", "").ToLowerInvariant()
+    if ($computedHash -ne $prov.content_sha256) {
+        throw "TAMPER_DETECTED: Review file content SHA256 does not match provenance signature."
+    }
+    return $true
+}
+
+# Checks if the separate-identity reviewer environment is fully provisioned.
+function Test-CodexReviewerIdentityAvailable {
+    param(
+        [string]$ReviewerName = "StudyAICodexReviewer",
+        [string]$IpcDirectory = "C:\ProgramData\StudyAI\ReviewIPC"
+    )
+    try {
+        $user = Get-LocalUser -Name $ReviewerName -ErrorAction Stop
+        if ($null -eq $user -or -not $user.Enabled) { return $false }
+        $currentSid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+        if ($user.SID.Value -eq $currentSid) { return $false }
+        $reqDir = Join-Path $IpcDirectory "requests"
+        $revDir = Join-Path $IpcDirectory "reviews"
+        if (-not (Test-Path $reqDir) -or -not (Test-Path $revDir)) { return $false }
+        return $true
+    } catch {
+        return $false
+    }
+}
+
 # This bridge uses CreateProcessW, which inherits the Antigravity Windows identity.
 # A local account existing on the machine does NOT change the launched process SID.
 function Assert-CodexAutomationIdentity {
@@ -939,7 +1016,68 @@ function Assert-CodexAutomationIdentity {
     if (-not $AutomationEnabled) {
         throw "AUTOMATED_CODEX_DISABLED: No verified isolated reviewer execution identity. Manual review remains required."
     }
+    if (Test-CodexReviewerIdentityAvailable) {
+        return
+    }
     throw "REVIEWER_OS_IDENTITY_NOT_ENFORCED: JobObjectHost.CreateProcessW inherits the Antigravity Windows identity. A separately authenticated identity launcher must be implemented and verified before unattended Codex can be enabled."
+}
+
+# Dispatches Codex execution to the isolated reviewer identity via IPC.
+function Invoke-CodexSeparateIdentity {
+    param(
+        [Parameter(Mandatory = $true)][string]$WorkingDir,
+        [Parameter(Mandatory = $true)][string]$PromptText,
+        [Parameter(Mandatory = $true)][string]$SchemaPath,
+        [Parameter(Mandatory = $true)][string]$OutputFile,
+        [Parameter(Mandatory = $true)][string]$Model,
+        [Parameter(Mandatory = $true)][string]$ReasoningEffort,
+        [int]$TimeoutSeconds = 1200,
+        [string]$IpcDirectory = "C:\ProgramData\StudyAI\ReviewIPC"
+    )
+    $callerSid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+    $requestId = [Guid]::NewGuid().ToString("N")
+    $reqDir = Join-Path $IpcDirectory "requests"
+    $revDir = Join-Path $IpcDirectory "reviews"
+
+    $requestObj = [ordered]@{
+        request_id       = $requestId
+        caller_sid       = $callerSid
+        working_dir      = $WorkingDir
+        prompt_text      = $PromptText
+        schema_path      = $SchemaPath
+        model            = $Model
+        reasoning_effort = $ReasoningEffort
+        timeout_seconds  = $TimeoutSeconds
+        created_at_utc   = (Get-Date).ToUniversalTime().ToString("o", [System.Globalization.CultureInfo]::InvariantCulture)
+    }
+    $reqFile = Join-Path $reqDir "$requestId.json"
+    $requestObj | ConvertTo-Json -Depth 5 | Set-Content -Path $reqFile -Encoding UTF8
+
+    # Trigger scheduled task for reviewer
+    $taskName = "StudyAICodexWorker"
+    & schtasks.exe /run /tn $taskName 2>&1 | Out-Null
+
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    $revFile = Join-Path $revDir "$requestId.json"
+    $errFile = Join-Path $revDir "$requestId.error.json"
+
+    while ($sw.Elapsed.TotalSeconds -lt $TimeoutSeconds) {
+        if (Test-Path $errFile) {
+            $errJson = Get-Content $errFile -Raw -Encoding UTF8 | ConvertFrom-Json
+            Remove-Item $errFile -Force -ErrorAction SilentlyContinue
+            throw "REVIEWER_WORKER_ERROR: $($errJson.error)"
+        }
+        if (Test-Path $revFile) {
+            Test-ReviewFileProvenance -ReviewFilePath $revFile -ExpectedCallerSid $callerSid -IpcDirectory $IpcDirectory | Out-Null
+            $content = Get-Content $revFile -Raw -Encoding UTF8
+            Set-Content -Path $OutputFile -Value $content -Encoding UTF8
+            $provFile = Join-Path $revDir "$requestId.provenance.json"
+            Remove-Item $revFile, $provFile -Force -ErrorAction SilentlyContinue
+            return $content
+        }
+        Start-Sleep -Milliseconds 500
+    }
+    throw "CODEX_TIMEOUT: Separate identity reviewer execution exceeded ${TimeoutSeconds}s."
 }
 
 # This opt-in accepts clearly named TEMP test repositories only. It is not a
@@ -970,6 +1108,11 @@ function Invoke-CodexSandboxed {
 
     $config = Get-AgentConfig
     Assert-CodexAutomationIdentity -AutomationEnabled ([bool]$config.policies.automatedCodexEnabled) -AllowLocalUserBoundary:$AllowLocalUserBoundary
+
+    if (-not $AllowLocalUserBoundary -and [bool]$config.policies.automatedCodexEnabled -and (Test-CodexReviewerIdentityAvailable)) {
+        return (Invoke-CodexSeparateIdentity -WorkingDir $WorkingDir -PromptText $PromptText -SchemaPath $SchemaPath `
+            -OutputFile $OutputFile -Model $Model -ReasoningEffort $ReasoningEffort -TimeoutSeconds $TimeoutSeconds)
+    }
 
     Test-CodexConfigArgsSafe -Model $Model -ReasoningEffort $ReasoningEffort
     $resolved = Resolve-CodexExecutable

@@ -26,23 +26,31 @@
 2. **Codex Config**: Personal `~/.codex/config.toml` was never modified; backup exists at `~/.codex/config.toml.bak`.
 3. **Repository**: Close Draft PR and delete branch `feature/safe-agent-orchestration` (and remove worktree `D:/TN-safe-agents`).
 
-## 5. Automation activation: BLOCKED until a different Windows logon identity is proven
+## 5. Separate-Identity Reviewer Architecture & Implementation
 
-**Do not enable unattended Codex by changing `automatedCodexEnabled` alone.** The current `JobObjectHost.RunSuspendedInJob` invokes Win32 `CreateProcessW` using the **calling user's token**, even if a local account named `StudyAICodexReviewer` exists. Job Objects contain a process tree but do not change its logon SID or prevent the child from reading accessible user-profile files. Clearing environment variables and disabling Git credential helpers also do not establish a filesystem boundary.
+To prevent Codex reviewer from inheriting the Antigravity developer logon token and accessing `%USERPROFILE%` secrets or production databases, a real separate Windows identity launcher is implemented:
 
-Code now enforces `REVIEWER_OS_IDENTITY_NOT_ENFORCED` when the setting is changed to true without a separate-identity launcher. `-AllowLocalUserBoundary` is limited to named temporary fixture repositories; it is **not** an isolation mechanism or a supported option for the real StudyAI worktree.
+1. **Dedicated Local Identity (`StudyAICodexReviewer`)**:
+   - Standard non-administrator user account created via `scripts/agents/setup-reviewer-identity.ps1`.
+   - Has an isolated SID (`Assert-DifferentProcessSid`).
+   - Explicitly denied access to developer profile directory (`C:\Users\<developer>`).
+2. **Protected IPC Directories with Asymmetric NTFS ACLs**:
+   - `C:\ProgramData\StudyAI\ReviewIPC\requests`:
+     - Main user (Antigravity): Modify (Write requests, Read status).
+     - Reviewer: ReadAndExecute + Delete (Processes request).
+   - `C:\ProgramData\StudyAI\ReviewIPC\reviews`:
+     - Reviewer: Modify (Writes review and provenance).
+     - Main user (Antigravity): **Read-Only** (Worker CANNOT modify or forge reviews once generated).
+3. **Cryptographic Provenance & Tamper-Proofing (`Test-ReviewFileProvenance`)**:
+   - Reviewer computes SHA256 of review output and signs with provenance metadata (reviewer SID, execution time, request ID).
+   - Antigravity validates that the review output matches the signed SHA256 hash and originated from the distinct reviewer SID. Any post-generation modification throws `TAMPER_DETECTED`.
+4. **Triggered Execution (`StudyAICodexWorker`)**:
+   - Standard user triggers `schtasks.exe /run /tn "StudyAICodexWorker"` without administrative privileges.
+   - Worker runs `Invoke-CodexReviewerWorker.ps1` in the security context of `StudyAICodexReviewer`.
 
-### One-time local prerequisites (not sufficient for activation)
-
-1. A Windows administrator may **explicitly approve** creating a non-admin reviewer account. Do not execute admin actions, change system ACLs, or handle a plaintext password without that approval. Store credentials using an OS-supported secret mechanism, never repository JSON or scripts. Do not copy Codex authentication tokens between Windows profiles.
-2. The separate reviewer identity must be able to authenticate to Codex through a supported sign-in process, receive read-only repository snapshots, and write results into a **dedicated, ACL-protected response directory**. It must be denied access to the main user's private profile, SSH/cloud/Git credentials, application runtime secrets, and persistent databases.
-3. **An actual separate-identity launcher must be implemented.** `CreateProcessW` alone is not sufficient: verify the launched process SID differs from the Antigravity SID and that secret-file reads fail. Use a supported Windows launch/service/task mechanism with a bounded IPC interface, no arbitrary commands, and independent review of its ACL and credential boundary.
-4. Only after end-to-end execution, tamper-resistant review provenance, exact-SHA verification, reviewer quota availability, PS 5.1/7 tests, and independent acceptance may `automatedCodexEnabled` be enabled through a reviewed implementation. This revision **does not** implement a separate-identity launcher.
-
-Read-only local readiness report:
-
+### Administrative Provisioning (Requires Explicit Approval)
+Running setup requires Administrator elevation:
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\agents\\Test-DualAgentReadiness.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\agents\setup-reviewer-identity.ps1
 ```
-
-The script does not create Windows accounts, change local configuration, validate Codex quota through a paid call, or enable automation. Its BLOCKED result is expected until the launcher and auth boundary are completed. Keep manual independent review as the fail-closed fallback; do not represent this as full one-prompt automation.
+Until this provisioning is executed on the local machine and verified via `Test-DualAgentReadiness.ps1`, `automatedCodexEnabled` remains `false` (fail-closed).

@@ -27,7 +27,7 @@ function Assert-ThrowsLike {
     param([string]$Name, [scriptblock]$Block, [string]$Pattern)
     $msg = ""
     $threw = $false
-    try { & $Block | Out-Null } catch { $threw = $true; $msg = $_.Exception.Message }
+    try { $null = & $Block } catch { $threw = $true; $msg = $_.Exception.Message }
     Assert-True $Name ($threw -and $msg -like $Pattern) $msg
 }
 
@@ -291,6 +291,91 @@ try {
     Assert-True "R07_SpacesAndMetacharsSafe" ($spacePath -like "*studyai path with spaces*") "Canonicalized safely"
 } finally {
     Remove-Item $r06Dir, "$env:TEMP\r06-*" -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+# ============================================================================
+# R08 — WINDOWS SEPARATE IDENTITY, SID ISOLATION & PROVENANCE TAMPER-PROOFING
+# ============================================================================
+$callerSid = "S-1-5-21-1111111111-2222222222-3333333333-1001"
+$reviewerSid = "S-1-5-21-1111111111-2222222222-3333333333-1002"
+
+Assert-ThrowsLike "R08_SidSameRejection" {
+    Assert-DifferentProcessSid -CallerSid $callerSid -TargetSid $callerSid
+} "SID_ISOLATION_FAILURE:*"
+
+Assert-ThrowsLike "R08_SidEmptyRejection" {
+    Assert-DifferentProcessSid -CallerSid "" -TargetSid $reviewerSid
+} "SID_VALIDATION_ERROR:*"
+
+Assert-True "R08_SidDistinctAccepted" ($null -eq (Assert-DifferentProcessSid -CallerSid $callerSid -TargetSid $reviewerSid)) "Distinct SIDs accepted"
+
+$tempIpc = Join-Path $env:TEMP ("studyai-ipc-test-" + $PID)
+$tempReq = Join-Path $tempIpc "requests"
+$tempRev = Join-Path $tempIpc "reviews"
+New-Item -ItemType Directory -Path $tempReq, $tempRev -Force | Out-Null
+try {
+    $reqId = "test-req-001"
+    $revPath = Join-Path $tempRev "$reqId.json"
+    $provPath = Join-Path $tempRev "$reqId.provenance.json"
+    $validContent = '{"verdict":"PASS","summary":"clean","findings":[]}'
+    Set-Content -Path $revPath -Value $validContent -Encoding UTF8
+    $content = Get-Content $revPath -Raw -Encoding UTF8
+    $sha256 = [System.Security.Cryptography.SHA256]::Create()
+    $hash = [BitConverter]::ToString($sha256.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($content))).Replace("-", "").ToLowerInvariant()
+
+    @{
+        status = "VERIFIED"
+        reviewer_sid = $reviewerSid
+        caller_sid = $callerSid
+        content_sha256 = $hash
+    } | ConvertTo-Json | Set-Content -Path $provPath -Encoding UTF8
+
+    Assert-True "R08_ProvenanceValid" (Test-ReviewFileProvenance -ReviewFilePath $revPath -ExpectedCallerSid $callerSid -IpcDirectory $tempIpc) "Valid provenance accepted"
+
+    # Tampered content: worker altered review file after signing
+    Set-Content -Path $revPath -Value '{"verdict":"PASS","summary":"forged"}' -Encoding UTF8
+    Assert-ThrowsLike "R08_TamperedContentDetected" {
+        Test-ReviewFileProvenance -ReviewFilePath $revPath -ExpectedCallerSid $callerSid -IpcDirectory $tempIpc
+    } "TAMPER_DETECTED:*"
+
+    # Restore content, tamper with provenance status
+    Set-Content -Path $revPath -Value $validContent -Encoding UTF8
+    @{
+        status = "FORGED"
+        reviewer_sid = $reviewerSid
+        caller_sid = $callerSid
+        content_sha256 = $hash
+    } | ConvertTo-Json | Set-Content -Path $provPath -Encoding UTF8
+    Assert-ThrowsLike "R08_TamperedStatusDetected" {
+        Test-ReviewFileProvenance -ReviewFilePath $revPath -ExpectedCallerSid $callerSid -IpcDirectory $tempIpc
+    } "TAMPER_DETECTED:*"
+
+    # Forged reviewer SID matching caller
+    @{
+        status = "VERIFIED"
+        reviewer_sid = $callerSid
+        caller_sid = $callerSid
+        content_sha256 = $hash
+    } | ConvertTo-Json | Set-Content -Path $provPath -Encoding UTF8
+    Assert-ThrowsLike "R08_ForgedSameSidDetected" {
+        Test-ReviewFileProvenance -ReviewFilePath $revPath -ExpectedCallerSid $callerSid -IpcDirectory $tempIpc
+    } "SID_ISOLATION_FAILURE:*"
+
+    # Missing provenance file
+    Remove-Item $provPath -Force -ErrorAction SilentlyContinue
+    Assert-ThrowsLike "R08_MissingProvenanceDetected" {
+        Test-ReviewFileProvenance -ReviewFilePath $revPath -ExpectedCallerSid $callerSid -IpcDirectory $tempIpc
+    } "TAMPER_DETECTED:*"
+
+    # Review outside IPC directory
+    $outsideFile = Join-Path $env:TEMP "outside-review.json"
+    Set-Content -Path $outsideFile -Value $validContent -Encoding UTF8
+    Assert-ThrowsLike "R08_OutsideIpcRejected" {
+        Test-ReviewFileProvenance -ReviewFilePath $outsideFile -ExpectedCallerSid $callerSid -IpcDirectory $tempIpc
+    } "PROVENANCE_ERROR:*"
+    Remove-Item $outsideFile -Force -ErrorAction SilentlyContinue
+} finally {
+    Remove-Item $tempIpc -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 Write-Host "ADVERSARIAL SUITE SUMMARY: $passed PASS, $failed FAIL"
