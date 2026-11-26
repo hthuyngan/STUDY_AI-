@@ -157,6 +157,7 @@ jobs:
   playwright-e2e:
     name: P02 Playwright E2E (Real SQL Server Disposable DB)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     needs: [validate, backend-validate]
 
     steps:

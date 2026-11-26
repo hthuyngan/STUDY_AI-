@@ -43,6 +43,7 @@ let backendProc: ChildProcess | null = null
 let frontendProc: ChildProcess | null = null
 let browser: Awaited<ReturnType<typeof chromium.launch>> | null = null
 let frontendLogs = ''
+let exitCode = 0
 try {
   backendProc = spawn(
     'dotnet',
@@ -63,6 +64,7 @@ try {
         ConnectionStrings__DefaultConnection: connectionString,
       },
       stdio: 'pipe',
+      detached: process.platform !== 'win32',
     }
   )
   await waitFor(`${backendUrl}/health/db`)
@@ -74,6 +76,7 @@ try {
       env: { ...process.env, VITE_BACKEND_URL: backendUrl },
       stdio: 'pipe',
       shell: process.platform === 'win32',
+      detached: process.platform !== 'win32',
     }
   )
   frontendProc.stdout?.on('data', (d) => {
@@ -387,13 +390,28 @@ try {
     'P02 Playwright E2E PASS: empty, CRUD, lesson editor, page>1 reorder, lifecycle round-trip, learner edition UI, 401/403, stale 409, API 500, tablet 1024/768 & mobile 390/375px'
   )
 } catch (err) {
+  exitCode = 1
   if (frontendLogs) {
     console.error('[Frontend preview logs]\n' + frontendLogs)
   }
-  throw err
+  console.error(err)
 } finally {
   if (browser) await browser.close()
   const processes = [backendProc, frontendProc].filter((p): p is ChildProcess => p !== null)
+  if (process.platform !== 'win32') {
+    for (const proc of processes) {
+      if (proc.pid) {
+        try {
+          process.kill(-proc.pid, 'SIGKILL')
+        } catch {
+          /* group may already be dead */
+        }
+      }
+      proc.stdin?.destroy()
+      proc.stdout?.destroy()
+      proc.stderr?.destroy()
+    }
+  }
   const termination = await Promise.allSettled(
     processes.map((process) => killProcessTreeAndWait(process))
   )
@@ -402,3 +420,4 @@ try {
   }
   if (_disposableDb) await _disposableDb.cleanup()
 }
+process.exit(exitCode)
