@@ -54,8 +54,9 @@ foreach ($line in $lines) {
 
 $errorLines = @(
     $lines | Where-Object {
-        $_ -match '(?i)(^|\s)(error\s+[A-Z]+\d+|FAIL\b|\(fail\)|Exception:|Unhandled|Assert\.|DB_SAFETY_VIOLATION|StackTrace)'
-    } | Select-Object -First $MaxErrorLines
+        ($_ -notmatch '^\s*0\s+fail\b') -and
+        ($_ -match '(?i)(^|\s)(error\s+[A-Z]+\d+|FAIL\b|\(fail\)|Exception:|Unhandled|Assert\.|DB_SAFETY_VIOLATION|StackTrace)')
+    } | ForEach-Object { [string]$_ } | Select-Object -First $MaxErrorLines
 )
 
 $status = if ($failed -gt 0 -or $errorLines.Count -gt 0) { "FAIL" } else { "PASS" }

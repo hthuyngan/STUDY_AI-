@@ -3,10 +3,11 @@
   "project": "STUDY_AI-",
   "orchestrator": {
     "platform": "Antigravity",
-    "recommendedModel": "Gemini 4 Hydrogen (High)",
+    "recommendedModel": "Gemini 4 Hydrogen (Medium)",
     "canModifyAppCode": false,
     "nativeSubagentModelEnum": ["inherit", "flash_lite", "flash", "pro"],
-    "note": "Antigravity invoke_subagent does not expose a per-subagent reasoning_effort parameter; inherit uses the parent session model/reasoning. Use Codex CLI for independent read-only planning and review."
+    "defaultWorkerModel": "inherit",
+    "note": "Single-session Hydrogen Medium topology: Orchestrator and implementation-worker (Model: inherit) both run on Gemini 4 Hydrogen (Medium). Codex CLI handles read-only planning and review."
   },
   "implementationWorker": {
     "platform": "Antigravity",

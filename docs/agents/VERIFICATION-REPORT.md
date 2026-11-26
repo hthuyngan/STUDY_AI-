@@ -35,3 +35,19 @@ Executed on 2026-11-26 in PowerShell 5.1 against an isolated temporary git fixtu
 - `microsoft-learn` (`https://learn.microsoft.com/api/mcp`): Streamable HTTP `initialize` returned `HTTP 200`.
 - `chrome_devtools`: Already installed in `~/.gemini/antigravity/mcp/chrome_devtools` (33 tool schemas).
 - **Note**: Antigravity UI/session restart is required for Antigravity to load the newly written `~/.gemini/config/mcp_config.json` into live toolsets.
+
+## 4. Full 9-Step Single-Session Hydrogen Medium E2E Loop (2026-11-26)
+
+Executed end-to-end on isolated git fixture `%TEMP%\studyai-e2e-full-loop` (`base_sha: e4afa953`):
+
+1. **Orchestrator (Gemini 4 Hydrogen Medium)** received task (`parsePositiveInt`).
+2. **Codex Planner (`medium`)** generated structured `WS-01` plan (`36,177 ms`, `55,041` input / `52,352` cached / `1,238` output / `318` reasoning tokens).
+3. **Orchestrator** created structured `TASK.json` (`E2E-WS-01`).
+4. **Implementation Worker (`implementation-worker`, `Model: inherit`)** inherited **Gemini 4 Hydrogen (Medium)** from the parent session.
+5. **Worker** implemented `index.ts` & `index.test.ts`, ran `bun test` (`5 pass, 0 fail`), filtered via `summarize-logs.ps1`, and committed `e8d2691f`.
+6. **Codex Initial Review (`medium`)** returned `BLOCKED` with **F-001 (P1)** (`$` in `/^[0-9]+$/` matched before trailing `\n`) (`49,477 ms`, `60,535` input / `52,992` cached / `1,692` output / `968` reasoning tokens).
+7. **Orchestrator** sent `F-001` to existing worker (`send_message`); Worker fixed `index.ts`, added LF/CR/CRLF/U+2028/U+2029 regression tests, re-ran `bun test` (`5 pass, 0 fail`, `15 ms`), and committed `cf5032ea`.
+8. **Codex Re-review (`low`)** verified `cf5032ea` and returned `PASS` (`findings: []`) (`28,742 ms`, `45,303` input / `15,232` cached / `767` output / `158` reasoning tokens).
+9. **Orchestrator** aggregated results and cleaned up the temp fixture (`D:\TN` and `StudyAIDb` untouched).
+
+> **Note on runtime verification**: Antigravity does not expose a shell/tool API for subagent token counters or subagent model strings, so Worker's `Gemini 4 Hydrogen (Medium)` inheritance is verified by `invoke_subagent(Model="inherit")` from the active `Gemini 4 Hydrogen (Medium)` parent session. Codex CLI tokens and reasoning effort are directly measured via `codex exec --json`.

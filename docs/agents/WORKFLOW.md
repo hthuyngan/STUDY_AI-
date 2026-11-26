@@ -11,10 +11,12 @@
 | Codex non-interactive CLI | **Supported** | `codex exec --ignore-user-config --disable plugins -s read-only --ephemeral --output-schema ...` |
 | Codex reasoning per call | **Supported** | `-c 'model_reasoning_effort="medium"'` (plan/initial) or `"low"` (simple re-review) |
 
-### Session Topology
+### Session Topology (Single-Session Hydrogen Medium)
 
-- **Recommended (1 Antigravity session)**: Open Antigravity on **Gemini 4 Hydrogen (High)** (or Medium). The Orchestrator delegates implementation tasks via `invoke_subagent` (`Workspace: "share"` or `"branch"`), and invokes Agent 03 (Codex Local CLI) via `scripts/agents/codex-plan.ps1` and `scripts/agents/codex-review.ps1`. Note: native subagents inherit the parent's reasoning tier (`High` if parent is `High`).
-- **Strict High vs Medium split (2 Antigravity sessions)**: If strict reasoning-tier separation (`Hydrogen High` vs `Hydrogen Medium`) is required, run Session 1 on `Hydrogen (High)` as Orchestrator and Session 2 on `Hydrogen (Medium)` as Implementation Worker, sharing the same git feature branch.
+- **Recommended (1 Antigravity session)**: Open a single Antigravity session on **Gemini 4 Hydrogen (Medium)**.
+  - **Agent 1 (Orchestrator)**: Runs in the parent session (`Gemini 4 Hydrogen (Medium)`), never edits application code directly, and only consumes `TASK.json`, `TEST-SUMMARY.json`, `REVIEW.json`, and blockers.
+  - **Agent 2 (Implementation Worker)**: Invoked via `invoke_subagent(TypeName="implementation-worker", Model="inherit", Workspace="share")`, inheriting **Gemini 4 Hydrogen (Medium)** from the parent session. Only 1 worker runs at a time.
+  - **Agent 3 (Independent Reviewer)**: Invoked via `scripts/agents/codex-plan.ps1` (`medium`) and `scripts/agents/codex-review.ps1` (`medium` initial / `low` re-review) in `-s read-only`.
 
 ## 2. Agent Roles
 
