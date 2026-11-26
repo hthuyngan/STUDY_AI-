@@ -9,6 +9,7 @@ public class ContentRevision
     public string Status { get; set; } = "published";
     public string Title { get; set; } = string.Empty;
     public string SnapshotJson { get; set; } = "{}";
+    public int SnapshotSchemaVersion { get; set; } = 1;
     public string? AuthorId { get; set; }
     public string? CreatedBy { get; set; }
     public string? Reason { get; set; }

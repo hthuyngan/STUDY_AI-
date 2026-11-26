@@ -291,7 +291,7 @@ public class LearnerNotesAndBookmarksIntegrationTests : IClassFixture<StudyAIApi
         var respCheckA = await _client.SendAsync(reqCheckA);
         Assert.Equal(HttpStatusCode.OK, respCheckA.StatusCode);
         var bookmarksA = JsonSerializer.Deserialize<List<SectionBookmarkDto>>(await respCheckA.Content.ReadAsStringAsync(), JsonOpts)!;
-        Assert.True(bookmarksA.Any(b => b.SectionId == sectionId));
+        Assert.Contains(bookmarksA, b => b.SectionId == sectionId);
 
         // 3. User B check: MUST BE EMPTY / FALSE (Two-User Isolation)
         var reqCheckB = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/me/bookmarks?lessonId={lessonId}")
@@ -301,7 +301,7 @@ public class LearnerNotesAndBookmarksIntegrationTests : IClassFixture<StudyAIApi
         var respCheckB = await _client.SendAsync(reqCheckB);
         Assert.Equal(HttpStatusCode.OK, respCheckB.StatusCode);
         var bookmarksB = JsonSerializer.Deserialize<List<SectionBookmarkDto>>(await respCheckB.Content.ReadAsStringAsync(), JsonOpts)!;
-        Assert.False(bookmarksB.Any(b => b.SectionId == sectionId));
+        Assert.DoesNotContain(bookmarksB, b => b.SectionId == sectionId);
 
         // 4. Verify in SQL database (StudyAIDb_E2E) that unique record exists with User A
         using (var scope = _factory.Services.CreateScope())

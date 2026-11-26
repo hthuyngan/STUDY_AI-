@@ -123,6 +123,8 @@ export interface LessonDetail {
   previousLessonId?: string
   nextLessonId?: string
   learningObjectives?: string[]
+  contentBlocks?: import('./content').LessonContentBlock[]
+  objectives?: string[]
   skills?: LessonSkill[]
   curriculumVersion?: string
   textbookAlignment?: string

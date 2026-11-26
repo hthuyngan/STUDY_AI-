@@ -378,6 +378,7 @@ public class ContentLessonsService : IContentLessonsService
             throw new ConflictException("Mã bài học đã tồn tại trong chương.");
         if (!string.IsNullOrWhiteSpace(les.Slug) && await _db.ContentLessons.AnyAsync(l => l.Id != les.Id && l.ChapterId == les.ChapterId && l.Slug == les.Slug && l.Status != "archived", ct))
             throw new ConflictException("Slug bài học đã tồn tại trong chương.");
+
         if (req.OrderIndex.HasValue) les.OrderIndex = req.OrderIndex.Value;
         if (req.SourceName != null) les.SourceName = req.SourceName.Trim();
         if (req.SourceUrl != null) les.SourceUrl = req.SourceUrl.Trim();
@@ -593,6 +594,7 @@ public class ContentLessonsService : IContentLessonsService
         if (les.Chapter?.CurriculumEditionId != null && (les.Chapter.Status != "published" || les.Chapter.CurriculumEdition?.Status != "published" || les.Chapter.CurriculumEdition.Curriculum?.Status != "published"))
             throw new ValidationException("ChapterId", "Toàn bộ chuỗi giáo trình, phiên bản và chương phải được xuất bản trước bài học.");
         les.Status = "published"; les.UpdatedAt = _clock.UtcNow;
+        await SyncLessonBlockStatusesAsync(les.Id, "published", les.UpdatedAt, ct);
         await _auditWriter.WriteStaffAuditAsync("lesson_published", "content_lesson", les.Id, null, JsonSerializer.Serialize(new { actorUserId = currentUserId, action?.Reason }), ct);
         await SaveWithConcurrencyAsync(ct); return FormatLesson(les, les.Author);
     }
@@ -612,6 +614,7 @@ public class ContentLessonsService : IContentLessonsService
 
         les.Status = "approved";
         les.UpdatedAt = _clock.UtcNow;
+        await SyncLessonBlockStatusesAsync(les.Id, "approved", les.UpdatedAt, ct);
 
         await _auditWriter.WriteStaffAuditAsync(
             "lesson_unpublished",
@@ -681,6 +684,7 @@ public class ContentLessonsService : IContentLessonsService
 
         les.Status = "archived";
         les.UpdatedAt = _clock.UtcNow;
+        await SyncLessonBlockStatusesAsync(les.Id, "archived", les.UpdatedAt, ct);
 
         await _auditWriter.WriteStaffAuditAsync(
             "lesson_archived",
@@ -708,6 +712,10 @@ public class ContentLessonsService : IContentLessonsService
 
         if (!string.IsNullOrWhiteSpace(les.Slug) && await _db.ContentLessons.AnyAsync(l => l.Id != les.Id && l.ChapterId == les.ChapterId && l.Slug == les.Slug && l.Status != "archived", ct))
             throw new ConflictException("Slug bài học đã tồn tại trong chương.");
+
+        les.Status = "draft";
+        les.UpdatedAt = _clock.UtcNow;
+        await SyncLessonBlockStatusesAsync(les.Id, "draft", les.UpdatedAt, ct);
         if (!string.IsNullOrWhiteSpace(les.Code) && await _db.ContentLessons.AnyAsync(l => l.Id != les.Id && l.ChapterId == les.ChapterId && l.Code == les.Code && l.Status != "archived", ct))
             throw new ConflictException("Mã bài học đã tồn tại trong chương.");
 
@@ -849,6 +857,19 @@ public class ContentLessonsService : IContentLessonsService
         catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
         {
             throw new ConflictException("Mã hoặc slug bài học đã tồn tại trong chương.");
+        }
+    }
+
+    private async Task SyncLessonBlockStatusesAsync(string lessonId, string targetStatus, DateTimeOffset now, CancellationToken ct)
+    {
+        var blocks = await _db.LessonContentBlocks
+            .Where(b => b.LessonId == lessonId)
+            .ToListAsync(ct);
+
+        foreach (var block in blocks)
+        {
+            block.Status = targetStatus;
+            block.UpdatedAt = now;
         }
     }
 

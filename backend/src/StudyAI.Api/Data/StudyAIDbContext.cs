@@ -93,6 +93,16 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
 
     public DbSet<UserSectionBookmark> UserSectionBookmarks => Set<UserSectionBookmark>();
 
+    public DbSet<LessonContentBlock> LessonContentBlocks => Set<LessonContentBlock>();
+    public DbSet<LearningObjective> LearningObjectives => Set<LearningObjective>();
+    public DbSet<KnowledgeUnit> KnowledgeUnits => Set<KnowledgeUnit>();
+    public DbSet<Skill> Skills => Set<Skill>();
+    public DbSet<LessonObjective> LessonObjectives => Set<LessonObjective>();
+    public DbSet<LessonKnowledgeUnit> LessonKnowledgeUnits => Set<LessonKnowledgeUnit>();
+    public DbSet<LessonSkill> LessonSkills => Set<LessonSkill>();
+    public DbSet<LessonPrerequisite> LessonPrerequisites => Set<LessonPrerequisite>();
+    public DbSet<QuestionSkill> QuestionSkills => Set<QuestionSkill>();
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         base.OnConfiguring(optionsBuilder);
@@ -788,6 +798,8 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.ContentType).HasMaxLength(32).IsRequired();
             entity.Property(e => e.Status).HasMaxLength(32).IsRequired();
             entity.Property(e => e.Title).HasMaxLength(256).IsRequired();
+            entity.Property(e => e.SnapshotJson).HasColumnType("nvarchar(max)");
+            entity.Property(e => e.SnapshotSchemaVersion).HasDefaultValue(1);
             entity.Property(e => e.AuthorId).HasMaxLength(64);
             entity.Property(e => e.CreatedBy).HasMaxLength(64);
             entity.Property(e => e.Reason).HasMaxLength(500);
@@ -1293,6 +1305,196 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
             entity.HasOne(e => e.TextbookSeries)
                 .WithMany(t => t.Editions)
                 .HasForeignKey(e => e.TextbookSeriesId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // P03: LessonContentBlock
+        modelBuilder.Entity<LessonContentBlock>(entity =>
+        {
+            entity.ToTable("lesson_content_blocks");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.LessonId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.BlockType).HasMaxLength(32).IsRequired();
+            entity.Property(e => e.SchemaVersion).HasDefaultValue(1);
+            entity.Property(e => e.PayloadJson).HasColumnType("nvarchar(max)").IsRequired();
+            entity.Property(e => e.Status).HasMaxLength(32).IsRequired().HasDefaultValue("draft");
+            entity.Property(e => e.RowVersion).IsRowVersion();
+            entity.HasIndex(e => new { e.LessonId, e.Status, e.OrderIndex });
+            entity.HasIndex(e => new { e.LessonId, e.OrderIndex })
+                .IsUnique()
+                .HasFilter("[Status] <> 'archived'");
+            entity.HasOne(e => e.Lesson)
+                .WithMany(l => l.ContentBlocks)
+                .HasForeignKey(e => e.LessonId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // P03: LearningObjective
+        modelBuilder.Entity<LearningObjective>(entity =>
+        {
+            entity.ToTable("learning_objectives");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.CurriculumId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.Code).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.Title).HasMaxLength(256).IsRequired();
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.CognitiveLevel).HasMaxLength(64);
+            entity.Property(e => e.Status).HasMaxLength(32).IsRequired().HasDefaultValue("draft");
+            entity.Property(e => e.SourceName).HasMaxLength(256);
+            entity.Property(e => e.SourceUrl).HasMaxLength(512);
+            entity.Property(e => e.SourceLicense).HasMaxLength(256);
+            entity.Property(e => e.ReviewedBy).HasMaxLength(64);
+            entity.Property(e => e.RowVersion).IsRowVersion();
+            entity.HasIndex(e => new { e.CurriculumId, e.Code })
+                .IsUnique()
+                .HasFilter("[Status] <> 'archived'");
+            entity.HasOne(e => e.Curriculum)
+                .WithMany()
+                .HasForeignKey(e => e.CurriculumId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // P03: KnowledgeUnit
+        modelBuilder.Entity<KnowledgeUnit>(entity =>
+        {
+            entity.ToTable("knowledge_units");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.CurriculumId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.Code).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.Title).HasMaxLength(256).IsRequired();
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.Status).HasMaxLength(32).IsRequired().HasDefaultValue("draft");
+            entity.Property(e => e.SourceName).HasMaxLength(256);
+            entity.Property(e => e.SourceUrl).HasMaxLength(512);
+            entity.Property(e => e.SourceLicense).HasMaxLength(256);
+            entity.Property(e => e.ReviewedBy).HasMaxLength(64);
+            entity.Property(e => e.RowVersion).IsRowVersion();
+            entity.HasIndex(e => new { e.CurriculumId, e.Code })
+                .IsUnique()
+                .HasFilter("[Status] <> 'archived'");
+            entity.HasOne(e => e.Curriculum)
+                .WithMany()
+                .HasForeignKey(e => e.CurriculumId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // P03: Skill
+        modelBuilder.Entity<Skill>(entity =>
+        {
+            entity.ToTable("skills");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.CurriculumId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.Code).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.Title).HasMaxLength(256).IsRequired();
+            entity.Property(e => e.Description).HasMaxLength(2000);
+            entity.Property(e => e.Status).HasMaxLength(32).IsRequired().HasDefaultValue("draft");
+            entity.Property(e => e.SourceName).HasMaxLength(256);
+            entity.Property(e => e.SourceUrl).HasMaxLength(512);
+            entity.Property(e => e.SourceLicense).HasMaxLength(256);
+            entity.Property(e => e.ReviewedBy).HasMaxLength(64);
+            entity.Property(e => e.RowVersion).IsRowVersion();
+            entity.HasIndex(e => new { e.CurriculumId, e.Code })
+                .IsUnique()
+                .HasFilter("[Status] <> 'archived'");
+            entity.HasOne(e => e.Curriculum)
+                .WithMany()
+                .HasForeignKey(e => e.CurriculumId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // P03: Relational Joins
+        modelBuilder.Entity<LessonObjective>(entity =>
+        {
+            entity.ToTable("lesson_objectives");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.LessonId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.ObjectiveId).HasMaxLength(64).IsRequired();
+            entity.HasIndex(e => new { e.LessonId, e.ObjectiveId }).IsUnique();
+            entity.HasOne(e => e.Lesson)
+                .WithMany(l => l.LessonObjectives)
+                .HasForeignKey(e => e.LessonId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.Objective)
+                .WithMany(o => o.LessonLinks)
+                .HasForeignKey(e => e.ObjectiveId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<LessonKnowledgeUnit>(entity =>
+        {
+            entity.ToTable("lesson_knowledge_units");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.LessonId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.KnowledgeUnitId).HasMaxLength(64).IsRequired();
+            entity.HasIndex(e => new { e.LessonId, e.KnowledgeUnitId }).IsUnique();
+            entity.HasOne(e => e.Lesson)
+                .WithMany(l => l.LessonKnowledgeUnits)
+                .HasForeignKey(e => e.LessonId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.KnowledgeUnit)
+                .WithMany(k => k.LessonLinks)
+                .HasForeignKey(e => e.KnowledgeUnitId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<LessonSkill>(entity =>
+        {
+            entity.ToTable("lesson_skills");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.LessonId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.SkillId).HasMaxLength(64).IsRequired();
+            entity.HasIndex(e => new { e.LessonId, e.SkillId }).IsUnique();
+            entity.HasOne(e => e.Lesson)
+                .WithMany(l => l.LessonSkills)
+                .HasForeignKey(e => e.LessonId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.Skill)
+                .WithMany(s => s.LessonLinks)
+                .HasForeignKey(e => e.SkillId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<LessonPrerequisite>(entity =>
+        {
+            entity.ToTable("lesson_prerequisites", t =>
+                t.HasCheckConstraint("CK_lesson_prerequisites_no_self", "[LessonId] <> [PrerequisiteLessonId]"));
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.LessonId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.PrerequisiteLessonId).HasMaxLength(64).IsRequired();
+            entity.HasIndex(e => new { e.LessonId, e.PrerequisiteLessonId }).IsUnique();
+            entity.HasOne(e => e.Lesson)
+                .WithMany(l => l.Prerequisites)
+                .HasForeignKey(e => e.LessonId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.PrerequisiteLesson)
+                .WithMany(l => l.DependentLessons)
+                .HasForeignKey(e => e.PrerequisiteLessonId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<QuestionSkill>(entity =>
+        {
+            entity.ToTable("question_skills");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.QuestionId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.SkillId).HasMaxLength(64).IsRequired();
+            entity.HasIndex(e => new { e.QuestionId, e.SkillId }).IsUnique();
+            entity.HasOne(e => e.Question)
+                .WithMany()
+                .HasForeignKey(e => e.QuestionId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.Skill)
+                .WithMany(s => s.QuestionLinks)
+                .HasForeignKey(e => e.SkillId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
     }

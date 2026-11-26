@@ -42,6 +42,15 @@ public interface IApplicationDbContext
     DbSet<Curriculum> Curricula { get; }
     DbSet<TextbookSeries> TextbookSeries { get; }
     DbSet<CurriculumEdition> CurriculumEditions { get; }
+    DbSet<LessonContentBlock> LessonContentBlocks { get; }
+    DbSet<LearningObjective> LearningObjectives { get; }
+    DbSet<KnowledgeUnit> KnowledgeUnits { get; }
+    DbSet<Skill> Skills { get; }
+    DbSet<LessonObjective> LessonObjectives { get; }
+    DbSet<LessonKnowledgeUnit> LessonKnowledgeUnits { get; }
+    DbSet<LessonSkill> LessonSkills { get; }
+    DbSet<LessonPrerequisite> LessonPrerequisites { get; }
+    DbSet<QuestionSkill> QuestionSkills { get; }
 
     EntityEntry<TEntity> Entry<TEntity>(TEntity entity) where TEntity : class;
 

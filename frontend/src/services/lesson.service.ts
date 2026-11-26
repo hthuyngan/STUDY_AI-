@@ -191,9 +191,13 @@ function mapLearnerDetailToLessonDetail(
       summaryPoints: parseStringList(detail.summaryPoints),
     },
     learningObjectives:
-      detail.learningObjectives && detail.learningObjectives.length > 0
-        ? parseStringList(detail.learningObjectives)
-        : [],
+      detail.objectives && detail.objectives.length > 0
+        ? detail.objectives
+        : detail.learningObjectives && detail.learningObjectives.length > 0
+          ? parseStringList(detail.learningObjectives)
+          : [],
+    contentBlocks: detail.contentBlocks ?? [],
+    objectives: detail.objectives ?? [],
     curriculumVersion: (detail as any).curriculumVersion || undefined,
     textbookAlignment: (detail as any).textbookAlignment || undefined,
   }

@@ -43,6 +43,24 @@ describe('ContentLessonEditorPage (CURR-001, CURR-002, CURR-009)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.spyOn(contentService, 'getLessonEditor').mockResolvedValue(JSON.parse(JSON.stringify(MOCK_LESSON)))
+    vi.spyOn(contentService, 'getLessonComposition').mockResolvedValue({
+      lessonId: 'les_test_101',
+      title: 'Hàm số lũy thừa và đồ thị',
+      status: 'draft',
+      curriculumId: null,
+      rowVersion: 'rv_1',
+      blocks: [],
+      objectives: [],
+      knowledgeUnits: [],
+      skills: [],
+      prerequisites: [],
+    })
+    vi.spyOn(contentService, 'getLessonRevisions').mockResolvedValue({
+      items: [],
+      page: 1,
+      pageSize: 20,
+      totalCount: 0,
+    })
     vi.spyOn(contentService, 'saveLessonContent').mockResolvedValue({ ...JSON.parse(JSON.stringify(MOCK_LESSON)), rowVersion: 'rv_2' })
     vi.spyOn(contentService, 'submitLessonReview').mockResolvedValue({
       status: 'in-review',

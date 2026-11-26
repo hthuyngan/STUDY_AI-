@@ -1285,6 +1285,11 @@ namespace StudyAI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("SnapshotSchemaVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.Property<string>("SourceRevisionId")
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
@@ -1624,6 +1629,78 @@ namespace StudyAI.Migrations
                     b.ToTable("grade_levels", (string)null);
                 });
 
+            modelBuilder.Entity("StudyAI.Models.KnowledgeUnit", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("CurriculumId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTimeOffset?>("ReviewedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ReviewedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("SourceLicense")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("SourceName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("SourceUrl")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)")
+                        .HasDefaultValue("draft");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CurriculumId", "Code")
+                        .IsUnique()
+                        .HasFilter("[Status] <> 'archived'");
+
+                    b.ToTable("knowledge_units", (string)null);
+                });
+
             modelBuilder.Entity("StudyAI.Models.LearningEvent", b =>
                 {
                     b.Property<string>("Id")
@@ -1672,6 +1749,236 @@ namespace StudyAI.Migrations
                     b.HasIndex("UserId", "Timestamp");
 
                     b.ToTable("learning_events", (string)null);
+                });
+
+            modelBuilder.Entity("StudyAI.Models.LearningObjective", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("CognitiveLevel")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("CurriculumId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTimeOffset?>("ReviewedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ReviewedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("SourceLicense")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("SourceName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("SourceUrl")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)")
+                        .HasDefaultValue("draft");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CurriculumId", "Code")
+                        .IsUnique()
+                        .HasFilter("[Status] <> 'archived'");
+
+                    b.ToTable("learning_objectives", (string)null);
+                });
+
+            modelBuilder.Entity("StudyAI.Models.LessonContentBlock", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("BlockType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("LessonId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("SchemaVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)")
+                        .HasDefaultValue("draft");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LessonId", "OrderIndex")
+                        .IsUnique()
+                        .HasFilter("[Status] <> 'archived'");
+
+                    b.HasIndex("LessonId", "Status", "OrderIndex");
+
+                    b.ToTable("lesson_content_blocks", (string)null);
+                });
+
+            modelBuilder.Entity("StudyAI.Models.LessonKnowledgeUnit", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("KnowledgeUnitId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("LessonId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("KnowledgeUnitId");
+
+                    b.HasIndex("LessonId", "KnowledgeUnitId")
+                        .IsUnique();
+
+                    b.ToTable("lesson_knowledge_units", (string)null);
+                });
+
+            modelBuilder.Entity("StudyAI.Models.LessonObjective", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("LessonId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("ObjectiveId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ObjectiveId");
+
+                    b.HasIndex("LessonId", "ObjectiveId")
+                        .IsUnique();
+
+                    b.ToTable("lesson_objectives", (string)null);
+                });
+
+            modelBuilder.Entity("StudyAI.Models.LessonPrerequisite", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("LessonId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("PrerequisiteLessonId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PrerequisiteLessonId");
+
+                    b.HasIndex("LessonId", "PrerequisiteLessonId")
+                        .IsUnique();
+
+                    b.ToTable("lesson_prerequisites", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_lesson_prerequisites_no_self", "[LessonId] <> [PrerequisiteLessonId]");
+                        });
                 });
 
             modelBuilder.Entity("StudyAI.Models.LessonProgress", b =>
@@ -1736,6 +2043,67 @@ namespace StudyAI.Migrations
                     b.ToTable("lesson_progress", (string)null);
                 });
 
+            modelBuilder.Entity("StudyAI.Models.LessonSkill", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("LessonId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SkillId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SkillId");
+
+                    b.HasIndex("LessonId", "SkillId")
+                        .IsUnique();
+
+                    b.ToTable("lesson_skills", (string)null);
+                });
+
+            modelBuilder.Entity("StudyAI.Models.QuestionSkill", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("QuestionId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("SkillId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SkillId");
+
+                    b.HasIndex("QuestionId", "SkillId")
+                        .IsUnique();
+
+                    b.ToTable("question_skills", (string)null);
+                });
+
             modelBuilder.Entity("StudyAI.Models.RefreshSession", b =>
                 {
                     b.Property<string>("Id")
@@ -1775,6 +2143,78 @@ namespace StudyAI.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("refresh_sessions", (string)null);
+                });
+
+            modelBuilder.Entity("StudyAI.Models.Skill", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("CurriculumId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTimeOffset?>("ReviewedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ReviewedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("SourceLicense")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("SourceName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("SourceUrl")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)")
+                        .HasDefaultValue("draft");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CurriculumId", "Code")
+                        .IsUnique()
+                        .HasFilter("[Status] <> 'archived'");
+
+                    b.ToTable("skills", (string)null);
                 });
 
             modelBuilder.Entity("StudyAI.Models.StaffAuditLog", b =>
@@ -2528,6 +2968,134 @@ namespace StudyAI.Migrations
                     b.Navigation("TextbookSeries");
                 });
 
+            modelBuilder.Entity("StudyAI.Models.KnowledgeUnit", b =>
+                {
+                    b.HasOne("StudyAI.Models.Curriculum", "Curriculum")
+                        .WithMany()
+                        .HasForeignKey("CurriculumId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Curriculum");
+                });
+
+            modelBuilder.Entity("StudyAI.Models.LearningObjective", b =>
+                {
+                    b.HasOne("StudyAI.Models.Curriculum", "Curriculum")
+                        .WithMany()
+                        .HasForeignKey("CurriculumId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Curriculum");
+                });
+
+            modelBuilder.Entity("StudyAI.Models.LessonContentBlock", b =>
+                {
+                    b.HasOne("StudyAI.Models.ContentLesson", "Lesson")
+                        .WithMany("ContentBlocks")
+                        .HasForeignKey("LessonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Lesson");
+                });
+
+            modelBuilder.Entity("StudyAI.Models.LessonKnowledgeUnit", b =>
+                {
+                    b.HasOne("StudyAI.Models.KnowledgeUnit", "KnowledgeUnit")
+                        .WithMany("LessonLinks")
+                        .HasForeignKey("KnowledgeUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("StudyAI.Models.ContentLesson", "Lesson")
+                        .WithMany("LessonKnowledgeUnits")
+                        .HasForeignKey("LessonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("KnowledgeUnit");
+
+                    b.Navigation("Lesson");
+                });
+
+            modelBuilder.Entity("StudyAI.Models.LessonObjective", b =>
+                {
+                    b.HasOne("StudyAI.Models.ContentLesson", "Lesson")
+                        .WithMany("LessonObjectives")
+                        .HasForeignKey("LessonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("StudyAI.Models.LearningObjective", "Objective")
+                        .WithMany("LessonLinks")
+                        .HasForeignKey("ObjectiveId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Lesson");
+
+                    b.Navigation("Objective");
+                });
+
+            modelBuilder.Entity("StudyAI.Models.LessonPrerequisite", b =>
+                {
+                    b.HasOne("StudyAI.Models.ContentLesson", "Lesson")
+                        .WithMany("Prerequisites")
+                        .HasForeignKey("LessonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("StudyAI.Models.ContentLesson", "PrerequisiteLesson")
+                        .WithMany("DependentLessons")
+                        .HasForeignKey("PrerequisiteLessonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Lesson");
+
+                    b.Navigation("PrerequisiteLesson");
+                });
+
+            modelBuilder.Entity("StudyAI.Models.LessonSkill", b =>
+                {
+                    b.HasOne("StudyAI.Models.ContentLesson", "Lesson")
+                        .WithMany("LessonSkills")
+                        .HasForeignKey("LessonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("StudyAI.Models.Skill", "Skill")
+                        .WithMany("LessonLinks")
+                        .HasForeignKey("SkillId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Lesson");
+
+                    b.Navigation("Skill");
+                });
+
+            modelBuilder.Entity("StudyAI.Models.QuestionSkill", b =>
+                {
+                    b.HasOne("StudyAI.Models.ContentQuestion", "Question")
+                        .WithMany()
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("StudyAI.Models.Skill", "Skill")
+                        .WithMany("QuestionLinks")
+                        .HasForeignKey("SkillId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Question");
+
+                    b.Navigation("Skill");
+                });
+
             modelBuilder.Entity("StudyAI.Models.RefreshSession", b =>
                 {
                     b.HasOne("StudyAI.Models.User", "User")
@@ -2537,6 +3105,17 @@ namespace StudyAI.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("StudyAI.Models.Skill", b =>
+                {
+                    b.HasOne("StudyAI.Models.Curriculum", "Curriculum")
+                        .WithMany()
+                        .HasForeignKey("CurriculumId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Curriculum");
                 });
 
             modelBuilder.Entity("StudyAI.Models.StudentTopicMastery", b =>
@@ -2657,6 +3236,18 @@ namespace StudyAI.Migrations
                 {
                     b.Navigation("Assessments");
 
+                    b.Navigation("ContentBlocks");
+
+                    b.Navigation("DependentLessons");
+
+                    b.Navigation("LessonKnowledgeUnits");
+
+                    b.Navigation("LessonObjectives");
+
+                    b.Navigation("LessonSkills");
+
+                    b.Navigation("Prerequisites");
+
                     b.Navigation("Questions");
 
                     b.Navigation("Videos");
@@ -2685,6 +3276,23 @@ namespace StudyAI.Migrations
             modelBuilder.Entity("StudyAI.Models.GradeLevel", b =>
                 {
                     b.Navigation("Curricula");
+                });
+
+            modelBuilder.Entity("StudyAI.Models.KnowledgeUnit", b =>
+                {
+                    b.Navigation("LessonLinks");
+                });
+
+            modelBuilder.Entity("StudyAI.Models.LearningObjective", b =>
+                {
+                    b.Navigation("LessonLinks");
+                });
+
+            modelBuilder.Entity("StudyAI.Models.Skill", b =>
+                {
+                    b.Navigation("LessonLinks");
+
+                    b.Navigation("QuestionLinks");
                 });
 
             modelBuilder.Entity("StudyAI.Models.TextbookSeries", b =>
