@@ -250,15 +250,26 @@ public class LessonCompositionIntegrationTests : IClassFixture<StudyAIApiFixture
         Assert.False(exPayload.TryGetProperty("solution", out _));
         Assert.False(exPayload.TryGetProperty("answerKey", out _));
 
-        // 8. Revisions & Rollback creates new draft revision linked by SourceRevisionId
+        // 8. Revisions & Rollback: published lesson rejects rollback (409), unpublish by reviewer -> rollback succeeds into draft
         var revsPage = await (await admin.GetAsync($"/api/v1/content/lessons/{lessonAId}/revisions")).Content.ReadFromJsonAsync<JsonElement>();
         var revItems = revsPage.GetProperty("items");
         Assert.True(revItems.GetArrayLength() >= 1);
         var rev1Id = revItems[0].GetProperty("id").GetString()!;
 
-        var rollbackRes = await admin.PostAsJsonAsync($"/api/v1/content/lessons/{lessonAId}/revisions/{rev1Id}/rollback", new
+        var rollbackPubRes = await admin.PostAsJsonAsync($"/api/v1/content/lessons/{lessonAId}/revisions/{rev1Id}/rollback", new
         {
             rowVersion = pubRowVersion,
+            reason = "Không được rollback khi đang published"
+        });
+        Assert.Equal(HttpStatusCode.Conflict, rollbackPubRes.StatusCode);
+
+        var unpubRes = await reviewer.PostAsJsonAsync($"/api/v1/content/lessons/{lessonAId}/unpublish", new { rowVersion = pubRowVersion });
+        unpubRes.EnsureSuccessStatusCode();
+        var unpubRowVersion = (await unpubRes.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("rowVersion").GetString()!;
+
+        var rollbackRes = await admin.PostAsJsonAsync($"/api/v1/content/lessons/{lessonAId}/revisions/{rev1Id}/rollback", new
+        {
+            rowVersion = unpubRowVersion,
             reason = "Rollback về v1"
         });
         rollbackRes.EnsureSuccessStatusCode();

@@ -174,9 +174,10 @@ public class LessonCompositionService : ILessonCompositionService
 
             VerifyLessonRowVersion(lesson, request.RowVersion);
 
-            if (string.Equals(lesson.Status, "archived", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(lesson.Status, "published", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(lesson.Status, "archived", StringComparison.OrdinalIgnoreCase))
             {
-                throw new ConflictException("Không thể rollback bài học đã lưu trữ.");
+                throw new ConflictException($"Không thể rollback bài học đang ở trạng thái '{lesson.Status}'. Vui lòng gỡ xuất bản qua quy trình kiểm duyệt trước.");
             }
 
             var revision = await _db.ContentRevisions
