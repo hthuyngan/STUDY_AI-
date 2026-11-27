@@ -751,3 +751,210 @@
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
+
+/* ── Icon Button ─────────────────────────────────────────────── */
+.admin-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--admin-radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--admin-text-muted);
+  cursor: pointer;
+  transition: background var(--admin-transition-fast), color var(--admin-transition-fast), border-color var(--admin-transition-fast);
+}
+
+.admin-icon-btn-sm {
+  width: 30px;
+  height: 30px;
+}
+
+.admin-icon-btn-md {
+  width: 36px;
+  height: 36px;
+}
+
+.admin-icon-btn-ghost:hover:not(:disabled) {
+  background: var(--admin-bg-subtle);
+  color: var(--admin-text-main);
+}
+
+.admin-icon-btn-secondary {
+  border-color: var(--admin-border-default);
+  background: var(--admin-bg-surface);
+}
+
+.admin-icon-btn-secondary:hover:not(:disabled) {
+  background: var(--admin-bg-subtle);
+  color: var(--admin-text-main);
+}
+
+.admin-icon-btn-danger:hover:not(:disabled) {
+  background: var(--admin-danger-light);
+  color: var(--admin-danger);
+}
+
+.admin-icon-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── Search Clear ────────────────────────────────────────────── */
+.admin-search-clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--admin-radius-sm);
+  background: transparent;
+  color: var(--admin-text-subtle);
+  cursor: pointer;
+}
+
+.admin-search-clear:hover {
+  background: var(--admin-bg-subtle);
+  color: var(--admin-text-main);
+}
+
+/* ── Form Field ──────────────────────────────────────────────── */
+.admin-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-form-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--admin-text-main);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.admin-form-required {
+  color: var(--admin-danger);
+}
+
+.admin-form-hint {
+  font-size: 12px;
+  color: var(--admin-text-muted);
+  margin: 0;
+}
+
+.admin-form-error {
+  font-size: 12px;
+  color: var(--admin-danger);
+  margin: 0;
+}
+
+/* ── Detail Drawer ───────────────────────────────────────────── */
+.admin-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(15, 23, 42, 0.35);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.admin-drawer {
+  height: 100%;
+  background: var(--admin-bg-surface);
+  border-left: 1px solid var(--admin-border-default);
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 520px;
+}
+
+.admin-drawer-lg {
+  max-width: 680px;
+}
+
+.admin-drawer-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--admin-border-default);
+}
+
+.admin-drawer-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--admin-text-main);
+  margin: 0;
+}
+
+.admin-drawer-subtitle {
+  font-size: 13px;
+  color: var(--admin-text-muted);
+  margin: 4px 0 0;
+}
+
+.admin-drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.admin-drawer-footer {
+  padding: 14px 20px;
+  border-top: 1px solid var(--admin-border-default);
+  background: var(--admin-bg-page);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* ── Error & Loading States ──────────────────────────────────── */
+.admin-error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 36px 24px;
+  border: 1px solid var(--admin-danger-border);
+  background: var(--admin-danger-light);
+  border-radius: var(--admin-radius-md);
+}
+
+.admin-error-icon {
+  color: var(--admin-danger);
+  margin-bottom: 10px;
+}
+
+.admin-error-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--admin-text-main);
+  margin: 0 0 4px;
+}
+
+.admin-error-desc {
+  font-size: 13px;
+  color: var(--admin-text-muted);
+  max-width: 420px;
+  margin: 0 0 14px;
+}
+
+.admin-loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 32px 16px;
+  color: var(--admin-text-muted);
+  font-size: 13px;
+}

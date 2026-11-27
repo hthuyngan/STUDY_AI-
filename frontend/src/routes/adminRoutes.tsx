@@ -13,6 +13,9 @@ import { AdminSystemPage } from '@/pages/Admin/AdminSystemPage'
 import { AdminSettingsPage } from '@/pages/Admin/AdminSettingsPage'
 import { AdminContentMonitorPage } from '@/pages/Admin/AdminContentMonitorPage'
 import { AdminOperationsDashboard } from '@/pages/Admin/AdminOperationsDashboard'
+import { AdminApiManagementMockupPage } from '@/pages/Admin/AdminApiManagementMockupPage'
+import { AdminSubscriptionsMockupPage } from '@/pages/Admin/AdminSubscriptionsMockupPage'
+import { AdminTicketsPage } from '@/pages/Admin/AdminTicketsPage'
 
 // Helper component to preserve URL params on legacy redirect
 function RedirectWithParam({ basePath, paramName }: { basePath: string; paramName: string }) {
@@ -45,9 +48,11 @@ export function AdminRoutes() {
       <Route path="operations" element={<AdminOperationsDashboard />} />
       <Route path="settings" element={<AdminSettingsPage />} />
 
-      {/* 2. Cross-Workspace Oversight & Performance Monitoring (V6) */}
+      {/* 2. Cross-Workspace Oversight & Services */}
       <Route path="content-monitor" element={<AdminContentMonitorPage />} />
-      <Route path="support-monitor" element={<Navigate to="/admin" replace />} />
+      <Route path="api-management" element={<AdminApiManagementMockupPage />} />
+      <Route path="subscriptions" element={<AdminSubscriptionsMockupPage />} />
+      <Route path="support-monitor" element={<Navigate to="/admin/tickets" replace />} />
 
       {/* 3. Backward Compatibility Redirects (Seamless Transition from V3/V4/V5) */}
       {/* Curriculum Management -> Content Workspace */}
@@ -70,9 +75,9 @@ export function AdminRoutes() {
       <Route path="grades" element={<Navigate to="/teacher/grades" replace />} />
       <Route path="alerts" element={<Navigate to="/teacher/alerts" replace />} />
 
-      {/* Legacy Support Tickets -> Redirect to Admin Home */}
-      <Route path="tickets" element={<Navigate to="/admin" replace />} />
-      <Route path="tickets/:ticketId" element={<Navigate to="/admin" replace />} />
+      {/* Support Center Tickets */}
+      <Route path="tickets" element={<AdminTicketsPage />} />
+      <Route path="tickets/:ticketId" element={<AdminTicketsPage />} />
     </Route>
   )
 }

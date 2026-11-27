@@ -25,7 +25,15 @@
   "reviewer": {
     "name": "Agent 2 — Codex Local CLI",
     "platform": "Codex Local CLI",
-    "model": "gpt-5.6-sol",
+    "model": "gpt-6.1-sol",
+    "provider": {
+      "id": "teamsoclo",
+      "name": "TeamSocLo",
+      "baseUrl": "https://gpt.teamsoclo.site/v1",
+      "envKey": "TEAMSOCLO_API_KEY",
+      "wireApi": "responses",
+      "requiresOpenaiAuth": false
+    },
     "sandbox": "read-only",
     "ignoreUserConfig": true,
     "disablePlugins": true,

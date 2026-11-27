@@ -1,10 +1,12 @@
 import React, { useState, useMemo } from 'react'
 import {
   ArrowRight,
+  ArrowUpDown,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Edit2,
+  Eye,
   KeyRound,
   Lock,
   RotateCcw,
@@ -14,6 +16,7 @@ import {
 import { Link } from 'react-router-dom'
 import { useAdminUsers } from '@/hooks/useAdmin'
 import { StatusBadge } from '@/components/ui/StatusBadge'
+import { AdminDetailDrawer } from '@/components/admin/ui'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { ROLE_LABELS } from '@/components/layout/workspaceNavigation'
@@ -55,6 +58,7 @@ export const AdminUsersPage: React.FC = () => {
     setRoleFilter,
     statusFilter,
     setStatusFilter,
+    handleSort,
     createUser,
     editUser,
     toggleStatus,
@@ -68,10 +72,11 @@ export const AdminUsersPage: React.FC = () => {
     refresh,
   } = useAdminUsers()
 
-  // Dialog states
+  // Dialog & Drawer states
   const [isFormDialogOpen, setIsFormDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<AdminUserItem | null>(null)
   const [resetPassUser, setResetPassUser] = useState<AdminUserItem | null>(null)
+  const [drawerUser, setDrawerUser] = useState<AdminUserItem | null>(null)
 
   // Confirmation modal states
   const [statusTarget, setStatusTarget] = useState<AdminUserItem | null>(null)
@@ -257,11 +262,51 @@ export const AdminUsersPage: React.FC = () => {
                       className="admin-checkbox"
                     />
                   </th>
-                  <th scope="col">Người dùng</th>
-                  <th scope="col">Vai trò</th>
-                  <th scope="col">Trạng thái</th>
+                  <th scope="col">
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => handleSort('displayName')}
+                      style={{ padding: 0, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <span>Người dùng</span>
+                      <ArrowUpDown size={13} aria-hidden="true" />
+                    </button>
+                  </th>
+                  <th scope="col">
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => handleSort('role')}
+                      style={{ padding: 0, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <span>Vai trò</span>
+                      <ArrowUpDown size={13} aria-hidden="true" />
+                    </button>
+                  </th>
+                  <th scope="col">
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => handleSort('status')}
+                      style={{ padding: 0, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <span>Trạng thái</span>
+                      <ArrowUpDown size={13} aria-hidden="true" />
+                    </button>
+                  </th>
                   <th scope="col">Khối / Lớp</th>
-                  <th scope="col">Đăng nhập cuối</th>
+                  <th scope="col">
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => handleSort('lastLoginAt')}
+                      style={{ padding: 0, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <span>Đăng nhập cuối</span>
+                      <ArrowUpDown size={13} aria-hidden="true" />
+                    </button>
+                  </th>
                   <th scope="col" style={{ textAlign: 'right', minWidth: '220px' }}>Thao tác</th>
                 </tr>
               </thead>
@@ -313,6 +358,17 @@ export const AdminUsersPage: React.FC = () => {
                       </td>
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => setDrawerUser(user)}
+                            title="Xem nhanh chi tiết"
+                            aria-label={`Xem nhanh ${user.displayName}`}
+                            style={{ padding: '4px 6px', color: '#1D4ED8' }}
+                          >
+                            <Eye size={14} />
+                          </button>
+
                           <button
                             type="button"
                             className="btn btn-ghost btn-sm"
@@ -509,6 +565,71 @@ export const AdminUsersPage: React.FC = () => {
         onConfirm={handleConfirmDelete}
         onCancel={() => setDeleteTarget(null)}
       />
+
+      {/* Quick User Detail Drawer */}
+      <AdminDetailDrawer
+        open={!!drawerUser}
+        onClose={() => setDrawerUser(null)}
+        title={drawerUser?.displayName || 'Chi tiết người dùng'}
+        subtitle={drawerUser?.email}
+        footer={
+          drawerUser && (
+            <>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  const target = drawerUser
+                  setDrawerUser(null)
+                  setEditingUser(target)
+                }}
+              >
+                Chỉnh sửa
+              </button>
+              <Link to={`/admin/users/${drawerUser.id}`} className="btn btn-primary btn-sm">
+                Mở hồ sơ đầy đủ
+              </Link>
+            </>
+          )
+        }
+      >
+        {drawerUser && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '13px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <div style={{ color: '#64748B', marginBottom: '4px' }}>Mã tài khoản</div>
+                <code style={{ fontSize: '12px' }}>{drawerUser.id}</code>
+              </div>
+              <div>
+                <div style={{ color: '#64748B', marginBottom: '4px' }}>Vai trò</div>
+                <span className={`staff-role-pill role-${drawerUser.role}`}>
+                  {ROLE_LABELS[drawerUser.role]}
+                </span>
+              </div>
+              <div>
+                <div style={{ color: '#64748B', marginBottom: '4px' }}>Trạng thái</div>
+                <StatusBadge status={drawerUser.status} />
+              </div>
+              <div>
+                <div style={{ color: '#64748B', marginBottom: '4px' }}>Khối / Lớp</div>
+                <div>{drawerUser.grade || drawerUser.className || 'Chưa cập nhật'}</div>
+              </div>
+              <div>
+                <div style={{ color: '#64748B', marginBottom: '4px' }}>Ngày đăng ký</div>
+                <div>{new Date(drawerUser.createdAt).toLocaleString('vi-VN')}</div>
+              </div>
+              <div>
+                <div style={{ color: '#64748B', marginBottom: '4px' }}>Đăng nhập cuối</div>
+                <div>
+                  {drawerUser.lastLoginAt
+                    ? new Date(drawerUser.lastLoginAt).toLocaleString('vi-VN')
+                    : 'Chưa đăng nhập'}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </AdminDetailDrawer>
     </div>
   )
 }

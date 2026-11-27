@@ -101,16 +101,16 @@ describe('Admin Workspace V2 UI Tests', () => {
 
       // Row 1
       expect(screen.getByText('Tổng quan hệ thống')).toBeInTheDocument()
-      expect(screen.getByText(/Quản lý hoạt động, tài khoản và chất lượng học tập/i)).toBeInTheDocument()
+      expect(screen.getByText(/Theo dõi người dùng, hoạt động học tập/i)).toBeInTheDocument()
       expect(screen.getByLabelText(/Chọn khoảng thời gian thống kê/i)).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /Xem báo cáo/i })).toBeInTheDocument()
 
       // Row 2 KPIs
       await waitFor(() => {
-        expect(screen.getByText('Tổng người dùng')).toBeInTheDocument()
-        expect(screen.getByText('Học viên đang hoạt động')).toBeInTheDocument()
-        expect(screen.getByText('Bài học đã hoàn thành')).toBeInTheDocument()
-        expect(screen.getByText('Yêu cầu cần xử lý')).toBeInTheDocument()
+        expect(screen.getByText('Tổng số người dùng')).toBeInTheDocument()
+        expect(screen.getByText('Người dùng mới')).toBeInTheDocument()
+        expect(screen.getByText('Hoạt động học tập')).toBeInTheDocument()
+        expect(screen.getByText('Học sinh hoạt động')).toBeInTheDocument()
       })
 
       // Row 4 Operations

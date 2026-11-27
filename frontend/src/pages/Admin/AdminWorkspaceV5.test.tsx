@@ -77,10 +77,10 @@ describe('Admin Workspace V5 — Operations, Content Approval & Quality Control 
       )
 
       // Admin V6 oversight & operations
-      expect(screen.getByRole('link', { name: /^giám sát nội dung$/i })).toHaveAttribute('href', '/admin/content-monitor')
+      expect(screen.getByRole('link', { name: /^kiểm duyệt nội dung$/i })).toHaveAttribute('href', '/admin/content-monitor')
       expect(screen.getByRole('link', { name: /^thông báo hệ thống$/i })).toHaveAttribute('href', '/admin/announcements')
-      expect(screen.getByRole('link', { name: /^nhật ký quản trị$/i })).toHaveAttribute('href', '/admin/audit-logs')
-      expect(screen.getByRole('link', { name: /^thiết lập vận hành$/i })).toHaveAttribute('href', '/admin/settings')
+      expect(screen.getByRole('link', { name: /^nhật ký hoạt động$/i })).toHaveAttribute('href', '/admin/audit-logs')
+      expect(screen.getByRole('link', { name: /^cài đặt$/i })).toHaveAttribute('href', '/admin/settings')
       unmountAdmin()
 
       // Content Workspace editorial navigation

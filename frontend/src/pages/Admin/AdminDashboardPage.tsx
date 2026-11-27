@@ -1,12 +1,16 @@
 import React, { useState } from 'react'
 import {
   Users,
+  UserPlus,
   GraduationCap,
   BookCheck,
-  AlertCircle,
-  FileText,
+  Bot,
+  AlertTriangle,
+  CreditCard,
+  MessageSquare,
   Calendar,
   ArrowRight,
+  FileText,
   Download,
   X,
 } from 'lucide-react'
@@ -43,6 +47,10 @@ export const AdminDashboardPage: React.FC = () => {
     activities,
     timeRange,
     setTimeRange,
+    customFrom,
+    setCustomFrom,
+    customTo,
+    setCustomTo,
     trends,
     roleDistribution,
     statusDistribution,
@@ -103,11 +111,11 @@ export const AdminDashboardPage: React.FC = () => {
           </div>
           <h1 className="staff-page-title">Tổng quan hệ thống</h1>
           <p className="staff-page-desc">
-            Quản lý hoạt động, tài khoản và chất lượng học tập trên nền tảng STUDY_AI.
+            Theo dõi người dùng, hoạt động học tập, lưu lượng AI và trạng thái vận hành (Múi giờ: {metrics?.timezone || 'Asia/Bangkok'}).
           </p>
         </div>
 
-        <div className="admin-header-actions">
+        <div className="admin-header-actions" style={{ flexWrap: 'wrap' }}>
           <div className="admin-time-select-wrap">
             <Calendar size={14} className="admin-time-icon" aria-hidden="true" />
             <select
@@ -118,10 +126,30 @@ export const AdminDashboardPage: React.FC = () => {
             >
               <option value="7d">7 ngày qua</option>
               <option value="30d">30 ngày qua</option>
-              <option value="month">Tháng này</option>
-              <option value="all">Toàn thời gian</option>
+              <option value="90d">90 ngày qua</option>
+              <option value="custom">Tùy chỉnh</option>
             </select>
           </div>
+
+          {timeRange === 'custom' && (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <input
+                type="date"
+                className="admin-input"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+                aria-label="Từ ngày"
+              />
+              <span style={{ fontSize: '12px', color: '#64748B' }}>—</span>
+              <input
+                type="date"
+                className="admin-input"
+                value={customTo}
+                onChange={(e) => setCustomTo(e.target.value)}
+                aria-label="Đến ngày"
+              />
+            </div>
+          )}
 
           <button
             type="button"
@@ -136,8 +164,8 @@ export const AdminDashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Row 2: 4 Modern Metric Cards */}
-      <div className="staff-metric-grid" aria-label="Thống kê chính">
+      {/* Row 2: Primary KPI Grid (Users, Learning, AI, Services) */}
+      <div className="staff-metric-grid" aria-label="Thống kê người dùng và học tập">
         {loading ? (
           <>
             <AdminSkeleton height={110} />
@@ -148,39 +176,98 @@ export const AdminDashboardPage: React.FC = () => {
         ) : (
           <>
             <AdminStatCard
-              title="Tổng người dùng"
+              title="Tổng số người dùng"
               value={(metrics?.totalUsers ?? 0).toLocaleString('vi-VN')}
               icon={<Users size={18} />}
               variant="primary"
-              change={{ value: '+12.4% so với kỳ trước', isPositive: true }}
-              subtitle={`${metrics?.activeLearners ?? 0} người hoạt động tuần này`}
+              subtitle={`Nhân sự: ${metrics?.staffAccounts ?? 0} · Học viên: ${metrics?.activeLearners ?? 0}`}
             />
             <AdminStatCard
-              title="Học viên đang hoạt động"
-              value={(metrics?.activeLearners ?? 0).toLocaleString('vi-VN')}
-              icon={<GraduationCap size={18} />}
-              variant="success"
-              change={{ value: '+8.1%', isPositive: true }}
-              subtitle="Đang theo học các môn"
+              title="Người dùng mới"
+              value={(metrics?.newUsersInRange ?? 0).toLocaleString('vi-VN')}
+              icon={<UserPlus size={18} />}
+              variant="primary"
+              subtitle={`Học sinh hoạt động: ${(metrics?.activeLearnersInRange ?? 0).toLocaleString('vi-VN')}`}
             />
             <AdminStatCard
-              title="Bài học đã hoàn thành"
+              title="Hoạt động học tập"
               value={(metrics?.completedLessonsTotal ?? 0).toLocaleString('vi-VN')}
               icon={<BookCheck size={18} />}
-              variant="primary"
-              change={{ value: '+18.5%', isPositive: true }}
-              subtitle="Tiến độ học tập tích cực"
+              variant="success"
+              subtitle={`Luyện tập: ${(metrics?.practiceSessionsInRange ?? 0).toLocaleString('vi-VN')} · Kiểm tra: ${(metrics?.assessmentAttemptsInRange ?? 0).toLocaleString('vi-VN')}`}
             />
             <AdminStatCard
-              title="Yêu cầu cần xử lý"
-              value={attentionItems.length}
-              icon={<AlertCircle size={18} />}
-              variant={attentionItems.length > 0 ? 'warning' : 'success'}
-              change={{
-                value: `${attentionItems.length} mục đang chờ`,
-                isPositive: attentionItems.length === 0,
-              }}
-              subtitle="Tài khoản chờ duyệt & khiếu nại"
+              title="Học sinh hoạt động"
+              value={(metrics?.activeLearnersInRange ?? 0).toLocaleString('vi-VN')}
+              icon={<GraduationCap size={18} />}
+              variant="success"
+              subtitle="Có phiên học/đăng nhập trong kỳ"
+            />
+          </>
+        )}
+      </div>
+
+      <div className="staff-metric-grid" aria-label="Thống kê AI và dịch vụ" style={{ marginTop: '16px' }}>
+        {loading ? (
+          <>
+            <AdminSkeleton height={110} />
+            <AdminSkeleton height={110} />
+            <AdminSkeleton height={110} />
+            <AdminSkeleton height={110} />
+          </>
+        ) : (
+          <>
+            <AdminStatCard
+              title="Lượt gọi AI"
+              value={metrics?.aiRequestsInRange != null ? metrics.aiRequestsInRange.toLocaleString('vi-VN') : 'Chưa có dữ liệu'}
+              icon={<Bot size={18} />}
+              variant="primary"
+              subtitle={
+                metrics?.aiTotalTokensInRange != null
+                  ? `Tổng token: ${metrics.aiTotalTokensInRange.toLocaleString('vi-VN')}`
+                  : 'Chưa có dữ liệu token'
+              }
+            />
+            <AdminStatCard
+              title="AI Error Rate"
+              value={metrics?.aiErrorRatePercent != null ? `${metrics.aiErrorRatePercent}%` : 'Chưa có dữ liệu'}
+              icon={<AlertTriangle size={18} />}
+              variant={(metrics?.aiErrorRatePercent ?? 0) > 5 ? 'danger' : 'success'}
+              subtitle={
+                metrics?.aiErrorCountInRange != null && metrics?.aiRequestsInRange != null
+                  ? `${metrics.aiErrorCountInRange} lỗi / ${metrics.aiRequestsInRange} lượt gọi`
+                  : 'Chưa có dữ liệu chi tiết'
+              }
+            />
+            <AdminStatCard
+              title="Doanh thu gói"
+              value={
+                metrics?.subscriptionsModuleAvailable && metrics.actualRevenueVnd !== null && metrics.actualRevenueVnd !== undefined
+                  ? `${metrics.actualRevenueVnd.toLocaleString('vi-VN')} ₫`
+                  : 'Chưa có dữ liệu'
+              }
+              icon={<CreditCard size={18} />}
+              variant="primary"
+              subtitle={
+                metrics?.subscriptionsModuleAvailable
+                  ? `${metrics.activeSubscriptionsCount ?? 0} gói đang hoạt động`
+                  : 'Chờ phê duyệt ADM-05'
+              }
+            />
+            <AdminStatCard
+              title="Ticket hỗ trợ"
+              value={
+                metrics?.openSupportTicketsCount !== null && metrics?.openSupportTicketsCount !== undefined
+                  ? metrics.openSupportTicketsCount.toLocaleString('vi-VN')
+                  : 'Chưa có dữ liệu'
+              }
+              icon={<MessageSquare size={18} />}
+              variant={(metrics?.openSupportTicketsCount ?? 0) > 0 ? 'warning' : 'primary'}
+              subtitle={
+                metrics?.openSupportTicketsCount !== null && metrics?.openSupportTicketsCount !== undefined
+                  ? 'Yêu cầu đang mở cần xử lý'
+                  : 'Đang chờ kích hoạt module Hỗ trợ (ADM-06)'
+              }
             />
           </>
         )}
@@ -289,9 +376,9 @@ export const AdminDashboardPage: React.FC = () => {
       <section className="staff-card admin-dashboard-health-card" aria-labelledby="admin-health-title">
         <div className="staff-card-header admin-dashboard-card-header">
           <div>
-            <h2 id="admin-health-title" className="staff-card-title">Tình trạng môi trường giao diện</h2>
+            <h2 id="admin-health-title" className="staff-card-title">Trạng thái hạ tầng máy chủ</h2>
             <p className="admin-card-subtitle">
-              Trạng thái các thành phần đang dùng trong chế độ prototype frontend
+              Thông số kết nối thực tế từ Backend ASP.NET Core 10 và SQL Server
             </p>
           </div>
         </div>
@@ -301,20 +388,26 @@ export const AdminDashboardPage: React.FC = () => {
           ) : (
             <div className="admin-system-health-list">
               <div className="admin-health-row">
-                <span className="admin-health-name">Frontend Prototype</span>
-                <span className="admin-status-pill online">Hoạt động tốt</span>
+                <span className="admin-health-name">Backend API ({metrics?.backendVersion || 'ASP.NET Core 10'})</span>
+                <span className={`admin-status-pill ${metrics?.systemStatus === 'healthy' ? 'online' : 'offline'}`}>
+                  {metrics?.systemStatus === 'healthy' ? 'Hoạt động ổn định' : 'Cần kiểm tra'}
+                </span>
               </div>
               <div className="admin-health-row">
-                <span className="admin-health-name">Dữ liệu mô phỏng</span>
-                <span className="admin-status-pill online">Sẵn sàng</span>
+                <span className="admin-health-name">Cơ sở dữ liệu SQL Server</span>
+                <span className={`admin-status-pill ${metrics?.databaseStatus === 'connected' ? 'online' : 'offline'}`}>
+                  {metrics?.databaseStatus === 'connected' ? 'Đã kết nối' : 'Mất kết nối'}
+                </span>
               </div>
               <div className="admin-health-row">
-                <span className="admin-health-name">Bộ nhớ localStorage</span>
-                <span className="admin-status-pill online">Đang sử dụng</span>
+                <span className="admin-health-name">Độ trễ truy vấn DB</span>
+                <span className="admin-status-pill online">
+                  {metrics && metrics.apiLatencyMs >= 0 ? `${metrics.apiLatencyMs} ms` : 'Chưa đo'}
+                </span>
               </div>
               <div className="admin-health-row">
-                <span className="admin-health-name">Điều hướng workspace</span>
-                <span className="admin-status-pill online">Sẵn sàng</span>
+                <span className="admin-health-name">Môi trường vận hành</span>
+                <span className="admin-status-pill online">{metrics?.environment || 'unknown'}</span>
               </div>
             </div>
           )}

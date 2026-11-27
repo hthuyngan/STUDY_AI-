@@ -53,7 +53,20 @@ interface BackendDashboardResponse {
     adminsCount: number
     staffAccounts?: number
     recentNewUsersCount: number
+    newUsersInRange?: number
+    activeLearnersInRange?: number
     completedLessonsTotal?: number
+    practiceSessionsInRange?: number
+    assessmentAttemptsInRange?: number
+    aiRequestsInRange?: number
+    aiTotalTokensInRange?: number
+    aiErrorCountInRange?: number
+    aiErrorRatePercent?: number
+    openSupportTicketsCount?: number | null
+    subscriptionsModuleAvailable?: boolean
+    activeSubscriptionsCount?: number | null
+    actualRevenueVnd?: number | null
+    timezone?: string
     systemStatus: string
   }
   recentActivities: Array<{
@@ -121,9 +134,19 @@ function mapBackendUser(u: BackendUserDetailDto): AdminUserItem {
 }
 
 export const adminService = {
-  async getMetrics(): Promise<AdminSystemMetrics> {
+  async getMetrics(
+    range: TimeRangeFilter = '7d',
+    from?: string,
+    to?: string
+  ): Promise<AdminSystemMetrics> {
+    const params = new URLSearchParams({ range })
+    if (range === 'custom' && from && to) {
+      params.set('from', from)
+      params.set('to', to)
+    }
+
     const [data, health] = await Promise.all([
-      apiClient.get<BackendDashboardResponse>('/api/v1/admin/dashboard'),
+      apiClient.get<BackendDashboardResponse>(`/api/v1/admin/dashboard?${params.toString()}`),
       apiClient.get<{
         database?: { status?: string; latencyMs?: number }
         environment?: string
@@ -139,8 +162,21 @@ export const adminService = {
     return {
       totalUsers,
       activeLearners,
+      newUsersInRange: data?.metrics?.newUsersInRange ?? data?.metrics?.recentNewUsersCount ?? 0,
+      activeLearnersInRange: data?.metrics?.activeLearnersInRange ?? 0,
       staffAccounts,
       completedLessonsTotal: data?.metrics?.completedLessonsTotal ?? 0,
+      practiceSessionsInRange: data?.metrics?.practiceSessionsInRange ?? 0,
+      assessmentAttemptsInRange: data?.metrics?.assessmentAttemptsInRange ?? 0,
+      aiRequestsInRange: data?.metrics?.aiRequestsInRange ?? null,
+      aiTotalTokensInRange: data?.metrics?.aiTotalTokensInRange ?? null,
+      aiErrorCountInRange: data?.metrics?.aiErrorCountInRange ?? null,
+      aiErrorRatePercent: data?.metrics?.aiErrorRatePercent ?? null,
+      openSupportTicketsCount: data?.metrics?.openSupportTicketsCount ?? null,
+      subscriptionsModuleAvailable: data?.metrics?.subscriptionsModuleAvailable ?? false,
+      activeSubscriptionsCount: data?.metrics?.activeSubscriptionsCount ?? null,
+      actualRevenueVnd: data?.metrics?.actualRevenueVnd ?? null,
+      timezone: data?.metrics?.timezone ?? 'Asia/Bangkok',
       systemStatus: databaseConnected
         ? ((data?.metrics?.systemStatus as 'healthy' | 'degraded' | 'maintenance') || 'healthy')
         : 'degraded',
@@ -339,19 +375,44 @@ export const adminService = {
     return { deletedCount: count }
   },
 
-  async getAnalytics(range: TimeRangeFilter = '7d'): Promise<{
+  async getAnalytics(
+    range: TimeRangeFilter = '7d',
+    from?: string,
+    to?: string
+  ): Promise<{
     trends: AnalyticsTrendPoint[]
     roleDistribution: UserDistributionItem[]
     statusDistribution: UserDistributionItem[]
   }> {
+    const params = new URLSearchParams({ range })
+    if (range === 'custom' && from && to) {
+      params.set('from', from)
+      params.set('to', to)
+    }
+
     const data = await apiClient.get<{
-      trends: AnalyticsTrendPoint[]
+      trends: Array<
+        AnalyticsTrendPoint & {
+          assessmentAttempts?: number
+        }
+      >
       roleDistribution: UserDistributionItem[]
       statusDistribution: UserDistributionItem[]
-    }>(`/api/v1/admin/analytics?range=${range}`)
+    }>(`/api/v1/admin/analytics?${params.toString()}`)
 
     return {
-      trends: data?.trends || [],
+      trends: (data?.trends || []).map((t) => ({
+        date: t.date,
+        label: t.label || t.date,
+        completedLessons: t.completedLessons ?? 0,
+        activeUsers: t.activeUsers ?? 0,
+        assessments: t.assessments ?? t.assessmentAttempts ?? 0,
+        newUsers: t.newUsers ?? 0,
+        practiceSessions: t.practiceSessions ?? 0,
+        aiRequests: t.aiRequests ?? 0,
+        aiTokens: t.aiTokens ?? 0,
+        aiErrors: t.aiErrors ?? 0,
+      })),
       roleDistribution: data?.roleDistribution || [],
       statusDistribution: data?.statusDistribution || [],
     }

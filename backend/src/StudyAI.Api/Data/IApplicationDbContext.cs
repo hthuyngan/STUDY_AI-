@@ -51,6 +51,8 @@ public interface IApplicationDbContext
     DbSet<LessonSkill> LessonSkills { get; }
     DbSet<LessonPrerequisite> LessonPrerequisites { get; }
     DbSet<QuestionSkill> QuestionSkills { get; }
+    DbSet<SupportTicket> SupportTickets { get; }
+    DbSet<SupportTicketMessage> SupportTicketMessages { get; }
 
     EntityEntry<TEntity> Entry<TEntity>(TEntity entity) where TEntity : class;
 

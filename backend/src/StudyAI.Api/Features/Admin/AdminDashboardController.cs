@@ -16,16 +16,24 @@ public class AdminDashboardController : ControllerBase
     }
 
     [HttpGet("dashboard")]
-    public async Task<IActionResult> GetDashboard(CancellationToken ct)
+    public async Task<IActionResult> GetDashboard(
+        [FromQuery] string range = "7d",
+        [FromQuery] DateTimeOffset? from = null,
+        [FromQuery] DateTimeOffset? to = null,
+        CancellationToken ct = default)
     {
-        var data = await _dashboardService.GetDashboardAsync(ct);
+        var data = await _dashboardService.GetDashboardAsync(range, from, to, ct);
         return Ok(data);
     }
 
     [HttpGet("analytics")]
-    public async Task<IActionResult> GetAnalytics([FromQuery] string range = "7d", CancellationToken ct = default)
+    public async Task<IActionResult> GetAnalytics(
+        [FromQuery] string range = "7d",
+        [FromQuery] DateTimeOffset? from = null,
+        [FromQuery] DateTimeOffset? to = null,
+        CancellationToken ct = default)
     {
-        var data = await _dashboardService.GetAnalyticsAsync(range, ct);
+        var data = await _dashboardService.GetAnalyticsAsync(range, from, to, ct);
         return Ok(data);
     }
 

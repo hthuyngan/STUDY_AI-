@@ -3,7 +3,7 @@ namespace StudyAI.Features.Admin;
 
 public interface IAdminUsersService
 {
-    Task<AdminUsersResponseDto> ListUsersAsync(string? role, string? status, string? search, int page, int pageSize, bool includeDeleted, CancellationToken ct = default);
+    Task<AdminUsersResponseDto> ListUsersAsync(string? role, string? status, string? search, int page, int pageSize, bool includeDeleted, string? sortBy = null, string? sortOrder = null, CancellationToken ct = default);
     Task<AdminUserDetailDto> GetUserDetailAsync(string userId, bool includeDeleted, CancellationToken ct = default);
     Task<CreateUserResponseDto> CreateUserAsync(CreateUserRequestDto req, string currentUserId, CancellationToken ct = default);
     Task<AdminUserDetailDto> UpdateUserAsync(string userId, UpdateUserRequestDto req, string currentUserId, CancellationToken ct = default);

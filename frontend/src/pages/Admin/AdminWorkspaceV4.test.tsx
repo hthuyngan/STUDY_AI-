@@ -75,7 +75,7 @@ describe('Admin Workspace V4 — Classroom, Student & Learning Performance Suite
 
       // Admin has oversight monitors instead of direct classroom operations
       expect(screen.queryByText('Quản lý giảng dạy')).not.toBeInTheDocument()
-      expect(screen.getByRole('link', { name: /Giám sát nội dung/i })).toHaveAttribute('href', '/admin/content-monitor')
+      expect(screen.getByRole('link', { name: /Kiểm duyệt nội dung/i })).toHaveAttribute('href', '/admin/content-monitor')
     })
   })
 

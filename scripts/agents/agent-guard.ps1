@@ -398,7 +398,7 @@ function Redact-SensitiveText {
         '(?i)Bearer\s+[A-Za-z0-9\-._~+/]+=*',
         'gh[pousr]_[A-Za-z0-9_]{16,}',
         'sk-[A-Za-z0-9\-_]{16,}',
-        '(?i)(ANTIGRAVITY_CSRF_TOKEN|GITHUB_TOKEN|GH_TOKEN|OPENAI_API_KEY|AWS_SECRET_ACCESS_KEY)\s*[:=]\s*[^\s"''\r\n]+'
+        '(?i)(ANTIGRAVITY_CSRF_TOKEN|GITHUB_TOKEN|GH_TOKEN|OPENAI_API_KEY|TEAMSOCLO_API_KEY|AWS_SECRET_ACCESS_KEY)\s*[:=]\s*[^\s"''\r\n]+'
     )
     foreach ($p in $patterns) { $redacted = [regex]::Replace($redacted, $p, '[REDACTED]') }
     return $redacted
@@ -931,6 +931,44 @@ function Test-CodexConfigArgsSafe {
     }
 }
 
+function Resolve-CodexProviderConfig {
+    param($Config)
+    if ($null -eq $Config.reviewer -or $null -eq $Config.reviewer.PSObject.Properties["provider"] -or $null -eq $Config.reviewer.provider) {
+        return $null
+    }
+    $p = $Config.reviewer.provider
+    $id = [string]$p.id
+    $name = [string]$p.name
+    $baseUrl = [string]$p.baseUrl
+    $envKey = [string]$p.envKey
+    $wireApi = [string]$p.wireApi
+    $requiresOpenaiAuth = [bool]$p.requiresOpenaiAuth
+
+    if ($id -notmatch '^[a-zA-Z0-9_-]+$') { throw "ARGUMENT_INJECTION_BLOCKED: Invalid Codex provider id '$id'." }
+    if ($name -notmatch '^[a-zA-Z0-9 ._-]+$') { throw "ARGUMENT_INJECTION_BLOCKED: Invalid Codex provider name." }
+    if ($baseUrl -notmatch '^https://[a-zA-Z0-9.-]+(:[0-9]+)?(/[a-zA-Z0-9._/-]*)?$') { throw "ARGUMENT_INJECTION_BLOCKED: Invalid Codex provider baseUrl." }
+    if ($envKey -notmatch '^[A-Z0-9_]+$') { throw "ARGUMENT_INJECTION_BLOCKED: Invalid Codex provider envKey '$envKey'." }
+    if ($wireApi -notin @("responses", "chat")) { throw "ARGUMENT_INJECTION_BLOCKED: Invalid Codex provider wireApi '$wireApi'." }
+
+    return [pscustomobject]@{
+        Id                 = $id
+        Name               = $name
+        BaseUrl            = $baseUrl
+        EnvKey             = $envKey
+        WireApi            = $wireApi
+        RequiresOpenaiAuth = $requiresOpenaiAuth
+    }
+}
+
+function Get-SecretEnvValue {
+    param([Parameter(Mandatory = $true)][string]$Name)
+    foreach ($scope in @("Process", "User", "Machine")) {
+        $val = [Environment]::GetEnvironmentVariable($Name, $scope)
+        if (-not [string]::IsNullOrWhiteSpace($val)) { return $val }
+    }
+    return $null
+}
+
 # Trusted Local Developer Workflow: Both agents run under the same Windows developer session.
 # Process isolation relies on official Codex read-only CLI sandbox (--ignore-user-config --disable plugins -s read-only --ephemeral),
 # stripped environment allowlist (no secrets/DB passed), and Win32 JobObject process tree containment.
@@ -969,6 +1007,7 @@ function Invoke-CodexSandboxed {
     Assert-CodexAutomationIdentity -AutomationEnabled ([bool]$config.policies.automatedCodexEnabled) -AllowLocalUserBoundary:$AllowLocalUserBoundary
 
     Test-CodexConfigArgsSafe -Model $Model -ReasoningEffort $ReasoningEffort
+    $provider = Resolve-CodexProviderConfig -Config $config
     $resolved = Resolve-CodexExecutable
 
     $argList = New-Object System.Collections.Generic.List[string]
@@ -977,7 +1016,21 @@ function Invoke-CodexSandboxed {
         "exec", "--ignore-user-config", "--disable", "plugins",
         "-s", "read-only", "--ephemeral", "--json", "--color", "never",
         "-c", ('model="{0}"' -f $Model),
-        "-c", ('model_reasoning_effort="{0}"' -f $ReasoningEffort),
+        "-c", ('model_reasoning_effort="{0}"' -f $ReasoningEffort)
+    ) | ForEach-Object { $argList.Add($_) }
+
+    if ($null -ne $provider) {
+        @(
+            "-c", ('model_provider="{0}"' -f $provider.Id),
+            "-c", ('model_providers.{0}.name="{1}"' -f $provider.Id, $provider.Name),
+            "-c", ('model_providers.{0}.base_url="{1}"' -f $provider.Id, $provider.BaseUrl),
+            "-c", ('model_providers.{0}.env_key="{1}"' -f $provider.Id, $provider.EnvKey),
+            "-c", ('model_providers.{0}.wire_api="{1}"' -f $provider.Id, $provider.WireApi),
+            "-c", ('model_providers.{0}.requires_openai_auth={1}' -f $provider.Id, $(if ($provider.RequiresOpenaiAuth) { "true" } else { "false" }))
+        ) | ForEach-Object { $argList.Add($_) }
+    }
+
+    @(
         "--output-schema", $SchemaPath,
         "-o", $OutputFile,
         "-C", $WorkingDir,
@@ -990,6 +1043,15 @@ function Invoke-CodexSandboxed {
     foreach ($name in $allowlist) {
         $val = [Environment]::GetEnvironmentVariable($name)
         if (-not [string]::IsNullOrEmpty($val)) { $envDict[$name] = $val }
+    }
+    if ($null -ne $provider) {
+        $apiKeyVal = Get-SecretEnvValue -Name $provider.EnvKey
+        if ([string]::IsNullOrWhiteSpace($apiKeyVal) -and -not $provider.RequiresOpenaiAuth) {
+            throw ("CODEX_AUTH_FAILURE: Missing required API key environment variable '{0}' for provider '{1}'." -f $provider.EnvKey, $provider.Id)
+        }
+        if (-not [string]::IsNullOrWhiteSpace($apiKeyVal)) {
+            $envDict[$provider.EnvKey] = $apiKeyVal
+        }
     }
     $envDict["GIT_CONFIG_NOSYSTEM"] = "1"
     $envDict["GIT_CONFIG_GLOBAL"] = "NUL"

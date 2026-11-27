@@ -67,8 +67,21 @@ export interface ResetPasswordResult {
 export interface AdminSystemMetrics {
   totalUsers: number
   activeLearners: number
+  newUsersInRange?: number
+  activeLearnersInRange?: number
   staffAccounts: number
   completedLessonsTotal?: number
+  practiceSessionsInRange?: number
+  assessmentAttemptsInRange?: number
+  aiRequestsInRange?: number | null
+  aiTotalTokensInRange?: number | null
+  aiErrorCountInRange?: number | null
+  aiErrorRatePercent?: number | null
+  openSupportTicketsCount?: number | null
+  subscriptionsModuleAvailable?: boolean
+  activeSubscriptionsCount?: number | null
+  actualRevenueVnd?: number | null
+  timezone?: string
   systemStatus: 'healthy' | 'degraded' | 'maintenance'
   apiLatencyMs: number
   databaseStatus: 'connected' | 'busy' | 'error'
@@ -102,6 +115,11 @@ export interface AnalyticsTrendPoint {
   completedLessons: number
   activeUsers: number
   assessments: number
+  newUsers?: number
+  practiceSessions?: number
+  aiRequests?: number
+  aiTokens?: number
+  aiErrors?: number
 }
 
 export interface UserDistributionItem {
@@ -112,7 +130,7 @@ export interface UserDistributionItem {
   color: string
 }
 
-export type TimeRangeFilter = '7d' | '30d' | 'month' | 'all'
+export type TimeRangeFilter = '7d' | '30d' | '90d' | 'custom' | 'month' | 'all'
 
 export interface CreateDemoUserInput {
   displayName: string

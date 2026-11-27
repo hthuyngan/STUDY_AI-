@@ -71,6 +71,7 @@ builder.Services.AddScoped<IHealthService, HealthService>();
 
 // Admin Services
 builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
+builder.Services.AddScoped<StudyAI.Features.Support.ISupportService, StudyAI.Features.Support.SupportService>();
 builder.Services.AddScoped<IAdminUsersService, AdminUsersService>();
 builder.Services.AddScoped<IAdminTeachersService, AdminTeachersService>();
 builder.Services.AddScoped<IAdminAuditService, AdminAuditService>();

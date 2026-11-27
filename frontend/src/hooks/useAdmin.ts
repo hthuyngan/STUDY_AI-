@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { adminService } from '@/services/admin.service'
 import type {
   AccountStatus,
@@ -20,22 +20,30 @@ export function useAdminDashboard(initialRange: TimeRangeFilter = '7d') {
   const [attentionItems, setAttentionItems] = useState<AdminAttentionItem[]>([])
   const [activities, setActivities] = useState<AdminActivityItem[]>([])
   const [timeRange, setTimeRange] = useState<TimeRangeFilter>(initialRange)
+  const [customFrom, setCustomFrom] = useState<string>('')
+  const [customTo, setCustomTo] = useState<string>('')
   const [trends, setTrends] = useState<AnalyticsTrendPoint[]>([])
   const [roleDistribution, setRoleDistribution] = useState<UserDistributionItem[]>([])
   const [statusDistribution, setStatusDistribution] = useState<UserDistributionItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const requestSeqRef = useRef(0)
 
   const loadData = useCallback(async () => {
+    if (timeRange === 'custom' && (!customFrom || !customTo)) {
+      return
+    }
+    const reqSeq = ++requestSeqRef.current
     setLoading(true)
     setError(null)
     try {
       const [m, att, act, analytics] = await Promise.all([
-        adminService.getMetrics(),
+        adminService.getMetrics(timeRange, customFrom || undefined, customTo || undefined),
         adminService.getAttentionItems(),
         adminService.getRecentActivities(),
-        adminService.getAnalytics(timeRange),
+        adminService.getAnalytics(timeRange, customFrom || undefined, customTo || undefined),
       ])
+      if (requestSeqRef.current !== reqSeq) return
       setMetrics(m)
       setAttentionItems(att)
       setActivities(act)
@@ -43,40 +51,18 @@ export function useAdminDashboard(initialRange: TimeRangeFilter = '7d') {
       setRoleDistribution(analytics.roleDistribution)
       setStatusDistribution(analytics.statusDistribution)
     } catch (err: unknown) {
+      if (requestSeqRef.current !== reqSeq) return
       setError(err instanceof Error ? err.message : 'Không thể tải dữ liệu quản trị')
     } finally {
-      setLoading(false)
+      if (requestSeqRef.current === reqSeq) {
+        setLoading(false)
+      }
     }
-  }, [timeRange])
+  }, [timeRange, customFrom, customTo])
 
   useEffect(() => {
-    let isMounted = true
-    Promise.all([
-      adminService.getMetrics(),
-      adminService.getAttentionItems(),
-      adminService.getRecentActivities(),
-      adminService.getAnalytics(timeRange),
-    ])
-      .then(([m, att, act, analytics]) => {
-        if (!isMounted) return
-        setMetrics(m)
-        setAttentionItems(att)
-        setActivities(act)
-        setTrends(analytics.trends)
-        setRoleDistribution(analytics.roleDistribution)
-        setStatusDistribution(analytics.statusDistribution)
-        setLoading(false)
-      })
-      .catch((err: unknown) => {
-        if (!isMounted) return
-        setError(err instanceof Error ? err.message : 'Không thể tải dữ liệu quản trị')
-        setLoading(false)
-      })
-
-    return () => {
-      isMounted = false
-    }
-  }, [timeRange])
+    void loadData()
+  }, [loadData])
 
   return {
     metrics,
@@ -84,6 +70,10 @@ export function useAdminDashboard(initialRange: TimeRangeFilter = '7d') {
     activities,
     timeRange,
     setTimeRange,
+    customFrom,
+    setCustomFrom,
+    customTo,
+    setCustomTo,
     trends,
     roleDistribution,
     statusDistribution,
@@ -103,9 +93,11 @@ export function useAdminUsers(initialSearch = '', initialRole = 'all', initialSt
   const [roleFilter, setRoleFilter] = useState(initialRole)
   const [statusFilter, setStatusFilter] = useState(initialStatus)
 
-  // Pagination state
+  // Pagination & Sorting state
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
+  const [sortBy, setSortBy] = useState<string>('createdAt')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
 
   // Selection state
   const [selectedIds, setSelectedIds] = useState<string[]>([])
@@ -114,7 +106,7 @@ export function useAdminUsers(initialSearch = '', initialRole = 'all', initialSt
     setLoading(true)
     setError(null)
     try {
-      const data = await adminService.getUsersPaginated(search, roleFilter, statusFilter, page, pageSize)
+      const data = await adminService.getUsersPaginated(search, roleFilter, statusFilter, page, pageSize, sortBy, sortOrder)
       setUsers(data.items)
       setPaginatedItems(data.items)
       setBackendTotal(data.total)
@@ -123,7 +115,7 @@ export function useAdminUsers(initialSearch = '', initialRole = 'all', initialSt
     } finally {
       setLoading(false)
     }
-  }, [search, roleFilter, statusFilter, page, pageSize])
+  }, [search, roleFilter, statusFilter, page, pageSize, sortBy, sortOrder])
 
   useEffect(() => {
     let isMounted = true
@@ -302,6 +294,17 @@ export function useAdminUsers(initialSearch = '', initialRole = 'all', initialSt
     setRoleFilter: handleSetRoleFilter,
     statusFilter,
     setStatusFilter: handleSetStatusFilter,
+    sortBy,
+    sortOrder,
+    handleSort: (field: string) => {
+      if (sortBy === field) {
+        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))
+      } else {
+        setSortBy(field)
+        setSortOrder('asc')
+      }
+      setPage(1)
+    },
     createUser,
     editUser,
     changeUserRole,

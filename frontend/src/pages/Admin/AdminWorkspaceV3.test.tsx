@@ -66,7 +66,7 @@ describe('Admin Workspace V3 — Education Management Suite', () => {
 
       expect(screen.getByRole('link', { name: /Quản lý nhân sự/i })).toHaveAttribute('href', '/admin/teachers')
       expect(screen.getByRole('link', { name: /Báo cáo tổng hợp/i })).toHaveAttribute('href', '/admin/reports')
-      expect(screen.getByRole('link', { name: /Giám sát nội dung/i })).toHaveAttribute('href', '/admin/content-monitor')
+      expect(screen.getByRole('link', { name: /Kiểm duyệt nội dung/i })).toHaveAttribute('href', '/admin/content-monitor')
       unmount()
 
       render(
