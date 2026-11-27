@@ -97,8 +97,24 @@ public class Math12ContentWorkspaceTests : IClassFixture<StudyAIApiFixture>
             "application/json"));
         Assert.Equal(HttpStatusCode.OK, pubResp.StatusCode);
 
-        var ragResp = await _client.PostAsync("/api/v1/content/workspace/knowledge-sources", new StringContent(
+        // Published material without extracted text -> marked failed, NOT indexed
+        var noTextRagResp = await _client.PostAsync("/api/v1/content/workspace/knowledge-sources", new StringContent(
             JsonSerializer.Serialize(new RegisterAiKnowledgeSourceRequestDto { SourceType = "material", SourceRefId = mat.Id }),
+            Encoding.UTF8,
+            "application/json"));
+        Assert.Equal(HttpStatusCode.OK, noTextRagResp.StatusCode);
+        var noTextRag = JsonSerializer.Deserialize<AiKnowledgeSourceDto>(await noTextRagResp.Content.ReadAsStringAsync(), JsonOpts)!;
+        Assert.Equal("failed", noTextRag.Status);
+        Assert.Equal(0, noTextRag.ChunkCount);
+
+        // Published material WITH extracted text -> indexed and retrievable
+        var ragResp = await _client.PostAsync("/api/v1/content/workspace/knowledge-sources", new StringContent(
+            JsonSerializer.Serialize(new RegisterAiKnowledgeSourceRequestDto
+            {
+                SourceType = "material",
+                SourceRefId = mat.Id,
+                ExtractedText = "Công thức Nguyên hàm cơ bản Toán 12: nguyên hàm của x^n là x^(n+1)/(n+1) + C."
+            }),
             Encoding.UTF8,
             "application/json"));
         Assert.Equal(HttpStatusCode.OK, ragResp.StatusCode);

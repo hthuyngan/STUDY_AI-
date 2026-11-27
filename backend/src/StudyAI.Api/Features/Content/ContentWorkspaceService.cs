@@ -39,6 +39,16 @@ public class ContentWorkspaceService : IContentWorkspaceService
         "draft", "pending_review", "published", "archived"
     };
 
+    private static readonly HashSet<string> AllowedErrorReportStatuses = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "open", "in_progress", "resolved", "escalated", "closed"
+    };
+
+    private static readonly HashSet<string> AllowedErrorReportClassifications = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "content_error", "technical_escalation"
+    };
+
     public ContentWorkspaceService(StudyAIDbContext db, IAuditWriter auditWriter)
     {
         _db = db;
@@ -52,6 +62,9 @@ public class ContentWorkspaceService : IContentWorkspaceService
             .ToListAsync(ct);
 
         var chapters = await _db.ContentChapters.AsNoTracking()
+            .Include(c => c.Subject)
+            .Where(c => c.Subject != null && c.Subject.Grade == "12" &&
+                        (c.Subject.Code.ToUpper().Contains("MATH") || c.Subject.Name.Contains("Toán")))
             .Select(c => new { c.Id, c.Title, c.OrderIndex })
             .ToListAsync(ct);
 
@@ -247,7 +260,7 @@ public class ContentWorkspaceService : IContentWorkspaceService
         if (string.IsNullOrWhiteSpace(req.SourceRefId))
             throw new ValidationException("SourceRefId", "Thiếu mã tham chiếu nguồn tri thức.");
 
-        var (resolvedTitle, contentText) = await ResolveApprovedSourceTextAsync(sourceType, req.SourceRefId.Trim(), ct);
+        var (resolvedTitle, contentText) = await ResolveApprovedSourceTextAsync(sourceType, req.SourceRefId.Trim(), req.ExtractedText, ct);
 
         var now = DateTimeOffset.UtcNow;
         var source = new AiKnowledgeSource
@@ -266,6 +279,16 @@ public class ContentWorkspaceService : IContentWorkspaceService
         _db.AiKnowledgeSources.Add(source);
         await _db.SaveChangesAsync(ct);
 
+        if (string.IsNullOrWhiteSpace(contentText))
+        {
+            source.Status = "failed";
+            source.ChunkCount = 0;
+            source.LastError = "Không thể trích xuất nội dung văn bản từ tài liệu nguồn.";
+            source.UpdatedAt = DateTimeOffset.UtcNow;
+            await _db.SaveChangesAsync(ct);
+            return ToDto(source);
+        }
+
         return await IndexSourceChunksAsync(source, contentText, userId, ct);
     }
 
@@ -274,7 +297,18 @@ public class ContentWorkspaceService : IContentWorkspaceService
         var source = await _db.AiKnowledgeSources.Include(s => s.Chunks).FirstOrDefaultAsync(s => s.Id == id, ct)
             ?? throw new NotFoundException("Không tìm thấy nguồn tri thức AI.");
 
-        var (_, contentText) = await ResolveApprovedSourceTextAsync(source.SourceType, source.SourceRefId, ct);
+        var existingText = source.Chunks.Count > 0
+            ? string.Join("\n", source.Chunks.OrderBy(c => c.ChunkIndex).Select(c => c.ContentText))
+            : null;
+        var (_, contentText) = await ResolveApprovedSourceTextAsync(source.SourceType, source.SourceRefId, existingText, ct);
+        if (string.IsNullOrWhiteSpace(contentText))
+        {
+            source.Status = "failed";
+            source.LastError = "Không thể trích xuất nội dung văn bản từ tài liệu nguồn.";
+            source.UpdatedAt = DateTimeOffset.UtcNow;
+            await _db.SaveChangesAsync(ct);
+            return ToDto(source);
+        }
         return await IndexSourceChunksAsync(source, contentText, userId, ct);
     }
 
@@ -399,14 +433,27 @@ public class ContentWorkspaceService : IContentWorkspaceService
 
         var now = DateTimeOffset.UtcNow;
         if (!string.IsNullOrWhiteSpace(req.Classification))
-            entity.Classification = req.Classification.Trim().ToLowerInvariant();
+        {
+            var cls = req.Classification.Trim().ToLowerInvariant();
+            if (!AllowedErrorReportClassifications.Contains(cls))
+                throw new ValidationException("Classification", "Phân loại báo cáo sai sót không hợp lệ.");
+            entity.Classification = cls;
+        }
         if (!string.IsNullOrWhiteSpace(req.Status))
         {
-            entity.Status = req.Status.Trim().ToLowerInvariant();
+            var nextStatus = req.Status.Trim().ToLowerInvariant();
+            if (!AllowedErrorReportStatuses.Contains(nextStatus))
+                throw new ValidationException("Status", "Trạng thái báo cáo sai sót không hợp lệ.");
+            entity.Status = nextStatus;
             entity.ResolvedAt = (entity.Status == "resolved" || entity.Status == "closed") ? now : null;
         }
         if (req.ResolutionNote != null)
-            entity.ResolutionNote = req.ResolutionNote.Trim();
+        {
+            var note = req.ResolutionNote.Trim();
+            if (note.Length > 1000)
+                throw new ValidationException("ResolutionNote", "Ghi chú xử lý không được vượt quá 1000 ký tự.");
+            entity.ResolutionNote = note;
+        }
         entity.UpdatedAt = now;
 
         await _db.SaveChangesAsync(ct);
@@ -414,7 +461,8 @@ public class ContentWorkspaceService : IContentWorkspaceService
         return ToDto(entity);
     }
 
-    private async Task<(string Title, string ContentText)> ResolveApprovedSourceTextAsync(string sourceType, string sourceRefId, CancellationToken ct)
+    private async Task<(string Title, string? ContentText)> ResolveApprovedSourceTextAsync(
+        string sourceType, string sourceRefId, string? extractedText, CancellationToken ct)
     {
         if (sourceType == "lesson")
         {
@@ -423,14 +471,15 @@ public class ContentWorkspaceService : IContentWorkspaceService
             if (lesson.Status != "published")
                 throw new ValidationException("SourceRefId", "Chỉ được đưa bài học đã xuất bản (published) vào Kho tri thức AI.");
             var text = $"{lesson.Title}\n{lesson.Introduction}\n{lesson.DefinitionsJson}\n{lesson.FormulasJson}\n{lesson.ExamplesJson}\n{lesson.SummaryPointsJson}".Trim();
-            return (lesson.Title, string.IsNullOrWhiteSpace(text) ? lesson.Title : text);
+            return (lesson.Title, string.IsNullOrWhiteSpace(text) ? null : text);
         }
 
         var material = await _db.ContentMaterials.AsNoTracking().FirstOrDefaultAsync(m => m.Id == sourceRefId, ct)
             ?? throw new NotFoundException("Không tìm thấy tài liệu nguồn.");
         if (material.Status != "published")
             throw new ValidationException("SourceRefId", "Chỉ được đưa tài liệu đã xuất bản (published) vào Kho tri thức AI.");
-        return (material.Title, $"{material.Title}\n{material.ChapterTitle}\n{material.FileName}".Trim());
+        var cleanExtracted = string.IsNullOrWhiteSpace(extractedText) ? null : extractedText.Trim();
+        return (material.Title, cleanExtracted);
     }
 
     private async Task<AiKnowledgeSourceDto> IndexSourceChunksAsync(

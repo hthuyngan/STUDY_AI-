@@ -88,6 +88,7 @@ public class RegisterAiKnowledgeSourceRequestDto
     public string SourceRefId { get; set; } = string.Empty;
     public string? Title { get; set; }
     public string? ChapterCode { get; set; }
+    public string? ExtractedText { get; set; }
 }
 
 public class RetrieveKnowledgeTestRequestDto
