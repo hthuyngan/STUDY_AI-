@@ -114,7 +114,7 @@ describe('RBAC Foundation & Permissions', () => {
     // Content nav paths start with /content
     const contentNav = getWorkspaceNavigation('content')
     expect(contentNav[0].items[0].path).toBe('/content')
-    expect(contentNav.some((g) => g.items.some((i) => i.path === '/content/subjects'))).toBe(true)
+    expect(contentNav.some((g) => g.items.some((i) => i.path === '/content/curriculum'))).toBe(true)
   })
 })
 

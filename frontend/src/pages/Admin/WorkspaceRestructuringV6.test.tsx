@@ -62,11 +62,14 @@ describe('STUDY_AI Workspace Restructuring V6 Suite', () => {
       const contentGroups = WORKSPACE_CONFIGS.content.groups
       const allContentPaths = contentGroups.flatMap((g) => g.items.map((i) => i.path))
 
-      expect(allContentPaths).toContain('/content/subjects')
-      expect(allContentPaths).toContain('/content/chapters')
+      expect(allContentPaths).toContain('/content/curriculum')
       expect(allContentPaths).toContain('/content/lessons')
+      expect(allContentPaths).toContain('/content/questions')
       expect(allContentPaths).toContain('/content/assessments')
+      expect(allContentPaths).toContain('/content/materials')
       expect(allContentPaths).toContain('/content/review')
+      expect(allContentPaths).toContain('/content/knowledge-base')
+      expect(allContentPaths).toContain('/content/error-reports')
       expect(allContentPaths).toContain('/content/publications')
     })
 
@@ -75,10 +78,13 @@ describe('STUDY_AI Workspace Restructuring V6 Suite', () => {
       const allTeacherPaths = teacherGroups.flatMap((g) => g.items.map((i) => i.path))
 
       expect(allTeacherPaths).toContain('/teacher/classes')
-      expect(allTeacherPaths).toContain('/teacher/students')
       expect(allTeacherPaths).toContain('/teacher/assignments')
+      expect(allTeacherPaths).toContain('/teacher/exams')
       expect(allTeacherPaths).toContain('/teacher/grades')
-      expect(allTeacherPaths).toContain('/teacher/alerts')
+      expect(allTeacherPaths).toContain('/teacher/materials')
+      expect(allTeacherPaths).toContain('/teacher/ai-assistant')
+      expect(allTeacherPaths).toContain('/teacher/schedule')
+      expect(allTeacherPaths).toContain('/teacher/announcements')
     })
   })
 

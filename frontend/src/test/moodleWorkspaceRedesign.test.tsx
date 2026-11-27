@@ -38,7 +38,7 @@ describe('Moodle-Style Workspace & Sidebar Redesign Suite', () => {
   })
 
   describe('1. Sidebar Redesign Structure & Streamlining', () => {
-    it('renders exactly the two core groups: MENU CHÍNH and LUYỆN TẬP', () => {
+    it('renders exactly the two official Math 12 groups: HỌC TẬP and TIỆN ÍCH', () => {
       render(
         <MemoryRouter>
           <Sidebar mobileOpen={false} onCloseMobile={vi.fn()} />
@@ -46,29 +46,31 @@ describe('Moodle-Style Workspace & Sidebar Redesign Suite', () => {
       )
 
       // Section headers
-      expect(screen.getByText('MENU CHÍNH')).toBeInTheDocument()
-      expect(screen.getByText('LUYỆN TẬP')).toBeInTheDocument()
+      expect(screen.getByText('HỌC TẬP')).toBeInTheDocument()
+      expect(screen.getByText('TIỆN ÍCH')).toBeInTheDocument()
 
-      // Core items in MENU CHÍNH
+      // Core items in HỌC TẬP
       expect(screen.getByText('Tổng quan')).toBeInTheDocument()
-      expect(screen.getByText('Môn học')).toBeInTheDocument()
-      expect(screen.getByText('Lớp học')).toBeInTheDocument()
+      expect(screen.getByText('AI Gia sư')).toBeInTheDocument()
+      expect(screen.getByText('Kiến thức Toán 12')).toBeInTheDocument()
+      expect(screen.getByText('Luyện tập')).toBeInTheDocument()
+      expect(screen.getByText('Kiểm tra & thi thử')).toBeInTheDocument()
+      expect(screen.getByText('Sổ tay học tập')).toBeInTheDocument()
 
-      // Core items in LUYỆN TẬP
-      expect(screen.getByText('Luyện thi')).toBeInTheDocument()
-      expect(screen.getByText('Bài tập')).toBeInTheDocument()
+      // Core items in TIỆN ÍCH
+      expect(screen.getByText('Lớp học của tôi')).toBeInTheDocument()
+      expect(screen.getByText('Kế hoạch học tập')).toBeInTheDocument()
+      expect(screen.getByText('Gói đăng ký')).toBeInTheDocument()
+      expect(screen.getByText('Hỗ trợ')).toBeInTheDocument()
 
       // Strictly removed groups and links
       expect(screen.queryByText('PHÂN MÔN')).toBeNull()
-      expect(screen.queryByText('Toán học')).toBeNull()
+      expect(screen.queryByText('Môn học')).toBeNull()
+      expect(screen.queryByText('Lộ trình học tập')).toBeNull()
+      expect(screen.queryByText('Liên kết phụ huynh')).toBeNull()
       expect(screen.queryByText('Vật lý')).toBeNull()
       expect(screen.queryByText('Hóa học')).toBeNull()
       expect(screen.queryByText('Tiếng Anh')).toBeNull()
-      expect(screen.queryByText('Thi thử')).toBeNull()
-      expect(screen.queryByText('Luyện tập & Ôn câu sai')).toBeNull()
-      expect(screen.queryByText('Lớp học & Bài tập')).toBeNull()
-      expect(screen.queryByText('QUẢN LÝ')).toBeNull()
-      expect(screen.queryByText('CÀI ĐẶT')).toBeNull()
       expect(screen.queryByText('Design System')).toBeNull()
     })
 

@@ -53,16 +53,17 @@ describe('Admin Workspace V4 — Classroom, Student & Learning Performance Suite
         </MemoryRouter>
       )
 
-      // Quản lý giảng dạy in Teacher Workspace
-      expect(screen.getByText('Quản lý giảng dạy')).toBeInTheDocument()
-      expect(screen.getByRole('link', { name: /^lớp học$/i })).toHaveAttribute('href', '/teacher/classes')
-      expect(screen.getByRole('link', { name: /^học viên$/i })).toHaveAttribute('href', '/teacher/students')
+      // GIẢNG DẠY in Teacher Workspace
+      expect(screen.getAllByText('GIẢNG DẠY').length).toBeGreaterThan(0)
+      expect(screen.getByRole('link', { name: /^quản lý lớp học$/i })).toHaveAttribute('href', '/teacher/classes')
       expect(screen.getByRole('link', { name: /^bài tập$/i })).toHaveAttribute('href', '/teacher/assignments')
+      expect(screen.getByRole('link', { name: /^kiểm tra & đề thi$/i })).toHaveAttribute('href', '/teacher/exams')
+      expect(screen.getByRole('link', { name: /^sổ điểm$/i })).toHaveAttribute('href', '/teacher/grades')
 
-      // Kết quả học tập in Teacher Workspace
-      expect(screen.getByText('Kết quả học tập')).toBeInTheDocument()
-      expect(screen.getByRole('link', { name: /^bảng điểm$/i })).toHaveAttribute('href', '/teacher/grades')
-      expect(screen.getByRole('link', { name: /^cảnh báo học tập$/i })).toHaveAttribute('href', '/teacher/alerts')
+      // CÔNG CỤ in Teacher Workspace
+      expect(screen.getByText('CÔNG CỤ')).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: /^ai trợ giảng$/i })).toHaveAttribute('href', '/teacher/ai-assistant')
+      expect(screen.getByRole('link', { name: /^thông báo lớp học$/i })).toHaveAttribute('href', '/teacher/announcements')
       unmount()
 
       render(

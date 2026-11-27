@@ -77,10 +77,10 @@ describe('Admin Workspace V3 — Education Management Suite', () => {
         </MemoryRouter>
       )
 
-      expect(screen.getByRole('link', { name: /Môn học/i })).toHaveAttribute('href', '/content/subjects')
-      expect(screen.getByRole('link', { name: /Chương học/i })).toHaveAttribute('href', '/content/chapters')
+      expect(screen.getByRole('link', { name: /Chương trình Toán 12/i })).toHaveAttribute('href', '/content/curriculum')
       expect(screen.getByRole('link', { name: /Bài học/i })).toHaveAttribute('href', '/content/lessons')
-      expect(screen.getByRole('link', { name: /Bài thu hoạch/i })).toHaveAttribute('href', '/content/assessments')
+      expect(screen.getByRole('link', { name: /Ngân hàng câu hỏi/i })).toHaveAttribute('href', '/content/questions')
+      expect(screen.getByRole('link', { name: /Ngân hàng đề thi/i })).toHaveAttribute('href', '/content/assessments')
     })
   })
 

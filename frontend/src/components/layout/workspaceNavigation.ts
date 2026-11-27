@@ -20,7 +20,6 @@ import {
   Settings,
   Shield,
   Sliders,
-  Upload,
   Users,
 } from 'lucide-react'
 import type { UserRole } from '@/auth/auth.types'
@@ -195,32 +194,20 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
     basePath: '/teacher',
     groups: [
       {
-        id: 'overview',
-        title: 'Tổng quan',
+        id: 'teaching',
+        title: 'GIẢNG DẠY',
         items: [
           {
             id: 'teacher-dashboard',
-            label: 'Bàn làm việc',
+            label: 'Tổng quan',
             path: '/teacher',
             icon: LayoutDashboard,
           },
-        ],
-      },
-      {
-        id: 'teaching',
-        title: 'Quản lý giảng dạy',
-        items: [
           {
             id: 'teacher-classes',
-            label: 'Lớp học',
+            label: 'Quản lý lớp học',
             path: '/teacher/classes',
             icon: GraduationCap,
-          },
-          {
-            id: 'teacher-students',
-            label: 'Học viên',
-            path: '/teacher/students',
-            icon: Users,
           },
           {
             id: 'teacher-assignments',
@@ -228,24 +215,53 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
             path: '/teacher/assignments',
             icon: FileText,
           },
-        ],
-      },
-      {
-        id: 'performance',
-        title: 'Kết quả học tập',
-        items: [
+          {
+            id: 'teacher-exams',
+            label: 'Kiểm tra & đề thi',
+            path: '/teacher/exams',
+            icon: CheckSquare,
+          },
           {
             id: 'teacher-grades',
-            label: 'Bảng điểm',
+            label: 'Sổ điểm',
             path: '/teacher/grades',
             icon: Award,
           },
           {
-            id: 'teacher-alerts',
-            label: 'Cảnh báo học tập',
-            path: '/teacher/alerts',
-            icon: AlertTriangle,
-            badge: 3,
+            id: 'teacher-materials',
+            label: 'Tài liệu giảng dạy',
+            path: '/teacher/materials',
+            icon: BookOpen,
+          },
+        ],
+      },
+      {
+        id: 'tools',
+        title: 'CÔNG CỤ',
+        items: [
+          {
+            id: 'teacher-ai-assistant',
+            label: 'AI Trợ giảng',
+            path: '/teacher/ai-assistant',
+            icon: Cpu,
+          },
+          {
+            id: 'teacher-schedule',
+            label: 'Lịch giảng dạy',
+            path: '/teacher/schedule',
+            icon: Activity,
+          },
+          {
+            id: 'teacher-announcements',
+            label: 'Thông báo lớp học',
+            path: '/teacher/announcements',
+            icon: Bell,
+          },
+          {
+            id: 'teacher-support',
+            label: 'Hỗ trợ',
+            path: '/support',
+            icon: MessageSquare,
           },
         ],
       },
@@ -260,43 +276,19 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
     basePath: '/content',
     groups: [
       {
-        id: 'overview',
-        title: 'TỔNG QUAN',
+        id: 'content-management',
+        title: 'QUẢN LÝ NỘI DUNG',
         items: [
           {
             id: 'content-dashboard',
-            label: 'Bảng nội dung',
+            label: 'Tổng quan',
             path: '/content',
             icon: LayoutDashboard,
           },
-        ],
-      },
-      {
-        id: 'curriculum',
-        title: 'QUẢN LÝ HỌC TẬP',
-        items: [
-          {
-            id: 'content-catalog',
-            label: 'Danh mục chuẩn',
-            path: '/content/catalog',
-            icon: BookOpen,
-          },
           {
             id: 'content-curriculum-workspace',
-            label: 'Không gian giáo trình',
+            label: 'Chương trình Toán 12',
             path: '/content/curriculum',
-            icon: Layers,
-          },
-          {
-            id: 'content-subjects',
-            label: 'Môn học',
-            path: '/content/subjects',
-            icon: BookOpen,
-          },
-          {
-            id: 'content-chapters',
-            label: 'Chương học',
-            path: '/content/chapters',
             icon: Layers,
           },
           {
@@ -313,32 +305,43 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
           },
           {
             id: 'content-assessments',
-            label: 'Bài thu hoạch',
+            label: 'Ngân hàng đề thi',
             path: '/content/assessments',
             icon: CheckSquare,
           },
           {
-            id: 'content-import',
-            label: 'Nhập giáo trình',
-            path: '/content/import',
-            icon: Upload,
+            id: 'content-materials',
+            label: 'Tài liệu học tập',
+            path: '/content/materials',
+            icon: BookOpen,
           },
         ],
       },
       {
-        id: 'editorial',
-        title: 'BIÊN TẬP & XUẤT BẢN',
+        id: 'quality-control',
+        title: 'KIỂM SOÁT CHẤT LƯỢNG',
         items: [
           {
             id: 'content-review',
-            label: 'Hàng đợi duyệt',
+            label: 'Kiểm duyệt nội dung',
             path: '/content/review',
             icon: FileCheck,
-            badge: 2,
+          },
+          {
+            id: 'content-knowledge-base',
+            label: 'Kho tri thức AI',
+            path: '/content/knowledge-base',
+            icon: Cpu,
+          },
+          {
+            id: 'content-error-reports',
+            label: 'Báo cáo sai sót',
+            path: '/content/error-reports',
+            icon: AlertTriangle,
           },
           {
             id: 'content-publications',
-            label: 'Lịch sử xuất bản',
+            label: 'Lịch sử chỉnh sửa',
             path: '/content/publications',
             icon: History,
           },

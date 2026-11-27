@@ -104,6 +104,10 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
     public DbSet<QuestionSkill> QuestionSkills => Set<QuestionSkill>();
     public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
     public DbSet<SupportTicketMessage> SupportTicketMessages => Set<SupportTicketMessage>();
+    public DbSet<ContentMaterial> ContentMaterials => Set<ContentMaterial>();
+    public DbSet<AiKnowledgeSource> AiKnowledgeSources => Set<AiKnowledgeSource>();
+    public DbSet<AiKnowledgeChunk> AiKnowledgeChunks => Set<AiKnowledgeChunk>();
+    public DbSet<ContentErrorReport> ContentErrorReports => Set<ContentErrorReport>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

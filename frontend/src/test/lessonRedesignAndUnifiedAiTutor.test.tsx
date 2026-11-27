@@ -233,19 +233,18 @@ describe('Redesigned Lesson Page & Context-Aware AI Tutor Suite', () => {
     expect(screen.getByTestId('chat-open-state').textContent).toBe('OPEN')
   })
 
-  it('removes "AI Tutor" link from student Sidebar and MobileBottomNav', () => {
-    const { container: sidebarContainer } = render(
+  it('renders official Math 12 Sidebar and keeps MobileBottomNav free of AI Tutor shortcut', () => {
+    render(
       <MemoryRouter>
         <Sidebar mobileOpen={false} onCloseMobile={vi.fn()} />
       </MemoryRouter>
     )
 
-    // Sidebar should have Môn học, Lớp học, Luyện thi, Bài tập, but NOT AI Tutor
-    expect(screen.getByText('Môn học')).toBeInTheDocument()
-    expect(screen.getByText('Lớp học')).toBeInTheDocument()
-    expect(screen.getByText('Luyện thi')).toBeInTheDocument()
-    expect(screen.getByText('Bài tập')).toBeInTheDocument()
-    expect(sidebarContainer.querySelector('a[href="/ai-tutor"]')).toBeNull()
+    expect(screen.getByText('Tổng quan')).toBeInTheDocument()
+    expect(screen.getByText('AI Gia sư')).toBeInTheDocument()
+    expect(screen.getByText('Kiến thức Toán 12')).toBeInTheDocument()
+    expect(screen.getByText('Luyện tập')).toBeInTheDocument()
+    expect(screen.getByText('Kiểm tra & thi thử')).toBeInTheDocument()
 
     const { container: mobileNavContainer } = render(
       <MemoryRouter>

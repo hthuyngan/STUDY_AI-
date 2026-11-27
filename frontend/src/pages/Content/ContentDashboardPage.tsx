@@ -1,5 +1,8 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useContentDashboard } from '@/hooks/useContent'
+import { contentWorkspaceService, type ContentWorkspaceDashboard } from '@/services/contentWorkspace.service'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -9,6 +12,17 @@ import './ContentPages.css'
 
 export function ContentDashboardPage() {
   const { data, loading, error, refresh } = useContentDashboard()
+  const [wsDash, setWsDash] = useState<ContentWorkspaceDashboard | null>(null)
+
+  useEffect(() => {
+    let active = true
+    contentWorkspaceService.getDashboard().then((res) => {
+      if (active) setWsDash(res)
+    }).catch(() => {
+      // Optional enrichment; main dashboard still renders
+    })
+    return () => { active = false }
+  }, [])
 
   if (loading) {
     return (
@@ -55,6 +69,36 @@ export function ContentDashboardPage() {
       </div>
 
       <SummaryStrip items={contentKPIs} ariaLabel="Thống kê tổng quan biên tập nội dung" />
+
+      {wsDash && (
+        <div className="staff-dashboard-grid" style={{ marginTop: '16px' }}>
+          <div className="staff-card">
+            <h2 className="staff-card-title">Số câu hỏi theo chương Toán 12</h2>
+            <div style={{ width: '100%', height: 220 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={wsDash.questionsByChapter}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="chapterCode" tick={{ fontSize: 12 }} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                  <Tooltip />
+                  <Bar dataKey="questionCount" name="Số câu hỏi" fill="#102a43" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+          <div className="staff-card">
+            <h2 className="staff-card-title">Chỉ số Kho nội dung & AI Toán 12</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, fontSize: 13 }}>
+              <div>Tổng bài học: <strong>{wsDash.totalLessons}</strong></div>
+              <div>Tổng câu hỏi: <strong>{wsDash.totalQuestions}</strong></div>
+              <div>Tổng đề thi: <strong>{wsDash.totalExams}</strong></div>
+              <div>Tài liệu học tập: <strong>{wsDash.totalMaterials}</strong></div>
+              <div>Nguồn AI đã đồng bộ: <strong>{wsDash.aiSourcesIndexedCount}</strong></div>
+              <div>Báo cáo sai sót mở: <strong>{wsDash.openErrorReportsCount}</strong></div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="staff-dashboard-grid" style={{ marginTop: '16px' }}>
         <div className="staff-card">

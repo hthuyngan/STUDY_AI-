@@ -320,7 +320,19 @@ public class ControllerRouteDiscoveryTests
             "GET api/v1/admin/support/tickets",
             "GET api/v1/admin/support/tickets/{param}",
             "PATCH api/v1/admin/support/tickets/{param}",
-            "POST api/v1/admin/support/tickets/{param}/messages"
+            "POST api/v1/admin/support/tickets/{param}/messages",
+            "GET api/v1/content/workspace/dashboard",
+            "GET api/v1/content/workspace/materials",
+            "POST api/v1/content/workspace/materials",
+            "PATCH api/v1/content/workspace/materials/{param}/status",
+            "GET api/v1/content/workspace/knowledge-sources",
+            "POST api/v1/content/workspace/knowledge-sources",
+            "POST api/v1/content/workspace/knowledge-sources/{param}/sync",
+            "DELETE api/v1/content/workspace/knowledge-sources/{param}",
+            "POST api/v1/content/workspace/knowledge-sources/retrieve-test",
+            "GET api/v1/content/workspace/error-reports",
+            "POST api/v1/content/workspace/error-reports",
+            "PATCH api/v1/content/workspace/error-reports/{param}"
         };
 
         // Verify total registered count is exactly 236 baseline + 5 approved extensions

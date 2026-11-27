@@ -53,6 +53,10 @@ public interface IApplicationDbContext
     DbSet<QuestionSkill> QuestionSkills { get; }
     DbSet<SupportTicket> SupportTickets { get; }
     DbSet<SupportTicketMessage> SupportTicketMessages { get; }
+    DbSet<ContentMaterial> ContentMaterials { get; }
+    DbSet<AiKnowledgeSource> AiKnowledgeSources { get; }
+    DbSet<AiKnowledgeChunk> AiKnowledgeChunks { get; }
+    DbSet<ContentErrorReport> ContentErrorReports { get; }
 
     EntityEntry<TEntity> Entry<TEntity>(TEntity entity) where TEntity : class;
 
