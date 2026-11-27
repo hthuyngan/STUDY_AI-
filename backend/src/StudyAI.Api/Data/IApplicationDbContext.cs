@@ -57,6 +57,9 @@ public interface IApplicationDbContext
     DbSet<AiKnowledgeSource> AiKnowledgeSources { get; }
     DbSet<AiKnowledgeChunk> AiKnowledgeChunks { get; }
     DbSet<ContentErrorReport> ContentErrorReports { get; }
+    DbSet<TeacherExam> TeacherExams { get; }
+    DbSet<ClassroomMaterial> ClassroomMaterials { get; }
+    DbSet<ClassroomAnnouncement> ClassroomAnnouncements { get; }
 
     EntityEntry<TEntity> Entry<TEntity>(TEntity entity) where TEntity : class;
 

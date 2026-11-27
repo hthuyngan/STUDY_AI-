@@ -100,6 +100,7 @@ builder.Services.AddScoped<IContentReviewService, ContentReviewService>();
 builder.Services.AddScoped<IContentImportService, ContentImportService>();
 builder.Services.AddScoped<IContentGovernanceService, ContentGovernanceService>();
 builder.Services.AddScoped<IContentWorkspaceService, ContentWorkspaceService>();
+builder.Services.AddScoped<ITeacherWorkspaceService, TeacherWorkspaceService>();
 builder.Services.AddScoped<ICurriculumImportParser, CurriculumImportParser>();
 builder.Services.AddScoped<ICurriculumImportValidator, CurriculumImportValidator>();
 builder.Services.AddScoped<ICurriculumImportConfirmService, CurriculumImportConfirmService>();
