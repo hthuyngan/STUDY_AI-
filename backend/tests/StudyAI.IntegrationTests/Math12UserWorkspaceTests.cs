@@ -98,9 +98,58 @@ public class Math12UserWorkspaceTests : IClassFixture<StudyAIApiFixture>
             await (await _client.GetAsync("/api/v1/learner/workspace/classrooms")).Content.ReadAsStringAsync(), JsonOpts)!;
         Assert.DoesNotContain(s2Classes, c => c.Id == joined.Id);
 
-        // Mistakes endpoint returns 200
+        // Seed one unsubmitted wrong response (must NOT leak) and one completed wrong response (must appear)
+        var unsubmittedQuestionId = $"q-unsub-{Guid.NewGuid():N}";
+        var submittedQuestionId = $"q-sub-{Guid.NewGuid():N}";
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            var unsubAttempt = new AssessmentAttempt
+            {
+                Id = $"att-{Guid.NewGuid():N}",
+                UserId = student1Id,
+                AssessmentId = "asm-test",
+                LessonId = "les-test",
+                SubjectId = "math-12",
+                StartedAt = DateTimeOffset.UtcNow.AddMinutes(-10),
+                CompletedAt = null
+            };
+            var subAttempt = new AssessmentAttempt
+            {
+                Id = $"att-{Guid.NewGuid():N}",
+                UserId = student1Id,
+                AssessmentId = "asm-test",
+                LessonId = "les-test",
+                SubjectId = "math-12",
+                StartedAt = DateTimeOffset.UtcNow.AddMinutes(-20),
+                CompletedAt = DateTimeOffset.UtcNow.AddMinutes(-15)
+            };
+            db.AssessmentAttempts.AddRange(unsubAttempt, subAttempt);
+            db.AssessmentResponses.AddRange(
+                new AssessmentResponse
+                {
+                    AttemptId = unsubAttempt.Id,
+                    QuestionId = unsubmittedQuestionId,
+                    SelectedOptionIdsJson = "[\"A\"]",
+                    IsCorrect = false
+                },
+                new AssessmentResponse
+                {
+                    AttemptId = subAttempt.Id,
+                    QuestionId = submittedQuestionId,
+                    SelectedOptionIdsJson = "[\"B\"]",
+                    IsCorrect = false
+                });
+            await db.SaveChangesAsync();
+        }
+
+        // Mistakes endpoint returns 200 and only includes submitted attempts
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", student1Token);
         var mistakesResp = await _client.GetAsync("/api/v1/learner/workspace/mistakes");
         Assert.Equal(HttpStatusCode.OK, mistakesResp.StatusCode);
+        var mistakes = JsonSerializer.Deserialize<List<StudentMistakeItemDto>>(
+            await mistakesResp.Content.ReadAsStringAsync(), JsonOpts)!;
+        Assert.DoesNotContain(mistakes, m => m.QuestionId == unsubmittedQuestionId);
+        Assert.Contains(mistakes, m => m.QuestionId == submittedQuestionId);
     }
 }

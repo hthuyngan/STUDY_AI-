@@ -18,7 +18,7 @@ public class StudentWorkspaceService : IStudentWorkspaceService
     {
         var wrongResponses = await _db.AssessmentResponses.AsNoTracking()
             .Include(r => r.Attempt)
-            .Where(r => r.Attempt != null && r.Attempt.UserId == userId && r.IsCorrect == false)
+            .Where(r => r.Attempt != null && r.Attempt.UserId == userId && r.Attempt.CompletedAt != null && r.IsCorrect == false)
             .OrderByDescending(r => r.Attempt!.StartedAt)
             .Take(200)
             .ToListAsync(ct);
