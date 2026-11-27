@@ -97,6 +97,12 @@ public class TeacherWorkspaceService : ITeacherWorkspaceService
         if (!AllowedExamStatuses.Contains(nextStatus))
             throw new ValidationException("Status", "Trạng thái đề kiểm tra không hợp lệ.");
 
+        // Enforce monotonic lifecycle: draft -> published -> closed
+        if (entity.Status == "closed" && nextStatus != "closed")
+            throw new ValidationException("Status", "Không thể mở lại đề kiểm tra đã đóng.");
+        if (entity.Status == "published" && nextStatus == "draft")
+            throw new ValidationException("Status", "Không thể chuyển đề đã phát hành về bản nháp.");
+
         entity.Status = nextStatus;
         if (req.PublishResults.HasValue)
             entity.PublishResults = req.PublishResults.Value;
@@ -126,6 +132,8 @@ public class TeacherWorkspaceService : ITeacherWorkspaceService
             throw new ValidationException("FileName", "Tên tệp không hợp lệ.");
         if (req.FileSizeBytes <= 0 || req.FileSizeBytes > 15 * 1024 * 1024)
             throw new ValidationException("FileSizeBytes", "Dung lượng tệp tối đa 15 MB.");
+        if (!IsSafeStorageUrl(req.StoragePathOrUrl))
+            throw new ValidationException("StoragePathOrUrl", "Đường dẫn tài liệu phải dùng HTTPS hoặc đường dẫn nội bộ hợp lệ.");
 
         var cls = await VerifyOwnedClassroomAsync(req.ClassroomId, teacherUserId, isAdmin, ct);
 
@@ -180,6 +188,8 @@ public class TeacherWorkspaceService : ITeacherWorkspaceService
             throw new ValidationException("Title", "Tiêu đề thông báo không được để trống.");
         if (string.IsNullOrWhiteSpace(req.Body))
             throw new ValidationException("Body", "Nội dung thông báo không được để trống.");
+        if (!string.IsNullOrWhiteSpace(req.AttachmentUrl) && !IsSafeStorageUrl(req.AttachmentUrl))
+            throw new ValidationException("AttachmentUrl", "Đường dẫn đính kèm không hợp lệ.");
 
         var cls = await VerifyOwnedClassroomAsync(req.ClassroomId, teacherUserId, isAdmin, ct);
 
@@ -211,37 +221,50 @@ public class TeacherWorkspaceService : ITeacherWorkspaceService
 
         var ownedIds = ownedClasses.Keys.ToHashSet();
 
-        var assignments = await _db.Assignments.AsNoTracking()
+        var assignmentRows = await _db.Assignments.AsNoTracking()
             .Where(a => ownedIds.Contains(a.ClassroomId))
-            .Select(a => new TeacherScheduleItemDto
-            {
-                Id = a.Id,
-                Kind = "assignment_due",
-                Title = a.Title,
-                ClassroomId = a.ClassroomId,
-                ClassroomName = ownedClasses[a.ClassroomId],
-                ScheduledAt = a.DueDate.ToString("o"),
-                Status = a.Status
-            })
+            .Select(a => new { a.Id, a.Title, a.ClassroomId, a.DueDate, a.Status })
             .ToListAsync(ct);
 
-        var exams = await _db.TeacherExams.AsNoTracking()
+        var examRows = await _db.TeacherExams.AsNoTracking()
             .Where(e => ownedIds.Contains(e.ClassroomId))
-            .Select(e => new TeacherScheduleItemDto
-            {
-                Id = e.Id,
-                Kind = "exam_window",
-                Title = e.Title,
-                ClassroomId = e.ClassroomId,
-                ClassroomName = ownedClasses[e.ClassroomId],
-                ScheduledAt = (e.OpenAt ?? e.CreatedAt).ToString("o"),
-                Status = e.Status
-            })
+            .Select(e => new { e.Id, e.Title, e.ClassroomId, e.OpenAt, e.CreatedAt, e.Status })
             .ToListAsync(ct);
+
+        var assignments = assignmentRows.Select(a => new TeacherScheduleItemDto
+        {
+            Id = a.Id,
+            Kind = "assignment_due",
+            Title = a.Title,
+            ClassroomId = a.ClassroomId,
+            ClassroomName = ownedClasses.GetValueOrDefault(a.ClassroomId, string.Empty),
+            ScheduledAt = a.DueDate.ToString("o"),
+            Status = a.Status
+        });
+
+        var exams = examRows.Select(e => new TeacherScheduleItemDto
+        {
+            Id = e.Id,
+            Kind = "exam_window",
+            Title = e.Title,
+            ClassroomId = e.ClassroomId,
+            ClassroomName = ownedClasses.GetValueOrDefault(e.ClassroomId, string.Empty),
+            ScheduledAt = (e.OpenAt ?? e.CreatedAt).ToString("o"),
+            Status = e.Status
+        });
 
         return assignments.Concat(exams)
             .OrderBy(i => i.ScheduledAt)
             .ToList();
+    }
+
+    private static bool IsSafeStorageUrl(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return false;
+        var trimmed = url.Trim();
+        if (trimmed.Contains("..")) return false;
+        if (trimmed.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase)) return true;
+        return Uri.TryCreate(trimmed, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps;
     }
 
     public async Task<TeacherAiAssistantResponseDto> RunAiAssistantAsync(TeacherAiAssistantRequestDto req, string teacherUserId, bool isAdmin, CancellationToken ct = default)

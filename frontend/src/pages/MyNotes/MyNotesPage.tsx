@@ -1,14 +1,15 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
+  AlertTriangle,
   ArrowUpRight,
   Bot,
   BookmarkCheck,
   Check,
   Edit2,
   FileText,
-  Filter,
   Layers,
   MessageSquare,
+  RotateCcw,
   Search,
   Trash2,
 } from 'lucide-react'
@@ -20,21 +21,25 @@ import { useSectionBookmarks } from '@/hooks/useSectionBookmarks'
 import { useStudyNotes } from '@/hooks/useStudyNotes'
 import type { SectionBookmark, StudyNote } from '@/types/studyNotes'
 import { learningContextService } from '@/services/learningContext.service'
+import { studentWorkspaceService, type StudentMistakeItem } from '@/services/studentWorkspace.service'
 import './MyNotesPage.css'
-
-const SUBJECT_FILTER_OPTIONS = [
-  { id: 'all', label: 'Tất cả môn' },
-  { id: 'math', label: 'Toán học' },
-  { id: 'physics', label: 'Vật lý' },
-  { id: 'chemistry', label: 'Hóa học' },
-  { id: 'english', label: 'Tiếng Anh' },
-]
 
 export function MyNotesPage() {
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState<'notes' | 'bookmarks'>('notes')
-  const [selectedSubject, setSelectedSubject] = useState<string>('all')
+  const [activeTab, setActiveTab] = useState<'mistakes' | 'bookmarks' | 'notes'>('mistakes')
   const [searchQuery, setSearchQuery] = useState<string>('')
+  const [mistakes, setMistakes] = useState<StudentMistakeItem[]>([])
+  const [resolvedIds, setResolvedIds] = useState<Record<string, boolean>>({})
+
+  useEffect(() => {
+    let active = true
+    Promise.resolve(studentWorkspaceService.getMistakes()).then((list) => {
+      if (active) setMistakes(Array.isArray(list) ? list : [])
+    }).catch(() => {
+      // Unauthenticated or empty
+    })
+    return () => { active = false }
+  }, [])
 
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState<string>('')
@@ -46,9 +51,6 @@ export function MyNotesPage() {
   // Filter notes
   const filteredNotes = useMemo(() => {
     return notes.filter((n: StudyNote) => {
-      if (selectedSubject !== 'all' && n.subjectId !== selectedSubject) {
-        return false
-      }
       if (!searchQuery.trim()) return true
       const q = searchQuery.toLowerCase()
       return (
@@ -58,14 +60,11 @@ export function MyNotesPage() {
         n.subjectName.toLowerCase().includes(q)
       )
     })
-  }, [notes, selectedSubject, searchQuery])
+  }, [notes, searchQuery])
 
   // Filter bookmarks
   const filteredBookmarks = useMemo(() => {
     return bookmarks.filter((bm: SectionBookmark) => {
-      if (selectedSubject !== 'all' && bm.subjectId !== selectedSubject) {
-        return false
-      }
       if (!searchQuery.trim()) return true
       const q = searchQuery.toLowerCase()
       return (
@@ -74,7 +73,7 @@ export function MyNotesPage() {
         bm.subjectName.toLowerCase().includes(q)
       )
     })
-  }, [bookmarks, selectedSubject, searchQuery])
+  }, [bookmarks, searchQuery])
 
   const handleOpenLesson = (
     subjectId: string,
@@ -159,12 +158,12 @@ export function MyNotesPage() {
           <button
             type="button"
             role="tab"
-            aria-selected={activeTab === 'notes'}
-            className={`main-tab-pill ${activeTab === 'notes' ? 'active' : ''}`}
-            onClick={() => setActiveTab('notes')}
+            aria-selected={activeTab === 'mistakes'}
+            className={`main-tab-pill ${activeTab === 'mistakes' ? 'active' : ''}`}
+            onClick={() => setActiveTab('mistakes')}
           >
-            <FileText size={15} aria-hidden />
-            <span>Ghi chú ({notes.length})</span>
+            <AlertTriangle size={15} aria-hidden />
+            <span>Bài tập sai ({mistakes.length})</span>
           </button>
           <button
             type="button"
@@ -174,7 +173,17 @@ export function MyNotesPage() {
             onClick={() => setActiveTab('bookmarks')}
           >
             <BookmarkCheck size={15} aria-hidden />
-            <span>Đoạn lưu ({bookmarks.length})</span>
+            <span>Nội dung đã lưu ({bookmarks.length})</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'notes'}
+            className={`main-tab-pill ${activeTab === 'notes' ? 'active' : ''}`}
+            onClick={() => setActiveTab('notes')}
+          >
+            <FileText size={15} aria-hidden />
+            <span>Ghi chú cá nhân ({notes.length})</span>
           </button>
         </div>
 
@@ -184,7 +193,7 @@ export function MyNotesPage() {
           <input
             type="text"
             className="notes-search-field"
-            placeholder="Tìm theo nội dung, tên bài học hoặc đề mục..."
+            placeholder="Tìm theo nội dung, câu sai hoặc bài học Toán 12..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             aria-label="Tìm kiếm trong sổ tay"
@@ -192,36 +201,57 @@ export function MyNotesPage() {
         </div>
       </div>
 
-      {/* Subject Filter Pills */}
-      <div className="notes-subject-pills" role="radiogroup" aria-label="Lọc theo môn học">
-        <span className="subject-filter-label">
-          <Filter size={13} aria-hidden /> Môn học:
-        </span>
-        {SUBJECT_FILTER_OPTIONS.map((opt) => (
-          <button
-            key={opt.id}
-            type="button"
-            className={`subject-chip-btn ${selectedSubject === opt.id ? 'active' : ''}`}
-            onClick={() => setSelectedSubject(opt.id)}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
-
       {/* Content Area */}
       <main className="notes-grid-container">
-        {activeTab === 'notes' ? (
+        {activeTab === 'mistakes' ? (
+          mistakes.length === 0 ? (
+            <div className="notes-empty-panel">
+              <AlertTriangle size={36} className="empty-icon" aria-hidden />
+              <h3>Chưa có bài tập sai nào</h3>
+              <p>Các câu hỏi bạn trả lời sai khi luyện tập hoặc kiểm tra Toán 12 sẽ được tự động lưu tại đây để ôn lại.</p>
+              <Button variant="primary" size="sm" onClick={() => navigate('/practice')}>
+                Luyện tập Toán 12
+              </Button>
+            </div>
+          ) : (
+            <div className="notes-cards-grid">
+              {mistakes.filter((m) => !searchQuery.trim() || m.prompt.toLowerCase().includes(searchQuery.toLowerCase())).map((m) => (
+                <article key={m.responseId} className="note-notebook-card">
+                  <div className="note-card-header">
+                    <span className="note-subject-tag">Sai {m.wrongCount} lần</span>
+                    {resolvedIds[m.responseId] && <span className="note-subject-tag">Đã khắc phục</span>}
+                  </div>
+                  <p className="note-card-body"><strong>{m.prompt}</strong></p>
+                  <div style={{ fontSize: 13, marginBottom: 8 }}>
+                    <div>Đáp án của bạn: <code>{m.studentAnswer || '—'}</code></div>
+                    <div>Đáp án đúng: <code>{m.correctAnswer || '—'}</code></div>
+                    {m.explanation && <div style={{ marginTop: 4, color: '#475569' }}>{m.explanation}</div>}
+                  </div>
+                  <div className="note-card-footer">
+                    <Button variant="outline" size="sm" onClick={() => navigate('/practice')}>
+                      <RotateCcw size={13} /> Làm lại
+                    </Button>
+                    {!resolvedIds[m.responseId] && (
+                      <Button variant="primary" size="sm" onClick={() => setResolvedIds((prev) => ({ ...prev, [m.responseId]: true }))}>
+                        <Check size={13} /> Đánh dấu đã khắc phục
+                      </Button>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
+          )
+        ) : activeTab === 'notes' ? (
           filteredNotes.length === 0 ? (
             <div className="notes-empty-panel">
               <MessageSquare size={36} className="empty-icon" aria-hidden />
               <h3 className="empty-title">
-                {searchQuery || selectedSubject !== 'all'
+                {searchQuery
                   ? 'Không tìm thấy ghi chú phù hợp'
                   : 'Bạn chưa có ghi chú nào'}
               </h3>
               <p className="empty-desc">
-                {searchQuery || selectedSubject !== 'all'
+                {searchQuery
                   ? 'Thử xóa bộ lọc hoặc tìm kiếm với từ khóa khác.'
                   : 'Trong quá trình đọc bài giảng, hãy bấm "Ghi chú" để lưu lại những điểm quan trọng.'}
               </p>
@@ -331,12 +361,12 @@ export function MyNotesPage() {
             <div className="notes-empty-panel">
               <BookmarkCheck size={36} className="empty-icon" aria-hidden />
               <h3 className="empty-title">
-                {searchQuery || selectedSubject !== 'all'
+                {searchQuery
                   ? 'Không tìm thấy đoạn kiến thức phù hợp'
                   : 'Bạn chưa lưu đoạn kiến thức nào'}
               </h3>
               <p className="empty-desc">
-                {searchQuery || selectedSubject !== 'all'
+                {searchQuery
                   ? 'Thử xóa bộ lọc để xem lại tất cả các đoạn đã lưu.'
                   : 'Bấm biểu tượng "Lưu đoạn" bên cạnh các tiêu đề kiến thức trong bài để lưu lại tại đây.'}
               </p>

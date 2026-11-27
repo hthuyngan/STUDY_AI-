@@ -58,26 +58,18 @@ export function DashboardPage() {
           </div>
         </div>
 
-        {/* Public Subjects Exploration */}
+        {/* Public Subjects Exploration — Math 12 only */}
         <div className="guest-subjects-section">
-          <h2 className="guest-section-title">Chương trình môn Toán GDPT 2018</h2>
+          <h2 className="guest-section-title">Chương trình Toán lớp 12</h2>
           <div className="guest-subjects-grid">
-            <div className="guest-subject-card" onClick={() => navigate('/subjects')}>
-              <span className="guest-subject-icon">📐</span>
-              <h3>Toán học 10</h3>
-              <p>Mệnh đề, tập hợp, bất phương trình bậc hai, hệ thức lượng trong tam giác.</p>
+            <div className="guest-subject-card" onClick={() => navigate('/subjects/math')}>
+              <h3>Chương 1–3: Giải tích & Vectơ không gian</h3>
+              <p>Ứng dụng đạo hàm khảo sát hàm số, vectơ Oxyz và mẫu số liệu ghép nhóm.</p>
               <span className="guest-explore-link">Khám phá chương trình →</span>
             </div>
-            <div className="guest-subject-card" onClick={() => navigate('/subjects')}>
-              <span className="guest-subject-icon">📐</span>
-              <h3>Toán học 11</h3>
-              <p>Hàm số lượng giác, dãy số, cấp số cộng, giới hạn, đạo hàm và hình học không gian.</p>
-              <span className="guest-explore-link">Khám phá chương trình →</span>
-            </div>
-            <div className="guest-subject-card" onClick={() => navigate('/subjects')}>
-              <span className="guest-subject-icon">📐</span>
-              <h3>Toán học 12</h3>
-              <p>Ứng dụng đạo hàm khảo sát hàm số, nguyên hàm, tích phân, tọa độ Oxyz.</p>
+            <div className="guest-subject-card" onClick={() => navigate('/subjects/math')}>
+              <h3>Chương 4–6: Tích phân, Oxyz & Xác suất</h3>
+              <p>Nguyên hàm, tích phân, phương trình mặt phẳng/đường thẳng/mặt cầu và xác suất có điều kiện.</p>
               <span className="guest-explore-link">Khám phá chương trình →</span>
             </div>
           </div>
@@ -146,7 +138,7 @@ export function DashboardPage() {
             lessons={data.continueLessons}
             onContinueLesson={(lessonId, sectionId) => {
               const lesson = data.continueLessons.find((l) => l.id === lessonId)
-              const defaultSubjectId = resolveSubjectId({ grade: user?.grade }) || 'sub_math10'
+              const defaultSubjectId = resolveSubjectId({ grade: '12' }) || 'sub_math12'
               const subjectId = lesson?.subjectId || defaultSubjectId
               const hash = sectionId ? `#${sectionId}` : ''
               navigate(`/subjects/${subjectId}/lessons/${lessonId}${hash}`)

@@ -342,7 +342,10 @@ public class ControllerRouteDiscoveryTests
             "GET api/v1/teacher/workspace/announcements",
             "POST api/v1/teacher/workspace/announcements",
             "GET api/v1/teacher/workspace/schedule",
-            "POST api/v1/teacher/workspace/ai-assistant"
+            "POST api/v1/teacher/workspace/ai-assistant",
+            "GET api/v1/learner/workspace/mistakes",
+            "GET api/v1/learner/workspace/classrooms",
+            "POST api/v1/learner/workspace/classrooms/join"
         };
 
         // Verify total registered count is exactly 236 baseline + 5 approved extensions
