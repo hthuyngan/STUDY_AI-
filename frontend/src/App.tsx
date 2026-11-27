@@ -16,6 +16,9 @@ const LoginPage = lazy(() =>
 const RegisterPage = lazy(() =>
   import('@/pages/Auth/RegisterPage').then((m) => ({ default: m.RegisterPage }))
 )
+const SupportCenterPage = lazy(() =>
+  import('@/pages/Support/SupportCenterPage').then((m) => ({ default: m.SupportCenterPage }))
+)
 import { UnauthorizedPage } from '@/pages/Error/UnauthorizedPage'
 
 function App() {
@@ -58,9 +61,16 @@ function App() {
             {TeacherRoutes()}
             {ContentRoutes()}
 
-            {/* Legacy Support Workspace Redirects */}
-            <Route path="/support/*" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/support" element={<Navigate to="/dashboard" replace />} />
+            {/* User Support Center */}
+            <Route
+              path="/support"
+              element={
+                <Suspense fallback={<RouteLoadingFallback />}>
+                  <SupportCenterPage />
+                </Suspense>
+              }
+            />
+            <Route path="/support/*" element={<Navigate to="/support" replace />} />
 
             {/* Learner Workspace (Existing AppShell) */}
             {LearnerRoutes()}

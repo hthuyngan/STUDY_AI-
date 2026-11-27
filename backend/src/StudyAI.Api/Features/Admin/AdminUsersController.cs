@@ -26,9 +26,11 @@ public class AdminUsersController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         [FromQuery] bool includeDeleted = false,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] string? sortOrder = null,
         CancellationToken ct = default)
     {
-        var result = await _usersService.ListUsersAsync(role, status, search, page, pageSize, includeDeleted, ct);
+        var result = await _usersService.ListUsersAsync(role, status, search, page, pageSize, includeDeleted, sortBy, sortOrder, ct);
         return Ok(result);
     }
 

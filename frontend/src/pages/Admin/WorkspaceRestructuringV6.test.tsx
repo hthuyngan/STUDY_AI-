@@ -158,7 +158,7 @@ describe('STUDY_AI Workspace Restructuring V6 Suite', () => {
       })
     })
 
-    it('redirects /admin/tickets to /admin', async () => {
+    it('renders AdminTicketsPage at /admin/tickets', async () => {
       render(
         <MemoryRouter initialEntries={['/admin/tickets']}>
           <Routes>
@@ -168,7 +168,7 @@ describe('STUDY_AI Workspace Restructuring V6 Suite', () => {
       )
 
       await waitFor(() => {
-        expect(screen.getByRole('heading', { name: /tổng quan hệ thống/i })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: /trung tâm hỗ trợ \(tickets\)/i })).toBeInTheDocument()
       })
     })
 

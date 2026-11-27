@@ -102,6 +102,8 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
     public DbSet<LessonSkill> LessonSkills => Set<LessonSkill>();
     public DbSet<LessonPrerequisite> LessonPrerequisites => Set<LessonPrerequisite>();
     public DbSet<QuestionSkill> QuestionSkills => Set<QuestionSkill>();
+    public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
+    public DbSet<SupportTicketMessage> SupportTicketMessages => Set<SupportTicketMessage>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -1511,6 +1513,59 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
             entity.HasOne(e => e.Skill)
                 .WithMany(s => s.QuestionLinks)
                 .HasForeignKey(e => e.SkillId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<SupportTicket>(entity =>
+        {
+            entity.ToTable("support_tickets");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.TicketCode).HasMaxLength(64).IsRequired();
+            entity.HasIndex(e => e.TicketCode).IsUnique();
+            entity.Property(e => e.UserId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.Subject).HasMaxLength(200).IsRequired();
+            entity.Property(e => e.Category).HasMaxLength(40).IsRequired();
+            entity.Property(e => e.Priority).HasMaxLength(20).IsRequired();
+            entity.Property(e => e.Status).HasMaxLength(32).IsRequired();
+            entity.Property(e => e.AssignedToUserId).HasMaxLength(64);
+            entity.HasIndex(e => new { e.UserId, e.Status });
+            entity.HasIndex(e => new { e.Status, e.Priority, e.UpdatedAt });
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.AssignedToUser)
+                .WithMany()
+                .HasForeignKey(e => e.AssignedToUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<SupportTicketMessage>(entity =>
+        {
+            entity.ToTable("support_ticket_messages");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.TicketId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.SenderUserId).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.SenderRole).HasMaxLength(32).IsRequired();
+            entity.Property(e => e.Body).HasMaxLength(4000).IsRequired();
+            entity.Property(e => e.ClientMessageId).HasMaxLength(64);
+            entity.HasIndex(e => new { e.TicketId, e.CreatedAt });
+            entity.HasIndex(e => new { e.TicketId, e.SenderUserId, e.ClientMessageId })
+                .IsUnique()
+                .HasFilter("[ClientMessageId] IS NOT NULL");
+
+            entity.HasOne(e => e.Ticket)
+                .WithMany(t => t.Messages)
+                .HasForeignKey(e => e.TicketId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.SenderUser)
+                .WithMany()
+                .HasForeignKey(e => e.SenderUserId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
     }

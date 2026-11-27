@@ -45,6 +45,8 @@ public class AdminUsersService : IAdminUsersService
         int page,
         int pageSize,
         bool includeDeleted,
+        string? sortBy = null,
+        string? sortOrder = null,
         CancellationToken ct = default)
     {
         if (page < 1) page = 1;
@@ -79,9 +81,20 @@ public class AdminUsersService : IAdminUsersService
                 u.Id.ToLower().Contains(term));
         }
 
+        bool isAsc = string.Equals(sortOrder, "asc", StringComparison.OrdinalIgnoreCase);
+        var normalizedSort = (sortBy ?? "createdAt").Trim().ToLowerInvariant();
+        query = normalizedSort switch
+        {
+            "displayname" or "name" => isAsc ? query.OrderBy(u => u.DisplayName).ThenBy(u => u.Id) : query.OrderByDescending(u => u.DisplayName).ThenByDescending(u => u.Id),
+            "email" => isAsc ? query.OrderBy(u => u.Email).ThenBy(u => u.Id) : query.OrderByDescending(u => u.Email).ThenByDescending(u => u.Id),
+            "role" => isAsc ? query.OrderBy(u => u.Role).ThenBy(u => u.Id) : query.OrderByDescending(u => u.Role).ThenByDescending(u => u.Id),
+            "status" => isAsc ? query.OrderBy(u => u.Status).ThenBy(u => u.Id) : query.OrderByDescending(u => u.Status).ThenByDescending(u => u.Id),
+            "lastloginat" => isAsc ? query.OrderBy(u => u.LastLoginAt).ThenBy(u => u.Id) : query.OrderByDescending(u => u.LastLoginAt).ThenByDescending(u => u.Id),
+            _ => isAsc ? query.OrderBy(u => u.CreatedAt).ThenBy(u => u.Id) : query.OrderByDescending(u => u.CreatedAt).ThenByDescending(u => u.Id),
+        };
+
         var total = await query.CountAsync(ct);
         var users = await query
-            .OrderByDescending(u => u.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct);
@@ -343,6 +356,11 @@ public class AdminUsersService : IAdminUsersService
         user.Role = newRole;
         user.UpdatedAt = _clock.UtcNow;
 
+        if (!string.Equals(oldRole, newRole, StringComparison.OrdinalIgnoreCase))
+        {
+            await RevokeUserSessionsAsync(userId, currentUserId, ct);
+        }
+
         await _db.SaveChangesAsync(ct);
 
         await _auditWriter.WriteStaffAuditAsync(
@@ -493,13 +511,14 @@ public class AdminUsersService : IAdminUsersService
         {
             roles = new[]
             {
-                new { role = "admin", name = "Quản trị viên", policy = "AdminOnly", description = "Toàn quyền quản trị hệ thống, người dùng, hạ tầng, báo cáo." },
-                new { role = "teacher", name = "Giáo viên", policy = "StaffOnly", description = "Quản lý lớp học, phân công bài tập, chấm điểm và can thiệp sư phạm." },
-                new { role = "content", name = "Biên tập viên", policy = "ContentStaff", description = "Biên soạn chương trình, bài giảng, video, duyệt và xuất bản học liệu." },
-                new { role = "learner", name = "Học viên", policy = "LearnerOnly", description = "Tham gia học tập theo lộ trình, làm bài trắc nghiệm và tương tác gia sư AI." }
+                new { role = "admin", name = "Quản trị viên", policy = "AdminOnly", isCoreProtected = true, description = "Toàn quyền quản trị hệ thống, người dùng, hạ tầng, báo cáo.", permissions = RolePermissionMap.GetPermissionsForRole("admin") },
+                new { role = "teacher", name = "Giáo viên", policy = "StaffOnly", isCoreProtected = false, description = "Quản lý lớp học, phân công bài tập, chấm điểm và can thiệp sư phạm.", permissions = RolePermissionMap.GetPermissionsForRole("teacher") },
+                new { role = "content", name = "Biên tập viên", policy = "ContentStaff", isCoreProtected = false, description = "Biên soạn chương trình, bài giảng, video, duyệt và xuất bản học liệu.", permissions = RolePermissionMap.GetPermissionsForRole("content") },
+                new { role = "support", name = "Hỗ trợ", policy = "SupportStaff", isCoreProtected = false, description = "Tiếp nhận, phân loại và xử lý yêu cầu hỗ trợ người dùng.", permissions = RolePermissionMap.GetPermissionsForRole("support") },
+                new { role = "learner", name = "Học viên", policy = "LearnerOnly", isCoreProtected = false, description = "Tham gia học tập theo lộ trình, làm bài trắc nghiệm và tương tác gia sư AI.", permissions = RolePermissionMap.GetPermissionsForRole("learner") }
             },
             isDynamicConfigEnabled = false,
-            message = "Hệ thống STUDY_AI áp dụng kiến trúc phân quyền tĩnh dựa trên chính sách Backend (RBAC). Mọi ma trận quyền được hiển thị chỉ đọc."
+            message = "Hệ thống STUDY_AI áp dụng kiến trúc phân quyền RBAC định nghĩa tại Backend. Mọi thay đổi vai trò sẽ tự động thu hồi phiên đăng nhập cũ."
         };
     }
 

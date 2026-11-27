@@ -146,11 +146,12 @@ export const AdminRolesPage: React.FC = () => {
         <Lock size={18} className="sandbox-notice-icon" style={{ color: '#0284c7' }} />
         <div>
           <div className="sandbox-notice-title" style={{ color: '#0369a1' }}>
-            Chính sách phân quyền bảo mật cấp mã nguồn (Code-Defined RBAC)
+            Chính sách phân quyền bảo mật cấp mã nguồn (Code-Defined RBAC) & Bảo vệ quản trị cốt lõi
           </div>
           <div className="sandbox-notice-desc">
-            Quyền hạn của từng vai trò được định nghĩa cố định trong mã nguồn và kiểm soát nghiêm ngặt bởi ASP.NET Core Authorize Policies trên máy chủ Backend.
-            Quản trị viên có thể gán hoặc thay đổi vai trò tài khoản tại trang <strong>Quản lý người dùng</strong>.
+            Quyền hạn được thực thi nghiêm ngặt tại Backend qua ASP.NET Core Policies (<code>AdminOnly</code>, <code>StaffOnly</code>, <code>ContentStaff</code>, <code>LearnerOnly</code>).
+            <strong> Phân biệt Role-level vs Ownership:</strong> Quyền theo vai trò (RBAC) quyết định nhóm chức năng được phép truy cập, còn quyền sở hữu tài nguyên (Ownership / Resource-level) kiểm soát học viên chỉ xem được dữ liệu, bài làm và ticket của chính mình, giáo viên chỉ quản lý lớp được phân công.
+            Hệ thống chặn tự hạ quyền/tự khóa quản trị viên cuối cùng và tự động thu hồi phiên đăng nhập (<code>RefreshSessions</code>) khi thay đổi vai trò.
           </div>
         </div>
       </div>
@@ -195,39 +196,58 @@ export const AdminRolesPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {PERMISSION_ROWS.map((row) => (
-                <tr key={row.key}>
-                  <td>
-                    <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>
-                      {row.label}
-                    </div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                      {row.description}
-                    </div>
-                  </td>
-                  {ROLES.map((r) => {
-                    const allowed = (ROLE_PERMISSIONS[r] || []).includes(row.key)
-                    return (
-                      <td key={r} style={{ textAlign: 'center' }}>
-                        {allowed ? (
-                          <span
-                            className="role-perm-check"
-                            aria-label={`Vai trò ${ROLE_LABELS[r]} có quyền ${row.label}`}
-                          >
-                            <Check size={14} />
-                          </span>
-                        ) : (
-                          <span
-                            className="role-perm-cross"
-                            aria-label={`Vai trò ${ROLE_LABELS[r]} không có quyền ${row.label}`}
-                          >
-                            <X size={12} />
-                          </span>
-                        )}
+              {(['Quản trị & Hệ thống', 'Giảng dạy & Lớp học', 'Nội dung & Giáo trình'] as const).map((groupName) => (
+                <React.Fragment key={groupName}>
+                  <tr style={{ backgroundColor: '#F8FAFC' }}>
+                    <td
+                      colSpan={ROLES.length + 1}
+                      style={{
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                        color: '#475569',
+                        padding: '8px 16px',
+                      }}
+                    >
+                      {groupName}
+                    </td>
+                  </tr>
+                  {PERMISSION_ROWS.filter((row) => row.category === groupName).map((row) => (
+                    <tr key={row.key}>
+                      <td>
+                        <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>
+                          {row.label}
+                        </div>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                          {row.description}
+                        </div>
                       </td>
-                    )
-                  })}
-                </tr>
+                      {ROLES.map((r) => {
+                        const allowed = (ROLE_PERMISSIONS[r] || []).includes(row.key)
+                        return (
+                          <td key={r} style={{ textAlign: 'center' }}>
+                            {allowed ? (
+                              <span
+                                className="role-perm-check"
+                                aria-label={`Vai trò ${ROLE_LABELS[r]} có quyền ${row.label}`}
+                              >
+                                <Check size={14} />
+                              </span>
+                            ) : (
+                              <span
+                                className="role-perm-cross"
+                                aria-label={`Vai trò ${ROLE_LABELS[r]} không có quyền ${row.label}`}
+                              >
+                                <X size={12} />
+                              </span>
+                            )}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  ))}
+                </React.Fragment>
               ))}
             </tbody>
           </table>

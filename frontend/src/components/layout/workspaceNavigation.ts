@@ -7,6 +7,8 @@ import {
   Bell,
   BookOpen,
   CheckSquare,
+  Cpu,
+  CreditCard,
   FileCheck,
   FileText,
   GraduationCap,
@@ -14,6 +16,7 @@ import {
   History,
   Layers,
   LayoutDashboard,
+  MessageSquare,
   Settings,
   Shield,
   Sliders,
@@ -59,7 +62,7 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
         items: [
           {
             id: 'admin-dashboard',
-            label: 'Bảng điều khiển',
+            label: 'Dashboard',
             path: '/admin',
             icon: LayoutDashboard,
           },
@@ -67,11 +70,11 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
       },
       {
         id: 'users-staff',
-        title: 'NGƯỜI DÙNG & NHÂN SỰ',
+        title: 'NGƯỜI DÙNG',
         items: [
           {
             id: 'admin-users',
-            label: 'Danh sách người dùng',
+            label: 'Quản lý người dùng',
             path: '/admin/users',
             icon: Users,
           },
@@ -83,40 +86,89 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
           },
           {
             id: 'admin-roles',
-            label: 'Phân quyền & Vai trò',
+            label: 'Vai trò và phân quyền',
             path: '/admin/roles',
             icon: Shield,
           },
         ],
       },
       {
-        id: 'monitoring',
-        title: 'GIÁM SÁT & BÁO CÁO',
+        id: 'learning',
+        title: 'HỌC TẬP',
         items: [
           {
+            id: 'admin-curriculum',
+            label: 'Chương trình học',
+            path: '/content/subjects',
+            icon: BookOpen,
+          },
+          {
+            id: 'admin-question-bank',
+            label: 'Ngân hàng câu hỏi',
+            path: '/content/question-bank',
+            icon: HelpCircle,
+          },
+          {
             id: 'admin-content-monitor',
-            label: 'Giám sát nội dung',
+            label: 'Kiểm duyệt nội dung',
             path: '/admin/content-monitor',
             icon: FileCheck,
-            badge: 2,
+          },
+        ],
+      },
+      {
+        id: 'services',
+        title: 'DỊCH VỤ',
+        items: [
+          {
+            id: 'admin-api-management',
+            label: 'Quản lý API',
+            path: '/admin/api-management',
+            icon: Cpu,
+            badge: 'Mẫu',
+          },
+          {
+            id: 'admin-subscriptions',
+            label: 'Gói đăng ký',
+            path: '/admin/subscriptions',
+            icon: CreditCard,
+            badge: 'Mẫu',
+          },
+          {
+            id: 'admin-tickets',
+            label: 'Hỗ trợ',
+            path: '/admin/tickets',
+            icon: MessageSquare,
+          },
+        ],
+      },
+      {
+        id: 'system',
+        title: 'HỆ THỐNG',
+        items: [
+          {
+            id: 'admin-audit-logs',
+            label: 'Nhật ký hoạt động',
+            path: '/admin/audit-logs',
+            icon: History,
+          },
+          {
+            id: 'admin-system',
+            label: 'Giám sát',
+            path: '/admin/system',
+            icon: Sliders,
+          },
+          {
+            id: 'admin-operations',
+            label: 'Vận hành AI & QA',
+            path: '/admin/operations',
+            icon: Activity,
           },
           {
             id: 'admin-reports',
             label: 'Báo cáo tổng hợp',
             path: '/admin/reports',
             icon: BarChart3,
-          },
-        ],
-      },
-      {
-        id: 'operations',
-        title: 'VẬN HÀNH HỆ THỐNG',
-        items: [
-          {
-            id: 'admin-operations',
-            label: 'Trung tâm Vận hành AI & QA',
-            path: '/admin/operations',
-            icon: Activity,
           },
           {
             id: 'admin-announcements',
@@ -125,20 +177,8 @@ export const WORKSPACE_CONFIGS: Record<Exclude<UserRole, 'learner'>, WorkspaceCo
             icon: Bell,
           },
           {
-            id: 'admin-audit-logs',
-            label: 'Nhật ký quản trị',
-            path: '/admin/audit-logs',
-            icon: Activity,
-          },
-          {
-            id: 'admin-system',
-            label: 'Trạng thái hệ thống',
-            path: '/admin/system',
-            icon: Sliders,
-          },
-          {
             id: 'admin-settings',
-            label: 'Thiết lập vận hành',
+            label: 'Cài đặt',
             path: '/admin/settings',
             icon: Settings,
           },

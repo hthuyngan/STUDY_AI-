@@ -13,7 +13,7 @@ describe('adminService (API & Real Backend Architecture)', () => {
 
   it('calculates metrics properly based on backend dashboard and health responses', async () => {
     vi.spyOn(apiClient, 'get').mockImplementation(async (url: string) => {
-      if (url === '/api/v1/admin/dashboard') {
+      if (url.startsWith('/api/v1/admin/dashboard')) {
         return {
           metrics: {
             totalUsers: 150,

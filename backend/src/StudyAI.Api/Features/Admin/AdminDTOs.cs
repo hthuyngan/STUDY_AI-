@@ -100,9 +100,24 @@ public class AdminMetricsDto
     public int SupportCount { get; set; }
     public int AdminsCount { get; set; }
     public int RecentNewUsersCount { get; set; }
+    public int NewUsersInRange { get; set; }
+    public int ActiveLearnersInRange { get; set; }
     public int CompletedLessonsTotal { get; set; }
+    public int PracticeSessionsInRange { get; set; }
+    public int AssessmentAttemptsInRange { get; set; }
+    public int AiRequestsInRange { get; set; }
+    public long AiTotalTokensInRange { get; set; }
+    public int AiErrorCountInRange { get; set; }
+    public double AiErrorRatePercent { get; set; }
+    public int? OpenSupportTicketsCount { get; set; }
+    public bool SubscriptionsModuleAvailable { get; set; }
+    public int? ActiveSubscriptionsCount { get; set; }
+    public decimal? ActualRevenueVnd { get; set; }
     public int StaffAccounts { get; set; }
     public string SystemStatus { get; set; } = "healthy";
+    public string Timezone { get; set; } = "Asia/Bangkok";
+    public string RangeStartUtc { get; set; } = string.Empty;
+    public string RangeEndUtc { get; set; } = string.Empty;
 }
 
 public class AdminAttentionItemDto
@@ -129,6 +144,11 @@ public class AnalyticsTrendPointDto
     public int NewUsers { get; set; }
     public int CompletedLessons { get; set; }
     public int LessonsCompleted { get; set; }
+    public int PracticeSessions { get; set; }
+    public int AssessmentAttempts { get; set; }
+    public int AiRequests { get; set; }
+    public long AiTokens { get; set; }
+    public int AiErrors { get; set; }
 }
 
 public class UserDistributionItemDto

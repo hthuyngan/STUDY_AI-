@@ -20,6 +20,8 @@ export function useAdminDashboard(initialRange: TimeRangeFilter = '7d') {
   const [attentionItems, setAttentionItems] = useState<AdminAttentionItem[]>([])
   const [activities, setActivities] = useState<AdminActivityItem[]>([])
   const [timeRange, setTimeRange] = useState<TimeRangeFilter>(initialRange)
+  const [customFrom, setCustomFrom] = useState<string>('')
+  const [customTo, setCustomTo] = useState<string>('')
   const [trends, setTrends] = useState<AnalyticsTrendPoint[]>([])
   const [roleDistribution, setRoleDistribution] = useState<UserDistributionItem[]>([])
   const [statusDistribution, setStatusDistribution] = useState<UserDistributionItem[]>([])
@@ -31,10 +33,10 @@ export function useAdminDashboard(initialRange: TimeRangeFilter = '7d') {
     setError(null)
     try {
       const [m, att, act, analytics] = await Promise.all([
-        adminService.getMetrics(),
+        adminService.getMetrics(timeRange, customFrom || undefined, customTo || undefined),
         adminService.getAttentionItems(),
         adminService.getRecentActivities(),
-        adminService.getAnalytics(timeRange),
+        adminService.getAnalytics(timeRange, customFrom || undefined, customTo || undefined),
       ])
       setMetrics(m)
       setAttentionItems(att)
@@ -47,15 +49,18 @@ export function useAdminDashboard(initialRange: TimeRangeFilter = '7d') {
     } finally {
       setLoading(false)
     }
-  }, [timeRange])
+  }, [timeRange, customFrom, customTo])
 
   useEffect(() => {
+    if (timeRange === 'custom' && (!customFrom || !customTo)) {
+      return
+    }
     let isMounted = true
     Promise.all([
-      adminService.getMetrics(),
+      adminService.getMetrics(timeRange, customFrom || undefined, customTo || undefined),
       adminService.getAttentionItems(),
       adminService.getRecentActivities(),
-      adminService.getAnalytics(timeRange),
+      adminService.getAnalytics(timeRange, customFrom || undefined, customTo || undefined),
     ])
       .then(([m, att, act, analytics]) => {
         if (!isMounted) return
@@ -76,7 +81,7 @@ export function useAdminDashboard(initialRange: TimeRangeFilter = '7d') {
     return () => {
       isMounted = false
     }
-  }, [timeRange])
+  }, [timeRange, customFrom, customTo])
 
   return {
     metrics,
@@ -84,6 +89,10 @@ export function useAdminDashboard(initialRange: TimeRangeFilter = '7d') {
     activities,
     timeRange,
     setTimeRange,
+    customFrom,
+    setCustomFrom,
+    customTo,
+    setCustomTo,
     trends,
     roleDistribution,
     statusDistribution,
@@ -103,9 +112,11 @@ export function useAdminUsers(initialSearch = '', initialRole = 'all', initialSt
   const [roleFilter, setRoleFilter] = useState(initialRole)
   const [statusFilter, setStatusFilter] = useState(initialStatus)
 
-  // Pagination state
+  // Pagination & Sorting state
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
+  const [sortBy, setSortBy] = useState<string>('createdAt')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
 
   // Selection state
   const [selectedIds, setSelectedIds] = useState<string[]>([])
@@ -114,7 +125,7 @@ export function useAdminUsers(initialSearch = '', initialRole = 'all', initialSt
     setLoading(true)
     setError(null)
     try {
-      const data = await adminService.getUsersPaginated(search, roleFilter, statusFilter, page, pageSize)
+      const data = await adminService.getUsersPaginated(search, roleFilter, statusFilter, page, pageSize, sortBy, sortOrder)
       setUsers(data.items)
       setPaginatedItems(data.items)
       setBackendTotal(data.total)
@@ -123,7 +134,7 @@ export function useAdminUsers(initialSearch = '', initialRole = 'all', initialSt
     } finally {
       setLoading(false)
     }
-  }, [search, roleFilter, statusFilter, page, pageSize])
+  }, [search, roleFilter, statusFilter, page, pageSize, sortBy, sortOrder])
 
   useEffect(() => {
     let isMounted = true
@@ -302,6 +313,17 @@ export function useAdminUsers(initialSearch = '', initialRole = 'all', initialSt
     setRoleFilter: handleSetRoleFilter,
     statusFilter,
     setStatusFilter: handleSetStatusFilter,
+    sortBy,
+    sortOrder,
+    handleSort: (field: string) => {
+      if (sortBy === field) {
+        setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))
+      } else {
+        setSortBy(field)
+        setSortOrder('asc')
+      }
+      setPage(1)
+    },
     createUser,
     editUser,
     changeUserRole,
