@@ -84,6 +84,7 @@ export const AdminTicketsPage: React.FC = () => {
       const detail = await supportService.getAdminTicket(ticketId)
       if (ticketRequestSeqRef.current !== reqSeq) return
       setSelectedTicket(detail)
+      setReplyBody('')
       setReplyNextStatus('')
     } catch (err) {
       if (ticketRequestSeqRef.current !== reqSeq) return

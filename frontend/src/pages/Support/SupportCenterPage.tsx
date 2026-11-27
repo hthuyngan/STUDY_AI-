@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { MessageSquare, Plus, Send } from 'lucide-react'
 import {
   AdminButton,
@@ -29,6 +29,7 @@ export const SupportCenterPage: React.FC = () => {
   const [replyBody, setReplyBody] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [feedback, setFeedback] = useState<string | null>(null)
+  const detailSeqRef = useRef(0)
 
   const loadTickets = useCallback(async () => {
     setLoading(true)
@@ -48,10 +49,14 @@ export const SupportCenterPage: React.FC = () => {
   }, [loadTickets])
 
   const handleOpen = async (ticketId: string) => {
+    const reqSeq = ++detailSeqRef.current
     try {
       const detail = await supportService.getMyTicket(ticketId)
+      if (detailSeqRef.current !== reqSeq) return
       setSelected(detail)
+      setReplyBody('')
     } catch (err) {
+      if (detailSeqRef.current !== reqSeq) return
       setFeedback(err instanceof Error ? err.message : 'Không thể mở chi tiết yêu cầu.')
     }
   }

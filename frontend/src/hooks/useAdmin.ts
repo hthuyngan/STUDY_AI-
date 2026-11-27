@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { adminService } from '@/services/admin.service'
 import type {
   AccountStatus,
@@ -27,8 +27,13 @@ export function useAdminDashboard(initialRange: TimeRangeFilter = '7d') {
   const [statusDistribution, setStatusDistribution] = useState<UserDistributionItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const requestSeqRef = useRef(0)
 
   const loadData = useCallback(async () => {
+    if (timeRange === 'custom' && (!customFrom || !customTo)) {
+      return
+    }
+    const reqSeq = ++requestSeqRef.current
     setLoading(true)
     setError(null)
     try {
@@ -38,6 +43,7 @@ export function useAdminDashboard(initialRange: TimeRangeFilter = '7d') {
         adminService.getRecentActivities(),
         adminService.getAnalytics(timeRange, customFrom || undefined, customTo || undefined),
       ])
+      if (requestSeqRef.current !== reqSeq) return
       setMetrics(m)
       setAttentionItems(att)
       setActivities(act)
@@ -45,43 +51,18 @@ export function useAdminDashboard(initialRange: TimeRangeFilter = '7d') {
       setRoleDistribution(analytics.roleDistribution)
       setStatusDistribution(analytics.statusDistribution)
     } catch (err: unknown) {
+      if (requestSeqRef.current !== reqSeq) return
       setError(err instanceof Error ? err.message : 'Không thể tải dữ liệu quản trị')
     } finally {
-      setLoading(false)
+      if (requestSeqRef.current === reqSeq) {
+        setLoading(false)
+      }
     }
   }, [timeRange, customFrom, customTo])
 
   useEffect(() => {
-    if (timeRange === 'custom' && (!customFrom || !customTo)) {
-      return
-    }
-    let isMounted = true
-    Promise.all([
-      adminService.getMetrics(timeRange, customFrom || undefined, customTo || undefined),
-      adminService.getAttentionItems(),
-      adminService.getRecentActivities(),
-      adminService.getAnalytics(timeRange, customFrom || undefined, customTo || undefined),
-    ])
-      .then(([m, att, act, analytics]) => {
-        if (!isMounted) return
-        setMetrics(m)
-        setAttentionItems(att)
-        setActivities(act)
-        setTrends(analytics.trends)
-        setRoleDistribution(analytics.roleDistribution)
-        setStatusDistribution(analytics.statusDistribution)
-        setLoading(false)
-      })
-      .catch((err: unknown) => {
-        if (!isMounted) return
-        setError(err instanceof Error ? err.message : 'Không thể tải dữ liệu quản trị')
-        setLoading(false)
-      })
-
-    return () => {
-      isMounted = false
-    }
-  }, [timeRange, customFrom, customTo])
+    void loadData()
+  }, [loadData])
 
   return {
     metrics,

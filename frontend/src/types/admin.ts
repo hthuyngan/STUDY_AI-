@@ -73,10 +73,10 @@ export interface AdminSystemMetrics {
   completedLessonsTotal?: number
   practiceSessionsInRange?: number
   assessmentAttemptsInRange?: number
-  aiRequestsInRange?: number
-  aiTotalTokensInRange?: number
-  aiErrorCountInRange?: number
-  aiErrorRatePercent?: number
+  aiRequestsInRange?: number | null
+  aiTotalTokensInRange?: number | null
+  aiErrorCountInRange?: number | null
+  aiErrorRatePercent?: number | null
   openSupportTicketsCount?: number | null
   subscriptionsModuleAvailable?: boolean
   activeSubscriptionsCount?: number | null

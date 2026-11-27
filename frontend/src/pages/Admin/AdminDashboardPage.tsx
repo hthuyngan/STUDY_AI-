@@ -219,17 +219,25 @@ export const AdminDashboardPage: React.FC = () => {
           <>
             <AdminStatCard
               title="Lượt gọi AI"
-              value={(metrics?.aiRequestsInRange ?? 0).toLocaleString('vi-VN')}
+              value={metrics?.aiRequestsInRange != null ? metrics.aiRequestsInRange.toLocaleString('vi-VN') : 'Chưa có dữ liệu'}
               icon={<Bot size={18} />}
               variant="primary"
-              subtitle={`Tổng token: ${(metrics?.aiTotalTokensInRange ?? 0).toLocaleString('vi-VN')}`}
+              subtitle={
+                metrics?.aiTotalTokensInRange != null
+                  ? `Tổng token: ${metrics.aiTotalTokensInRange.toLocaleString('vi-VN')}`
+                  : 'Chưa có dữ liệu token'
+              }
             />
             <AdminStatCard
               title="AI Error Rate"
-              value={`${metrics?.aiErrorRatePercent ?? 0}%`}
+              value={metrics?.aiErrorRatePercent != null ? `${metrics.aiErrorRatePercent}%` : 'Chưa có dữ liệu'}
               icon={<AlertTriangle size={18} />}
               variant={(metrics?.aiErrorRatePercent ?? 0) > 5 ? 'danger' : 'success'}
-              subtitle={`${metrics?.aiErrorCountInRange ?? 0} lỗi / ${metrics?.aiRequestsInRange ?? 0} lượt gọi`}
+              subtitle={
+                metrics?.aiErrorCountInRange != null && metrics?.aiRequestsInRange != null
+                  ? `${metrics.aiErrorCountInRange} lỗi / ${metrics.aiRequestsInRange} lượt gọi`
+                  : 'Chưa có dữ liệu chi tiết'
+              }
             />
             <AdminStatCard
               title="Doanh thu gói"
