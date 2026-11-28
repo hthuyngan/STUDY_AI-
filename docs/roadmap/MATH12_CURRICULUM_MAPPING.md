@@ -1,0 +1,12 @@
+# MATH12 CURRICULUM MAPPING (DATA-04 — GDPT 2018 KNTT)
+
+> **Chuẩn đối chiếu:** Chương trình GDPT 2018 môn Toán lớp 12 — Bộ sách Kết nối tri thức với cuộc sống (6 chương, 19 bài).
+
+| Chương (DB ID) | Mã | Tên chương | Bài học (Lesson ID / Slug) | Trọng tâm kiến thức |
+| :--- | :--- | :--- | :--- | :--- |
+| `chp_math12_c1` | `M12-C1` | Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số | `les_m12_01` (Bài 1): Tính đơn điệu và cực trị của hàm số<br>`les_m12_02` (Bài 2): Giá trị lớn nhất và giá trị nhỏ nhất của hàm số<br>`les_m12_03` (Bài 3): Đường tiệm cận của đồ thị hàm số<br>`les_m12_04` (Bài 4): Khảo sát sự biến thiên và vẽ đồ thị của hàm số<br>`les_m12_05` (Bài 5): Ứng dụng đạo hàm để giải quyết một số vấn đề liên quan đến thực tiễn | Bảng biến thiên, cực đại/cực tiểu, GTLN/GTNN trên đoạn, tiệm cận đứng/ngang/xiên, bài toán tối ưu thực tiễn |
+| `chp_math12_c2` | `M12-C2` | Vectơ và hệ trục tọa độ trong không gian | `les_m12_06` (Bài 6): Vectơ trong không gian<br>`les_m12_07` (Bài 7): Hệ trục tọa độ trong không gian<br>`les_m12_08` (Bài 8): Biểu thức tọa độ của các phép toán vectơ | Tổng/hiệu/tích vô hướng vectơ không gian, tọa độ điểm/vectơ, độ dài đoạn thẳng, góc giữa hai vectơ |
+| `chp_math12_c3` | `M12-C3` | Các số đặc trưng đo mức độ phân tán của mẫu số liệu ghép nhóm | `les_m12_09` (Bài 9): Khoảng biến thiên và khoảng tứ phân vị<br>`les_m12_10` (Bài 10): Phương sai và độ lệch chuẩn | Khoảng biến thiên $R$, tứ phân vị $Q_1, Q_3$, $\Delta_Q = Q_3 - Q_1$, phương sai $s^2$, độ lệch chuẩn $s$ |
+| `chp_math12_c4` | `M12-C4` | Nguyên hàm và tích phân | `les_m12_11` (Bài 11): Nguyên hàm<br>`les_m12_12` (Bài 12): Tích phân<br>`les_m12_13` (Bài 13): Ứng dụng hình học của tích phân | Bảng nguyên hàm cơ bản, tính chất tích phân, diện tích hình phẳng, thể tích vật thể tròn xoay |
+| `chp_math12_c5` | `M12-C5` | Phương pháp tọa độ trong không gian | `les_m12_14` (Bài 14): Phương trình mặt phẳng<br>`les_m12_15` (Bài 15): Phương trình đường thẳng trong không gian<br>`les_m12_16` (Bài 16): Công thức tính góc trong không gian<br>`les_m12_17` (Bài 17): Phương trình mặt cầu | Vectơ pháp tuyến, phương trình mặt phẳng, đường thẳng (tham số/chính tắc), góc đường-mặt/hai mặt, tâm & bán kính mặt cầu |
+| `chp_math12_c6` | `M12-C6` | Xác suất có điều kiện | `les_m12_18` (Bài 18): Xác suất có điều kiện<br>`les_m12_19` (Bài 19): Công thức xác suất toàn phần và công thức Bayes | $P(A\mid B) = \frac{P(A\cap B)}{P(B)}$, sơ đồ hình cây, xác suất toàn phần, công thức Bayes |
