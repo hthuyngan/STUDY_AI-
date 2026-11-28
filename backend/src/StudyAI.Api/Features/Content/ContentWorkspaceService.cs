@@ -274,34 +274,47 @@ public class ContentWorkspaceService : IContentWorkspaceService
 
         var id = $"mat-{Guid.NewGuid():N}";
         await SaveMaterialBytesAsync(id, safeFileName, bytes, ct);
-        var fileHash = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
-        var extracted = ExtractTextFromBytes(mime, safeFileName, bytes);
-
-        var now = DateTimeOffset.UtcNow;
-        var entity = new ContentMaterial
+        try
         {
-            Id = id,
-            Title = title.Trim(),
-            Category = normalizedCat,
-            ChapterCode = chapterCode?.Trim(),
-            ChapterTitle = chapterTitle?.Trim(),
-            FileName = safeFileName,
-            MimeType = mime,
-            FileSizeBytes = bytes.LongLength,
-            FileHashSha256 = fileHash,
-            StoragePathOrUrl = $"/api/v1/content/workspace/materials/{id}/download",
-            ExtractedText = extracted,
-            Status = "draft",
-            CreatedByUserId = userId,
-            CreatedAt = now,
-            UpdatedAt = now
-        };
+            var fileHash = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+            var extracted = ExtractTextFromBytes(mime, safeFileName, bytes);
 
-        _db.ContentMaterials.Add(entity);
-        await _db.SaveChangesAsync(ct);
+            var now = DateTimeOffset.UtcNow;
+            var entity = new ContentMaterial
+            {
+                Id = id,
+                Title = title.Trim(),
+                Category = normalizedCat,
+                ChapterCode = chapterCode?.Trim(),
+                ChapterTitle = chapterTitle?.Trim(),
+                FileName = safeFileName,
+                MimeType = mime,
+                FileSizeBytes = bytes.LongLength,
+                FileHashSha256 = fileHash,
+                StoragePathOrUrl = $"/api/v1/content/workspace/materials/{id}/download",
+                ExtractedText = extracted,
+                Status = "draft",
+                CreatedByUserId = userId,
+                CreatedAt = now,
+                UpdatedAt = now
+            };
 
-        await _auditWriter.WriteStaffAuditAsync("content_material_upload", "content_material", entity.Id, null, JsonSerializer.Serialize(new { title = entity.Title, fileName = entity.FileName, sha256 = fileHash }), ct);
-        return ToDto(entity);
+            _db.ContentMaterials.Add(entity);
+            await _db.SaveChangesAsync(ct);
+
+            await _auditWriter.WriteStaffAuditAsync("content_material_upload", "content_material", entity.Id, null, JsonSerializer.Serialize(new { title = entity.Title, fileName = entity.FileName, sha256 = fileHash }), ct);
+            return ToDto(entity);
+        }
+        catch
+        {
+            try
+            {
+                var orphanPath = FindMaterialStoredPath(id, safeFileName);
+                if (orphanPath != null && File.Exists(orphanPath)) File.Delete(orphanPath);
+            }
+            catch { }
+            throw;
+        }
     }
 
     public async Task<(Stream Stream, string MimeType, string FileName)> DownloadMaterialAsync(
@@ -736,11 +749,25 @@ public class ContentWorkspaceService : IContentWorkspaceService
         if (latin1.Contains("/Encrypt", StringComparison.Ordinal))
             return null; // Encrypted PDFs cannot be extracted without decryption
 
+        const int maxStreams = 256;
+        const int maxExtractedChars = 200_000;
+        var regexTimeout = TimeSpan.FromMilliseconds(250);
         var chunks = new List<string>();
+        var totalChars = 0;
+        var streamCount = 0;
         // Inspect stream...endstream blocks, decompressing FlateDecode streams safely
-        var streamMatches = Regex.Matches(latin1, @"stream\r?\n(.*?)\r?\nendstream", RegexOptions.Singleline);
+        MatchCollection streamMatches;
+        try
+        {
+            streamMatches = Regex.Matches(latin1, @"stream\r?\n(.*?)\r?\nendstream", RegexOptions.Singleline, regexTimeout);
+        }
+        catch (RegexMatchTimeoutException)
+        {
+            return null;
+        }
         foreach (Match m in streamMatches)
         {
+            if (++streamCount > maxStreams || totalChars >= maxExtractedChars) break;
             var rawIdx = m.Groups[1].Index;
             var rawLen = m.Groups[1].Length;
             if (rawLen <= 0 || rawLen > 2 * 1024 * 1024) continue;
@@ -783,20 +810,33 @@ public class ContentWorkspaceService : IContentWorkspaceService
                 contentStream = m.Groups[1].Value;
             }
 
-            foreach (Match tj in Regex.Matches(contentStream, @"\(([^()\\]{2,200})\)\s*Tj"))
+            try
             {
-                chunks.Add(tj.Groups[1].Value);
-            }
-            foreach (Match tjArr in Regex.Matches(contentStream, @"\[(.*?)\]\s*TJ", RegexOptions.Singleline))
-            {
-                foreach (Match inner in Regex.Matches(tjArr.Groups[1].Value, @"\(([^()\\]{1,200})\)"))
+                foreach (Match tj in Regex.Matches(contentStream, @"\(([^()\\]{2,200})\)\s*Tj", RegexOptions.None, regexTimeout))
                 {
-                    chunks.Add(inner.Groups[1].Value);
+                    if (totalChars >= maxExtractedChars) break;
+                    chunks.Add(tj.Groups[1].Value);
+                    totalChars += tj.Groups[1].Value.Length;
                 }
+                foreach (Match tjArr in Regex.Matches(contentStream, @"\[(.*?)\]\s*TJ", RegexOptions.Singleline, regexTimeout))
+                {
+                    if (totalChars >= maxExtractedChars) break;
+                    foreach (Match inner in Regex.Matches(tjArr.Groups[1].Value, @"\(([^()\\]{1,200})\)", RegexOptions.None, regexTimeout))
+                    {
+                        if (totalChars >= maxExtractedChars) break;
+                        chunks.Add(inner.Groups[1].Value);
+                        totalChars += inner.Groups[1].Value.Length;
+                    }
+                }
+            }
+            catch (RegexMatchTimeoutException)
+            {
+                continue;
             }
         }
 
         var result = string.Join(" ", chunks).Trim();
+        if (result.Length > maxExtractedChars) result = result[..maxExtractedChars];
         return string.IsNullOrWhiteSpace(result) ? null : result;
     }
 

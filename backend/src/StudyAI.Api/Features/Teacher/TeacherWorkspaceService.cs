@@ -288,28 +288,37 @@ public class TeacherWorkspaceService : ITeacherWorkspaceService
         Directory.CreateDirectory(root);
         var ext = Path.GetExtension(safeFileName);
         var safeExt = string.IsNullOrWhiteSpace(ext) ? ".bin" : Regex.Replace(ext.ToLowerInvariant(), @"[^a-z0-9.]", "");
-        await File.WriteAllBytesAsync(Path.Combine(root, $"{id}{safeExt}"), bytes, ct);
+        var fullPath = Path.Combine(root, $"{id}{safeExt}");
+        await File.WriteAllBytesAsync(fullPath, bytes, ct);
 
-        var sha = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
-        var entity = new ClassroomMaterial
+        try
         {
-            Id = id,
-            ClassroomId = cls.Id,
-            TeacherId = cls.TeacherId,
-            Title = title.Trim(),
-            Category = string.IsNullOrWhiteSpace(category) ? "lecture_note" : category.Trim().ToLowerInvariant(),
-            FileName = safeFileName,
-            MimeType = mime,
-            FileSizeBytes = bytes.LongLength,
-            FileHashSha256 = sha,
-            StoragePathOrUrl = $"/api/v1/teacher/workspace/materials/{id}/download",
-            IsRevoked = false,
-            CreatedAt = DateTimeOffset.UtcNow
-        };
+            var sha = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+            var entity = new ClassroomMaterial
+            {
+                Id = id,
+                ClassroomId = cls.Id,
+                TeacherId = cls.TeacherId,
+                Title = title.Trim(),
+                Category = string.IsNullOrWhiteSpace(category) ? "lecture_note" : category.Trim().ToLowerInvariant(),
+                FileName = safeFileName,
+                MimeType = mime,
+                FileSizeBytes = bytes.LongLength,
+                FileHashSha256 = sha,
+                StoragePathOrUrl = $"/api/v1/teacher/workspace/materials/{id}/download",
+                IsRevoked = false,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
 
-        _db.ClassroomMaterials.Add(entity);
-        await _db.SaveChangesAsync(ct);
-        return ToDto(entity);
+            _db.ClassroomMaterials.Add(entity);
+            await _db.SaveChangesAsync(ct);
+            return ToDto(entity);
+        }
+        catch
+        {
+            try { if (File.Exists(fullPath)) File.Delete(fullPath); } catch { }
+            throw;
+        }
     }
 
     public async Task<(Stream Stream, string MimeType, string FileName)> DownloadMaterialAsync(
@@ -481,15 +490,26 @@ public class TeacherWorkspaceService : ITeacherWorkspaceService
         var assignmentCount = await _db.Assignments.AsNoTracking().CountAsync(a => a.ClassroomId == cls.Id, ct);
 
         var dailyQuota = _configuration?.GetValue<int?>("Ai:TeacherDailyQuota") ?? 50;
+        var monthlyQuota = _configuration?.GetValue<int?>("Ai:TeacherMonthlyQuota") ?? 500;
+        string? reservationId = null;
         if (_aiUsageService != null)
         {
-            var stats = await _aiUsageService.GetUsageStatsAsync(teacherUserId, DateTimeOffset.UtcNow.Date, null, ct);
-            if (stats.TotalRequests >= dailyQuota)
-                throw new ValidationException("Quota", $"Bạn đã vượt quá hạn mức sử dụng AI Trợ giảng trong ngày ({dailyQuota} lượt/ngày).");
+            reservationId = await _aiUsageService.TryReserveQuotaAsync(
+                teacherUserId,
+                $"teacher_assistant:{mode}",
+                _llmProvider.ProviderName,
+                _llmProvider.DefaultModel ?? "default",
+                dailyQuota,
+                monthlyQuota,
+                ct);
+            if (reservationId == null)
+                throw new ValidationException("Quota", $"Bạn đã vượt quá hạn mức sử dụng AI Trợ giảng ({dailyQuota} lượt/ngày, {monthlyQuota} lượt/tháng).");
         }
 
         if (!_llmProvider.IsConfigured || _llmProvider is FakeLlmProvider)
         {
+            if (_aiUsageService != null && reservationId != null)
+                await _aiUsageService.ReleaseUsageReservationAsync(reservationId, CancellationToken.None);
             var isFake = _llmProvider is FakeLlmProvider;
             return new TeacherAiAssistantResponseDto
             {
@@ -508,21 +528,28 @@ public class TeacherWorkspaceService : ITeacherWorkspaceService
         var systemPrompt = $"Bạn là AI Trợ giảng môn {subject} lớp {grade}. Chế độ: {mode}. Lớp học: {cls.Name} ({studentCount} học sinh, {assignmentCount} bài tập). " +
                            "Chỉ hỗ trợ soạn giáo án, sinh bài tập/câu hỏi, ma trận đề và gợi ý nhận xét. Tuyệt đối không bịa điểm số.";
         var sw = Stopwatch.StartNew();
-        var llmResp = await _llmProvider.GenerateCompletionAsync(new LlmCompletionRequest(
-            Messages: [new LlmChatMessage("user", trimmedPrompt)],
-            SystemPrompt: systemPrompt,
-            Temperature: 0.4,
-            MaxTokens: 1200,
-            CancellationToken: ct));
+        LlmCompletionResponse llmResp;
+        try
+        {
+            llmResp = await _llmProvider.GenerateCompletionAsync(new LlmCompletionRequest(
+                Messages: [new LlmChatMessage("user", trimmedPrompt)],
+                SystemPrompt: systemPrompt,
+                Temperature: 0.4,
+                MaxTokens: 1200,
+                CancellationToken: ct));
+        }
+        catch
+        {
+            if (_aiUsageService != null && reservationId != null)
+                await _aiUsageService.ReleaseUsageReservationAsync(reservationId, CancellationToken.None);
+            throw;
+        }
         sw.Stop();
 
-        if (_aiUsageService != null)
+        if (_aiUsageService != null && reservationId != null)
         {
-            await _aiUsageService.LogUsageAsync(
-                teacherUserId,
-                $"teacher_assistant:{mode}",
-                _llmProvider.ProviderName,
-                _llmProvider.DefaultModel ?? "default",
+            await _aiUsageService.FinalizeUsageReservationAsync(
+                reservationId,
                 llmResp.PromptTokens ?? 0,
                 llmResp.CompletionTokens ?? 0,
                 (int)sw.ElapsedMilliseconds,

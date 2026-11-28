@@ -25,6 +25,28 @@ public interface IAiUsageService
         int limit = 50,
         CancellationToken cancellationToken = default);
 
+    Task<string?> TryReserveQuotaAsync(
+        string userId,
+        string feature,
+        string provider,
+        string model,
+        int dailyLimit,
+        int monthlyLimit,
+        CancellationToken cancellationToken = default);
+
+    Task FinalizeUsageReservationAsync(
+        string? reservationId,
+        int inputTokens,
+        int outputTokens,
+        int latencyMs,
+        string status,
+        string? errorMessage = null,
+        CancellationToken cancellationToken = default);
+
+    Task ReleaseUsageReservationAsync(
+        string? reservationId,
+        CancellationToken cancellationToken = default);
+
     AiFeatureConfigDto GetFeatureConfig();
     void SetFeatureToggle(string feature, bool enabled);
 }

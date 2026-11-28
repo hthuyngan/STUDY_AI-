@@ -240,5 +240,46 @@ public class Math12TeacherWorkspaceTests : IClassFixture<StudyAIApiFixture>
 
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", outsiderLearnerToken);
         Assert.Equal(HttpStatusCode.Forbidden, (await _client.GetAsync($"/api/v1/teacher/workspace/materials/{tUpDto.Id}/download")).StatusCode);
+
+        // SYS-05: Atomic AI quota reservation prevents concurrent requests from exceeding daily/monthly limits
+        var quotaUserId = teacher1Id;
+        var reserveTasks = Enumerable.Range(0, 6).Select(async _ =>
+        {
+            using var scope = _factory.Services.CreateScope();
+            var usageSvc = scope.ServiceProvider.GetRequiredService<StudyAI.Features.AI.IAiUsageService>();
+            return await usageSvc.TryReserveQuotaAsync(quotaUserId, "teacher_assistant:lesson_plan", "test", "test-model", dailyLimit: 3, monthlyLimit: 10);
+        });
+        var reservations = await Task.WhenAll(reserveTasks);
+        var granted = reservations.Where(r => r != null).ToList();
+        Assert.Equal(3, granted.Count);
+        Assert.Equal(3, reservations.Count(r => r == null));
+
+        // Release one reservation -> 1 more slot becomes available
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var usageSvc = scope.ServiceProvider.GetRequiredService<StudyAI.Features.AI.IAiUsageService>();
+            await usageSvc.ReleaseUsageReservationAsync(granted[0]);
+            var retry = await usageSvc.TryReserveQuotaAsync(quotaUserId, "teacher_assistant:lesson_plan", "test", "test-model", dailyLimit: 3, monthlyLimit: 10);
+            Assert.NotNull(retry);
+        }
+
+        // SYS-05: Cancelled teacher upload leaves no orphan file on disk
+        var uploadRoot = Path.Combine(AppContext.BaseDirectory, "App_Data", "uploads", "classroom-materials");
+        var beforeFiles = Directory.Exists(uploadRoot) ? Directory.GetFiles(uploadRoot).ToHashSet() : new HashSet<string>();
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var svc = scope.ServiceProvider.GetRequiredService<StudyAI.Features.Teacher.ITeacherWorkspaceService>();
+            using var cts = new CancellationTokenSource();
+            cts.Cancel();
+            var formFile = new Microsoft.AspNetCore.Http.FormFile(new MemoryStream(Encoding.UTF8.GetBytes("cancelled test")), 0, 14, "file", "orphan.txt")
+            {
+                Headers = new Microsoft.AspNetCore.Http.HeaderDictionary(),
+                ContentType = "text/plain"
+            };
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                svc.UploadMaterialAsync(formFile, classId, "Cancelled", "lecture_note", teacher1Id, true, cts.Token));
+        }
+        var afterFiles = Directory.Exists(uploadRoot) ? Directory.GetFiles(uploadRoot).ToHashSet() : new HashSet<string>();
+        Assert.Equal(beforeFiles, afterFiles);
     }
 }

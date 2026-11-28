@@ -265,5 +265,24 @@ public class Math12ContentWorkspaceTests : IClassFixture<StudyAIApiFixture>
         var pdfEncUp = await _client.PostAsync("/api/v1/content/workspace/materials/upload", pdfEncForm);
         Assert.Equal(HttpStatusCode.Created, pdfEncUp.StatusCode);
         Assert.False(JsonSerializer.Deserialize<ContentMaterialDto>(await pdfEncUp.Content.ReadAsStringAsync(), JsonOpts)!.HasExtractedText);
+
+        // SYS-04: Cancelled content upload leaves no orphan file on disk
+        var contentUploadRoot = Path.Combine(AppContext.BaseDirectory, "App_Data", "uploads", "content-materials");
+        var beforeContentFiles = Directory.Exists(contentUploadRoot) ? Directory.GetFiles(contentUploadRoot).ToHashSet() : new HashSet<string>();
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var svc = scope.ServiceProvider.GetRequiredService<StudyAI.Features.Content.IContentWorkspaceService>();
+            using var cts = new CancellationTokenSource();
+            cts.Cancel();
+            var formFile = new Microsoft.AspNetCore.Http.FormFile(new MemoryStream(Encoding.UTF8.GetBytes("cancelled content")), 0, 17, "file", "orphan-content.txt")
+            {
+                Headers = new Microsoft.AspNetCore.Http.HeaderDictionary(),
+                ContentType = "text/plain"
+            };
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                svc.UploadMaterialAsync(formFile, "Cancelled", "chapter_doc", null, null, "content-user", cts.Token));
+        }
+        var afterContentFiles = Directory.Exists(contentUploadRoot) ? Directory.GetFiles(contentUploadRoot).ToHashSet() : new HashSet<string>();
+        Assert.Equal(beforeContentFiles, afterContentFiles);
     }
 }

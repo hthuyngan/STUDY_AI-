@@ -189,10 +189,14 @@ public class StudentAssessmentService : ILearnerAssessmentService
             ? await _db.ContentAssessments.AsNoTracking().FirstOrDefaultAsync(a => a.Id == attempt.AssessmentId, cancellationToken)
             : null;
 
+        var isTargetedAssessment = assessmentMeta != null ||
+            (!string.IsNullOrWhiteSpace(attempt.AssessmentId) && !attempt.AssessmentId.StartsWith("asm_", StringComparison.OrdinalIgnoreCase));
+
         var scopeQuestions = await _db.ContentQuestions.AsNoTracking()
             .Where(q => q.Status == "published" &&
-                        ((!string.IsNullOrWhiteSpace(attempt.AssessmentId) && q.AssessmentId == attempt.AssessmentId) ||
-                         (!string.IsNullOrWhiteSpace(attempt.LessonId) && q.LessonId == attempt.LessonId)))
+                        (isTargetedAssessment
+                            ? q.AssessmentId == attempt.AssessmentId
+                            : (!string.IsNullOrWhiteSpace(attempt.LessonId) && q.LessonId == attempt.LessonId)))
             .ToDictionaryAsync(q => q.Id, StringComparer.Ordinal, cancellationToken);
 
         if (dto.Responses != null)
@@ -306,6 +310,67 @@ public class StudentAssessmentService : ILearnerAssessmentService
     {
         if (selectedOptions.Count == 0 || string.IsNullOrWhiteSpace(question.CorrectAnswer)) return false;
         var correct = question.CorrectAnswer.Trim();
+        var qType = (question.Type ?? string.Empty).Trim().ToLowerInvariant();
+
+        if (qType == "true-false" || qType == "true_false")
+        {
+            return TryNormalizeBooleanToken(selectedOptions[0], out var actualBool) &&
+                   TryNormalizeBooleanToken(correct, out var expectedBool) &&
+                   actualBool == expectedBool;
+        }
+
+        if (qType == "true-false-group" || qType == "true_false_group")
+        {
+            var actualTokens = string.Join(",", selectedOptions)
+                .Split(new[] { ',', ';', '|' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var expectedTokens = correct
+                .Split(new[] { ',', ';', '|' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (actualTokens.Length == 0 || actualTokens.Length != expectedTokens.Length) return false;
+            for (int i = 0; i < actualTokens.Length; i++)
+            {
+                if (!TryNormalizeBooleanToken(actualTokens[i], out var aBool) ||
+                    !TryNormalizeBooleanToken(expectedTokens[i], out var eBool) ||
+                    aBool != eBool)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        if (qType == "short-answer" || qType == "short_answer")
+        {
+            var sel = selectedOptions[0].Trim();
+            var accepted = new List<string> { correct };
+            if (!string.IsNullOrWhiteSpace(question.MetadataJson))
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(question.MetadataJson);
+                    if (doc.RootElement.TryGetProperty("acceptedAnswers", out var accElem) && accElem.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var a in accElem.EnumerateArray())
+                        {
+                            var s = a.GetString();
+                            if (!string.IsNullOrWhiteSpace(s)) accepted.Add(s.Trim());
+                        }
+                    }
+                }
+                catch { }
+            }
+
+            foreach (var candidate in accepted)
+            {
+                if (string.Equals(sel, candidate, StringComparison.OrdinalIgnoreCase)) return true;
+                if (TryParseMathNumber(sel, out var actualNum) &&
+                    TryParseMathNumber(candidate, out var expectedNum) &&
+                    Math.Abs(actualNum - expectedNum) <= 1e-6)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
 
         List<string> options;
         try { options = JsonSerializer.Deserialize<List<string>>(question.OptionsJson) ?? new List<string>(); }
@@ -334,6 +399,60 @@ public class StudentAssessmentService : ILearnerAssessmentService
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
         var actualSet = selectedOptions.Select(s => s.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase);
         return expectedSet.Count > 0 && expectedSet.SetEquals(actualSet);
+    }
+
+    private static bool TryNormalizeBooleanToken(string? raw, out bool value)
+    {
+        value = false;
+        if (string.IsNullOrWhiteSpace(raw)) return false;
+        switch (raw.Trim().ToLowerInvariant())
+        {
+            case "true":
+            case "đúng":
+            case "dung":
+            case "1":
+            case "đ":
+            case "d":
+                value = true;
+                return true;
+            case "false":
+            case "sai":
+            case "0":
+            case "s":
+                value = false;
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private static bool TryParseMathNumber(string? raw, out double value)
+    {
+        value = 0;
+        if (string.IsNullOrWhiteSpace(raw)) return false;
+        var norm = raw.Trim().Replace(',', '.');
+        if (norm.Contains('/'))
+        {
+            var parts = norm.Split('/', StringSplitOptions.TrimEntries);
+            if (parts.Length == 2 &&
+                double.TryParse(parts[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var num) &&
+                double.TryParse(parts[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var den) &&
+                Math.Abs(den) > 1e-12 &&
+                double.IsFinite(num / den))
+            {
+                value = num / den;
+                return true;
+            }
+            return false;
+        }
+
+        if (double.TryParse(norm, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var parsed) &&
+            double.IsFinite(parsed))
+        {
+            value = parsed;
+            return true;
+        }
+        return false;
     }
 
     private static AssessmentAttemptResponseDto FormatAttempt(AssessmentAttempt a, bool maskAnswers = false)

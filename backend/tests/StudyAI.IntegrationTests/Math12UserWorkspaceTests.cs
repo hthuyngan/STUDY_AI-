@@ -324,5 +324,88 @@ public class Math12UserWorkspaceTests : IClassFixture<StudyAIApiFixture>
         var badJoin = await _client.PostAsync("/api/v1/learner/workspace/classrooms/join", new StringContent(
             JsonSerializer.Serialize(new JoinClassroomRequestDto { Code = "AB" }), Encoding.UTF8, "application/json"));
         Assert.Equal(HttpStatusCode.BadRequest, badJoin.StatusCode);
+
+        // SYS-03 (R2): Targeted ContentAssessment scopes strictly to AssessmentId (does not leak other LessonId questions)
+        var targetedAsmId = $"asm-sys03-{Guid.NewGuid():N}";
+        var targetedQId = $"q-sys03-tf-{Guid.NewGuid():N}";
+        var shortQId = $"q-sys03-sa-{Guid.NewGuid():N}";
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            var anyLesson = await db.ContentLessons.FirstAsync();
+            db.ContentAssessments.Add(new ContentAssessment
+            {
+                Id = targetedAsmId,
+                LessonId = authLesId,
+                Title = "Đề kiểm tra mục tiêu SYS-03",
+                Status = "published",
+                PassScore = 50
+            });
+            db.ContentQuestions.AddRange(
+                new ContentQuestion
+                {
+                    Id = targetedQId,
+                    AssessmentId = targetedAsmId,
+                    LessonId = authLesId,
+                    SubjectId = "math-12",
+                    ChapterId = anyLesson.ChapterId,
+                    Type = "true-false-group",
+                    Prompt = "Xét tính đúng sai các mệnh đề sau.",
+                    OptionsJson = "[\"a\",\"b\",\"c\",\"d\"]",
+                    CorrectAnswer = "true,false,true,false",
+                    Status = "published"
+                },
+                new ContentQuestion
+                {
+                    Id = shortQId,
+                    AssessmentId = targetedAsmId,
+                    LessonId = authLesId,
+                    SubjectId = "math-12",
+                    ChapterId = anyLesson.ChapterId,
+                    Type = "short-answer",
+                    Prompt = "Tính giá trị cực đại của hàm số.",
+                    OptionsJson = "[]",
+                    CorrectAnswer = "2.5",
+                    Status = "published"
+                });
+            await db.SaveChangesAsync();
+        }
+
+        // Submitting an unrelated lesson question into targeted assessment must return 400 BadRequest
+        var leakPayload = new
+        {
+            assessmentId = targetedAsmId,
+            lessonId = authLesId,
+            subjectId = "math-12",
+            completionStatus = "completed",
+            responses = new Dictionary<string, object>
+            {
+                [authQId] = new { questionId = authQId, selectedOptionIds = new[] { "2x" } }
+            }
+        };
+        var leakResp = await _client.PostAsync("/api/v1/me/assessment-attempts", new StringContent(JsonSerializer.Serialize(leakPayload), Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.BadRequest, leakResp.StatusCode);
+
+        // True-false-group ("Đúng,Sai,Đúng,Sai") and short-answer ("5/2" == "2.5") both grade as correct; scoreMax == 2 (not 4)
+        var validTargetedPayload = new
+        {
+            assessmentId = targetedAsmId,
+            lessonId = authLesId,
+            subjectId = "math-12",
+            completionStatus = "completed",
+            responses = new Dictionary<string, object>
+            {
+                [targetedQId] = new { questionId = targetedQId, selectedOptionIds = new[] { "Đúng,Sai,Đúng,Sai" } },
+                [shortQId] = new { questionId = shortQId, selectedOptionIds = new[] { "5/2" } }
+            }
+        };
+        var targetedResp = await _client.PostAsync("/api/v1/me/assessment-attempts", new StringContent(JsonSerializer.Serialize(validTargetedPayload), Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.Created, targetedResp.StatusCode);
+        using (var tDoc = JsonDocument.Parse(await targetedResp.Content.ReadAsStringAsync()))
+        {
+            Assert.Equal(2.0, tDoc.RootElement.GetProperty("scoreRaw").GetDouble());
+            Assert.Equal(2.0, tDoc.RootElement.GetProperty("scoreMax").GetDouble());
+            Assert.Equal("passed", tDoc.RootElement.GetProperty("successStatus").GetString());
+        }
     }
 }
