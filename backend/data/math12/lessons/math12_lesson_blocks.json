@@ -1,0 +1,990 @@
+[
+  {
+    "id": "blk_les_math12_c1_b1_01",
+    "lessonId": "les_math12_c1_b1",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 1,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 1: Tính đơn điệu và cực trị của hàm số\n\nHàm số $y=f(x)$ đồng biến trên $K$ nếu $f'(x)\\ge 0$ (dấu bằng tại hữu hạn điểm) và đạt cực trị khi $f'(x)$ đổi dấu qua $x_0$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b1_02",
+    "lessonId": "les_math12_c1_b1",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "latex": "f'(x) > 0 \\Rightarrow \\text{đồng biến}; \\quad f'(x) < 0 \\Rightarrow \\text{nghịch biến}",
+      "displayMode": true,
+      "caption": "Công thức trọng tâm — Bài 1: Tính đơn điệu và cực trị của hàm số"
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b1_03",
+    "lessonId": "les_math12_c1_b1",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 3,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ minh họa — Bài 1: Tính đơn điệu và cực trị của hàm số",
+      "prompt": "Phân tích và giải bài toán mẫu sau:",
+      "solution": "Xét hàm $y = x^3 - 3x^2 + 2$. Ta có $y' = 3x^2 - 6x = 0 \\Leftrightarrow x=0$ hoặc $x=2$. Hàm số đạt cực đại tại $x=0$ ($y_{CĐ}=2$) và cực tiểu tại $x=2$ ($y_{CT}=-2$)."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b1_04",
+    "lessonId": "les_math12_c1_b1",
+    "blockType": "summary",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "title": "Ghi nhớ nhanh",
+      "points": [
+        "Kiểm tra tập xác định trước khi xét dấu $y'$.",
+        "Cực trị chỉ xảy ra tại điểm mà $y'$ đổi dấu."
+      ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b2_01",
+    "lessonId": "les_math12_c1_b2",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 1,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 2: Giá trị lớn nhất và giá trị nhỏ nhất của hàm số\n\nTrên đoạn $[a;b]$, hàm số liên tục luôn đạt GTLN $M$ và GTNN $m$ tại các điểm tới hạn trong $(a;b)$ hoặc tại hai đầu mút $a, b$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b2_02",
+    "lessonId": "les_math12_c1_b2",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "latex": "M = \\max_{[a;b]} f(x), \\quad m = \\min_{[a;b]} f(x)",
+      "displayMode": true,
+      "caption": "Công thức trọng tâm — Bài 2: Giá trị lớn nhất và giá trị nhỏ nhất của hàm số"
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b2_03",
+    "lessonId": "les_math12_c1_b2",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 3,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ minh họa — Bài 2: Giá trị lớn nhất và giá trị nhỏ nhất của hàm số",
+      "prompt": "Phân tích và giải bài toán mẫu sau:",
+      "solution": "Tìm GTLN, GTNN của $y = x^3 - 3x + 1$ trên $[0;2]$. Ta có $y'=3x^2-3=0 \\Rightarrow x=1 \\in (0;2)$. Tính $f(0)=1, f(1)=-1, f(2)=3$. Vậy $M=3, m=-1$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b2_04",
+    "lessonId": "les_math12_c1_b2",
+    "blockType": "summary",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "title": "Ghi nhớ nhanh",
+      "points": [
+        "Không quên tính giá trị tại hai đầu mút $a$ và $b$.",
+        "Loại bỏ nghiệm $f'(x)=0$ nằm ngoài đoạn đang xét."
+      ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b3_01",
+    "lessonId": "les_math12_c1_b3",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 1,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 3: Đường tiệm cận của đồ thị hàm số\n\nĐường thẳng $y=y_0$ là tiệm cận ngang nếu $\\lim_{x\\to\\pm\\infty} f(x)=y_0$; $x=x_0$ là tiệm cận đứng nếu giới hạn một bên bằng $\\pm\\infty$; $y=ax+b$ là tiệm cận xiên nếu $\\lim_{x\\to\\pm\\infty}[f(x)-(ax+b)]=0$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b3_02",
+    "lessonId": "les_math12_c1_b3",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "latex": "a = \\lim_{x\\to\\pm\\infty}\\frac{f(x)}{x}, \\quad b = \\lim_{x\\to\\pm\\infty}[f(x)-ax]",
+      "displayMode": true,
+      "caption": "Công thức trọng tâm — Bài 3: Đường tiệm cận của đồ thị hàm số"
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b3_03",
+    "lessonId": "les_math12_c1_b3",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 3,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ minh họa — Bài 3: Đường tiệm cận của đồ thị hàm số",
+      "prompt": "Phân tích và giải bài toán mẫu sau:",
+      "solution": "Đồ thị $y = \\frac{2x+1}{x-1}$ có tiệm cận ngang $y=2$ và tiệm cận đứng $x=1$. Với $y = \\frac{x^2+2x+3}{x+1} = x+1 + \\frac{2}{x+1}$, tiệm cận xiên là $y=x+1$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b3_04",
+    "lessonId": "les_math12_c1_b3",
+    "blockType": "summary",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "title": "Ghi nhớ nhanh",
+      "points": [
+        "Kiểm tra điều kiện triệt tiêu nhân tử trước khi kết luận tiệm cận đứng.",
+        "Hàm bậc 2 trên bậc 1 luôn có tiệm cận xiên nếu không chia hết."
+      ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b4_01",
+    "lessonId": "les_math12_c1_b4",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 1,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 4: Khảo sát sự biến thiên và vẽ đồ thị của hàm số\n\nQuy trình khảo sát gồm 4 bước: tìm tập xác định, xét sự biến thiên (giới hạn, tiệm cận, $y'$, bảng biến thiên), tìm điểm đặc biệt và vẽ đồ thị."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b4_02",
+    "lessonId": "les_math12_c1_b4",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "latex": "y = ax^3+bx^2+cx+d, \\quad y = \\frac{ax+b}{cx+d}, \\quad y = \\frac{ax^2+bx+c}{px+q}",
+      "displayMode": true,
+      "caption": "Công thức trọng tâm — Bài 4: Khảo sát sự biến thiên và vẽ đồ thị của hàm số"
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b4_03",
+    "lessonId": "les_math12_c1_b4",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 3,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ minh họa — Bài 4: Khảo sát sự biến thiên và vẽ đồ thị của hàm số",
+      "prompt": "Phân tích và giải bài toán mẫu sau:",
+      "solution": "Hàm bậc ba $y=x^3-3x^2+2$ có tâm đối xứng $I(1;0)$ là điểm uốn thỏa mãn $y''=6x-6=0$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b4_04",
+    "lessonId": "les_math12_c1_b4",
+    "blockType": "summary",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "title": "Ghi nhớ nhanh",
+      "points": [
+        "Đồ thị bậc ba nhận điểm uốn làm tâm đối xứng.",
+        "Đồ thị phân thức bậc 1/1 nhận giao điểm hai tiệm cận làm tâm đối xứng."
+      ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b5_01",
+    "lessonId": "les_math12_c1_b5",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 1,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 5: Ứng dụng đạo hàm để giải quyết một số vấn đề liên quan đến thực tiễn\n\nMô hình hóa bài toán tối ưu (diện tích, thể tích, chi phí, lợi nhuận, vận tốc) thành hàm số một biến trên miền xác định rồi tìm GTLN/GTNN."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b5_02",
+    "lessonId": "les_math12_c1_b5",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "latex": "\\text{Tối ưu hóa } f(x) \\text{ trên } D \\subset \\mathbb{R}",
+      "displayMode": true,
+      "caption": "Công thức trọng tâm — Bài 5: Ứng dụng đạo hàm để giải quyết một số vấn đề liên quan đến thực tiễn"
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b5_03",
+    "lessonId": "les_math12_c1_b5",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 3,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ minh họa — Bài 5: Ứng dụng đạo hàm để giải quyết một số vấn đề liên quan đến thực tiễn",
+      "prompt": "Phân tích và giải bài toán mẫu sau:",
+      "solution": "Một hình chữ nhật có chu vi $20\\text{ m}$, gọi chiều rộng là $w\\in(0;10)$, diện tích $S(w)=w(10-w)$. Ta có $S'(w)=10-2w=0 \\Leftrightarrow w=5$, suy ra diện tích lớn nhất bằng $25\\text{ m}^2$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b5_04",
+    "lessonId": "les_math12_c1_b5",
+    "blockType": "summary",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "title": "Ghi nhớ nhanh",
+      "points": [
+        "Luôn đặt điều kiện thực tế cho biến số (ví dụ độ dài dương).",
+        "Kiểm tra lại dấu đạo hàm để xác định cực đại hay cực tiểu."
+      ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c2_b1_01",
+    "lessonId": "les_math12_c2_b1",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 1,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 6: Vectơ trong không gian\n\nVectơ trong không gian có các phép toán cộng (quy tắc hình hộp), trừ, nhân với một số thực và tích vô hướng tương tự trong mặt phẳng."
+    }
+  },
+  {
+    "id": "blk_les_math12_c2_b1_02",
+    "lessonId": "les_math12_c2_b1",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "latex": "\\vec{u}\\cdot\\vec{v} = |\\vec{u}|\\cdot|\\vec{v}|\\cos(\\vec{u},\\vec{v})",
+      "displayMode": true,
+      "caption": "Công thức trọng tâm — Bài 6: Vectơ trong không gian"
+    }
+  },
+  {
+    "id": "blk_les_math12_c2_b1_03",
+    "lessonId": "les_math12_c2_b1",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 3,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ minh họa — Bài 6: Vectơ trong không gian",
+      "prompt": "Phân tích và giải bài toán mẫu sau:",
+      "solution": "Trong hình hộp $ABCD.A'B'C'D'$, theo quy tắc hình hộp ta có $\\overrightarrow{AB} + \\overrightarrow{AD} + \\overrightarrow{AA'} = \\overrightarrow{AC'}$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c2_b1_04",
+    "lessonId": "les_math12_c2_b1",
+    "blockType": "summary",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "title": "Ghi nhớ nhanh",
+      "points": [
+        "Hai vectơ vuông góc khi và chỉ khi tích vô hướng bằng $0$.",
+        "Góc giữa hai vectơ nằm trong đoạn $[0^\\circ; 180^\\circ]$."
+      ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c2_b2_01",
+    "lessonId": "les_math12_c2_b2",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 1,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 7: Hệ trục tọa độ trong không gian\n\nHệ trục $Oxyz$ gồm ba trục đôi một vuông góc với ba vectơ đơn vị $\\vec{i}, \\vec{j}, \\vec{k}$. Điểm $M(x;y;z)$ khi $\\overrightarrow{OM}=x\\vec{i}+y\\vec{j}+z\\vec{k}$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c2_b2_02",
+    "lessonId": "les_math12_c2_b2",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "latex": "\\overrightarrow{AB} = (x_B-x_A;\\; y_B-y_A;\\; z_B-z_A)",
+      "displayMode": true,
+      "caption": "Công thức trọng tâm — Bài 7: Hệ trục tọa độ trong không gian"
+    }
+  },
+  {
+    "id": "blk_les_math12_c2_b2_03",
+    "lessonId": "les_math12_c2_b2",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 3,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ minh họa — Bài 7: Hệ trục tọa độ trong không gian",
+      "prompt": "Phân tích và giải bài toán mẫu sau:",
+      "solution": "Cho $A(1;2;-1)$ và $B(3;0;2)$, ta có $\\overrightarrow{AB}=(2;-2;3)$ và trung điểm $I$ của $AB$ có tọa độ $(2;1;\\frac{1}{2})$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c2_b2_04",
+    "lessonId": "les_math12_c2_b2",
+    "blockType": "summary",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "title": "Ghi nhớ nhanh",
+      "points": [
+        "Hình chiếu vuông góc của $M(x;y;z)$ lên $(Oxy)$ là $(x;y;0)$.",
+        "Điểm đối xứng qua trục $Ox$ giữ nguyên hoành độ, đổi dấu $y, z$."
+      ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c2_b3_01",
+    "lessonId": "les_math12_c2_b3",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 1,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 8: Biểu thức tọa độ của các phép toán vectơ\n\nVới $\\vec{u}=(x_1;y_1;z_1)$ và $\\vec{v}=(x_2;y_2;z_2)$, các phép toán tổng, hiệu, tích vô hướng và độ dài được tính trực tiếp theo từng tọa độ."
+    }
+  },
+  {
+    "id": "blk_les_math12_c2_b3_02",
+    "lessonId": "les_math12_c2_b3",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "latex": "\\vec{u}\\cdot\\vec{v} = x_1x_2 + y_1y_2 + z_1z_2, \\quad |\\vec{u}| = \\sqrt{x_1^2+y_1^2+z_1^2}",
+      "displayMode": true,
+      "caption": "Công thức trọng tâm — Bài 8: Biểu thức tọa độ của các phép toán vectơ"
+    }
+  },
+  {
+    "id": "blk_les_math12_c2_b3_03",
+    "lessonId": "les_math12_c2_b3",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 3,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ minh họa — Bài 8: Biểu thức tọa độ của các phép toán vectơ",
+      "prompt": "Phân tích và giải bài toán mẫu sau:",
+      "solution": "Với $\\vec{u}=(1;-2;2)$ và $\\vec{v}=(2;1;-1)$, ta có $|\\vec{u}|=\\sqrt{1+4+4}=3$ và $\\vec{u}\\cdot\\vec{v}=2-2-2=-2$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c2_b3_04",
+    "lessonId": "les_math12_c2_b3",
+    "blockType": "summary",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "title": "Ghi nhớ nhanh",
+      "points": [
+        "Hai vectơ cùng phương khi tọa độ tỉ lệ.",
+        "Cosin góc giữa hai vectơ bằng tích vô hướng chia tích hai độ dài."
+      ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c3_b1_01",
+    "lessonId": "les_math12_c3_b1",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 1,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 9: Khoảng biến thiên và khoảng tứ phân vị\n\nKhoảng biến thiên $R$ đo độ trải rộng từ đầu mút dưới nhóm đầu đến đầu mút trên nhóm cuối; khoảng tứ phân vị $\\Delta_Q = Q_3 - Q_1$ đo độ phân tán 50% dữ liệu ở giữa."
+    }
+  },
+  {
+    "id": "blk_les_math12_c3_b1_02",
+    "lessonId": "les_math12_c3_b1",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "latex": "R = a_{k+1} - a_1, \\quad \\Delta_Q = Q_3 - Q_1",
+      "displayMode": true,
+      "caption": "Công thức trọng tâm — Bài 9: Khoảng biến thiên và khoảng tứ phân vị"
+    }
+  },
+  {
+    "id": "blk_les_math12_c3_b1_03",
+    "lessonId": "les_math12_c3_b1",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 3,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ minh họa — Bài 9: Khoảng biến thiên và khoảng tứ phân vị",
+      "prompt": "Phân tích và giải bài toán mẫu sau:",
+      "solution": "Cho mẫu ghép nhóm $[0;10):2, [10;20):6, [20;30):8, [30;40):4$ ($N=20$). Ta có $Q_1 = 10 + \\frac{5-2}{6}\\cdot 10 = 15$, $Q_3 = 20 + \\frac{15-8}{8}\\cdot 10 = 28{,}75$, nên $\\Delta_Q = 13{,}75$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c3_b1_04",
+    "lessonId": "les_math12_c3_b1",
+    "blockType": "summary",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "title": "Ghi nhớ nhanh",
+      "points": [
+        "Khoảng tứ phân vị ít bị ảnh hưởng bởi giá trị ngoại lệ hơn khoảng biến thiên.",
+        "Xác định đúng nhóm chứa $Q_1$ ($N/4$) và $Q_3$ ($3N/4$)."
+      ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c3_b2_01",
+    "lessonId": "les_math12_c3_b2",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 1,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 10: Phương sai và độ lệch chuẩn\n\nPhương sai $s^2$ và độ lệch chuẩn $s=\\sqrt{s^2}$ của mẫu số liệu ghép nhóm được tính từ giá trị đại diện $c_i$ và tần số $n_i$ của mỗi nhóm."
+    }
+  },
+  {
+    "id": "blk_les_math12_c3_b2_02",
+    "lessonId": "les_math12_c3_b2",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "latex": "s^2 = \\frac{1}{n}\\sum_{i=1}^k n_i(c_i - \\bar{x})^2, \\quad s = \\sqrt{s^2}",
+      "displayMode": true,
+      "caption": "Công thức trọng tâm — Bài 10: Phương sai và độ lệch chuẩn"
+    }
+  },
+  {
+    "id": "blk_les_math12_c3_b2_03",
+    "lessonId": "les_math12_c3_b2",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 3,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ minh họa — Bài 10: Phương sai và độ lệch chuẩn",
+      "prompt": "Phân tích và giải bài toán mẫu sau:",
+      "solution": "Với mẫu $[0;10):2, [10;20):6, [20;30):8, [30;40):4$, giá trị trung bình $\\bar{x}=22$, phương sai $s^2 = \\frac{1620}{20}=81$, suy ra độ lệch chuẩn $s=9$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c3_b2_04",
+    "lessonId": "les_math12_c3_b2",
+    "blockType": "summary",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "title": "Ghi nhớ nhanh",
+      "points": [
+        "Độ lệch chuẩn có cùng đơn vị đo với dữ liệu gốc.",
+        "Độ lệch chuẩn càng nhỏ thì số liệu càng tập trung quanh giá trị trung bình."
+      ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c4_b1_01",
+    "lessonId": "les_math12_c4_b1",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 1,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 11: Nguyên hàm\n\nHàm số $F(x)$ là nguyên hàm của $f(x)$ trên $K$ nếu $F'(x)=f(x)$ với mọi $x\\in K$. Mọi nguyên hàm đều có dạng $F(x)+C$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c4_b1_02",
+    "lessonId": "les_math12_c4_b1",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "latex": "\\int x^\\alpha dx = \\frac{x^{\\alpha+1}}{\\alpha+1}+C \\;(\\alpha\\ne -1), \\quad \\int e^x dx = e^x + C",
+      "displayMode": true,
+      "caption": "Công thức trọng tâm — Bài 11: Nguyên hàm"
+    }
+  },
+  {
+    "id": "blk_les_math12_c4_b1_03",
+    "lessonId": "les_math12_c4_b1",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 3,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ minh họa — Bài 11: Nguyên hàm",
+      "prompt": "Phân tích và giải bài toán mẫu sau:",
+      "solution": "Tìm nguyên hàm của $f(x)=3x^2+2x$: ta có $\\int (3x^2+2x)dx = x^3 + x^2 + C$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c4_b1_04",
+    "lessonId": "les_math12_c4_b1",
+    "blockType": "summary",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "title": "Ghi nhớ nhanh",
+      "points": [
+        "Không quên hằng số $C$ khi viết họ nguyên hàm.",
+        "Với $\\int \\frac{1}{x}dx = \\ln|x|+C$, phải có giá trị tuyệt đối."
+      ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c4_b2_01",
+    "lessonId": "les_math12_c4_b2",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 1,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 12: Tích phân\n\nTheo công thức Newton-Leibniz, nếu $F(x)$ là một nguyên hàm của $f(x)$ liên tục trên $[a;b]$ thì $\\int_a^b f(x)dx = F(b)-F(a)$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c4_b2_02",
+    "lessonId": "les_math12_c4_b2",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "latex": "\\int_a^b f(x)\\,dx = F(b) - F(a)",
+      "displayMode": true,
+      "caption": "Công thức trọng tâm — Bài 12: Tích phân"
+    }
+  },
+  {
+    "id": "blk_les_math12_c4_b2_03",
+    "lessonId": "les_math12_c4_b2",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 3,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ minh họa — Bài 12: Tích phân",
+      "prompt": "Phân tích và giải bài toán mẫu sau:",
+      "solution": "Tính $I = \\int_0^2 (3x^2+2x)dx = [x^3+x^2]_0^2 = (8+4) - 0 = 12$. Với $\\int_0^{\\frac{\\ln 3}{2}} e^{2x}dx = [\\frac{1}{2}e^{2x}]_0^{\\frac{\\ln 3}{2}} = \\frac{3-1}{2} = 1$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c4_b2_04",
+    "lessonId": "les_math12_c4_b2",
+    "blockType": "summary",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "title": "Ghi nhớ nhanh",
+      "points": [
+        "Đổi cận ngay khi dùng phép đổi biến số.",
+        "Tích phân $\\int_a^b f(x)dx$ không phụ thuộc vào ký hiệu biến lấy tích phân."
+      ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c4_b3_01",
+    "lessonId": "les_math12_c4_b3",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 1,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 13: Ứng dụng hình học của tích phân\n\nDiện tích hình phẳng giới hạn bởi $y=f(x), y=g(x), x=a, x=b$ là $\\int_a^b |f(x)-g(x)|dx$. Thể tích khối tròn xoay quanh $Ox$ là $\\pi\\int_a^b [f(x)]^2 dx$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c4_b3_02",
+    "lessonId": "les_math12_c4_b3",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "latex": "S = \\int_a^b |f(x)-g(x)|\\,dx, \\quad V = \\pi\\int_a^b [f(x)]^2\\,dx",
+      "displayMode": true,
+      "caption": "Công thức trọng tâm — Bài 13: Ứng dụng hình học của tích phân"
+    }
+  },
+  {
+    "id": "blk_les_math12_c4_b3_03",
+    "lessonId": "les_math12_c4_b3",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 3,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ minh họa — Bài 13: Ứng dụng hình học của tích phân",
+      "prompt": "Phân tích và giải bài toán mẫu sau:",
+      "solution": "Diện tích giới hạn bởi $y=4-x^2$ và trục hoành ($x\\in[-2;2]$) là $\\int_{-2}^2 (4-x^2)dx = \\frac{32}{3}$. Quay $y=x$ trên $[0;3]$ quanh $Ox$ cho $V = \\pi\\int_0^3 x^2 dx = 9\\pi$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c4_b3_04",
+    "lessonId": "les_math12_c4_b3",
+    "blockType": "summary",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "title": "Ghi nhớ nhanh",
+      "points": [
+        "Luôn giữ dấu giá trị tuyệt đối khi $f(x)-g(x)$ đổi dấu trên $[a;b]$.",
+        "Thể tích khối tròn xoay luôn có hệ số $\\pi$."
+      ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b1_01",
+    "lessonId": "les_math12_c5_b1",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 1,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 14: Phương trình mặt phẳng\n\nMặt phẳng đi qua $M_0(x_0;y_0;z_0)$ nhận $\\vec{n}=(A;B;C)\\ne\\vec{0}$ làm vectơ pháp tuyến có phương trình $A(x-x_0)+B(y-y_0)+C(z-z_0)=0$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b1_02",
+    "lessonId": "les_math12_c5_b1",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "latex": "d(M,(P)) = \\frac{|Ax_M + By_M + Cz_M + D|}{\\sqrt{A^2+B^2+C^2}}",
+      "displayMode": true,
+      "caption": "Công thức trọng tâm — Bài 14: Phương trình mặt phẳng"
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b1_03",
+    "lessonId": "les_math12_c5_b1",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 3,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ minh họa — Bài 14: Phương trình mặt phẳng",
+      "prompt": "Phân tích và giải bài toán mẫu sau:",
+      "solution": "Khoảng cách từ $M(3;-2;1)$ đến mặt phẳng $(P): 2x - y + 2z - 6 = 0$ là $d = \\frac{|6 + 2 + 2 - 6|}{\\sqrt{4+1+4}} = \\frac{4}{3}$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b1_04",
+    "lessonId": "les_math12_c5_b1",
+    "blockType": "summary",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "title": "Ghi nhớ nhanh",
+      "points": [
+        "Nếu có cặp vectơ chỉ phương $\\vec{u}, \\vec{v}$, lấy tích có hướng $\\vec{n}=[\\vec{u},\\vec{v}]$.",
+        "Hai mặt phẳng song song khi $\\vec{n}_1$ cùng phương $\\vec{n}_2$ và $D_1 \\ne kD_2$."
+      ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b2_01",
+    "lessonId": "les_math12_c5_b2",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 1,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 15: Phương trình đường thẳng trong không gian\n\nĐường thẳng đi qua $M_0(x_0;y_0;z_0)$ với vectơ chỉ phương $\\vec{u}=(a;b;c)\\ne\\vec{0}$ có phương trình tham số $x=x_0+at, y=y_0+bt, z=z_0+ct$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b2_02",
+    "lessonId": "les_math12_c5_b2",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "latex": "\\frac{x-x_0}{a} = \\frac{y-y_0}{b} = \\frac{z-z_0}{c} \\quad (abc \\ne 0)",
+      "displayMode": true,
+      "caption": "Công thức trọng tâm — Bài 15: Phương trình đường thẳng trong không gian"
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b2_03",
+    "lessonId": "les_math12_c5_b2",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 3,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ minh họa — Bài 15: Phương trình đường thẳng trong không gian",
+      "prompt": "Phân tích và giải bài toán mẫu sau:",
+      "solution": "Đường thẳng qua $A(1;0;-2)$ và nhận $\\vec{u}=(2;-1;3)$ làm VTCP có phương trình $\\frac{x-1}{2}=\\frac{y}{-1}=\\frac{z+2}{3}$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b2_04",
+    "lessonId": "les_math12_c5_b2",
+    "blockType": "summary",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "title": "Ghi nhớ nhanh",
+      "points": [
+        "Khi mẫu bằng 0, chỉ viết phương trình tham số thay vì chính tắc.",
+        "Xét vị trí tương đối dựa trên hệ số góc $[\\vec{u}_1,\\vec{u}_2]$ và tích hỗn tạp."
+      ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b3_01",
+    "lessonId": "les_math12_c5_b3",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 1,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 16: Công thức tính góc trong không gian\n\nGóc giữa hai đường thẳng, đường thẳng và mặt phẳng, hoặc hai mặt phẳng đều nằm trong $[0^\\circ; 90^\\circ]$ nên luôn lấy trị tuyệt đối ở tử số."
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b3_02",
+    "lessonId": "les_math12_c5_b3",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "latex": "\\sin(d,(P)) = \\frac{|\\vec{u}\\cdot\\vec{n}|}{|\\vec{u}|\\cdot|\\vec{n}|}, \\quad \\cos((P),(Q)) = \\frac{|\\vec{n}_1\\cdot\\vec{n}_2|}{|\\vec{n}_1|\\cdot|\\vec{n}_2|}",
+      "displayMode": true,
+      "caption": "Công thức trọng tâm — Bài 16: Công thức tính góc trong không gian"
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b3_03",
+    "lessonId": "les_math12_c5_b3",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 3,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ minh họa — Bài 16: Công thức tính góc trong không gian",
+      "prompt": "Phân tích và giải bài toán mẫu sau:",
+      "solution": "Nếu đường thẳng có $\\vec{u}=(1;0;0)$ và mặt phẳng có $\\vec{n}=(1;1;0)$ thì $\\sin\\varphi = \\frac{1}{\\sqrt{2}}$, suy ra $\\varphi = 45^\\circ$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b3_04",
+    "lessonId": "les_math12_c5_b3",
+    "blockType": "summary",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "title": "Ghi nhớ nhanh",
+      "points": [
+        "Nhớ phân biệt $\\sin$ cho góc giữa đường thẳng và mặt phẳng.",
+        "Luôn dùng trị tuyệt đối để kết quả góc không tù."
+      ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b4_01",
+    "lessonId": "les_math12_c5_b4",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 1,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 17: Phương trình mặt cầu\n\nMặt cầu tâm $I(a;b;c)$ bán kính $R>0$ có phương trình $(x-a)^2+(y-b)^2+(z-c)^2=R^2$. Dạng khai triển $x^2+y^2+z^2-2ax-2by-2cz+d=0$ với $R=\\sqrt{a^2+b^2+c^2-d}$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b4_02",
+    "lessonId": "les_math12_c5_b4",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "latex": "(x-a)^2 + (y-b)^2 + (z-c)^2 = R^2",
+      "displayMode": true,
+      "caption": "Công thức trọng tâm — Bài 17: Phương trình mặt cầu"
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b4_03",
+    "lessonId": "les_math12_c5_b4",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 3,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ minh họa — Bài 17: Phương trình mặt cầu",
+      "prompt": "Phân tích và giải bài toán mẫu sau:",
+      "solution": "Mặt cầu $(x-1)^2 + (y+2)^2 + (z-3)^2 = 16$ có tâm $I(1;-2;3)$ và bán kính $R=4$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b4_04",
+    "lessonId": "les_math12_c5_b4",
+    "blockType": "summary",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "title": "Ghi nhớ nhanh",
+      "points": [
+        "Kiểm tra điều kiện $a^2+b^2+c^2-d > 0$ trước khi kết luận là mặt cầu.",
+        "Mặt cầu tiếp xúc mặt phẳng $(P)$ khi $d(I,(P)) = R$."
+      ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c6_b1_01",
+    "lessonId": "les_math12_c6_b1",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 1,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 18: Xác suất có điều kiện\n\nXác suất của biến cố $A$ khi biết biến cố $B$ ($P(B)>0$) đã xảy ra là $P(A\\mid B) = \\frac{P(A\\cap B)}{P(B)}$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c6_b1_02",
+    "lessonId": "les_math12_c6_b1",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "latex": "P(A\\mid B) = \\frac{P(A\\cap B)}{P(B)}, \\quad P(A\\cap B) = P(B)\\cdot P(A\\mid B)",
+      "displayMode": true,
+      "caption": "Công thức trọng tâm — Bài 18: Xác suất có điều kiện"
+    }
+  },
+  {
+    "id": "blk_les_math12_c6_b1_03",
+    "lessonId": "les_math12_c6_b1",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 3,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ minh họa — Bài 18: Xác suất có điều kiện",
+      "prompt": "Phân tích và giải bài toán mẫu sau:",
+      "solution": "Trong một lớp có $P(B)=0{,}5$ và $P(A\\cap B)=0{,}3$, xác suất có điều kiện $P(A\\mid B) = \\frac{0{,}3}{0{,}5} = 0{,}6$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c6_b1_04",
+    "lessonId": "les_math12_c6_b1",
+    "blockType": "summary",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "title": "Ghi nhớ nhanh",
+      "points": [
+        "$A$ và $B$ độc lập khi và chỉ khi $P(A\\mid B) = P(A)$.",
+        "Có thể thu gọn không gian mẫu về riêng biến cố $B$."
+      ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c6_b2_01",
+    "lessonId": "les_math12_c6_b2",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 1,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 19: Công thức xác suất toàn phần và công thức Bayes\n\nKhi $\\{A, \\bar{A}\\}$ phân hoạch không gian mẫu, $P(B) = P(A)P(B\\mid A) + P(\\bar{A})P(B\\mid \\bar{A})$ và $P(A\\mid B) = \\frac{P(A)P(B\\mid A)}{P(B)}$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c6_b2_02",
+    "lessonId": "les_math12_c6_b2",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "latex": "P(A\\mid B) = \\frac{P(A)\\,P(B\\mid A)}{P(A)\\,P(B\\mid A) + P(\\bar{A})\\,P(B\\mid \\bar{A})}",
+      "displayMode": true,
+      "caption": "Công thức trọng tâm — Bài 19: Công thức xác suất toàn phần và công thức Bayes"
+    }
+  },
+  {
+    "id": "blk_les_math12_c6_b2_03",
+    "lessonId": "les_math12_c6_b2",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 3,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ minh họa — Bài 19: Công thức xác suất toàn phần và công thức Bayes",
+      "prompt": "Phân tích và giải bài toán mẫu sau:",
+      "solution": "Cho $P(A)=0{,}4$, $P(B\\mid A)=0{,}7$, $P(B\\mid \\bar{A})=0{,}2$. Khi đó $P(B)=0{,}4\\cdot 0{,}7 + 0{,}6\\cdot 0{,}2 = 0{,}4$ và $P(A\\mid B) = \\frac{0{,}28}{0{,}4} = 0{,}7$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c6_b2_04",
+    "lessonId": "les_math12_c6_b2",
+    "blockType": "summary",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "title": "Ghi nhớ nhanh",
+      "points": [
+        "Vẽ sơ đồ hình cây hai tầng để tránh nhầm nhánh xác suất.",
+        "Tổng các xác suất nhánh xuất phát từ cùng một đỉnh luôn bằng $1$."
+      ]
+    }
+  }
+]

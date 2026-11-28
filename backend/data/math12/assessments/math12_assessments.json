@@ -1,0 +1,66 @@
+[
+  {
+    "id": "asm_m12_c1",
+    "lessonId": "les_math12_c1_b1",
+    "title": "Kiểm tra Chương 1: Ứng dụng đạo hàm",
+    "passScore": 70,
+    "durationMinutes": 20,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_c2",
+    "lessonId": "les_math12_c2_b1",
+    "title": "Kiểm tra Chương 2: Vectơ và hệ tọa độ Oxyz",
+    "passScore": 70,
+    "durationMinutes": 20,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_c3",
+    "lessonId": "les_math12_c3_b1",
+    "title": "Kiểm tra Chương 3: Thống kê mẫu số liệu ghép nhóm",
+    "passScore": 70,
+    "durationMinutes": 15,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_c4",
+    "lessonId": "les_math12_c4_b1",
+    "title": "Kiểm tra Chương 4: Nguyên hàm và tích phân",
+    "passScore": 70,
+    "durationMinutes": 20,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_c5",
+    "lessonId": "les_math12_c5_b1",
+    "title": "Kiểm tra Chương 5: Phương pháp tọa độ trong không gian",
+    "passScore": 70,
+    "durationMinutes": 20,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_c6",
+    "lessonId": "les_math12_c6_b1",
+    "title": "Kiểm tra Chương 6: Xác suất có điều kiện",
+    "passScore": 70,
+    "durationMinutes": 15,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_mock_hk1",
+    "lessonId": "les_math12_c1_b4",
+    "title": "Đề ôn tập tổng hợp Học kỳ 1 — Toán 12",
+    "passScore": 70,
+    "durationMinutes": 45,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_mock_thpt",
+    "lessonId": "les_math12_c6_b2",
+    "title": "Đề thi thử chuẩn cấu trúc TN THPT 2025+ — Toán 12",
+    "passScore": 70,
+    "durationMinutes": 60,
+    "status": "published"
+  }
+]

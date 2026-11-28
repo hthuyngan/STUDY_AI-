@@ -1,0 +1,1520 @@
+[
+  {
+    "id": "q_m12_c1_01",
+    "lessonId": "les_math12_c1_b1",
+    "chapterId": "chp_math12_c1",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c1",
+    "type": "multiple-choice",
+    "difficulty": "easy",
+    "prompt": "Hàm số $y = x^3 - 3x^2 + 2$ nghịch biến trên khoảng nào sau đây?",
+    "options": [
+      "$(0; 2)$",
+      "$(-\\infty; 0)$",
+      "$(2; +\\infty)$",
+      "$(-1; 1)$"
+    ],
+    "correctAnswer": "$(0; 2)$",
+    "explanation": "Ta có $y' = 3x^2 - 6x = 3x(x-2) < 0 \\Leftrightarrow x \\in (0; 2)$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "d74158e49b8e8337"
+  },
+  {
+    "id": "q_m12_c1_02",
+    "lessonId": "les_math12_c1_b1",
+    "chapterId": "chp_math12_c1",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_hk1",
+    "type": "multiple-choice",
+    "difficulty": "medium",
+    "prompt": "Giá trị cực tiểu của hàm số $y = x^3 - 3x^2 + 2$ bằng bao nhiêu?",
+    "options": [
+      "$-2$",
+      "$2$",
+      "$0$",
+      "$-1$"
+    ],
+    "correctAnswer": "$-2$",
+    "explanation": "$y'=0$ tại $x=0$ (CĐ) và $x=2$ (CT). Giá trị cực tiểu $y(2) = 8 - 12 + 2 = -2$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "6901450854bb68b5"
+  },
+  {
+    "id": "q_m12_c1_03",
+    "lessonId": "les_math12_c1_b2",
+    "chapterId": "chp_math12_c1",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c1",
+    "type": "multiple-choice",
+    "difficulty": "easy",
+    "prompt": "Giá trị lớn nhất của hàm số $y = x^3 - 3x + 1$ trên đoạn $[0; 2]$ là bao nhiêu?",
+    "options": [
+      "$3$",
+      "$1$",
+      "$-1$",
+      "$5$"
+    ],
+    "correctAnswer": "$3$",
+    "explanation": "$y'=3x^2-3=0 \\Rightarrow x=1$. Tính $f(0)=1, f(1)=-1, f(2)=3 \\Rightarrow \\max=3$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "c3e698064bed4862"
+  },
+  {
+    "id": "q_m12_c1_04",
+    "lessonId": "les_math12_c1_b2",
+    "chapterId": "chp_math12_c1",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt",
+    "type": "multiple-choice",
+    "difficulty": "medium",
+    "prompt": "Giá trị nhỏ nhất của hàm số $y = x + \\frac{4}{x}$ trên đoạn $[1; 3]$ bằng bao nhiêu?",
+    "options": [
+      "$4$",
+      "$5$",
+      "$\\frac{13}{3}$",
+      "$3$"
+    ],
+    "correctAnswer": "$4$",
+    "explanation": "$y'=1-\\frac{4}{x^2}=0 \\Rightarrow x=2 \\in [1;3]$. Tính $f(1)=5, f(2)=4, f(3)=\\frac{13}{3} \\Rightarrow \\min=4$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "526211cd18a19f5a"
+  },
+  {
+    "id": "q_m12_c1_05",
+    "lessonId": "les_math12_c1_b3",
+    "chapterId": "chp_math12_c1",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c1",
+    "type": "multiple-choice",
+    "difficulty": "easy",
+    "prompt": "Đồ thị hàm số $y = \\frac{2x+1}{x-1}$ có đường tiệm cận ngang là:",
+    "options": [
+      "$y = 2$",
+      "$y = 1$",
+      "$x = 1$",
+      "$x = 2$"
+    ],
+    "correctAnswer": "$y = 2$",
+    "explanation": "$\\lim_{x\\to\\pm\\infty} \\frac{2x+1}{x-1} = 2$ nên tiệm cận ngang là $y=2$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "e8b630bae1edfc14"
+  },
+  {
+    "id": "q_m12_c1_06",
+    "lessonId": "les_math12_c1_b3",
+    "chapterId": "chp_math12_c1",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_hk1",
+    "type": "multiple-choice",
+    "difficulty": "medium",
+    "prompt": "Đường tiệm cận xiên của đồ thị hàm số $y = \\frac{x^2 + 2x + 3}{x + 1}$ là đường thẳng:",
+    "options": [
+      "$y = x + 1$",
+      "$y = x - 1$",
+      "$y = x + 2$",
+      "$y = 2x + 1$"
+    ],
+    "correctAnswer": "$y = x + 1$",
+    "explanation": "Chia đa thức ta được $y = x + 1 + \\frac{2}{x+1}$, nên tiệm cận xiên là $y = x + 1$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "50cf5545d980e99f"
+  },
+  {
+    "id": "q_m12_c1_07",
+    "lessonId": "les_math12_c1_b4",
+    "chapterId": "chp_math12_c1",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c1",
+    "type": "multiple-choice",
+    "difficulty": "medium",
+    "prompt": "Tâm đối xứng của đồ thị hàm số $y = x^3 - 3x^2 + 2$ có tọa độ là:",
+    "options": [
+      "$(1; 0)$",
+      "$(0; 2)$",
+      "$(2; -2)$",
+      "$(1; 1)$"
+    ],
+    "correctAnswer": "$(1; 0)$",
+    "explanation": "$y'' = 6x - 6 = 0 \\Leftrightarrow x = 1 \\Rightarrow y(1) = 0$. Điểm uốn $I(1;0)$ là tâm đối xứng.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "2ef6b137fd87ed8f"
+  },
+  {
+    "id": "q_m12_c1_08",
+    "lessonId": "les_math12_c1_b4",
+    "chapterId": "chp_math12_c1",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_hk1",
+    "type": "multiple-choice",
+    "difficulty": "easy",
+    "prompt": "Giao điểm hai đường tiệm cận của đồ thị hàm số $y = \\frac{2x+1}{x-1}$ là:",
+    "options": [
+      "$(1; 2)$",
+      "$(2; 1)$",
+      "$(-1; 2)$",
+      "$(1; -1)$"
+    ],
+    "correctAnswer": "$(1; 2)$",
+    "explanation": "TCĐ $x=1$ và TCN $y=2$ cắt nhau tại $I(1;2)$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "23705541cac3c35d"
+  },
+  {
+    "id": "q_m12_c1_09",
+    "lessonId": "les_math12_c1_b5",
+    "chapterId": "chp_math12_c1",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c1",
+    "type": "multiple-choice",
+    "difficulty": "medium",
+    "prompt": "Một hình chữ nhật có chu vi $20\\text{ m}$. Diện tích lớn nhất của hình chữ nhật đó bằng:",
+    "options": [
+      "$25\\text{ m}^2$",
+      "$20\\text{ m}^2$",
+      "$100\\text{ m}^2$",
+      "$16\\text{ m}^2$"
+    ],
+    "correctAnswer": "$25\\text{ m}^2$",
+    "explanation": "$S(w)=w(10-w)$ đạt cực đại tại $w=5$, cho $S_{\\max}=25\\text{ m}^2$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "1bc72178879f7f40"
+  },
+  {
+    "id": "q_m12_c1_10",
+    "lessonId": "les_math12_c1_b5",
+    "chapterId": "chp_math12_c1",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt",
+    "type": "multiple-choice",
+    "difficulty": "hard",
+    "prompt": "Một vật chuyển động theo quy luật $s(t) = -t^3 + 6t^2$ (m). Vận tốc lớn nhất đạt được là:",
+    "options": [
+      "$12\\text{ m/s}$",
+      "$6\\text{ m/s}$",
+      "$16\\text{ m/s}$",
+      "$8\\text{ m/s}$"
+    ],
+    "correctAnswer": "$12\\text{ m/s}$",
+    "explanation": "$v(t)=s'(t)=-3t^2+12t = -3(t-2)^2 + 12 \\le 12\\text{ m/s}$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "98d1eb372f073135"
+  },
+  {
+    "id": "q_m12_c1_11",
+    "lessonId": "les_math12_c1_b1",
+    "chapterId": "chp_math12_c1",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c1",
+    "type": "true-false-group",
+    "difficulty": "medium",
+    "prompt": "Cho hàm số $y = f(x) = x^3 - 3x^2 + 2$. Xét tính đúng sai của các mệnh đề sau:",
+    "options": [
+      "a) Đạo hàm của hàm số là $f'(x) = 3x^2 - 6x$.",
+      "b) Hàm số đồng biến trên khoảng $(0; 2)$.",
+      "c) Giá trị cực đại của hàm số bằng $2$.",
+      "d) Đồ thị hàm số đi qua điểm $M(1; 0)$."
+    ],
+    "correctAnswer": "true,false,true,true",
+    "explanation": "a) Đúng ($f'(x)=3x^2-6x$); b) Sai (nghịch biến trên $(0;2)$); c) Đúng ($f(0)=2$); d) Đúng ($f(1)=0$).",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "3f8ba6d38cca443c"
+  },
+  {
+    "id": "q_m12_c1_12",
+    "lessonId": "les_math12_c1_b3",
+    "chapterId": "chp_math12_c1",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt",
+    "type": "true-false-group",
+    "difficulty": "medium",
+    "prompt": "Cho hàm số $y = \\frac{2x+1}{x-1}$. Xét tính đúng sai của các mệnh đề sau:",
+    "options": [
+      "a) Tập xác định của hàm số là $\\mathbb{R}\\setminus\\{1\\}$.",
+      "b) Đường thẳng $x=1$ là tiệm cận đứng của đồ thị.",
+      "c) Đường thẳng $y=1$ là tiệm cận ngang của đồ thị.",
+      "d) Hàm số nghịch biến trên từng khoảng xác định."
+    ],
+    "correctAnswer": "true,true,false,true",
+    "explanation": "a) Đúng; b) Đúng; c) Sai (TCN là $y=2$); d) Đúng ($y'=\\frac{-3}{(x-1)^2}<0$).",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "304a84305199d657"
+  },
+  {
+    "id": "q_m12_c1_13",
+    "lessonId": "les_math12_c1_b2",
+    "chapterId": "chp_math12_c1",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c1",
+    "type": "short-answer",
+    "difficulty": "medium",
+    "prompt": "Tìm giá trị lớn nhất của hàm số $y = x^3 - 3x + 1$ trên đoạn $[0; 2]$.",
+    "options": [],
+    "correctAnswer": "3",
+    "metadata": {
+      "acceptedAnswers": [
+        "3",
+        "3.0"
+      ]
+    },
+    "explanation": "$f(0)=1, f(1)=-1, f(2)=3 \\Rightarrow M=3$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "bc51a536e32aa6dc"
+  },
+  {
+    "id": "q_m12_c1_14",
+    "lessonId": "les_math12_c1_b5",
+    "chapterId": "chp_math12_c1",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt",
+    "type": "short-answer",
+    "difficulty": "medium",
+    "prompt": "Một mảnh đất hình chữ nhật có chu vi $20\\text{ m}$. Tính diện tích lớn nhất (đơn vị $\\text{m}^2$) của mảnh đất đó.",
+    "options": [],
+    "correctAnswer": "25",
+    "metadata": {
+      "acceptedAnswers": [
+        "25",
+        "25.0"
+      ]
+    },
+    "explanation": "$S(w)=w(10-w)$ đạt GTLN bằng $25$ tại $w=5$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "e72ae7ab08b36e57"
+  },
+  {
+    "id": "q_m12_c1_15",
+    "lessonId": "les_math12_c1_b1",
+    "chapterId": "chp_math12_c1",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_hk1",
+    "type": "short-answer",
+    "difficulty": "easy",
+    "prompt": "Hàm số $y = x^3 - 3x^2 + 2$ đạt cực tiểu tại $x$ bằng bao nhiêu?",
+    "options": [],
+    "correctAnswer": "2",
+    "metadata": {
+      "acceptedAnswers": [
+        "2",
+        "2.0"
+      ]
+    },
+    "explanation": "$y'=3x(x-2)$ đổi dấu từ âm sang dương qua $x=2$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "4e04e5856630f372"
+  },
+  {
+    "id": "q_m12_c2_01",
+    "lessonId": "les_math12_c2_b1",
+    "chapterId": "chp_math12_c2",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c2",
+    "type": "multiple-choice",
+    "difficulty": "easy",
+    "prompt": "Trong hình hộp $ABCD.A'B'C'D'$, tổng $\\overrightarrow{AB} + \\overrightarrow{AD} + \\overrightarrow{AA'}$ bằng vectơ nào?",
+    "options": [
+      "$\\overrightarrow{AC'}$",
+      "$\\overrightarrow{AC}$",
+      "$\\overrightarrow{BD'}$",
+      "$\\overrightarrow{CA'}$"
+    ],
+    "correctAnswer": "$\\overrightarrow{AC'}$",
+    "explanation": "Theo quy tắc hình hộp, tổng ba vectơ xuất phát từ $A$ bằng đường chéo $\\overrightarrow{AC'}$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "9c1981a560eb1128"
+  },
+  {
+    "id": "q_m12_c2_02",
+    "lessonId": "les_math12_c2_b1",
+    "chapterId": "chp_math12_c2",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_hk1",
+    "type": "multiple-choice",
+    "difficulty": "medium",
+    "prompt": "Cho hai vectơ $\\vec{u}, \\vec{v}$ khác $\\vec{0}$ vuông góc với nhau. Khi đó tích vô hướng $\\vec{u}\\cdot\\vec{v}$ bằng:",
+    "options": [
+      "$0$",
+      "$1$",
+      "$-1$",
+      "$|\\vec{u}|\\cdot|\\vec{v}|$"
+    ],
+    "correctAnswer": "$0$",
+    "explanation": "$\\cos 90^\\circ = 0 \\Rightarrow \\vec{u}\\cdot\\vec{v}=0$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "3e4d943ab2fef344"
+  },
+  {
+    "id": "q_m12_c2_03",
+    "lessonId": "les_math12_c2_b2",
+    "chapterId": "chp_math12_c2",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c2",
+    "type": "multiple-choice",
+    "difficulty": "easy",
+    "prompt": "Trong không gian $Oxyz$, hình chiếu vuông góc của điểm $M(3; -2; 5)$ lên mặt phẳng $(Oxy)$ là:",
+    "options": [
+      "$(3; -2; 0)$",
+      "$(0; 0; 5)$",
+      "$(3; 0; 5)$",
+      "$(0; -2; 5)$"
+    ],
+    "correctAnswer": "$(3; -2; 0)$",
+    "explanation": "Chiếu lên $(Oxy)$ giữ nguyên $x, y$ và đặt $z=0$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "e078020a97588d93"
+  },
+  {
+    "id": "q_m12_c2_04",
+    "lessonId": "les_math12_c2_b2",
+    "chapterId": "chp_math12_c2",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_hk1",
+    "type": "multiple-choice",
+    "difficulty": "easy",
+    "prompt": "Trong không gian $Oxyz$, cho $A(1; 2; -1)$ và $B(3; 0; 3)$. Tọa độ trung điểm $I$ của $AB$ là:",
+    "options": [
+      "$(2; 1; 1)$",
+      "$(1; -1; 2)$",
+      "$(4; 2; 2)$",
+      "$(2; -1; 1)$"
+    ],
+    "correctAnswer": "$(2; 1; 1)$",
+    "explanation": "$I = (\\frac{1+3}{2}; \\frac{2+0}{2}; \\frac{-1+3}{2}) = (2; 1; 1)$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "de45087c0cf95239"
+  },
+  {
+    "id": "q_m12_c2_05",
+    "lessonId": "les_math12_c2_b3",
+    "chapterId": "chp_math12_c2",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c2",
+    "type": "multiple-choice",
+    "difficulty": "easy",
+    "prompt": "Trong không gian $Oxyz$, độ dài của vectơ $\\vec{u} = (1; -2; 2)$ bằng:",
+    "options": [
+      "$3$",
+      "$5$",
+      "$9$",
+      "$\\sqrt{5}$"
+    ],
+    "correctAnswer": "$3$",
+    "explanation": "$|\\vec{u}| = \\sqrt{1^2 + (-2)^2 + 2^2} = \\sqrt{9} = 3$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "a723a7c450c74cb3"
+  },
+  {
+    "id": "q_m12_c2_06",
+    "lessonId": "les_math12_c2_b3",
+    "chapterId": "chp_math12_c2",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt",
+    "type": "multiple-choice",
+    "difficulty": "medium",
+    "prompt": "Cho $\\vec{a} = (1; 2; -1)$ và $\\vec{b} = (3; 0; 2)$. Tích có hướng $[\\vec{a}, \\vec{b}]$ có tọa độ là:",
+    "options": [
+      "$(4; -5; -6)$",
+      "$(4; 5; -6)$",
+      "$(-4; -5; 6)$",
+      "$(4; -5; 6)$"
+    ],
+    "correctAnswer": "$(4; -5; -6)$",
+    "explanation": "$[\\vec{a},\\vec{b}] = (2\\cdot 2 - (-1)\\cdot 0; (-1)\\cdot 3 - 1\\cdot 2; 1\\cdot 0 - 2\\cdot 3) = (4; -5; -6)$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "965483dc007e19db"
+  },
+  {
+    "id": "q_m12_c2_07",
+    "lessonId": "les_math12_c2_b3",
+    "chapterId": "chp_math12_c2",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c2",
+    "type": "true-false-group",
+    "difficulty": "medium",
+    "prompt": "Trong không gian $Oxyz$, cho $\\vec{u}=(1;-2;2)$ và $\\vec{v}=(2;1;-1)$. Xét tính đúng sai:",
+    "options": [
+      "a) Độ dài vectơ $\\vec{u}$ bằng $3$.",
+      "b) Tổng $\\vec{u}+\\vec{v} = (3; -1; 1)$.",
+      "c) Tích vô hướng $\\vec{u}\\cdot\\vec{v} = 0$.",
+      "d) Hai vectơ $\\vec{u}$ và $\\vec{v}$ cùng phương."
+    ],
+    "correctAnswer": "true,true,false,false",
+    "explanation": "a) Đúng; b) Đúng; c) Sai ($\\vec{u}\\cdot\\vec{v}=-2$); d) Sai (tọa độ không tỉ lệ).",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "51415bf81686d9cb"
+  },
+  {
+    "id": "q_m12_c2_08",
+    "lessonId": "les_math12_c2_b2",
+    "chapterId": "chp_math12_c2",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_hk1",
+    "type": "true-false-group",
+    "difficulty": "easy",
+    "prompt": "Trong không gian $Oxyz$, cho điểm $M(2; -3; 4)$. Xét tính đúng sai:",
+    "options": [
+      "a) $\\overrightarrow{OM} = 2\\vec{i} - 3\\vec{j} + 4\\vec{k}$.",
+      "b) Hình chiếu của $M$ lên trục $Ox$ là $(2; 0; 0)$.",
+      "c) Điểm đối xứng của $M$ qua gốc $O$ là $(-2; 3; 4)$.",
+      "d) Khoảng cách từ $M$ đến mặt phẳng $(Oxy)$ bằng $4$."
+    ],
+    "correctAnswer": "true,true,false,true",
+    "explanation": "a) Đúng; b) Đúng; c) Sai (qua $O$ là $(-2;3;-4)$); d) Đúng ($|z_M|=4$).",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "7fd0d707843023eb"
+  },
+  {
+    "id": "q_m12_c2_09",
+    "lessonId": "les_math12_c2_b3",
+    "chapterId": "chp_math12_c2",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c2",
+    "type": "short-answer",
+    "difficulty": "easy",
+    "prompt": "Tính tích vô hướng $\\vec{u}\\cdot\\vec{v}$ biết $\\vec{u}=(1;-2;2)$ và $\\vec{v}=(2;1;-1)$.",
+    "options": [],
+    "correctAnswer": "-2",
+    "metadata": {
+      "acceptedAnswers": [
+        "-2",
+        "-2.0"
+      ]
+    },
+    "explanation": "$\\vec{u}\\cdot\\vec{v} = 1\\cdot 2 + (-2)\\cdot 1 + 2\\cdot(-1) = -2$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "39bf9a7b3df608a6"
+  },
+  {
+    "id": "q_m12_c2_10",
+    "lessonId": "les_math12_c2_b3",
+    "chapterId": "chp_math12_c2",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt",
+    "type": "short-answer",
+    "difficulty": "easy",
+    "prompt": "Tính độ dài vectơ $\\vec{u} = (1; -2; 2)$.",
+    "options": [],
+    "correctAnswer": "3",
+    "metadata": {
+      "acceptedAnswers": [
+        "3",
+        "3.0"
+      ]
+    },
+    "explanation": "$|\\vec{u}| = \\sqrt{1+4+4} = 3$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "caaba4e06a572195"
+  },
+  {
+    "id": "q_m12_c2_11",
+    "lessonId": "les_math12_c2_b2",
+    "chapterId": "chp_math12_c2",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c2",
+    "type": "short-answer",
+    "difficulty": "medium",
+    "prompt": "Cho $A(1; 0; 2)$ và $B(5; 3; 2)$. Tính độ dài đoạn thẳng $AB$.",
+    "options": [],
+    "correctAnswer": "5",
+    "metadata": {
+      "acceptedAnswers": [
+        "5",
+        "5.0"
+      ]
+    },
+    "explanation": "$\\overrightarrow{AB}=(4;3;0) \\Rightarrow AB = \\sqrt{16+9} = 5$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "3a58f53aa16b141a"
+  },
+  {
+    "id": "q_m12_c3_01",
+    "lessonId": "les_math12_c3_b1",
+    "chapterId": "chp_math12_c3",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c3",
+    "type": "multiple-choice",
+    "difficulty": "easy",
+    "prompt": "Cho mẫu số liệu ghép nhóm có các nhóm từ $[0;10)$ đến $[30;40)$ đều có tần số dương. Khoảng biến thiên $R$ bằng:",
+    "options": [
+      "$40$",
+      "$30$",
+      "$10$",
+      "$20$"
+    ],
+    "correctAnswer": "$40$",
+    "explanation": "Khoảng biến thiên $R = 40 - 0 = 40$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "96dc61db78369b84"
+  },
+  {
+    "id": "q_m12_c3_02",
+    "lessonId": "les_math12_c3_b1",
+    "chapterId": "chp_math12_c3",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_hk1",
+    "type": "multiple-choice",
+    "difficulty": "medium",
+    "prompt": "Với mẫu $[0;10):2, [10;20):6, [20;30):8, [30;40):4$, tứ phân vị thứ nhất $Q_1$ bằng:",
+    "options": [
+      "$15$",
+      "$12$",
+      "$18$",
+      "$20$"
+    ],
+    "correctAnswer": "$15$",
+    "explanation": "$N=20, N/4=5$ thuộc nhóm $[10;20)$, nên $Q_1 = 10 + \\frac{5-2}{6}\\cdot 10 = 15$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "9404660cc736f314"
+  },
+  {
+    "id": "q_m12_c3_03",
+    "lessonId": "les_math12_c3_b2",
+    "chapterId": "chp_math12_c3",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c3",
+    "type": "multiple-choice",
+    "difficulty": "medium",
+    "prompt": "Cho mẫu $[0;10):2, [10;20):6, [20;30):8, [30;40):4$. Giá trị trung bình $\\bar{x}$ của mẫu bằng:",
+    "options": [
+      "$22$",
+      "$20$",
+      "$24$",
+      "$25$"
+    ],
+    "correctAnswer": "$22$",
+    "explanation": "$\\bar{x} = \\frac{5\\cdot 2 + 15\\cdot 6 + 25\\cdot 8 + 35\\cdot 4}{20} = \\frac{440}{20} = 22$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "336df1238e37003e"
+  },
+  {
+    "id": "q_m12_c3_04",
+    "lessonId": "les_math12_c3_b2",
+    "chapterId": "chp_math12_c3",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt",
+    "type": "multiple-choice",
+    "difficulty": "medium",
+    "prompt": "Từ phương sai $s^2 = 81$, độ lệch chuẩn $s$ của mẫu số liệu ghép nhóm bằng:",
+    "options": [
+      "$9$",
+      "$81$",
+      "$3$",
+      "$27$"
+    ],
+    "correctAnswer": "$9$",
+    "explanation": "$s = \\sqrt{s^2} = \\sqrt{81} = 9$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "85be37fed790fb9e"
+  },
+  {
+    "id": "q_m12_c3_05",
+    "lessonId": "les_math12_c3_b1",
+    "chapterId": "chp_math12_c3",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c3",
+    "type": "true-false-group",
+    "difficulty": "medium",
+    "prompt": "Cho mẫu số liệu ghép nhóm $[0;10):2, [10;20):6, [20;30):8, [30;40):4$. Xét tính đúng sai:",
+    "options": [
+      "a) Cỡ mẫu $N = 20$.",
+      "b) Khoảng biến thiên $R = 40$.",
+      "c) Tứ phân vị $Q_1 = 15$.",
+      "d) Khoảng tứ phân vị $\\Delta_Q = 15$."
+    ],
+    "correctAnswer": "true,true,true,false",
+    "explanation": "a) Đúng; b) Đúng; c) Đúng; d) Sai ($Q_3 = 28{,}75 \\Rightarrow \\Delta_Q = 13{,}75$).",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "eb76de964cae250a"
+  },
+  {
+    "id": "q_m12_c3_06",
+    "lessonId": "les_math12_c3_b2",
+    "chapterId": "chp_math12_c3",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_hk1",
+    "type": "true-false-group",
+    "difficulty": "medium",
+    "prompt": "Về phương sai và độ lệch chuẩn của mẫu ghép nhóm trên ($\\bar{x}=22$). Xét tính đúng sai:",
+    "options": [
+      "a) Giá trị đại diện của nhóm $[20;30)$ là $25$.",
+      "b) Phương sai của mẫu bằng $81$.",
+      "c) Độ lệch chuẩn của mẫu bằng $9$.",
+      "d) Nếu mọi giá trị đại diện tăng thêm $5$ thì độ lệch chuẩn cũng tăng thêm $5$."
+    ],
+    "correctAnswer": "true,true,true,false",
+    "explanation": "a) Đúng; b) Đúng; c) Đúng; d) Sai (tịnh tiến dữ liệu không làm đổi độ lệch chuẩn).",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "ee4d735283b3342f"
+  },
+  {
+    "id": "q_m12_c3_07",
+    "lessonId": "les_math12_c3_b2",
+    "chapterId": "chp_math12_c3",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c3",
+    "type": "short-answer",
+    "difficulty": "medium",
+    "prompt": "Tính phương sai $s^2$ của mẫu $[0;10):2, [10;20):6, [20;30):8, [30;40):4$.",
+    "options": [],
+    "correctAnswer": "81",
+    "metadata": {
+      "acceptedAnswers": [
+        "81",
+        "81.0"
+      ]
+    },
+    "explanation": "$s^2 = \\frac{1620}{20} = 81$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "b0e1a83fd9c51776"
+  },
+  {
+    "id": "q_m12_c3_08",
+    "lessonId": "les_math12_c3_b1",
+    "chapterId": "chp_math12_c3",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt",
+    "type": "short-answer",
+    "difficulty": "medium",
+    "prompt": "Tính khoảng tứ phân vị $\\Delta_Q$ của mẫu $[0;10):2, [10;20):6, [20;30):8, [30;40):4$ (viết dạng số thập phân).",
+    "options": [],
+    "correctAnswer": "13.75",
+    "metadata": {
+      "acceptedAnswers": [
+        "13.75",
+        "13,75",
+        "55/4"
+      ]
+    },
+    "explanation": "$Q_1=15, Q_3=28.75 \\Rightarrow \\Delta_Q = 13.75$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "f0e98396dda59ba3"
+  },
+  {
+    "id": "q_m12_c3_09",
+    "lessonId": "les_math12_c3_b2",
+    "chapterId": "chp_math12_c3",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c3",
+    "type": "short-answer",
+    "difficulty": "easy",
+    "prompt": "Một mẫu số liệu có phương sai $s^2 = 16$. Độ lệch chuẩn $s$ bằng bao nhiêu?",
+    "options": [],
+    "correctAnswer": "4",
+    "metadata": {
+      "acceptedAnswers": [
+        "4",
+        "4.0"
+      ]
+    },
+    "explanation": "$s = \\sqrt{16} = 4$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "70478a23df4500af"
+  },
+  {
+    "id": "q_m12_c4_01",
+    "lessonId": "les_math12_c4_b1",
+    "chapterId": "chp_math12_c4",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c4",
+    "type": "multiple-choice",
+    "difficulty": "easy",
+    "prompt": "Họ nguyên hàm của hàm số $f(x) = 3x^2 + 2x$ là:",
+    "options": [
+      "$x^3 + x^2 + C$",
+      "$6x + 2 + C$",
+      "$x^3 + 2x^2 + C$",
+      "$3x^3 + x^2 + C$"
+    ],
+    "correctAnswer": "$x^3 + x^2 + C$",
+    "explanation": "$\\int (3x^2 + 2x)dx = x^3 + x^2 + C$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "25930b322b36d82d"
+  },
+  {
+    "id": "q_m12_c4_02",
+    "lessonId": "les_math12_c4_b1",
+    "chapterId": "chp_math12_c4",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_hk1",
+    "type": "multiple-choice",
+    "difficulty": "easy",
+    "prompt": "Nguyên hàm của hàm số $f(x) = \\cos x$ là:",
+    "options": [
+      "$\\sin x + C$",
+      "$-\\sin x + C$",
+      "$\\cos x + C$",
+      "$-\\cos x + C$"
+    ],
+    "correctAnswer": "$\\sin x + C$",
+    "explanation": "Vì $(\\sin x)' = \\cos x$ nên $\\int \\cos x\\,dx = \\sin x + C$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "a646de3d54363b43"
+  },
+  {
+    "id": "q_m12_c4_03",
+    "lessonId": "les_math12_c4_b2",
+    "chapterId": "chp_math12_c4",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c4",
+    "type": "multiple-choice",
+    "difficulty": "easy",
+    "prompt": "Giá trị của tích phân $\\int_0^2 (3x^2 + 2x)\\,dx$ bằng:",
+    "options": [
+      "$12$",
+      "$8$",
+      "$10$",
+      "$14$"
+    ],
+    "correctAnswer": "$12$",
+    "explanation": "$[x^3 + x^2]_0^2 = 8 + 4 = 12$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "dd20dd5dd363315b"
+  },
+  {
+    "id": "q_m12_c4_04",
+    "lessonId": "les_math12_c4_b2",
+    "chapterId": "chp_math12_c4",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt",
+    "type": "multiple-choice",
+    "difficulty": "medium",
+    "prompt": "Giá trị của tích phân $\\int_0^{\\frac{\\ln 3}{2}} e^{2x}\\,dx$ bằng:",
+    "options": [
+      "$1$",
+      "$2$",
+      "$\\frac{3}{2}$",
+      "$3$"
+    ],
+    "correctAnswer": "$1$",
+    "explanation": "$[\\frac{1}{2}e^{2x}]_0^{\\frac{\\ln 3}{2}} = \\frac{1}{2}(3 - 1) = 1$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "7096a6966d95be31"
+  },
+  {
+    "id": "q_m12_c4_05",
+    "lessonId": "les_math12_c4_b3",
+    "chapterId": "chp_math12_c4",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c4",
+    "type": "multiple-choice",
+    "difficulty": "medium",
+    "prompt": "Diện tích hình phẳng giới hạn bởi parabol $y = 4 - x^2$ và trục hoành bằng:",
+    "options": [
+      "$\\frac{32}{3}$",
+      "$\\frac{16}{3}$",
+      "$8$",
+      "$\\frac{64}{3}$"
+    ],
+    "correctAnswer": "$\\frac{32}{3}$",
+    "explanation": "$\\int_{-2}^2 (4-x^2)dx = [4x - \\frac{x^3}{3}]_{-2}^2 = \\frac{32}{3}$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "c2165e52e3641644"
+  },
+  {
+    "id": "q_m12_c4_06",
+    "lessonId": "les_math12_c4_b3",
+    "chapterId": "chp_math12_c4",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt",
+    "type": "multiple-choice",
+    "difficulty": "medium",
+    "prompt": "Quay hình phẳng giới hạn bởi $y=x, y=0, x=0, x=3$ quanh trục $Ox$ thu được khối nón có thể tích:",
+    "options": [
+      "$9\\pi$",
+      "$3\\pi$",
+      "$27\\pi$",
+      "$\\frac{9\\pi}{2}$"
+    ],
+    "correctAnswer": "$9\\pi$",
+    "explanation": "$V = \\pi\\int_0^3 x^2\\,dx = \\pi[\\frac{x^3}{3}]_0^3 = 9\\pi$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "db2be23cf03647b1"
+  },
+  {
+    "id": "q_m12_c4_07",
+    "lessonId": "les_math12_c4_b2",
+    "chapterId": "chp_math12_c4",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c4",
+    "type": "true-false-group",
+    "difficulty": "medium",
+    "prompt": "Cho hàm số $f(x) = 3x^2 + 2x$ và $F(x)$ là một nguyên hàm thỏa $F(0)=1$. Xét tính đúng sai:",
+    "options": [
+      "a) $F(x) = x^3 + x^2 + 1$.",
+      "b) $\\int_0^2 f(x)\\,dx = 12$.",
+      "c) $\\int_0^1 f(x)\\,dx = F(1)$.",
+      "d) $\\int_1^2 f(x)\\,dx = 10$."
+    ],
+    "correctAnswer": "true,true,false,true",
+    "explanation": "a) Đúng; b) Đúng; c) Sai ($\\int_0^1 f(x)dx = F(1)-F(0) = 2 \\ne F(1)=3$); d) Đúng ($12-2=10$).",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "7b552170e27a5f0b"
+  },
+  {
+    "id": "q_m12_c4_08",
+    "lessonId": "les_math12_c4_b3",
+    "chapterId": "chp_math12_c4",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt",
+    "type": "true-false-group",
+    "difficulty": "medium",
+    "prompt": "Xét ứng dụng hình học của tích phân. Mệnh đề nào đúng, mệnh đề nào sai?",
+    "options": [
+      "a) Diện tích giới hạn bởi $y=4-x^2$ và $y=0$ là $\\frac{32}{3}$.",
+      "b) Thể tích khối tròn xoay khi quay $y=x$ trên $[0;3]$ quanh $Ox$ là $9\\pi$.",
+      "c) Công thức thể tích tròn xoay quanh $Ox$ là $\\int_a^b [f(x)]^2\\,dx$ (không có $\\pi$).",
+      "d) $\\int_{-2}^2 x^3\\,dx = 0$."
+    ],
+    "correctAnswer": "true,true,false,true",
+    "explanation": "a) Đúng; b) Đúng; c) Sai (thiếu $\\pi$); d) Đúng (hàm lẻ trên đoạn đối xứng).",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "b531aca4c26771ac"
+  },
+  {
+    "id": "q_m12_c4_09",
+    "lessonId": "les_math12_c4_b2",
+    "chapterId": "chp_math12_c4",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c4",
+    "type": "short-answer",
+    "difficulty": "easy",
+    "prompt": "Tính tích phân $\\int_0^2 (3x^2 + 2x)\\,dx$.",
+    "options": [],
+    "correctAnswer": "12",
+    "metadata": {
+      "acceptedAnswers": [
+        "12",
+        "12.0"
+      ]
+    },
+    "explanation": "$[x^3+x^2]_0^2 = 12$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "868ef527e02e9faa"
+  },
+  {
+    "id": "q_m12_c4_10",
+    "lessonId": "les_math12_c4_b2",
+    "chapterId": "chp_math12_c4",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt",
+    "type": "short-answer",
+    "difficulty": "medium",
+    "prompt": "Tính tích phân $\\int_0^{\\frac{\\ln 3}{2}} e^{2x}\\,dx$.",
+    "options": [],
+    "correctAnswer": "1",
+    "metadata": {
+      "acceptedAnswers": [
+        "1",
+        "1.0"
+      ]
+    },
+    "explanation": "$\\frac{1}{2}(e^{\\ln 3} - 1) = 1$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "e5519e83d9e423db"
+  },
+  {
+    "id": "q_m12_c4_11",
+    "lessonId": "les_math12_c4_b3",
+    "chapterId": "chp_math12_c4",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c4",
+    "type": "short-answer",
+    "difficulty": "medium",
+    "prompt": "Nếu diện tích giới hạn bởi $y=4-x^2$ và trục hoành bằng $\\frac{a}{3}$ ($a\\in\\mathbb{Z}$), tìm $a$.",
+    "options": [],
+    "correctAnswer": "32",
+    "metadata": {
+      "acceptedAnswers": [
+        "32",
+        "32.0"
+      ]
+    },
+    "explanation": "$S = \\frac{32}{3} \\Rightarrow a = 32$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "b8fada0f2a9dd7d7"
+  },
+  {
+    "id": "q_m12_c5_01",
+    "lessonId": "les_math12_c5_b1",
+    "chapterId": "chp_math12_c5",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c5",
+    "type": "multiple-choice",
+    "difficulty": "easy",
+    "prompt": "Mặt phẳng $(P): 2x - y + 2z - 6 = 0$ có một vectơ pháp tuyến là:",
+    "options": [
+      "$(2; -1; 2)$",
+      "$(2; 1; 2)$",
+      "$(-2; -1; 2)$",
+      "$(2; -1; -6)$"
+    ],
+    "correctAnswer": "$(2; -1; 2)$",
+    "explanation": "Hệ số của $x, y, z$ cho vectơ pháp tuyến $\\vec{n}=(2;-1;2)$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "6aa2cda88f566bbf"
+  },
+  {
+    "id": "q_m12_c5_02",
+    "lessonId": "les_math12_c5_b1",
+    "chapterId": "chp_math12_c5",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt",
+    "type": "multiple-choice",
+    "difficulty": "medium",
+    "prompt": "Khoảng cách từ điểm $M(3; -2; 1)$ đến mặt phẳng $(P): 2x - y + 2z - 6 = 0$ bằng:",
+    "options": [
+      "$\\frac{4}{3}$",
+      "$4$",
+      "$\\frac{2}{3}$",
+      "$\\frac{8}{3}$"
+    ],
+    "correctAnswer": "$\\frac{4}{3}$",
+    "explanation": "$d = \\frac{|6 + 2 + 2 - 6|}{\\sqrt{4+1+4}} = \\frac{4}{3}$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "f8d27e7b446424cc"
+  },
+  {
+    "id": "q_m12_c5_03",
+    "lessonId": "les_math12_c5_b2",
+    "chapterId": "chp_math12_c5",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c5",
+    "type": "multiple-choice",
+    "difficulty": "easy",
+    "prompt": "Đường thẳng $\\frac{x-1}{2} = \\frac{y+3}{-1} = \\frac{z}{4}$ đi qua điểm nào sau đây?",
+    "options": [
+      "$(1; -3; 0)$",
+      "$(2; -1; 4)$",
+      "$(-1; 3; 0)$",
+      "$(1; 3; 0)$"
+    ],
+    "correctAnswer": "$(1; -3; 0)$",
+    "explanation": "Thay $x=1, y=-3, z=0$ làm cả 3 tỉ số bằng $0$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "ab53cb8e436c37fb"
+  },
+  {
+    "id": "q_m12_c5_04",
+    "lessonId": "les_math12_c5_b2",
+    "chapterId": "chp_math12_c5",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_hk1",
+    "type": "multiple-choice",
+    "difficulty": "medium",
+    "prompt": "Một vectơ chỉ phương của đường thẳng $x=1+2t, y=3-t, z=-2+5t$ là:",
+    "options": [
+      "$(2; -1; 5)$",
+      "$(1; 3; -2)$",
+      "$(2; 1; 5)$",
+      "$(-2; -1; 5)$"
+    ],
+    "correctAnswer": "$(2; -1; 5)$",
+    "explanation": "Hệ số của tham số $t$ cho $\\vec{u}=(2;-1;5)$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "817cc695ce4dfa05"
+  },
+  {
+    "id": "q_m12_c5_05",
+    "lessonId": "les_math12_c5_b3",
+    "chapterId": "chp_math12_c5",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c5",
+    "type": "multiple-choice",
+    "difficulty": "medium",
+    "prompt": "Góc giữa trục $Ox$ (VTCP $\\vec{i}=(1;0;0)$) và mặt phẳng $(P): x + y - 1 = 0$ bằng:",
+    "options": [
+      "$45^\\circ$",
+      "$30^\\circ$",
+      "$60^\\circ$",
+      "$90^\\circ$"
+    ],
+    "correctAnswer": "$45^\\circ$",
+    "explanation": "$\\sin\\varphi = \\frac{|1\\cdot 1 + 0 + 0|}{1\\cdot\\sqrt{2}} = \\frac{\\sqrt{2}}{2} \\Rightarrow \\varphi = 45^\\circ$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "258a30c56dee9d39"
+  },
+  {
+    "id": "q_m12_c5_06",
+    "lessonId": "les_math12_c5_b3",
+    "chapterId": "chp_math12_c5",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt",
+    "type": "multiple-choice",
+    "difficulty": "medium",
+    "prompt": "Hai mặt phẳng $x + 2y - 2z + 1 = 0$ và $2x + y + 2z - 3 = 0$ tạo với nhau góc có cosin bằng:",
+    "options": [
+      "$\\frac{4}{9}$",
+      "$0$",
+      "$\\frac{2}{9}$",
+      "$\\frac{1}{3}$"
+    ],
+    "correctAnswer": "$0$",
+    "explanation": "$\\vec{n}_1\\cdot\\vec{n}_2 = 1\\cdot 2 + 2\\cdot 1 + (-2)\\cdot 2 = 0 \\Rightarrow \\cos = 0$ (vuông góc).",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "75994d1a732d4a20"
+  },
+  {
+    "id": "q_m12_c5_07",
+    "lessonId": "les_math12_c5_b4",
+    "chapterId": "chp_math12_c5",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c5",
+    "type": "multiple-choice",
+    "difficulty": "easy",
+    "prompt": "Mặt cầu $(S): (x-1)^2 + (y+2)^2 + (z-3)^2 = 16$ có tâm và bán kính là:",
+    "options": [
+      "$I(1; -2; 3), R = 4$",
+      "$I(-1; 2; -3), R = 4$",
+      "$I(1; -2; 3), R = 16$",
+      "$I(1; 2; 3), R = 4$"
+    ],
+    "correctAnswer": "$I(1; -2; 3), R = 4$",
+    "explanation": "Tâm $I(1;-2;3)$ và bán kính $R = \\sqrt{16} = 4$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "4dbeb145b8e651e8"
+  },
+  {
+    "id": "q_m12_c5_08",
+    "lessonId": "les_math12_c5_b4",
+    "chapterId": "chp_math12_c5",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt",
+    "type": "multiple-choice",
+    "difficulty": "medium",
+    "prompt": "Mặt cầu tâm $I(1; 2; 2)$ đi qua gốc tọa độ $O(0; 0; 0)$ có bán kính $R$ bằng:",
+    "options": [
+      "$3$",
+      "$9$",
+      "$5$",
+      "$\\sqrt{5}$"
+    ],
+    "correctAnswer": "$3$",
+    "explanation": "$R = OI = \\sqrt{1^2 + 2^2 + 2^2} = 3$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "4db2c2eac57117eb"
+  },
+  {
+    "id": "q_m12_c5_09",
+    "lessonId": "les_math12_c5_b1",
+    "chapterId": "chp_math12_c5",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c5",
+    "type": "true-false-group",
+    "difficulty": "medium",
+    "prompt": "Cho mặt phẳng $(P): 2x - y + 2z - 6 = 0$ và điểm $M(3; -2; 1)$. Xét tính đúng sai:",
+    "options": [
+      "a) Vectơ $\\vec{n}=(2;-1;2)$ là một vectơ pháp tuyến của $(P)$.",
+      "b) Điểm $M$ nằm trên mặt phẳng $(P)$.",
+      "c) Khoảng cách từ $M$ đến $(P)$ bằng $\\frac{4}{3}$.",
+      "d) Mặt phẳng $(P)$ cắt trục $Oz$ tại điểm có cao độ bằng $3$."
+    ],
+    "correctAnswer": "true,false,true,true",
+    "explanation": "a) Đúng; b) Sai (thay vào được $4\\ne 0$); c) Đúng; d) Đúng ($2z-6=0 \\Rightarrow z=3$).",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "f3f45878edf5dd7b"
+  },
+  {
+    "id": "q_m12_c5_10",
+    "lessonId": "les_math12_c5_b4",
+    "chapterId": "chp_math12_c5",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt",
+    "type": "true-false-group",
+    "difficulty": "medium",
+    "prompt": "Cho mặt cầu $(S): (x-1)^2 + (y+2)^2 + (z-3)^2 = 16$. Xét tính đúng sai:",
+    "options": [
+      "a) Tâm mặt cầu là $I(1; -2; 3)$.",
+      "b) Bán kính mặt cầu bằng $16$.",
+      "c) Điểm $A(1; 2; 3)$ nằm trên mặt cầu $(S)$.",
+      "d) Mặt cầu $(S)$ cắt mặt phẳng $(Oxy)$ theo giao tuyến là một đường tròn."
+    ],
+    "correctAnswer": "true,false,true,true",
+    "explanation": "a) Đúng; b) Sai ($R=4$); c) Đúng ($0+16+0=16$); d) Đúng ($d(I,(Oxy))=3 < R=4$).",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "8bcca27da2150f75"
+  },
+  {
+    "id": "q_m12_c5_11",
+    "lessonId": "les_math12_c5_b4",
+    "chapterId": "chp_math12_c5",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c5",
+    "type": "short-answer",
+    "difficulty": "easy",
+    "prompt": "Tìm bán kính $R$ của mặt cầu $(x-1)^2 + (y+2)^2 + (z-3)^2 = 16$.",
+    "options": [],
+    "correctAnswer": "4",
+    "metadata": {
+      "acceptedAnswers": [
+        "4",
+        "4.0"
+      ]
+    },
+    "explanation": "$R = \\sqrt{16} = 4$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "316545416b547019"
+  },
+  {
+    "id": "q_m12_c5_12",
+    "lessonId": "les_math12_c5_b1",
+    "chapterId": "chp_math12_c5",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt",
+    "type": "short-answer",
+    "difficulty": "medium",
+    "prompt": "Khoảng cách từ $M(3;-2;1)$ đến $(P): 2x-y+2z-6=0$ có dạng phân số tối giản $a/b$. Nhập giá trị của $a/b$.",
+    "options": [],
+    "correctAnswer": "4/3",
+    "metadata": {
+      "acceptedAnswers": [
+        "4/3",
+        "1.333333"
+      ]
+    },
+    "explanation": "$d = \\frac{4}{3}$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "45ed876f01d8a556"
+  },
+  {
+    "id": "q_m12_c5_13",
+    "lessonId": "les_math12_c5_b3",
+    "chapterId": "chp_math12_c5",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c5",
+    "type": "short-answer",
+    "difficulty": "easy",
+    "prompt": "Góc giữa đường thẳng $\\vec{u}=(1;0;0)$ và mặt phẳng $x+y-1=0$ bằng bao nhiêu độ?",
+    "options": [],
+    "correctAnswer": "45",
+    "metadata": {
+      "acceptedAnswers": [
+        "45",
+        "45.0"
+      ]
+    },
+    "explanation": "$\\sin\\varphi = \\frac{1}{\\sqrt{2}} \\Rightarrow \\varphi = 45^\\circ$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "e3b82903a5da3e4b"
+  },
+  {
+    "id": "q_m12_c6_01",
+    "lessonId": "les_math12_c6_b1",
+    "chapterId": "chp_math12_c6",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c6",
+    "type": "multiple-choice",
+    "difficulty": "easy",
+    "prompt": "Cho $P(B) = 0{,}5$ và $P(A \\cap B) = 0{,}3$. Xác suất có điều kiện $P(A\\mid B)$ bằng:",
+    "options": [
+      "$0{,}6$",
+      "$0{,}15$",
+      "$0{,}8$",
+      "$0{,}2$"
+    ],
+    "correctAnswer": "$0{,}6$",
+    "explanation": "$P(A\\mid B) = \\frac{P(A\\cap B)}{P(B)} = \\frac{0{,}3}{0{,}5} = 0{,}6$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "0ecaadf4772715e5"
+  },
+  {
+    "id": "q_m12_c6_02",
+    "lessonId": "les_math12_c6_b1",
+    "chapterId": "chp_math12_c6",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt",
+    "type": "multiple-choice",
+    "difficulty": "medium",
+    "prompt": "Nếu hai biến cố $A$ và $B$ độc lập với $P(A)=0{,}4$ và $P(B)=0{,}5$ thì $P(A\\mid B)$ bằng:",
+    "options": [
+      "$0{,}4$",
+      "$0{,}5$",
+      "$0{,}2$",
+      "$0{,}9$"
+    ],
+    "correctAnswer": "$0{,}4$",
+    "explanation": "Khi $A, B$ độc lập, $P(A\\mid B) = P(A) = 0{,}4$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "2c9bff87911b52ad"
+  },
+  {
+    "id": "q_m12_c6_03",
+    "lessonId": "les_math12_c6_b2",
+    "chapterId": "chp_math12_c6",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c6",
+    "type": "multiple-choice",
+    "difficulty": "medium",
+    "prompt": "Cho $P(A)=0{,}4$, $P(B\\mid A)=0{,}7$, $P(B\\mid\\bar{A})=0{,}2$. Theo công thức xác suất toàn phần, $P(B)$ bằng:",
+    "options": [
+      "$0{,}4$",
+      "$0{,}28$",
+      "$0{,}5$",
+      "$0{,}6$"
+    ],
+    "correctAnswer": "$0{,}4$",
+    "explanation": "$P(B) = 0{,}4\\cdot 0{,}7 + 0{,}6\\cdot 0{,}2 = 0{,}28 + 0{,}12 = 0{,}4$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "e29ac842c1c95859"
+  },
+  {
+    "id": "q_m12_c6_04",
+    "lessonId": "les_math12_c6_b2",
+    "chapterId": "chp_math12_c6",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt",
+    "type": "multiple-choice",
+    "difficulty": "hard",
+    "prompt": "Với số liệu $P(A)=0{,}4, P(B\\mid A)=0{,}7, P(B\\mid\\bar{A})=0{,}2$. Theo công thức Bayes, $P(A\\mid B)$ bằng:",
+    "options": [
+      "$0{,}7$",
+      "$0{,}4$",
+      "$0{,}28$",
+      "$0{,}6$"
+    ],
+    "correctAnswer": "$0{,}7$",
+    "explanation": "$P(A\\mid B) = \\frac{0{,}4\\cdot 0{,}7}{0{,}4} = 0{,}7$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "98ca248fd2bb2b33"
+  },
+  {
+    "id": "q_m12_c6_05",
+    "lessonId": "les_math12_c6_b2",
+    "chapterId": "chp_math12_c6",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c6",
+    "type": "true-false-group",
+    "difficulty": "medium",
+    "prompt": "Một hệ thống kiểm tra tự động có $P(A)=0{,}4, P(B\\mid A)=0{,}7, P(B\\mid\\bar{A})=0{,}2$. Xét tính đúng sai:",
+    "options": [
+      "a) $P(\\bar{A}) = 0{,}6$.",
+      "b) $P(A\\cap B) = 0{,}28$.",
+      "c) $P(B) = 0{,}4$.",
+      "d) $P(A\\mid B) = 0{,}5$."
+    ],
+    "correctAnswer": "true,true,true,false",
+    "explanation": "a) Đúng; b) Đúng; c) Đúng; d) Sai ($P(A\\mid B) = 0{,}7$).",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "383a16677c8f3274"
+  },
+  {
+    "id": "q_m12_c6_06",
+    "lessonId": "les_math12_c6_b1",
+    "chapterId": "chp_math12_c6",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt",
+    "type": "true-false-group",
+    "difficulty": "medium",
+    "prompt": "Cho hai biến cố $A, B$ có $P(A)=0{,}3, P(B)=0{,}5, P(A\\cap B)=0{,}15$. Xét tính đúng sai:",
+    "options": [
+      "a) $P(A\\mid B) = 0{,}3$.",
+      "b) $P(B\\mid A) = 0{,}5$.",
+      "c) $A$ và $B$ là hai biến cố độc lập.",
+      "d) $P(A\\cup B) = 0{,}8$."
+    ],
+    "correctAnswer": "true,true,true,false",
+    "explanation": "a) Đúng; b) Đúng; c) Đúng ($P(A)P(B)=0{,}15=P(A\\cap B)$); d) Sai ($0{,}3+0{,}5-0{,}15=0{,}65$).",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "79adbf7ae80785e4"
+  },
+  {
+    "id": "q_m12_c6_07",
+    "lessonId": "les_math12_c6_b1",
+    "chapterId": "chp_math12_c6",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c6",
+    "type": "short-answer",
+    "difficulty": "easy",
+    "prompt": "Cho $P(B)=0{,}5$ và $P(A\\cap B)=0{,}3$. Tính $P(A\\mid B)$ (viết dạng số thập phân).",
+    "options": [],
+    "correctAnswer": "0.6",
+    "metadata": {
+      "acceptedAnswers": [
+        "0.6",
+        "0,6",
+        "3/5"
+      ]
+    },
+    "explanation": "$P(A\\mid B) = 0.3 / 0.5 = 0.6$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "62ec7699c4ee7bfc"
+  },
+  {
+    "id": "q_m12_c6_08",
+    "lessonId": "les_math12_c6_b2",
+    "chapterId": "chp_math12_c6",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt",
+    "type": "short-answer",
+    "difficulty": "medium",
+    "prompt": "Cho $P(A)=0{,}4, P(B\\mid A)=0{,}7, P(B\\mid\\bar{A})=0{,}2$. Tính $P(A\\mid B)$ (viết dạng số thập phân).",
+    "options": [],
+    "correctAnswer": "0.7",
+    "metadata": {
+      "acceptedAnswers": [
+        "0.7",
+        "0,7",
+        "7/10"
+      ]
+    },
+    "explanation": "$P(A\\mid B) = \\frac{0.28}{0.4} = 0.7$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "dfbbf15731064697"
+  },
+  {
+    "id": "q_m12_c6_09",
+    "lessonId": "les_math12_c6_b2",
+    "chapterId": "chp_math12_c6",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c6",
+    "type": "short-answer",
+    "difficulty": "easy",
+    "prompt": "Cho $P(A)=0{,}4, P(B\\mid A)=0{,}7, P(B\\mid\\bar{A})=0{,}2$. Tính $P(B)$ (viết dạng số thập phân).",
+    "options": [],
+    "correctAnswer": "0.4",
+    "metadata": {
+      "acceptedAnswers": [
+        "0.4",
+        "0,4",
+        "2/5"
+      ]
+    },
+    "explanation": "$P(B) = 0.28 + 0.12 = 0.4$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED",
+    "fingerprint": "4b466d76d7b87e76"
+  }
+]

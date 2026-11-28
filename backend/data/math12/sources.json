@@ -1,0 +1,10 @@
+[
+  {
+    "id": "SRC-STUDYAI-ORIG-2026",
+    "title": "STUDY_AI Original Math 12 Curriculum Dataset (GDPT 2018 KNTT)",
+    "license": "ORIGINAL_PROJECT_ASSET",
+    "verificationStatus": "MATH_VERIFIED",
+    "verifiedWith": "SymPy 1.14.0 + Codex 6.1 High",
+    "createdAt": "2026-11-28T04:03:38.236085+00:00"
+  }
+]
