@@ -5,6 +5,8 @@ public interface IContentWorkspaceService
     Task<ContentWorkspaceDashboardDto> GetDashboardAsync(CancellationToken ct = default);
     Task<List<ContentMaterialDto>> GetMaterialsAsync(string? category = null, string? status = null, string? search = null, CancellationToken ct = default);
     Task<ContentMaterialDto> CreateMaterialAsync(CreateContentMaterialRequestDto req, string userId, CancellationToken ct = default);
+    Task<ContentMaterialDto> UploadMaterialAsync(Microsoft.AspNetCore.Http.IFormFile file, string title, string category, string? chapterCode, string? chapterTitle, string userId, CancellationToken ct = default);
+    Task<(Stream Stream, string MimeType, string FileName)> DownloadMaterialAsync(string id, string userId, bool isContentStaff, CancellationToken ct = default);
     Task<ContentMaterialDto> UpdateMaterialStatusAsync(string id, string status, string userId, CancellationToken ct = default);
     Task<List<AiKnowledgeSourceDto>> GetKnowledgeSourcesAsync(CancellationToken ct = default);
     Task<AiKnowledgeSourceDto> RegisterAndSyncKnowledgeSourceAsync(RegisterAiKnowledgeSourceRequestDto req, string userId, CancellationToken ct = default);

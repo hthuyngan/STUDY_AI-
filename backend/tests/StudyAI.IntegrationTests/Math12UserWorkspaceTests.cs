@@ -125,6 +125,19 @@ public class Math12UserWorkspaceTests : IClassFixture<StudyAIApiFixture>
                     CorrectAnswer = "D",
                     Explanation = "Giải thích công khai"
                 });
+            var seedSubjId = $"subj-{Guid.NewGuid():N}";
+            var seedChapId = $"chap-{Guid.NewGuid():N}";
+            var seedLessonId = $"les-{Guid.NewGuid():N}";
+            db.ContentSubjects.Add(new ContentSubject { Id = seedSubjId, Code = $"MATH12-{seedSubjId[..6]}", Name = "Toán 12", Grade = "12" });
+            db.ContentChapters.Add(new ContentChapter { Id = seedChapId, SubjectId = seedSubjId, Title = "Chương 1", OrderIndex = 1 });
+            db.ContentLessons.Add(new ContentLesson { Id = seedLessonId, ChapterId = seedChapId, AuthorId = student1Id, Title = "Bài 1", Status = "published" });
+            db.ContentAssessments.Add(new ContentAssessment
+            {
+                Id = unreleasedAsmId,
+                LessonId = seedLessonId,
+                Title = "Đề mẫu chưa công bố điểm",
+                Status = "published"
+            });
             db.TeacherExams.Add(new TeacherExam
             {
                 Id = $"texam-unrel-{Guid.NewGuid():N}",
@@ -202,5 +215,18 @@ public class Math12UserWorkspaceTests : IClassFixture<StudyAIApiFixture>
         Assert.Null(unreleasedItem.CorrectAnswer);
         var releasedItem = Assert.Single(mistakes, m => m.QuestionId == submittedQuestionId);
         Assert.Equal("D", releasedItem.CorrectAnswer);
+        Assert.False(releasedItem.IsResolved);
+
+        // MYNOTES-001: Resolve mistake persists across reload
+        var resolveResp = await _client.PatchAsync($"/api/v1/learner/workspace/mistakes/{releasedItem.ResponseId}/resolve", new StringContent("{}", Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.NoContent, resolveResp.StatusCode);
+        var mistakesAfter = JsonSerializer.Deserialize<List<StudentMistakeItemDto>>(
+            await (await _client.GetAsync("/api/v1/learner/workspace/mistakes")).Content.ReadAsStringAsync(), JsonOpts)!;
+        Assert.True(Assert.Single(mistakesAfter, m => m.QuestionId == submittedQuestionId).IsResolved);
+
+        // Invalid short join code returns 400 BadRequest
+        var badJoin = await _client.PostAsync("/api/v1/learner/workspace/classrooms/join", new StringContent(
+            JsonSerializer.Serialize(new JoinClassroomRequestDto { Code = "AB" }), Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.BadRequest, badJoin.StatusCode);
     }
 }

@@ -1,6 +1,8 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using StudyAI.Common.Exceptions;
 using StudyAI.Data;
@@ -49,6 +51,16 @@ public class ContentWorkspaceService : IContentWorkspaceService
         "content_error", "technical_escalation"
     };
 
+    private static readonly HashSet<string> AllowedErrorTargetTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "question", "answer", "formula", "solution", "lesson", "ai_response"
+    };
+
+    private static readonly HashSet<string> AllowedErrorSeverities = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "low", "medium", "high"
+    };
+
     public ContentWorkspaceService(StudyAIDbContext db, IAuditWriter auditWriter)
     {
         _db = db;
@@ -83,7 +95,7 @@ public class ContentWorkspaceService : IContentWorkspaceService
         var chapterStats = Math12Chapters.Select((ch, idx) =>
         {
             var matchedChapterIds = chapters
-                .Where(c => c.OrderIndex == idx + 1 || c.Title.Contains(ch.Title.Split(' ')[0], StringComparison.OrdinalIgnoreCase))
+                .Where(c => c.OrderIndex == idx + 1)
                 .Select(c => c.Id)
                 .ToHashSet();
 
@@ -168,24 +180,57 @@ public class ContentWorkspaceService : IContentWorkspaceService
         if (req.FileSizeBytes <= 0 || req.FileSizeBytes > 15 * 1024 * 1024)
             throw new ValidationException("FileSizeBytes", "Dung lượng tệp phải từ 1 byte đến 15 MB.");
 
-        ValidateFileSignatureIfProvided(mime, req.Base64Header);
+        byte[]? payloadBytes = null;
+        if (!string.IsNullOrWhiteSpace(req.Base64Content))
+        {
+            try
+            {
+                payloadBytes = Convert.FromBase64String(req.Base64Content);
+            }
+            catch
+            {
+                throw new ValidationException("Base64Content", "Nội dung tệp Base64 không hợp lệ.");
+            }
+            if (payloadBytes.Length == 0 || payloadBytes.Length > 15 * 1024 * 1024)
+                throw new ValidationException("FileSizeBytes", "Dung lượng tệp phải từ 1 byte đến 15 MB.");
+            ValidateFileSignatureBytes(mime, payloadBytes);
+        }
+        else
+        {
+            ValidateFileSignatureIfProvided(mime, req.Base64Header);
+        }
 
         if (string.IsNullOrWhiteSpace(req.StoragePathOrUrl))
             throw new ValidationException("StoragePathOrUrl", "Đường dẫn lưu trữ không được để trống.");
 
         var now = DateTimeOffset.UtcNow;
+        var id = $"mat-{Guid.NewGuid():N}";
+        string? fileHash = null;
+        string? extractedText = null;
+        var storagePath = req.StoragePathOrUrl.Trim();
+
+        if (payloadBytes != null)
+        {
+            fileHash = Convert.ToHexString(SHA256.HashData(payloadBytes)).ToLowerInvariant();
+            var storedPath = await SaveMaterialBytesAsync(id, req.FileName.Trim(), payloadBytes, ct);
+            storagePath = $"/api/v1/content/workspace/materials/{id}/download";
+            extractedText = ExtractTextFromBytes(mime, req.FileName.Trim(), payloadBytes);
+            _ = storedPath;
+        }
+
         var entity = new ContentMaterial
         {
-            Id = $"mat-{Guid.NewGuid():N}",
+            Id = id,
             Title = req.Title.Trim(),
             Category = category,
             ChapterCode = req.ChapterCode?.Trim(),
             ChapterTitle = req.ChapterTitle?.Trim(),
             FileName = req.FileName.Trim(),
             MimeType = mime,
-            FileSizeBytes = req.FileSizeBytes,
-            FileHashSha256 = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{req.FileName}:{req.FileSizeBytes}:{now.ToUnixTimeMilliseconds()}"))).ToLowerInvariant(),
-            StoragePathOrUrl = req.StoragePathOrUrl.Trim(),
+            FileSizeBytes = payloadBytes?.LongLength ?? req.FileSizeBytes,
+            FileHashSha256 = fileHash,
+            StoragePathOrUrl = storagePath,
+            ExtractedText = extractedText,
             Status = "draft",
             CreatedByUserId = userId,
             CreatedAt = now,
@@ -195,8 +240,87 @@ public class ContentWorkspaceService : IContentWorkspaceService
         _db.ContentMaterials.Add(entity);
         await _db.SaveChangesAsync(ct);
 
-        await _auditWriter.WriteStaffAuditAsync("content_material_create", "content_material", entity.Id, null, $"{{\"title\":\"{entity.Title}\"}}", ct);
+        await _auditWriter.WriteStaffAuditAsync("content_material_create", "content_material", entity.Id, null, JsonSerializer.Serialize(new { title = entity.Title, hasFile = payloadBytes != null }), ct);
         return ToDto(entity);
+    }
+
+    public async Task<ContentMaterialDto> UploadMaterialAsync(
+        IFormFile file, string title, string category, string? chapterCode, string? chapterTitle, string userId, CancellationToken ct = default)
+    {
+        if (file == null || file.Length <= 0)
+            throw new ValidationException("File", "Vui lòng chọn tệp để tải lên.");
+        if (file.Length > 15 * 1024 * 1024)
+            throw new ValidationException("File", "Dung lượng tệp tối đa 15 MB.");
+        if (string.IsNullOrWhiteSpace(title))
+            throw new ValidationException("Title", "Tiêu đề tài liệu không được để trống.");
+
+        var safeFileName = Path.GetFileName(file.FileName ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(safeFileName) || safeFileName.Contains(".."))
+            throw new ValidationException("FileName", "Tên tệp không hợp lệ.");
+
+        var normalizedCat = (category ?? "chapter_doc").Trim().ToLowerInvariant();
+        if (!AllowedMaterialCategories.Contains(normalizedCat))
+            throw new ValidationException("Category", "Danh mục tài liệu không hợp lệ.");
+
+        var mime = (file.ContentType ?? "application/octet-stream").Trim().ToLowerInvariant();
+        if (!AllowedMaterialMimes.Contains(mime))
+            throw new ValidationException("MimeType", "Định dạng MIME không được hỗ trợ.");
+
+        using var ms = new MemoryStream();
+        await file.CopyToAsync(ms, ct);
+        var bytes = ms.ToArray();
+        ValidateFileSignatureBytes(mime, bytes);
+
+        var id = $"mat-{Guid.NewGuid():N}";
+        await SaveMaterialBytesAsync(id, safeFileName, bytes, ct);
+        var fileHash = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+        var extracted = ExtractTextFromBytes(mime, safeFileName, bytes);
+
+        var now = DateTimeOffset.UtcNow;
+        var entity = new ContentMaterial
+        {
+            Id = id,
+            Title = title.Trim(),
+            Category = normalizedCat,
+            ChapterCode = chapterCode?.Trim(),
+            ChapterTitle = chapterTitle?.Trim(),
+            FileName = safeFileName,
+            MimeType = mime,
+            FileSizeBytes = bytes.LongLength,
+            FileHashSha256 = fileHash,
+            StoragePathOrUrl = $"/api/v1/content/workspace/materials/{id}/download",
+            ExtractedText = extracted,
+            Status = "draft",
+            CreatedByUserId = userId,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        _db.ContentMaterials.Add(entity);
+        await _db.SaveChangesAsync(ct);
+
+        await _auditWriter.WriteStaffAuditAsync("content_material_upload", "content_material", entity.Id, null, JsonSerializer.Serialize(new { title = entity.Title, fileName = entity.FileName, sha256 = fileHash }), ct);
+        return ToDto(entity);
+    }
+
+    public async Task<(Stream Stream, string MimeType, string FileName)> DownloadMaterialAsync(
+        string id, string userId, bool isContentStaff, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+            throw new UnauthorizedException();
+
+        var entity = await _db.ContentMaterials.AsNoTracking().FirstOrDefaultAsync(m => m.Id == id, ct)
+            ?? throw new NotFoundException("Không tìm thấy tài liệu học tập.");
+
+        if (!isContentStaff && entity.Status != "published")
+            throw new ForbiddenException("Tài liệu chưa được xuất bản.");
+
+        var filePath = FindMaterialStoredPath(entity.Id, entity.FileName);
+        if (filePath == null || !File.Exists(filePath))
+            throw new NotFoundException("Tệp vật lý không tồn tại trên máy chủ.");
+
+        var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        return (stream, entity.MimeType, entity.FileName);
     }
 
     public async Task<ContentMaterialDto> UpdateMaterialStatusAsync(
@@ -208,6 +332,10 @@ public class ContentWorkspaceService : IContentWorkspaceService
 
         var entity = await _db.ContentMaterials.FirstOrDefaultAsync(m => m.Id == id, ct)
             ?? throw new NotFoundException("Không tìm thấy tài liệu học tập.");
+
+        // Enforce legal transitions: archived cannot jump directly to published without returning to draft/review
+        if (entity.Status == "archived" && normalized == "published")
+            throw new ValidationException("Status", "Tài liệu đã lưu trữ phải đưa về bản nháp trước khi xuất bản lại.");
 
         entity.Status = normalized;
         entity.UpdatedAt = DateTimeOffset.UtcNow;
@@ -231,7 +359,7 @@ public class ContentWorkspaceService : IContentWorkspaceService
 
         await _db.SaveChangesAsync(ct);
 
-        await _auditWriter.WriteStaffAuditAsync("content_material_status", "content_material", entity.Id, null, $"{{\"status\":\"{normalized}\",\"actor\":\"{userId}\"}}", ct);
+        await _auditWriter.WriteStaffAuditAsync("content_material_status", "content_material", entity.Id, null, JsonSerializer.Serialize(new { status = normalized, actor = userId }), ct);
         return ToDto(entity);
     }
 
@@ -254,27 +382,55 @@ public class ContentWorkspaceService : IContentWorkspaceService
         if (string.IsNullOrWhiteSpace(req.SourceRefId))
             throw new ValidationException("SourceRefId", "Thiếu mã tham chiếu nguồn tri thức.");
 
-        var (resolvedTitle, contentText) = await ResolveApprovedSourceTextAsync(sourceType, req.SourceRefId.Trim(), req.ExtractedText, ct);
+        var refId = req.SourceRefId.Trim();
+        var (resolvedTitle, contentText) = await ResolveApprovedSourceTextAsync(sourceType, refId, req.ExtractedText, ct);
 
         var now = DateTimeOffset.UtcNow;
-        var source = new AiKnowledgeSource
-        {
-            Id = $"aks-{Guid.NewGuid():N}",
-            Title = string.IsNullOrWhiteSpace(req.Title) ? resolvedTitle : req.Title.Trim(),
-            SourceType = sourceType,
-            SourceRefId = req.SourceRefId.Trim(),
-            ChapterCode = req.ChapterCode?.Trim(),
-            Status = "pending",
-            CreatedByUserId = userId,
-            CreatedAt = now,
-            UpdatedAt = now
-        };
+        var source = await _db.AiKnowledgeSources
+            .Include(s => s.Chunks)
+            .FirstOrDefaultAsync(s => s.SourceType == sourceType && s.SourceRefId == refId, ct);
 
-        _db.AiKnowledgeSources.Add(source);
-        await _db.SaveChangesAsync(ct);
+        if (source == null)
+        {
+            source = new AiKnowledgeSource
+            {
+                Id = $"aks-{Guid.NewGuid():N}",
+                Title = string.IsNullOrWhiteSpace(req.Title) ? resolvedTitle : req.Title.Trim(),
+                SourceType = sourceType,
+                SourceRefId = refId,
+                ChapterCode = req.ChapterCode?.Trim(),
+                Status = "pending",
+                CreatedByUserId = userId,
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+            _db.AiKnowledgeSources.Add(source);
+            try
+            {
+                await _db.SaveChangesAsync(ct);
+            }
+            catch (DbUpdateException)
+            {
+                _db.Entry(source).State = EntityState.Detached;
+                source = await _db.AiKnowledgeSources
+                    .Include(s => s.Chunks)
+                    .FirstOrDefaultAsync(s => s.SourceType == sourceType && s.SourceRefId == refId, ct);
+                if (source == null) throw;
+            }
+        }
+        else
+        {
+            if (!string.IsNullOrWhiteSpace(req.Title))
+                source.Title = req.Title.Trim();
+            if (!string.IsNullOrWhiteSpace(req.ChapterCode))
+                source.ChapterCode = req.ChapterCode.Trim();
+            source.UpdatedAt = now;
+        }
 
         if (string.IsNullOrWhiteSpace(contentText))
         {
+            if (source.Chunks.Count > 0)
+                _db.AiKnowledgeChunks.RemoveRange(source.Chunks);
             source.Status = "failed";
             source.ChunkCount = 0;
             source.LastError = "Không thể trích xuất nội dung văn bản từ tài liệu nguồn.";
@@ -317,7 +473,7 @@ public class ContentWorkspaceService : IContentWorkspaceService
         source.UpdatedAt = DateTimeOffset.UtcNow;
         await _db.SaveChangesAsync(ct);
 
-        await _auditWriter.WriteStaffAuditAsync("ai_knowledge_revoke", "ai_knowledge_source", source.Id, null, $"{{\"actor\":\"{userId}\"}}", ct);
+        await _auditWriter.WriteStaffAuditAsync("ai_knowledge_revoke", "ai_knowledge_source", source.Id, null, JsonSerializer.Serialize(new { actor = userId }), ct);
         return ToDto(source);
     }
 
@@ -395,16 +551,35 @@ public class ContentWorkspaceService : IContentWorkspaceService
         if (string.IsNullOrWhiteSpace(req.Description))
             throw new ValidationException("Description", "Mô tả chi tiết không được để trống.");
 
+        var title = req.Title.Trim();
+        var description = req.Description.Trim();
+        if (title.Length > 200)
+            throw new ValidationException("Title", "Tiêu đề không được vượt quá 200 ký tự.");
+        if (description.Length > 2000)
+            throw new ValidationException("Description", "Mô tả chi tiết không được vượt quá 2000 ký tự.");
+
+        var targetType = (req.TargetType ?? "question").Trim().ToLowerInvariant();
+        if (!AllowedErrorTargetTypes.Contains(targetType))
+            throw new ValidationException("TargetType", "Loại đối tượng báo cáo không hợp lệ.");
+
+        var severity = (req.Severity ?? "medium").Trim().ToLowerInvariant();
+        if (!AllowedErrorSeverities.Contains(severity))
+            throw new ValidationException("Severity", "Mức độ nghiêm trọng không hợp lệ.");
+
+        var targetId = req.TargetId?.Trim();
+        if (targetId != null && targetId.Length > 64)
+            throw new ValidationException("TargetId", "Mã đối tượng không được vượt quá 64 ký tự.");
+
         var now = DateTimeOffset.UtcNow;
         var entity = new ContentErrorReport
         {
             Id = $"err-{Guid.NewGuid():N}",
             ReportCode = $"CR-{now:yyyyMMdd}-{Random.Shared.Next(1000, 9999)}",
-            TargetType = (req.TargetType ?? "question").Trim().ToLowerInvariant(),
-            TargetId = req.TargetId?.Trim(),
-            Title = req.Title.Trim(),
-            Description = req.Description.Trim(),
-            Severity = (req.Severity ?? "medium").Trim().ToLowerInvariant(),
+            TargetType = targetType,
+            TargetId = targetId,
+            Title = title,
+            Description = description,
+            Severity = severity,
             Classification = "content_error",
             Status = "open",
             ReportedByUserId = userId,
@@ -449,7 +624,7 @@ public class ContentWorkspaceService : IContentWorkspaceService
         entity.UpdatedAt = now;
 
         await _db.SaveChangesAsync(ct);
-        await _auditWriter.WriteStaffAuditAsync("content_error_report_update", "content_error_report", entity.Id, null, $"{{\"status\":\"{entity.Status}\",\"actor\":\"{userId}\"}}", ct);
+        await _auditWriter.WriteStaffAuditAsync("content_error_report_update", "content_error_report", entity.Id, null, JsonSerializer.Serialize(new { status = entity.Status, classification = entity.Classification, actor = userId }), ct);
         return ToDto(entity);
     }
 
@@ -470,7 +645,9 @@ public class ContentWorkspaceService : IContentWorkspaceService
             ?? throw new NotFoundException("Không tìm thấy tài liệu nguồn.");
         if (material.Status != "published")
             throw new ValidationException("SourceRefId", "Chỉ được đưa tài liệu đã xuất bản (published) vào Kho tri thức AI.");
-        var cleanExtracted = string.IsNullOrWhiteSpace(extractedText) ? null : extractedText.Trim();
+        var cleanExtracted = !string.IsNullOrWhiteSpace(material.ExtractedText)
+            ? material.ExtractedText.Trim()
+            : (string.IsNullOrWhiteSpace(extractedText) ? null : extractedText.Trim());
         return (material.Title, cleanExtracted);
     }
 
@@ -505,8 +682,66 @@ public class ContentWorkspaceService : IContentWorkspaceService
         source.UpdatedAt = DateTimeOffset.UtcNow;
         await _db.SaveChangesAsync(ct);
 
-        await _auditWriter.WriteStaffAuditAsync("ai_knowledge_sync", "ai_knowledge_source", source.Id, null, $"{{\"chunks\":{chunks.Count},\"actor\":\"{userId}\"}}", ct);
+        await _auditWriter.WriteStaffAuditAsync("ai_knowledge_sync", "ai_knowledge_source", source.Id, null, JsonSerializer.Serialize(new { chunks = chunks.Count, actor = userId }), ct);
         return ToDto(source);
+    }
+
+    private static string GetMaterialsStorageRoot()
+    {
+        var root = Path.Combine(AppContext.BaseDirectory, "App_Data", "uploads", "content-materials");
+        Directory.CreateDirectory(root);
+        return root;
+    }
+
+    private static async Task<string> SaveMaterialBytesAsync(string id, string fileName, byte[] bytes, CancellationToken ct)
+    {
+        var ext = Path.GetExtension(fileName);
+        var safeExt = string.IsNullOrWhiteSpace(ext) ? ".bin" : Regex.Replace(ext.ToLowerInvariant(), @"[^a-z0-9.]", "");
+        var fullPath = Path.Combine(GetMaterialsStorageRoot(), $"{id}{safeExt}");
+        await File.WriteAllBytesAsync(fullPath, bytes, ct);
+        return fullPath;
+    }
+
+    private static string? FindMaterialStoredPath(string id, string fileName)
+    {
+        var ext = Path.GetExtension(fileName);
+        var safeExt = string.IsNullOrWhiteSpace(ext) ? ".bin" : Regex.Replace(ext.ToLowerInvariant(), @"[^a-z0-9.]", "");
+        var candidate = Path.Combine(GetMaterialsStorageRoot(), $"{id}{safeExt}");
+        return File.Exists(candidate) ? candidate : null;
+    }
+
+    private static string? ExtractTextFromBytes(string mime, string fileName, byte[] bytes)
+    {
+        if (mime == "text/plain" || mime == "text/markdown" ||
+            fileName.EndsWith(".txt", StringComparison.OrdinalIgnoreCase) ||
+            fileName.EndsWith(".md", StringComparison.OrdinalIgnoreCase))
+        {
+            var text = Encoding.UTF8.GetString(bytes).Trim();
+            return string.IsNullOrWhiteSpace(text) ? null : text;
+        }
+        if (mime == "application/pdf")
+        {
+            var ascii = Encoding.Latin1.GetString(bytes);
+            var matches = Regex.Matches(ascii, @"\(([^\(\)\\]{3,200})\)");
+            if (matches.Count > 0)
+            {
+                var extracted = string.Join(" ", matches.Select(m => m.Groups[1].Value)).Trim();
+                return string.IsNullOrWhiteSpace(extracted) ? null : extracted;
+            }
+        }
+        return null;
+    }
+
+    private static void ValidateFileSignatureBytes(string mime, byte[] bytes)
+    {
+        if (mime == "application/pdf" && (bytes.Length < 4 || bytes[0] != 0x25 || bytes[1] != 0x50 || bytes[2] != 0x44 || bytes[3] != 0x46))
+            throw new ValidationException("File", "Chữ ký tệp PDF không khớp (%PDF).");
+        if (mime == "image/png" && (bytes.Length < 4 || bytes[0] != 0x89 || bytes[1] != 0x50 || bytes[2] != 0x4E || bytes[3] != 0x47))
+            throw new ValidationException("File", "Chữ ký tệp PNG không hợp lệ.");
+        if (mime == "image/jpeg" && (bytes.Length < 3 || bytes[0] != 0xFF || bytes[1] != 0xD8 || bytes[2] != 0xFF))
+            throw new ValidationException("File", "Chữ ký tệp JPEG không hợp lệ.");
+        if (mime == "image/webp" && (bytes.Length < 12 || bytes[0] != 0x52 || bytes[1] != 0x49 || bytes[2] != 0x46 || bytes[3] != 0x46))
+            throw new ValidationException("File", "Chữ ký tệp WEBP không hợp lệ.");
     }
 
     private static void ValidateFileSignatureIfProvided(string mime, string? base64Header)
@@ -521,13 +756,7 @@ public class ContentWorkspaceService : IContentWorkspaceService
         {
             throw new ValidationException("Base64Header", "Chữ ký tệp (Base64) không hợp lệ.");
         }
-
-        if (mime == "application/pdf" && (bytes.Length < 4 || bytes[0] != 0x25 || bytes[1] != 0x50 || bytes[2] != 0x44 || bytes[3] != 0x46))
-            throw new ValidationException("Base64Header", "Chữ ký tệp PDF không khớp (%PDF).");
-        if (mime == "image/png" && (bytes.Length < 4 || bytes[0] != 0x89 || bytes[1] != 0x50 || bytes[2] != 0x4E || bytes[3] != 0x47))
-            throw new ValidationException("Base64Header", "Chữ ký tệp PNG không hợp lệ.");
-        if (mime == "image/jpeg" && (bytes.Length < 3 || bytes[0] != 0xFF || bytes[1] != 0xD8 || bytes[2] != 0xFF))
-            throw new ValidationException("Base64Header", "Chữ ký tệp JPEG không hợp lệ.");
+        ValidateFileSignatureBytes(mime, bytes);
     }
 
     private static ContentMaterialDto ToDto(ContentMaterial m) => new()
@@ -540,7 +769,9 @@ public class ContentWorkspaceService : IContentWorkspaceService
         FileName = m.FileName,
         MimeType = m.MimeType,
         FileSizeBytes = m.FileSizeBytes,
+        FileHashSha256 = m.FileHashSha256,
         StoragePathOrUrl = m.StoragePathOrUrl,
+        HasExtractedText = !string.IsNullOrWhiteSpace(m.ExtractedText),
         Status = m.Status,
         CreatedAt = m.CreatedAt.ToString("o"),
         UpdatedAt = m.UpdatedAt.ToString("o")

@@ -41,6 +41,8 @@ public class ContentMaterial
     [MaxLength(500)]
     public string StoragePathOrUrl { get; set; } = string.Empty;
 
+    public string? ExtractedText { get; set; }
+
     [Required]
     [MaxLength(32)]
     public string Status { get; set; } = "draft"; // draft, pending_review, published, archived

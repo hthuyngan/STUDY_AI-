@@ -135,19 +135,13 @@ public class Math12TeacherWorkspaceTests : IClassFixture<StudyAIApiFixture>
             await db.SaveChangesAsync();
         }
 
-        // Teacher 1 cannot publish a source-less exam -> 400 BadRequest
+        // Teacher 1 cannot create a source-less exam -> 400 BadRequest
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", teacher1Token);
         var emptyExamResp = await _client.PostAsync("/api/v1/teacher/workspace/exams", new StringContent(
             JsonSerializer.Serialize(new CreateTeacherExamRequestDto { ClassroomId = classId, Title = "Đề rỗng", DurationMinutes = 45 }),
             Encoding.UTF8,
             "application/json"));
-        Assert.Equal(HttpStatusCode.Created, emptyExamResp.StatusCode);
-        var emptyExam = JsonSerializer.Deserialize<TeacherExamDto>(await emptyExamResp.Content.ReadAsStringAsync(), JsonOpts)!;
-        var badPub = await _client.PatchAsync($"/api/v1/teacher/workspace/exams/{emptyExam.Id}/status", new StringContent(
-            JsonSerializer.Serialize(new UpdateTeacherExamStatusRequestDto { Status = "published" }),
-            Encoding.UTF8,
-            "application/json"));
-        Assert.Equal(HttpStatusCode.BadRequest, badPub.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, emptyExamResp.StatusCode);
 
         // Teacher 1 creates & publishes exam backed by published ContentAssessment with questions -> 200 OK
         var examResp = await _client.PostAsync("/api/v1/teacher/workspace/exams", new StringContent(
@@ -162,6 +156,8 @@ public class Math12TeacherWorkspaceTests : IClassFixture<StudyAIApiFixture>
             Encoding.UTF8,
             "application/json"));
         Assert.Equal(HttpStatusCode.OK, pubExam.StatusCode);
+        var pubExamDto = JsonSerializer.Deserialize<TeacherExamDto>(await pubExam.Content.ReadAsStringAsync(), JsonOpts)!;
+        Assert.False(string.IsNullOrWhiteSpace(pubExamDto.LinkedAssignmentId));
 
         var matResp = await _client.PostAsync("/api/v1/teacher/workspace/materials", new StringContent(
             JsonSerializer.Serialize(new CreateClassroomMaterialRequestDto
@@ -205,5 +201,32 @@ public class Math12TeacherWorkspaceTests : IClassFixture<StudyAIApiFixture>
         Assert.Equal(HttpStatusCode.OK, aiResp.StatusCode);
         var aiDto = JsonSerializer.Deserialize<TeacherAiAssistantResponseDto>(await aiResp.Content.ReadAsStringAsync(), JsonOpts)!;
         Assert.True(aiDto.RequiresTeacherConfirmation);
+        Assert.Contains(aiDto.Status, new[] { "unavailable", "draft_only" });
+        Assert.False(aiDto.IsAiGenerated);
+
+        // L02-002: Invalid AI mode returns 400 BadRequest
+        var badAiResp = await _client.PostAsync("/api/v1/teacher/workspace/ai-assistant", new StringContent(
+            JsonSerializer.Serialize(new TeacherAiAssistantRequestDto
+            {
+                ClassroomId = classId,
+                Mode = "invalid_mode",
+                Prompt = "Test"
+            }),
+            Encoding.UTF8,
+            "application/json"));
+        Assert.Equal(HttpStatusCode.BadRequest, badAiResp.StatusCode);
+
+        // SEC-01: Teacher multipart upload + download + revocation check
+        using var tForm = new MultipartFormDataContent();
+        tForm.Add(new StringContent(classId), "classroomId");
+        tForm.Add(new StringContent("Đề cương ôn tập"), "title");
+        var tFc = new ByteArrayContent(Encoding.UTF8.GetBytes("Nội dung đề cương Toán 12"));
+        tFc.Headers.ContentType = new MediaTypeHeaderValue("text/plain");
+        tForm.Add(tFc, "file", "de-cuong.txt");
+        var tUp = await _client.PostAsync("/api/v1/teacher/workspace/materials/upload", tForm);
+        Assert.Equal(HttpStatusCode.Created, tUp.StatusCode);
+        var tUpDto = JsonSerializer.Deserialize<ClassroomMaterialDto>(await tUp.Content.ReadAsStringAsync(), JsonOpts)!;
+        Assert.False(string.IsNullOrWhiteSpace(tUpDto.FileHashSha256));
+        Assert.Equal(HttpStatusCode.OK, (await _client.GetAsync($"/api/v1/teacher/workspace/materials/{tUpDto.Id}/download")).StatusCode);
     }
 }

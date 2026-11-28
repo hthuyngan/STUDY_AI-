@@ -1575,6 +1575,44 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
                 .HasForeignKey(e => e.SenderUserId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
+
+        // Round 06: Math 12 integrity constraints, unique knowledge sources, and teacher workspace FKs
+        modelBuilder.Entity<AiKnowledgeSource>(entity =>
+        {
+            entity.HasIndex(e => new { e.SourceType, e.SourceRefId }).IsUnique();
+        });
+
+        modelBuilder.Entity<TeacherExam>(entity =>
+        {
+            entity.HasIndex(e => e.ClassroomId);
+            entity.HasIndex(e => e.LinkedAssignmentId);
+            entity.HasOne<Classroom>()
+                .WithMany()
+                .HasForeignKey(e => e.ClassroomId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<ContentAssessment>()
+                .WithMany()
+                .HasForeignKey(e => e.SourceAssessmentId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<ClassroomMaterial>(entity =>
+        {
+            entity.HasIndex(e => e.ClassroomId);
+            entity.HasOne<Classroom>()
+                .WithMany()
+                .HasForeignKey(e => e.ClassroomId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ClassroomAnnouncement>(entity =>
+        {
+            entity.HasIndex(e => e.ClassroomId);
+            entity.HasOne<Classroom>()
+                .WithMany()
+                .HasForeignKey(e => e.ClassroomId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
     }
 
     public override int SaveChanges()

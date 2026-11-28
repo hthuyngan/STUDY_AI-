@@ -10,6 +10,7 @@ public class StudentMistakeItemDto
     public string? Explanation { get; set; }
     public string? ChapterTitle { get; set; }
     public int WrongCount { get; set; }
+    public bool IsResolved { get; set; }
     public string LastAttemptAt { get; set; } = string.Empty;
 }
 

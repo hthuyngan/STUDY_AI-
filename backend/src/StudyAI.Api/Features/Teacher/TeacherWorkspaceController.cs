@@ -47,6 +47,28 @@ public class TeacherWorkspaceController : ControllerBase
         return StatusCode(StatusCodes.Status201Created, created);
     }
 
+    [HttpPost("materials/upload")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(16 * 1024 * 1024)]
+    public async Task<ActionResult<ClassroomMaterialDto>> UploadMaterial(
+        [FromForm] IFormFile file,
+        [FromForm] string classroomId,
+        [FromForm] string title,
+        [FromForm] string? category = "lecture_note",
+        CancellationToken ct = default)
+    {
+        var created = await _service.UploadMaterialAsync(file, classroomId, title, category ?? "lecture_note", CurrentUserId, IsAdmin, ct);
+        return StatusCode(StatusCodes.Status201Created, created);
+    }
+
+    [HttpGet("materials/{materialId}/download")]
+    [Authorize(Roles = "teacher,admin,learner")]
+    public async Task<IActionResult> DownloadMaterial(string materialId, CancellationToken ct = default)
+    {
+        var (stream, mimeType, fileName) = await _service.DownloadMaterialAsync(materialId, CurrentUserId, IsAdmin, ct);
+        return File(stream, mimeType, fileName);
+    }
+
     [HttpDelete("materials/{materialId}")]
     public async Task<ActionResult<ClassroomMaterialDto>> RevokeMaterial(string materialId, CancellationToken ct)
         => Ok(await _service.RevokeMaterialAsync(materialId, CurrentUserId, IsAdmin, ct));

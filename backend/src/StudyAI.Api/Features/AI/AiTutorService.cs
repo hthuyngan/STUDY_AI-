@@ -34,6 +34,56 @@ public class AiTutorService : IAiTutorService
         _subjectResolver = subjectResolver;
     }
 
+    private async Task<string?> RetrievePublishedKnowledgeContextAsync(string query, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(query)) return null;
+        var terms = System.Text.RegularExpressions.Regex.Split(query.ToLowerInvariant(), @"[\s,.;:!?()\[\]]+")
+            .Where(t => t.Length >= 2)
+            .Distinct()
+            .Take(8)
+            .ToArray();
+        if (terms.Length == 0) return null;
+
+        var activeChunks = await _context.AiKnowledgeChunks.AsNoTracking()
+            .Include(c => c.Source)
+            .Where(c => c.Source != null && c.Source.Status == "indexed")
+            .Take(200)
+            .ToListAsync(ct);
+        if (activeChunks.Count == 0) return null;
+
+        var matIds = activeChunks.Where(c => c.Source!.SourceType == "material").Select(c => c.Source!.SourceRefId).Distinct().ToList();
+        var publishedMatIds = matIds.Count == 0
+            ? new HashSet<string>()
+            : (await _context.ContentMaterials.AsNoTracking().Where(m => matIds.Contains(m.Id) && m.Status == "published").Select(m => m.Id).ToListAsync(ct)).ToHashSet(StringComparer.Ordinal);
+        var lesIds = activeChunks.Where(c => c.Source!.SourceType == "lesson").Select(c => c.Source!.SourceRefId).Distinct().ToList();
+        var publishedLesIds = lesIds.Count == 0
+            ? new HashSet<string>()
+            : (await _context.ContentLessons.AsNoTracking().Where(l => lesIds.Contains(l.Id) && l.Status == "published").Select(l => l.Id).ToListAsync(ct)).ToHashSet(StringComparer.Ordinal);
+
+        var top = activeChunks
+            .Where(c => (c.Source!.SourceType == "material" && publishedMatIds.Contains(c.Source.SourceRefId))
+                     || (c.Source!.SourceType == "lesson" && publishedLesIds.Contains(c.Source.SourceRefId)))
+            .Select(c =>
+            {
+                var hay = $"{c.Title} {c.ContentText}".ToLowerInvariant();
+                var score = terms.Count(t => hay.Contains(t, StringComparison.Ordinal));
+                return new { Chunk = c, Score = score };
+            })
+            .Where(x => x.Score > 0)
+            .OrderByDescending(x => x.Score)
+            .Take(3)
+            .ToList();
+
+        if (top.Count == 0) return null;
+        var sb = new StringBuilder();
+        foreach (var item in top)
+        {
+            var snippet = item.Chunk.ContentText.Length > 380 ? item.Chunk.ContentText[..380] + "..." : item.Chunk.ContentText;
+            sb.AppendLine($"- [Nguồn: {item.Chunk.Source?.Title ?? item.Chunk.Title}] {snippet}");
+        }
+        return sb.ToString().Trim();
+    }
+
     public AiProviderStatusDto GetProviderStatus()
     {
         if (_llmProvider is OpenAiLlmProvider && _llmProvider.IsConfigured)
@@ -408,6 +458,11 @@ public class AiTutorService : IAiTutorService
 
         // Build System Prompt with Pedagogical Guidelines, Lesson Context, Dynamic Learning Context & Student Profile
         var systemPrompt = BuildSystemPrompt(lesson, mode, effectiveContextJson, profile);
+        var knowledgeContext = await RetrievePublishedKnowledgeContextAsync(rawMessage, cancellationToken);
+        if (!string.IsNullOrWhiteSpace(knowledgeContext))
+        {
+            systemPrompt = $"{systemPrompt}\n\n[NGUỒN TRI THỨC ĐÃ KIỂM DUYỆT]\n{knowledgeContext}";
+        }
 
         // Fetch recent messages for context (limited to MaxHistoryMessages)
         var recentHistory = await _context.AiMessages

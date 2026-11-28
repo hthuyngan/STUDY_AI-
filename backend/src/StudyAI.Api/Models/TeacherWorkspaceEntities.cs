@@ -21,6 +21,9 @@ public class TeacherExam
     [MaxLength(64)]
     public string? SourceAssessmentId { get; set; }
 
+    [MaxLength(64)]
+    public string? LinkedAssignmentId { get; set; }
+
     [Required]
     [MaxLength(200)]
     public string Title { get; set; } = string.Empty;
@@ -71,6 +74,9 @@ public class ClassroomMaterial
     public string MimeType { get; set; } = "application/pdf";
 
     public long FileSizeBytes { get; set; }
+
+    [MaxLength(64)]
+    public string? FileHashSha256 { get; set; }
 
     [Required]
     [MaxLength(500)]

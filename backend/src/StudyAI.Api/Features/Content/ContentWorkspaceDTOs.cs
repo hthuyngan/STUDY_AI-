@@ -44,7 +44,9 @@ public class ContentMaterialDto
     public string FileName { get; set; } = string.Empty;
     public string MimeType { get; set; } = string.Empty;
     public long FileSizeBytes { get; set; }
+    public string? FileHashSha256 { get; set; }
     public string StoragePathOrUrl { get; set; } = string.Empty;
+    public bool HasExtractedText { get; set; }
     public string Status { get; set; } = string.Empty;
     public string CreatedAt { get; set; } = string.Empty;
     public string UpdatedAt { get; set; } = string.Empty;
@@ -60,6 +62,7 @@ public class CreateContentMaterialRequestDto
     public string MimeType { get; set; } = "application/pdf";
     public long FileSizeBytes { get; set; }
     public string? Base64Header { get; set; }
+    public string? Base64Content { get; set; }
     public string StoragePathOrUrl { get; set; } = string.Empty;
 }
 

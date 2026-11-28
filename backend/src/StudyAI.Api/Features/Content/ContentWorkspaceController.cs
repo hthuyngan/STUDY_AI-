@@ -46,6 +46,31 @@ public class ContentWorkspaceController : ControllerBase
         return StatusCode(StatusCodes.Status201Created, created);
     }
 
+    [HttpPost("materials/upload")]
+    [Authorize(Policy = "ContentStaff")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(16 * 1024 * 1024)]
+    public async Task<ActionResult<ContentMaterialDto>> UploadMaterial(
+        [FromForm] IFormFile file,
+        [FromForm] string title,
+        [FromForm] string? category = "chapter_doc",
+        [FromForm] string? chapterCode = null,
+        [FromForm] string? chapterTitle = null,
+        CancellationToken ct = default)
+    {
+        var created = await _service.UploadMaterialAsync(file, title, category ?? "chapter_doc", chapterCode, chapterTitle, CurrentUserId, ct);
+        return StatusCode(StatusCodes.Status201Created, created);
+    }
+
+    [HttpGet("materials/{id}/download")]
+    [Authorize]
+    public async Task<IActionResult> DownloadMaterial(string id, CancellationToken ct = default)
+    {
+        var isContentStaff = User.IsInRole("admin") || User.IsInRole("content");
+        var (stream, mimeType, fileName) = await _service.DownloadMaterialAsync(id, CurrentUserId, isContentStaff, ct);
+        return File(stream, mimeType, fileName);
+    }
+
     [HttpPatch("materials/{id}/status")]
     [Authorize(Policy = "ContentStaff")]
     public async Task<ActionResult<ContentMaterialDto>> UpdateMaterialStatus(

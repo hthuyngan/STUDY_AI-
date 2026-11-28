@@ -9,6 +9,7 @@ export interface StudentMistakeItem {
   explanation?: string | null
   chapterTitle?: string | null
   wrongCount: number
+  isResolved?: boolean
   lastAttemptAt: string
 }
 
@@ -25,6 +26,9 @@ export interface LearnerClassroomSummary {
 export const studentWorkspaceService = {
   getMistakes(): Promise<StudentMistakeItem[]> {
     return apiClient.get<StudentMistakeItem[]>('/api/v1/learner/workspace/mistakes')
+  },
+  resolveMistake(responseId: string): Promise<void> {
+    return apiClient.patch<void>(`/api/v1/learner/workspace/mistakes/${encodeURIComponent(responseId)}/resolve`, {})
   },
   getMyClassrooms(): Promise<LearnerClassroomSummary[]> {
     return apiClient.get<LearnerClassroomSummary[]>('/api/v1/learner/workspace/classrooms')

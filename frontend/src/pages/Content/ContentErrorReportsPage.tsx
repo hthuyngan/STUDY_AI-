@@ -110,7 +110,7 @@ export const ContentErrorReportsPage: React.FC = () => {
                     <td><StatusBadge status={r.status === 'resolved' || r.status === 'closed' ? 'published' : 'draft'} label={r.status} /></td>
                     <td style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                       {r.status !== 'resolved' && (
-                        <button type="button" className="staff-btn staff-btn-primary" style={{ padding: '4px 10px', fontSize: 12 }} disabled={updatingId === r.id} onClick={() => handleUpdate(r.id, 'resolved', 'content_error')}>
+                        <button type="button" className="staff-btn staff-btn-primary" style={{ padding: '4px 10px', fontSize: 12 }} disabled={updatingId === r.id} onClick={() => handleUpdate(r.id, 'resolved', r.classification)}>
                           Đã sửa
                         </button>
                       )}

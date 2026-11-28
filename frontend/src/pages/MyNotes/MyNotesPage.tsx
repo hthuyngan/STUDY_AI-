@@ -234,7 +234,7 @@ export function MyNotesPage() {
                 <article key={m.responseId} className="note-notebook-card">
                   <div className="note-card-header">
                     <span className="note-subject-tag">Sai {m.wrongCount} lần</span>
-                    {resolvedIds[m.responseId] && <span className="note-subject-tag">Đã khắc phục</span>}
+                    {(m.isResolved || resolvedIds[m.responseId]) && <span className="note-subject-tag">Đã khắc phục</span>}
                   </div>
                   <p className="note-card-body"><strong>{m.prompt}</strong></p>
                   <div style={{ fontSize: 13, marginBottom: 8 }}>
@@ -246,8 +246,19 @@ export function MyNotesPage() {
                     <Button variant="outline" size="sm" onClick={() => navigate('/practice')}>
                       <RotateCcw size={13} /> Làm lại
                     </Button>
-                    {!resolvedIds[m.responseId] && (
-                      <Button variant="primary" size="sm" onClick={() => setResolvedIds((prev) => ({ ...prev, [m.responseId]: true }))}>
+                    {!(m.isResolved || resolvedIds[m.responseId]) && (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={async () => {
+                          try {
+                            await studentWorkspaceService.resolveMistake(m.responseId)
+                            setResolvedIds((prev) => ({ ...prev, [m.responseId]: true }))
+                          } catch (err) {
+                            setMistakesError(err instanceof Error ? err.message : 'Không thể lưu trạng thái đã khắc phục.')
+                          }
+                        }}
+                      >
                         <Check size={13} /> Đánh dấu đã khắc phục
                       </Button>
                     )}

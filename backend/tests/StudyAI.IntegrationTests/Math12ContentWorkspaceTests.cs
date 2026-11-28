@@ -184,5 +184,63 @@ public class Math12ContentWorkspaceTests : IClassFixture<StudyAIApiFixture>
             Encoding.UTF8,
             "application/json"));
         Assert.Equal(HttpStatusCode.Created, errCreate.StatusCode);
+
+        // CW-002: Unsupported TargetType or Severity returns 400 BadRequest
+        var badErr = await _client.PostAsync("/api/v1/content/workspace/error-reports", new StringContent(
+            JsonSerializer.Serialize(new CreateContentErrorReportRequestDto
+            {
+                TargetType = "invalid_target",
+                Title = "Lỗi không hợp lệ",
+                Description = "Chi tiết",
+                Severity = "critical"
+            }),
+            Encoding.UTF8,
+            "application/json"));
+        Assert.Equal(HttpStatusCode.BadRequest, badErr.StatusCode);
+
+        // CONTENT-002 & CW-004: Multipart upload computes real byte SHA-256, extracts text, and enforces download auth
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        using var form1 = new MultipartFormDataContent();
+        form1.Add(new StringContent("Tài liệu Giải tích Upload"), "title");
+        form1.Add(new StringContent("chapter_doc"), "category");
+        var fc1 = new ByteArrayContent(Encoding.UTF8.GetBytes("Tích phân từng phần Toán 12."));
+        fc1.Headers.ContentType = new MediaTypeHeaderValue("text/plain");
+        form1.Add(fc1, "file", "giai-tich-1.txt");
+        var up1 = await _client.PostAsync("/api/v1/content/workspace/materials/upload", form1);
+        Assert.Equal(HttpStatusCode.Created, up1.StatusCode);
+        var up1Dto = JsonSerializer.Deserialize<ContentMaterialDto>(await up1.Content.ReadAsStringAsync(), JsonOpts)!;
+        Assert.False(string.IsNullOrWhiteSpace(up1Dto.FileHashSha256));
+        Assert.True(up1Dto.HasExtractedText);
+
+        using var form2 = new MultipartFormDataContent();
+        form2.Add(new StringContent("Tài liệu Giải tích Upload 2"), "title");
+        form2.Add(new StringContent("chapter_doc"), "category");
+        var fc2 = new ByteArrayContent(Encoding.UTF8.GetBytes("Nội dung khác hoàn toàn."));
+        fc2.Headers.ContentType = new MediaTypeHeaderValue("text/plain");
+        form2.Add(fc2, "file", "giai-tich-1.txt");
+        var up2 = await _client.PostAsync("/api/v1/content/workspace/materials/upload", form2);
+        var up2Dto = JsonSerializer.Deserialize<ContentMaterialDto>(await up2.Content.ReadAsStringAsync(), JsonOpts)!;
+        Assert.NotEqual(up1Dto.FileHashSha256, up2Dto.FileHashSha256);
+
+        // Learner cannot download draft material (403), can download after publish (200)
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", learnerToken);
+        Assert.Equal(HttpStatusCode.Forbidden, (await _client.GetAsync($"/api/v1/content/workspace/materials/{up1Dto.Id}/download")).StatusCode);
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        Assert.Equal(HttpStatusCode.OK, (await _client.PatchAsync($"/api/v1/content/workspace/materials/{up1Dto.Id}/status", new StringContent(
+            JsonSerializer.Serialize(new UpdateContentMaterialStatusRequestDto { Status = "published" }), Encoding.UTF8, "application/json"))).StatusCode);
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", learnerToken);
+        Assert.Equal(HttpStatusCode.OK, (await _client.GetAsync($"/api/v1/content/workspace/materials/{up1Dto.Id}/download")).StatusCode);
+
+        // CW-003: Idempotent knowledge registration reuses the same source without duplicates
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", contentToken);
+        var syncA = await _client.PostAsync("/api/v1/content/workspace/knowledge-sources", new StringContent(
+            JsonSerializer.Serialize(new RegisterAiKnowledgeSourceRequestDto { SourceType = "material", SourceRefId = up1Dto.Id }),
+            Encoding.UTF8, "application/json"));
+        var syncB = await _client.PostAsync("/api/v1/content/workspace/knowledge-sources", new StringContent(
+            JsonSerializer.Serialize(new RegisterAiKnowledgeSourceRequestDto { SourceType = "material", SourceRefId = up1Dto.Id }),
+            Encoding.UTF8, "application/json"));
+        var srcA = JsonSerializer.Deserialize<AiKnowledgeSourceDto>(await syncA.Content.ReadAsStringAsync(), JsonOpts)!;
+        var srcB = JsonSerializer.Deserialize<AiKnowledgeSourceDto>(await syncB.Content.ReadAsStringAsync(), JsonOpts)!;
+        Assert.Equal(srcA.Id, srcB.Id);
     }
 }

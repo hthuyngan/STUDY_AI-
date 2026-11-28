@@ -28,6 +28,15 @@ public class StudentWorkspaceController : ControllerBase
     public async Task<ActionResult<List<StudentMistakeItemDto>>> GetMistakes(CancellationToken ct)
         => Ok(await _service.GetMistakesAsync(RequireUserId(), ct));
 
+    [HttpPatch("mistakes/{responseId}/resolve")]
+    public async Task<IActionResult> ResolveMistake(string responseId, CancellationToken ct)
+    {
+        if (!int.TryParse(responseId, out var id))
+            throw new ValidationException("ResponseId", "Mã câu sai không hợp lệ.");
+        await _service.ResolveMistakeAsync(RequireUserId(), id, ct);
+        return NoContent();
+    }
+
     [HttpGet("classrooms")]
     public async Task<ActionResult<List<LearnerClassroomSummaryDto>>> GetMyClassrooms(CancellationToken ct)
         => Ok(await _service.GetMyClassroomsAsync(RequireUserId(), ct));

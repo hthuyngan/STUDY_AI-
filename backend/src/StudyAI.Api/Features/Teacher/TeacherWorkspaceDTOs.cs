@@ -5,6 +5,7 @@ public class TeacherExamDto
     public string Id { get; set; } = string.Empty;
     public string ClassroomId { get; set; } = string.Empty;
     public string? SourceAssessmentId { get; set; }
+    public string? LinkedAssignmentId { get; set; }
     public string Title { get; set; } = string.Empty;
     public int DurationMinutes { get; set; }
     public bool ShuffleQuestions { get; set; }
@@ -19,6 +20,7 @@ public class CreateTeacherExamRequestDto
 {
     public string ClassroomId { get; set; } = string.Empty;
     public string? SourceAssessmentId { get; set; }
+    public string? LinkedAssignmentId { get; set; }
     public string Title { get; set; } = string.Empty;
     public int DurationMinutes { get; set; } = 45;
     public bool ShuffleQuestions { get; set; } = true;
@@ -41,6 +43,7 @@ public class ClassroomMaterialDto
     public string FileName { get; set; } = string.Empty;
     public string MimeType { get; set; } = string.Empty;
     public long FileSizeBytes { get; set; }
+    public string? FileHashSha256 { get; set; }
     public string StoragePathOrUrl { get; set; } = string.Empty;
     public bool IsRevoked { get; set; }
     public string CreatedAt { get; set; } = string.Empty;
@@ -54,6 +57,7 @@ public class CreateClassroomMaterialRequestDto
     public string FileName { get; set; } = string.Empty;
     public string MimeType { get; set; } = "application/pdf";
     public long FileSizeBytes { get; set; }
+    public string? FileHashSha256 { get; set; }
     public string StoragePathOrUrl { get; set; } = string.Empty;
 }
 
@@ -102,4 +106,6 @@ public class TeacherAiAssistantResponseDto
     public string ClassroomName { get; set; } = string.Empty;
     public int StudentCount { get; set; }
     public string Provider { get; set; } = string.Empty;
+    public string Status { get; set; } = "completed";
+    public bool IsAiGenerated { get; set; } = true;
 }

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using StudyAI.Common.Exceptions;
 using StudyAI.Data;
@@ -53,20 +54,57 @@ public class StudentWorkspaceService : IStudentWorkspaceService
                 var latest = g.First();
                 var isUnreleased = latest.Attempt != null && unreleasedAssessmentIds.Contains(latest.Attempt.AssessmentId);
                 questionsById.TryGetValue(latest.QuestionId, out var q);
+                var snap = TryReadQuestionSnapshot(latest.Attempt?.SuspendDataJson, latest.QuestionId);
                 return new StudentMistakeItemDto
                 {
                     ResponseId = latest.Id.ToString(),
                     QuestionId = latest.QuestionId,
-                    Prompt = q?.Prompt ?? "Câu hỏi Toán 12",
+                    Prompt = snap?.Prompt ?? q?.Prompt ?? "Câu hỏi Toán 12",
                     StudentAnswer = latest.SelectedOptionIdsJson,
-                    CorrectAnswer = isUnreleased ? null : q?.CorrectAnswer,
-                    Explanation = isUnreleased ? "Kết quả chưa được giáo viên công bố." : q?.Explanation,
+                    CorrectAnswer = isUnreleased ? null : (snap?.CorrectAnswer ?? q?.CorrectAnswer),
+                    Explanation = isUnreleased ? "Kết quả chưa được giáo viên công bố." : (snap?.Explanation ?? q?.Explanation),
                     ChapterTitle = q?.ChapterId,
                     WrongCount = g.Count(),
+                    IsResolved = latest.IsMistakeResolved,
                     LastAttemptAt = (latest.Attempt?.StartedAt ?? DateTimeOffset.UtcNow).ToString("o")
                 };
             })
             .ToList();
+    }
+
+    public async Task ResolveMistakeAsync(string userId, int responseId, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+            throw new UnauthorizedException();
+        var response = await _db.AssessmentResponses
+            .Include(r => r.Attempt)
+            .FirstOrDefaultAsync(r => r.Id == responseId && r.Attempt != null && r.Attempt.UserId == userId, ct)
+            ?? throw new NotFoundException("Không tìm thấy câu sai cần đánh dấu.");
+        response.IsMistakeResolved = true;
+        await _db.SaveChangesAsync(ct);
+    }
+
+    private sealed record QuestionSnapshotItem(string? Prompt, string? CorrectAnswer, string? Explanation);
+
+    private static QuestionSnapshotItem? TryReadQuestionSnapshot(string? suspendDataJson, string questionId)
+    {
+        if (string.IsNullOrWhiteSpace(suspendDataJson)) return null;
+        try
+        {
+            using var doc = JsonDocument.Parse(suspendDataJson);
+            if (doc.RootElement.TryGetProperty("questionSnapshots", out var snaps) &&
+                snaps.ValueKind == JsonValueKind.Object &&
+                snaps.TryGetProperty(questionId, out var qEl) &&
+                qEl.ValueKind == JsonValueKind.Object)
+            {
+                var prompt = qEl.TryGetProperty("prompt", out var p) ? p.GetString() : null;
+                var correct = qEl.TryGetProperty("correctAnswer", out var c) ? c.GetString() : null;
+                var expl = qEl.TryGetProperty("explanation", out var e) ? e.GetString() : null;
+                return new QuestionSnapshotItem(prompt, correct, expl);
+            }
+        }
+        catch { }
+        return null;
     }
 
     public async Task<LearnerClassroomSummaryDto> JoinClassroomByCodeAsync(string userId, string code, CancellationToken ct = default)
@@ -77,8 +115,14 @@ public class StudentWorkspaceService : IStudentWorkspaceService
             throw new ValidationException("Code", "Mã lớp học không được để trống.");
 
         var normalized = code.Trim();
+        if (normalized.Length < 4 || normalized.Length > 32)
+            throw new ValidationException("Code", "Mã lớp học phải có độ dài từ 4 đến 32 ký tự.");
+
         var cls = await _db.Classrooms.FirstOrDefaultAsync(c => c.Code == normalized && c.Status == "active", ct)
-            ?? throw new NotFoundException("Không tìm thấy lớp học với mã này.");
+            ?? throw new NotFoundException("Không tìm thấy lớp học với mã này hoặc lớp đã đóng.");
+
+        if (!string.IsNullOrWhiteSpace(cls.Grade) && !string.Equals(cls.Grade.Trim(), "12", StringComparison.OrdinalIgnoreCase))
+            throw new ValidationException("Code", "Lớp học này không thuộc phạm vi Toán lớp 12.");
 
         var existing = await _db.ClassroomStudents.FirstOrDefaultAsync(cs => cs.ClassroomId == cls.Id && cs.StudentId == userId, ct);
         if (existing == null)

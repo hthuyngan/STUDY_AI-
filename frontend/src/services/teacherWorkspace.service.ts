@@ -53,6 +53,8 @@ export interface TeacherAiAssistantResponse {
   classroomName: string
   studentCount: number
   provider: string
+  status?: string
+  isAiGenerated?: boolean
 }
 
 export const teacherWorkspaceService = {
@@ -91,6 +93,9 @@ export const teacherWorkspaceService = {
     storagePathOrUrl: string
   }): Promise<ClassroomMaterialItem> {
     return apiClient.post<ClassroomMaterialItem>('/api/v1/teacher/workspace/materials', payload)
+  },
+  uploadMaterial(formData: FormData): Promise<ClassroomMaterialItem> {
+    return apiClient.postFormData<ClassroomMaterialItem>('/api/v1/teacher/workspace/materials/upload', formData)
   },
   revokeMaterial(materialId: string): Promise<ClassroomMaterialItem> {
     return apiClient.delete<ClassroomMaterialItem>(`/api/v1/teacher/workspace/materials/${materialId}`)

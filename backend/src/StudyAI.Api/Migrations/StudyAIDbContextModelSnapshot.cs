@@ -199,6 +199,9 @@ namespace StudyAI.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("SourceType", "SourceRefId")
+                        .IsUnique();
+
                     b.ToTable("ai_knowledge_sources");
                 });
 
@@ -476,6 +479,9 @@ namespace StudyAI.Migrations
                         .HasColumnType("datetimeoffset");
 
                     b.Property<bool?>("IsCorrect")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsMistakeResolved")
                         .HasColumnType("bit");
 
                     b.Property<DateTimeOffset?>("LastAnsweredAt")
@@ -841,6 +847,8 @@ namespace StudyAI.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ClassroomId");
+
                     b.ToTable("classroom_announcements");
                 });
 
@@ -862,6 +870,10 @@ namespace StudyAI.Migrations
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("FileHashSha256")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<string>("FileName")
                         .IsRequired()
@@ -895,6 +907,8 @@ namespace StudyAI.Migrations
                         .HasColumnType("nvarchar(200)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ClassroomId");
 
                     b.ToTable("classroom_materials");
                 });
@@ -1444,6 +1458,9 @@ namespace StudyAI.Migrations
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("ExtractedText")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("FileHashSha256")
                         .HasMaxLength(64)
@@ -2897,6 +2914,10 @@ namespace StudyAI.Migrations
                     b.Property<int>("DurationMinutes")
                         .HasColumnType("int");
 
+                    b.Property<string>("LinkedAssignmentId")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<DateTimeOffset?>("OpenAt")
                         .HasColumnType("datetimeoffset");
 
@@ -2929,6 +2950,12 @@ namespace StudyAI.Migrations
                         .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ClassroomId");
+
+                    b.HasIndex("LinkedAssignmentId");
+
+                    b.HasIndex("SourceAssessmentId");
 
                     b.ToTable("teacher_exams");
                 });
@@ -3384,6 +3411,24 @@ namespace StudyAI.Migrations
                     b.Navigation("Student");
                 });
 
+            modelBuilder.Entity("StudyAI.Models.ClassroomAnnouncement", b =>
+                {
+                    b.HasOne("StudyAI.Models.Classroom", null)
+                        .WithMany()
+                        .HasForeignKey("ClassroomId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("StudyAI.Models.ClassroomMaterial", b =>
+                {
+                    b.HasOne("StudyAI.Models.Classroom", null)
+                        .WithMany()
+                        .HasForeignKey("ClassroomId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("StudyAI.Models.ClassroomStudent", b =>
                 {
                     b.HasOne("StudyAI.Models.Classroom", "Classroom")
@@ -3759,6 +3804,20 @@ namespace StudyAI.Migrations
                     b.Navigation("SenderUser");
 
                     b.Navigation("Ticket");
+                });
+
+            modelBuilder.Entity("StudyAI.Models.TeacherExam", b =>
+                {
+                    b.HasOne("StudyAI.Models.Classroom", null)
+                        .WithMany()
+                        .HasForeignKey("ClassroomId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("StudyAI.Models.ContentAssessment", null)
+                        .WithMany()
+                        .HasForeignKey("SourceAssessmentId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("StudyAI.Models.TeacherProfile", b =>

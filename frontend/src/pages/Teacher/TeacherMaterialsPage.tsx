@@ -42,7 +42,9 @@ export const TeacherMaterialsPage: React.FC = () => {
     void load()
   }, [load])
 
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [revokingId, setRevokingId] = useState<string | null>(null)
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -50,24 +52,58 @@ export const TeacherMaterialsPage: React.FC = () => {
     setSubmitting(true)
     setError(null)
     try {
-      await teacherWorkspaceService.createMaterial({
-        classroomId,
-        title,
-        category: 'lecture_note',
-        fileName,
-        mimeType: 'application/pdf',
-        fileSizeBytes: 102400,
-        storagePathOrUrl,
-      })
+      if (selectedFile) {
+        const fd = new FormData()
+        fd.append('file', selectedFile)
+        fd.append('classroomId', classroomId)
+        fd.append('title', title)
+        fd.append('category', 'lecture_note')
+        await teacherWorkspaceService.uploadMaterial(fd)
+      } else {
+        const safeName = fileName.trim()
+        const inferredMime = safeName.endsWith('.md')
+          ? 'text/markdown'
+          : safeName.endsWith('.txt')
+            ? 'text/plain'
+            : safeName.endsWith('.png')
+              ? 'image/png'
+              : safeName.endsWith('.jpg') || safeName.endsWith('.jpeg')
+                ? 'image/jpeg'
+                : 'application/pdf'
+        await teacherWorkspaceService.createMaterial({
+          classroomId,
+          title,
+          category: 'lecture_note',
+          fileName: safeName,
+          mimeType: inferredMime,
+          fileSizeBytes: 1,
+          storagePathOrUrl,
+        })
+      }
       setTitle('')
       setFileName('')
       setStoragePathOrUrl('')
+      setSelectedFile(null)
       setShowForm(false)
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Không thể tải lên tài liệu lớp học.')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleRevoke = async (materialId: string) => {
+    if (revokingId) return
+    setRevokingId(materialId)
+    setError(null)
+    try {
+      await teacherWorkspaceService.revokeMaterial(materialId)
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Không thể thu hồi tài liệu lớp học.')
+    } finally {
+      setRevokingId(null)
     }
   }
 
@@ -98,8 +134,22 @@ export const TeacherMaterialsPage: React.FC = () => {
               {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
             <input className="staff-input" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Tiêu đề tài liệu" />
-            <input className="staff-input" required value={fileName} onChange={(e) => setFileName(e.target.value)} placeholder="ten-tai-lieu.pdf" />
-            <input className="staff-input" required value={storagePathOrUrl} onChange={(e) => setStoragePathOrUrl(e.target.value)} placeholder="https://..." />
+            <input
+              type="file"
+              accept=".pdf,.png,.jpg,.jpeg,.webp,.md,.txt"
+              className="staff-input"
+              onChange={(e) => {
+                const f = e.target.files?.[0] ?? null
+                setSelectedFile(f)
+                if (f && !fileName) setFileName(f.name)
+              }}
+            />
+            {!selectedFile && (
+              <>
+                <input className="staff-input" required value={fileName} onChange={(e) => setFileName(e.target.value)} placeholder="ten-tai-lieu.pdf" />
+                <input className="staff-input" required value={storagePathOrUrl} onChange={(e) => setStoragePathOrUrl(e.target.value)} placeholder="https://..." />
+              </>
+            )}
           </div>
           <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
             <button type="submit" className="staff-btn staff-btn-primary">Chia sẻ</button>
@@ -134,8 +184,8 @@ export const TeacherMaterialsPage: React.FC = () => {
                     <td><StatusBadge status={m.isRevoked ? 'archived' : 'published'} label={m.isRevoked ? 'Đã thu hồi' : 'Đang chia sẻ'} /></td>
                     <td>
                       {!m.isRevoked && (
-                        <button type="button" className="staff-btn staff-btn-secondary" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => teacherWorkspaceService.revokeMaterial(m.id).then(load)}>
-                          <Trash2 size={13} /> Thu hồi
+                        <button type="button" className="staff-btn staff-btn-secondary" style={{ padding: '4px 10px', fontSize: 12 }} disabled={revokingId === m.id} onClick={() => handleRevoke(m.id)}>
+                          <Trash2 size={13} /> {revokingId === m.id ? 'Đang thu hồi...' : 'Thu hồi'}
                         </button>
                       )}
                     </td>
