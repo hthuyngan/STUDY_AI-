@@ -4,11 +4,9 @@ import DashboardPage from '@/pages/Dashboard/DashboardPage'
 import SubjectsPage from '@/pages/Subjects/SubjectsPage'
 import SubjectDetailPage from '@/pages/Subjects/SubjectDetailPage'
 import LessonPage from '@/pages/Lesson/LessonPage'
-import LearningPathPage from '@/pages/LearningPath/LearningPathPage'
 import MyNotesPage from '@/pages/MyNotes/MyNotesPage'
 import KnowledgeGapsPage from '@/pages/KnowledgeGaps/KnowledgeGapsPage'
 import SmartReviewPage from '@/pages/SmartReview/SmartReviewPage'
-import LearningAnalyticsPage from '@/pages/LearningAnalytics/LearningAnalyticsPage'
 import PracticeHubPage from '@/pages/Practice/PracticeHubPage'
 import PracticeSessionPage from '@/pages/Practice/PracticeSessionPage'
 import PracticeResultPage from '@/pages/Practice/PracticeResultPage'
@@ -21,6 +19,7 @@ import DesignSystemPage from '@/pages/DesignSystem/DesignSystemPage'
 import { LearnerAssignmentsPage } from '@/pages/Assignments/LearnerAssignmentsPage'
 import { ExamPreparationPage } from '@/pages/Exam/ExamPreparationPage'
 import { SchedulePage } from '@/pages/Schedule/SchedulePage'
+import { LearnerSubscriptionsPage } from '@/pages/Subscriptions/LearnerSubscriptionsPage'
 import AITutorPage from '@/pages/AITutor/AITutorPage'
 
 export function LegacyCoursesRedirect() {
@@ -141,15 +140,8 @@ export function LearnerRoutes() {
         }
       />
 
-      {/* Learning Path */}
-      <Route
-        path="/learning-path"
-        element={
-          <AppShell>
-            <LearningPathPage />
-          </AppShell>
-        }
-      />
+      {/* Learning Path removed per Math 12 spec -> redirect to Dashboard */}
+      <Route path="/learning-path" element={<Navigate to="/dashboard" replace />} />
 
       {/* My Study Notes & Bookmarks */}
       <Route
@@ -171,16 +163,19 @@ export function LearnerRoutes() {
         }
       />
 
-      {/* Phase 7: Learning Analytics & Student Competency Profile */}
+      {/* Separate Learning Analytics page merged into Dashboard */}
+      <Route path="/learning-analytics" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/analytics" element={<Navigate to="/dashboard" replace />} />
+
+      {/* Subscriptions */}
       <Route
-        path="/learning-analytics"
+        path="/subscriptions"
         element={
           <AppShell>
-            <LearningAnalyticsPage />
+            <LearnerSubscriptionsPage />
           </AppShell>
         }
       />
-      <Route path="/analytics" element={<Navigate to="/learning-analytics" replace />} />
 
       {/* Phase 6: Smart Review (Ôn tập thông minh ngắt quãng) */}
       <Route

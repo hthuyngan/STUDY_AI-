@@ -11,6 +11,11 @@ import { TeacherCreateAssignmentPage } from '@/pages/Teacher/TeacherCreateAssign
 import { TeacherAssignmentDetailPage } from '@/pages/Teacher/TeacherAssignmentDetailPage'
 import { TeacherGradesPage } from '@/pages/Teacher/TeacherGradesPage'
 import { TeacherAlertsPage } from '@/pages/Teacher/TeacherAlertsPage'
+import { TeacherExamsPage } from '@/pages/Teacher/TeacherExamsPage'
+import { TeacherMaterialsPage } from '@/pages/Teacher/TeacherMaterialsPage'
+import { TeacherAiAssistantPage } from '@/pages/Teacher/TeacherAiAssistantPage'
+import { TeacherSchedulePage } from '@/pages/Teacher/TeacherSchedulePage'
+import { TeacherAnnouncementsPage } from '@/pages/Teacher/TeacherAnnouncementsPage'
 
 export function TeacherRoutes() {
   return (
@@ -31,7 +36,12 @@ export function TeacherRoutes() {
       <Route path="assignments" element={<TeacherAssignmentsPage />} />
       <Route path="assignments/new" element={<TeacherCreateAssignmentPage />} />
       <Route path="assignments/:id" element={<TeacherAssignmentDetailPage />} />
+      <Route path="exams" element={<TeacherExamsPage />} />
       <Route path="grades" element={<TeacherGradesPage />} />
+      <Route path="materials" element={<TeacherMaterialsPage />} />
+      <Route path="ai-assistant" element={<TeacherAiAssistantPage />} />
+      <Route path="schedule" element={<TeacherSchedulePage />} />
+      <Route path="announcements" element={<TeacherAnnouncementsPage />} />
     </Route>
   )
 }

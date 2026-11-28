@@ -12,6 +12,8 @@ public class AiUsageService : IAiUsageService
     private readonly IConfiguration _configuration;
     private readonly ILogger<AiUsageService> _logger;
 
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> UserQuotaLocks = new(StringComparer.Ordinal);
+
     private static readonly ConcurrentDictionary<string, bool> FeatureToggles = new(new[]
     {
         new KeyValuePair<string, bool>("tutor", true),
@@ -71,6 +73,143 @@ public class AiUsageService : IAiUsageService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Lỗi khi ghi nhật ký sử dụng AI cho user {UserId}: {Message}", userId, ex.Message);
+        }
+    }
+
+    public async Task<string?> TryReserveQuotaAsync(
+        string userId,
+        string feature,
+        string provider,
+        string model,
+        int dailyLimit,
+        int monthlyLimit,
+        CancellationToken cancellationToken = default)
+    {
+        var key = string.IsNullOrWhiteSpace(userId) ? "anonymous" : userId;
+        var userLock = UserQuotaLocks.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
+        await userLock.WaitAsync(cancellationToken);
+        try
+        {
+            var now = DateTimeOffset.UtcNow;
+            var dayStart = new DateTimeOffset(now.UtcDateTime.Date, TimeSpan.Zero);
+            var monthStart = new DateTimeOffset(new DateTime(now.UtcDateTime.Year, now.UtcDateTime.Month, 1, 0, 0, 0, DateTimeKind.Utc), TimeSpan.Zero);
+
+            async Task<string?> ExecuteReserveAsync()
+            {
+                Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? tx = null;
+                if (_context is DbContext relDb && relDb.Database.IsRelational() && relDb.Database.CurrentTransaction == null)
+                {
+                    tx = await relDb.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, cancellationToken);
+                }
+
+                try
+                {
+                    var dailyCount = await _context.AiUsageLogs
+                        .Where(l => l.UserId == key && l.CreatedAt >= dayStart)
+                        .CountAsync(cancellationToken);
+                    if (dailyLimit > 0 && dailyCount >= dailyLimit)
+                    {
+                        if (tx != null) await tx.RollbackAsync(cancellationToken);
+                        return null;
+                    }
+
+                    var monthlyCount = await _context.AiUsageLogs
+                        .Where(l => l.UserId == key && l.CreatedAt >= monthStart)
+                        .CountAsync(cancellationToken);
+                    if (monthlyLimit > 0 && monthlyCount >= monthlyLimit)
+                    {
+                        if (tx != null) await tx.RollbackAsync(cancellationToken);
+                        return null;
+                    }
+
+                    var reservationId = $"usg_{Guid.NewGuid():N}";
+                    _context.AiUsageLogs.Add(new AiUsageLog
+                    {
+                        Id = reservationId,
+                        UserId = key,
+                        Feature = feature,
+                        Provider = provider,
+                        Model = model,
+                        InputTokens = 0,
+                        OutputTokens = 0,
+                        EstimatedCostUsd = 0m,
+                        LatencyMs = 0,
+                        Status = "reserved",
+                        CreatedAt = now
+                    });
+                    await _context.SaveChangesAsync(cancellationToken);
+                    if (tx != null) await tx.CommitAsync(cancellationToken);
+                    return reservationId;
+                }
+                catch
+                {
+                    if (tx != null) await tx.RollbackAsync(CancellationToken.None);
+                    throw;
+                }
+                finally
+                {
+                    if (tx != null) await tx.DisposeAsync();
+                }
+            }
+
+            if (_context is DbContext db && db.Database.IsRelational() && db.Database.CurrentTransaction == null)
+            {
+                var strategy = db.Database.CreateExecutionStrategy();
+                return await strategy.ExecuteAsync(ExecuteReserveAsync);
+            }
+
+            return await ExecuteReserveAsync();
+        }
+        finally
+        {
+            userLock.Release();
+        }
+    }
+
+    public async Task FinalizeUsageReservationAsync(
+        string? reservationId,
+        int inputTokens,
+        int outputTokens,
+        int latencyMs,
+        string status,
+        string? errorMessage = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(reservationId)) return;
+        try
+        {
+            var row = await _context.AiUsageLogs.FirstOrDefaultAsync(l => l.Id == reservationId, cancellationToken);
+            if (row == null) return;
+
+            row.InputTokens = inputTokens;
+            row.OutputTokens = outputTokens;
+            row.EstimatedCostUsd = (inputTokens * 0.00000015m) + (outputTokens * 0.00000060m);
+            row.LatencyMs = latencyMs;
+            row.Status = status;
+            row.ErrorMessage = errorMessage != null && errorMessage.Length > 500 ? errorMessage[..500] : errorMessage;
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi hoàn tất reservation sử dụng AI {ReservationId}: {Message}", reservationId, ex.Message);
+        }
+    }
+
+    public async Task ReleaseUsageReservationAsync(
+        string? reservationId,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(reservationId)) return;
+        try
+        {
+            var row = await _context.AiUsageLogs.FirstOrDefaultAsync(l => l.Id == reservationId, cancellationToken);
+            if (row == null || row.Status != "reserved") return;
+            _context.AiUsageLogs.Remove(row);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi giải phóng reservation sử dụng AI {ReservationId}: {Message}", reservationId, ex.Message);
         }
     }
 

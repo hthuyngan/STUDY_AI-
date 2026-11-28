@@ -8,6 +8,7 @@ import { PageErrorState } from '@/components/ui/PageErrorState'
 import { Progress } from '@/components/ui/Progress'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { useSubjects } from '@/hooks/useSubjects'
+import { isMath12Subject } from '@/config/math12Scope'
 import { curriculumService, type LearnerEditionSummary } from '@/services/curriculum.service'
 import './SubjectsPage.css'
 
@@ -17,7 +18,6 @@ export function SubjectsPage() {
   const [editionsLoading, setEditionsLoading] = useState(true)
   const [editionsError, setEditionsError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedGrade, setSelectedGrade] = useState<'all' | '10' | '11' | '12'>('all')
 
   const loadEditions = () => {
     setEditionsLoading(true)
@@ -34,34 +34,30 @@ export function SubjectsPage() {
   }, [])
 
   const filteredEditions = editions.filter((ed) => {
-    const matchesGrade =
-      selectedGrade === 'all' ||
-      ed.gradeName.includes(selectedGrade) ||
-      ed.curriculumName.includes(selectedGrade)
+    const isMath12Edition = isMath12Subject({
+      name: `${ed.subjectName} ${ed.curriculumName} ${ed.gradeName}`,
+      code: ed.code,
+      grade: ed.gradeName.includes('12') ? '12' : '',
+    })
+    if (!isMath12Edition) return false
     const q = searchQuery.trim().toLowerCase()
-    const matchesSearch =
+    return (
       !q ||
       ed.editionName.toLowerCase().includes(q) ||
       ed.subjectName.toLowerCase().includes(q) ||
       ed.curriculumName.toLowerCase().includes(q) ||
       ed.code.toLowerCase().includes(q)
-    return matchesGrade && matchesSearch
+    )
   })
 
   const filteredSubjects = subjects.filter((s) => {
-    const matchesGrade =
-      selectedGrade === 'all' ||
-      s.grade === selectedGrade ||
-      (selectedGrade === '10' && /10/.test(s.name || s.id)) ||
-      (selectedGrade === '11' && /11/.test(s.name || s.id)) ||
-      (selectedGrade === '12' && /12/.test(s.name || s.id))
-
+    if (!isMath12Subject(s)) return false
     const matchesSearch =
       !searchQuery ||
       s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (s.description && s.description.toLowerCase().includes(searchQuery.toLowerCase()))
 
-    return matchesGrade && matchesSearch
+    return matchesSearch
   })
 
   if (isLoading) {
@@ -100,8 +96,8 @@ export function SubjectsPage() {
       {/* Header */}
       <div className="page-header-row">
         <div>
-          <h1 className="page-title">Giáo trình học tập THPT</h1>
-          <p className="page-subtitle">Chương trình đa môn theo phiên bản GDPT 2018 với bài học và hệ thống luyện tập tương tác.</p>
+          <h1 className="page-title">Kiến thức Toán lớp 12</h1>
+          <p className="page-subtitle">Chương trình Toán 12 chuẩn theo 6 chương kiến thức với bài học và hệ thống luyện tập tương tác.</p>
         </div>
 
         {/* Search */}
@@ -111,41 +107,11 @@ export function SubjectsPage() {
             type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm môn học, chủ đề..."
+            placeholder="Tìm chương, bài học Toán 12..."
             className="subject-search-input"
-            aria-label="Tìm môn học..."
+            aria-label="Tìm bài học Toán 12"
           />
         </div>
-      </div>
-
-      {/* Grade Filter Pills */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-        {[
-          { key: 'all', label: 'Tất cả các khối' },
-          { key: '10', label: 'Khối 10' },
-          { key: '11', label: 'Khối 11' },
-          { key: '12', label: 'Khối 12' },
-        ].map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => setSelectedGrade(tab.key as any)}
-            style={{
-              padding: '0.4rem 0.85rem',
-              borderRadius: '9999px',
-              fontSize: '0.875rem',
-              fontWeight: 500,
-              cursor: 'pointer',
-              border: '1px solid',
-              borderColor: selectedGrade === tab.key ? 'var(--color-primary, #2563eb)' : 'var(--color-border, #e2e8f0)',
-              backgroundColor: selectedGrade === tab.key ? 'var(--color-primary, #2563eb)' : 'var(--color-surface, #ffffff)',
-              color: selectedGrade === tab.key ? '#ffffff' : 'var(--color-text, #1e293b)',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
       </div>
 
       {editionsError && (
@@ -201,7 +167,6 @@ export function SubjectsPage() {
           actionLabel="Xóa bộ lọc"
           onAction={() => {
             setSearchQuery('')
-            setSelectedGrade('all')
           }}
         />
       ) : (

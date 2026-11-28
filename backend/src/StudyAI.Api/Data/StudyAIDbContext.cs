@@ -104,6 +104,13 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
     public DbSet<QuestionSkill> QuestionSkills => Set<QuestionSkill>();
     public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
     public DbSet<SupportTicketMessage> SupportTicketMessages => Set<SupportTicketMessage>();
+    public DbSet<ContentMaterial> ContentMaterials => Set<ContentMaterial>();
+    public DbSet<AiKnowledgeSource> AiKnowledgeSources => Set<AiKnowledgeSource>();
+    public DbSet<AiKnowledgeChunk> AiKnowledgeChunks => Set<AiKnowledgeChunk>();
+    public DbSet<ContentErrorReport> ContentErrorReports => Set<ContentErrorReport>();
+    public DbSet<TeacherExam> TeacherExams => Set<TeacherExam>();
+    public DbSet<ClassroomMaterial> ClassroomMaterials => Set<ClassroomMaterial>();
+    public DbSet<ClassroomAnnouncement> ClassroomAnnouncements => Set<ClassroomAnnouncement>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -1567,6 +1574,44 @@ public class StudyAIDbContext : DbContext, IApplicationDbContext
                 .WithMany()
                 .HasForeignKey(e => e.SenderUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Round 06: Math 12 integrity constraints, unique knowledge sources, and teacher workspace FKs
+        modelBuilder.Entity<AiKnowledgeSource>(entity =>
+        {
+            entity.HasIndex(e => new { e.SourceType, e.SourceRefId }).IsUnique();
+        });
+
+        modelBuilder.Entity<TeacherExam>(entity =>
+        {
+            entity.HasIndex(e => e.ClassroomId);
+            entity.HasIndex(e => e.LinkedAssignmentId);
+            entity.HasOne<Classroom>()
+                .WithMany()
+                .HasForeignKey(e => e.ClassroomId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<ContentAssessment>()
+                .WithMany()
+                .HasForeignKey(e => e.SourceAssessmentId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<ClassroomMaterial>(entity =>
+        {
+            entity.HasIndex(e => e.ClassroomId);
+            entity.HasOne<Classroom>()
+                .WithMany()
+                .HasForeignKey(e => e.ClassroomId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ClassroomAnnouncement>(entity =>
+        {
+            entity.HasIndex(e => e.ClassroomId);
+            entity.HasOne<Classroom>()
+                .WithMany()
+                .HasForeignKey(e => e.ClassroomId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 

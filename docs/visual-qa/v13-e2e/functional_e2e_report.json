@@ -1,0 +1,39 @@
+{
+  "executedAt": "2026-11-28T05:48:37.083Z",
+  "database": "StudyAIDb_Clean_b6424bdc6bf24f27b18e58a101fe0aed",
+  "total": 6,
+  "passed": 6,
+  "failed": 0,
+  "checks": [
+    {
+      "name": "RBAC_Negative_LearnerToAdmin",
+      "status": "PASS",
+      "detail": "HTTP 403"
+    },
+    {
+      "name": "LIVE03_UnconfiguredAI_NoStartupOr500",
+      "status": "PASS",
+      "detail": "Conversation create HTTP 201; AI Tutor real LLM classified BLOCKED_BY_PROVIDER_CONFIGURATION"
+    },
+    {
+      "name": "E2E_SupportTicket_UserAdminRoundtrip",
+      "status": "PASS",
+      "detail": "create=201, reply=200, read=200"
+    },
+    {
+      "name": "E2E_Teacher_CreateClass_UI",
+      "status": "PASS",
+      "detail": "Created Lớp Toán 12 V13 V13A7885"
+    },
+    {
+      "name": "E2E_Content_QuestionBank_UI",
+      "status": "PASS",
+      "detail": "bodyLen=1420"
+    },
+    {
+      "name": "E2E_Learner_Dashboard_And_Support_UI",
+      "status": "PASS",
+      "detail": "dashOk=true, ticketVisible=true"
+    }
+  ]
+}

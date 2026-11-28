@@ -14,6 +14,9 @@ import { ContentReviewPage } from '@/pages/Content/ContentReviewPage'
 import { ContentApprovalDetailPage } from '@/pages/Content/ContentApprovalDetailPage'
 import { ContentPublicationsPage } from '@/pages/Content/ContentPublicationsPage'
 import { ContentImportPage } from '@/pages/Content/ContentImportPage'
+import { ContentMaterialsPage } from '@/pages/Content/ContentMaterialsPage'
+import { ContentKnowledgeBasePage } from '@/pages/Content/ContentKnowledgeBasePage'
+import { ContentErrorReportsPage } from '@/pages/Content/ContentErrorReportsPage'
 import { ModernQuestionBankPage } from '@/features/question-bank'
 
 export function ContentRoutes() {
@@ -36,9 +39,12 @@ export function ContentRoutes() {
       <Route path="lessons/:id" element={<ContentLessonEditorPage />} />
       <Route path="questions" element={<ModernQuestionBankPage />} />
       <Route path="assessments" element={<ContentAssessmentsPage />} />
+      <Route path="materials" element={<ContentMaterialsPage />} />
       <Route path="import" element={<ContentImportPage />} />
       <Route path="review" element={<ContentReviewPage />} />
       <Route path="review/:approvalId" element={<ContentApprovalDetailPage />} />
+      <Route path="knowledge-base" element={<ContentKnowledgeBasePage />} />
+      <Route path="error-reports" element={<ContentErrorReportsPage />} />
       <Route path="publications" element={<ContentPublicationsPage />} />
     </Route>
   )

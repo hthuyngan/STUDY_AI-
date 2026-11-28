@@ -38,18 +38,21 @@
     "ignoreUserConfig": true,
     "disablePlugins": true,
     "reasoning": {
-      "planning": "medium",
-      "initialReview": "medium",
-      "simpleReReview": "low",
-      "complexSecurityReview": "medium"
+      "planning": "high",
+      "initialReview": "high",
+      "simpleReReview": "high",
+      "complexSecurityReview": "high"
     },
-    "timeoutSeconds": 1200,
+    "timeoutSeconds": 1560,
     "maxAutomaticReviewRounds": 3,
     "maxConcurrentReviews": 1
   },
   "taskRouting": {
     "defaultRoute": "STANDARD",
-    "supportedRoutes": ["ECO", "STANDARD"],
+    "supportedRoutes": [
+      "ECO",
+      "STANDARD"
+    ],
     "ECO": {
       "agents": "Antigravity Hydrogen Medium",
       "requirePlan": false,
@@ -72,7 +75,7 @@
     "reason": "Disabled by default because local TEMP cache lacks independent cryptographic provenance."
   },
   "tokenOptimization": {
-    "maxDiffChars": 60000,
+    "maxDiffChars": 78000,
     "excludeDiffPaths": [
       "node_modules",
       "bin",

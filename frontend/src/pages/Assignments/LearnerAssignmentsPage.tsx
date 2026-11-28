@@ -13,6 +13,7 @@ import {
 import { useAuth } from '@/auth/useAuth'
 import { apiClient } from '@/lib/apiClient'
 import { classroomService } from '@/services/classroom.service'
+import { studentWorkspaceService, type LearnerClassroomSummary } from '@/services/studentWorkspace.service'
 import type { AssignmentDto } from '@/types/classroom'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -21,6 +22,9 @@ import './LearnerAssignmentsPage.css'
 export const LearnerAssignmentsPage: React.FC = () => {
   const { state: authState } = useAuth()
   const [assignments, setAssignments] = useState<AssignmentDto[]>([])
+  const [classrooms, setClassrooms] = useState<LearnerClassroomSummary[]>([])
+  const [joinCode, setJoinCode] = useState('')
+  const [joining, setJoining] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'submitted' | 'graded'>('all')
@@ -73,6 +77,12 @@ export const LearnerAssignmentsPage: React.FC = () => {
         setAssignments([])
         setLoading(false)
       })
+
+    Promise.resolve(studentWorkspaceService.getMyClassrooms()).then((cls) => {
+      if (active) setClassrooms(Array.isArray(cls) ? cls.filter((c) => c && typeof c.name === 'string' && Array.isArray(c.announcements)) : [])
+    }).catch(() => {
+      // Optional classroom summary
+    })
 
     return () => {
       active = false
@@ -183,6 +193,54 @@ export const LearnerAssignmentsPage: React.FC = () => {
           <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
           <span>Làm mới</span>
         </button>
+      </div>
+
+      {/* Join Classroom by Code & My Classrooms */}
+      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: 14, marginBottom: 16 }}>
+        <form
+          style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}
+          onSubmit={async (e) => {
+            e.preventDefault()
+            if (!joinCode.trim()) return
+            setJoining(true)
+            try {
+              const joined = await studentWorkspaceService.joinClassroomByCode(joinCode.trim())
+              setClassrooms((prev) => [joined, ...prev.filter((c) => c.id !== joined.id)])
+              setJoinCode('')
+              showToast(`Đã tham gia lớp ${joined.name}`)
+            } catch (err) {
+              showToast(err instanceof Error ? err.message : 'Không thể tham gia lớp học.')
+            } finally {
+              setJoining(false)
+            }
+          }}
+        >
+          <input
+            type="text"
+            value={joinCode}
+            onChange={(e) => setJoinCode(e.target.value)}
+            placeholder="Nhập mã lớp học Toán 12 (VD: 12A1-...)..."
+            style={{ flex: '1 1 220px', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 14 }}
+            aria-label="Mã lớp học"
+          />
+          <button type="submit" disabled={joining} className="learner-assignments-refresh-btn">
+            <span>{joining ? 'Đang tham gia...' : 'Tham gia lớp'}</span>
+          </button>
+        </form>
+        {classrooms.length > 0 && (
+          <div style={{ marginTop: 12, display: 'grid', gap: 8 }}>
+            {classrooms.map((c) => (
+              <div key={c.id} style={{ padding: 10, background: '#f8fafc', borderRadius: 8, fontSize: 13 }}>
+                <strong>{c.name}</strong> {c.code && <span>({c.code})</span>}
+                {Array.isArray(c.announcements) && c.announcements.length > 0 && (
+                  <div style={{ marginTop: 4, color: '#334155' }}>
+                    Thông báo mới: <strong>{c.announcements[0].title}</strong> — {c.announcements[0].body}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Error Alert */}

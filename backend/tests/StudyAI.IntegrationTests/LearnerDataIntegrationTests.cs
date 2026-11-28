@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace StudyAI.IntegrationTests;
@@ -10,9 +10,11 @@ namespace StudyAI.IntegrationTests;
 public class LearnerDataIntegrationTests : IClassFixture<StudyAIApiFixture>
 {
     private readonly HttpClient _client;
+    private readonly StudyAIApiFixture _factory;
 
     public LearnerDataIntegrationTests(StudyAIApiFixture factory)
     {
+        _factory = factory;
         _client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
         {
             HandleCookies = true
@@ -77,13 +79,41 @@ public class LearnerDataIntegrationTests : IClassFixture<StudyAIApiFixture>
     {
         var token = await GetLearnerTokenAsync();
         var attemptId = $"att_test_{Guid.NewGuid():N}";
+        var qId = $"q_{Guid.NewGuid():N}";
+        var subjId = $"subj_{Guid.NewGuid():N}";
+        var chapId = $"chap_{Guid.NewGuid():N}";
+        var lesId = $"les_{Guid.NewGuid():N}";
+        var asmId = $"asm_{Guid.NewGuid():N}";
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAI.Data.StudyAIDbContext>();
+            var anyUserId = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.FirstAsync(
+                db.Users.Select(u => u.Id));
+            db.ContentSubjects.Add(new StudyAI.Models.ContentSubject { Id = subjId, Code = $"M12-{subjId[..6]}", Name = "Toán 12", Grade = "12" });
+            db.ContentChapters.Add(new StudyAI.Models.ContentChapter { Id = chapId, SubjectId = subjId, Title = "Chương 1", OrderIndex = 1 });
+            db.ContentLessons.Add(new StudyAI.Models.ContentLesson { Id = lesId, ChapterId = chapId, AuthorId = anyUserId, Title = "Bài 1", Status = "published" });
+            db.ContentAssessments.Add(new StudyAI.Models.ContentAssessment { Id = asmId, LessonId = lesId, Title = "Đề 1", PassScore = 80, Status = "published" });
+            db.ContentQuestions.Add(new StudyAI.Models.ContentQuestion
+            {
+                Id = qId,
+                AssessmentId = asmId,
+                LessonId = lesId,
+                SubjectId = subjId,
+                ChapterId = chapId,
+                Prompt = "Câu hỏi kiểm tra server grading",
+                OptionsJson = "[\"opt_a\", \"opt_b\"]",
+                CorrectAnswer = "opt_a",
+                Status = "published"
+            });
+            await db.SaveChangesAsync();
+        }
 
         var createDto = new AssessmentAttemptCreateDto
         {
             Id = attemptId,
-            AssessmentId = "asm_math12_c1_b1",
-            LessonId = "les_math12_c1_b1",
-            SubjectId = "sub_math12",
+            AssessmentId = asmId,
+            LessonId = lesId,
+            SubjectId = subjId,
             AttemptNumber = 1,
             StartedAt = DateTimeOffset.UtcNow,
             LastActivityAt = DateTimeOffset.UtcNow,
@@ -96,9 +126,9 @@ public class LearnerDataIntegrationTests : IClassFixture<StudyAIApiFixture>
             ScoreScaled = 0.9,
             Responses = new Dictionary<string, AssessmentResponseItemDto>
             {
-                ["q1"] = new()
+                [qId] = new()
                 {
-                    QuestionId = "q1",
+                    QuestionId = qId,
                     SelectedOptionIds = new List<string> { "opt_a" },
                     IsCorrect = true,
                     TimeSpentMs = 15000,
@@ -120,7 +150,7 @@ public class LearnerDataIntegrationTests : IClassFixture<StudyAIApiFixture>
         var result = JsonSerializer.Deserialize<AssessmentAttemptResponseDto>(body, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
         Assert.NotNull(result);
         Assert.Equal("passed", result.SuccessStatus);
-        Assert.True(result.Responses.ContainsKey("q1"));
-        Assert.True(result.Responses["q1"].IsCorrect);
+        Assert.True(result.Responses.ContainsKey(qId));
+        Assert.True(result.Responses[qId].IsCorrect);
     }
 }

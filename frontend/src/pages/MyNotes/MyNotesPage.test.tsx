@@ -1,8 +1,9 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { createStudyNote } from '@/services/studyNotes.service'
 import { toggleSectionBookmark } from '@/services/sectionBookmarks.service'
+import { studentWorkspaceService } from '@/services/studentWorkspace.service'
 import { MyNotesPage } from './MyNotesPage'
 
 describe('MyNotesPage', () => {
@@ -36,34 +37,37 @@ describe('MyNotesPage', () => {
       </MemoryRouter>
     )
 
-    // Notes tab is active by default
+    // Mistakes tab is active by default (3-tab Study Notebook)
     expect(screen.getByText('Ghi chú & Đoạn kiến thức đã lưu')).toBeDefined()
-    expect(screen.getByText('Ghi chú nhớ đạo hàm f(x)')).toBeDefined()
-    expect(screen.getByText('Bài 01 · Đơn điệu hàm số')).toBeDefined()
+    expect(screen.getByRole('tab', { name: /Bài tập sai/ })).toBeDefined()
 
     // Switch to Bookmarks tab
-    const bookmarksTab = screen.getByRole('tab', { name: /Đoạn lưu/ })
+    const bookmarksTab = screen.getByRole('tab', { name: /Nội dung đã lưu/ })
     fireEvent.click(bookmarksTab)
-
     expect(screen.getByText('Định nghĩa cơ bản')).toBeDefined()
     expect(screen.getByText('Xem lại đoạn này')).toBeDefined()
+
+    // Switch to Personal Notes tab
+    const notesTab = screen.getByRole('tab', { name: /Ghi chú cá nhân/ })
+    fireEvent.click(notesTab)
+    expect(screen.getByText('Ghi chú nhớ đạo hàm f(x)')).toBeDefined()
+    expect(screen.getByText('Bài 01 · Đơn điệu hàm số')).toBeDefined()
   })
 
-  it('filters notes using subject filter pills', () => {
+  it('filters notes by search keyword without legacy multi-subject pills', () => {
     createStudyNote({
       lessonId: 'lesson-math-01',
       subjectId: 'math',
-      lessonTitle: 'Toán 1',
-      subjectName: 'Toán học',
-      content: 'Nội dung Toán',
+      lessonTitle: 'Toán 12 - Cực trị',
+      subjectName: 'Toán học 12',
+      content: 'Nội dung Cực trị hàm số',
     })
-
     createStudyNote({
-      lessonId: 'lesson-phy-01',
-      subjectId: 'physics',
-      lessonTitle: 'Lý 1',
-      subjectName: 'Vật lý',
-      content: 'Nội dung Vật lý',
+      lessonId: 'lesson-math-02',
+      subjectId: 'math',
+      lessonTitle: 'Toán 12 - Tích phân',
+      subjectName: 'Toán học 12',
+      content: 'Nội dung Tích phân',
     })
 
     render(
@@ -72,15 +76,27 @@ describe('MyNotesPage', () => {
       </MemoryRouter>
     )
 
-    expect(screen.getByText('Nội dung Toán')).toBeDefined()
-    expect(screen.getByText('Nội dung Vật lý')).toBeDefined()
+    fireEvent.click(screen.getByRole('tab', { name: /Ghi chú cá nhân/ }))
+    expect(screen.getByText('Nội dung Cực trị hàm số')).toBeDefined()
+    expect(screen.getByText('Nội dung Tích phân')).toBeDefined()
 
-    // Click 'Vật lý' chip
-    const phyChip = screen.getByRole('button', { name: 'Vật lý' })
-    fireEvent.click(phyChip)
+    const searchInput = screen.getByLabelText('Tìm kiếm trong sổ tay')
+    fireEvent.change(searchInput, { target: { value: 'Tích phân' } })
 
-    expect(screen.queryByText('Nội dung Toán')).toBeNull()
-    expect(screen.getByText('Nội dung Vật lý')).toBeDefined()
+    expect(screen.queryByText('Nội dung Cực trị hàm số')).toBeNull()
+    expect(screen.getByText('Nội dung Tích phân')).toBeDefined()
+  })
+
+  it('shows error state instead of empty state when mistakes API fails', async () => {
+    vi.spyOn(studentWorkspaceService, 'getMistakes').mockRejectedValueOnce(new Error('Lỗi máy chủ 500'))
+    render(
+      <MemoryRouter>
+        <MyNotesPage />
+      </MemoryRouter>
+    )
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toContain('Không thể tải danh sách bài tập sai')
+    expect(screen.queryByText('Chưa có bài tập sai nào')).toBeNull()
   })
 })
 

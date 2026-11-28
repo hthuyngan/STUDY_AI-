@@ -91,8 +91,8 @@ describe('Admin Workspace V5 — Operations, Content Approval & Quality Control 
           </WorkspaceShell>
         </MemoryRouter>
       )
-      expect(screen.getByRole('link', { name: /^hàng đợi duyệt$/i })).toHaveAttribute('href', '/content/review')
-      expect(screen.getByRole('link', { name: /^lịch sử xuất bản$/i })).toHaveAttribute('href', '/content/publications')
+      expect(screen.getByRole('link', { name: /^kiểm duyệt nội dung$/i })).toHaveAttribute('href', '/content/review')
+      expect(screen.getByRole('link', { name: /^lịch sử chỉnh sửa$/i })).toHaveAttribute('href', '/content/publications')
     })
   })
 

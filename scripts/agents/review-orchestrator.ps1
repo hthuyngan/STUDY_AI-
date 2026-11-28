@@ -11,9 +11,9 @@ function Get-ReviewOrchestrationLimits {
         MaxPacketsPerSession = 12
         MaxRetriesPerPacket  = 2
         MaxTotalInvocations  = 36
-        MaxDurationSeconds   = 1800
+        MaxDurationSeconds   = 2340
         MaxDiffChars         = [int]$Config.tokenOptimization.maxDiffChars
-        MaxTotalContextChars = 480000
+        MaxTotalContextChars = 624000
     }
 }
 

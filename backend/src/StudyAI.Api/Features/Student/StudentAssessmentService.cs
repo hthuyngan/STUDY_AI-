@@ -40,7 +40,8 @@ public class StudentAssessmentService : ILearnerAssessmentService
         }
 
         var list = await query.OrderByDescending(a => a.StartedAt).ToListAsync(cancellationToken);
-        return list.Select(FormatAttempt).ToList();
+        var unreleased = await GetUnreleasedAssessmentIdsAsync(targetUserId, list.Select(a => a.AssessmentId), cancellationToken);
+        return list.Select(a => FormatAttempt(a, unreleased.Contains(a.AssessmentId))).ToList();
     }
 
     public async Task<AssessmentAttemptResponseDto> GetSingleAttemptAsync(
@@ -60,7 +61,8 @@ public class StudentAssessmentService : ILearnerAssessmentService
         if (attempt == null)
             throw new NotFoundException($"Assessment attempt '{attemptId}' not found");
 
-        return FormatAttempt(attempt);
+        var unreleased = await GetUnreleasedAssessmentIdsAsync(targetUserId, [attempt.AssessmentId], cancellationToken);
+        return FormatAttempt(attempt, unreleased.Contains(attempt.AssessmentId));
     }
 
     public async Task<AssessmentAttemptResponseDto> CreateAttemptAsync(
@@ -74,7 +76,8 @@ public class StudentAssessmentService : ILearnerAssessmentService
             throw new ForbiddenException("Bạn không có quyền tạo phiên làm bài cho người dùng này.");
 
         var attempt = await SaveAttemptInternal(targetUserId, dto, cancellationToken);
-        return FormatAttempt(attempt);
+        var unreleased = await GetUnreleasedAssessmentIdsAsync(targetUserId, [attempt.AssessmentId], cancellationToken);
+        return FormatAttempt(attempt, unreleased.Contains(attempt.AssessmentId));
     }
 
     public async Task<AssessmentAttemptResponseDto> UpdateAttemptAsync(
@@ -90,7 +93,27 @@ public class StudentAssessmentService : ILearnerAssessmentService
 
         dto.Id = attemptId;
         var attempt = await SaveAttemptInternal(targetUserId, dto, cancellationToken);
-        return FormatAttempt(attempt);
+        var unreleased = await GetUnreleasedAssessmentIdsAsync(targetUserId, [attempt.AssessmentId], cancellationToken);
+        return FormatAttempt(attempt, unreleased.Contains(attempt.AssessmentId));
+    }
+
+    private async Task<HashSet<string>> GetUnreleasedAssessmentIdsAsync(string userId, IEnumerable<string> assessmentIds, CancellationToken ct)
+    {
+        var ids = assessmentIds.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct().ToList();
+        if (ids.Count == 0) return new HashSet<string>(StringComparer.Ordinal);
+
+        var enrolledClassIds = await _db.ClassroomStudents.AsNoTracking()
+            .Where(cs => cs.StudentId == userId)
+            .Select(cs => cs.ClassroomId)
+            .ToListAsync(ct);
+
+        if (enrolledClassIds.Count == 0) return new HashSet<string>(StringComparer.Ordinal);
+
+        return (await _db.TeacherExams.AsNoTracking()
+            .Where(e => enrolledClassIds.Contains(e.ClassroomId) && e.SourceAssessmentId != null && ids.Contains(e.SourceAssessmentId) && !e.PublishResults)
+            .Select(e => e.SourceAssessmentId!)
+            .ToListAsync(ct))
+            .ToHashSet(StringComparer.Ordinal);
     }
 
     private async Task<AssessmentAttempt> SaveAttemptInternal(string userId, AssessmentAttemptCreateDto dto, CancellationToken cancellationToken)
@@ -101,6 +124,7 @@ public class StudentAssessmentService : ILearnerAssessmentService
             .FirstOrDefaultAsync(a => a.UserId == userId && a.Id == id, cancellationToken);
 
         var now = _clock.UtcNow;
+        var isCompleting = string.Equals(dto.CompletionStatus, "completed", StringComparison.OrdinalIgnoreCase) || dto.CompletedAt.HasValue;
 
         if (attempt == null)
         {
@@ -113,26 +137,26 @@ public class StudentAssessmentService : ILearnerAssessmentService
                 SubjectId = dto.SubjectId,
                 AttemptNumber = dto.AttemptNumber,
                 StartedAt = dto.StartedAt == default ? now : dto.StartedAt,
-                LastActivityAt = dto.LastActivityAt == default ? now : dto.LastActivityAt,
-                CompletedAt = dto.CompletedAt,
-                CompletionStatus = dto.CompletionStatus ?? "incomplete",
-                SuccessStatus = dto.SuccessStatus ?? "unknown",
-                ProgressMeasure = dto.ProgressMeasure,
-                ScoreRaw = dto.ScoreRaw,
-                ScoreMin = dto.ScoreMin,
-                ScoreMax = dto.ScoreMax,
-                ScoreScaled = dto.ScoreScaled,
-                SessionTimeMs = dto.SessionTimeMs,
+                LastActivityAt = now,
+                CompletedAt = null,
+                CompletionStatus = "incomplete",
+                SuccessStatus = "unknown",
+                ProgressMeasure = isCompleting ? 1.0 : Math.Clamp(dto.ProgressMeasure, 0.0, 1.0),
+                ScoreRaw = null,
+                ScoreMin = 0.0,
+                ScoreMax = 1.0,
+                ScoreScaled = null,
+                SessionTimeMs = Math.Max(0, dto.SessionTimeMs),
                 CurrentQuestionId = dto.CurrentQuestionId,
                 ExitReason = dto.ExitReason,
-                SuspendDataJson = dto.SuspendData?.ToJsonString(),
+                SuspendDataJson = SanitizeClientSuspendData(dto.SuspendData),
                 SchemaVersion = dto.SchemaVersion
             };
             _db.AssessmentAttempts.Add(attempt);
         }
         else
         {
-            if (attempt.CompletionStatus == "completed")
+            if (attempt.CompletionStatus == "completed" || attempt.CompletedAt.HasValue)
             {
                 throw new ConflictException("Phiên làm bài đã hoàn thành không thể chỉnh sửa.");
             }
@@ -151,25 +175,38 @@ public class StudentAssessmentService : ILearnerAssessmentService
             if (string.IsNullOrEmpty(attempt.SubjectId) && !string.IsNullOrEmpty(dto.SubjectId)) attempt.SubjectId = dto.SubjectId;
             if (string.IsNullOrEmpty(attempt.AssessmentId) && !string.IsNullOrEmpty(dto.AssessmentId)) attempt.AssessmentId = dto.AssessmentId;
 
-            attempt.LastActivityAt = dto.LastActivityAt == default ? now : dto.LastActivityAt;
-            attempt.CompletedAt = dto.CompletedAt ?? attempt.CompletedAt;
-            attempt.CompletionStatus = dto.CompletionStatus ?? attempt.CompletionStatus;
-            attempt.SuccessStatus = dto.SuccessStatus ?? attempt.SuccessStatus;
-            attempt.ProgressMeasure = dto.ProgressMeasure;
-            attempt.ScoreRaw = dto.ScoreRaw ?? attempt.ScoreRaw;
-            attempt.ScoreMin = dto.ScoreMin;
-            attempt.ScoreMax = dto.ScoreMax;
-            attempt.ScoreScaled = dto.ScoreScaled ?? attempt.ScoreScaled;
-            attempt.SessionTimeMs = dto.SessionTimeMs;
+            attempt.LastActivityAt = now;
+            attempt.ProgressMeasure = isCompleting ? 1.0 : Math.Clamp(dto.ProgressMeasure, 0.0, 1.0);
+            attempt.SessionTimeMs = Math.Max(0, dto.SessionTimeMs);
             attempt.CurrentQuestionId = dto.CurrentQuestionId ?? attempt.CurrentQuestionId;
             attempt.ExitReason = dto.ExitReason ?? attempt.ExitReason;
-            attempt.SuspendDataJson = dto.SuspendData?.ToJsonString() ?? attempt.SuspendDataJson;
+            if (dto.SuspendData != null)
+                attempt.SuspendDataJson = SanitizeClientSuspendData(dto.SuspendData);
         }
+
+        // Load authoritative published questions for this assessment/lesson
+        var assessmentMeta = !string.IsNullOrWhiteSpace(attempt.AssessmentId)
+            ? await _db.ContentAssessments.AsNoTracking().FirstOrDefaultAsync(a => a.Id == attempt.AssessmentId, cancellationToken)
+            : null;
+
+        var isTargetedAssessment = assessmentMeta != null;
+
+        var scopeQuestions = await _db.ContentQuestions.AsNoTracking()
+            .Where(q => q.Status == "published" &&
+                        (isTargetedAssessment
+                            ? q.AssessmentId == attempt.AssessmentId
+                            : (!string.IsNullOrWhiteSpace(attempt.LessonId) && q.LessonId == attempt.LessonId)))
+            .ToDictionaryAsync(q => q.Id, StringComparer.Ordinal, cancellationToken);
 
         if (dto.Responses != null)
         {
             foreach (var (qId, rDto) in dto.Responses)
             {
+                if (scopeQuestions.Count > 0 && !scopeQuestions.ContainsKey(qId))
+                {
+                    throw new ValidationException("QuestionId", $"Câu hỏi '{qId}' không hợp lệ hoặc không thuộc đề kiểm tra.");
+                }
+
                 var resp = attempt.Responses.FirstOrDefault(r => r.QuestionId == qId);
                 if (resp == null)
                 {
@@ -182,7 +219,7 @@ public class StudentAssessmentService : ILearnerAssessmentService
                         LastAnsweredAt = rDto.LastAnsweredAt,
                         ChangeCount = rDto.ChangeCount,
                         TimeSpentMs = rDto.TimeSpentMs,
-                        IsCorrect = rDto.IsCorrect
+                        IsCorrect = null // Never trust client IsCorrect before server grading
                     };
                     attempt.Responses.Add(resp);
                 }
@@ -193,8 +230,62 @@ public class StudentAssessmentService : ILearnerAssessmentService
                     resp.LastAnsweredAt = rDto.LastAnsweredAt ?? resp.LastAnsweredAt;
                     resp.ChangeCount = rDto.ChangeCount;
                     resp.TimeSpentMs = rDto.TimeSpentMs;
-                    resp.IsCorrect = rDto.IsCorrect ?? resp.IsCorrect;
                 }
+            }
+        }
+
+        if (isCompleting)
+        {
+            attempt.CompletionStatus = "completed";
+            attempt.CompletedAt = now;
+
+            if (scopeQuestions.Count > 0)
+            {
+                int correctCount = 0;
+                var snapshotDict = new Dictionary<string, object>();
+                foreach (var resp in attempt.Responses)
+                {
+                    if (scopeQuestions.TryGetValue(resp.QuestionId, out var q))
+                    {
+                        List<string> selected;
+                        try { selected = JsonSerializer.Deserialize<List<string>>(resp.SelectedOptionIdsJson) ?? new List<string>(); }
+                        catch { selected = new List<string>(); }
+
+                        var graded = EvaluateAnswerServerSide(q, selected);
+                        resp.IsCorrect = graded;
+                        if (graded) correctCount++;
+
+                        snapshotDict[q.Id] = new
+                        {
+                            prompt = q.Prompt,
+                            correctAnswer = q.CorrectAnswer,
+                            explanation = q.Explanation
+                        };
+                    }
+                }
+
+                var totalQ = Math.Max(scopeQuestions.Count, 1);
+                attempt.ScoreRaw = correctCount;
+                attempt.ScoreMin = 0.0;
+                attempt.ScoreMax = totalQ;
+                attempt.ScoreScaled = Math.Round((double)correctCount / totalQ, 4);
+                var passThreshold = (assessmentMeta?.PassScore ?? 80) / 100.0;
+                attempt.SuccessStatus = attempt.ScoreScaled >= passThreshold ? "passed" : "failed";
+
+                // Persist server-owned immutable questionSnapshots
+                JsonObject suspObj;
+                try { suspObj = !string.IsNullOrWhiteSpace(attempt.SuspendDataJson) ? (JsonNode.Parse(attempt.SuspendDataJson)?.AsObject() ?? new JsonObject()) : new JsonObject(); }
+                catch { suspObj = new JsonObject(); }
+                suspObj["questionSnapshots"] = JsonSerializer.SerializeToNode(snapshotDict);
+                attempt.SuspendDataJson = suspObj.ToJsonString();
+            }
+            else
+            {
+                attempt.ScoreRaw = 0;
+                attempt.ScoreMin = 0.0;
+                attempt.ScoreMax = Math.Max(attempt.Responses.Count, 1);
+                attempt.ScoreScaled = 0.0;
+                attempt.SuccessStatus = "failed";
             }
         }
 
@@ -202,7 +293,170 @@ public class StudentAssessmentService : ILearnerAssessmentService
         return attempt;
     }
 
-    private static AssessmentAttemptResponseDto FormatAttempt(AssessmentAttempt a)
+    private static string? SanitizeClientSuspendData(JsonNode? node)
+    {
+        if (node == null) return null;
+        if (node is JsonObject obj)
+        {
+            var clone = obj.DeepClone().AsObject();
+            clone.Remove("questionSnapshots");
+            return clone.ToJsonString();
+        }
+        return node.ToJsonString();
+    }
+
+    private static bool EvaluateAnswerServerSide(Models.ContentQuestion question, List<string> selectedOptions)
+    {
+        if (selectedOptions.Count == 0 || string.IsNullOrWhiteSpace(question.CorrectAnswer)) return false;
+        var correct = question.CorrectAnswer.Trim();
+        var qType = (question.Type ?? string.Empty).Trim().ToLowerInvariant();
+
+        if (qType == "true-false" || qType == "true_false")
+        {
+            if (selectedOptions.Count != 1) return false;
+            return TryNormalizeBooleanToken(selectedOptions[0], out var actualBool) &&
+                   TryNormalizeBooleanToken(correct, out var expectedBool) &&
+                   actualBool == expectedBool;
+        }
+
+        if (qType == "true-false-group" || qType == "true_false_group")
+        {
+            var actualTokens = string.Join(",", selectedOptions)
+                .Split(new[] { ',', ';', '|' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var expectedTokens = correct
+                .Split(new[] { ',', ';', '|' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (actualTokens.Length == 0 || actualTokens.Length != expectedTokens.Length) return false;
+            for (int i = 0; i < actualTokens.Length; i++)
+            {
+                if (!TryNormalizeBooleanToken(actualTokens[i], out var aBool) ||
+                    !TryNormalizeBooleanToken(expectedTokens[i], out var eBool) ||
+                    aBool != eBool)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        if (qType == "short-answer" || qType == "short_answer")
+        {
+            if (selectedOptions.Count != 1) return false;
+            var sel = selectedOptions[0].Trim();
+            var accepted = new List<string> { correct };
+            if (!string.IsNullOrWhiteSpace(question.MetadataJson))
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(question.MetadataJson);
+                    if (doc.RootElement.TryGetProperty("acceptedAnswers", out var accElem) && accElem.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var a in accElem.EnumerateArray())
+                        {
+                            var s = a.GetString();
+                            if (!string.IsNullOrWhiteSpace(s)) accepted.Add(s.Trim());
+                        }
+                    }
+                }
+                catch { }
+            }
+
+            foreach (var candidate in accepted)
+            {
+                if (string.Equals(sel, candidate, StringComparison.OrdinalIgnoreCase)) return true;
+                if (TryParseMathNumber(sel, out var actualNum) &&
+                    TryParseMathNumber(candidate, out var expectedNum) &&
+                    Math.Abs(actualNum - expectedNum) <= 1e-6)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        List<string> options;
+        try { options = JsonSerializer.Deserialize<List<string>>(question.OptionsJson) ?? new List<string>(); }
+        catch { options = new List<string>(); }
+
+        if (selectedOptions.Count == 1)
+        {
+            var sel = selectedOptions[0].Trim();
+            if (string.Equals(sel, correct, StringComparison.OrdinalIgnoreCase)) return true;
+
+            int correctIdx = options.FindIndex(o => string.Equals(o.Trim(), correct, StringComparison.OrdinalIgnoreCase));
+            if (correctIdx >= 0)
+            {
+                string letter = ((char)('A' + correctIdx)).ToString();
+                if (string.Equals(sel, letter, StringComparison.OrdinalIgnoreCase)) return true;
+                if (sel.StartsWith("opt_", StringComparison.OrdinalIgnoreCase))
+                {
+                    var parts = sel.Split('_');
+                    if (parts.Length >= 3 && string.Equals(parts[2], letter, StringComparison.OrdinalIgnoreCase)) return true;
+                }
+            }
+            return false;
+        }
+
+        var expectedSet = correct.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var actualSet = selectedOptions.Select(s => s.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return expectedSet.Count > 0 && expectedSet.SetEquals(actualSet);
+    }
+
+    private static bool TryNormalizeBooleanToken(string? raw, out bool value)
+    {
+        value = false;
+        if (string.IsNullOrWhiteSpace(raw)) return false;
+        switch (raw.Trim().ToLowerInvariant())
+        {
+            case "true":
+            case "đúng":
+            case "dung":
+            case "1":
+            case "đ":
+            case "d":
+                value = true;
+                return true;
+            case "false":
+            case "sai":
+            case "0":
+            case "s":
+                value = false;
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private static bool TryParseMathNumber(string? raw, out double value)
+    {
+        value = 0;
+        if (string.IsNullOrWhiteSpace(raw)) return false;
+        var norm = raw.Trim().Replace(',', '.');
+        if (norm.Contains('/'))
+        {
+            var parts = norm.Split('/', StringSplitOptions.TrimEntries);
+            if (parts.Length == 2 &&
+                double.TryParse(parts[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var num) &&
+                double.TryParse(parts[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var den) &&
+                Math.Abs(den) > 1e-12 &&
+                double.IsFinite(num / den))
+            {
+                value = num / den;
+                return true;
+            }
+            return false;
+        }
+
+        if (double.TryParse(norm, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var parsed) &&
+            double.IsFinite(parsed))
+        {
+            value = parsed;
+            return true;
+        }
+        return false;
+    }
+
+    private static AssessmentAttemptResponseDto FormatAttempt(AssessmentAttempt a, bool maskAnswers = false)
     {
         var respDict = new Dictionary<string, AssessmentResponseItemDto>();
         foreach (var r in a.Responses ?? new List<AssessmentResponse>())
@@ -218,14 +472,22 @@ public class StudentAssessmentService : ILearnerAssessmentService
                 LastAnsweredAt = r.LastAnsweredAt,
                 ChangeCount = r.ChangeCount,
                 TimeSpentMs = r.TimeSpentMs,
-                IsCorrect = r.IsCorrect
+                IsCorrect = maskAnswers ? null : r.IsCorrect
             };
         }
 
         JsonNode? suspendNode = null;
         if (!string.IsNullOrEmpty(a.SuspendDataJson))
         {
-            try { suspendNode = JsonNode.Parse(a.SuspendDataJson); } catch { }
+            try
+            {
+                suspendNode = JsonNode.Parse(a.SuspendDataJson);
+                if (maskAnswers && suspendNode is JsonObject obj)
+                {
+                    obj.Remove("questionSnapshots");
+                }
+            }
+            catch { }
         }
 
         return new AssessmentAttemptResponseDto
@@ -240,12 +502,12 @@ public class StudentAssessmentService : ILearnerAssessmentService
             LastActivityAt = a.LastActivityAt,
             CompletedAt = a.CompletedAt,
             CompletionStatus = a.CompletionStatus,
-            SuccessStatus = a.SuccessStatus,
+            SuccessStatus = maskAnswers ? "pending_release" : a.SuccessStatus,
             ProgressMeasure = a.ProgressMeasure,
-            ScoreRaw = a.ScoreRaw,
+            ScoreRaw = maskAnswers ? null : a.ScoreRaw,
             ScoreMin = a.ScoreMin,
             ScoreMax = a.ScoreMax,
-            ScoreScaled = a.ScoreScaled,
+            ScoreScaled = maskAnswers ? null : a.ScoreScaled,
             SessionTimeMs = a.SessionTimeMs,
             CurrentQuestionId = a.CurrentQuestionId,
             ExitReason = a.ExitReason,

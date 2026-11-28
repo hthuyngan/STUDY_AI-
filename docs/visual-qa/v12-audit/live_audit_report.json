@@ -1,0 +1,562 @@
+{
+  "auditedAt": "2026-11-28T05:15:37.404Z",
+  "database": "StudyAIDb_Clean_9229f19a80e641ccb9a267d91481bf41",
+  "sidebarCheck": {
+    "brandText": "AI TUTORTOÁN 12",
+    "hasAiTutor": true,
+    "hasOldStudyAi": false,
+    "menuItems": [
+      "AI TUTORTOÁN 12",
+      "Tổng quan",
+      "AI Gia sư",
+      "Kiến thức Toán 12",
+      "Luyện tập",
+      "Kiểm tra & thi thử",
+      "Sổ tay học tập",
+      "Lớp học của tôi",
+      "Kế hoạch học tập",
+      "Gói đăng ký",
+      "Hỗ trợ"
+    ]
+  },
+  "totalRoutes": 36,
+  "passed": 36,
+  "failed": 0,
+  "results": [
+    {
+      "role": "User",
+      "route": "/dashboard",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/dashboard",
+      "httpErrors": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [
+        "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80: net::ERR_ABORTED",
+        "http://127.0.0.1:8012/api/v1/ai/knowledge-gaps: net::ERR_ABORTED",
+        "http://127.0.0.1:8012/api/v1/ai/knowledge-gaps: net::ERR_ABORTED"
+      ],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 1786
+    },
+    {
+      "role": "User",
+      "route": "/ai-tutor",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/ai-tutor",
+      "httpErrors": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 938
+    },
+    {
+      "role": "User",
+      "route": "/subjects/math",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/subjects/math",
+      "httpErrors": [
+        {
+          "url": "http://127.0.0.1:8012/api/v1/curriculum/subjects/math",
+          "status": 404
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 304
+    },
+    {
+      "role": "User",
+      "route": "/practice",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/practice",
+      "httpErrors": [
+        {
+          "url": "http://127.0.0.1:8012/api/v1/practice/question-count?subjectId=sub_math12&grade=12",
+          "status": 401
+        },
+        {
+          "url": "http://127.0.0.1:8012/api/v1/curriculum/subjects/sub_math12/chapters",
+          "status": 404
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 1681
+    },
+    {
+      "role": "User",
+      "route": "/exam-preparation",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/exam-preparation",
+      "httpErrors": [
+        {
+          "url": "http://127.0.0.1:8012/api/v1/ai/exam-prep/readiness?subjectId=sub_math12",
+          "status": 401
+        },
+        {
+          "url": "http://127.0.0.1:8012/api/v1/ai/exam-prep/blueprints?subjectId=sub_math12",
+          "status": 401
+        },
+        {
+          "url": "http://127.0.0.1:8012/api/v1/ai/exam-prep/spaced-repetition?subjectId=sub_math12",
+          "status": 401
+        },
+        {
+          "url": "http://127.0.0.1:8012/api/v1/ai/exam-prep/revision-plan?subjectId=sub_math12",
+          "status": 401
+        },
+        {
+          "url": "http://127.0.0.1:8012/api/v1/ai/exam-prep/readiness?subjectId=sub_math12",
+          "status": 400
+        },
+        {
+          "url": "http://127.0.0.1:8012/api/v1/ai/exam-prep/spaced-repetition?subjectId=sub_math12",
+          "status": 400
+        },
+        {
+          "url": "http://127.0.0.1:8012/api/v1/ai/exam-prep/revision-plan?subjectId=sub_math12",
+          "status": 400
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: the server responded with a status of 400 (Bad Request)",
+        "Failed to load resource: the server responded with a status of 400 (Bad Request)",
+        "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+      ],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 620
+    },
+    {
+      "role": "User",
+      "route": "/my-notes",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/my-notes",
+      "httpErrors": [
+        {
+          "url": "http://127.0.0.1:8012/api/v1/learner/workspace/mistakes",
+          "status": 401
+        }
+      ],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      ],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 612
+    },
+    {
+      "role": "User",
+      "route": "/assignments",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/assignments",
+      "httpErrors": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 466
+    },
+    {
+      "role": "User",
+      "route": "/schedule",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/schedule",
+      "httpErrors": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 664
+    },
+    {
+      "role": "User",
+      "route": "/subscriptions",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/subscriptions",
+      "httpErrors": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 718
+    },
+    {
+      "role": "User",
+      "route": "/support",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/support",
+      "httpErrors": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 225
+    },
+    {
+      "role": "Content",
+      "route": "/content",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/content",
+      "httpErrors": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 1006
+    },
+    {
+      "role": "Content",
+      "route": "/content/curriculum",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/content/curriculum",
+      "httpErrors": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 843
+    },
+    {
+      "role": "Content",
+      "route": "/content/lessons",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/content/lessons",
+      "httpErrors": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 892
+    },
+    {
+      "role": "Content",
+      "route": "/content/questions",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/content/questions",
+      "httpErrors": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 1420
+    },
+    {
+      "role": "Content",
+      "route": "/content/assessments",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/content/assessments",
+      "httpErrors": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 817
+    },
+    {
+      "role": "Content",
+      "route": "/content/materials",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/content/materials",
+      "httpErrors": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 789
+    },
+    {
+      "role": "Content",
+      "route": "/content/review",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/content/review",
+      "httpErrors": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 832
+    },
+    {
+      "role": "Content",
+      "route": "/content/knowledge-base",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/content/knowledge-base",
+      "httpErrors": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 778
+    },
+    {
+      "role": "Content",
+      "route": "/content/error-reports",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/content/error-reports",
+      "httpErrors": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 741
+    },
+    {
+      "role": "Content",
+      "route": "/content/publications",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/content/publications",
+      "httpErrors": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 753
+    },
+    {
+      "role": "Teacher",
+      "route": "/teacher",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/teacher",
+      "httpErrors": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 928
+    },
+    {
+      "role": "Teacher",
+      "route": "/teacher/classes",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/teacher/classes",
+      "httpErrors": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 773
+    },
+    {
+      "role": "Teacher",
+      "route": "/teacher/assignments",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/teacher/assignments",
+      "httpErrors": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 676
+    },
+    {
+      "role": "Teacher",
+      "route": "/teacher/exams",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/teacher/exams",
+      "httpErrors": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 577
+    },
+    {
+      "role": "Teacher",
+      "route": "/teacher/grades",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/teacher/grades",
+      "httpErrors": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 889
+    },
+    {
+      "role": "Teacher",
+      "route": "/teacher/materials",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/teacher/materials",
+      "httpErrors": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 563
+    },
+    {
+      "role": "Teacher",
+      "route": "/teacher/ai-assistant",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/teacher/ai-assistant",
+      "httpErrors": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 627
+    },
+    {
+      "role": "Teacher",
+      "route": "/teacher/schedule",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/teacher/schedule",
+      "httpErrors": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 547
+    },
+    {
+      "role": "Teacher",
+      "route": "/teacher/announcements",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/teacher/announcements",
+      "httpErrors": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 542
+    },
+    {
+      "role": "Admin",
+      "route": "/admin",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/admin",
+      "httpErrors": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 3141
+    },
+    {
+      "role": "Admin",
+      "route": "/admin/users",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/admin/users",
+      "httpErrors": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 1609
+    },
+    {
+      "role": "Admin",
+      "route": "/admin/roles",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/admin/roles",
+      "httpErrors": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 2306
+    },
+    {
+      "role": "Admin",
+      "route": "/admin/api-management",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/admin/api-management",
+      "httpErrors": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 1593
+    },
+    {
+      "role": "Admin",
+      "route": "/admin/subscriptions",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/admin/subscriptions",
+      "httpErrors": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 1880
+    },
+    {
+      "role": "Admin",
+      "route": "/admin/tickets",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/admin/tickets",
+      "httpErrors": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 980
+    },
+    {
+      "role": "Admin",
+      "route": "/admin/audit-logs",
+      "status": "PASS",
+      "finalUrl": "http://127.0.0.1:5175/admin/audit-logs",
+      "httpErrors": [],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": [],
+      "overflowDesktop": false,
+      "overflowMobile": false,
+      "bodyLength": 2407
+    }
+  ]
+}

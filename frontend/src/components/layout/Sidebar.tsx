@@ -1,9 +1,14 @@
 import {
+  BookOpen,
+  Bot,
+  Calendar,
+  ClipboardCheck,
+  CreditCard,
+  FileText,
   GraduationCap,
-  Layers,
+  HelpCircle,
   LayoutGrid,
   Target,
-  Trophy,
   X,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -40,8 +45,8 @@ export function Sidebar({
               <GraduationCap size={20} />
             </div>
             <div className="sidebar-brand-text">
-              <span className="brand-name">STUDY AI</span>
-              <span className="brand-badge">PRO</span>
+              <span className="brand-name">AI TUTOR</span>
+              <span className="brand-badge">TOÁN 12</span>
             </div>
           </Link>
 
@@ -58,12 +63,12 @@ export function Sidebar({
           )}
         </div>
 
-        {/* Navigation list */}
+        {/* Navigation list — empty bottom per specification */}
         <nav className="sidebar-nav scrollbar-clean">
-          {/* Group 1: MENU CHÍNH */}
+          {/* Group 1: HỌC TẬP */}
           <div className="sidebar-nav-group">
             <div className="sidebar-group-header">
-              <span className="sidebar-group-title">MENU CHÍNH</span>
+              <span className="sidebar-group-title">HỌC TẬP</span>
             </div>
             <SidebarItem
               to="/dashboard"
@@ -72,34 +77,64 @@ export function Sidebar({
               onClick={onCloseMobile}
             />
             <SidebarItem
-              to="/subjects"
-              label="Môn học"
-              icon={Layers}
+              to="/ai-tutor"
+              label="AI Gia sư"
+              icon={Bot}
               onClick={onCloseMobile}
             />
             <SidebarItem
-              to="/assignments"
-              label="Lớp học"
-              icon={GraduationCap}
-              onClick={onCloseMobile}
-            />
-          </div>
-
-          {/* Group 2: LUYỆN TẬP */}
-          <div className="sidebar-nav-group">
-            <div className="sidebar-group-header">
-              <span className="sidebar-group-title">LUYỆN TẬP</span>
-            </div>
-            <SidebarItem
-              to="/exam-preparation"
-              label="Luyện thi"
-              icon={Trophy}
+              to="/subjects/math"
+              label="Kiến thức Toán 12"
+              icon={BookOpen}
               onClick={onCloseMobile}
             />
             <SidebarItem
               to="/practice"
-              label="Bài tập"
+              label="Luyện tập"
               icon={Target}
+              onClick={onCloseMobile}
+            />
+            <SidebarItem
+              to="/exam-preparation"
+              label="Kiểm tra & thi thử"
+              icon={ClipboardCheck}
+              onClick={onCloseMobile}
+            />
+            <SidebarItem
+              to="/my-notes"
+              label="Sổ tay học tập"
+              icon={FileText}
+              onClick={onCloseMobile}
+            />
+          </div>
+
+          {/* Group 2: TIỆN ÍCH */}
+          <div className="sidebar-nav-group">
+            <div className="sidebar-group-header">
+              <span className="sidebar-group-title">TIỆN ÍCH</span>
+            </div>
+            <SidebarItem
+              to="/assignments"
+              label="Lớp học của tôi"
+              icon={GraduationCap}
+              onClick={onCloseMobile}
+            />
+            <SidebarItem
+              to="/schedule"
+              label="Kế hoạch học tập"
+              icon={Calendar}
+              onClick={onCloseMobile}
+            />
+            <SidebarItem
+              to="/subscriptions"
+              label="Gói đăng ký"
+              icon={CreditCard}
+              onClick={onCloseMobile}
+            />
+            <SidebarItem
+              to="/support"
+              label="Hỗ trợ"
+              icon={HelpCircle}
               onClick={onCloseMobile}
             />
           </div>

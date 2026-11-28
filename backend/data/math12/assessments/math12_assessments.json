@@ -1,0 +1,274 @@
+[
+  {
+    "id": "asm_m12_c1",
+    "lessonId": "les_math12_c1_b1",
+    "title": "Kiểm tra Chương 1 — Đề số 01",
+    "passScore": 70,
+    "durationMinutes": 25,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_c1_02",
+    "lessonId": "les_math12_c1_b1",
+    "title": "Kiểm tra Chương 1 — Đề số 02",
+    "passScore": 70,
+    "durationMinutes": 25,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_c1_03",
+    "lessonId": "les_math12_c1_b1",
+    "title": "Kiểm tra Chương 1 — Đề số 03",
+    "passScore": 70,
+    "durationMinutes": 25,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_c2",
+    "lessonId": "les_math12_c2_b1",
+    "title": "Kiểm tra Chương 2 — Đề số 01",
+    "passScore": 70,
+    "durationMinutes": 25,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_c2_02",
+    "lessonId": "les_math12_c2_b1",
+    "title": "Kiểm tra Chương 2 — Đề số 02",
+    "passScore": 70,
+    "durationMinutes": 25,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_c2_03",
+    "lessonId": "les_math12_c2_b1",
+    "title": "Kiểm tra Chương 2 — Đề số 03",
+    "passScore": 70,
+    "durationMinutes": 25,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_c3",
+    "lessonId": "les_math12_c3_b1",
+    "title": "Kiểm tra Chương 3 — Đề số 01",
+    "passScore": 70,
+    "durationMinutes": 25,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_c3_02",
+    "lessonId": "les_math12_c3_b1",
+    "title": "Kiểm tra Chương 3 — Đề số 02",
+    "passScore": 70,
+    "durationMinutes": 25,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_c3_03",
+    "lessonId": "les_math12_c3_b1",
+    "title": "Kiểm tra Chương 3 — Đề số 03",
+    "passScore": 70,
+    "durationMinutes": 25,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_c4",
+    "lessonId": "les_math12_c4_b1",
+    "title": "Kiểm tra Chương 4 — Đề số 01",
+    "passScore": 70,
+    "durationMinutes": 25,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_c4_02",
+    "lessonId": "les_math12_c4_b1",
+    "title": "Kiểm tra Chương 4 — Đề số 02",
+    "passScore": 70,
+    "durationMinutes": 25,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_c4_03",
+    "lessonId": "les_math12_c4_b1",
+    "title": "Kiểm tra Chương 4 — Đề số 03",
+    "passScore": 70,
+    "durationMinutes": 25,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_c5",
+    "lessonId": "les_math12_c5_b1",
+    "title": "Kiểm tra Chương 5 — Đề số 01",
+    "passScore": 70,
+    "durationMinutes": 25,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_c5_02",
+    "lessonId": "les_math12_c5_b1",
+    "title": "Kiểm tra Chương 5 — Đề số 02",
+    "passScore": 70,
+    "durationMinutes": 25,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_c5_03",
+    "lessonId": "les_math12_c5_b1",
+    "title": "Kiểm tra Chương 5 — Đề số 03",
+    "passScore": 70,
+    "durationMinutes": 25,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_c6",
+    "lessonId": "les_math12_c6_b1",
+    "title": "Kiểm tra Chương 6 — Đề số 01",
+    "passScore": 70,
+    "durationMinutes": 25,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_c6_02",
+    "lessonId": "les_math12_c6_b1",
+    "title": "Kiểm tra Chương 6 — Đề số 02",
+    "passScore": 70,
+    "durationMinutes": 25,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_c6_03",
+    "lessonId": "les_math12_c6_b1",
+    "title": "Kiểm tra Chương 6 — Đề số 03",
+    "passScore": 70,
+    "durationMinutes": 25,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_mock_hk1",
+    "lessonId": "les_math12_c1_b4",
+    "title": "Đề ôn tập Học kỳ 1 — Toán 12 (Đề 01)",
+    "passScore": 70,
+    "durationMinutes": 45,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_mock_hk1_02",
+    "lessonId": "les_math12_c1_b4",
+    "title": "Đề ôn tập Học kỳ 1 — Toán 12 (Đề 02)",
+    "passScore": 70,
+    "durationMinutes": 45,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_mock_hk1_03",
+    "lessonId": "les_math12_c1_b4",
+    "title": "Đề ôn tập Học kỳ 1 — Toán 12 (Đề 03)",
+    "passScore": 70,
+    "durationMinutes": 45,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_mock_hk2",
+    "lessonId": "les_math12_c4_b2",
+    "title": "Đề ôn tập Học kỳ 2 — Toán 12 (Đề 01)",
+    "passScore": 70,
+    "durationMinutes": 45,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_mock_hk2_02",
+    "lessonId": "les_math12_c4_b2",
+    "title": "Đề ôn tập Học kỳ 2 — Toán 12 (Đề 02)",
+    "passScore": 70,
+    "durationMinutes": 45,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_mock_hk2_03",
+    "lessonId": "les_math12_c4_b2",
+    "title": "Đề ôn tập Học kỳ 2 — Toán 12 (Đề 03)",
+    "passScore": 70,
+    "durationMinutes": 45,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_mock_thpt",
+    "lessonId": "les_math12_c6_b2",
+    "title": "Đề thi thử Toán 12 — Đề số 01 (Cấu trúc BGD 2025: 12/4/6)",
+    "passScore": 70,
+    "durationMinutes": 90,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_mock_thpt_01",
+    "lessonId": "les_math12_c6_b2",
+    "title": "Đề thi thử Toán 12 — Đề số 02 (Cấu trúc BGD 2025: 12/4/6)",
+    "passScore": 70,
+    "durationMinutes": 90,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_mock_thpt_02",
+    "lessonId": "les_math12_c6_b2",
+    "title": "Đề thi thử Toán 12 — Đề số 03 (Cấu trúc BGD 2025: 12/4/6)",
+    "passScore": 70,
+    "durationMinutes": 90,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_mock_thpt_03",
+    "lessonId": "les_math12_c6_b2",
+    "title": "Đề thi thử Toán 12 — Đề số 04 (Cấu trúc BGD 2025: 12/4/6)",
+    "passScore": 70,
+    "durationMinutes": 90,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_mock_thpt_04",
+    "lessonId": "les_math12_c6_b2",
+    "title": "Đề thi thử Toán 12 — Đề số 05 (Cấu trúc BGD 2025: 12/4/6)",
+    "passScore": 70,
+    "durationMinutes": 90,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_mock_thpt_05",
+    "lessonId": "les_math12_c6_b2",
+    "title": "Đề thi thử Toán 12 — Đề số 06 (Cấu trúc BGD 2025: 12/4/6)",
+    "passScore": 70,
+    "durationMinutes": 90,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_mock_thpt_06",
+    "lessonId": "les_math12_c6_b2",
+    "title": "Đề thi thử Toán 12 — Đề số 07 (Cấu trúc BGD 2025: 12/4/6)",
+    "passScore": 70,
+    "durationMinutes": 90,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_mock_thpt_07",
+    "lessonId": "les_math12_c6_b2",
+    "title": "Đề thi thử Toán 12 — Đề số 08 (Cấu trúc BGD 2025: 12/4/6)",
+    "passScore": 70,
+    "durationMinutes": 90,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_mock_thpt_08",
+    "lessonId": "les_math12_c6_b2",
+    "title": "Đề thi thử Toán 12 — Đề số 09 (Cấu trúc BGD 2025: 12/4/6)",
+    "passScore": 70,
+    "durationMinutes": 90,
+    "status": "published"
+  },
+  {
+    "id": "asm_m12_mock_thpt_09",
+    "lessonId": "les_math12_c6_b2",
+    "title": "Đề thi thử Toán 12 — Đề số 10 (Cấu trúc BGD 2025: 12/4/6)",
+    "passScore": 70,
+    "durationMinutes": 90,
+    "status": "published"
+  }
+]

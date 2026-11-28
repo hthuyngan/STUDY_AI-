@@ -11,6 +11,7 @@ public class AssessmentResponse
     public int ChangeCount { get; set; } = 0;
     public int TimeSpentMs { get; set; } = 0;
     public bool? IsCorrect { get; set; }
+    public bool IsMistakeResolved { get; set; } = false;
 
     public AssessmentAttempt? Attempt { get; set; }
 }
