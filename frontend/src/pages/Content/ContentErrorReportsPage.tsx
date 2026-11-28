@@ -13,6 +13,7 @@ export const ContentErrorReportsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState('all')
   const [classFilter, setClassFilter] = useState('all')
+  const [updatingId, setUpdatingId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -31,12 +32,20 @@ export const ContentErrorReportsPage: React.FC = () => {
   }, [load])
 
   const handleUpdate = async (id: string, nextStatus: string, classification?: string) => {
-    await contentWorkspaceService.updateErrorReport(id, {
-      status: nextStatus,
-      classification,
-      resolutionNote: nextStatus === 'escalated' ? 'Chuyển Admin xử lý kỹ thuật' : 'Đã kiểm tra và cập nhật nội dung',
-    })
-    await load()
+    setUpdatingId(id)
+    setError(null)
+    try {
+      await contentWorkspaceService.updateErrorReport(id, {
+        status: nextStatus,
+        classification,
+        resolutionNote: nextStatus === 'escalated' ? 'Chuyển Admin xử lý kỹ thuật' : 'Đã kiểm tra và cập nhật nội dung',
+      })
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Không thể cập nhật báo cáo sai sót.')
+    } finally {
+      setUpdatingId(null)
+    }
   }
 
   return (
@@ -101,12 +110,12 @@ export const ContentErrorReportsPage: React.FC = () => {
                     <td><StatusBadge status={r.status === 'resolved' || r.status === 'closed' ? 'published' : 'draft'} label={r.status} /></td>
                     <td style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                       {r.status !== 'resolved' && (
-                        <button type="button" className="staff-btn staff-btn-primary" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => handleUpdate(r.id, 'resolved', 'content_error')}>
+                        <button type="button" className="staff-btn staff-btn-primary" style={{ padding: '4px 10px', fontSize: 12 }} disabled={updatingId === r.id} onClick={() => handleUpdate(r.id, 'resolved', 'content_error')}>
                           Đã sửa
                         </button>
                       )}
                       {r.status !== 'escalated' && (
-                        <button type="button" className="staff-btn staff-btn-secondary" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => handleUpdate(r.id, 'escalated', 'technical_escalation')}>
+                        <button type="button" className="staff-btn staff-btn-secondary" style={{ padding: '4px 10px', fontSize: 12 }} disabled={updatingId === r.id} onClick={() => handleUpdate(r.id, 'escalated', 'technical_escalation')}>
                           Chuyển Admin
                         </button>
                       )}

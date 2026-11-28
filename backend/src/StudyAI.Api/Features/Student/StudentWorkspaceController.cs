@@ -16,18 +16,23 @@ public class StudentWorkspaceController : ControllerBase
         _service = service;
     }
 
-    private string CurrentUserId =>
-        User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub") ?? string.Empty;
+    private string RequireUserId()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        if (string.IsNullOrWhiteSpace(userId))
+            throw new UnauthorizedException();
+        return userId;
+    }
 
     [HttpGet("mistakes")]
     public async Task<ActionResult<List<StudentMistakeItemDto>>> GetMistakes(CancellationToken ct)
-        => Ok(await _service.GetMistakesAsync(CurrentUserId, ct));
+        => Ok(await _service.GetMistakesAsync(RequireUserId(), ct));
 
     [HttpGet("classrooms")]
     public async Task<ActionResult<List<LearnerClassroomSummaryDto>>> GetMyClassrooms(CancellationToken ct)
-        => Ok(await _service.GetMyClassroomsAsync(CurrentUserId, ct));
+        => Ok(await _service.GetMyClassroomsAsync(RequireUserId(), ct));
 
     [HttpPost("classrooms/join")]
     public async Task<ActionResult<LearnerClassroomSummaryDto>> JoinClassroom([FromBody] JoinClassroomRequestDto req, CancellationToken ct)
-        => Ok(await _service.JoinClassroomByCodeAsync(CurrentUserId, req.Code, ct));
+        => Ok(await _service.JoinClassroomByCodeAsync(RequireUserId(), req.Code, ct));
 }

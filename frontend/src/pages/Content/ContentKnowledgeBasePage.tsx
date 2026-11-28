@@ -21,6 +21,7 @@ export const ContentKnowledgeBasePage: React.FC = () => {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<RetrievedKnowledgeChunk[]>([])
   const [feedback, setFeedback] = useState<string | null>(null)
+  const [busyId, setBusyId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -147,11 +148,47 @@ export const ContentKnowledgeBasePage: React.FC = () => {
                     <td>{s.chunkCount}</td>
                     <td><StatusBadge status={s.status === 'indexed' ? 'published' : 'draft'} label={s.status} /></td>
                     <td style={{ display: 'flex', gap: 6 }}>
-                      <button type="button" className="staff-btn staff-btn-secondary" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => contentWorkspaceService.syncKnowledgeSource(s.id).then(load)}>
+                      <button
+                        type="button"
+                        className="staff-btn staff-btn-secondary"
+                        style={{ padding: '4px 10px', fontSize: 12 }}
+                        disabled={busyId === s.id}
+                        onClick={async () => {
+                          setBusyId(s.id)
+                          setFeedback(null)
+                          try {
+                            await contentWorkspaceService.syncKnowledgeSource(s.id)
+                            setFeedback('Đã đồng bộ lại nguồn tri thức.')
+                            await load()
+                          } catch (err) {
+                            setFeedback(err instanceof Error ? err.message : 'Lỗi khi đồng bộ lại nguồn tri thức.')
+                          } finally {
+                            setBusyId(null)
+                          }
+                        }}
+                      >
                         <RefreshCw size={13} /> Đồng bộ lại
                       </button>
                       {s.status !== 'revoked' && (
-                        <button type="button" className="staff-btn staff-btn-secondary" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => contentWorkspaceService.revokeKnowledgeSource(s.id).then(load)}>
+                        <button
+                          type="button"
+                          className="staff-btn staff-btn-secondary"
+                          style={{ padding: '4px 10px', fontSize: 12 }}
+                          disabled={busyId === s.id}
+                          onClick={async () => {
+                            setBusyId(s.id)
+                            setFeedback(null)
+                            try {
+                              await contentWorkspaceService.revokeKnowledgeSource(s.id)
+                              setFeedback('Đã thu hồi nguồn tri thức.')
+                              await load()
+                            } catch (err) {
+                              setFeedback(err instanceof Error ? err.message : 'Lỗi khi thu hồi nguồn tri thức.')
+                            } finally {
+                              setBusyId(null)
+                            }
+                          }}
+                        >
                           <Trash2 size={13} /> Thu hồi
                         </button>
                       )}

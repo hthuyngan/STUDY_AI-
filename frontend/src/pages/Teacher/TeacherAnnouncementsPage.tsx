@@ -41,15 +41,25 @@ export const TeacherAnnouncementsPage: React.FC = () => {
     void load()
   }, [load])
 
+  const [submitting, setSubmitting] = useState(false)
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!classroomId) return
-    await teacherWorkspaceService.createAnnouncement({ classroomId, title, body, isPinned })
-    setTitle('')
-    setBody('')
-    setIsPinned(false)
-    setShowForm(false)
-    await load()
+    if (!classroomId || submitting) return
+    setSubmitting(true)
+    setError(null)
+    try {
+      await teacherWorkspaceService.createAnnouncement({ classroomId, title, body, isPinned })
+      setTitle('')
+      setBody('')
+      setIsPinned(false)
+      setShowForm(false)
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Không thể tạo thông báo lớp học.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (

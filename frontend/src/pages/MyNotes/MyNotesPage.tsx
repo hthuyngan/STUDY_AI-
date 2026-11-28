@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
   ArrowUpRight,
@@ -29,17 +29,23 @@ export function MyNotesPage() {
   const [activeTab, setActiveTab] = useState<'mistakes' | 'bookmarks' | 'notes'>('mistakes')
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [mistakes, setMistakes] = useState<StudentMistakeItem[]>([])
+  const [mistakesError, setMistakesError] = useState<string | null>(null)
   const [resolvedIds, setResolvedIds] = useState<Record<string, boolean>>({})
 
-  useEffect(() => {
+  const loadMistakes = useCallback(() => {
     let active = true
+    setMistakesError(null)
     Promise.resolve(studentWorkspaceService.getMistakes()).then((list) => {
       if (active) setMistakes(Array.isArray(list) ? list : [])
-    }).catch(() => {
-      // Unauthenticated or empty
+    }).catch((err) => {
+      if (active) {
+        setMistakesError(err instanceof Error ? err.message : 'Không thể tải danh sách bài tập sai.')
+      }
     })
     return () => { active = false }
   }, [])
+
+  useEffect(() => loadMistakes(), [loadMistakes])
 
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState<string>('')
@@ -204,7 +210,16 @@ export function MyNotesPage() {
       {/* Content Area */}
       <main className="notes-grid-container">
         {activeTab === 'mistakes' ? (
-          mistakes.length === 0 ? (
+          mistakesError ? (
+            <div className="notes-empty-panel" role="alert">
+              <AlertTriangle size={36} className="empty-icon" aria-hidden />
+              <h3>Không thể tải danh sách bài tập sai</h3>
+              <p>{mistakesError}</p>
+              <Button variant="primary" size="sm" onClick={loadMistakes}>
+                Thử lại
+              </Button>
+            </div>
+          ) : mistakes.length === 0 ? (
             <div className="notes-empty-panel">
               <AlertTriangle size={36} className="empty-icon" aria-hidden />
               <h3>Chưa có bài tập sai nào</h3>

@@ -1,8 +1,9 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { createStudyNote } from '@/services/studyNotes.service'
 import { toggleSectionBookmark } from '@/services/sectionBookmarks.service'
+import { studentWorkspaceService } from '@/services/studentWorkspace.service'
 import { MyNotesPage } from './MyNotesPage'
 
 describe('MyNotesPage', () => {
@@ -84,6 +85,18 @@ describe('MyNotesPage', () => {
 
     expect(screen.queryByText('Nội dung Cực trị hàm số')).toBeNull()
     expect(screen.getByText('Nội dung Tích phân')).toBeDefined()
+  })
+
+  it('shows error state instead of empty state when mistakes API fails', async () => {
+    vi.spyOn(studentWorkspaceService, 'getMistakes').mockRejectedValueOnce(new Error('Lỗi máy chủ 500'))
+    render(
+      <MemoryRouter>
+        <MyNotesPage />
+      </MemoryRouter>
+    )
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toContain('Không thể tải danh sách bài tập sai')
+    expect(screen.queryByText('Chưa có bài tập sai nào')).toBeNull()
   })
 })
 

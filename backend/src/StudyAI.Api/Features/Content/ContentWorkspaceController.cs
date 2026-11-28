@@ -43,7 +43,7 @@ public class ContentWorkspaceController : ControllerBase
         [FromBody] CreateContentMaterialRequestDto req, CancellationToken ct)
     {
         var created = await _service.CreateMaterialAsync(req, CurrentUserId, ct);
-        return CreatedAtAction(nameof(GetMaterials), new { id = created.Id }, created);
+        return StatusCode(StatusCodes.Status201Created, created);
     }
 
     [HttpPatch("materials/{id}/status")]
@@ -107,7 +107,7 @@ public class ContentWorkspaceController : ControllerBase
         [FromBody] CreateContentErrorReportRequestDto req, CancellationToken ct)
     {
         var created = await _service.CreateErrorReportAsync(req, CurrentUserId, ct);
-        return CreatedAtAction(nameof(GetErrorReports), new { id = created.Id }, created);
+        return StatusCode(StatusCodes.Status201Created, created);
     }
 
     [HttpPatch("error-reports/{id}")]

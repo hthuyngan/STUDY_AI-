@@ -29,7 +29,7 @@ public class TeacherWorkspaceController : ControllerBase
     public async Task<ActionResult<TeacherExamDto>> CreateExam([FromBody] CreateTeacherExamRequestDto req, CancellationToken ct)
     {
         var created = await _service.CreateExamAsync(req, CurrentUserId, IsAdmin, ct);
-        return CreatedAtAction(nameof(GetExams), new { id = created.Id }, created);
+        return StatusCode(StatusCodes.Status201Created, created);
     }
 
     [HttpPatch("exams/{examId}/status")]
@@ -44,7 +44,7 @@ public class TeacherWorkspaceController : ControllerBase
     public async Task<ActionResult<ClassroomMaterialDto>> CreateMaterial([FromBody] CreateClassroomMaterialRequestDto req, CancellationToken ct)
     {
         var created = await _service.CreateMaterialAsync(req, CurrentUserId, IsAdmin, ct);
-        return CreatedAtAction(nameof(GetMaterials), new { id = created.Id }, created);
+        return StatusCode(StatusCodes.Status201Created, created);
     }
 
     [HttpDelete("materials/{materialId}")]
@@ -59,7 +59,7 @@ public class TeacherWorkspaceController : ControllerBase
     public async Task<ActionResult<ClassroomAnnouncementDto>> CreateAnnouncement([FromBody] CreateClassroomAnnouncementRequestDto req, CancellationToken ct)
     {
         var created = await _service.CreateAnnouncementAsync(req, CurrentUserId, IsAdmin, ct);
-        return CreatedAtAction(nameof(GetAnnouncements), new { id = created.Id }, created);
+        return StatusCode(StatusCodes.Status201Created, created);
     }
 
     [HttpGet("schedule")]

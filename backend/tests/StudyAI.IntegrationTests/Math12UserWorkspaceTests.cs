@@ -98,12 +98,43 @@ public class Math12UserWorkspaceTests : IClassFixture<StudyAIApiFixture>
             await (await _client.GetAsync("/api/v1/learner/workspace/classrooms")).Content.ReadAsStringAsync(), JsonOpts)!;
         Assert.DoesNotContain(s2Classes, c => c.Id == joined.Id);
 
-        // Seed one unsubmitted wrong response (must NOT leak) and one completed wrong response (must appear)
+        // Seed one unsubmitted wrong response (must NOT leak), one completed unreleased TeacherExam wrong response (CorrectAnswer masked), and one completed released wrong response
         var unsubmittedQuestionId = $"q-unsub-{Guid.NewGuid():N}";
+        var unreleasedQuestionId = $"q-unrel-{Guid.NewGuid():N}";
         var submittedQuestionId = $"q-sub-{Guid.NewGuid():N}";
+        var unreleasedAsmId = $"asm-unrel-{Guid.NewGuid():N}";
         using (var scope = _factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            db.ContentQuestions.AddRange(
+                new ContentQuestion
+                {
+                    Id = unreleasedQuestionId,
+                    SubjectId = "math-12",
+                    ChapterId = "M12-C1",
+                    Prompt = "Câu hỏi chưa công bố đáp án",
+                    CorrectAnswer = "C",
+                    Explanation = "Giải thích bí mật"
+                },
+                new ContentQuestion
+                {
+                    Id = submittedQuestionId,
+                    SubjectId = "math-12",
+                    ChapterId = "M12-C1",
+                    Prompt = "Câu hỏi đã công bố đáp án",
+                    CorrectAnswer = "D",
+                    Explanation = "Giải thích công khai"
+                });
+            db.TeacherExams.Add(new TeacherExam
+            {
+                Id = $"texam-unrel-{Guid.NewGuid():N}",
+                ClassroomId = joined.Id,
+                TeacherId = "tch-1",
+                SourceAssessmentId = unreleasedAsmId,
+                Title = "Đề chưa công bố điểm",
+                PublishResults = false,
+                Status = "published"
+            });
             var unsubAttempt = new AssessmentAttempt
             {
                 Id = $"att-{Guid.NewGuid():N}",
@@ -113,6 +144,16 @@ public class Math12UserWorkspaceTests : IClassFixture<StudyAIApiFixture>
                 SubjectId = "math-12",
                 StartedAt = DateTimeOffset.UtcNow.AddMinutes(-10),
                 CompletedAt = null
+            };
+            var unrelAttempt = new AssessmentAttempt
+            {
+                Id = $"att-{Guid.NewGuid():N}",
+                UserId = student1Id,
+                AssessmentId = unreleasedAsmId,
+                LessonId = "les-test",
+                SubjectId = "math-12",
+                StartedAt = DateTimeOffset.UtcNow.AddMinutes(-12),
+                CompletedAt = DateTimeOffset.UtcNow.AddMinutes(-8)
             };
             var subAttempt = new AssessmentAttempt
             {
@@ -124,12 +165,19 @@ public class Math12UserWorkspaceTests : IClassFixture<StudyAIApiFixture>
                 StartedAt = DateTimeOffset.UtcNow.AddMinutes(-20),
                 CompletedAt = DateTimeOffset.UtcNow.AddMinutes(-15)
             };
-            db.AssessmentAttempts.AddRange(unsubAttempt, subAttempt);
+            db.AssessmentAttempts.AddRange(unsubAttempt, unrelAttempt, subAttempt);
             db.AssessmentResponses.AddRange(
                 new AssessmentResponse
                 {
                     AttemptId = unsubAttempt.Id,
                     QuestionId = unsubmittedQuestionId,
+                    SelectedOptionIdsJson = "[\"A\"]",
+                    IsCorrect = false
+                },
+                new AssessmentResponse
+                {
+                    AttemptId = unrelAttempt.Id,
+                    QuestionId = unreleasedQuestionId,
                     SelectedOptionIdsJson = "[\"A\"]",
                     IsCorrect = false
                 },
@@ -143,13 +191,16 @@ public class Math12UserWorkspaceTests : IClassFixture<StudyAIApiFixture>
             await db.SaveChangesAsync();
         }
 
-        // Mistakes endpoint returns 200 and only includes submitted attempts
+        // Mistakes endpoint returns 200, excludes unsubmitted attempts, and masks CorrectAnswer for unreleased TeacherExam
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", student1Token);
         var mistakesResp = await _client.GetAsync("/api/v1/learner/workspace/mistakes");
         Assert.Equal(HttpStatusCode.OK, mistakesResp.StatusCode);
         var mistakes = JsonSerializer.Deserialize<List<StudentMistakeItemDto>>(
             await mistakesResp.Content.ReadAsStringAsync(), JsonOpts)!;
         Assert.DoesNotContain(mistakes, m => m.QuestionId == unsubmittedQuestionId);
-        Assert.Contains(mistakes, m => m.QuestionId == submittedQuestionId);
+        var unreleasedItem = Assert.Single(mistakes, m => m.QuestionId == unreleasedQuestionId);
+        Assert.Null(unreleasedItem.CorrectAnswer);
+        var releasedItem = Assert.Single(mistakes, m => m.QuestionId == submittedQuestionId);
+        Assert.Equal("D", releasedItem.CorrectAnswer);
     }
 }

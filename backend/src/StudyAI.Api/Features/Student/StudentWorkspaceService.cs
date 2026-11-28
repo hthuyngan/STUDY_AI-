@@ -16,12 +16,30 @@ public class StudentWorkspaceService : IStudentWorkspaceService
 
     public async Task<List<StudentMistakeItemDto>> GetMistakesAsync(string userId, CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(userId))
+            throw new UnauthorizedException();
+
         var wrongResponses = await _db.AssessmentResponses.AsNoTracking()
             .Include(r => r.Attempt)
             .Where(r => r.Attempt != null && r.Attempt.UserId == userId && r.Attempt.CompletedAt != null && r.IsCorrect == false)
             .OrderByDescending(r => r.Attempt!.StartedAt)
             .Take(200)
             .ToListAsync(ct);
+
+        var attemptAssessmentIds = wrongResponses
+            .Select(r => r.Attempt?.AssessmentId)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct()
+            .ToList();
+
+        // Respect TeacherExam result-release policy: if a TeacherExam exists for the assessment and PublishResults == false, mask answers
+        var unreleasedAssessmentIds = attemptAssessmentIds.Count == 0
+            ? new HashSet<string>()
+            : (await _db.TeacherExams.AsNoTracking()
+                .Where(e => e.SourceAssessmentId != null && attemptAssessmentIds.Contains(e.SourceAssessmentId) && !e.PublishResults)
+                .Select(e => e.SourceAssessmentId!)
+                .ToListAsync(ct))
+                .ToHashSet(StringComparer.Ordinal);
 
         var qIds = wrongResponses.Select(r => r.QuestionId).Distinct().ToList();
         var questionsById = await _db.ContentQuestions.AsNoTracking()
@@ -33,6 +51,7 @@ public class StudentWorkspaceService : IStudentWorkspaceService
             .Select(g =>
             {
                 var latest = g.First();
+                var isUnreleased = latest.Attempt != null && unreleasedAssessmentIds.Contains(latest.Attempt.AssessmentId);
                 questionsById.TryGetValue(latest.QuestionId, out var q);
                 return new StudentMistakeItemDto
                 {
@@ -40,8 +59,8 @@ public class StudentWorkspaceService : IStudentWorkspaceService
                     QuestionId = latest.QuestionId,
                     Prompt = q?.Prompt ?? "Câu hỏi Toán 12",
                     StudentAnswer = latest.SelectedOptionIdsJson,
-                    CorrectAnswer = q?.CorrectAnswer,
-                    Explanation = q?.Explanation,
+                    CorrectAnswer = isUnreleased ? null : q?.CorrectAnswer,
+                    Explanation = isUnreleased ? "Kết quả chưa được giáo viên công bố." : q?.Explanation,
                     ChapterTitle = q?.ChapterId,
                     WrongCount = g.Count(),
                     LastAttemptAt = (latest.Attempt?.StartedAt ?? DateTimeOffset.UtcNow).ToString("o")
@@ -52,6 +71,8 @@ public class StudentWorkspaceService : IStudentWorkspaceService
 
     public async Task<LearnerClassroomSummaryDto> JoinClassroomByCodeAsync(string userId, string code, CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(userId))
+            throw new UnauthorizedException();
         if (string.IsNullOrWhiteSpace(code))
             throw new ValidationException("Code", "Mã lớp học không được để trống.");
 
@@ -70,7 +91,18 @@ public class StudentWorkspaceService : IStudentWorkspaceService
                 EnrolledAt = DateTimeOffset.UtcNow
             };
             _db.ClassroomStudents.Add(existing);
-            await _db.SaveChangesAsync(ct);
+            try
+            {
+                await _db.SaveChangesAsync(ct);
+            }
+            catch (DbUpdateException)
+            {
+                // Concurrent join race: detach failed insert and re-read existing membership
+                _db.Entry(existing).State = EntityState.Detached;
+                existing = await _db.ClassroomStudents.AsNoTracking()
+                    .FirstOrDefaultAsync(cs => cs.ClassroomId == cls.Id && cs.StudentId == userId, ct)
+                    ?? throw new InvalidOperationException("Không thể ghi nhận tham gia lớp học.");
+            }
         }
 
         return await BuildClassroomSummaryAsync(cls, existing.EnrolledAt, ct);
@@ -78,6 +110,8 @@ public class StudentWorkspaceService : IStudentWorkspaceService
 
     public async Task<List<LearnerClassroomSummaryDto>> GetMyClassroomsAsync(string userId, CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(userId))
+            throw new UnauthorizedException();
         var memberships = await _db.ClassroomStudents.AsNoTracking()
             .Include(cs => cs.Classroom)
             .Where(cs => cs.StudentId == userId && cs.Classroom != null && cs.Classroom.Status == "active")

@@ -141,25 +141,12 @@ public class ContentWorkspaceService : IContentWorkspaceService
             query = query.Where(m => m.Title.ToLower().Contains(term) || m.FileName.ToLower().Contains(term));
         }
 
-        return await query
+        var rows = await query
             .OrderByDescending(m => m.UpdatedAt)
             .ThenBy(m => m.Id)
-            .Select(m => new ContentMaterialDto
-            {
-                Id = m.Id,
-                Title = m.Title,
-                Category = m.Category,
-                ChapterCode = m.ChapterCode,
-                ChapterTitle = m.ChapterTitle,
-                FileName = m.FileName,
-                MimeType = m.MimeType,
-                FileSizeBytes = m.FileSizeBytes,
-                StoragePathOrUrl = m.StoragePathOrUrl,
-                Status = m.Status,
-                CreatedAt = m.CreatedAt.ToString("o"),
-                UpdatedAt = m.UpdatedAt.ToString("o")
-            })
             .ToListAsync(ct);
+
+        return rows.Select(ToDto).ToList();
     }
 
     public async Task<ContentMaterialDto> CreateMaterialAsync(
@@ -224,6 +211,24 @@ public class ContentWorkspaceService : IContentWorkspaceService
 
         entity.Status = normalized;
         entity.UpdatedAt = DateTimeOffset.UtcNow;
+
+        // CONTENT-001: If material is no longer published, revoke its AI knowledge sources and remove chunks in the same transaction
+        if (normalized != "published")
+        {
+            var linkedSources = await _db.AiKnowledgeSources
+                .Include(s => s.Chunks)
+                .Where(s => s.SourceType == "material" && s.SourceRefId == id)
+                .ToListAsync(ct);
+            foreach (var src in linkedSources)
+            {
+                if (src.Chunks.Count > 0)
+                    _db.AiKnowledgeChunks.RemoveRange(src.Chunks);
+                src.Status = "revoked";
+                src.ChunkCount = 0;
+                src.UpdatedAt = DateTimeOffset.UtcNow;
+            }
+        }
+
         await _db.SaveChangesAsync(ct);
 
         await _auditWriter.WriteStaffAuditAsync("content_material_status", "content_material", entity.Id, null, $"{{\"status\":\"{normalized}\",\"actor\":\"{userId}\"}}", ct);
@@ -232,23 +237,12 @@ public class ContentWorkspaceService : IContentWorkspaceService
 
     public async Task<List<AiKnowledgeSourceDto>> GetKnowledgeSourcesAsync(CancellationToken ct = default)
     {
-        return await _db.AiKnowledgeSources.AsNoTracking()
+        var rows = await _db.AiKnowledgeSources.AsNoTracking()
             .OrderByDescending(s => s.UpdatedAt)
             .ThenBy(s => s.Id)
-            .Select(s => new AiKnowledgeSourceDto
-            {
-                Id = s.Id,
-                Title = s.Title,
-                SourceType = s.SourceType,
-                SourceRefId = s.SourceRefId,
-                ChapterCode = s.ChapterCode,
-                Status = s.Status,
-                ChunkCount = s.ChunkCount,
-                LastIndexedAt = s.LastIndexedAt.HasValue ? s.LastIndexedAt.Value.ToString("o") : null,
-                LastError = s.LastError,
-                UpdatedAt = s.UpdatedAt.ToString("o")
-            })
             .ToListAsync(ct);
+
+        return rows.Select(ToDto).ToList();
     }
 
     public async Task<AiKnowledgeSourceDto> RegisterAndSyncKnowledgeSourceAsync(
@@ -342,7 +336,19 @@ public class ContentWorkspaceService : IContentWorkspaceService
             .Where(c => c.Source != null && c.Source.Status == "indexed")
             .ToListAsync(ct);
 
+        // Verify referenced materials/lessons are still published (CONTENT-001)
+        var matIds = activeChunks.Where(c => c.Source!.SourceType == "material").Select(c => c.Source!.SourceRefId).Distinct().ToList();
+        var publishedMatIds = matIds.Count == 0
+            ? new HashSet<string>()
+            : (await _db.ContentMaterials.AsNoTracking().Where(m => matIds.Contains(m.Id) && m.Status == "published").Select(m => m.Id).ToListAsync(ct)).ToHashSet(StringComparer.Ordinal);
+        var lesIds = activeChunks.Where(c => c.Source!.SourceType == "lesson").Select(c => c.Source!.SourceRefId).Distinct().ToList();
+        var publishedLesIds = lesIds.Count == 0
+            ? new HashSet<string>()
+            : (await _db.ContentLessons.AsNoTracking().Where(l => lesIds.Contains(l.Id) && l.Status == "published").Select(l => l.Id).ToListAsync(ct)).ToHashSet(StringComparer.Ordinal);
+
         return activeChunks
+            .Where(c => (c.Source!.SourceType == "material" && publishedMatIds.Contains(c.Source.SourceRefId))
+                     || (c.Source!.SourceType == "lesson" && publishedLesIds.Contains(c.Source.SourceRefId)))
             .Select(c =>
             {
                 var hay = $"{c.Title} {c.ContentText}".ToLowerInvariant();
@@ -373,26 +379,12 @@ public class ContentWorkspaceService : IContentWorkspaceService
         if (!string.IsNullOrWhiteSpace(classification) && classification != "all")
             query = query.Where(r => r.Classification == classification.Trim().ToLowerInvariant());
 
-        return await query
+        var rows = await query
             .OrderByDescending(r => r.UpdatedAt)
             .ThenBy(r => r.Id)
-            .Select(r => new ContentErrorReportDto
-            {
-                Id = r.Id,
-                ReportCode = r.ReportCode,
-                TargetType = r.TargetType,
-                TargetId = r.TargetId,
-                Title = r.Title,
-                Description = r.Description,
-                Severity = r.Severity,
-                Classification = r.Classification,
-                Status = r.Status,
-                ReportedByUserId = r.ReportedByUserId,
-                ResolutionNote = r.ResolutionNote,
-                CreatedAt = r.CreatedAt.ToString("o"),
-                UpdatedAt = r.UpdatedAt.ToString("o")
-            })
             .ToListAsync(ct);
+
+        return rows.Select(ToDto).ToList();
     }
 
     public async Task<ContentErrorReportDto> CreateErrorReportAsync(

@@ -142,12 +142,38 @@ export const TeacherExamsPage: React.FC = () => {
                     <td><StatusBadge status={ex.status === 'published' ? 'published' : 'draft'} label={ex.status} /></td>
                     <td style={{ display: 'flex', gap: 6 }}>
                       {ex.status !== 'published' && (
-                        <button type="button" className="staff-btn staff-btn-primary" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => teacherWorkspaceService.updateExamStatus(ex.id, 'published').then(load)}>
+                        <button
+                          type="button"
+                          className="staff-btn staff-btn-primary"
+                          style={{ padding: '4px 10px', fontSize: 12 }}
+                          onClick={async () => {
+                            setError(null)
+                            try {
+                              await teacherWorkspaceService.updateExamStatus(ex.id, 'published')
+                              await load()
+                            } catch (err) {
+                              setError(err instanceof Error ? err.message : 'Không thể phát hành đề kiểm tra.')
+                            }
+                          }}
+                        >
                           Mở đề
                         </button>
                       )}
                       {ex.status === 'published' && (
-                        <button type="button" className="staff-btn staff-btn-secondary" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => teacherWorkspaceService.updateExamStatus(ex.id, 'closed', true).then(load)}>
+                        <button
+                          type="button"
+                          className="staff-btn staff-btn-secondary"
+                          style={{ padding: '4px 10px', fontSize: 12 }}
+                          onClick={async () => {
+                            setError(null)
+                            try {
+                              await teacherWorkspaceService.updateExamStatus(ex.id, 'closed', true)
+                              await load()
+                            } catch (err) {
+                              setError(err instanceof Error ? err.message : 'Không thể đóng đề kiểm tra.')
+                            }
+                          }}
+                        >
                           Đóng & Công bố điểm
                         </button>
                       )}

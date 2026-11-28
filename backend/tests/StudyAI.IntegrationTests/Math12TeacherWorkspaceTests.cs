@@ -87,10 +87,71 @@ public class Math12TeacherWorkspaceTests : IClassFixture<StudyAIApiFixture>
             "application/json"));
         Assert.Equal(HttpStatusCode.Forbidden, crossExamResp.StatusCode);
 
-        // Teacher 1 creates & publishes exam, shares & revokes material, creates announcement, checks schedule & AI assistant
+        // Seed published ContentAssessment with 1 question for valid exam publishing
+        var srcSubjId = $"subj-{Guid.NewGuid():N}";
+        var srcChapId = $"chap-{Guid.NewGuid():N}";
+        var srcLesId = $"les-{Guid.NewGuid():N}";
+        var srcAssessmentId = $"asm-src-{Guid.NewGuid():N}";
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            db.ContentSubjects.Add(new ContentSubject
+            {
+                Id = srcSubjId,
+                Name = "Toán 12",
+                Code = $"M12-{Guid.NewGuid():N}"[..10],
+                Grade = "12"
+            });
+            db.ContentChapters.Add(new ContentChapter
+            {
+                Id = srcChapId,
+                SubjectId = srcSubjId,
+                Title = "Chương 1"
+            });
+            db.ContentLessons.Add(new ContentLesson
+            {
+                Id = srcLesId,
+                ChapterId = srcChapId,
+                AuthorId = teacher1Id,
+                Title = "Bài 1",
+                Status = "published"
+            });
+            db.ContentAssessments.Add(new ContentAssessment
+            {
+                Id = srcAssessmentId,
+                LessonId = srcLesId,
+                Title = "Đề mẫu Chương 1",
+                Status = "published"
+            });
+            db.ContentQuestions.Add(new ContentQuestion
+            {
+                Id = $"q-{Guid.NewGuid():N}",
+                AssessmentId = srcAssessmentId,
+                SubjectId = srcSubjId,
+                ChapterId = srcChapId,
+                Prompt = "Tìm cực đại của hàm số y = x^3 - 3x.",
+                CorrectAnswer = "x = -1"
+            });
+            await db.SaveChangesAsync();
+        }
+
+        // Teacher 1 cannot publish a source-less exam -> 400 BadRequest
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", teacher1Token);
+        var emptyExamResp = await _client.PostAsync("/api/v1/teacher/workspace/exams", new StringContent(
+            JsonSerializer.Serialize(new CreateTeacherExamRequestDto { ClassroomId = classId, Title = "Đề rỗng", DurationMinutes = 45 }),
+            Encoding.UTF8,
+            "application/json"));
+        Assert.Equal(HttpStatusCode.Created, emptyExamResp.StatusCode);
+        var emptyExam = JsonSerializer.Deserialize<TeacherExamDto>(await emptyExamResp.Content.ReadAsStringAsync(), JsonOpts)!;
+        var badPub = await _client.PatchAsync($"/api/v1/teacher/workspace/exams/{emptyExam.Id}/status", new StringContent(
+            JsonSerializer.Serialize(new UpdateTeacherExamStatusRequestDto { Status = "published" }),
+            Encoding.UTF8,
+            "application/json"));
+        Assert.Equal(HttpStatusCode.BadRequest, badPub.StatusCode);
+
+        // Teacher 1 creates & publishes exam backed by published ContentAssessment with questions -> 200 OK
         var examResp = await _client.PostAsync("/api/v1/teacher/workspace/exams", new StringContent(
-            JsonSerializer.Serialize(new CreateTeacherExamRequestDto { ClassroomId = classId, Title = "Kiểm tra Chương 1", DurationMinutes = 45 }),
+            JsonSerializer.Serialize(new CreateTeacherExamRequestDto { ClassroomId = classId, SourceAssessmentId = srcAssessmentId, Title = "Kiểm tra Chương 1", DurationMinutes = 45 }),
             Encoding.UTF8,
             "application/json"));
         Assert.Equal(HttpStatusCode.Created, examResp.StatusCode);

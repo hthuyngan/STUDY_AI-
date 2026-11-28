@@ -42,23 +42,33 @@ export const TeacherMaterialsPage: React.FC = () => {
     void load()
   }, [load])
 
+  const [submitting, setSubmitting] = useState(false)
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!classroomId) return
-    await teacherWorkspaceService.createMaterial({
-      classroomId,
-      title,
-      category: 'lecture_note',
-      fileName,
-      mimeType: 'application/pdf',
-      fileSizeBytes: 102400,
-      storagePathOrUrl,
-    })
-    setTitle('')
-    setFileName('')
-    setStoragePathOrUrl('')
-    setShowForm(false)
-    await load()
+    if (!classroomId || submitting) return
+    setSubmitting(true)
+    setError(null)
+    try {
+      await teacherWorkspaceService.createMaterial({
+        classroomId,
+        title,
+        category: 'lecture_note',
+        fileName,
+        mimeType: 'application/pdf',
+        fileSizeBytes: 102400,
+        storagePathOrUrl,
+      })
+      setTitle('')
+      setFileName('')
+      setStoragePathOrUrl('')
+      setShowForm(false)
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Không thể tải lên tài liệu lớp học.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (

@@ -103,6 +103,21 @@ public class TeacherWorkspaceService : ITeacherWorkspaceService
         if (entity.Status == "published" && nextStatus == "draft")
             throw new ValidationException("Status", "Không thể chuyển đề đã phát hành về bản nháp.");
 
+        // Prevent publishing an exam without a published source assessment that contains at least 1 question
+        if (nextStatus == "published")
+        {
+            if (string.IsNullOrWhiteSpace(entity.SourceAssessmentId))
+                throw new ValidationException("SourceAssessmentId", "Không thể phát hành đề kiểm tra khi chưa gắn đề mẫu có câu hỏi.");
+            var src = await _db.ContentAssessments.AsNoTracking()
+                .FirstOrDefaultAsync(a => a.Id == entity.SourceAssessmentId, ct);
+            if (src == null || src.Status != "published")
+                throw new ValidationException("SourceAssessmentId", "Đề mẫu nguồn chưa được xuất bản.");
+            var questionCount = await _db.ContentQuestions.AsNoTracking()
+                .CountAsync(q => q.AssessmentId == src.Id, ct);
+            if (questionCount == 0)
+                throw new ValidationException("SourceAssessmentId", "Đề mẫu nguồn chưa có câu hỏi nào.");
+        }
+
         entity.Status = nextStatus;
         if (req.PublishResults.HasValue)
             entity.PublishResults = req.PublishResults.Value;
@@ -271,6 +286,9 @@ public class TeacherWorkspaceService : ITeacherWorkspaceService
     {
         if (string.IsNullOrWhiteSpace(req.Prompt))
             throw new ValidationException("Prompt", "Yêu cầu gửi AI Trợ giảng không được để trống.");
+        var trimmedPrompt = req.Prompt.Trim();
+        if (trimmedPrompt.Length > 4000)
+            throw new ValidationException("Prompt", "Yêu cầu gửi AI Trợ giảng không được vượt quá 4000 ký tự.");
 
         var cls = await VerifyOwnedClassroomAsync(req.ClassroomId, teacherUserId, isAdmin, ct);
         var studentCount = await _db.ClassroomStudents.AsNoTracking().CountAsync(cs => cs.ClassroomId == cls.Id, ct);

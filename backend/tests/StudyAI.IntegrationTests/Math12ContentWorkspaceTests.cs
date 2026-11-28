@@ -140,6 +140,37 @@ public class Math12ContentWorkspaceTests : IClassFixture<StudyAIApiFixture>
         var chunksAfter = JsonSerializer.Deserialize<List<RetrievedKnowledgeChunkDto>>(await retAfter.Content.ReadAsStringAsync(), JsonOpts)!;
         Assert.DoesNotContain(chunksAfter, c => c.SourceId == rag.Id);
 
+        // CONTENT-001: Re-index published material, then archive material -> chunks automatically revoked & not retrievable
+        var rag2Resp = await _client.PostAsync("/api/v1/content/workspace/knowledge-sources", new StringContent(
+            JsonSerializer.Serialize(new RegisterAiKnowledgeSourceRequestDto
+            {
+                SourceType = "material",
+                SourceRefId = mat.Id,
+                ExtractedText = "Định lý cơ bản của giải tích Toán 12."
+            }),
+            Encoding.UTF8,
+            "application/json"));
+        Assert.Equal(HttpStatusCode.OK, rag2Resp.StatusCode);
+        var rag2 = JsonSerializer.Deserialize<AiKnowledgeSourceDto>(await rag2Resp.Content.ReadAsStringAsync(), JsonOpts)!;
+        Assert.Equal("indexed", rag2.Status);
+
+        var archiveResp = await _client.PatchAsync($"/api/v1/content/workspace/materials/{mat.Id}/status", new StringContent(
+            JsonSerializer.Serialize(new UpdateContentMaterialStatusRequestDto { Status = "archived" }),
+            Encoding.UTF8,
+            "application/json"));
+        Assert.Equal(HttpStatusCode.OK, archiveResp.StatusCode);
+
+        var retAfterArchive = await _client.PostAsync("/api/v1/content/workspace/knowledge-sources/retrieve-test", new StringContent(
+            JsonSerializer.Serialize(new RetrieveKnowledgeTestRequestDto { Query = "giải tích", TopK = 5 }),
+            Encoding.UTF8,
+            "application/json"));
+        var chunksAfterArchive = JsonSerializer.Deserialize<List<RetrievedKnowledgeChunkDto>>(await retAfterArchive.Content.ReadAsStringAsync(), JsonOpts)!;
+        Assert.DoesNotContain(chunksAfterArchive, c => c.SourceId == rag2.Id);
+
+        // Verify SQL projection endpoints with real rows (materials, knowledge-sources)
+        Assert.Equal(HttpStatusCode.OK, (await _client.GetAsync("/api/v1/content/workspace/materials")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await _client.GetAsync("/api/v1/content/workspace/knowledge-sources")).StatusCode);
+
         // 3. Learner submits content error report, Content triages it
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", learnerToken);
         var errCreate = await _client.PostAsync("/api/v1/content/workspace/error-reports", new StringContent(

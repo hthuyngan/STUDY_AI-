@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { FileText, Plus, Search, Upload } from 'lucide-react'
 import { MATH12_CHAPTERS } from '@/config/math12Scope'
 import { contentWorkspaceService, type ContentMaterialItem } from '@/services/contentWorkspace.service'
@@ -24,6 +24,8 @@ export const ContentMaterialsPage: React.FC = () => {
   const [category, setCategory] = useState('all')
   const [status, setStatus] = useState('all')
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const requestSeqRef = useRef(0)
   const [showForm, setShowForm] = useState(false)
 
   const [title, setTitle] = useState('')
@@ -36,18 +38,30 @@ export const ContentMaterialsPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false)
   const [feedback, setFeedback] = useState<string | null>(null)
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search), 250)
+    return () => window.clearTimeout(timer)
+  }, [search])
+
   const load = useCallback(async () => {
+    const seq = ++requestSeqRef.current
     setLoading(true)
     setError(null)
     try {
-      const data = await contentWorkspaceService.getMaterials({ category, status, search })
-      setItems(data)
+      const data = await contentWorkspaceService.getMaterials({ category, status, search: debouncedSearch })
+      if (seq === requestSeqRef.current) {
+        setItems(data)
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Không thể tải danh sách tài liệu học tập.')
+      if (seq === requestSeqRef.current) {
+        setError(err instanceof Error ? err.message : 'Không thể tải danh sách tài liệu học tập.')
+      }
     } finally {
-      setLoading(false)
+      if (seq === requestSeqRef.current) {
+        setLoading(false)
+      }
     }
-  }, [category, status, search])
+  }, [category, status, debouncedSearch])
 
   useEffect(() => {
     void load()
