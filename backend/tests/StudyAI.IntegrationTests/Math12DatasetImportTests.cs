@@ -35,31 +35,52 @@ public class Math12DatasetImportTests : IClassFixture<StudyAIApiFixture>
     }
 
     [Fact]
-    public async Task Math12Dataset_DryRun_IdempotentImport_AssessmentGrading_And_DraftIsolation_Work()
+    public async Task Math12Dataset_DryRun_ProtectedUpsert_RealMaterialDownload_And_Grading_Work()
     {
         var dataDir = ResolveDatasetDir();
 
-        // 1. Dry-run leaves database untouched
+        // Register learner & content author
+        var email = $"m12_student_{Guid.NewGuid():N}@studyai.test";
+        var regResp = await _client.PostAsync("/api/v1/auth/register", new StringContent(
+            JsonSerializer.Serialize(new { email, password = "Password@123456", displayName = "M12 Student", grade = "12" }),
+            Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.Created, regResp.StatusCode);
+
+        string authorUserId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            authorUserId = await db.Users.Where(u => u.EmailNormalized == email.ToUpperInvariant()).Select(u => u.Id).FirstAsync();
+        }
+
+        // 1. M12-003: Non-existent importer user must fail closed before any write
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var importer = scope.ServiceProvider.GetRequiredService<Math12DatasetImportService>();
+            await Assert.ThrowsAsync<ValidationException>(() =>
+                importer.ImportFromDirectoryAsync(dataDir, dryRun: true, createdByUserId: "non-existent-user"));
+        }
+
+        // 2. M12-005: Real Dry-run validates everything and leaves database untouched
         using (var scope = _factory.Services.CreateScope())
         {
             var importer = scope.ServiceProvider.GetRequiredService<Math12DatasetImportService>();
             var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
             var beforeBlocks = await db.LessonContentBlocks.CountAsync();
-            var dry = await importer.ImportFromDirectoryAsync(dataDir, dryRun: true);
+            var dry = await importer.ImportFromDirectoryAsync(dataDir, dryRun: true, createdByUserId: authorUserId);
             Assert.True(dry.DryRun);
-            Assert.Equal(76, dry.LessonBlocksUpserted);
-            Assert.Equal(68, dry.QuestionsUpserted);
-            Assert.Equal(8, dry.AssessmentsUpserted);
+            Assert.Equal(152, dry.InsertCount); // 76 blocks + 68 questions + 8 assessments
+            Assert.Equal(0, dry.RejectedCount);
             Assert.Equal(beforeBlocks, await db.LessonContentBlocks.CountAsync());
         }
 
-        // 2. Real import + Idempotent re-import
+        // 3. M12-002: Real import in isolated StudyAIDb_Clean_{GUID} with allowPublishInIsolatedTest: true
         using (var scope = _factory.Services.CreateScope())
         {
             var importer = scope.ServiceProvider.GetRequiredService<Math12DatasetImportService>();
             var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
 
-            var first = await importer.ImportFromDirectoryAsync(dataDir, dryRun: false);
+            var first = await importer.ImportFromDirectoryAsync(dataDir, dryRun: false, createdByUserId: authorUserId, allowPublishInIsolatedTest: true);
             Assert.False(first.DryRun);
             Assert.Equal(76, first.LessonBlocksUpserted);
             Assert.Equal(68, first.QuestionsUpserted);
@@ -67,22 +88,14 @@ public class Math12DatasetImportTests : IClassFixture<StudyAIApiFixture>
             Assert.Equal(6, first.MaterialsUpserted);
             Assert.Equal(19, first.KnowledgeChunksUpserted);
 
-            var countAfterFirst = await db.ContentQuestions.CountAsync(q => q.Id.StartsWith("q_m12_"));
-            Assert.Equal(68, countAfterFirst);
-
-            // Second run must be idempotent (no duplicate questions or blocks)
-            var second = await importer.ImportFromDirectoryAsync(dataDir, dryRun: false);
+            // Second run with allowOverwriteProtected: false reports conflicts on published records without mutating them
+            var second = await importer.ImportFromDirectoryAsync(dataDir, dryRun: false, createdByUserId: authorUserId, allowPublishInIsolatedTest: true, allowOverwriteProtected: false);
+            Assert.True(second.ConflictCount > 0);
             Assert.Equal(68, await db.ContentQuestions.CountAsync(q => q.Id.StartsWith("q_m12_")));
             Assert.Equal(76, await db.LessonContentBlocks.CountAsync(b => b.Id.StartsWith("blk_les_math12_")));
         }
 
-        // 3. Register learner and submit mixed-format assessment (MC + true-false-group + short-answer) on asm_m12_c1
-        var email = $"m12_student_{Guid.NewGuid():N}@studyai.test";
-        var regResp = await _client.PostAsync("/api/v1/auth/register", new StringContent(
-            JsonSerializer.Serialize(new { email, password = "Password@123456", displayName = "M12 Student", grade = "12" }),
-            Encoding.UTF8, "application/json"));
-        Assert.Equal(HttpStatusCode.Created, regResp.StatusCode);
-
+        // 4. Login learner, verify real material download (R09-03), and submit mixed-format assessment
         var loginResp = await _client.PostAsync("/api/v1/auth/login", new StringContent(
             JsonSerializer.Serialize(new { email, password = "Password@123456" }),
             Encoding.UTF8, "application/json"));
@@ -90,6 +103,11 @@ public class Math12DatasetImportTests : IClassFixture<StudyAIApiFixture>
         using var loginDoc = JsonDocument.Parse(await loginResp.Content.ReadAsStringAsync());
         var token = loginDoc.RootElement.GetProperty("accessToken").GetString()!;
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var dlResp = await _client.GetAsync("/api/v1/content/workspace/materials/mat_orig_m12-c1/download");
+        Assert.Equal(HttpStatusCode.OK, dlResp.StatusCode);
+        var dlText = await dlResp.Content.ReadAsStringAsync();
+        Assert.Contains("Ứng dụng đạo hàm", dlText);
 
         var attemptPayload = new
         {

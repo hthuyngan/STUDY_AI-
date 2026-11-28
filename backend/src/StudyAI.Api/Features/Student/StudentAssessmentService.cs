@@ -189,8 +189,7 @@ public class StudentAssessmentService : ILearnerAssessmentService
             ? await _db.ContentAssessments.AsNoTracking().FirstOrDefaultAsync(a => a.Id == attempt.AssessmentId, cancellationToken)
             : null;
 
-        var isTargetedAssessment = assessmentMeta != null ||
-            (!string.IsNullOrWhiteSpace(attempt.AssessmentId) && !attempt.AssessmentId.StartsWith("asm_", StringComparison.OrdinalIgnoreCase));
+        var isTargetedAssessment = assessmentMeta != null;
 
         var scopeQuestions = await _db.ContentQuestions.AsNoTracking()
             .Where(q => q.Status == "published" &&
@@ -314,6 +313,7 @@ public class StudentAssessmentService : ILearnerAssessmentService
 
         if (qType == "true-false" || qType == "true_false")
         {
+            if (selectedOptions.Count != 1) return false;
             return TryNormalizeBooleanToken(selectedOptions[0], out var actualBool) &&
                    TryNormalizeBooleanToken(correct, out var expectedBool) &&
                    actualBool == expectedBool;
@@ -340,6 +340,7 @@ public class StudentAssessmentService : ILearnerAssessmentService
 
         if (qType == "short-answer" || qType == "short_answer")
         {
+            if (selectedOptions.Count != 1) return false;
             var sel = selectedOptions[0].Trim();
             var accepted = new List<string> { correct };
             if (!string.IsNullOrWhiteSpace(question.MetadataJson))

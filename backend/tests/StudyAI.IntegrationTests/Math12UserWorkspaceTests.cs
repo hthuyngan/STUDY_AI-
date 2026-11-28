@@ -407,5 +407,45 @@ public class Math12UserWorkspaceTests : IClassFixture<StudyAIApiFixture>
             Assert.Equal(2.0, tDoc.RootElement.GetProperty("scoreMax").GetDouble());
             Assert.Equal("passed", tDoc.RootElement.GetProperty("successStatus").GetString());
         }
+
+        // A2-001: Non-asm_ lesson/practice attempt ID (e.g. "asmt_exam") with no ContentAssessment falls back to LessonId
+        var practiceCompatPayload = new
+        {
+            assessmentId = "asmt_exam",
+            lessonId = authLesId,
+            subjectId = "math-12",
+            completionStatus = "completed",
+            responses = new Dictionary<string, object>
+            {
+                [authQId] = new { questionId = authQId, selectedOptionIds = new[] { "2x" } }
+            }
+        };
+        var compatResp = await _client.PostAsync("/api/v1/me/assessment-attempts", new StringContent(JsonSerializer.Serialize(practiceCompatPayload), Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.Created, compatResp.StatusCode);
+        using (var cDoc = JsonDocument.Parse(await compatResp.Content.ReadAsStringAsync()))
+        {
+            Assert.Equal(1.0, cDoc.RootElement.GetProperty("scoreRaw").GetDouble());
+            Assert.True(cDoc.RootElement.GetProperty("scoreMax").GetDouble() >= 2.0);
+        }
+
+        // A2-002: short-answer with >1 values (["5/2", "999"]) must grade as false
+        var multiShortPayload = new
+        {
+            assessmentId = targetedAsmId,
+            lessonId = authLesId,
+            subjectId = "math-12",
+            completionStatus = "completed",
+            responses = new Dictionary<string, object>
+            {
+                [shortQId] = new { questionId = shortQId, selectedOptionIds = new[] { "5/2", "999" } }
+            }
+        };
+        var multiShortResp = await _client.PostAsync("/api/v1/me/assessment-attempts", new StringContent(JsonSerializer.Serialize(multiShortPayload), Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.Created, multiShortResp.StatusCode);
+        using (var mDoc = JsonDocument.Parse(await multiShortResp.Content.ReadAsStringAsync()))
+        {
+            Assert.Equal(0.0, mDoc.RootElement.GetProperty("scoreRaw").GetDouble());
+            Assert.False(mDoc.RootElement.GetProperty("responses").GetProperty(shortQId).GetProperty("isCorrect").GetBoolean());
+        }
     }
 }
