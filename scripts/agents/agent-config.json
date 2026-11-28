@@ -43,7 +43,7 @@
       "simpleReReview": "high",
       "complexSecurityReview": "high"
     },
-    "timeoutSeconds": 1200,
+    "timeoutSeconds": 1560,
     "maxAutomaticReviewRounds": 3,
     "maxConcurrentReviews": 1
   },
@@ -75,7 +75,7 @@
     "reason": "Disabled by default because local TEMP cache lacks independent cryptographic provenance."
   },
   "tokenOptimization": {
-    "maxDiffChars": 60000,
+    "maxDiffChars": 78000,
     "excludeDiffPaths": [
       "node_modules",
       "bin",
