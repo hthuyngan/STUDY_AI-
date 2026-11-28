@@ -69,7 +69,7 @@ public class Math12DatasetImportTests : IClassFixture<StudyAIApiFixture>
             var beforeBlocks = await db.LessonContentBlocks.CountAsync();
             var dry = await importer.ImportFromDirectoryAsync(dataDir, dryRun: true, createdByUserId: authorUserId);
             Assert.True(dry.DryRun);
-            Assert.Equal(152, dry.InsertCount); // 76 blocks + 68 questions + 8 assessments
+            Assert.Equal(345, dry.InsertCount); // 190 blocks + 112 questions + 12 assessments + 6 materials + 6 sources + 19 chunks
             Assert.Equal(0, dry.RejectedCount);
             Assert.Equal(beforeBlocks, await db.LessonContentBlocks.CountAsync());
         }
@@ -82,17 +82,17 @@ public class Math12DatasetImportTests : IClassFixture<StudyAIApiFixture>
 
             var first = await importer.ImportFromDirectoryAsync(dataDir, dryRun: false, createdByUserId: authorUserId, allowPublishInIsolatedTest: true);
             Assert.False(first.DryRun);
-            Assert.Equal(76, first.LessonBlocksUpserted);
-            Assert.Equal(68, first.QuestionsUpserted);
-            Assert.Equal(8, first.AssessmentsUpserted);
+            Assert.Equal(190, first.LessonBlocksUpserted);
+            Assert.Equal(112, first.QuestionsUpserted);
+            Assert.Equal(12, first.AssessmentsUpserted);
             Assert.Equal(6, first.MaterialsUpserted);
             Assert.Equal(19, first.KnowledgeChunksUpserted);
 
-            // Second run with allowOverwriteProtected: false reports conflicts on published records without mutating them
-            var second = await importer.ImportFromDirectoryAsync(dataDir, dryRun: false, createdByUserId: authorUserId, allowPublishInIsolatedTest: true, allowOverwriteProtected: false);
+            // Second run reports conflicts on published records without mutating them
+            var second = await importer.ImportFromDirectoryAsync(dataDir, dryRun: false, createdByUserId: authorUserId, allowPublishInIsolatedTest: true);
             Assert.True(second.ConflictCount > 0);
-            Assert.Equal(68, await db.ContentQuestions.CountAsync(q => q.Id.StartsWith("q_m12_")));
-            Assert.Equal(76, await db.LessonContentBlocks.CountAsync(b => b.Id.StartsWith("blk_les_math12_")));
+            Assert.Equal(112, await db.ContentQuestions.CountAsync(q => q.Id.StartsWith("q_m12_")));
+            Assert.Equal(190, await db.LessonContentBlocks.CountAsync(b => b.Id.StartsWith("blk_les_math12_")));
         }
 
         // 4. Login learner, verify real material download (R09-03), and submit mixed-format assessment
@@ -131,7 +131,7 @@ public class Math12DatasetImportTests : IClassFixture<StudyAIApiFixture>
         Assert.Equal(HttpStatusCode.Created, attResp.StatusCode);
         using var attDoc = JsonDocument.Parse(await attResp.Content.ReadAsStringAsync());
         Assert.Equal(7.0, attDoc.RootElement.GetProperty("scoreRaw").GetDouble());
-        Assert.Equal(7.0, attDoc.RootElement.GetProperty("scoreMax").GetDouble());
-        Assert.Equal("passed", attDoc.RootElement.GetProperty("successStatus").GetString());
+        Assert.Equal(13.0, attDoc.RootElement.GetProperty("scoreMax").GetDouble());
+        Assert.Equal("failed", attDoc.RootElement.GetProperty("successStatus").GetString());
     }
 }

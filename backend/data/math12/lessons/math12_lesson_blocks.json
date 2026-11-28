@@ -7,15 +7,26 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### Bài 1: Tính đơn điệu và cực trị của hàm số\n\nHàm số $y=f(x)$ đồng biến trên $K$ nếu $f'(x)\\ge 0$ (dấu bằng tại hữu hạn điểm) và đạt cực trị khi $f'(x)$ đổi dấu qua $x_0$."
+      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 1: Tính đơn điệu và cực trị của hàm số\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
     }
   },
   {
     "id": "blk_les_math12_c1_b1_02",
     "lessonId": "les_math12_c1_b1",
-    "blockType": "formula",
+    "blockType": "markdown",
     "schemaVersion": 1,
     "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 1: Tính đơn điệu và cực trị của hàm số\n\nHàm số $y=f(x)$ đồng biến trên $K$ nếu $f'(x)\\ge 0$ (dấu bằng tại hữu hạn điểm) và đạt cực trị khi $f'(x)$ đổi dấu qua $x_0$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b1_03",
+    "lessonId": "les_math12_c1_b1",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 3,
     "status": "published",
     "payload": {
       "latex": "f'(x) > 0 \\Rightarrow \\text{đồng biến}; \\quad f'(x) < 0 \\Rightarrow \\text{nghịch biến}",
@@ -24,11 +35,22 @@
     }
   },
   {
-    "id": "blk_les_math12_c1_b1_03",
+    "id": "blk_les_math12_c1_b1_04",
+    "lessonId": "les_math12_c1_b1",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 1: Tính đơn điệu và cực trị của hàm số.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b1_05",
     "lessonId": "les_math12_c1_b1",
     "blockType": "example",
     "schemaVersion": 1,
-    "orderIndex": 3,
+    "orderIndex": 5,
     "status": "published",
     "payload": {
       "title": "Ví dụ minh họa — Bài 1: Tính đơn điệu và cực trị của hàm số",
@@ -37,18 +59,68 @@
     }
   },
   {
-    "id": "blk_les_math12_c1_b1_04",
+    "id": "blk_les_math12_c1_b1_06",
+    "lessonId": "les_math12_c1_b1",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 6,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ vận dụng — Bài 1: Tính đơn điệu và cực trị của hàm số",
+      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
+      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b1_07",
+    "lessonId": "les_math12_c1_b1",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 7,
+    "status": "published",
+    "payload": {
+      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b1_08",
+    "lessonId": "les_math12_c1_b1",
+    "blockType": "exercise",
+    "schemaVersion": 1,
+    "orderIndex": 8,
+    "status": "published",
+    "payload": {
+      "prompt": "Bài tập tự luyện (Bài 1: Tính đơn điệu và cực trị của hàm số): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
+      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
+      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b1_09",
     "lessonId": "les_math12_c1_b1",
     "blockType": "summary",
     "schemaVersion": 1,
-    "orderIndex": 4,
+    "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Ghi nhớ nhanh",
+      "title": "Tổng kết bài học",
       "points": [
         "Kiểm tra tập xác định trước khi xét dấu $y'$.",
         "Cực trị chỉ xảy ra tại điểm mà $y'$ đổi dấu."
       ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b1_10",
+    "lessonId": "les_math12_c1_b1",
+    "blockType": "reference",
+    "schemaVersion": 1,
+    "orderIndex": 10,
+    "status": "published",
+    "payload": {
+      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn",
+      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
     }
   },
   {
@@ -59,15 +131,26 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### Bài 2: Giá trị lớn nhất và giá trị nhỏ nhất của hàm số\n\nTrên đoạn $[a;b]$, hàm số liên tục luôn đạt GTLN $M$ và GTNN $m$ tại các điểm tới hạn trong $(a;b)$ hoặc tại hai đầu mút $a, b$."
+      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 2: Giá trị lớn nhất và giá trị nhỏ nhất của hàm số\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
     }
   },
   {
     "id": "blk_les_math12_c1_b2_02",
     "lessonId": "les_math12_c1_b2",
-    "blockType": "formula",
+    "blockType": "markdown",
     "schemaVersion": 1,
     "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 2: Giá trị lớn nhất và giá trị nhỏ nhất của hàm số\n\nTrên đoạn $[a;b]$, hàm số liên tục luôn đạt GTLN $M$ và GTNN $m$ tại các điểm tới hạn trong $(a;b)$ hoặc tại hai đầu mút $a, b$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b2_03",
+    "lessonId": "les_math12_c1_b2",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 3,
     "status": "published",
     "payload": {
       "latex": "M = \\max_{[a;b]} f(x), \\quad m = \\min_{[a;b]} f(x)",
@@ -76,11 +159,22 @@
     }
   },
   {
-    "id": "blk_les_math12_c1_b2_03",
+    "id": "blk_les_math12_c1_b2_04",
+    "lessonId": "les_math12_c1_b2",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 2: Giá trị lớn nhất và giá trị nhỏ nhất của hàm số.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b2_05",
     "lessonId": "les_math12_c1_b2",
     "blockType": "example",
     "schemaVersion": 1,
-    "orderIndex": 3,
+    "orderIndex": 5,
     "status": "published",
     "payload": {
       "title": "Ví dụ minh họa — Bài 2: Giá trị lớn nhất và giá trị nhỏ nhất của hàm số",
@@ -89,18 +183,68 @@
     }
   },
   {
-    "id": "blk_les_math12_c1_b2_04",
+    "id": "blk_les_math12_c1_b2_06",
+    "lessonId": "les_math12_c1_b2",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 6,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ vận dụng — Bài 2: Giá trị lớn nhất và giá trị nhỏ nhất của hàm số",
+      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
+      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b2_07",
+    "lessonId": "les_math12_c1_b2",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 7,
+    "status": "published",
+    "payload": {
+      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b2_08",
+    "lessonId": "les_math12_c1_b2",
+    "blockType": "exercise",
+    "schemaVersion": 1,
+    "orderIndex": 8,
+    "status": "published",
+    "payload": {
+      "prompt": "Bài tập tự luyện (Bài 2: Giá trị lớn nhất và giá trị nhỏ nhất của hàm số): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
+      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
+      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b2_09",
     "lessonId": "les_math12_c1_b2",
     "blockType": "summary",
     "schemaVersion": 1,
-    "orderIndex": 4,
+    "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Ghi nhớ nhanh",
+      "title": "Tổng kết bài học",
       "points": [
         "Không quên tính giá trị tại hai đầu mút $a$ và $b$.",
         "Loại bỏ nghiệm $f'(x)=0$ nằm ngoài đoạn đang xét."
       ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b2_10",
+    "lessonId": "les_math12_c1_b2",
+    "blockType": "reference",
+    "schemaVersion": 1,
+    "orderIndex": 10,
+    "status": "published",
+    "payload": {
+      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn",
+      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
     }
   },
   {
@@ -111,15 +255,26 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### Bài 3: Đường tiệm cận của đồ thị hàm số\n\nĐường thẳng $y=y_0$ là tiệm cận ngang nếu $\\lim_{x\\to\\pm\\infty} f(x)=y_0$; $x=x_0$ là tiệm cận đứng nếu giới hạn một bên bằng $\\pm\\infty$; $y=ax+b$ là tiệm cận xiên nếu $\\lim_{x\\to\\pm\\infty}[f(x)-(ax+b)]=0$."
+      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 3: Đường tiệm cận của đồ thị hàm số\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
     }
   },
   {
     "id": "blk_les_math12_c1_b3_02",
     "lessonId": "les_math12_c1_b3",
-    "blockType": "formula",
+    "blockType": "markdown",
     "schemaVersion": 1,
     "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 3: Đường tiệm cận của đồ thị hàm số\n\nĐường thẳng $y=y_0$ là tiệm cận ngang nếu $\\lim_{x\\to\\pm\\infty} f(x)=y_0$; $x=x_0$ là tiệm cận đứng nếu giới hạn một bên bằng $\\pm\\infty$; $y=ax+b$ là tiệm cận xiên nếu $\\lim_{x\\to\\pm\\infty}[f(x)-(ax+b)]=0$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b3_03",
+    "lessonId": "les_math12_c1_b3",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 3,
     "status": "published",
     "payload": {
       "latex": "a = \\lim_{x\\to\\pm\\infty}\\frac{f(x)}{x}, \\quad b = \\lim_{x\\to\\pm\\infty}[f(x)-ax]",
@@ -128,11 +283,22 @@
     }
   },
   {
-    "id": "blk_les_math12_c1_b3_03",
+    "id": "blk_les_math12_c1_b3_04",
+    "lessonId": "les_math12_c1_b3",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 3: Đường tiệm cận của đồ thị hàm số.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b3_05",
     "lessonId": "les_math12_c1_b3",
     "blockType": "example",
     "schemaVersion": 1,
-    "orderIndex": 3,
+    "orderIndex": 5,
     "status": "published",
     "payload": {
       "title": "Ví dụ minh họa — Bài 3: Đường tiệm cận của đồ thị hàm số",
@@ -141,18 +307,68 @@
     }
   },
   {
-    "id": "blk_les_math12_c1_b3_04",
+    "id": "blk_les_math12_c1_b3_06",
+    "lessonId": "les_math12_c1_b3",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 6,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ vận dụng — Bài 3: Đường tiệm cận của đồ thị hàm số",
+      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
+      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b3_07",
+    "lessonId": "les_math12_c1_b3",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 7,
+    "status": "published",
+    "payload": {
+      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b3_08",
+    "lessonId": "les_math12_c1_b3",
+    "blockType": "exercise",
+    "schemaVersion": 1,
+    "orderIndex": 8,
+    "status": "published",
+    "payload": {
+      "prompt": "Bài tập tự luyện (Bài 3: Đường tiệm cận của đồ thị hàm số): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
+      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
+      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b3_09",
     "lessonId": "les_math12_c1_b3",
     "blockType": "summary",
     "schemaVersion": 1,
-    "orderIndex": 4,
+    "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Ghi nhớ nhanh",
+      "title": "Tổng kết bài học",
       "points": [
         "Kiểm tra điều kiện triệt tiêu nhân tử trước khi kết luận tiệm cận đứng.",
         "Hàm bậc 2 trên bậc 1 luôn có tiệm cận xiên nếu không chia hết."
       ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b3_10",
+    "lessonId": "les_math12_c1_b3",
+    "blockType": "reference",
+    "schemaVersion": 1,
+    "orderIndex": 10,
+    "status": "published",
+    "payload": {
+      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn",
+      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
     }
   },
   {
@@ -163,15 +379,26 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### Bài 4: Khảo sát sự biến thiên và vẽ đồ thị của hàm số\n\nQuy trình khảo sát gồm 4 bước: tìm tập xác định, xét sự biến thiên (giới hạn, tiệm cận, $y'$, bảng biến thiên), tìm điểm đặc biệt và vẽ đồ thị."
+      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 4: Khảo sát sự biến thiên và vẽ đồ thị của hàm số\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
     }
   },
   {
     "id": "blk_les_math12_c1_b4_02",
     "lessonId": "les_math12_c1_b4",
-    "blockType": "formula",
+    "blockType": "markdown",
     "schemaVersion": 1,
     "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 4: Khảo sát sự biến thiên và vẽ đồ thị của hàm số\n\nQuy trình khảo sát gồm 4 bước: tìm tập xác định, xét sự biến thiên (giới hạn, tiệm cận, $y'$, bảng biến thiên), tìm điểm đặc biệt và vẽ đồ thị."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b4_03",
+    "lessonId": "les_math12_c1_b4",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 3,
     "status": "published",
     "payload": {
       "latex": "y = ax^3+bx^2+cx+d, \\quad y = \\frac{ax+b}{cx+d}, \\quad y = \\frac{ax^2+bx+c}{px+q}",
@@ -180,11 +407,22 @@
     }
   },
   {
-    "id": "blk_les_math12_c1_b4_03",
+    "id": "blk_les_math12_c1_b4_04",
+    "lessonId": "les_math12_c1_b4",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 4: Khảo sát sự biến thiên và vẽ đồ thị của hàm số.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b4_05",
     "lessonId": "les_math12_c1_b4",
     "blockType": "example",
     "schemaVersion": 1,
-    "orderIndex": 3,
+    "orderIndex": 5,
     "status": "published",
     "payload": {
       "title": "Ví dụ minh họa — Bài 4: Khảo sát sự biến thiên và vẽ đồ thị của hàm số",
@@ -193,18 +431,68 @@
     }
   },
   {
-    "id": "blk_les_math12_c1_b4_04",
+    "id": "blk_les_math12_c1_b4_06",
+    "lessonId": "les_math12_c1_b4",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 6,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ vận dụng — Bài 4: Khảo sát sự biến thiên và vẽ đồ thị của hàm số",
+      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
+      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b4_07",
+    "lessonId": "les_math12_c1_b4",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 7,
+    "status": "published",
+    "payload": {
+      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b4_08",
+    "lessonId": "les_math12_c1_b4",
+    "blockType": "exercise",
+    "schemaVersion": 1,
+    "orderIndex": 8,
+    "status": "published",
+    "payload": {
+      "prompt": "Bài tập tự luyện (Bài 4: Khảo sát sự biến thiên và vẽ đồ thị của hàm số): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
+      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
+      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b4_09",
     "lessonId": "les_math12_c1_b4",
     "blockType": "summary",
     "schemaVersion": 1,
-    "orderIndex": 4,
+    "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Ghi nhớ nhanh",
+      "title": "Tổng kết bài học",
       "points": [
         "Đồ thị bậc ba nhận điểm uốn làm tâm đối xứng.",
         "Đồ thị phân thức bậc 1/1 nhận giao điểm hai tiệm cận làm tâm đối xứng."
       ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b4_10",
+    "lessonId": "les_math12_c1_b4",
+    "blockType": "reference",
+    "schemaVersion": 1,
+    "orderIndex": 10,
+    "status": "published",
+    "payload": {
+      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn",
+      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
     }
   },
   {
@@ -215,15 +503,26 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### Bài 5: Ứng dụng đạo hàm để giải quyết một số vấn đề liên quan đến thực tiễn\n\nMô hình hóa bài toán tối ưu (diện tích, thể tích, chi phí, lợi nhuận, vận tốc) thành hàm số một biến trên miền xác định rồi tìm GTLN/GTNN."
+      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 5: Ứng dụng đạo hàm để giải quyết một số vấn đề liên quan đến thực tiễn\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
     }
   },
   {
     "id": "blk_les_math12_c1_b5_02",
     "lessonId": "les_math12_c1_b5",
-    "blockType": "formula",
+    "blockType": "markdown",
     "schemaVersion": 1,
     "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 5: Ứng dụng đạo hàm để giải quyết một số vấn đề liên quan đến thực tiễn\n\nMô hình hóa bài toán tối ưu (diện tích, thể tích, chi phí, lợi nhuận, vận tốc) thành hàm số một biến trên miền xác định rồi tìm GTLN/GTNN."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b5_03",
+    "lessonId": "les_math12_c1_b5",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 3,
     "status": "published",
     "payload": {
       "latex": "\\text{Tối ưu hóa } f(x) \\text{ trên } D \\subset \\mathbb{R}",
@@ -232,11 +531,22 @@
     }
   },
   {
-    "id": "blk_les_math12_c1_b5_03",
+    "id": "blk_les_math12_c1_b5_04",
+    "lessonId": "les_math12_c1_b5",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 5: Ứng dụng đạo hàm để giải quyết một số vấn đề liên quan đến thực tiễn.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b5_05",
     "lessonId": "les_math12_c1_b5",
     "blockType": "example",
     "schemaVersion": 1,
-    "orderIndex": 3,
+    "orderIndex": 5,
     "status": "published",
     "payload": {
       "title": "Ví dụ minh họa — Bài 5: Ứng dụng đạo hàm để giải quyết một số vấn đề liên quan đến thực tiễn",
@@ -245,18 +555,68 @@
     }
   },
   {
-    "id": "blk_les_math12_c1_b5_04",
+    "id": "blk_les_math12_c1_b5_06",
+    "lessonId": "les_math12_c1_b5",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 6,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ vận dụng — Bài 5: Ứng dụng đạo hàm để giải quyết một số vấn đề liên quan đến thực tiễn",
+      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
+      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b5_07",
+    "lessonId": "les_math12_c1_b5",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 7,
+    "status": "published",
+    "payload": {
+      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b5_08",
+    "lessonId": "les_math12_c1_b5",
+    "blockType": "exercise",
+    "schemaVersion": 1,
+    "orderIndex": 8,
+    "status": "published",
+    "payload": {
+      "prompt": "Bài tập tự luyện (Bài 5: Ứng dụng đạo hàm để giải quyết một số vấn đề liên quan đến thực tiễn): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
+      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
+      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b5_09",
     "lessonId": "les_math12_c1_b5",
     "blockType": "summary",
     "schemaVersion": 1,
-    "orderIndex": 4,
+    "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Ghi nhớ nhanh",
+      "title": "Tổng kết bài học",
       "points": [
         "Luôn đặt điều kiện thực tế cho biến số (ví dụ độ dài dương).",
         "Kiểm tra lại dấu đạo hàm để xác định cực đại hay cực tiểu."
       ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c1_b5_10",
+    "lessonId": "les_math12_c1_b5",
+    "blockType": "reference",
+    "schemaVersion": 1,
+    "orderIndex": 10,
+    "status": "published",
+    "payload": {
+      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn",
+      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
     }
   },
   {
@@ -267,15 +627,26 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### Bài 6: Vectơ trong không gian\n\nVectơ trong không gian có các phép toán cộng (quy tắc hình hộp), trừ, nhân với một số thực và tích vô hướng tương tự trong mặt phẳng."
+      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 6: Vectơ trong không gian\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
     }
   },
   {
     "id": "blk_les_math12_c2_b1_02",
     "lessonId": "les_math12_c2_b1",
-    "blockType": "formula",
+    "blockType": "markdown",
     "schemaVersion": 1,
     "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 6: Vectơ trong không gian\n\nVectơ trong không gian có các phép toán cộng (quy tắc hình hộp), trừ, nhân với một số thực và tích vô hướng tương tự trong mặt phẳng."
+    }
+  },
+  {
+    "id": "blk_les_math12_c2_b1_03",
+    "lessonId": "les_math12_c2_b1",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 3,
     "status": "published",
     "payload": {
       "latex": "\\vec{u}\\cdot\\vec{v} = |\\vec{u}|\\cdot|\\vec{v}|\\cos(\\vec{u},\\vec{v})",
@@ -284,11 +655,22 @@
     }
   },
   {
-    "id": "blk_les_math12_c2_b1_03",
+    "id": "blk_les_math12_c2_b1_04",
+    "lessonId": "les_math12_c2_b1",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 6: Vectơ trong không gian.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+    }
+  },
+  {
+    "id": "blk_les_math12_c2_b1_05",
     "lessonId": "les_math12_c2_b1",
     "blockType": "example",
     "schemaVersion": 1,
-    "orderIndex": 3,
+    "orderIndex": 5,
     "status": "published",
     "payload": {
       "title": "Ví dụ minh họa — Bài 6: Vectơ trong không gian",
@@ -297,18 +679,68 @@
     }
   },
   {
-    "id": "blk_les_math12_c2_b1_04",
+    "id": "blk_les_math12_c2_b1_06",
+    "lessonId": "les_math12_c2_b1",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 6,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ vận dụng — Bài 6: Vectơ trong không gian",
+      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
+      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+    }
+  },
+  {
+    "id": "blk_les_math12_c2_b1_07",
+    "lessonId": "les_math12_c2_b1",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 7,
+    "status": "published",
+    "payload": {
+      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+    }
+  },
+  {
+    "id": "blk_les_math12_c2_b1_08",
+    "lessonId": "les_math12_c2_b1",
+    "blockType": "exercise",
+    "schemaVersion": 1,
+    "orderIndex": 8,
+    "status": "published",
+    "payload": {
+      "prompt": "Bài tập tự luyện (Bài 6: Vectơ trong không gian): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
+      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
+      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+    }
+  },
+  {
+    "id": "blk_les_math12_c2_b1_09",
     "lessonId": "les_math12_c2_b1",
     "blockType": "summary",
     "schemaVersion": 1,
-    "orderIndex": 4,
+    "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Ghi nhớ nhanh",
+      "title": "Tổng kết bài học",
       "points": [
         "Hai vectơ vuông góc khi và chỉ khi tích vô hướng bằng $0$.",
         "Góc giữa hai vectơ nằm trong đoạn $[0^\\circ; 180^\\circ]$."
       ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c2_b1_10",
+    "lessonId": "les_math12_c2_b1",
+    "blockType": "reference",
+    "schemaVersion": 1,
+    "orderIndex": 10,
+    "status": "published",
+    "payload": {
+      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn",
+      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
     }
   },
   {
@@ -319,15 +751,26 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### Bài 7: Hệ trục tọa độ trong không gian\n\nHệ trục $Oxyz$ gồm ba trục đôi một vuông góc với ba vectơ đơn vị $\\vec{i}, \\vec{j}, \\vec{k}$. Điểm $M(x;y;z)$ khi $\\overrightarrow{OM}=x\\vec{i}+y\\vec{j}+z\\vec{k}$."
+      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 7: Hệ trục tọa độ trong không gian\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
     }
   },
   {
     "id": "blk_les_math12_c2_b2_02",
     "lessonId": "les_math12_c2_b2",
-    "blockType": "formula",
+    "blockType": "markdown",
     "schemaVersion": 1,
     "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 7: Hệ trục tọa độ trong không gian\n\nHệ trục $Oxyz$ gồm ba trục đôi một vuông góc với ba vectơ đơn vị $\\vec{i}, \\vec{j}, \\vec{k}$. Điểm $M(x;y;z)$ khi $\\overrightarrow{OM}=x\\vec{i}+y\\vec{j}+z\\vec{k}$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c2_b2_03",
+    "lessonId": "les_math12_c2_b2",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 3,
     "status": "published",
     "payload": {
       "latex": "\\overrightarrow{AB} = (x_B-x_A;\\; y_B-y_A;\\; z_B-z_A)",
@@ -336,11 +779,22 @@
     }
   },
   {
-    "id": "blk_les_math12_c2_b2_03",
+    "id": "blk_les_math12_c2_b2_04",
+    "lessonId": "les_math12_c2_b2",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 7: Hệ trục tọa độ trong không gian.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+    }
+  },
+  {
+    "id": "blk_les_math12_c2_b2_05",
     "lessonId": "les_math12_c2_b2",
     "blockType": "example",
     "schemaVersion": 1,
-    "orderIndex": 3,
+    "orderIndex": 5,
     "status": "published",
     "payload": {
       "title": "Ví dụ minh họa — Bài 7: Hệ trục tọa độ trong không gian",
@@ -349,18 +803,68 @@
     }
   },
   {
-    "id": "blk_les_math12_c2_b2_04",
+    "id": "blk_les_math12_c2_b2_06",
+    "lessonId": "les_math12_c2_b2",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 6,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ vận dụng — Bài 7: Hệ trục tọa độ trong không gian",
+      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
+      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+    }
+  },
+  {
+    "id": "blk_les_math12_c2_b2_07",
+    "lessonId": "les_math12_c2_b2",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 7,
+    "status": "published",
+    "payload": {
+      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+    }
+  },
+  {
+    "id": "blk_les_math12_c2_b2_08",
+    "lessonId": "les_math12_c2_b2",
+    "blockType": "exercise",
+    "schemaVersion": 1,
+    "orderIndex": 8,
+    "status": "published",
+    "payload": {
+      "prompt": "Bài tập tự luyện (Bài 7: Hệ trục tọa độ trong không gian): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
+      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
+      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+    }
+  },
+  {
+    "id": "blk_les_math12_c2_b2_09",
     "lessonId": "les_math12_c2_b2",
     "blockType": "summary",
     "schemaVersion": 1,
-    "orderIndex": 4,
+    "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Ghi nhớ nhanh",
+      "title": "Tổng kết bài học",
       "points": [
         "Hình chiếu vuông góc của $M(x;y;z)$ lên $(Oxy)$ là $(x;y;0)$.",
         "Điểm đối xứng qua trục $Ox$ giữ nguyên hoành độ, đổi dấu $y, z$."
       ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c2_b2_10",
+    "lessonId": "les_math12_c2_b2",
+    "blockType": "reference",
+    "schemaVersion": 1,
+    "orderIndex": 10,
+    "status": "published",
+    "payload": {
+      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn",
+      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
     }
   },
   {
@@ -371,15 +875,26 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### Bài 8: Biểu thức tọa độ của các phép toán vectơ\n\nVới $\\vec{u}=(x_1;y_1;z_1)$ và $\\vec{v}=(x_2;y_2;z_2)$, các phép toán tổng, hiệu, tích vô hướng và độ dài được tính trực tiếp theo từng tọa độ."
+      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 8: Biểu thức tọa độ của các phép toán vectơ\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
     }
   },
   {
     "id": "blk_les_math12_c2_b3_02",
     "lessonId": "les_math12_c2_b3",
-    "blockType": "formula",
+    "blockType": "markdown",
     "schemaVersion": 1,
     "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 8: Biểu thức tọa độ của các phép toán vectơ\n\nVới $\\vec{u}=(x_1;y_1;z_1)$ và $\\vec{v}=(x_2;y_2;z_2)$, các phép toán tổng, hiệu, tích vô hướng và độ dài được tính trực tiếp theo từng tọa độ."
+    }
+  },
+  {
+    "id": "blk_les_math12_c2_b3_03",
+    "lessonId": "les_math12_c2_b3",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 3,
     "status": "published",
     "payload": {
       "latex": "\\vec{u}\\cdot\\vec{v} = x_1x_2 + y_1y_2 + z_1z_2, \\quad |\\vec{u}| = \\sqrt{x_1^2+y_1^2+z_1^2}",
@@ -388,11 +903,22 @@
     }
   },
   {
-    "id": "blk_les_math12_c2_b3_03",
+    "id": "blk_les_math12_c2_b3_04",
+    "lessonId": "les_math12_c2_b3",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 8: Biểu thức tọa độ của các phép toán vectơ.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+    }
+  },
+  {
+    "id": "blk_les_math12_c2_b3_05",
     "lessonId": "les_math12_c2_b3",
     "blockType": "example",
     "schemaVersion": 1,
-    "orderIndex": 3,
+    "orderIndex": 5,
     "status": "published",
     "payload": {
       "title": "Ví dụ minh họa — Bài 8: Biểu thức tọa độ của các phép toán vectơ",
@@ -401,18 +927,68 @@
     }
   },
   {
-    "id": "blk_les_math12_c2_b3_04",
+    "id": "blk_les_math12_c2_b3_06",
+    "lessonId": "les_math12_c2_b3",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 6,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ vận dụng — Bài 8: Biểu thức tọa độ của các phép toán vectơ",
+      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
+      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+    }
+  },
+  {
+    "id": "blk_les_math12_c2_b3_07",
+    "lessonId": "les_math12_c2_b3",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 7,
+    "status": "published",
+    "payload": {
+      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+    }
+  },
+  {
+    "id": "blk_les_math12_c2_b3_08",
+    "lessonId": "les_math12_c2_b3",
+    "blockType": "exercise",
+    "schemaVersion": 1,
+    "orderIndex": 8,
+    "status": "published",
+    "payload": {
+      "prompt": "Bài tập tự luyện (Bài 8: Biểu thức tọa độ của các phép toán vectơ): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
+      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
+      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+    }
+  },
+  {
+    "id": "blk_les_math12_c2_b3_09",
     "lessonId": "les_math12_c2_b3",
     "blockType": "summary",
     "schemaVersion": 1,
-    "orderIndex": 4,
+    "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Ghi nhớ nhanh",
+      "title": "Tổng kết bài học",
       "points": [
         "Hai vectơ cùng phương khi tọa độ tỉ lệ.",
         "Cosin góc giữa hai vectơ bằng tích vô hướng chia tích hai độ dài."
       ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c2_b3_10",
+    "lessonId": "les_math12_c2_b3",
+    "blockType": "reference",
+    "schemaVersion": 1,
+    "orderIndex": 10,
+    "status": "published",
+    "payload": {
+      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn",
+      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
     }
   },
   {
@@ -423,15 +999,26 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### Bài 9: Khoảng biến thiên và khoảng tứ phân vị\n\nKhoảng biến thiên $R$ đo độ trải rộng từ đầu mút dưới nhóm đầu đến đầu mút trên nhóm cuối; khoảng tứ phân vị $\\Delta_Q = Q_3 - Q_1$ đo độ phân tán 50% dữ liệu ở giữa."
+      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 9: Khoảng biến thiên và khoảng tứ phân vị\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
     }
   },
   {
     "id": "blk_les_math12_c3_b1_02",
     "lessonId": "les_math12_c3_b1",
-    "blockType": "formula",
+    "blockType": "markdown",
     "schemaVersion": 1,
     "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 9: Khoảng biến thiên và khoảng tứ phân vị\n\nKhoảng biến thiên $R$ đo độ trải rộng từ đầu mút dưới nhóm đầu đến đầu mút trên nhóm cuối; khoảng tứ phân vị $\\Delta_Q = Q_3 - Q_1$ đo độ phân tán 50% dữ liệu ở giữa."
+    }
+  },
+  {
+    "id": "blk_les_math12_c3_b1_03",
+    "lessonId": "les_math12_c3_b1",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 3,
     "status": "published",
     "payload": {
       "latex": "R = a_{k+1} - a_1, \\quad \\Delta_Q = Q_3 - Q_1",
@@ -440,11 +1027,22 @@
     }
   },
   {
-    "id": "blk_les_math12_c3_b1_03",
+    "id": "blk_les_math12_c3_b1_04",
+    "lessonId": "les_math12_c3_b1",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 9: Khoảng biến thiên và khoảng tứ phân vị.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+    }
+  },
+  {
+    "id": "blk_les_math12_c3_b1_05",
     "lessonId": "les_math12_c3_b1",
     "blockType": "example",
     "schemaVersion": 1,
-    "orderIndex": 3,
+    "orderIndex": 5,
     "status": "published",
     "payload": {
       "title": "Ví dụ minh họa — Bài 9: Khoảng biến thiên và khoảng tứ phân vị",
@@ -453,18 +1051,68 @@
     }
   },
   {
-    "id": "blk_les_math12_c3_b1_04",
+    "id": "blk_les_math12_c3_b1_06",
+    "lessonId": "les_math12_c3_b1",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 6,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ vận dụng — Bài 9: Khoảng biến thiên và khoảng tứ phân vị",
+      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
+      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+    }
+  },
+  {
+    "id": "blk_les_math12_c3_b1_07",
+    "lessonId": "les_math12_c3_b1",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 7,
+    "status": "published",
+    "payload": {
+      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+    }
+  },
+  {
+    "id": "blk_les_math12_c3_b1_08",
+    "lessonId": "les_math12_c3_b1",
+    "blockType": "exercise",
+    "schemaVersion": 1,
+    "orderIndex": 8,
+    "status": "published",
+    "payload": {
+      "prompt": "Bài tập tự luyện (Bài 9: Khoảng biến thiên và khoảng tứ phân vị): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
+      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
+      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+    }
+  },
+  {
+    "id": "blk_les_math12_c3_b1_09",
     "lessonId": "les_math12_c3_b1",
     "blockType": "summary",
     "schemaVersion": 1,
-    "orderIndex": 4,
+    "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Ghi nhớ nhanh",
+      "title": "Tổng kết bài học",
       "points": [
         "Khoảng tứ phân vị ít bị ảnh hưởng bởi giá trị ngoại lệ hơn khoảng biến thiên.",
         "Xác định đúng nhóm chứa $Q_1$ ($N/4$) và $Q_3$ ($3N/4$)."
       ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c3_b1_10",
+    "lessonId": "les_math12_c3_b1",
+    "blockType": "reference",
+    "schemaVersion": 1,
+    "orderIndex": 10,
+    "status": "published",
+    "payload": {
+      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn",
+      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
     }
   },
   {
@@ -475,15 +1123,26 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### Bài 10: Phương sai và độ lệch chuẩn\n\nPhương sai $s^2$ và độ lệch chuẩn $s=\\sqrt{s^2}$ của mẫu số liệu ghép nhóm được tính từ giá trị đại diện $c_i$ và tần số $n_i$ của mỗi nhóm."
+      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 10: Phương sai và độ lệch chuẩn\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
     }
   },
   {
     "id": "blk_les_math12_c3_b2_02",
     "lessonId": "les_math12_c3_b2",
-    "blockType": "formula",
+    "blockType": "markdown",
     "schemaVersion": 1,
     "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 10: Phương sai và độ lệch chuẩn\n\nPhương sai $s^2$ và độ lệch chuẩn $s=\\sqrt{s^2}$ của mẫu số liệu ghép nhóm được tính từ giá trị đại diện $c_i$ và tần số $n_i$ của mỗi nhóm."
+    }
+  },
+  {
+    "id": "blk_les_math12_c3_b2_03",
+    "lessonId": "les_math12_c3_b2",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 3,
     "status": "published",
     "payload": {
       "latex": "s^2 = \\frac{1}{n}\\sum_{i=1}^k n_i(c_i - \\bar{x})^2, \\quad s = \\sqrt{s^2}",
@@ -492,11 +1151,22 @@
     }
   },
   {
-    "id": "blk_les_math12_c3_b2_03",
+    "id": "blk_les_math12_c3_b2_04",
+    "lessonId": "les_math12_c3_b2",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 10: Phương sai và độ lệch chuẩn.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+    }
+  },
+  {
+    "id": "blk_les_math12_c3_b2_05",
     "lessonId": "les_math12_c3_b2",
     "blockType": "example",
     "schemaVersion": 1,
-    "orderIndex": 3,
+    "orderIndex": 5,
     "status": "published",
     "payload": {
       "title": "Ví dụ minh họa — Bài 10: Phương sai và độ lệch chuẩn",
@@ -505,18 +1175,68 @@
     }
   },
   {
-    "id": "blk_les_math12_c3_b2_04",
+    "id": "blk_les_math12_c3_b2_06",
+    "lessonId": "les_math12_c3_b2",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 6,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ vận dụng — Bài 10: Phương sai và độ lệch chuẩn",
+      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
+      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+    }
+  },
+  {
+    "id": "blk_les_math12_c3_b2_07",
+    "lessonId": "les_math12_c3_b2",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 7,
+    "status": "published",
+    "payload": {
+      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+    }
+  },
+  {
+    "id": "blk_les_math12_c3_b2_08",
+    "lessonId": "les_math12_c3_b2",
+    "blockType": "exercise",
+    "schemaVersion": 1,
+    "orderIndex": 8,
+    "status": "published",
+    "payload": {
+      "prompt": "Bài tập tự luyện (Bài 10: Phương sai và độ lệch chuẩn): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
+      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
+      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+    }
+  },
+  {
+    "id": "blk_les_math12_c3_b2_09",
     "lessonId": "les_math12_c3_b2",
     "blockType": "summary",
     "schemaVersion": 1,
-    "orderIndex": 4,
+    "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Ghi nhớ nhanh",
+      "title": "Tổng kết bài học",
       "points": [
         "Độ lệch chuẩn có cùng đơn vị đo với dữ liệu gốc.",
         "Độ lệch chuẩn càng nhỏ thì số liệu càng tập trung quanh giá trị trung bình."
       ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c3_b2_10",
+    "lessonId": "les_math12_c3_b2",
+    "blockType": "reference",
+    "schemaVersion": 1,
+    "orderIndex": 10,
+    "status": "published",
+    "payload": {
+      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn",
+      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
     }
   },
   {
@@ -527,15 +1247,26 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### Bài 11: Nguyên hàm\n\nHàm số $F(x)$ là nguyên hàm của $f(x)$ trên $K$ nếu $F'(x)=f(x)$ với mọi $x\\in K$. Mọi nguyên hàm đều có dạng $F(x)+C$."
+      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 11: Nguyên hàm\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
     }
   },
   {
     "id": "blk_les_math12_c4_b1_02",
     "lessonId": "les_math12_c4_b1",
-    "blockType": "formula",
+    "blockType": "markdown",
     "schemaVersion": 1,
     "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 11: Nguyên hàm\n\nHàm số $F(x)$ là nguyên hàm của $f(x)$ trên $K$ nếu $F'(x)=f(x)$ với mọi $x\\in K$. Mọi nguyên hàm đều có dạng $F(x)+C$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c4_b1_03",
+    "lessonId": "les_math12_c4_b1",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 3,
     "status": "published",
     "payload": {
       "latex": "\\int x^\\alpha dx = \\frac{x^{\\alpha+1}}{\\alpha+1}+C \\;(\\alpha\\ne -1), \\quad \\int e^x dx = e^x + C",
@@ -544,11 +1275,22 @@
     }
   },
   {
-    "id": "blk_les_math12_c4_b1_03",
+    "id": "blk_les_math12_c4_b1_04",
+    "lessonId": "les_math12_c4_b1",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 11: Nguyên hàm.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+    }
+  },
+  {
+    "id": "blk_les_math12_c4_b1_05",
     "lessonId": "les_math12_c4_b1",
     "blockType": "example",
     "schemaVersion": 1,
-    "orderIndex": 3,
+    "orderIndex": 5,
     "status": "published",
     "payload": {
       "title": "Ví dụ minh họa — Bài 11: Nguyên hàm",
@@ -557,18 +1299,68 @@
     }
   },
   {
-    "id": "blk_les_math12_c4_b1_04",
+    "id": "blk_les_math12_c4_b1_06",
+    "lessonId": "les_math12_c4_b1",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 6,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ vận dụng — Bài 11: Nguyên hàm",
+      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
+      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+    }
+  },
+  {
+    "id": "blk_les_math12_c4_b1_07",
+    "lessonId": "les_math12_c4_b1",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 7,
+    "status": "published",
+    "payload": {
+      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+    }
+  },
+  {
+    "id": "blk_les_math12_c4_b1_08",
+    "lessonId": "les_math12_c4_b1",
+    "blockType": "exercise",
+    "schemaVersion": 1,
+    "orderIndex": 8,
+    "status": "published",
+    "payload": {
+      "prompt": "Bài tập tự luyện (Bài 11: Nguyên hàm): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
+      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
+      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+    }
+  },
+  {
+    "id": "blk_les_math12_c4_b1_09",
     "lessonId": "les_math12_c4_b1",
     "blockType": "summary",
     "schemaVersion": 1,
-    "orderIndex": 4,
+    "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Ghi nhớ nhanh",
+      "title": "Tổng kết bài học",
       "points": [
         "Không quên hằng số $C$ khi viết họ nguyên hàm.",
         "Với $\\int \\frac{1}{x}dx = \\ln|x|+C$, phải có giá trị tuyệt đối."
       ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c4_b1_10",
+    "lessonId": "les_math12_c4_b1",
+    "blockType": "reference",
+    "schemaVersion": 1,
+    "orderIndex": 10,
+    "status": "published",
+    "payload": {
+      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn",
+      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
     }
   },
   {
@@ -579,15 +1371,26 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### Bài 12: Tích phân\n\nTheo công thức Newton-Leibniz, nếu $F(x)$ là một nguyên hàm của $f(x)$ liên tục trên $[a;b]$ thì $\\int_a^b f(x)dx = F(b)-F(a)$."
+      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 12: Tích phân\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
     }
   },
   {
     "id": "blk_les_math12_c4_b2_02",
     "lessonId": "les_math12_c4_b2",
-    "blockType": "formula",
+    "blockType": "markdown",
     "schemaVersion": 1,
     "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 12: Tích phân\n\nTheo công thức Newton-Leibniz, nếu $F(x)$ là một nguyên hàm của $f(x)$ liên tục trên $[a;b]$ thì $\\int_a^b f(x)dx = F(b)-F(a)$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c4_b2_03",
+    "lessonId": "les_math12_c4_b2",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 3,
     "status": "published",
     "payload": {
       "latex": "\\int_a^b f(x)\\,dx = F(b) - F(a)",
@@ -596,11 +1399,22 @@
     }
   },
   {
-    "id": "blk_les_math12_c4_b2_03",
+    "id": "blk_les_math12_c4_b2_04",
+    "lessonId": "les_math12_c4_b2",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 12: Tích phân.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+    }
+  },
+  {
+    "id": "blk_les_math12_c4_b2_05",
     "lessonId": "les_math12_c4_b2",
     "blockType": "example",
     "schemaVersion": 1,
-    "orderIndex": 3,
+    "orderIndex": 5,
     "status": "published",
     "payload": {
       "title": "Ví dụ minh họa — Bài 12: Tích phân",
@@ -609,18 +1423,68 @@
     }
   },
   {
-    "id": "blk_les_math12_c4_b2_04",
+    "id": "blk_les_math12_c4_b2_06",
+    "lessonId": "les_math12_c4_b2",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 6,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ vận dụng — Bài 12: Tích phân",
+      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
+      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+    }
+  },
+  {
+    "id": "blk_les_math12_c4_b2_07",
+    "lessonId": "les_math12_c4_b2",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 7,
+    "status": "published",
+    "payload": {
+      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+    }
+  },
+  {
+    "id": "blk_les_math12_c4_b2_08",
+    "lessonId": "les_math12_c4_b2",
+    "blockType": "exercise",
+    "schemaVersion": 1,
+    "orderIndex": 8,
+    "status": "published",
+    "payload": {
+      "prompt": "Bài tập tự luyện (Bài 12: Tích phân): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
+      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
+      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+    }
+  },
+  {
+    "id": "blk_les_math12_c4_b2_09",
     "lessonId": "les_math12_c4_b2",
     "blockType": "summary",
     "schemaVersion": 1,
-    "orderIndex": 4,
+    "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Ghi nhớ nhanh",
+      "title": "Tổng kết bài học",
       "points": [
         "Đổi cận ngay khi dùng phép đổi biến số.",
         "Tích phân $\\int_a^b f(x)dx$ không phụ thuộc vào ký hiệu biến lấy tích phân."
       ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c4_b2_10",
+    "lessonId": "les_math12_c4_b2",
+    "blockType": "reference",
+    "schemaVersion": 1,
+    "orderIndex": 10,
+    "status": "published",
+    "payload": {
+      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn",
+      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
     }
   },
   {
@@ -631,15 +1495,26 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### Bài 13: Ứng dụng hình học của tích phân\n\nDiện tích hình phẳng giới hạn bởi $y=f(x), y=g(x), x=a, x=b$ là $\\int_a^b |f(x)-g(x)|dx$. Thể tích khối tròn xoay quanh $Ox$ là $\\pi\\int_a^b [f(x)]^2 dx$."
+      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 13: Ứng dụng hình học của tích phân\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
     }
   },
   {
     "id": "blk_les_math12_c4_b3_02",
     "lessonId": "les_math12_c4_b3",
-    "blockType": "formula",
+    "blockType": "markdown",
     "schemaVersion": 1,
     "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 13: Ứng dụng hình học của tích phân\n\nDiện tích hình phẳng giới hạn bởi $y=f(x), y=g(x), x=a, x=b$ là $\\int_a^b |f(x)-g(x)|dx$. Thể tích khối tròn xoay quanh $Ox$ là $\\pi\\int_a^b [f(x)]^2 dx$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c4_b3_03",
+    "lessonId": "les_math12_c4_b3",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 3,
     "status": "published",
     "payload": {
       "latex": "S = \\int_a^b |f(x)-g(x)|\\,dx, \\quad V = \\pi\\int_a^b [f(x)]^2\\,dx",
@@ -648,11 +1523,22 @@
     }
   },
   {
-    "id": "blk_les_math12_c4_b3_03",
+    "id": "blk_les_math12_c4_b3_04",
+    "lessonId": "les_math12_c4_b3",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 13: Ứng dụng hình học của tích phân.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+    }
+  },
+  {
+    "id": "blk_les_math12_c4_b3_05",
     "lessonId": "les_math12_c4_b3",
     "blockType": "example",
     "schemaVersion": 1,
-    "orderIndex": 3,
+    "orderIndex": 5,
     "status": "published",
     "payload": {
       "title": "Ví dụ minh họa — Bài 13: Ứng dụng hình học của tích phân",
@@ -661,18 +1547,68 @@
     }
   },
   {
-    "id": "blk_les_math12_c4_b3_04",
+    "id": "blk_les_math12_c4_b3_06",
+    "lessonId": "les_math12_c4_b3",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 6,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ vận dụng — Bài 13: Ứng dụng hình học của tích phân",
+      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
+      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+    }
+  },
+  {
+    "id": "blk_les_math12_c4_b3_07",
+    "lessonId": "les_math12_c4_b3",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 7,
+    "status": "published",
+    "payload": {
+      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+    }
+  },
+  {
+    "id": "blk_les_math12_c4_b3_08",
+    "lessonId": "les_math12_c4_b3",
+    "blockType": "exercise",
+    "schemaVersion": 1,
+    "orderIndex": 8,
+    "status": "published",
+    "payload": {
+      "prompt": "Bài tập tự luyện (Bài 13: Ứng dụng hình học của tích phân): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
+      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
+      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+    }
+  },
+  {
+    "id": "blk_les_math12_c4_b3_09",
     "lessonId": "les_math12_c4_b3",
     "blockType": "summary",
     "schemaVersion": 1,
-    "orderIndex": 4,
+    "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Ghi nhớ nhanh",
+      "title": "Tổng kết bài học",
       "points": [
         "Luôn giữ dấu giá trị tuyệt đối khi $f(x)-g(x)$ đổi dấu trên $[a;b]$.",
         "Thể tích khối tròn xoay luôn có hệ số $\\pi$."
       ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c4_b3_10",
+    "lessonId": "les_math12_c4_b3",
+    "blockType": "reference",
+    "schemaVersion": 1,
+    "orderIndex": 10,
+    "status": "published",
+    "payload": {
+      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn",
+      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
     }
   },
   {
@@ -683,15 +1619,26 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### Bài 14: Phương trình mặt phẳng\n\nMặt phẳng đi qua $M_0(x_0;y_0;z_0)$ nhận $\\vec{n}=(A;B;C)\\ne\\vec{0}$ làm vectơ pháp tuyến có phương trình $A(x-x_0)+B(y-y_0)+C(z-z_0)=0$."
+      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 14: Phương trình mặt phẳng\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
     }
   },
   {
     "id": "blk_les_math12_c5_b1_02",
     "lessonId": "les_math12_c5_b1",
-    "blockType": "formula",
+    "blockType": "markdown",
     "schemaVersion": 1,
     "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 14: Phương trình mặt phẳng\n\nMặt phẳng đi qua $M_0(x_0;y_0;z_0)$ nhận $\\vec{n}=(A;B;C)\\ne\\vec{0}$ làm vectơ pháp tuyến có phương trình $A(x-x_0)+B(y-y_0)+C(z-z_0)=0$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b1_03",
+    "lessonId": "les_math12_c5_b1",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 3,
     "status": "published",
     "payload": {
       "latex": "d(M,(P)) = \\frac{|Ax_M + By_M + Cz_M + D|}{\\sqrt{A^2+B^2+C^2}}",
@@ -700,11 +1647,22 @@
     }
   },
   {
-    "id": "blk_les_math12_c5_b1_03",
+    "id": "blk_les_math12_c5_b1_04",
+    "lessonId": "les_math12_c5_b1",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 14: Phương trình mặt phẳng.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b1_05",
     "lessonId": "les_math12_c5_b1",
     "blockType": "example",
     "schemaVersion": 1,
-    "orderIndex": 3,
+    "orderIndex": 5,
     "status": "published",
     "payload": {
       "title": "Ví dụ minh họa — Bài 14: Phương trình mặt phẳng",
@@ -713,18 +1671,68 @@
     }
   },
   {
-    "id": "blk_les_math12_c5_b1_04",
+    "id": "blk_les_math12_c5_b1_06",
+    "lessonId": "les_math12_c5_b1",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 6,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ vận dụng — Bài 14: Phương trình mặt phẳng",
+      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
+      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b1_07",
+    "lessonId": "les_math12_c5_b1",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 7,
+    "status": "published",
+    "payload": {
+      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b1_08",
+    "lessonId": "les_math12_c5_b1",
+    "blockType": "exercise",
+    "schemaVersion": 1,
+    "orderIndex": 8,
+    "status": "published",
+    "payload": {
+      "prompt": "Bài tập tự luyện (Bài 14: Phương trình mặt phẳng): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
+      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
+      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b1_09",
     "lessonId": "les_math12_c5_b1",
     "blockType": "summary",
     "schemaVersion": 1,
-    "orderIndex": 4,
+    "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Ghi nhớ nhanh",
+      "title": "Tổng kết bài học",
       "points": [
         "Nếu có cặp vectơ chỉ phương $\\vec{u}, \\vec{v}$, lấy tích có hướng $\\vec{n}=[\\vec{u},\\vec{v}]$.",
         "Hai mặt phẳng song song khi $\\vec{n}_1$ cùng phương $\\vec{n}_2$ và $D_1 \\ne kD_2$."
       ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b1_10",
+    "lessonId": "les_math12_c5_b1",
+    "blockType": "reference",
+    "schemaVersion": 1,
+    "orderIndex": 10,
+    "status": "published",
+    "payload": {
+      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn",
+      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
     }
   },
   {
@@ -735,15 +1743,26 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### Bài 15: Phương trình đường thẳng trong không gian\n\nĐường thẳng đi qua $M_0(x_0;y_0;z_0)$ với vectơ chỉ phương $\\vec{u}=(a;b;c)\\ne\\vec{0}$ có phương trình tham số $x=x_0+at, y=y_0+bt, z=z_0+ct$."
+      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 15: Phương trình đường thẳng trong không gian\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
     }
   },
   {
     "id": "blk_les_math12_c5_b2_02",
     "lessonId": "les_math12_c5_b2",
-    "blockType": "formula",
+    "blockType": "markdown",
     "schemaVersion": 1,
     "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 15: Phương trình đường thẳng trong không gian\n\nĐường thẳng đi qua $M_0(x_0;y_0;z_0)$ với vectơ chỉ phương $\\vec{u}=(a;b;c)\\ne\\vec{0}$ có phương trình tham số $x=x_0+at, y=y_0+bt, z=z_0+ct$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b2_03",
+    "lessonId": "les_math12_c5_b2",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 3,
     "status": "published",
     "payload": {
       "latex": "\\frac{x-x_0}{a} = \\frac{y-y_0}{b} = \\frac{z-z_0}{c} \\quad (abc \\ne 0)",
@@ -752,11 +1771,22 @@
     }
   },
   {
-    "id": "blk_les_math12_c5_b2_03",
+    "id": "blk_les_math12_c5_b2_04",
+    "lessonId": "les_math12_c5_b2",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 15: Phương trình đường thẳng trong không gian.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b2_05",
     "lessonId": "les_math12_c5_b2",
     "blockType": "example",
     "schemaVersion": 1,
-    "orderIndex": 3,
+    "orderIndex": 5,
     "status": "published",
     "payload": {
       "title": "Ví dụ minh họa — Bài 15: Phương trình đường thẳng trong không gian",
@@ -765,18 +1795,68 @@
     }
   },
   {
-    "id": "blk_les_math12_c5_b2_04",
+    "id": "blk_les_math12_c5_b2_06",
+    "lessonId": "les_math12_c5_b2",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 6,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ vận dụng — Bài 15: Phương trình đường thẳng trong không gian",
+      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
+      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b2_07",
+    "lessonId": "les_math12_c5_b2",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 7,
+    "status": "published",
+    "payload": {
+      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b2_08",
+    "lessonId": "les_math12_c5_b2",
+    "blockType": "exercise",
+    "schemaVersion": 1,
+    "orderIndex": 8,
+    "status": "published",
+    "payload": {
+      "prompt": "Bài tập tự luyện (Bài 15: Phương trình đường thẳng trong không gian): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
+      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
+      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b2_09",
     "lessonId": "les_math12_c5_b2",
     "blockType": "summary",
     "schemaVersion": 1,
-    "orderIndex": 4,
+    "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Ghi nhớ nhanh",
+      "title": "Tổng kết bài học",
       "points": [
         "Khi mẫu bằng 0, chỉ viết phương trình tham số thay vì chính tắc.",
         "Xét vị trí tương đối dựa trên hệ số góc $[\\vec{u}_1,\\vec{u}_2]$ và tích hỗn tạp."
       ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b2_10",
+    "lessonId": "les_math12_c5_b2",
+    "blockType": "reference",
+    "schemaVersion": 1,
+    "orderIndex": 10,
+    "status": "published",
+    "payload": {
+      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn",
+      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
     }
   },
   {
@@ -787,15 +1867,26 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### Bài 16: Công thức tính góc trong không gian\n\nGóc giữa hai đường thẳng, đường thẳng và mặt phẳng, hoặc hai mặt phẳng đều nằm trong $[0^\\circ; 90^\\circ]$ nên luôn lấy trị tuyệt đối ở tử số."
+      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 16: Công thức tính góc trong không gian\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
     }
   },
   {
     "id": "blk_les_math12_c5_b3_02",
     "lessonId": "les_math12_c5_b3",
-    "blockType": "formula",
+    "blockType": "markdown",
     "schemaVersion": 1,
     "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 16: Công thức tính góc trong không gian\n\nGóc giữa hai đường thẳng, đường thẳng và mặt phẳng, hoặc hai mặt phẳng đều nằm trong $[0^\\circ; 90^\\circ]$ nên luôn lấy trị tuyệt đối ở tử số."
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b3_03",
+    "lessonId": "les_math12_c5_b3",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 3,
     "status": "published",
     "payload": {
       "latex": "\\sin(d,(P)) = \\frac{|\\vec{u}\\cdot\\vec{n}|}{|\\vec{u}|\\cdot|\\vec{n}|}, \\quad \\cos((P),(Q)) = \\frac{|\\vec{n}_1\\cdot\\vec{n}_2|}{|\\vec{n}_1|\\cdot|\\vec{n}_2|}",
@@ -804,11 +1895,22 @@
     }
   },
   {
-    "id": "blk_les_math12_c5_b3_03",
+    "id": "blk_les_math12_c5_b3_04",
+    "lessonId": "les_math12_c5_b3",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 16: Công thức tính góc trong không gian.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b3_05",
     "lessonId": "les_math12_c5_b3",
     "blockType": "example",
     "schemaVersion": 1,
-    "orderIndex": 3,
+    "orderIndex": 5,
     "status": "published",
     "payload": {
       "title": "Ví dụ minh họa — Bài 16: Công thức tính góc trong không gian",
@@ -817,18 +1919,68 @@
     }
   },
   {
-    "id": "blk_les_math12_c5_b3_04",
+    "id": "blk_les_math12_c5_b3_06",
+    "lessonId": "les_math12_c5_b3",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 6,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ vận dụng — Bài 16: Công thức tính góc trong không gian",
+      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
+      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b3_07",
+    "lessonId": "les_math12_c5_b3",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 7,
+    "status": "published",
+    "payload": {
+      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b3_08",
+    "lessonId": "les_math12_c5_b3",
+    "blockType": "exercise",
+    "schemaVersion": 1,
+    "orderIndex": 8,
+    "status": "published",
+    "payload": {
+      "prompt": "Bài tập tự luyện (Bài 16: Công thức tính góc trong không gian): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
+      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
+      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b3_09",
     "lessonId": "les_math12_c5_b3",
     "blockType": "summary",
     "schemaVersion": 1,
-    "orderIndex": 4,
+    "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Ghi nhớ nhanh",
+      "title": "Tổng kết bài học",
       "points": [
         "Nhớ phân biệt $\\sin$ cho góc giữa đường thẳng và mặt phẳng.",
         "Luôn dùng trị tuyệt đối để kết quả góc không tù."
       ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b3_10",
+    "lessonId": "les_math12_c5_b3",
+    "blockType": "reference",
+    "schemaVersion": 1,
+    "orderIndex": 10,
+    "status": "published",
+    "payload": {
+      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn",
+      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
     }
   },
   {
@@ -839,15 +1991,26 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### Bài 17: Phương trình mặt cầu\n\nMặt cầu tâm $I(a;b;c)$ bán kính $R>0$ có phương trình $(x-a)^2+(y-b)^2+(z-c)^2=R^2$. Dạng khai triển $x^2+y^2+z^2-2ax-2by-2cz+d=0$ với $R=\\sqrt{a^2+b^2+c^2-d}$."
+      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 17: Phương trình mặt cầu\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
     }
   },
   {
     "id": "blk_les_math12_c5_b4_02",
     "lessonId": "les_math12_c5_b4",
-    "blockType": "formula",
+    "blockType": "markdown",
     "schemaVersion": 1,
     "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 17: Phương trình mặt cầu\n\nMặt cầu tâm $I(a;b;c)$ bán kính $R>0$ có phương trình $(x-a)^2+(y-b)^2+(z-c)^2=R^2$. Dạng khai triển $x^2+y^2+z^2-2ax-2by-2cz+d=0$ với $R=\\sqrt{a^2+b^2+c^2-d}$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b4_03",
+    "lessonId": "les_math12_c5_b4",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 3,
     "status": "published",
     "payload": {
       "latex": "(x-a)^2 + (y-b)^2 + (z-c)^2 = R^2",
@@ -856,11 +2019,22 @@
     }
   },
   {
-    "id": "blk_les_math12_c5_b4_03",
+    "id": "blk_les_math12_c5_b4_04",
+    "lessonId": "les_math12_c5_b4",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 17: Phương trình mặt cầu.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b4_05",
     "lessonId": "les_math12_c5_b4",
     "blockType": "example",
     "schemaVersion": 1,
-    "orderIndex": 3,
+    "orderIndex": 5,
     "status": "published",
     "payload": {
       "title": "Ví dụ minh họa — Bài 17: Phương trình mặt cầu",
@@ -869,18 +2043,68 @@
     }
   },
   {
-    "id": "blk_les_math12_c5_b4_04",
+    "id": "blk_les_math12_c5_b4_06",
+    "lessonId": "les_math12_c5_b4",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 6,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ vận dụng — Bài 17: Phương trình mặt cầu",
+      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
+      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b4_07",
+    "lessonId": "les_math12_c5_b4",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 7,
+    "status": "published",
+    "payload": {
+      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b4_08",
+    "lessonId": "les_math12_c5_b4",
+    "blockType": "exercise",
+    "schemaVersion": 1,
+    "orderIndex": 8,
+    "status": "published",
+    "payload": {
+      "prompt": "Bài tập tự luyện (Bài 17: Phương trình mặt cầu): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
+      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
+      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b4_09",
     "lessonId": "les_math12_c5_b4",
     "blockType": "summary",
     "schemaVersion": 1,
-    "orderIndex": 4,
+    "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Ghi nhớ nhanh",
+      "title": "Tổng kết bài học",
       "points": [
         "Kiểm tra điều kiện $a^2+b^2+c^2-d > 0$ trước khi kết luận là mặt cầu.",
         "Mặt cầu tiếp xúc mặt phẳng $(P)$ khi $d(I,(P)) = R$."
       ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c5_b4_10",
+    "lessonId": "les_math12_c5_b4",
+    "blockType": "reference",
+    "schemaVersion": 1,
+    "orderIndex": 10,
+    "status": "published",
+    "payload": {
+      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn",
+      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
     }
   },
   {
@@ -891,15 +2115,26 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### Bài 18: Xác suất có điều kiện\n\nXác suất của biến cố $A$ khi biết biến cố $B$ ($P(B)>0$) đã xảy ra là $P(A\\mid B) = \\frac{P(A\\cap B)}{P(B)}$."
+      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 18: Xác suất có điều kiện\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
     }
   },
   {
     "id": "blk_les_math12_c6_b1_02",
     "lessonId": "les_math12_c6_b1",
-    "blockType": "formula",
+    "blockType": "markdown",
     "schemaVersion": 1,
     "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 18: Xác suất có điều kiện\n\nXác suất của biến cố $A$ khi biết biến cố $B$ ($P(B)>0$) đã xảy ra là $P(A\\mid B) = \\frac{P(A\\cap B)}{P(B)}$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c6_b1_03",
+    "lessonId": "les_math12_c6_b1",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 3,
     "status": "published",
     "payload": {
       "latex": "P(A\\mid B) = \\frac{P(A\\cap B)}{P(B)}, \\quad P(A\\cap B) = P(B)\\cdot P(A\\mid B)",
@@ -908,11 +2143,22 @@
     }
   },
   {
-    "id": "blk_les_math12_c6_b1_03",
+    "id": "blk_les_math12_c6_b1_04",
+    "lessonId": "les_math12_c6_b1",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 18: Xác suất có điều kiện.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+    }
+  },
+  {
+    "id": "blk_les_math12_c6_b1_05",
     "lessonId": "les_math12_c6_b1",
     "blockType": "example",
     "schemaVersion": 1,
-    "orderIndex": 3,
+    "orderIndex": 5,
     "status": "published",
     "payload": {
       "title": "Ví dụ minh họa — Bài 18: Xác suất có điều kiện",
@@ -921,18 +2167,68 @@
     }
   },
   {
-    "id": "blk_les_math12_c6_b1_04",
+    "id": "blk_les_math12_c6_b1_06",
+    "lessonId": "les_math12_c6_b1",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 6,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ vận dụng — Bài 18: Xác suất có điều kiện",
+      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
+      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+    }
+  },
+  {
+    "id": "blk_les_math12_c6_b1_07",
+    "lessonId": "les_math12_c6_b1",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 7,
+    "status": "published",
+    "payload": {
+      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+    }
+  },
+  {
+    "id": "blk_les_math12_c6_b1_08",
+    "lessonId": "les_math12_c6_b1",
+    "blockType": "exercise",
+    "schemaVersion": 1,
+    "orderIndex": 8,
+    "status": "published",
+    "payload": {
+      "prompt": "Bài tập tự luyện (Bài 18: Xác suất có điều kiện): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
+      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
+      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+    }
+  },
+  {
+    "id": "blk_les_math12_c6_b1_09",
     "lessonId": "les_math12_c6_b1",
     "blockType": "summary",
     "schemaVersion": 1,
-    "orderIndex": 4,
+    "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Ghi nhớ nhanh",
+      "title": "Tổng kết bài học",
       "points": [
         "$A$ và $B$ độc lập khi và chỉ khi $P(A\\mid B) = P(A)$.",
         "Có thể thu gọn không gian mẫu về riêng biến cố $B$."
       ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c6_b1_10",
+    "lessonId": "les_math12_c6_b1",
+    "blockType": "reference",
+    "schemaVersion": 1,
+    "orderIndex": 10,
+    "status": "published",
+    "payload": {
+      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn",
+      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
     }
   },
   {
@@ -943,15 +2239,26 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### Bài 19: Công thức xác suất toàn phần và công thức Bayes\n\nKhi $\\{A, \\bar{A}\\}$ phân hoạch không gian mẫu, $P(B) = P(A)P(B\\mid A) + P(\\bar{A})P(B\\mid \\bar{A})$ và $P(A\\mid B) = \\frac{P(A)P(B\\mid A)}{P(B)}$."
+      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 19: Công thức xác suất toàn phần và công thức Bayes\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
     }
   },
   {
     "id": "blk_les_math12_c6_b2_02",
     "lessonId": "les_math12_c6_b2",
-    "blockType": "formula",
+    "blockType": "markdown",
     "schemaVersion": 1,
     "orderIndex": 2,
+    "status": "published",
+    "payload": {
+      "content": "### Bài 19: Công thức xác suất toàn phần và công thức Bayes\n\nKhi $\\{A, \\bar{A}\\}$ phân hoạch không gian mẫu, $P(B) = P(A)P(B\\mid A) + P(\\bar{A})P(B\\mid \\bar{A})$ và $P(A\\mid B) = \\frac{P(A)P(B\\mid A)}{P(B)}$."
+    }
+  },
+  {
+    "id": "blk_les_math12_c6_b2_03",
+    "lessonId": "les_math12_c6_b2",
+    "blockType": "formula",
+    "schemaVersion": 1,
+    "orderIndex": 3,
     "status": "published",
     "payload": {
       "latex": "P(A\\mid B) = \\frac{P(A)\\,P(B\\mid A)}{P(A)\\,P(B\\mid A) + P(\\bar{A})\\,P(B\\mid \\bar{A})}",
@@ -960,11 +2267,22 @@
     }
   },
   {
-    "id": "blk_les_math12_c6_b2_03",
+    "id": "blk_les_math12_c6_b2_04",
+    "lessonId": "les_math12_c6_b2",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 4,
+    "status": "published",
+    "payload": {
+      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 19: Công thức xác suất toàn phần và công thức Bayes.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+    }
+  },
+  {
+    "id": "blk_les_math12_c6_b2_05",
     "lessonId": "les_math12_c6_b2",
     "blockType": "example",
     "schemaVersion": 1,
-    "orderIndex": 3,
+    "orderIndex": 5,
     "status": "published",
     "payload": {
       "title": "Ví dụ minh họa — Bài 19: Công thức xác suất toàn phần và công thức Bayes",
@@ -973,18 +2291,68 @@
     }
   },
   {
-    "id": "blk_les_math12_c6_b2_04",
+    "id": "blk_les_math12_c6_b2_06",
+    "lessonId": "les_math12_c6_b2",
+    "blockType": "example",
+    "schemaVersion": 1,
+    "orderIndex": 6,
+    "status": "published",
+    "payload": {
+      "title": "Ví dụ vận dụng — Bài 19: Công thức xác suất toàn phần và công thức Bayes",
+      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
+      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+    }
+  },
+  {
+    "id": "blk_les_math12_c6_b2_07",
+    "lessonId": "les_math12_c6_b2",
+    "blockType": "markdown",
+    "schemaVersion": 1,
+    "orderIndex": 7,
+    "status": "published",
+    "payload": {
+      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+    }
+  },
+  {
+    "id": "blk_les_math12_c6_b2_08",
+    "lessonId": "les_math12_c6_b2",
+    "blockType": "exercise",
+    "schemaVersion": 1,
+    "orderIndex": 8,
+    "status": "published",
+    "payload": {
+      "prompt": "Bài tập tự luyện (Bài 19: Công thức xác suất toàn phần và công thức Bayes): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
+      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
+      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+    }
+  },
+  {
+    "id": "blk_les_math12_c6_b2_09",
     "lessonId": "les_math12_c6_b2",
     "blockType": "summary",
     "schemaVersion": 1,
-    "orderIndex": 4,
+    "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Ghi nhớ nhanh",
+      "title": "Tổng kết bài học",
       "points": [
         "Vẽ sơ đồ hình cây hai tầng để tránh nhầm nhánh xác suất.",
         "Tổng các xác suất nhánh xuất phát từ cùng một đỉnh luôn bằng $1$."
       ]
+    }
+  },
+  {
+    "id": "blk_les_math12_c6_b2_10",
+    "lessonId": "les_math12_c6_b2",
+    "blockType": "reference",
+    "schemaVersion": 1,
+    "orderIndex": 10,
+    "status": "published",
+    "payload": {
+      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn",
+      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
     }
   }
 ]

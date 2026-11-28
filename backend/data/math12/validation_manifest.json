@@ -1,0 +1,1808 @@
+{
+  "datasetVersion": "1.0.0",
+  "auditedAt": "2026-11-28T04:38:20.386697+00:00",
+  "sympyVersion": "1.14.0",
+  "totalQuestions": 112,
+  "totalLessons": 19,
+  "totalLessonBlocks": 190,
+  "summary": {
+    "AUTO_CHECK_PASSED": 112,
+    "HUMAN_REVIEW_REQUIRED": 0,
+    "danglingReferenceIds": [],
+    "katexIssueIds": []
+  },
+  "records": [
+    {
+      "recordId": "q_m12_c1_01",
+      "recordType": "question",
+      "lessonId": "les_math12_c1_b1",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$(0; 2)$",
+      "computedAnswer": "$(0; 2)$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "2ebafcaf78763a8b1d353d28ff0024fbe312733e456c69967e989c12a9d1801f",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c1_02",
+      "recordType": "question",
+      "lessonId": "les_math12_c1_b1",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$-2$",
+      "computedAnswer": "$-2$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "7f5e3de900b1d037eeb9e2f8ee04215c78031d9200b5fda243dc7d65035e1c52",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c1_03",
+      "recordType": "question",
+      "lessonId": "les_math12_c1_b2",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$3$",
+      "computedAnswer": "$3$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "db54e3464a028c78e17551b0eb827248494dcadd76d7ae843188a183ec7541a6",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c1_04",
+      "recordType": "question",
+      "lessonId": "les_math12_c1_b2",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$4$",
+      "computedAnswer": "$4$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "11547a48ec5b4188384cd404b0d5e19330228341f546506eb6d7b21bd1d9548c",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c1_05",
+      "recordType": "question",
+      "lessonId": "les_math12_c1_b3",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$y = 2$",
+      "computedAnswer": "$y = 2$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "e48dfbb5a0938a3161788933c8f69f176ac76289ce0ac9adcb98af9c8acd3315",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c1_06",
+      "recordType": "question",
+      "lessonId": "les_math12_c1_b3",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$y = x + 1$",
+      "computedAnswer": "$y = x + 1$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "04a2515a71afd01e3c6612ad2292f47b0d496ad39dade2091b7d57d54a3c201a",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c1_07",
+      "recordType": "question",
+      "lessonId": "les_math12_c1_b4",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$(1; 0)$",
+      "computedAnswer": "$(1; 0)$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "eb7563f2b5deb0ff9fe3b6acb9165998d2e4cd327211be9863d880dabc7dc70c",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c1_08",
+      "recordType": "question",
+      "lessonId": "les_math12_c1_b4",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$(1; 2)$",
+      "computedAnswer": "$(1; 2)$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "12a27e9667835d4d03afc4745c36ed5241e4ad688e18740da2a3e8fe115064de",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c1_09",
+      "recordType": "question",
+      "lessonId": "les_math12_c1_b5",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$25\\text{ m}^2$",
+      "computedAnswer": "$25\\text{ m}^2$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "e4a92908649b33b053f92d049fd0de3251bbef288e333b06cfd4288129b49057",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c1_10",
+      "recordType": "question",
+      "lessonId": "les_math12_c1_b5",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$12\\text{ m/s}$",
+      "computedAnswer": "$12\\text{ m/s}$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "654c11eca0fbb3d63d49fb3652b21fea1c7e07d8d42c188a3f5daa04726bebe7",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c1_11",
+      "recordType": "question",
+      "lessonId": "les_math12_c1_b1",
+      "questionType": "true-false-group",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "true,false,true,true",
+      "computedAnswer": "true,false,true,true",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "ff614ef826a51bf31bf22ece7dcafd45435031863abb8a727d7c05112775e695",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c1_12",
+      "recordType": "question",
+      "lessonId": "les_math12_c1_b3",
+      "questionType": "true-false-group",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "true,true,false,true",
+      "computedAnswer": "true,true,false,true",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "c8fb54f64be9bf43adc5eafd1f4f0ccee6d4ea33ab56950d1568b860d920ebca",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c1_13",
+      "recordType": "question",
+      "lessonId": "les_math12_c1_b2",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "3",
+      "computedAnswer": "3",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "fc06a38420d8ccff07841c3ecada207d4e828a319400d3ecb0a79a9806a2768d",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c1_14",
+      "recordType": "question",
+      "lessonId": "les_math12_c1_b5",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "25",
+      "computedAnswer": "25",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "2be527cbdbbb23117cdd66cb43d5a16354b445e10aeb7baba1656424706bacf0",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c1_15",
+      "recordType": "question",
+      "lessonId": "les_math12_c1_b1",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "2",
+      "computedAnswer": "2",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "fed30f6ba180edc87f409cc5e19af18228f03a06cdd7dfa34ba054d8b9db048c",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c2_01",
+      "recordType": "question",
+      "lessonId": "les_math12_c2_b1",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$\\overrightarrow{AC'}$",
+      "computedAnswer": "$\\overrightarrow{AC'}$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "00f70821f222fa78a6cd6769c089439c959187655d83e50af2f6f1fa1cebca4c",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c2_02",
+      "recordType": "question",
+      "lessonId": "les_math12_c2_b1",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$0$",
+      "computedAnswer": "$0$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "d9dee559193fb2867261a050e8a80a65f211fe70333fb9575f2e6ef1d81c1b45",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c2_03",
+      "recordType": "question",
+      "lessonId": "les_math12_c2_b2",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$(3; -2; 0)$",
+      "computedAnswer": "$(3; -2; 0)$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "3e8b01f08d5ae3d27382e6f0f5b5ed52781b1392df997a9a3544a23f0d980367",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c2_04",
+      "recordType": "question",
+      "lessonId": "les_math12_c2_b2",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$(2; 1; 1)$",
+      "computedAnswer": "$(2; 1; 1)$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "2661dbcee8ec5aba199b898decce1bae8523da34c953d5e483f2bb692dcf558f",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c2_05",
+      "recordType": "question",
+      "lessonId": "les_math12_c2_b3",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$3$",
+      "computedAnswer": "$3$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "d9620a28dafe4cc66bca09075312540c6b69a54db079ff3b3d38a4264037f7d6",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c2_06",
+      "recordType": "question",
+      "lessonId": "les_math12_c2_b3",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$(4; -5; -6)$",
+      "computedAnswer": "$(4; -5; -6)$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "797587a5b98912d14b5cf8c5e7ab647a4f05a3db8b4b6ab3239383a22c3e3871",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c2_07",
+      "recordType": "question",
+      "lessonId": "les_math12_c2_b3",
+      "questionType": "true-false-group",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "true,true,false,false",
+      "computedAnswer": "true,true,false,false",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "5ea5b68f032859e9d8b53944c1cb0b7028030bfca28a391ec9fade8d17b6d1e6",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c2_08",
+      "recordType": "question",
+      "lessonId": "les_math12_c2_b2",
+      "questionType": "true-false-group",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "true,true,false,true",
+      "computedAnswer": "true,true,false,true",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "711c5ee32525cd9e9d07ce200e9f0f020e199e13f688f5eed049409ee8dfdb44",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c2_09",
+      "recordType": "question",
+      "lessonId": "les_math12_c2_b3",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "-2",
+      "computedAnswer": "-2",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "5f611a68b46527688176783ec3950f6712886b36bb2d6b45e4d610fb28afaad3",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c2_10",
+      "recordType": "question",
+      "lessonId": "les_math12_c2_b3",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "7",
+      "computedAnswer": "7",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "b43b32ba789ff705c02aa212388db4a840b1a14e438835635423e7479167ed54",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c2_11",
+      "recordType": "question",
+      "lessonId": "les_math12_c2_b2",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "5",
+      "computedAnswer": "5",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "c90ea04174c5e06e3d2d2efef906a79c74ddb5c9b177e01a379eaa3d3969348f",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c3_01",
+      "recordType": "question",
+      "lessonId": "les_math12_c3_b1",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$40$",
+      "computedAnswer": "$40$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "3c1f736e50dd2b484e7091dd00163345cfcee76589cc5281820a282c7afe41fa",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c3_02",
+      "recordType": "question",
+      "lessonId": "les_math12_c3_b1",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$15$",
+      "computedAnswer": "$15$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "89501ceede9cf044ba82c7d7b03fbd7e9fd48cae4972c007e17c745d9cb6f189",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c3_03",
+      "recordType": "question",
+      "lessonId": "les_math12_c3_b2",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$22$",
+      "computedAnswer": "$22$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "8677c6576486aabe0d2b7e6c716d8b1e31b4ca71b9817946877b2bb9ecaf282e",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c3_04",
+      "recordType": "question",
+      "lessonId": "les_math12_c3_b2",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$9$",
+      "computedAnswer": "$9$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "314941426939964ec78975495408dd2db2ef308fa2f9f00224dcb572c95bb53e",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c3_05",
+      "recordType": "question",
+      "lessonId": "les_math12_c3_b1",
+      "questionType": "true-false-group",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "true,true,true,false",
+      "computedAnswer": "true,true,true,false",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "22eb778e7bd45d82f7c054e6847c2df932a51f5f3a72a79359e5ac25088b4b8d",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c3_06",
+      "recordType": "question",
+      "lessonId": "les_math12_c3_b2",
+      "questionType": "true-false-group",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "true,true,true,false",
+      "computedAnswer": "true,true,true,false",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "4eb1ca66d914289869846e0aa42dc21978027f11aae4bdf5aa0e6dd1adc3bd98",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c3_07",
+      "recordType": "question",
+      "lessonId": "les_math12_c3_b2",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "81",
+      "computedAnswer": "81",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "b52883f32a6524ed694979de2bd76dacf6eb06eb8f1d3e94f7e178d350c0b0fd",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c3_08",
+      "recordType": "question",
+      "lessonId": "les_math12_c3_b1",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "13.75",
+      "computedAnswer": "13.75",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "591b24160291570313b5bfd41ca8515f6735f8985244a890228dc69f88b1803e",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c3_09",
+      "recordType": "question",
+      "lessonId": "les_math12_c3_b2",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "4",
+      "computedAnswer": "4",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "e89266a174877587e2764a7937b2dab7420e07494e7d7e8cf35a4aa9026cbf20",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c4_01",
+      "recordType": "question",
+      "lessonId": "les_math12_c4_b1",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$x^3 + x^2 + C$",
+      "computedAnswer": "$x^3 + x^2 + C$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "570bee7e3cbbfca7ab47b988588e7c97d38bcf1ebdf833e3ed5aa3bf1cba6ebd",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c4_02",
+      "recordType": "question",
+      "lessonId": "les_math12_c4_b1",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$\\sin x + C$",
+      "computedAnswer": "$\\sin x + C$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "6072ae67de8982005e8074845a0e7265b99fc5c5dcadea8912646f7cb2880cc8",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c4_03",
+      "recordType": "question",
+      "lessonId": "les_math12_c4_b2",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$12$",
+      "computedAnswer": "$12$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "09560edd8d4bf98a4e199731cd7dc011c981a60e2a21cab19a60da5e3327c1ff",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c4_04",
+      "recordType": "question",
+      "lessonId": "les_math12_c4_b2",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$1$",
+      "computedAnswer": "$1$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "c1672061ba10c805f09469afcb1723c8ccd555e7c59ee50af24940b1f4c976a8",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c4_05",
+      "recordType": "question",
+      "lessonId": "les_math12_c4_b3",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$\\frac{32}{3}$",
+      "computedAnswer": "$\\frac{32}{3}$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "80ccee9de5df7ed55cc2399510b2b3e977b73e0735bac7e47c0410a3a38e8b51",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c4_06",
+      "recordType": "question",
+      "lessonId": "les_math12_c4_b3",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$9\\pi$",
+      "computedAnswer": "$9\\pi$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "583bf006280d42965349dd018f4d5fb18e58a5804f1916e594e42d4a3c7daf60",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c4_07",
+      "recordType": "question",
+      "lessonId": "les_math12_c4_b2",
+      "questionType": "true-false-group",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "true,true,false,true",
+      "computedAnswer": "true,true,false,true",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "407df40f89600b48d534deede3082cb8d55b0cae86dd4ab376105651410040e1",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c4_08",
+      "recordType": "question",
+      "lessonId": "les_math12_c4_b3",
+      "questionType": "true-false-group",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "true,true,false,true",
+      "computedAnswer": "true,true,false,true",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "695b9a9e29bbe1bcda4320e878bb6239a7f0e40820c30ad1f27d1e6b7b5e99f2",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c4_09",
+      "recordType": "question",
+      "lessonId": "les_math12_c4_b2",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "12",
+      "computedAnswer": "12",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "ed43f5f67b6f41fa14ba30da4a6480c13188738e73b1e71f4929434bb4484630",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c4_10",
+      "recordType": "question",
+      "lessonId": "les_math12_c4_b2",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "1",
+      "computedAnswer": "1",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "b5688f5edd2f03f437ebc8d0b9adaa6c5a7b366a05da63384b49bbb565a854d7",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c4_11",
+      "recordType": "question",
+      "lessonId": "les_math12_c4_b3",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "32",
+      "computedAnswer": "32",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "86d727777c3344b6d544eb526c99c374596574f71ace93341baf6e0b20b9bdb9",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c5_01",
+      "recordType": "question",
+      "lessonId": "les_math12_c5_b1",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$(2; -1; 2)$",
+      "computedAnswer": "$(2; -1; 2)$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "ec613e68b53f6a0929edaa90b152c5eab6be0f3e70d8bddf2a52c5ca3ac3bcdd",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c5_02",
+      "recordType": "question",
+      "lessonId": "les_math12_c5_b1",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$\\frac{4}{3}$",
+      "computedAnswer": "$\\frac{4}{3}$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "87ca22d36ebd86e6a5ed4e809774ad377399f57af89615318d593901dbccd824",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c5_03",
+      "recordType": "question",
+      "lessonId": "les_math12_c5_b2",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$(1; -3; 0)$",
+      "computedAnswer": "$(1; -3; 0)$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "6dbc6402ca7fd684c56ddab76a98d2d26ad34bb7792524f8b9eb3ee0c1fe6411",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c5_04",
+      "recordType": "question",
+      "lessonId": "les_math12_c5_b2",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$(2; -1; 5)$",
+      "computedAnswer": "$(2; -1; 5)$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "9630f2c83f37678816fea46873302db031cd32ac60361de8ae04f35580c4c638",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c5_05",
+      "recordType": "question",
+      "lessonId": "les_math12_c5_b3",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$45^\\circ$",
+      "computedAnswer": "$45^\\circ$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "720f3991c94d4de97a2e06ad118cd9210a7ee94573d270a83841057fbec6bcaf",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c5_06",
+      "recordType": "question",
+      "lessonId": "les_math12_c5_b3",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$0$",
+      "computedAnswer": "$0$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "5bec70ae1ba4bfcb440a97b37638faa3e46f9f81c8eab5625c3dbf9a53d40ade",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c5_07",
+      "recordType": "question",
+      "lessonId": "les_math12_c5_b4",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$I(1; -2; 3), R = 4$",
+      "computedAnswer": "$I(1; -2; 3), R = 4$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "86664ed8695944f96519ba2dc705036e98a9bcf34f789bb9385c4d23bc0f9a2a",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c5_08",
+      "recordType": "question",
+      "lessonId": "les_math12_c5_b4",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$3$",
+      "computedAnswer": "$3$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "6fcc407dbe08c7108b3c18500c98bdf415b4aa75837b5531bd06cdcf555d3397",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c5_09",
+      "recordType": "question",
+      "lessonId": "les_math12_c5_b1",
+      "questionType": "true-false-group",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "true,false,true,true",
+      "computedAnswer": "true,false,true,true",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "46f2692d38881168d956fe8c64a2ab59f8bbc40fb0f1664d2b8288212644328a",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c5_10",
+      "recordType": "question",
+      "lessonId": "les_math12_c5_b4",
+      "questionType": "true-false-group",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "true,false,true,true",
+      "computedAnswer": "true,false,true,true",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "0df7c161b4da6578c959db65b23aae88a97a0679ddd3317d4267d219689bcec8",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c5_11",
+      "recordType": "question",
+      "lessonId": "les_math12_c5_b4",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "4",
+      "computedAnswer": "4",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "8ec2b75c2f14645d116a4b3e0a1b3909cc6d19105b18dce7f9e3464b3807be5c",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c5_12",
+      "recordType": "question",
+      "lessonId": "les_math12_c5_b1",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "4/3",
+      "computedAnswer": "4/3",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "eebf6debf7b30a2aa41955bc1a36abd9a70325ffc0dbac5406b588ad7b4bcc90",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c5_13",
+      "recordType": "question",
+      "lessonId": "les_math12_c5_b3",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "45",
+      "computedAnswer": "45",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "bb958a15e01e5e93cf2957df2c611da8faf70a54c212c0f8ef9f503c36d0e8ff",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c6_01",
+      "recordType": "question",
+      "lessonId": "les_math12_c6_b1",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$0{,}6$",
+      "computedAnswer": "$0{,}6$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "f1059384fa9553cd537308b9cdae60c54fe6df03465fd2e2c27da3e9fcdad439",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c6_02",
+      "recordType": "question",
+      "lessonId": "les_math12_c6_b1",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$0{,}4$",
+      "computedAnswer": "$0{,}4$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "705154b44a02e6cc87551f2dde74425441b6fcb40f5055c7eeba8e4ac4c53490",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c6_03",
+      "recordType": "question",
+      "lessonId": "les_math12_c6_b2",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$0{,}4$",
+      "computedAnswer": "$0{,}4$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "0fa13a9c3cd4991c206ea112e13a9ec43be6f424ddee3bad80f2e977227320f5",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c6_04",
+      "recordType": "question",
+      "lessonId": "les_math12_c6_b2",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$0{,}7$",
+      "computedAnswer": "$0{,}7$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "68d15a679053fcee8055486ffce047cd60b1912f3a20774bd3a646f3a81d9373",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c6_05",
+      "recordType": "question",
+      "lessonId": "les_math12_c6_b2",
+      "questionType": "true-false-group",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "true,true,true,false",
+      "computedAnswer": "true,true,true,false",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "be92c176207999459f935bb492198acd752e83b481482c8246a88099fc136370",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c6_06",
+      "recordType": "question",
+      "lessonId": "les_math12_c6_b1",
+      "questionType": "true-false-group",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "true,true,true,false",
+      "computedAnswer": "true,true,true,false",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "dbebe41197462ba70f8d295ddedcbc024fa726fc03fa4952a08cb6ff4ebe5356",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c6_07",
+      "recordType": "question",
+      "lessonId": "les_math12_c6_b1",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "0.6",
+      "computedAnswer": "0.6",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "9f12b74a6e73028094e6c3c0d10b61ab64f32c905b321a178713f3d6b617f060",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c6_08",
+      "recordType": "question",
+      "lessonId": "les_math12_c6_b2",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "0.7",
+      "computedAnswer": "0.7",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "11a867ce1af09b437610828fa739791717dcde7983cd0abff8eb0eb0491039a4",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c6_09",
+      "recordType": "question",
+      "lessonId": "les_math12_c6_b2",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "0.4",
+      "computedAnswer": "0.4",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "ac923554e6529b85235b9dd83ee375fea7cbb92e99a8ba5120632b5665b6efa4",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c1_exp_mc_01",
+      "recordType": "question",
+      "lessonId": "les_math12_c1_b1",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$0$",
+      "computedAnswer": "$0$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "0b08c24aaac4aa6008a38dd26bd59511ad460ea505a3ee58dfcbc81baaffd6d5",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c1_exp_sa_01",
+      "recordType": "question",
+      "lessonId": "les_math12_c1_b2",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "7",
+      "computedAnswer": "7",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "e22a50e8db33ed35af40c5670540133c6c5f644620bb6f0a1a4001d6aef8c700",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c1_exp_mc_02",
+      "recordType": "question",
+      "lessonId": "les_math12_c1_b1",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$-28$",
+      "computedAnswer": "$-28$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "197f28005c5f58abf60da5c206a68ffcd7db5519f28ed758c7da8839680895a8",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c1_exp_sa_02",
+      "recordType": "question",
+      "lessonId": "les_math12_c1_b2",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "10",
+      "computedAnswer": "10",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "6c992ea8f5ce5bed59023db0e8aca4cbddb4cdcb9fd138224e73c78155ded1f1",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c1_exp_mc_03",
+      "recordType": "question",
+      "lessonId": "les_math12_c1_b1",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$-104$",
+      "computedAnswer": "$-104$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "5df673ceb7f6246276a671aad25ce626d35ad735bba28de9d2e98666db051778",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c1_exp_sa_03",
+      "recordType": "question",
+      "lessonId": "les_math12_c1_b2",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "13",
+      "computedAnswer": "13",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "c7b9f5d066364d48f7c0786561c58e8cc54aa86b54396112f6f76af5d4d5ad06",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c1_exp_mc_04",
+      "recordType": "question",
+      "lessonId": "les_math12_c1_b1",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$-252$",
+      "computedAnswer": "$-252$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "f8769ec81496cf0e3ea833fa5341d3cb9d667e6f33b9558fdd49668e9fe4707e",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c1_exp_sa_04",
+      "recordType": "question",
+      "lessonId": "les_math12_c1_b2",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "16",
+      "computedAnswer": "16",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "32acb47a5817212f9dc0520992cd96b82d644099aa89a64a65de1dc3d82884b4",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c1_exp_mc_05",
+      "recordType": "question",
+      "lessonId": "les_math12_c1_b1",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$-496$",
+      "computedAnswer": "$-496$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "9dff023f6514611bda682a6e289ca70fd09713da25da976306819eca1e77bdaa",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c1_exp_sa_05",
+      "recordType": "question",
+      "lessonId": "les_math12_c1_b2",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "19",
+      "computedAnswer": "19",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "2c3f12c665ab8f1c6a5e67ad74040ccc8d64edf7f438d3512f2d31abe5753fa2",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c1_exp_mc_06",
+      "recordType": "question",
+      "lessonId": "les_math12_c1_b1",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$-860$",
+      "computedAnswer": "$-860$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "a9f0966812280ac33e4f250b9f055328003dd0edd7450ace1e5389548e6fd6e6",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c1_exp_sa_06",
+      "recordType": "question",
+      "lessonId": "les_math12_c1_b2",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "22",
+      "computedAnswer": "22",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "496c3085e68477896e83ee93b4b11584fad647517e5419ab63bba013bf819b43",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c2_exp_mc_01",
+      "recordType": "question",
+      "lessonId": "les_math12_c2_b3",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$2$",
+      "computedAnswer": "$2$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "5f2c85d2ae4ae3c2d34306dc2ec5490ca4eecf4e940908577a279c30d0aeda06",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c2_exp_sa_01",
+      "recordType": "question",
+      "lessonId": "les_math12_c2_b3",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "9",
+      "computedAnswer": "9",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "594b761805de9a49b63d58acf864ff5960505fb4e336152f11de892ffb0af828",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c2_exp_mc_02",
+      "recordType": "question",
+      "lessonId": "les_math12_c2_b3",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$5$",
+      "computedAnswer": "$5$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "7c358159695c88dc01cd4e128c749a917bff8e715e1e972865c196700e00961c",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c2_exp_sa_02",
+      "recordType": "question",
+      "lessonId": "les_math12_c2_b3",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "17",
+      "computedAnswer": "17",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "651c49498a03f5e01cf1cdc165ae3bdc6fffd889828e3b49c0aeec79f5542dbd",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c2_exp_mc_03",
+      "recordType": "question",
+      "lessonId": "les_math12_c2_b3",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$8$",
+      "computedAnswer": "$8$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "b3c21d9ea7cf552edeb72a666be74d6512d05b8917f40ed3b5960d53524d7ac1",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c2_exp_sa_03",
+      "recordType": "question",
+      "lessonId": "les_math12_c2_b3",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "29",
+      "computedAnswer": "29",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "136b91a42a913ae9f58f7e28b1a1a3ecec8ea5322c2f70dac38ef0a97e327831",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c2_exp_mc_04",
+      "recordType": "question",
+      "lessonId": "les_math12_c2_b3",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$11$",
+      "computedAnswer": "$11$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "18181b69d14260fb6f9209944898036ae02b8e5db5078010e9c2e69b606e0829",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c2_exp_sa_04",
+      "recordType": "question",
+      "lessonId": "les_math12_c2_b3",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "45",
+      "computedAnswer": "45",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "58b7f2cb439611a5296eb2e4d1e7ad05e900ff254cff7517e53c2b26d4a3a7aa",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c2_exp_mc_05",
+      "recordType": "question",
+      "lessonId": "les_math12_c2_b3",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$14$",
+      "computedAnswer": "$14$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "fbb7a6e0580a461829b44a440f7bc168de65bfc5b628fb2d1f82619364d2c45a",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c2_exp_sa_05",
+      "recordType": "question",
+      "lessonId": "les_math12_c2_b3",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "65",
+      "computedAnswer": "65",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "25ea7447fa222d847759c6577d43b70f13746df433728ef705b44b4c0139185f",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c2_exp_mc_06",
+      "recordType": "question",
+      "lessonId": "les_math12_c2_b3",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$17$",
+      "computedAnswer": "$17$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "79904fdd85af30032bbb540a944f34d653057ac72c199e03d5abf938c000004b",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c2_exp_sa_06",
+      "recordType": "question",
+      "lessonId": "les_math12_c2_b3",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "89",
+      "computedAnswer": "89",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "3e504ce033cf8df5493528a763935930a2e6515d65c5b41e70d6207fd55d28a4",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c3_exp_mc_01",
+      "recordType": "question",
+      "lessonId": "les_math12_c3_b2",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$9$",
+      "computedAnswer": "$9$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "c4fd6f6cc1ed3b198941640bd58f195b4b9b0da2e57e136d1eb6a8c84200e679",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c3_exp_mc_02",
+      "recordType": "question",
+      "lessonId": "les_math12_c3_b2",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$9$",
+      "computedAnswer": "$9$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "eaaea56d453881c04a9f11c23bc4902e95c6652c07942ce9fa2f4a4e383f5c3e",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c3_exp_mc_03",
+      "recordType": "question",
+      "lessonId": "les_math12_c3_b2",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$9$",
+      "computedAnswer": "$9$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "01673034dccd919c45312c1fd83769c8fd986fcc0aa2bf026329ad5d1a3ff41b",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c3_exp_mc_04",
+      "recordType": "question",
+      "lessonId": "les_math12_c3_b2",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$9$",
+      "computedAnswer": "$9$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "b61b9ebe4768b2170fbb4c117ecc8bfb31bf015046788a163ae5787c19afdbc0",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c4_exp_sa_01",
+      "recordType": "question",
+      "lessonId": "les_math12_c4_b2",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "12",
+      "computedAnswer": "12",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "fc90d30372b621c022d9915a7a14776ad86bc72df834e17e9b57636d7930b9ff",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c4_exp_sa_02",
+      "recordType": "question",
+      "lessonId": "les_math12_c4_b2",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "16",
+      "computedAnswer": "16",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "5f8324285f8e4eaac4bcaf78d838166d6cee37936277207ee03e3661ec9ef0c0",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c4_exp_sa_03",
+      "recordType": "question",
+      "lessonId": "les_math12_c4_b2",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "20",
+      "computedAnswer": "20",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "fa87aeeb39487126d8145342c2efbde0fdb151060f13ce16352e4464ff6dc09b",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c4_exp_sa_04",
+      "recordType": "question",
+      "lessonId": "les_math12_c4_b2",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "24",
+      "computedAnswer": "24",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "171796033f3a9af3d6b4a4c2c87649cb5e35d2e527ec85d8c436e2037ac27c8e",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c4_exp_sa_05",
+      "recordType": "question",
+      "lessonId": "les_math12_c4_b2",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "28",
+      "computedAnswer": "28",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "ddef4ad0446dabf02c3ed1ef479c46ff7e4b208a0964bf41b6a2fe53ee701d93",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c4_exp_sa_06",
+      "recordType": "question",
+      "lessonId": "les_math12_c4_b2",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "32",
+      "computedAnswer": "32",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "238816f1c568e5204a517fb56d1ad37f4e22e1e3c817a89e26e415fa13d9c06c",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c5_exp_mc_01",
+      "recordType": "question",
+      "lessonId": "les_math12_c5_b4",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$I(1; -1; 2), R = 3$",
+      "computedAnswer": "$I(1; -1; 2), R = 3$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "bb8e09ed1f80b4cd6fb499fc988ebb7304d4fa8e391d3b4c83c39e2e5ca62447",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c5_exp_mc_02",
+      "recordType": "question",
+      "lessonId": "les_math12_c5_b4",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$I(2; -1; 2), R = 4$",
+      "computedAnswer": "$I(2; -1; 2), R = 4$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "16847231feb71b0d7eaa6fd54b1eacef85d694f1db3aa1d121b1146fe76d6675",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c5_exp_mc_03",
+      "recordType": "question",
+      "lessonId": "les_math12_c5_b4",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$I(3; -1; 2), R = 5$",
+      "computedAnswer": "$I(3; -1; 2), R = 5$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "ac3bc0896975243c4bd1166c2ea05d24cf2157d75191561a45340fb978691f9f",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c5_exp_mc_04",
+      "recordType": "question",
+      "lessonId": "les_math12_c5_b4",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$I(4; -1; 2), R = 6$",
+      "computedAnswer": "$I(4; -1; 2), R = 6$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "bfde4c05c06f2e8ecf1cfd4007f4bf8e301d7544302bdadfa797e650fc3afc2e",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c5_exp_mc_05",
+      "recordType": "question",
+      "lessonId": "les_math12_c5_b4",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$I(5; -1; 2), R = 7$",
+      "computedAnswer": "$I(5; -1; 2), R = 7$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "91e48d0924a63d58d4c64a43219b909ce11d3a61aa708837d757d2b0a9aa5ae7",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c5_exp_mc_06",
+      "recordType": "question",
+      "lessonId": "les_math12_c5_b4",
+      "questionType": "multiple-choice",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "$I(6; -1; 2), R = 8$",
+      "computedAnswer": "$I(6; -1; 2), R = 8$",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "54503586bb160cafcef259427162f574a927d2f3dc9ad1cc3b9177e5f7f844c8",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c6_exp_sa_01",
+      "recordType": "question",
+      "lessonId": "les_math12_c6_b1",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "1/2",
+      "computedAnswer": "1/2",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "c3c4410595420aad3ccf5c8f80bcb45bc82a5570474d9e49dfb544ef0df313b9",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c6_exp_sa_02",
+      "recordType": "question",
+      "lessonId": "les_math12_c6_b1",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "3/5",
+      "computedAnswer": "3/5",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "2c07cd6e6c9a19e9d23a623ce721f9284a956e7c843c0a5a0363cd41637f6c80",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c6_exp_sa_03",
+      "recordType": "question",
+      "lessonId": "les_math12_c6_b1",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "2/3",
+      "computedAnswer": "2/3",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "8374da61703a2f597fbc261a8de4984f6c0140779febef6c6d7930138f958e71",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    },
+    {
+      "recordId": "q_m12_c6_exp_sa_04",
+      "recordType": "question",
+      "lessonId": "les_math12_c6_b1",
+      "questionType": "short-answer",
+      "verificationMethod": "sympy_1.14.0+structural_katex_audit",
+      "expectedAnswer": "5/7",
+      "computedAnswer": "5/7",
+      "selfContained": true,
+      "katexBalanced": true,
+      "sourceReferences": [
+        "SRC-STUDYAI-ORIG-2026"
+      ],
+      "contentHash": "7d93a6b7b70feba4b4d1253cad3ec3d186ea85d9ab797398a4c2b51abcb58487",
+      "reviewStatus": "AUTO_CHECK_PASSED"
+    }
+  ]
+}

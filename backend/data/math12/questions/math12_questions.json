@@ -19,7 +19,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "d74158e49b8e8337"
+    "fingerprint": "d74158e49b8e8337",
+    "familyId": "q_m12_c1_01"
   },
   {
     "id": "q_m12_c1_02",
@@ -41,7 +42,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "6901450854bb68b5"
+    "fingerprint": "6901450854bb68b5",
+    "familyId": "q_m12_c1_02"
   },
   {
     "id": "q_m12_c1_03",
@@ -63,7 +65,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "c3e698064bed4862"
+    "fingerprint": "c3e698064bed4862",
+    "familyId": "q_m12_c1_03"
   },
   {
     "id": "q_m12_c1_04",
@@ -85,7 +88,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "526211cd18a19f5a"
+    "fingerprint": "526211cd18a19f5a",
+    "familyId": "q_m12_c1_04"
   },
   {
     "id": "q_m12_c1_05",
@@ -107,7 +111,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "e8b630bae1edfc14"
+    "fingerprint": "e8b630bae1edfc14",
+    "familyId": "q_m12_c1_05"
   },
   {
     "id": "q_m12_c1_06",
@@ -129,7 +134,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "50cf5545d980e99f"
+    "fingerprint": "50cf5545d980e99f",
+    "familyId": "q_m12_c1_06"
   },
   {
     "id": "q_m12_c1_07",
@@ -151,7 +157,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "2ef6b137fd87ed8f"
+    "fingerprint": "2ef6b137fd87ed8f",
+    "familyId": "q_m12_c1_07"
   },
   {
     "id": "q_m12_c1_08",
@@ -173,7 +180,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "23705541cac3c35d"
+    "fingerprint": "23705541cac3c35d",
+    "familyId": "q_m12_c1_08"
   },
   {
     "id": "q_m12_c1_09",
@@ -195,7 +203,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "1bc72178879f7f40"
+    "fingerprint": "1bc72178879f7f40",
+    "familyId": "q_m12_c1_09"
   },
   {
     "id": "q_m12_c1_10",
@@ -217,7 +226,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "98d1eb372f073135"
+    "fingerprint": "98d1eb372f073135",
+    "familyId": "q_m12_c1_10"
   },
   {
     "id": "q_m12_c1_11",
@@ -239,7 +249,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "3f8ba6d38cca443c"
+    "fingerprint": "3f8ba6d38cca443c",
+    "familyId": "q_m12_c1_11"
   },
   {
     "id": "q_m12_c1_12",
@@ -261,7 +272,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "304a84305199d657"
+    "fingerprint": "304a84305199d657",
+    "familyId": "q_m12_c1_12"
   },
   {
     "id": "q_m12_c1_13",
@@ -284,7 +296,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "bc51a536e32aa6dc"
+    "fingerprint": "bc51a536e32aa6dc",
+    "familyId": "q_m12_c1_13"
   },
   {
     "id": "q_m12_c1_14",
@@ -307,7 +320,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "e72ae7ab08b36e57"
+    "fingerprint": "e72ae7ab08b36e57",
+    "familyId": "q_m12_c1_14"
   },
   {
     "id": "q_m12_c1_15",
@@ -330,7 +344,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "4e04e5856630f372"
+    "fingerprint": "4e04e5856630f372",
+    "familyId": "q_m12_c1_15"
   },
   {
     "id": "q_m12_c2_01",
@@ -352,7 +367,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "9c1981a560eb1128"
+    "fingerprint": "9c1981a560eb1128",
+    "familyId": "q_m12_c2_01"
   },
   {
     "id": "q_m12_c2_02",
@@ -374,7 +390,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "3e4d943ab2fef344"
+    "fingerprint": "3e4d943ab2fef344",
+    "familyId": "q_m12_c2_02"
   },
   {
     "id": "q_m12_c2_03",
@@ -396,7 +413,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "e078020a97588d93"
+    "fingerprint": "e078020a97588d93",
+    "familyId": "q_m12_c2_03"
   },
   {
     "id": "q_m12_c2_04",
@@ -418,7 +436,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "de45087c0cf95239"
+    "fingerprint": "de45087c0cf95239",
+    "familyId": "q_m12_c2_04"
   },
   {
     "id": "q_m12_c2_05",
@@ -440,7 +459,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "a723a7c450c74cb3"
+    "fingerprint": "a723a7c450c74cb3",
+    "familyId": "q_m12_c2_05"
   },
   {
     "id": "q_m12_c2_06",
@@ -462,7 +482,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "965483dc007e19db"
+    "fingerprint": "965483dc007e19db",
+    "familyId": "q_m12_c2_06"
   },
   {
     "id": "q_m12_c2_07",
@@ -484,7 +505,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "51415bf81686d9cb"
+    "fingerprint": "51415bf81686d9cb",
+    "familyId": "q_m12_c2_07"
   },
   {
     "id": "q_m12_c2_08",
@@ -506,7 +528,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "7fd0d707843023eb"
+    "fingerprint": "7fd0d707843023eb",
+    "familyId": "q_m12_c2_08"
   },
   {
     "id": "q_m12_c2_09",
@@ -529,7 +552,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "39bf9a7b3df608a6"
+    "fingerprint": "39bf9a7b3df608a6",
+    "familyId": "q_m12_c2_09"
   },
   {
     "id": "q_m12_c2_10",
@@ -539,20 +563,21 @@
     "assessmentId": "asm_m12_mock_thpt",
     "type": "short-answer",
     "difficulty": "easy",
-    "prompt": "Tính độ dài vectơ $\\vec{u} = (1; -2; 2)$.",
+    "prompt": "Tính độ dài vectơ $\\vec{w} = (2; -3; 6)$.",
     "options": [],
-    "correctAnswer": "3",
+    "correctAnswer": "7",
     "metadata": {
       "acceptedAnswers": [
-        "3",
-        "3.0"
+        "7",
+        "7.0"
       ]
     },
-    "explanation": "$|\\vec{u}| = \\sqrt{1+4+4} = 3$.",
+    "explanation": "$|\\vec{w}| = \\sqrt{2^2 + (-3)^2 + 6^2} = \\sqrt{49} = 7$.",
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "caaba4e06a572195"
+    "fingerprint": "bab41518fc20dee2",
+    "familyId": "q_m12_c2_10"
   },
   {
     "id": "q_m12_c2_11",
@@ -575,7 +600,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "3a58f53aa16b141a"
+    "fingerprint": "3a58f53aa16b141a",
+    "familyId": "q_m12_c2_11"
   },
   {
     "id": "q_m12_c3_01",
@@ -597,7 +623,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "96dc61db78369b84"
+    "fingerprint": "96dc61db78369b84",
+    "familyId": "q_m12_c3_01"
   },
   {
     "id": "q_m12_c3_02",
@@ -619,7 +646,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "9404660cc736f314"
+    "fingerprint": "9404660cc736f314",
+    "familyId": "q_m12_c3_02"
   },
   {
     "id": "q_m12_c3_03",
@@ -641,7 +669,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "336df1238e37003e"
+    "fingerprint": "336df1238e37003e",
+    "familyId": "q_m12_c3_03"
   },
   {
     "id": "q_m12_c3_04",
@@ -663,7 +692,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "85be37fed790fb9e"
+    "fingerprint": "85be37fed790fb9e",
+    "familyId": "q_m12_c3_04"
   },
   {
     "id": "q_m12_c3_05",
@@ -685,7 +715,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "eb76de964cae250a"
+    "fingerprint": "eb76de964cae250a",
+    "familyId": "q_m12_c3_05"
   },
   {
     "id": "q_m12_c3_06",
@@ -695,7 +726,7 @@
     "assessmentId": "asm_m12_mock_hk1",
     "type": "true-false-group",
     "difficulty": "medium",
-    "prompt": "Về phương sai và độ lệch chuẩn của mẫu ghép nhóm trên ($\\bar{x}=22$). Xét tính đúng sai:",
+    "prompt": "Cho mẫu số liệu ghép nhóm $[0;10):2, [10;20):6, [20;30):8, [30;40):4$ (có $\\bar{x}=22$). Xét tính đúng sai:",
     "options": [
       "a) Giá trị đại diện của nhóm $[20;30)$ là $25$.",
       "b) Phương sai của mẫu bằng $81$.",
@@ -707,7 +738,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "ee4d735283b3342f"
+    "fingerprint": "876c8692cddfc58a",
+    "familyId": "q_m12_c3_06"
   },
   {
     "id": "q_m12_c3_07",
@@ -730,7 +762,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "b0e1a83fd9c51776"
+    "fingerprint": "b0e1a83fd9c51776",
+    "familyId": "q_m12_c3_07"
   },
   {
     "id": "q_m12_c3_08",
@@ -754,7 +787,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "f0e98396dda59ba3"
+    "fingerprint": "f0e98396dda59ba3",
+    "familyId": "q_m12_c3_08"
   },
   {
     "id": "q_m12_c3_09",
@@ -777,7 +811,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "70478a23df4500af"
+    "fingerprint": "70478a23df4500af",
+    "familyId": "q_m12_c3_09"
   },
   {
     "id": "q_m12_c4_01",
@@ -799,7 +834,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "25930b322b36d82d"
+    "fingerprint": "25930b322b36d82d",
+    "familyId": "q_m12_c4_01"
   },
   {
     "id": "q_m12_c4_02",
@@ -821,7 +857,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "a646de3d54363b43"
+    "fingerprint": "a646de3d54363b43",
+    "familyId": "q_m12_c4_02"
   },
   {
     "id": "q_m12_c4_03",
@@ -843,7 +880,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "dd20dd5dd363315b"
+    "fingerprint": "dd20dd5dd363315b",
+    "familyId": "q_m12_c4_03"
   },
   {
     "id": "q_m12_c4_04",
@@ -865,7 +903,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "7096a6966d95be31"
+    "fingerprint": "7096a6966d95be31",
+    "familyId": "q_m12_c4_04"
   },
   {
     "id": "q_m12_c4_05",
@@ -887,7 +926,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "c2165e52e3641644"
+    "fingerprint": "c2165e52e3641644",
+    "familyId": "q_m12_c4_05"
   },
   {
     "id": "q_m12_c4_06",
@@ -909,7 +949,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "db2be23cf03647b1"
+    "fingerprint": "db2be23cf03647b1",
+    "familyId": "q_m12_c4_06"
   },
   {
     "id": "q_m12_c4_07",
@@ -931,7 +972,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "7b552170e27a5f0b"
+    "fingerprint": "7b552170e27a5f0b",
+    "familyId": "q_m12_c4_07"
   },
   {
     "id": "q_m12_c4_08",
@@ -953,7 +995,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "b531aca4c26771ac"
+    "fingerprint": "b531aca4c26771ac",
+    "familyId": "q_m12_c4_08"
   },
   {
     "id": "q_m12_c4_09",
@@ -976,7 +1019,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "868ef527e02e9faa"
+    "fingerprint": "868ef527e02e9faa",
+    "familyId": "q_m12_c4_09"
   },
   {
     "id": "q_m12_c4_10",
@@ -999,7 +1043,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "e5519e83d9e423db"
+    "fingerprint": "e5519e83d9e423db",
+    "familyId": "q_m12_c4_10"
   },
   {
     "id": "q_m12_c4_11",
@@ -1022,7 +1067,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "b8fada0f2a9dd7d7"
+    "fingerprint": "b8fada0f2a9dd7d7",
+    "familyId": "q_m12_c4_11"
   },
   {
     "id": "q_m12_c5_01",
@@ -1044,7 +1090,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "6aa2cda88f566bbf"
+    "fingerprint": "6aa2cda88f566bbf",
+    "familyId": "q_m12_c5_01"
   },
   {
     "id": "q_m12_c5_02",
@@ -1066,7 +1113,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "f8d27e7b446424cc"
+    "fingerprint": "f8d27e7b446424cc",
+    "familyId": "q_m12_c5_02"
   },
   {
     "id": "q_m12_c5_03",
@@ -1088,7 +1136,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "ab53cb8e436c37fb"
+    "fingerprint": "ab53cb8e436c37fb",
+    "familyId": "q_m12_c5_03"
   },
   {
     "id": "q_m12_c5_04",
@@ -1110,7 +1159,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "817cc695ce4dfa05"
+    "fingerprint": "817cc695ce4dfa05",
+    "familyId": "q_m12_c5_04"
   },
   {
     "id": "q_m12_c5_05",
@@ -1132,7 +1182,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "258a30c56dee9d39"
+    "fingerprint": "258a30c56dee9d39",
+    "familyId": "q_m12_c5_05"
   },
   {
     "id": "q_m12_c5_06",
@@ -1154,7 +1205,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "75994d1a732d4a20"
+    "fingerprint": "75994d1a732d4a20",
+    "familyId": "q_m12_c5_06"
   },
   {
     "id": "q_m12_c5_07",
@@ -1176,7 +1228,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "4dbeb145b8e651e8"
+    "fingerprint": "4dbeb145b8e651e8",
+    "familyId": "q_m12_c5_07"
   },
   {
     "id": "q_m12_c5_08",
@@ -1198,7 +1251,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "4db2c2eac57117eb"
+    "fingerprint": "4db2c2eac57117eb",
+    "familyId": "q_m12_c5_08"
   },
   {
     "id": "q_m12_c5_09",
@@ -1220,7 +1274,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "f3f45878edf5dd7b"
+    "fingerprint": "f3f45878edf5dd7b",
+    "familyId": "q_m12_c5_09"
   },
   {
     "id": "q_m12_c5_10",
@@ -1242,7 +1297,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "8bcca27da2150f75"
+    "fingerprint": "8bcca27da2150f75",
+    "familyId": "q_m12_c5_10"
   },
   {
     "id": "q_m12_c5_11",
@@ -1265,7 +1321,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "316545416b547019"
+    "fingerprint": "316545416b547019",
+    "familyId": "q_m12_c5_11"
   },
   {
     "id": "q_m12_c5_12",
@@ -1288,7 +1345,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "45ed876f01d8a556"
+    "fingerprint": "45ed876f01d8a556",
+    "familyId": "q_m12_c5_12"
   },
   {
     "id": "q_m12_c5_13",
@@ -1311,7 +1369,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "e3b82903a5da3e4b"
+    "fingerprint": "e3b82903a5da3e4b",
+    "familyId": "q_m12_c5_13"
   },
   {
     "id": "q_m12_c6_01",
@@ -1333,7 +1392,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "0ecaadf4772715e5"
+    "fingerprint": "0ecaadf4772715e5",
+    "familyId": "q_m12_c6_01"
   },
   {
     "id": "q_m12_c6_02",
@@ -1355,7 +1415,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "2c9bff87911b52ad"
+    "fingerprint": "2c9bff87911b52ad",
+    "familyId": "q_m12_c6_02"
   },
   {
     "id": "q_m12_c6_03",
@@ -1377,7 +1438,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "e29ac842c1c95859"
+    "fingerprint": "e29ac842c1c95859",
+    "familyId": "q_m12_c6_03"
   },
   {
     "id": "q_m12_c6_04",
@@ -1399,7 +1461,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "98ca248fd2bb2b33"
+    "fingerprint": "98ca248fd2bb2b33",
+    "familyId": "q_m12_c6_04"
   },
   {
     "id": "q_m12_c6_05",
@@ -1421,7 +1484,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "383a16677c8f3274"
+    "fingerprint": "383a16677c8f3274",
+    "familyId": "q_m12_c6_05"
   },
   {
     "id": "q_m12_c6_06",
@@ -1443,7 +1507,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "79adbf7ae80785e4"
+    "fingerprint": "79adbf7ae80785e4",
+    "familyId": "q_m12_c6_06"
   },
   {
     "id": "q_m12_c6_07",
@@ -1467,7 +1532,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "62ec7699c4ee7bfc"
+    "fingerprint": "62ec7699c4ee7bfc",
+    "familyId": "q_m12_c6_07"
   },
   {
     "id": "q_m12_c6_08",
@@ -1491,7 +1557,8 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "dfbbf15731064697"
+    "fingerprint": "dfbbf15731064697",
+    "familyId": "q_m12_c6_08"
   },
   {
     "id": "q_m12_c6_09",
@@ -1515,6 +1582,979 @@
     "status": "published",
     "sourceId": "SRC-STUDYAI-ORIG-2026",
     "verificationStatus": "MATH_VERIFIED",
-    "fingerprint": "4b466d76d7b87e76"
+    "fingerprint": "4b466d76d7b87e76",
+    "familyId": "q_m12_c6_09"
+  },
+  {
+    "id": "q_m12_c1_exp_mc_01",
+    "lessonId": "les_math12_c1_b1",
+    "chapterId": "chp_math12_c1",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt_01",
+    "type": "multiple-choice",
+    "difficulty": "medium",
+    "familyId": "fam_c1_cubic_extrema",
+    "prompt": "Giá trị cực tiểu của hàm số $y = x^3 - 3x^2 + 4$ bằng bao nhiêu?",
+    "options": [
+      "$0$",
+      "$4$",
+      "$4$",
+      "$0$"
+    ],
+    "correctAnswer": "$0$",
+    "explanation": "Ta có $y' = 3x^2 - 6x = 0 \\Leftrightarrow x=0$ hoặc $x=2$. Cực tiểu tại $x=2$ cho $y=0$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c1_exp_sa_01",
+    "lessonId": "les_math12_c1_b2",
+    "chapterId": "chp_math12_c1",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c1",
+    "type": "short-answer",
+    "difficulty": "medium",
+    "familyId": "fam_c1_minmax_interval",
+    "prompt": "Tìm giá trị lớn nhất của hàm số $y = x^2 - 2x + 4$ trên đoạn $[0; 3]$.",
+    "options": [],
+    "correctAnswer": "7",
+    "metadata": {
+      "acceptedAnswers": [
+        "7"
+      ]
+    },
+    "explanation": "Đỉnh parabol tại $x=1$. So sánh $f(0)=4$, $f(1)=3$, $f(3)=7$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c1_exp_mc_02",
+    "lessonId": "les_math12_c1_b1",
+    "chapterId": "chp_math12_c1",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt_01",
+    "type": "multiple-choice",
+    "difficulty": "medium",
+    "familyId": "fam_c1_cubic_extrema",
+    "prompt": "Giá trị cực tiểu của hàm số $y = x^3 - 6x^2 + 4$ bằng bao nhiêu?",
+    "options": [
+      "$-28$",
+      "$4$",
+      "$-24$",
+      "$28$"
+    ],
+    "correctAnswer": "$-28$",
+    "explanation": "Ta có $y' = 3x^2 - 12x = 0 \\Leftrightarrow x=0$ hoặc $x=4$. Cực tiểu tại $x=4$ cho $y=-28$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c1_exp_sa_02",
+    "lessonId": "les_math12_c1_b2",
+    "chapterId": "chp_math12_c1",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c1",
+    "type": "short-answer",
+    "difficulty": "medium",
+    "familyId": "fam_c1_minmax_interval",
+    "prompt": "Tìm giá trị lớn nhất của hàm số $y = x^2 - 4x + 5$ trên đoạn $[0; 5]$.",
+    "options": [],
+    "correctAnswer": "10",
+    "metadata": {
+      "acceptedAnswers": [
+        "10"
+      ]
+    },
+    "explanation": "Đỉnh parabol tại $x=2$. So sánh $f(0)=5$, $f(2)=1$, $f(5)=10$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c1_exp_mc_03",
+    "lessonId": "les_math12_c1_b1",
+    "chapterId": "chp_math12_c1",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt_01",
+    "type": "multiple-choice",
+    "difficulty": "medium",
+    "familyId": "fam_c1_cubic_extrema",
+    "prompt": "Giá trị cực tiểu của hàm số $y = x^3 - 9x^2 + 4$ bằng bao nhiêu?",
+    "options": [
+      "$-104$",
+      "$4$",
+      "$-100$",
+      "$104$"
+    ],
+    "correctAnswer": "$-104$",
+    "explanation": "Ta có $y' = 3x^2 - 18x = 0 \\Leftrightarrow x=0$ hoặc $x=6$. Cực tiểu tại $x=6$ cho $y=-104$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c1_exp_sa_03",
+    "lessonId": "les_math12_c1_b2",
+    "chapterId": "chp_math12_c1",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c1",
+    "type": "short-answer",
+    "difficulty": "medium",
+    "familyId": "fam_c1_minmax_interval",
+    "prompt": "Tìm giá trị lớn nhất của hàm số $y = x^2 - 6x + 6$ trên đoạn $[0; 7]$.",
+    "options": [],
+    "correctAnswer": "13",
+    "metadata": {
+      "acceptedAnswers": [
+        "13"
+      ]
+    },
+    "explanation": "Đỉnh parabol tại $x=3$. So sánh $f(0)=6$, $f(3)=-3$, $f(7)=13$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c1_exp_mc_04",
+    "lessonId": "les_math12_c1_b1",
+    "chapterId": "chp_math12_c1",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt_01",
+    "type": "multiple-choice",
+    "difficulty": "medium",
+    "familyId": "fam_c1_cubic_extrema",
+    "prompt": "Giá trị cực tiểu của hàm số $y = x^3 - 12x^2 + 4$ bằng bao nhiêu?",
+    "options": [
+      "$-252$",
+      "$4$",
+      "$-248$",
+      "$252$"
+    ],
+    "correctAnswer": "$-252$",
+    "explanation": "Ta có $y' = 3x^2 - 24x = 0 \\Leftrightarrow x=0$ hoặc $x=8$. Cực tiểu tại $x=8$ cho $y=-252$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c1_exp_sa_04",
+    "lessonId": "les_math12_c1_b2",
+    "chapterId": "chp_math12_c1",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c1",
+    "type": "short-answer",
+    "difficulty": "medium",
+    "familyId": "fam_c1_minmax_interval",
+    "prompt": "Tìm giá trị lớn nhất của hàm số $y = x^2 - 8x + 7$ trên đoạn $[0; 9]$.",
+    "options": [],
+    "correctAnswer": "16",
+    "metadata": {
+      "acceptedAnswers": [
+        "16"
+      ]
+    },
+    "explanation": "Đỉnh parabol tại $x=4$. So sánh $f(0)=7$, $f(4)=-9$, $f(9)=16$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c1_exp_mc_05",
+    "lessonId": "les_math12_c1_b1",
+    "chapterId": "chp_math12_c1",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt_01",
+    "type": "multiple-choice",
+    "difficulty": "medium",
+    "familyId": "fam_c1_cubic_extrema",
+    "prompt": "Giá trị cực tiểu của hàm số $y = x^3 - 15x^2 + 4$ bằng bao nhiêu?",
+    "options": [
+      "$-496$",
+      "$4$",
+      "$-492$",
+      "$496$"
+    ],
+    "correctAnswer": "$-496$",
+    "explanation": "Ta có $y' = 3x^2 - 30x = 0 \\Leftrightarrow x=0$ hoặc $x=10$. Cực tiểu tại $x=10$ cho $y=-496$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c1_exp_sa_05",
+    "lessonId": "les_math12_c1_b2",
+    "chapterId": "chp_math12_c1",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c1",
+    "type": "short-answer",
+    "difficulty": "medium",
+    "familyId": "fam_c1_minmax_interval",
+    "prompt": "Tìm giá trị lớn nhất của hàm số $y = x^2 - 10x + 8$ trên đoạn $[0; 11]$.",
+    "options": [],
+    "correctAnswer": "19",
+    "metadata": {
+      "acceptedAnswers": [
+        "19"
+      ]
+    },
+    "explanation": "Đỉnh parabol tại $x=5$. So sánh $f(0)=8$, $f(5)=-17$, $f(11)=19$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c1_exp_mc_06",
+    "lessonId": "les_math12_c1_b1",
+    "chapterId": "chp_math12_c1",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt_01",
+    "type": "multiple-choice",
+    "difficulty": "medium",
+    "familyId": "fam_c1_cubic_extrema",
+    "prompt": "Giá trị cực tiểu của hàm số $y = x^3 - 18x^2 + 4$ bằng bao nhiêu?",
+    "options": [
+      "$-860$",
+      "$4$",
+      "$-856$",
+      "$860$"
+    ],
+    "correctAnswer": "$-860$",
+    "explanation": "Ta có $y' = 3x^2 - 36x = 0 \\Leftrightarrow x=0$ hoặc $x=12$. Cực tiểu tại $x=12$ cho $y=-860$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c1_exp_sa_06",
+    "lessonId": "les_math12_c1_b2",
+    "chapterId": "chp_math12_c1",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c1",
+    "type": "short-answer",
+    "difficulty": "medium",
+    "familyId": "fam_c1_minmax_interval",
+    "prompt": "Tìm giá trị lớn nhất của hàm số $y = x^2 - 12x + 9$ trên đoạn $[0; 13]$.",
+    "options": [],
+    "correctAnswer": "22",
+    "metadata": {
+      "acceptedAnswers": [
+        "22"
+      ]
+    },
+    "explanation": "Đỉnh parabol tại $x=6$. So sánh $f(0)=9$, $f(6)=-27$, $f(13)=22$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c2_exp_mc_01",
+    "lessonId": "les_math12_c2_b3",
+    "chapterId": "chp_math12_c2",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt_01",
+    "type": "multiple-choice",
+    "difficulty": "easy",
+    "familyId": "fam_c2_dot_product",
+    "prompt": "Trong không gian $Oxyz$, cho $\\vec{u}=(1; 2; 2)$ và $\\vec{v}=(2; -1; 1)$. Tích vô hướng $\\vec{u}\\cdot\\vec{v}$ bằng:",
+    "options": [
+      "$2$",
+      "$4$",
+      "$0$",
+      "$9$"
+    ],
+    "correctAnswer": "$2$",
+    "explanation": "$\\vec{u}\\cdot\\vec{v} = 1\\cdot 2 + (2)\\cdot(-1) + 2\\cdot 1 = 2$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c2_exp_sa_01",
+    "lessonId": "les_math12_c2_b3",
+    "chapterId": "chp_math12_c2",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c2",
+    "type": "short-answer",
+    "difficulty": "easy",
+    "familyId": "fam_c2_norm_sq",
+    "prompt": "Trong không gian $Oxyz$, cho $\\vec{u}=(1; 2; 2)$. Tính $|\\vec{u}|^2$.",
+    "options": [],
+    "correctAnswer": "9",
+    "metadata": {
+      "acceptedAnswers": [
+        "9"
+      ]
+    },
+    "explanation": "$|\\vec{u}|^2 = 1^2 + 2^2 + 2^2 = 9$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c2_exp_mc_02",
+    "lessonId": "les_math12_c2_b3",
+    "chapterId": "chp_math12_c2",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt_01",
+    "type": "multiple-choice",
+    "difficulty": "easy",
+    "familyId": "fam_c2_dot_product",
+    "prompt": "Trong không gian $Oxyz$, cho $\\vec{u}=(2; 3; 2)$ và $\\vec{v}=(2; -1; 2)$. Tích vô hướng $\\vec{u}\\cdot\\vec{v}$ bằng:",
+    "options": [
+      "$5$",
+      "$7$",
+      "$3$",
+      "$17$"
+    ],
+    "correctAnswer": "$5$",
+    "explanation": "$\\vec{u}\\cdot\\vec{v} = 2\\cdot 2 + (3)\\cdot(-1) + 2\\cdot 2 = 5$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c2_exp_sa_02",
+    "lessonId": "les_math12_c2_b3",
+    "chapterId": "chp_math12_c2",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c2",
+    "type": "short-answer",
+    "difficulty": "easy",
+    "familyId": "fam_c2_norm_sq",
+    "prompt": "Trong không gian $Oxyz$, cho $\\vec{u}=(2; 3; 2)$. Tính $|\\vec{u}|^2$.",
+    "options": [],
+    "correctAnswer": "17",
+    "metadata": {
+      "acceptedAnswers": [
+        "17"
+      ]
+    },
+    "explanation": "$|\\vec{u}|^2 = 2^2 + 3^2 + 2^2 = 17$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c2_exp_mc_03",
+    "lessonId": "les_math12_c2_b3",
+    "chapterId": "chp_math12_c2",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt_01",
+    "type": "multiple-choice",
+    "difficulty": "easy",
+    "familyId": "fam_c2_dot_product",
+    "prompt": "Trong không gian $Oxyz$, cho $\\vec{u}=(3; 4; 2)$ và $\\vec{v}=(2; -1; 3)$. Tích vô hướng $\\vec{u}\\cdot\\vec{v}$ bằng:",
+    "options": [
+      "$8$",
+      "$10$",
+      "$6$",
+      "$29$"
+    ],
+    "correctAnswer": "$8$",
+    "explanation": "$\\vec{u}\\cdot\\vec{v} = 3\\cdot 2 + (4)\\cdot(-1) + 2\\cdot 3 = 8$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c2_exp_sa_03",
+    "lessonId": "les_math12_c2_b3",
+    "chapterId": "chp_math12_c2",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c2",
+    "type": "short-answer",
+    "difficulty": "easy",
+    "familyId": "fam_c2_norm_sq",
+    "prompt": "Trong không gian $Oxyz$, cho $\\vec{u}=(3; 4; 2)$. Tính $|\\vec{u}|^2$.",
+    "options": [],
+    "correctAnswer": "29",
+    "metadata": {
+      "acceptedAnswers": [
+        "29"
+      ]
+    },
+    "explanation": "$|\\vec{u}|^2 = 3^2 + 4^2 + 2^2 = 29$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c2_exp_mc_04",
+    "lessonId": "les_math12_c2_b3",
+    "chapterId": "chp_math12_c2",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt_01",
+    "type": "multiple-choice",
+    "difficulty": "easy",
+    "familyId": "fam_c2_dot_product",
+    "prompt": "Trong không gian $Oxyz$, cho $\\vec{u}=(4; 5; 2)$ và $\\vec{v}=(2; -1; 4)$. Tích vô hướng $\\vec{u}\\cdot\\vec{v}$ bằng:",
+    "options": [
+      "$11$",
+      "$13$",
+      "$9$",
+      "$45$"
+    ],
+    "correctAnswer": "$11$",
+    "explanation": "$\\vec{u}\\cdot\\vec{v} = 4\\cdot 2 + (5)\\cdot(-1) + 2\\cdot 4 = 11$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c2_exp_sa_04",
+    "lessonId": "les_math12_c2_b3",
+    "chapterId": "chp_math12_c2",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c2",
+    "type": "short-answer",
+    "difficulty": "easy",
+    "familyId": "fam_c2_norm_sq",
+    "prompt": "Trong không gian $Oxyz$, cho $\\vec{u}=(4; 5; 2)$. Tính $|\\vec{u}|^2$.",
+    "options": [],
+    "correctAnswer": "45",
+    "metadata": {
+      "acceptedAnswers": [
+        "45"
+      ]
+    },
+    "explanation": "$|\\vec{u}|^2 = 4^2 + 5^2 + 2^2 = 45$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c2_exp_mc_05",
+    "lessonId": "les_math12_c2_b3",
+    "chapterId": "chp_math12_c2",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt_01",
+    "type": "multiple-choice",
+    "difficulty": "easy",
+    "familyId": "fam_c2_dot_product",
+    "prompt": "Trong không gian $Oxyz$, cho $\\vec{u}=(5; 6; 2)$ và $\\vec{v}=(2; -1; 5)$. Tích vô hướng $\\vec{u}\\cdot\\vec{v}$ bằng:",
+    "options": [
+      "$14$",
+      "$16$",
+      "$12$",
+      "$65$"
+    ],
+    "correctAnswer": "$14$",
+    "explanation": "$\\vec{u}\\cdot\\vec{v} = 5\\cdot 2 + (6)\\cdot(-1) + 2\\cdot 5 = 14$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c2_exp_sa_05",
+    "lessonId": "les_math12_c2_b3",
+    "chapterId": "chp_math12_c2",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c2",
+    "type": "short-answer",
+    "difficulty": "easy",
+    "familyId": "fam_c2_norm_sq",
+    "prompt": "Trong không gian $Oxyz$, cho $\\vec{u}=(5; 6; 2)$. Tính $|\\vec{u}|^2$.",
+    "options": [],
+    "correctAnswer": "65",
+    "metadata": {
+      "acceptedAnswers": [
+        "65"
+      ]
+    },
+    "explanation": "$|\\vec{u}|^2 = 5^2 + 6^2 + 2^2 = 65$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c2_exp_mc_06",
+    "lessonId": "les_math12_c2_b3",
+    "chapterId": "chp_math12_c2",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt_01",
+    "type": "multiple-choice",
+    "difficulty": "easy",
+    "familyId": "fam_c2_dot_product",
+    "prompt": "Trong không gian $Oxyz$, cho $\\vec{u}=(6; 7; 2)$ và $\\vec{v}=(2; -1; 6)$. Tích vô hướng $\\vec{u}\\cdot\\vec{v}$ bằng:",
+    "options": [
+      "$17$",
+      "$19$",
+      "$15$",
+      "$89$"
+    ],
+    "correctAnswer": "$17$",
+    "explanation": "$\\vec{u}\\cdot\\vec{v} = 6\\cdot 2 + (7)\\cdot(-1) + 2\\cdot 6 = 17$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c2_exp_sa_06",
+    "lessonId": "les_math12_c2_b3",
+    "chapterId": "chp_math12_c2",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c2",
+    "type": "short-answer",
+    "difficulty": "easy",
+    "familyId": "fam_c2_norm_sq",
+    "prompt": "Trong không gian $Oxyz$, cho $\\vec{u}=(6; 7; 2)$. Tính $|\\vec{u}|^2$.",
+    "options": [],
+    "correctAnswer": "89",
+    "metadata": {
+      "acceptedAnswers": [
+        "89"
+      ]
+    },
+    "explanation": "$|\\vec{u}|^2 = 6^2 + 7^2 + 2^2 = 89$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c3_exp_mc_01",
+    "lessonId": "les_math12_c3_b2",
+    "chapterId": "chp_math12_c3",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c3",
+    "type": "multiple-choice",
+    "difficulty": "medium",
+    "familyId": "fam_c3_grouped_mean",
+    "prompt": "Cho mẫu số liệu ghép nhóm $[0;10):2, [10;20):4, [20;30):3, [30;40):1$. Độ lệch chuẩn của mẫu bằng:",
+    "options": [
+      "$9$",
+      "$18$",
+      "$81$",
+      "$6$"
+    ],
+    "correctAnswer": "$9$",
+    "explanation": "Cỡ mẫu $N=10$, trung bình $\\bar{x}=18$, phương sai $s^2=81$, suy ra độ lệch chuẩn $s=9$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c3_exp_mc_02",
+    "lessonId": "les_math12_c3_b2",
+    "chapterId": "chp_math12_c3",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c3",
+    "type": "multiple-choice",
+    "difficulty": "medium",
+    "familyId": "fam_c3_grouped_mean",
+    "prompt": "Cho mẫu số liệu ghép nhóm $[0;10):4, [10;20):8, [20;30):6, [30;40):2$. Độ lệch chuẩn của mẫu bằng:",
+    "options": [
+      "$9$",
+      "$18$",
+      "$81$",
+      "$6$"
+    ],
+    "correctAnswer": "$9$",
+    "explanation": "Cỡ mẫu $N=20$, trung bình $\\bar{x}=18$, phương sai $s^2=81$, suy ra độ lệch chuẩn $s=9$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c3_exp_mc_03",
+    "lessonId": "les_math12_c3_b2",
+    "chapterId": "chp_math12_c3",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c3",
+    "type": "multiple-choice",
+    "difficulty": "medium",
+    "familyId": "fam_c3_grouped_mean",
+    "prompt": "Cho mẫu số liệu ghép nhóm $[0;10):6, [10;20):12, [20;30):9, [30;40):3$. Độ lệch chuẩn của mẫu bằng:",
+    "options": [
+      "$9$",
+      "$18$",
+      "$81$",
+      "$6$"
+    ],
+    "correctAnswer": "$9$",
+    "explanation": "Cỡ mẫu $N=30$, trung bình $\\bar{x}=18$, phương sai $s^2=81$, suy ra độ lệch chuẩn $s=9$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c3_exp_mc_04",
+    "lessonId": "les_math12_c3_b2",
+    "chapterId": "chp_math12_c3",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c3",
+    "type": "multiple-choice",
+    "difficulty": "medium",
+    "familyId": "fam_c3_grouped_mean",
+    "prompt": "Cho mẫu số liệu ghép nhóm $[0;10):8, [10;20):16, [20;30):12, [30;40):4$. Độ lệch chuẩn của mẫu bằng:",
+    "options": [
+      "$9$",
+      "$18$",
+      "$81$",
+      "$6$"
+    ],
+    "correctAnswer": "$9$",
+    "explanation": "Cỡ mẫu $N=40$, trung bình $\\bar{x}=18$, phương sai $s^2=81$, suy ra độ lệch chuẩn $s=9$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c4_exp_sa_01",
+    "lessonId": "les_math12_c4_b2",
+    "chapterId": "chp_math12_c4",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt_01",
+    "type": "short-answer",
+    "difficulty": "easy",
+    "familyId": "fam_c4_poly_integral",
+    "prompt": "Tính tích phân $I = \\int_0^2 (3x^2 + 2x)\\,dx$.",
+    "options": [],
+    "correctAnswer": "12",
+    "metadata": {
+      "acceptedAnswers": [
+        "12"
+      ]
+    },
+    "explanation": "$I = [x^3 + 1x^2]_0^2 = 8 + 4 = 12$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c4_exp_sa_02",
+    "lessonId": "les_math12_c4_b2",
+    "chapterId": "chp_math12_c4",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt_01",
+    "type": "short-answer",
+    "difficulty": "easy",
+    "familyId": "fam_c4_poly_integral",
+    "prompt": "Tính tích phân $I = \\int_0^2 (3x^2 + 4x)\\,dx$.",
+    "options": [],
+    "correctAnswer": "16",
+    "metadata": {
+      "acceptedAnswers": [
+        "16"
+      ]
+    },
+    "explanation": "$I = [x^3 + 2x^2]_0^2 = 8 + 8 = 16$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c4_exp_sa_03",
+    "lessonId": "les_math12_c4_b2",
+    "chapterId": "chp_math12_c4",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt_01",
+    "type": "short-answer",
+    "difficulty": "easy",
+    "familyId": "fam_c4_poly_integral",
+    "prompt": "Tính tích phân $I = \\int_0^2 (3x^2 + 6x)\\,dx$.",
+    "options": [],
+    "correctAnswer": "20",
+    "metadata": {
+      "acceptedAnswers": [
+        "20"
+      ]
+    },
+    "explanation": "$I = [x^3 + 3x^2]_0^2 = 8 + 12 = 20$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c4_exp_sa_04",
+    "lessonId": "les_math12_c4_b2",
+    "chapterId": "chp_math12_c4",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt_01",
+    "type": "short-answer",
+    "difficulty": "easy",
+    "familyId": "fam_c4_poly_integral",
+    "prompt": "Tính tích phân $I = \\int_0^2 (3x^2 + 8x)\\,dx$.",
+    "options": [],
+    "correctAnswer": "24",
+    "metadata": {
+      "acceptedAnswers": [
+        "24"
+      ]
+    },
+    "explanation": "$I = [x^3 + 4x^2]_0^2 = 8 + 16 = 24$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c4_exp_sa_05",
+    "lessonId": "les_math12_c4_b2",
+    "chapterId": "chp_math12_c4",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt_01",
+    "type": "short-answer",
+    "difficulty": "easy",
+    "familyId": "fam_c4_poly_integral",
+    "prompt": "Tính tích phân $I = \\int_0^2 (3x^2 + 10x)\\,dx$.",
+    "options": [],
+    "correctAnswer": "28",
+    "metadata": {
+      "acceptedAnswers": [
+        "28"
+      ]
+    },
+    "explanation": "$I = [x^3 + 5x^2]_0^2 = 8 + 20 = 28$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c4_exp_sa_06",
+    "lessonId": "les_math12_c4_b2",
+    "chapterId": "chp_math12_c4",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt_01",
+    "type": "short-answer",
+    "difficulty": "easy",
+    "familyId": "fam_c4_poly_integral",
+    "prompt": "Tính tích phân $I = \\int_0^2 (3x^2 + 12x)\\,dx$.",
+    "options": [],
+    "correctAnswer": "32",
+    "metadata": {
+      "acceptedAnswers": [
+        "32"
+      ]
+    },
+    "explanation": "$I = [x^3 + 6x^2]_0^2 = 8 + 24 = 32$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c5_exp_mc_01",
+    "lessonId": "les_math12_c5_b4",
+    "chapterId": "chp_math12_c5",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt_01",
+    "type": "multiple-choice",
+    "difficulty": "easy",
+    "familyId": "fam_c5_sphere_radius",
+    "prompt": "Mặt cầu $(x-1)^2 + (y+1)^2 + (z-2)^2 = 9$ có tâm và bán kính là:",
+    "options": [
+      "$I(1; -1; 2), R = 3$",
+      "$I(-1; 1; -2), R = 3$",
+      "$I(1; -1; 2), R = 9$",
+      "$I(1; 1; 2), R = 3$"
+    ],
+    "correctAnswer": "$I(1; -1; 2), R = 3$",
+    "explanation": "Phương trình chuẩn cho tâm $I(1; -1; 2)$ và bán kính $R = \\sqrt{9} = 3$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c5_exp_mc_02",
+    "lessonId": "les_math12_c5_b4",
+    "chapterId": "chp_math12_c5",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt_01",
+    "type": "multiple-choice",
+    "difficulty": "easy",
+    "familyId": "fam_c5_sphere_radius",
+    "prompt": "Mặt cầu $(x-2)^2 + (y+1)^2 + (z-2)^2 = 16$ có tâm và bán kính là:",
+    "options": [
+      "$I(2; -1; 2), R = 4$",
+      "$I(-2; 1; -2), R = 4$",
+      "$I(2; -1; 2), R = 16$",
+      "$I(2; 1; 2), R = 4$"
+    ],
+    "correctAnswer": "$I(2; -1; 2), R = 4$",
+    "explanation": "Phương trình chuẩn cho tâm $I(2; -1; 2)$ và bán kính $R = \\sqrt{16} = 4$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c5_exp_mc_03",
+    "lessonId": "les_math12_c5_b4",
+    "chapterId": "chp_math12_c5",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt_01",
+    "type": "multiple-choice",
+    "difficulty": "easy",
+    "familyId": "fam_c5_sphere_radius",
+    "prompt": "Mặt cầu $(x-3)^2 + (y+1)^2 + (z-2)^2 = 25$ có tâm và bán kính là:",
+    "options": [
+      "$I(3; -1; 2), R = 5$",
+      "$I(-3; 1; -2), R = 5$",
+      "$I(3; -1; 2), R = 25$",
+      "$I(3; 1; 2), R = 5$"
+    ],
+    "correctAnswer": "$I(3; -1; 2), R = 5$",
+    "explanation": "Phương trình chuẩn cho tâm $I(3; -1; 2)$ và bán kính $R = \\sqrt{25} = 5$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c5_exp_mc_04",
+    "lessonId": "les_math12_c5_b4",
+    "chapterId": "chp_math12_c5",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt_01",
+    "type": "multiple-choice",
+    "difficulty": "easy",
+    "familyId": "fam_c5_sphere_radius",
+    "prompt": "Mặt cầu $(x-4)^2 + (y+1)^2 + (z-2)^2 = 36$ có tâm và bán kính là:",
+    "options": [
+      "$I(4; -1; 2), R = 6$",
+      "$I(-4; 1; -2), R = 6$",
+      "$I(4; -1; 2), R = 36$",
+      "$I(4; 1; 2), R = 6$"
+    ],
+    "correctAnswer": "$I(4; -1; 2), R = 6$",
+    "explanation": "Phương trình chuẩn cho tâm $I(4; -1; 2)$ và bán kính $R = \\sqrt{36} = 6$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c5_exp_mc_05",
+    "lessonId": "les_math12_c5_b4",
+    "chapterId": "chp_math12_c5",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt_01",
+    "type": "multiple-choice",
+    "difficulty": "easy",
+    "familyId": "fam_c5_sphere_radius",
+    "prompt": "Mặt cầu $(x-5)^2 + (y+1)^2 + (z-2)^2 = 49$ có tâm và bán kính là:",
+    "options": [
+      "$I(5; -1; 2), R = 7$",
+      "$I(-5; 1; -2), R = 7$",
+      "$I(5; -1; 2), R = 49$",
+      "$I(5; 1; 2), R = 7$"
+    ],
+    "correctAnswer": "$I(5; -1; 2), R = 7$",
+    "explanation": "Phương trình chuẩn cho tâm $I(5; -1; 2)$ và bán kính $R = \\sqrt{49} = 7$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c5_exp_mc_06",
+    "lessonId": "les_math12_c5_b4",
+    "chapterId": "chp_math12_c5",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_mock_thpt_01",
+    "type": "multiple-choice",
+    "difficulty": "easy",
+    "familyId": "fam_c5_sphere_radius",
+    "prompt": "Mặt cầu $(x-6)^2 + (y+1)^2 + (z-2)^2 = 64$ có tâm và bán kính là:",
+    "options": [
+      "$I(6; -1; 2), R = 8$",
+      "$I(-6; 1; -2), R = 8$",
+      "$I(6; -1; 2), R = 64$",
+      "$I(6; 1; 2), R = 8$"
+    ],
+    "correctAnswer": "$I(6; -1; 2), R = 8$",
+    "explanation": "Phương trình chuẩn cho tâm $I(6; -1; 2)$ và bán kính $R = \\sqrt{64} = 8$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c6_exp_sa_01",
+    "lessonId": "les_math12_c6_b1",
+    "chapterId": "chp_math12_c6",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c6",
+    "type": "short-answer",
+    "difficulty": "easy",
+    "familyId": "fam_c6_cond_prob",
+    "prompt": "Cho $P(B) = 0.4$ và $P(A\\cap B) = 0.2$. Tính $P(A\\mid B)$ (viết dạng phân số tối giản $a/b$ hoặc số thập phân).",
+    "options": [],
+    "correctAnswer": "1/2",
+    "metadata": {
+      "acceptedAnswers": [
+        "1/2",
+        "0.5"
+      ]
+    },
+    "explanation": "$P(A\\mid B) = \\frac{P(A\\cap B)}{P(B)} = \\frac{0.2}{0.4} = 1/2$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c6_exp_sa_02",
+    "lessonId": "les_math12_c6_b1",
+    "chapterId": "chp_math12_c6",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c6",
+    "type": "short-answer",
+    "difficulty": "easy",
+    "familyId": "fam_c6_cond_prob",
+    "prompt": "Cho $P(B) = 0.5$ và $P(A\\cap B) = 0.3$. Tính $P(A\\mid B)$ (viết dạng phân số tối giản $a/b$ hoặc số thập phân).",
+    "options": [],
+    "correctAnswer": "3/5",
+    "metadata": {
+      "acceptedAnswers": [
+        "3/5",
+        "0.6"
+      ]
+    },
+    "explanation": "$P(A\\mid B) = \\frac{P(A\\cap B)}{P(B)} = \\frac{0.3}{0.5} = 3/5$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c6_exp_sa_03",
+    "lessonId": "les_math12_c6_b1",
+    "chapterId": "chp_math12_c6",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c6",
+    "type": "short-answer",
+    "difficulty": "easy",
+    "familyId": "fam_c6_cond_prob",
+    "prompt": "Cho $P(B) = 0.6$ và $P(A\\cap B) = 0.4$. Tính $P(A\\mid B)$ (viết dạng phân số tối giản $a/b$ hoặc số thập phân).",
+    "options": [],
+    "correctAnswer": "2/3",
+    "metadata": {
+      "acceptedAnswers": [
+        "2/3",
+        "0.6667"
+      ]
+    },
+    "explanation": "$P(A\\mid B) = \\frac{P(A\\cap B)}{P(B)} = \\frac{0.4}{0.6} = 2/3$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
+  },
+  {
+    "id": "q_m12_c6_exp_sa_04",
+    "lessonId": "les_math12_c6_b1",
+    "chapterId": "chp_math12_c6",
+    "subjectId": "sub_math12",
+    "assessmentId": "asm_m12_c6",
+    "type": "short-answer",
+    "difficulty": "easy",
+    "familyId": "fam_c6_cond_prob",
+    "prompt": "Cho $P(B) = 0.7$ và $P(A\\cap B) = 0.5$. Tính $P(A\\mid B)$ (viết dạng phân số tối giản $a/b$ hoặc số thập phân).",
+    "options": [],
+    "correctAnswer": "5/7",
+    "metadata": {
+      "acceptedAnswers": [
+        "5/7",
+        "0.7143"
+      ]
+    },
+    "explanation": "$P(A\\mid B) = \\frac{P(A\\cap B)}{P(B)} = \\frac{0.5}{0.7} = 5/7$.",
+    "status": "published",
+    "sourceId": "SRC-STUDYAI-ORIG-2026",
+    "verificationStatus": "MATH_VERIFIED"
   }
 ]

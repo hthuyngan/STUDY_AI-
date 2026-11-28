@@ -44,7 +44,6 @@ public sealed class Math12DatasetImportService
         bool dryRun = false,
         string createdByUserId = "",
         bool allowPublishInIsolatedTest = false,
-        bool allowOverwriteProtected = false,
         CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(dataDir) || !Directory.Exists(dataDir))
@@ -123,9 +122,13 @@ public sealed class Math12DatasetImportService
             throw new ValidationException("Dataset", string.Join(" | ", result.ValidationErrors.Take(5)));
         }
 
-        // M12-004: Resolve subject by unique business key Code ("MATH12")
+        // M12-004: Resolve subject strictly by unique business key Code ("MATH12") & Grade == "12"
         var existingSubject = await _db.ContentSubjects.AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Code == "MATH12" || s.Id == "sub_math12", ct);
+            .FirstOrDefaultAsync(s => s.Code == "MATH12" && s.Grade == "12", ct);
+        if (existingSubject == null && await _db.ContentSubjects.AsNoTracking().AnyAsync(s => s.Id == "sub_math12", ct))
+        {
+            throw new ValidationException("Subject", "Conflict: ID 'sub_math12' exists with a non-MATH12 code.");
+        }
         var resolvedSubjectId = existingSubject?.Id ?? "sub_math12";
 
         // Publication safety: only allow published/indexed automatically in isolated StudyAIDb_Clean_{GUID} when explicitly requested
@@ -150,7 +153,7 @@ public sealed class Math12DatasetImportService
                 var payloadJson = JsonSerializer.Serialize(b.Payload);
                 var targetStatus = ResolveTargetStatus(b.Status);
                 if (!existingBlocks.TryGetValue(b.Id, out var ex)) result.InsertCount++;
-                else if ((ex.Status == "published" || ex.Status == "approved") && !allowOverwriteProtected)
+                else if (ex.Status == "published" || ex.Status == "approved")
                 {
                     result.ConflictCount++;
                     result.ValidationErrors.Add($"Conflict: block '{b.Id}' is '{ex.Status}'.");
@@ -164,7 +167,7 @@ public sealed class Math12DatasetImportService
                 var optsJson = JsonSerializer.Serialize(q.Options ?? new List<string>());
                 var targetStatus = ResolveTargetStatus(q.Status);
                 if (!existingQuestions.TryGetValue(q.Id, out var ex)) result.InsertCount++;
-                else if ((ex.Status == "published" || ex.Status == "approved") && !allowOverwriteProtected)
+                else if (ex.Status == "published" || ex.Status == "approved")
                 {
                     result.ConflictCount++;
                     result.ValidationErrors.Add($"Conflict: question '{q.Id}' is '{ex.Status}'.");
@@ -176,9 +179,28 @@ public sealed class Math12DatasetImportService
             foreach (var a in assessments)
             {
                 if (!existingAssessments.TryGetValue(a.Id, out var ex)) result.InsertCount++;
-                else if ((ex.Status == "published" || ex.Status == "approved") && !allowOverwriteProtected) result.ConflictCount++;
+                else if (ex.Status == "published" || ex.Status == "approved") result.ConflictCount++;
                 else if (ex.Title == a.Title && ex.PassScore == a.PassScore && ex.DurationMinutes == a.DurationMinutes) result.UnchangedCount++;
                 else result.UpdateCount++;
+            }
+            foreach (var m in materials)
+            {
+                var targetStatus = ResolveTargetStatus(m.Status);
+                if (!existingMaterials.TryGetValue(m.Id, out var ex)) result.InsertCount++;
+                else if (ex.Status == "published" || ex.Status == "approved") result.ConflictCount++;
+                else if (ex.Title == m.Title && ex.Status == targetStatus) result.UnchangedCount++;
+                else result.UpdateCount++;
+            }
+            foreach (var s in kb.Sources)
+            {
+                if (!existingSources.TryGetValue(s.Id, out var ex)) result.InsertCount++;
+                else if (ex.Status == "indexed") result.ConflictCount++;
+                else result.UnchangedCount++;
+            }
+            foreach (var c in kb.Chunks)
+            {
+                if (!existingChunks.TryGetValue(c.Id, out _)) result.InsertCount++;
+                else result.UnchangedCount++;
             }
             return result;
         }
@@ -263,7 +285,7 @@ public sealed class Math12DatasetImportService
                     result.InsertCount++;
                     result.LessonBlocksUpserted++;
                 }
-                else if ((ex.Status == "published" || ex.Status == "approved") && !allowOverwriteProtected)
+                else if (ex.Status == "published" || ex.Status == "approved")
                 {
                     result.ConflictCount++;
                     result.ValidationErrors.Add($"Conflict: block '{b.Id}' is '{ex.Status}'.");
@@ -304,7 +326,7 @@ public sealed class Math12DatasetImportService
                     result.InsertCount++;
                     result.AssessmentsUpserted++;
                 }
-                else if ((ex.Status == "published" || ex.Status == "approved") && !allowOverwriteProtected)
+                else if (ex.Status == "published" || ex.Status == "approved")
                 {
                     result.ConflictCount++;
                     result.ValidationErrors.Add($"Conflict: assessment '{a.Id}' is '{ex.Status}'.");
@@ -355,7 +377,7 @@ public sealed class Math12DatasetImportService
                     result.InsertCount++;
                     result.QuestionsUpserted++;
                 }
-                else if ((ex.Status == "published" || ex.Status == "approved") && !allowOverwriteProtected)
+                else if (ex.Status == "published" || ex.Status == "approved")
                 {
                     result.ConflictCount++;
                     result.ValidationErrors.Add($"Conflict: question '{q.Id}' is '{ex.Status}'.");
@@ -397,7 +419,7 @@ public sealed class Math12DatasetImportService
                 var safeExt = string.IsNullOrWhiteSpace(ext) ? ".bin" : Regex.Replace(ext.ToLowerInvariant(), @"[^a-z0-9.]", "");
                 var physicalPath = Path.Combine(uploadRoot, $"{m.Id}{safeExt}");
 
-                if (!File.Exists(physicalPath))
+                if (!File.Exists(physicalPath) || !existingMaterials.TryGetValue(m.Id, out var existingMat) || existingMat.FileHashSha256 != sha)
                 {
                     await File.WriteAllBytesAsync(physicalPath, bytes, ct);
                     writtenFiles.Add(physicalPath);

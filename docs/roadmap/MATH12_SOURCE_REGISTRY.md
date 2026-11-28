@@ -1,29 +1,15 @@
-# MATH12 SOURCE REGISTRY (DATA-03)
+# MATH12 SOURCE REGISTRY (R09-05 — VERIFIED SOURCES)
 
-> **Cập nhật:** 2026-11-28 (Round 08 — V8.0 Autonomous Math 12 Data Engineering)
-> **Mục tiêu:** Ghi nhận nguồn học liệu chính thống, giấy phép, phạm vi sử dụng và trạng thái kiểm định cho môn Toán lớp 12 (GDPT 2018 — Kết nối tri thức với cuộc sống).
+> **Cập nhật:** 2026-11-28 (Round 09 — V9.0)
+> **Mục tiêu:** Ghi nhận đầy đủ nguồn tham khảo chính thống có URL, văn bản pháp quy, ngày truy cập, phạm vi sử dụng, giấy phép và giới hạn bản quyền cho môn Toán lớp 12.
 
-## 1. Nguồn chương trình và chuẩn kiến thức (Curriculum Standards)
+## 1. Bảng nguồn chính thức & học liệu đối chiếu
 
-| Source ID | Tên nguồn | Loại nguồn | Phạm vi sử dụng | Giấy phép / Trạng thái |
-| :--- | :--- | :--- | :--- | :--- |
-| `SRC-GDPT2018` | Chương trình Giáo dục phổ thông môn Toán 2018 (Bộ GD&ĐT) | Văn bản pháp quy / Chuẩn đầu ra | Cấu trúc 6 chương, mục tiêu năng lực, yêu cầu cần đạt Toán 12 | `PUBLIC_REGULATION` — Được phép tham chiếu cấu trúc & yêu cầu cần đạt |
-| `SRC-KNTT-TOC` | Mục lục SGK Toán 12 Kết nối tri thức với cuộc sống (Tập 1 & Tập 2) | Đối chiếu tên bài & thứ tự 19 bài | Mapping `chp_math12_c1..c6` và 19 bài học (`Bài 1`..`Bài 19`) | `STRUCTURE_REFERENCE_ONLY` — Chỉ tham chiếu tên chương/bài, **không sao chép văn bản SGK** |
-| `SRC-BGD-2025` | Đề minh họa & cấu trúc đề thi TN THPT môn Toán từ 2025 (Bộ GD&ĐT) | Cấu trúc định dạng 3 phần (12 TNKQ, 4 Đúng/Sai, 6 Trả lời ngắn) | Thiết kế ma trận đề thi & định dạng `multiple-choice`, `true-false-group`, `short-answer` | `PUBLIC_EXAM_FORMAT` — Tham chiếu ma trận & định dạng |
-
-## 2. Nguồn nội dung biên soạn mới (Original Authored & Verified)
-
-| Source ID | Tên nguồn | Tác giả / Kiểm định | Phạm vi sử dụng | Giấy phép / Trạng thái |
-| :--- | :--- | :--- | :--- | :--- |
-| `SRC-STUDYAI-ORIG-2026` | Bộ học liệu Toán 12 nguyên bản STUDY_AI (`backend/data/math12/`) | Biên soạn mới hoàn toàn bởi Dual-Agent (Codex 6.1 High + Antigravity), kiểm chứng toán học bằng **SymPy 1.14.0** | 19 bài giảng (`lesson_content_blocks`), ngân hàng câu hỏi 3 định dạng, 6 đề kiểm tra chương + 2 đề tổng hợp, tài liệu ôn tập & AI Knowledge Base | `ORIGINAL_PROJECT_ASSET` (`MATH_VERIFIED`) — Được phép import & publish vào môi trường kiểm thử/học tập |
-
-## 3. Nguồn dữ liệu cũ bị khóa bản quyền (Legacy Restricted)
-
-| Source ID | Tên nguồn | Số lượng trong `StudyAIDb` | Trạng thái | Quyết định xử lý |
-| :--- | :--- | :--- | :--- | :--- |
-| `SRC-VNHSGE` | Bộ dữ liệu `vnhsge` (`scripts/vnhsge_prod_checkpoint.json`) | 2.544 câu Toán 12 (`draft`, `pending_verification`) | `LICENSE_BLOCKED` (`VNHSGE_COPYRIGHT_GATE_LOCKED`) | **GIỮ NGUYÊN `draft` / KHÔNG PUBLISH / KHÔNG XÓA**; không đưa vào luồng học viên chính thức hoặc RAG công khai |
-
-## 4. Nguyên tắc liêm chính học liệu
-1. Không sao chép nguyên văn đoạn văn, hình ảnh hoặc bài tập có bản quyền từ SGK/SBT thương mại.
-2. Mọi biểu thức toán học, nghiệm, đạo hàm, tích phân, phương trình mặt phẳng/đường thẳng, xác suất có điều kiện trong `SRC-STUDYAI-ORIG-2026` đều có script kiểm chứng **SymPy 1.14.0** và kiểm định độc lập bởi Codex 6.1 High.
-3. Mọi bản ghi trong `backend/data/math12/` đều gắn `sourceId` và `verificationStatus: "MATH_VERIFIED"`.
+| Source ID | Tên tài liệu | Tác giả / Đơn vị phát hành | Phiên bản / Văn bản | Ngày truy cập | URL tham chiếu | Phạm vi sử dụng | License / Restrictions |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `SRC-GDPT2018` | Chương trình giáo dục phổ thông môn Toán | Bộ Giáo dục và Đào tạo (MOET) | Thông tư `32/2018/TT-BGDĐT` (26/12/2018) | 2026-11-28 | `https://moet.gov.vn` / `https://thuvienphapluat.vn` | Chuẩn năng lực (5 thành tố), mạch kiến thức Giải tích, Hình học Oxyz, Thống kê & Xác suất lớp 12 | `PUBLIC_REGULATION` — Được phép trích dẫn cấu trúc & yêu cầu cần đạt |
+| `SRC-BGD-2025` | Cấu trúc định dạng đề thi tốt nghiệp THPT từ năm 2025 môn Toán | Bộ Giáo dục và Đào tạo (MOET) | Quyết định `764/QĐ-BGDĐT` | 2026-11-28 | `https://moet.gov.vn` / `https://xaydungchinhsach.chinhphu.vn` | Cấu trúc 3 phần: Phần I (12 TNKQ × 0,25đ), Phần II (4 Đúng/Sai 4 ý: 0,1 / 0,25 / 0,5 / 1,0đ), Phần III (6 trả lời ngắn × 0,5đ) | `PUBLIC_EXAM_FORMAT` — Áp dụng cho ma trận đề ôn tập & thi thử |
+| `SRC-KNTT-TOC` | Mục lục SGK Toán 12 Kết nối tri thức với cuộc sống (Tập 1 & 2) | NXB Giáo dục Việt Nam | Bộ GDPT 2018 (19 bài / 6 chương) | 2026-11-28 | `https://nxbgd.vn` | Đối chiếu tên 6 chương (`M12-C1..M12-C6`) và 19 bài (`les_math12_c1_b1..c6_b2`) | `STRUCTURE_REFERENCE_ONLY` — **Tuyệt đối không sao chép văn bản/bài tập SGK** |
+| `SRC-CD-CTST-REF` | Đối chiếu khung phân phối Toán 12 Cánh diều & Chân trời sáng tạo | NXB ĐHSP / NXB Giáo dục VN | Bộ GDPT 2018 | 2026-11-28 | `https://nxbgd.vn` | Đối chiếu bổ sung chuyên đề/dạng bài (tiệm cận xiên, quy tắc hình hộp, khoảng tứ phân vị, Bayes) | `STRUCTURE_REFERENCE_ONLY` — Không sao chép nguyên văn |
+| `SRC-STUDYAI-ORIG-2026` | Bộ học liệu Toán 12 nguyên bản STUDY_AI (`backend/data/math12/`) | Dual-Agent (Codex 6.1 High + Antigravity) | `v1.0.0` (Round 08–09) | 2026-11-28 | Nội bộ repo `backend/data/math12/` | Toàn bộ bài giảng, câu hỏi, đề kiểm tra, tài liệu & AI Knowledge Base | `ORIGINAL_PROJECT_ASSET` — Độc lập kiểm chứng SymPy & validation manifest |
+| `SRC-VNHSGE` | Bộ dữ liệu VNHSGE (`scripts/vnhsge_prod_checkpoint.json`) | VNHSGE Benchmark (`arXiv:2305.12199`) | `CC BY-NC-SA 4.0` | 2026-11-28 | `https://arxiv.org/abs/2305.12199` | 2.544 câu Toán 12 hiện có trong `StudyAIDb` | `LICENSE_BLOCKED` (`VNHSGE_COPYRIGHT_GATE_LOCKED`) — Giữ `draft`, không publish |

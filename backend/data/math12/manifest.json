@@ -1,19 +1,19 @@
 {
-  "version": "1.0.0",
-  "generatedAt": "2026-11-28T04:03:38.238601+00:00",
+  "version": "2.0.0",
+  "generatedAt": "2026-11-28T04:38:19.431580+00:00",
   "subjectId": "sub_math12",
   "curriculum": "GDPT 2018 — Toán 12 Kết nối tri thức với cuộc sống",
   "counts": {
     "chapters": 6,
     "lessons": 19,
-    "lessonBlocks": 76,
-    "questions": 68,
+    "lessonBlocks": 190,
+    "questions": 112,
     "questionTypes": {
-      "multiple-choice": 38,
+      "multiple-choice": 60,
       "true-false-group": 12,
-      "short-answer": 18
+      "short-answer": 40
     },
-    "assessments": 8,
+    "assessments": 12,
     "materials": 6,
     "knowledgeSources": 6,
     "knowledgeChunks": 19,
