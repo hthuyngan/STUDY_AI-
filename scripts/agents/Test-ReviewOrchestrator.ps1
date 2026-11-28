@@ -89,6 +89,21 @@ $blkResults = @(
 $aggBlk = Get-AggregatedReviewVerdict -ReviewSessionId "override" -RequiredPackets @("A") -ExpectedSnapshotFingerprint $fp -PacketResultsOverride $blkResults
 Assert-True ($aggBlk.verdict -eq "BLOCKED") "P1Finding_Returns_BLOCKED"
 
+# 10. Owner-approved high-review budget; verify the upper boundary remains enforced.
+$limits = Get-ReviewOrchestrationLimits -Config (Get-AgentConfig)
+Assert-True ($limits.MaxDiffChars -eq 78000 -and $limits.MaxTotalContextChars -eq 624000 -and $limits.MaxDurationSeconds -eq 2340) "HighReviewBudget_30Percent"
+Assert-True ($limits.MaxRemediationRounds -eq 3 -and $limits.MaxPacketsPerSession -eq 12 -and $limits.MaxRetriesPerPacket -eq 2 -and $limits.MaxTotalInvocations -eq 36) "InvocationGuardrails_Unchanged"
+$sid3 = "test-budget-" + ([guid]::NewGuid().ToString("N").Substring(0, 8))
+$null = New-ReviewSessionState -ReviewSessionId $sid3 -Branch "feature/test" -BaseSha "0143e2dfc5c4db80c0bae0ce322971cfec5f3f11" -SnapshotId "snap-budget" -SnapshotFingerprint $fp -RemediationRound 1
+try {
+    for ($i = 1; $i -le 8; $i++) {
+        Assert-PacketInvocationAllowed -ReviewSessionId $sid3 -PacketId "BUDGET-$i" -SnapshotFingerprint $fp -RemediationRound 1 -ContextChars 78000
+    }
+    Assert-Throws { Assert-PacketInvocationAllowed -ReviewSessionId $sid3 -PacketId "BUDGET-9" -SnapshotFingerprint $fp -RemediationRound 1 -ContextChars 1 } "MAX_CONTEXT_BUDGET_EXCEEDED" "ContextBudget_ExactLimitEnforced"
+} finally {
+    Remove-Item (Get-ReviewSessionStatePath -ReviewSessionId $sid3) -Force -ErrorAction SilentlyContinue
+}
+
 # Cleanup test session files
 Remove-Item (Get-ReviewSessionStatePath -ReviewSessionId $sid) -Force -ErrorAction SilentlyContinue
 Remove-Item (Get-ReviewSessionStatePath -ReviewSessionId $sid2) -Force -ErrorAction SilentlyContinue
