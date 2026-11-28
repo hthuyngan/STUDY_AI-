@@ -60,23 +60,13 @@ export const TeacherMaterialsPage: React.FC = () => {
         fd.append('category', 'lecture_note')
         await teacherWorkspaceService.uploadMaterial(fd)
       } else {
-        const safeName = fileName.trim()
-        const inferredMime = safeName.endsWith('.md')
-          ? 'text/markdown'
-          : safeName.endsWith('.txt')
-            ? 'text/plain'
-            : safeName.endsWith('.png')
-              ? 'image/png'
-              : safeName.endsWith('.jpg') || safeName.endsWith('.jpeg')
-                ? 'image/jpeg'
-                : 'application/pdf'
         await teacherWorkspaceService.createMaterial({
           classroomId,
           title,
-          category: 'lecture_note',
-          fileName: safeName,
-          mimeType: inferredMime,
-          fileSizeBytes: 1,
+          category: 'external_link',
+          fileName: fileName.trim(),
+          mimeType: 'text/uri-list',
+          fileSizeBytes: 0,
           storagePathOrUrl,
         })
       }

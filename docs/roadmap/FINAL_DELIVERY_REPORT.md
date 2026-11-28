@@ -1,42 +1,24 @@
-# FINAL DELIVERY REPORT — AI TUTOR MATH 12
+# FINAL DELIVERY REPORT — ROUND 06 (AI TUTOR MATH 12)
 
-> Generated: 2026-11-28 (Asia/Bangkok)  
-> Repository: `https://github.com/hthuyngan/STUDY_AI-`  
-> Release Branch: `feature/math12-integrated-release` (built on `feature/admin-first-fullstack` -> `feature/math12-content` -> `feature/math12-teacher` -> `feature/math12-user`)
-
----
-
-## 1. Executive Summary
-
-All four roles (**ADMIN**, **CONTENT**, **TEACHER**, **USER**) have been scoped to **Toán lớp 12** (6 official chapters in `frontend/src/config/math12Scope.ts`), implemented full-stack (React 19 + TypeScript + ASP.NET Core .NET 10 + EF Core SQL Server), and verified against isolated `StudyAIDb_Clean_{GUID}` databases.
-
-- **Protected P05 Workspace (`D:\TN`, branch `feature/p05-question-mapping-assessment-integrity`)**: Untouched (`26 / 26` files verified via `P05_PRESERVATION_MANIFEST.txt`, `0` SHA-256 mismatches).
-- **Protected Databases (`StudyAIDb`, `StudyAIDb_E2E`)**: Untouched.
+> Date: 2026-11-28 (Asia/Bangkok)  
+> Branch: `feature/math12-integrated-release` (Draft PR `#38`)  
+> Issue: [#39](https://github.com/hthuyngan/STUDY_AI-/issues/39)
 
 ---
 
-## 2. Delivered Workstreams & Branches
+## 1. Summary of Round 06 Deliverables
 
-| Workstream | Branch | Key Deliverables | Status |
-|---|---|---|---|
-| **ADMIN-R04** | `feature/admin-first-fullstack` (`58e72de0`, Draft PR `#33`) | `SupportService`, `AdminDetailDrawer` focus trap, `useAdmin` staleness guard, `AdminDashboardPage` null AI telemetry, `ADMIN_ROUND04_REPORT.md` | `VERIFIED` (`ADM-04` Design Gate) |
-| **BASE-01** | `feature/math12-content` (`22cd0a75`) | `math12Scope.ts` (6 Math 12 chapters), standardized `Sidebar.tsx` & `workspaceNavigation.ts`, Math 12-only `SubjectsPage.tsx`, `LearnerSubscriptionsPage.tsx` | `VERIFIED` |
-| **CONTENT-01..09** | `feature/math12-content` (`f26b7e07`) | `ContentWorkspaceController` (12 endpoints), `AddMath12ContentWorkspace` migration, Materials/KnowledgeBase/ErrorReports/Dashboard pages, `Math12ContentWorkspaceTests`, `CW-001..003` remediated | `VERIFIED` |
-| **TEACHER-01..08** | `feature/math12-teacher` (`73f12e55` + `630caa43`) | `TeacherWorkspaceController` (10 endpoints), `AddMath12TeacherWorkspace` migration, Exams/Materials/AI Assistant/Schedule/Announcements pages, `Math12TeacherWorkspaceTests`, `TW-001..003` remediated | `VERIFIED` |
-| **USER-01..10** | `feature/math12-user` -> `feature/math12-integrated-release` (`630caa43` + `CompletedAt != null` fix) | `StudentWorkspaceController` (3 endpoints), Math 12 `DashboardPage`, 3-tab `MyNotesPage`, `LearnerAssignmentsPage` (join classroom by code + announcements), `Math12UserWorkspaceTests`, `REVIEW-001` remediated | `VERIFIED` (`USER-09` Design Gate) |
+1. **Dual-Agent Codex 6.1 High Workflow**:
+   - Executed `codex-review.ps1` (`gpt-6.1-sol`, `reasoning=high`, `-s read-only`), `codex-plan.ps1` (`HIGH` risk plan across `ws1`..`ws6`), and `codex-review.ps1 -ReviewMode rereview`.
+   - Detailed traceability is recorded in `docs/roadmap/CODEX_REMEDIATION_PLAN.md` and `docs/roadmap/RELEASE_ROUND06_REPORT.md`.
+2. **Backend & Database Hardening (`AddRound06IntegrityAndStorage`)**:
+   - **Content (`CONTENT-002`, `CW-002..005`)**: Added multipart upload (`POST /api/v1/content/workspace/materials/upload`), authorized download (`GET .../download`), byte SHA-256, server-side text extraction (`ExtractedText`), `AiTutorService` RAG integration over published/indexed `AiKnowledgeChunks`, unique index `(SourceType, SourceRefId)` + idempotent sync, allowlisted `TargetType`/`Severity`, legal material status transitions, and `System.Text.Json` audit serialization.
+   - **Teacher (`L02-002..004`, `SEC-01`)**: Required validated published `SourceAssessmentId` (`>= 1` question) in `CreateExamAsync`, idempotent `Assignment` link (`assign-{entity.Id}`) in `UpdateExamStatusAsync`, multipart upload + private storage + download/revocation checks, `AllowedAiModes` + `IAiUsageService` quota/logging + explicit `unavailable`/`draft_only` status (`IsAiGenerated=false`).
+   - **User & DB (`DB-001`, `MYNOTES-001`)**: Added FKs on `teacher_exams`, `classroom_materials`, `classroom_announcements`; immutable `SuspendDataJson.questionSnapshots` + `PublishResults` masking + persisted `PATCH /api/v1/learner/workspace/mistakes/{responseId}/resolve`; validated join code length & Math 12 classroom scope.
+3. **Frontend & Live 4-Role E2E**:
+   - Fixed `ContentErrorReportsPage.tsx` classification preservation (`CONTENT-001`), `TeacherMaterialsPage.tsx` multipart upload / `external_link` / `revokeMaterial` error handling (`F1`/`F2`), and `MyNotesPage.tsx` persisted mistake resolution (`MYNOTES-001`).
+   - Verified live 4-role Chromium E2E (`LIVE_E2E_R06_4ROLE_PASS`), `351/351` UnitTests, `281/281` IntegrationTests, `599/599` Vitest, `0` oxlint errors, and `26/26` P05 SHA-256 preservation.
 
----
+## 2. Explicit Human Approval Gates (Unchanged)
 
-## 3. Quality Gate & Review Evidence
-
-- **Frontend (`630caa43`)**: `oxlint` `0` errors (`535` files), `vitest` `92/92` files (`598/598` PASS), `tsc -b && vite build` PASS. See `docs/roadmap/TEST_REPORT.md`.
-- **Backend (post-final-edit)**: `StudyAI.UnitTests` `351/351` PASS (`4 s`), `StudyAI.IntegrationTests` `281/281` PASS (`1 m 54 s`) on `StudyAIDb_Clean_{GUID}`. See `docs/roadmap/TEST_REPORT.md`.
-- **Codex Local CLI (`gpt-6.1-sol`, read-only)**: `USER-TEACHER-BE` `PASS` (`0` findings); `CONTENT-BE` (`CW-001..003`), `TEACHER-BE` (`TW-001..003`), and `USER-FE` (`REVIEW-001`) findings remediated and covered by tests. See `docs/roadmap/CODEX_REVIEW_REPORT.md`.
-
----
-
-## 4. Explicit Gaps & Owner Approval Gates
-
-1. **Design Gates (`BLOCKED`)**: `ADM-04` (API Provider/Key Management) and `ADM-05` / `USER-09` (Subscriptions & Payments) are intentionally gated pending owner approval.
-2. **Live Browser Playwright 4-Role E2E (`NOT RUN`)**: API-level cross-role integration tests pass, but live headless browser Playwright E2E against `StudyAIDb_Clean_{GUID}` was not executed in this session.
-3. **Production/Main Merge**: Per workspace rules, no branch was merged to `main` and no migration was run on `StudyAIDb`. All changes are staged on feature branches / Draft PRs for owner review.
+- `ADM-04`, `ADM-05` / `USER-09`, production `StudyAIDb` migration, and PR `#38` merge remain **gated for explicit owner approval**.

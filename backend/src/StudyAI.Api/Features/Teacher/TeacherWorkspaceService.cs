@@ -150,25 +150,31 @@ public class TeacherWorkspaceService : ITeacherWorkspaceService
             entity.PublishResults = req.PublishResults.Value;
         entity.UpdatedAt = DateTimeOffset.UtcNow;
 
-        // Integrate with canonical Assignment / Gradebook pipeline
+        // Integrate with canonical Assignment / Gradebook pipeline (idempotent deterministic ID prevents concurrent duplicate assignments)
         if (nextStatus == "published" && string.IsNullOrWhiteSpace(entity.LinkedAssignmentId))
         {
-            var assignment = new Assignment
+            var deterministicAssignId = $"assign-{entity.Id}";
+            if (deterministicAssignId.Length > 64) deterministicAssignId = deterministicAssignId[..64];
+            var existingAssign = await _db.Assignments.FirstOrDefaultAsync(a => a.Id == deterministicAssignId, ct);
+            if (existingAssign == null)
             {
-                Id = $"assign-{Guid.NewGuid():N}",
-                ClassroomId = entity.ClassroomId,
-                Title = entity.Title,
-                Description = $"Đề kiểm tra Toán 12 ({entity.DurationMinutes} phút)",
-                Instructions = $"SourceAssessmentId:{entity.SourceAssessmentId}",
-                DueDate = entity.CloseAt ?? DateTimeOffset.UtcNow.AddDays(7),
-                MaxScore = 10.0,
-                Status = "active",
-                CreatedByTeacherId = entity.TeacherId,
-                CreatedAt = DateTimeOffset.UtcNow,
-                UpdatedAt = DateTimeOffset.UtcNow
-            };
-            _db.Assignments.Add(assignment);
-            entity.LinkedAssignmentId = assignment.Id;
+                existingAssign = new Assignment
+                {
+                    Id = deterministicAssignId,
+                    ClassroomId = entity.ClassroomId,
+                    Title = entity.Title,
+                    Description = $"Đề kiểm tra Toán 12 ({entity.DurationMinutes} phút)",
+                    Instructions = $"SourceAssessmentId:{entity.SourceAssessmentId}",
+                    DueDate = entity.CloseAt ?? DateTimeOffset.UtcNow.AddDays(7),
+                    MaxScore = 10.0,
+                    Status = "active",
+                    CreatedByTeacherId = entity.TeacherId,
+                    CreatedAt = DateTimeOffset.UtcNow,
+                    UpdatedAt = DateTimeOffset.UtcNow
+                };
+                _db.Assignments.Add(existingAssign);
+            }
+            entity.LinkedAssignmentId = existingAssign.Id;
         }
         else if (nextStatus == "closed" && !string.IsNullOrWhiteSpace(entity.LinkedAssignmentId))
         {
@@ -203,7 +209,10 @@ public class TeacherWorkspaceService : ITeacherWorkspaceService
             throw new ValidationException("Title", "Tiêu đề tài liệu không được để trống.");
         if (string.IsNullOrWhiteSpace(req.FileName) || req.FileName.Contains(".."))
             throw new ValidationException("FileName", "Tên tệp không hợp lệ.");
-        if (req.FileSizeBytes <= 0 || req.FileSizeBytes > 15 * 1024 * 1024)
+        var isExternalLink = string.Equals(req.Category, "external_link", StringComparison.OrdinalIgnoreCase) &&
+                             Uri.TryCreate(req.StoragePathOrUrl?.Trim(), UriKind.Absolute, out var linkUri) &&
+                             linkUri.Scheme == Uri.UriSchemeHttps;
+        if (!isExternalLink && (req.FileSizeBytes <= 0 || req.FileSizeBytes > 15 * 1024 * 1024))
             throw new ValidationException("FileSizeBytes", "Dung lượng tệp tối đa 15 MB.");
         if (!IsSafeStorageUrl(req.StoragePathOrUrl))
             throw new ValidationException("StoragePathOrUrl", "Đường dẫn tài liệu phải dùng HTTPS hoặc đường dẫn nội bộ hợp lệ.");
