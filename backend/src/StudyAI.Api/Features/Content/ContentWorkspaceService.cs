@@ -274,13 +274,15 @@ public class ContentWorkspaceService : IContentWorkspaceService
 
         var id = $"mat-{Guid.NewGuid():N}";
         await SaveMaterialBytesAsync(id, safeFileName, bytes, ct);
+        ContentMaterial entity;
+        string fileHash;
         try
         {
-            var fileHash = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+            fileHash = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
             var extracted = ExtractTextFromBytes(mime, safeFileName, bytes);
 
             var now = DateTimeOffset.UtcNow;
-            var entity = new ContentMaterial
+            entity = new ContentMaterial
             {
                 Id = id,
                 Title = title.Trim(),
@@ -301,9 +303,6 @@ public class ContentWorkspaceService : IContentWorkspaceService
 
             _db.ContentMaterials.Add(entity);
             await _db.SaveChangesAsync(ct);
-
-            await _auditWriter.WriteStaffAuditAsync("content_material_upload", "content_material", entity.Id, null, JsonSerializer.Serialize(new { title = entity.Title, fileName = entity.FileName, sha256 = fileHash }), ct);
-            return ToDto(entity);
         }
         catch
         {
@@ -315,6 +314,9 @@ public class ContentWorkspaceService : IContentWorkspaceService
             catch { }
             throw;
         }
+
+        await _auditWriter.WriteStaffAuditAsync("content_material_upload", "content_material", entity.Id, null, JsonSerializer.Serialize(new { title = entity.Title, fileName = entity.FileName, sha256 = fileHash }), ct);
+        return ToDto(entity);
     }
 
     public async Task<(Stream Stream, string MimeType, string FileName)> DownloadMaterialAsync(
