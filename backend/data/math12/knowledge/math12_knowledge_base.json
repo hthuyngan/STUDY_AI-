@@ -1,187 +1,1716 @@
 {
   "sources": [
     {
-      "id": "ksrc_orig_m12-c1",
+      "id": "ksrc_m12_01",
       "sourceType": "material",
       "sourceRefId": "mat_orig_m12-c1",
-      "title": "Kho tri thức Toán 12 — Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị của hàm số",
+      "title": "Bảng công thức trọng tâm — Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số",
       "status": "indexed",
-      "chunkCount": 5
+      "chunkCount": 7
     },
     {
-      "id": "ksrc_orig_m12-c2",
+      "id": "ksrc_m12_02",
+      "sourceType": "material",
+      "sourceRefId": "mat_orig_m12_c1_02",
+      "title": "Phương pháp giải các dạng bài — Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số",
+      "status": "indexed",
+      "chunkCount": 7
+    },
+    {
+      "id": "ksrc_m12_03",
+      "sourceType": "material",
+      "sourceRefId": "mat_orig_m12_c1_03",
+      "title": "Sai lầm thường gặp & cách tránh — Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số",
+      "status": "indexed",
+      "chunkCount": 7
+    },
+    {
+      "id": "ksrc_m12_04",
+      "sourceType": "material",
+      "sourceRefId": "mat_orig_m12_c1_04",
+      "title": "Tuyển tập ví dụ vận dụng — Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số",
+      "status": "indexed",
+      "chunkCount": 7
+    },
+    {
+      "id": "ksrc_m12_05",
+      "sourceType": "material",
+      "sourceRefId": "mat_orig_m12_c1_05",
+      "title": "Tài liệu ôn tập & tự luyện — Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số",
+      "status": "indexed",
+      "chunkCount": 7
+    },
+    {
+      "id": "ksrc_m12_06",
       "sourceType": "material",
       "sourceRefId": "mat_orig_m12-c2",
-      "title": "Kho tri thức Toán 12 — Chương 2: Vectơ và hệ toạ độ trong không gian",
+      "title": "Bảng công thức trọng tâm — Chương 2: Vectơ và hệ tọa độ trong không gian",
       "status": "indexed",
-      "chunkCount": 3
+      "chunkCount": 7
     },
     {
-      "id": "ksrc_orig_m12-c3",
+      "id": "ksrc_m12_07",
+      "sourceType": "material",
+      "sourceRefId": "mat_orig_m12_c2_07",
+      "title": "Phương pháp giải các dạng bài — Chương 2: Vectơ và hệ tọa độ trong không gian",
+      "status": "indexed",
+      "chunkCount": 7
+    },
+    {
+      "id": "ksrc_m12_08",
+      "sourceType": "material",
+      "sourceRefId": "mat_orig_m12_c2_08",
+      "title": "Sai lầm thường gặp & cách tránh — Chương 2: Vectơ và hệ tọa độ trong không gian",
+      "status": "indexed",
+      "chunkCount": 7
+    },
+    {
+      "id": "ksrc_m12_09",
+      "sourceType": "material",
+      "sourceRefId": "mat_orig_m12_c2_09",
+      "title": "Tuyển tập ví dụ vận dụng — Chương 2: Vectơ và hệ tọa độ trong không gian",
+      "status": "indexed",
+      "chunkCount": 7
+    },
+    {
+      "id": "ksrc_m12_10",
+      "sourceType": "material",
+      "sourceRefId": "mat_orig_m12_c2_10",
+      "title": "Tài liệu ôn tập & tự luyện — Chương 2: Vectơ và hệ tọa độ trong không gian",
+      "status": "indexed",
+      "chunkCount": 7
+    },
+    {
+      "id": "ksrc_m12_11",
       "sourceType": "material",
       "sourceRefId": "mat_orig_m12-c3",
-      "title": "Kho tri thức Toán 12 — Chương 3: Các số đặc trưng đo mức độ phân tán cho mẫu số liệu ghép nhóm",
+      "title": "Bảng công thức trọng tâm — Chương 3: Các số đặc trưng đo mức độ phân tán",
       "status": "indexed",
-      "chunkCount": 2
+      "chunkCount": 7
     },
     {
-      "id": "ksrc_orig_m12-c4",
+      "id": "ksrc_m12_12",
+      "sourceType": "material",
+      "sourceRefId": "mat_orig_m12_c3_12",
+      "title": "Phương pháp giải các dạng bài — Chương 3: Các số đặc trưng đo mức độ phân tán",
+      "status": "indexed",
+      "chunkCount": 7
+    },
+    {
+      "id": "ksrc_m12_13",
+      "sourceType": "material",
+      "sourceRefId": "mat_orig_m12_c3_13",
+      "title": "Sai lầm thường gặp & cách tránh — Chương 3: Các số đặc trưng đo mức độ phân tán",
+      "status": "indexed",
+      "chunkCount": 7
+    },
+    {
+      "id": "ksrc_m12_14",
+      "sourceType": "material",
+      "sourceRefId": "mat_orig_m12_c3_14",
+      "title": "Tuyển tập ví dụ vận dụng — Chương 3: Các số đặc trưng đo mức độ phân tán",
+      "status": "indexed",
+      "chunkCount": 7
+    },
+    {
+      "id": "ksrc_m12_15",
+      "sourceType": "material",
+      "sourceRefId": "mat_orig_m12_c3_15",
+      "title": "Tài liệu ôn tập & tự luyện — Chương 3: Các số đặc trưng đo mức độ phân tán",
+      "status": "indexed",
+      "chunkCount": 7
+    },
+    {
+      "id": "ksrc_m12_16",
       "sourceType": "material",
       "sourceRefId": "mat_orig_m12-c4",
-      "title": "Kho tri thức Toán 12 — Chương 4: Nguyên hàm và tích phân",
+      "title": "Bảng công thức trọng tâm — Chương 4: Nguyên hàm và tích phân",
       "status": "indexed",
-      "chunkCount": 3
+      "chunkCount": 7
     },
     {
-      "id": "ksrc_orig_m12-c5",
+      "id": "ksrc_m12_17",
+      "sourceType": "material",
+      "sourceRefId": "mat_orig_m12_c4_17",
+      "title": "Phương pháp giải các dạng bài — Chương 4: Nguyên hàm và tích phân",
+      "status": "indexed",
+      "chunkCount": 7
+    },
+    {
+      "id": "ksrc_m12_18",
+      "sourceType": "material",
+      "sourceRefId": "mat_orig_m12_c4_18",
+      "title": "Sai lầm thường gặp & cách tránh — Chương 4: Nguyên hàm và tích phân",
+      "status": "indexed",
+      "chunkCount": 7
+    },
+    {
+      "id": "ksrc_m12_19",
+      "sourceType": "material",
+      "sourceRefId": "mat_orig_m12_c4_19",
+      "title": "Tuyển tập ví dụ vận dụng — Chương 4: Nguyên hàm và tích phân",
+      "status": "indexed",
+      "chunkCount": 7
+    },
+    {
+      "id": "ksrc_m12_20",
+      "sourceType": "material",
+      "sourceRefId": "mat_orig_m12_c4_20",
+      "title": "Tài liệu ôn tập & tự luyện — Chương 4: Nguyên hàm và tích phân",
+      "status": "indexed",
+      "chunkCount": 7
+    },
+    {
+      "id": "ksrc_m12_21",
       "sourceType": "material",
       "sourceRefId": "mat_orig_m12-c5",
-      "title": "Kho tri thức Toán 12 — Chương 5: Phương pháp toạ độ trong không gian",
+      "title": "Bảng công thức trọng tâm — Chương 5: Phương pháp tọa độ trong không gian Oxyz",
       "status": "indexed",
-      "chunkCount": 4
+      "chunkCount": 7
     },
     {
-      "id": "ksrc_orig_m12-c6",
+      "id": "ksrc_m12_22",
+      "sourceType": "material",
+      "sourceRefId": "mat_orig_m12_c5_22",
+      "title": "Phương pháp giải các dạng bài — Chương 5: Phương pháp tọa độ trong không gian Oxyz",
+      "status": "indexed",
+      "chunkCount": 7
+    },
+    {
+      "id": "ksrc_m12_23",
+      "sourceType": "material",
+      "sourceRefId": "mat_orig_m12_c5_23",
+      "title": "Sai lầm thường gặp & cách tránh — Chương 5: Phương pháp tọa độ trong không gian Oxyz",
+      "status": "indexed",
+      "chunkCount": 7
+    },
+    {
+      "id": "ksrc_m12_24",
+      "sourceType": "material",
+      "sourceRefId": "mat_orig_m12_c5_24",
+      "title": "Tuyển tập ví dụ vận dụng — Chương 5: Phương pháp tọa độ trong không gian Oxyz",
+      "status": "indexed",
+      "chunkCount": 7
+    },
+    {
+      "id": "ksrc_m12_25",
+      "sourceType": "material",
+      "sourceRefId": "mat_orig_m12_c5_25",
+      "title": "Tài liệu ôn tập & tự luyện — Chương 5: Phương pháp tọa độ trong không gian Oxyz",
+      "status": "indexed",
+      "chunkCount": 7
+    },
+    {
+      "id": "ksrc_m12_26",
       "sourceType": "material",
       "sourceRefId": "mat_orig_m12-c6",
-      "title": "Kho tri thức Toán 12 — Chương 6: Xác suất có điều kiện",
+      "title": "Bảng công thức trọng tâm — Chương 6: Xác suất có điều kiện",
       "status": "indexed",
-      "chunkCount": 2
+      "chunkCount": 7
+    },
+    {
+      "id": "ksrc_m12_27",
+      "sourceType": "material",
+      "sourceRefId": "mat_orig_m12_c6_27",
+      "title": "Phương pháp giải các dạng bài — Chương 6: Xác suất có điều kiện",
+      "status": "indexed",
+      "chunkCount": 7
+    },
+    {
+      "id": "ksrc_m12_28",
+      "sourceType": "material",
+      "sourceRefId": "mat_orig_m12_c6_28",
+      "title": "Sai lầm thường gặp & cách tránh — Chương 6: Xác suất có điều kiện",
+      "status": "indexed",
+      "chunkCount": 7
+    },
+    {
+      "id": "ksrc_m12_29",
+      "sourceType": "material",
+      "sourceRefId": "mat_orig_m12_c6_29",
+      "title": "Tuyển tập ví dụ vận dụng — Chương 6: Xác suất có điều kiện",
+      "status": "indexed",
+      "chunkCount": 7
+    },
+    {
+      "id": "ksrc_m12_30",
+      "sourceType": "material",
+      "sourceRefId": "mat_orig_m12_c6_30",
+      "title": "Tài liệu ôn tập & tự luyện — Chương 6: Xác suất có điều kiện",
+      "status": "indexed",
+      "chunkCount": 7
     }
   ],
   "chunks": [
     {
-      "id": "kchk_m12-c1_01",
-      "sourceId": "ksrc_orig_m12-c1",
+      "id": "kchk_m12_01_01",
+      "sourceId": "ksrc_m12_01",
       "chunkIndex": 1,
-      "title": "Bài 1: Tính đơn điệu và cực trị của hàm số",
-      "contentText": "Hàm số $y=f(x)$ đồng biến trên $K$ nếu $f'(x)\\ge 0$ (dấu bằng tại hữu hạn điểm) và đạt cực trị khi $f'(x)$ đổi dấu qua $x_0$. Công thức: f'(x) > 0 \\Rightarrow \\text{đồng biến}; \\quad f'(x) < 0 \\Rightarrow \\text{nghịch biến}. Ví dụ: Xét hàm $y = x^3 - 3x^2 + 2$. Ta có $y' = 3x^2 - 6x = 0 \\Leftrightarrow x=0$ hoặc $x=2$. Hàm số đạt cực đại tại $x=0$ ($y_{CĐ}=2$) và cực tiểu tại $x=2$ ($y_{CT}=-2$)."
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Bảng công thức trọng tâm (Phần 1)",
+      "contentText": "[C1 | Bảng công thức trọng tâm | Phần 1] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
     },
     {
-      "id": "kchk_m12-c1_02",
-      "sourceId": "ksrc_orig_m12-c1",
+      "id": "kchk_m12_01_02",
+      "sourceId": "ksrc_m12_01",
       "chunkIndex": 2,
-      "title": "Bài 2: Giá trị lớn nhất và giá trị nhỏ nhất của hàm số",
-      "contentText": "Trên đoạn $[a;b]$, hàm số liên tục luôn đạt GTLN $M$ và GTNN $m$ tại các điểm tới hạn trong $(a;b)$ hoặc tại hai đầu mút $a, b$. Công thức: M = \\max_{[a;b]} f(x), \\quad m = \\min_{[a;b]} f(x). Ví dụ: Tìm GTLN, GTNN của $y = x^3 - 3x + 1$ trên $[0;2]$. Ta có $y'=3x^2-3=0 \\Rightarrow x=1 \\in (0;2)$. Tính $f(0)=1, f(1)=-1, f(2)=3$. Vậy $M=3, m=-1$."
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Bảng công thức trọng tâm (Phần 2)",
+      "contentText": "[C1 | Bảng công thức trọng tâm | Phần 2] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
     },
     {
-      "id": "kchk_m12-c1_03",
-      "sourceId": "ksrc_orig_m12-c1",
+      "id": "kchk_m12_01_03",
+      "sourceId": "ksrc_m12_01",
       "chunkIndex": 3,
-      "title": "Bài 3: Đường tiệm cận của đồ thị hàm số",
-      "contentText": "Đường thẳng $y=y_0$ là tiệm cận ngang nếu $\\lim_{x\\to\\pm\\infty} f(x)=y_0$; $x=x_0$ là tiệm cận đứng nếu giới hạn một bên bằng $\\pm\\infty$; $y=ax+b$ là tiệm cận xiên nếu $\\lim_{x\\to\\pm\\infty}[f(x)-(ax+b)]=0$. Công thức: a = \\lim_{x\\to\\pm\\infty}\\frac{f(x)}{x}, \\quad b = \\lim_{x\\to\\pm\\infty}[f(x)-ax]. Ví dụ: Đồ thị $y = \\frac{2x+1}{x-1}$ có tiệm cận ngang $y=2$ và tiệm cận đứng $x=1$. Với $y = \\frac{x^2+2x+3}{x+1} = x+1 + \\frac{2}{x+1}$, tiệm cận xiên là $y=x+1$."
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Bảng công thức trọng tâm (Phần 3)",
+      "contentText": "[C1 | Bảng công thức trọng tâm | Phần 3] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
     },
     {
-      "id": "kchk_m12-c1_04",
-      "sourceId": "ksrc_orig_m12-c1",
+      "id": "kchk_m12_01_04",
+      "sourceId": "ksrc_m12_01",
       "chunkIndex": 4,
-      "title": "Bài 4: Khảo sát sự biến thiên và vẽ đồ thị của hàm số",
-      "contentText": "Quy trình khảo sát gồm 4 bước: tìm tập xác định, xét sự biến thiên (giới hạn, tiệm cận, $y'$, bảng biến thiên), tìm điểm đặc biệt và vẽ đồ thị. Công thức: y = ax^3+bx^2+cx+d, \\quad y = \\frac{ax+b}{cx+d}, \\quad y = \\frac{ax^2+bx+c}{px+q}. Ví dụ: Hàm bậc ba $y=x^3-3x^2+2$ có tâm đối xứng $I(1;0)$ là điểm uốn thỏa mãn $y''=6x-6=0$."
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Bảng công thức trọng tâm (Phần 4)",
+      "contentText": "[C1 | Bảng công thức trọng tâm | Phần 4] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
     },
     {
-      "id": "kchk_m12-c1_05",
-      "sourceId": "ksrc_orig_m12-c1",
+      "id": "kchk_m12_01_05",
+      "sourceId": "ksrc_m12_01",
       "chunkIndex": 5,
-      "title": "Bài 5: Ứng dụng đạo hàm để giải quyết một số vấn đề liên quan đến thực tiễn",
-      "contentText": "Mô hình hóa bài toán tối ưu (diện tích, thể tích, chi phí, lợi nhuận, vận tốc) thành hàm số một biến trên miền xác định rồi tìm GTLN/GTNN. Công thức: \\text{Tối ưu hóa } f(x) \\text{ trên } D \\subset \\mathbb{R}. Ví dụ: Một hình chữ nhật có chu vi $20\\text{ m}$, gọi chiều rộng là $w\\in(0;10)$, diện tích $S(w)=w(10-w)$. Ta có $S'(w)=10-2w=0 \\Leftrightarrow w=5$, suy ra diện tích lớn nhất bằng $25\\text{ m}^2$."
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Bảng công thức trọng tâm (Phần 5)",
+      "contentText": "[C1 | Bảng công thức trọng tâm | Phần 5] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
     },
     {
-      "id": "kchk_m12-c2_01",
-      "sourceId": "ksrc_orig_m12-c2",
+      "id": "kchk_m12_01_06",
+      "sourceId": "ksrc_m12_01",
+      "chunkIndex": 6,
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Bảng công thức trọng tâm (Phần 6)",
+      "contentText": "[C1 | Bảng công thức trọng tâm | Phần 6] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_01_07",
+      "sourceId": "ksrc_m12_01",
+      "chunkIndex": 7,
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Bảng công thức trọng tâm (Phần 7)",
+      "contentText": "[C1 | Bảng công thức trọng tâm | Phần 7] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_02_01",
+      "sourceId": "ksrc_m12_02",
       "chunkIndex": 1,
-      "title": "Bài 6: Vectơ trong không gian",
-      "contentText": "Vectơ trong không gian có các phép toán cộng (quy tắc hình hộp), trừ, nhân với một số thực và tích vô hướng tương tự trong mặt phẳng. Công thức: \\vec{u}\\cdot\\vec{v} = |\\vec{u}|\\cdot|\\vec{v}|\\cos(\\vec{u},\\vec{v}). Ví dụ: Trong hình hộp $ABCD.A'B'C'D'$, theo quy tắc hình hộp ta có $\\overrightarrow{AB} + \\overrightarrow{AD} + \\overrightarrow{AA'} = \\overrightarrow{AC'}$."
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Phương pháp giải các dạng bài (Phần 1)",
+      "contentText": "[C1 | Phương pháp giải các dạng bài | Phần 1] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
     },
     {
-      "id": "kchk_m12-c2_02",
-      "sourceId": "ksrc_orig_m12-c2",
+      "id": "kchk_m12_02_02",
+      "sourceId": "ksrc_m12_02",
       "chunkIndex": 2,
-      "title": "Bài 7: Hệ trục tọa độ trong không gian",
-      "contentText": "Hệ trục $Oxyz$ gồm ba trục đôi một vuông góc với ba vectơ đơn vị $\\vec{i}, \\vec{j}, \\vec{k}$. Điểm $M(x;y;z)$ khi $\\overrightarrow{OM}=x\\vec{i}+y\\vec{j}+z\\vec{k}$. Công thức: \\overrightarrow{AB} = (x_B-x_A;\\; y_B-y_A;\\; z_B-z_A). Ví dụ: Cho $A(1;2;-1)$ và $B(3;0;2)$, ta có $\\overrightarrow{AB}=(2;-2;3)$ và trung điểm $I$ của $AB$ có tọa độ $(2;1;\\frac{1}{2})$."
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Phương pháp giải các dạng bài (Phần 2)",
+      "contentText": "[C1 | Phương pháp giải các dạng bài | Phần 2] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
     },
     {
-      "id": "kchk_m12-c2_03",
-      "sourceId": "ksrc_orig_m12-c2",
+      "id": "kchk_m12_02_03",
+      "sourceId": "ksrc_m12_02",
       "chunkIndex": 3,
-      "title": "Bài 8: Biểu thức tọa độ của các phép toán vectơ",
-      "contentText": "Với $\\vec{u}=(x_1;y_1;z_1)$ và $\\vec{v}=(x_2;y_2;z_2)$, các phép toán tổng, hiệu, tích vô hướng và độ dài được tính trực tiếp theo từng tọa độ. Công thức: \\vec{u}\\cdot\\vec{v} = x_1x_2 + y_1y_2 + z_1z_2, \\quad |\\vec{u}| = \\sqrt{x_1^2+y_1^2+z_1^2}. Ví dụ: Với $\\vec{u}=(1;-2;2)$ và $\\vec{v}=(2;1;-1)$, ta có $|\\vec{u}|=\\sqrt{1+4+4}=3$ và $\\vec{u}\\cdot\\vec{v}=2-2-2=-2$."
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Phương pháp giải các dạng bài (Phần 3)",
+      "contentText": "[C1 | Phương pháp giải các dạng bài | Phần 3] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
     },
     {
-      "id": "kchk_m12-c3_01",
-      "sourceId": "ksrc_orig_m12-c3",
-      "chunkIndex": 1,
-      "title": "Bài 9: Khoảng biến thiên và khoảng tứ phân vị",
-      "contentText": "Khoảng biến thiên $R$ đo độ trải rộng từ đầu mút dưới nhóm đầu đến đầu mút trên nhóm cuối; khoảng tứ phân vị $\\Delta_Q = Q_3 - Q_1$ đo độ phân tán 50% dữ liệu ở giữa. Công thức: R = a_{k+1} - a_1, \\quad \\Delta_Q = Q_3 - Q_1. Ví dụ: Cho mẫu ghép nhóm $[0;10):2, [10;20):6, [20;30):8, [30;40):4$ ($N=20$). Ta có $Q_1 = 10 + \\frac{5-2}{6}\\cdot 10 = 15$, $Q_3 = 20 + \\frac{15-8}{8}\\cdot 10 = 28{,}75$, nên $\\Delta_Q = 13{,}75$."
-    },
-    {
-      "id": "kchk_m12-c3_02",
-      "sourceId": "ksrc_orig_m12-c3",
-      "chunkIndex": 2,
-      "title": "Bài 10: Phương sai và độ lệch chuẩn",
-      "contentText": "Phương sai $s^2$ và độ lệch chuẩn $s=\\sqrt{s^2}$ của mẫu số liệu ghép nhóm được tính từ giá trị đại diện $c_i$ và tần số $n_i$ của mỗi nhóm. Công thức: s^2 = \\frac{1}{n}\\sum_{i=1}^k n_i(c_i - \\bar{x})^2, \\quad s = \\sqrt{s^2}. Ví dụ: Với mẫu $[0;10):2, [10;20):6, [20;30):8, [30;40):4$, giá trị trung bình $\\bar{x}=22$, phương sai $s^2 = \\frac{1620}{20}=81$, suy ra độ lệch chuẩn $s=9$."
-    },
-    {
-      "id": "kchk_m12-c4_01",
-      "sourceId": "ksrc_orig_m12-c4",
-      "chunkIndex": 1,
-      "title": "Bài 11: Nguyên hàm",
-      "contentText": "Hàm số $F(x)$ là nguyên hàm của $f(x)$ trên $K$ nếu $F'(x)=f(x)$ với mọi $x\\in K$. Mọi nguyên hàm đều có dạng $F(x)+C$. Công thức: \\int x^\\alpha dx = \\frac{x^{\\alpha+1}}{\\alpha+1}+C \\;(\\alpha\\ne -1), \\quad \\int e^x dx = e^x + C. Ví dụ: Tìm nguyên hàm của $f(x)=3x^2+2x$: ta có $\\int (3x^2+2x)dx = x^3 + x^2 + C$."
-    },
-    {
-      "id": "kchk_m12-c4_02",
-      "sourceId": "ksrc_orig_m12-c4",
-      "chunkIndex": 2,
-      "title": "Bài 12: Tích phân",
-      "contentText": "Theo công thức Newton-Leibniz, nếu $F(x)$ là một nguyên hàm của $f(x)$ liên tục trên $[a;b]$ thì $\\int_a^b f(x)dx = F(b)-F(a)$. Công thức: \\int_a^b f(x)\\,dx = F(b) - F(a). Ví dụ: Tính $I = \\int_0^2 (3x^2+2x)dx = [x^3+x^2]_0^2 = (8+4) - 0 = 12$. Với $\\int_0^{\\frac{\\ln 3}{2}} e^{2x}dx = [\\frac{1}{2}e^{2x}]_0^{\\frac{\\ln 3}{2}} = \\frac{3-1}{2} = 1$."
-    },
-    {
-      "id": "kchk_m12-c4_03",
-      "sourceId": "ksrc_orig_m12-c4",
-      "chunkIndex": 3,
-      "title": "Bài 13: Ứng dụng hình học của tích phân",
-      "contentText": "Diện tích hình phẳng giới hạn bởi $y=f(x), y=g(x), x=a, x=b$ là $\\int_a^b |f(x)-g(x)|dx$. Thể tích khối tròn xoay quanh $Ox$ là $\\pi\\int_a^b [f(x)]^2 dx$. Công thức: S = \\int_a^b |f(x)-g(x)|\\,dx, \\quad V = \\pi\\int_a^b [f(x)]^2\\,dx. Ví dụ: Diện tích giới hạn bởi $y=4-x^2$ và trục hoành ($x\\in[-2;2]$) là $\\int_{-2}^2 (4-x^2)dx = \\frac{32}{3}$. Quay $y=x$ trên $[0;3]$ quanh $Ox$ cho $V = \\pi\\int_0^3 x^2 dx = 9\\pi$."
-    },
-    {
-      "id": "kchk_m12-c5_01",
-      "sourceId": "ksrc_orig_m12-c5",
-      "chunkIndex": 1,
-      "title": "Bài 14: Phương trình mặt phẳng",
-      "contentText": "Mặt phẳng đi qua $M_0(x_0;y_0;z_0)$ nhận $\\vec{n}=(A;B;C)\\ne\\vec{0}$ làm vectơ pháp tuyến có phương trình $A(x-x_0)+B(y-y_0)+C(z-z_0)=0$. Công thức: d(M,(P)) = \\frac{|Ax_M + By_M + Cz_M + D|}{\\sqrt{A^2+B^2+C^2}}. Ví dụ: Khoảng cách từ $M(3;-2;1)$ đến mặt phẳng $(P): 2x - y + 2z - 6 = 0$ là $d = \\frac{|6 + 2 + 2 - 6|}{\\sqrt{4+1+4}} = \\frac{4}{3}$."
-    },
-    {
-      "id": "kchk_m12-c5_02",
-      "sourceId": "ksrc_orig_m12-c5",
-      "chunkIndex": 2,
-      "title": "Bài 15: Phương trình đường thẳng trong không gian",
-      "contentText": "Đường thẳng đi qua $M_0(x_0;y_0;z_0)$ với vectơ chỉ phương $\\vec{u}=(a;b;c)\\ne\\vec{0}$ có phương trình tham số $x=x_0+at, y=y_0+bt, z=z_0+ct$. Công thức: \\frac{x-x_0}{a} = \\frac{y-y_0}{b} = \\frac{z-z_0}{c} \\quad (abc \\ne 0). Ví dụ: Đường thẳng qua $A(1;0;-2)$ và nhận $\\vec{u}=(2;-1;3)$ làm VTCP có phương trình $\\frac{x-1}{2}=\\frac{y}{-1}=\\frac{z+2}{3}$."
-    },
-    {
-      "id": "kchk_m12-c5_03",
-      "sourceId": "ksrc_orig_m12-c5",
-      "chunkIndex": 3,
-      "title": "Bài 16: Công thức tính góc trong không gian",
-      "contentText": "Góc giữa hai đường thẳng, đường thẳng và mặt phẳng, hoặc hai mặt phẳng đều nằm trong $[0^\\circ; 90^\\circ]$ nên luôn lấy trị tuyệt đối ở tử số. Công thức: \\sin(d,(P)) = \\frac{|\\vec{u}\\cdot\\vec{n}|}{|\\vec{u}|\\cdot|\\vec{n}|}, \\quad \\cos((P),(Q)) = \\frac{|\\vec{n}_1\\cdot\\vec{n}_2|}{|\\vec{n}_1|\\cdot|\\vec{n}_2|}. Ví dụ: Nếu đường thẳng có $\\vec{u}=(1;0;0)$ và mặt phẳng có $\\vec{n}=(1;1;0)$ thì $\\sin\\varphi = \\frac{1}{\\sqrt{2}}$, suy ra $\\varphi = 45^\\circ$."
-    },
-    {
-      "id": "kchk_m12-c5_04",
-      "sourceId": "ksrc_orig_m12-c5",
+      "id": "kchk_m12_02_04",
+      "sourceId": "ksrc_m12_02",
       "chunkIndex": 4,
-      "title": "Bài 17: Phương trình mặt cầu",
-      "contentText": "Mặt cầu tâm $I(a;b;c)$ bán kính $R>0$ có phương trình $(x-a)^2+(y-b)^2+(z-c)^2=R^2$. Dạng khai triển $x^2+y^2+z^2-2ax-2by-2cz+d=0$ với $R=\\sqrt{a^2+b^2+c^2-d}$. Công thức: (x-a)^2 + (y-b)^2 + (z-c)^2 = R^2. Ví dụ: Mặt cầu $(x-1)^2 + (y+2)^2 + (z-3)^2 = 16$ có tâm $I(1;-2;3)$ và bán kính $R=4$."
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Phương pháp giải các dạng bài (Phần 4)",
+      "contentText": "[C1 | Phương pháp giải các dạng bài | Phần 4] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
     },
     {
-      "id": "kchk_m12-c6_01",
-      "sourceId": "ksrc_orig_m12-c6",
+      "id": "kchk_m12_02_05",
+      "sourceId": "ksrc_m12_02",
+      "chunkIndex": 5,
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Phương pháp giải các dạng bài (Phần 5)",
+      "contentText": "[C1 | Phương pháp giải các dạng bài | Phần 5] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_02_06",
+      "sourceId": "ksrc_m12_02",
+      "chunkIndex": 6,
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Phương pháp giải các dạng bài (Phần 6)",
+      "contentText": "[C1 | Phương pháp giải các dạng bài | Phần 6] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_02_07",
+      "sourceId": "ksrc_m12_02",
+      "chunkIndex": 7,
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Phương pháp giải các dạng bài (Phần 7)",
+      "contentText": "[C1 | Phương pháp giải các dạng bài | Phần 7] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_03_01",
+      "sourceId": "ksrc_m12_03",
       "chunkIndex": 1,
-      "title": "Bài 18: Xác suất có điều kiện",
-      "contentText": "Xác suất của biến cố $A$ khi biết biến cố $B$ ($P(B)>0$) đã xảy ra là $P(A\\mid B) = \\frac{P(A\\cap B)}{P(B)}$. Công thức: P(A\\mid B) = \\frac{P(A\\cap B)}{P(B)}, \\quad P(A\\cap B) = P(B)\\cdot P(A\\mid B). Ví dụ: Trong một lớp có $P(B)=0{,}5$ và $P(A\\cap B)=0{,}3$, xác suất có điều kiện $P(A\\mid B) = \\frac{0{,}3}{0{,}5} = 0{,}6$."
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Sai lầm thường gặp & cách tránh (Phần 1)",
+      "contentText": "[C1 | Sai lầm thường gặp & cách tránh | Phần 1] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
     },
     {
-      "id": "kchk_m12-c6_02",
-      "sourceId": "ksrc_orig_m12-c6",
+      "id": "kchk_m12_03_02",
+      "sourceId": "ksrc_m12_03",
       "chunkIndex": 2,
-      "title": "Bài 19: Công thức xác suất toàn phần và công thức Bayes",
-      "contentText": "Khi $\\{A, \\bar{A}\\}$ phân hoạch không gian mẫu, $P(B) = P(A)P(B\\mid A) + P(\\bar{A})P(B\\mid \\bar{A})$ và $P(A\\mid B) = \\frac{P(A)P(B\\mid A)}{P(B)}$. Công thức: P(A\\mid B) = \\frac{P(A)\\,P(B\\mid A)}{P(A)\\,P(B\\mid A) + P(\\bar{A})\\,P(B\\mid \\bar{A})}. Ví dụ: Cho $P(A)=0{,}4$, $P(B\\mid A)=0{,}7$, $P(B\\mid \\bar{A})=0{,}2$. Khi đó $P(B)=0{,}4\\cdot 0{,}7 + 0{,}6\\cdot 0{,}2 = 0{,}4$ và $P(A\\mid B) = \\frac{0{,}28}{0{,}4} = 0{,}7$."
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Sai lầm thường gặp & cách tránh (Phần 2)",
+      "contentText": "[C1 | Sai lầm thường gặp & cách tránh | Phần 2] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_03_03",
+      "sourceId": "ksrc_m12_03",
+      "chunkIndex": 3,
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Sai lầm thường gặp & cách tránh (Phần 3)",
+      "contentText": "[C1 | Sai lầm thường gặp & cách tránh | Phần 3] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_03_04",
+      "sourceId": "ksrc_m12_03",
+      "chunkIndex": 4,
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Sai lầm thường gặp & cách tránh (Phần 4)",
+      "contentText": "[C1 | Sai lầm thường gặp & cách tránh | Phần 4] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_03_05",
+      "sourceId": "ksrc_m12_03",
+      "chunkIndex": 5,
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Sai lầm thường gặp & cách tránh (Phần 5)",
+      "contentText": "[C1 | Sai lầm thường gặp & cách tránh | Phần 5] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_03_06",
+      "sourceId": "ksrc_m12_03",
+      "chunkIndex": 6,
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Sai lầm thường gặp & cách tránh (Phần 6)",
+      "contentText": "[C1 | Sai lầm thường gặp & cách tránh | Phần 6] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_03_07",
+      "sourceId": "ksrc_m12_03",
+      "chunkIndex": 7,
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Sai lầm thường gặp & cách tránh (Phần 7)",
+      "contentText": "[C1 | Sai lầm thường gặp & cách tránh | Phần 7] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_04_01",
+      "sourceId": "ksrc_m12_04",
+      "chunkIndex": 1,
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Tuyển tập ví dụ vận dụng (Phần 1)",
+      "contentText": "[C1 | Tuyển tập ví dụ vận dụng | Phần 1] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_04_02",
+      "sourceId": "ksrc_m12_04",
+      "chunkIndex": 2,
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Tuyển tập ví dụ vận dụng (Phần 2)",
+      "contentText": "[C1 | Tuyển tập ví dụ vận dụng | Phần 2] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_04_03",
+      "sourceId": "ksrc_m12_04",
+      "chunkIndex": 3,
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Tuyển tập ví dụ vận dụng (Phần 3)",
+      "contentText": "[C1 | Tuyển tập ví dụ vận dụng | Phần 3] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_04_04",
+      "sourceId": "ksrc_m12_04",
+      "chunkIndex": 4,
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Tuyển tập ví dụ vận dụng (Phần 4)",
+      "contentText": "[C1 | Tuyển tập ví dụ vận dụng | Phần 4] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_04_05",
+      "sourceId": "ksrc_m12_04",
+      "chunkIndex": 5,
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Tuyển tập ví dụ vận dụng (Phần 5)",
+      "contentText": "[C1 | Tuyển tập ví dụ vận dụng | Phần 5] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_04_06",
+      "sourceId": "ksrc_m12_04",
+      "chunkIndex": 6,
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Tuyển tập ví dụ vận dụng (Phần 6)",
+      "contentText": "[C1 | Tuyển tập ví dụ vận dụng | Phần 6] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_04_07",
+      "sourceId": "ksrc_m12_04",
+      "chunkIndex": 7,
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Tuyển tập ví dụ vận dụng (Phần 7)",
+      "contentText": "[C1 | Tuyển tập ví dụ vận dụng | Phần 7] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_05_01",
+      "sourceId": "ksrc_m12_05",
+      "chunkIndex": 1,
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Tài liệu ôn tập & tự luyện (Phần 1)",
+      "contentText": "[C1 | Tài liệu ôn tập & tự luyện | Phần 1] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_05_02",
+      "sourceId": "ksrc_m12_05",
+      "chunkIndex": 2,
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Tài liệu ôn tập & tự luyện (Phần 2)",
+      "contentText": "[C1 | Tài liệu ôn tập & tự luyện | Phần 2] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_05_03",
+      "sourceId": "ksrc_m12_05",
+      "chunkIndex": 3,
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Tài liệu ôn tập & tự luyện (Phần 3)",
+      "contentText": "[C1 | Tài liệu ôn tập & tự luyện | Phần 3] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_05_04",
+      "sourceId": "ksrc_m12_05",
+      "chunkIndex": 4,
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Tài liệu ôn tập & tự luyện (Phần 4)",
+      "contentText": "[C1 | Tài liệu ôn tập & tự luyện | Phần 4] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_05_05",
+      "sourceId": "ksrc_m12_05",
+      "chunkIndex": 5,
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Tài liệu ôn tập & tự luyện (Phần 5)",
+      "contentText": "[C1 | Tài liệu ôn tập & tự luyện | Phần 5] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_05_06",
+      "sourceId": "ksrc_m12_05",
+      "chunkIndex": 6,
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Tài liệu ôn tập & tự luyện (Phần 6)",
+      "contentText": "[C1 | Tài liệu ôn tập & tự luyện | Phần 6] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_05_07",
+      "sourceId": "ksrc_m12_05",
+      "chunkIndex": 7,
+      "title": "Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số — Tài liệu ôn tập & tự luyện (Phần 7)",
+      "contentText": "[C1 | Tài liệu ôn tập & tự luyện | Phần 7] Kiến thức chuẩn Toán 12 về Chương 1: Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_06_01",
+      "sourceId": "ksrc_m12_06",
+      "chunkIndex": 1,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Bảng công thức trọng tâm (Phần 1)",
+      "contentText": "[C2 | Bảng công thức trọng tâm | Phần 1] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_06_02",
+      "sourceId": "ksrc_m12_06",
+      "chunkIndex": 2,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Bảng công thức trọng tâm (Phần 2)",
+      "contentText": "[C2 | Bảng công thức trọng tâm | Phần 2] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_06_03",
+      "sourceId": "ksrc_m12_06",
+      "chunkIndex": 3,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Bảng công thức trọng tâm (Phần 3)",
+      "contentText": "[C2 | Bảng công thức trọng tâm | Phần 3] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_06_04",
+      "sourceId": "ksrc_m12_06",
+      "chunkIndex": 4,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Bảng công thức trọng tâm (Phần 4)",
+      "contentText": "[C2 | Bảng công thức trọng tâm | Phần 4] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_06_05",
+      "sourceId": "ksrc_m12_06",
+      "chunkIndex": 5,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Bảng công thức trọng tâm (Phần 5)",
+      "contentText": "[C2 | Bảng công thức trọng tâm | Phần 5] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_06_06",
+      "sourceId": "ksrc_m12_06",
+      "chunkIndex": 6,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Bảng công thức trọng tâm (Phần 6)",
+      "contentText": "[C2 | Bảng công thức trọng tâm | Phần 6] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_06_07",
+      "sourceId": "ksrc_m12_06",
+      "chunkIndex": 7,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Bảng công thức trọng tâm (Phần 7)",
+      "contentText": "[C2 | Bảng công thức trọng tâm | Phần 7] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_07_01",
+      "sourceId": "ksrc_m12_07",
+      "chunkIndex": 1,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Phương pháp giải các dạng bài (Phần 1)",
+      "contentText": "[C2 | Phương pháp giải các dạng bài | Phần 1] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_07_02",
+      "sourceId": "ksrc_m12_07",
+      "chunkIndex": 2,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Phương pháp giải các dạng bài (Phần 2)",
+      "contentText": "[C2 | Phương pháp giải các dạng bài | Phần 2] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_07_03",
+      "sourceId": "ksrc_m12_07",
+      "chunkIndex": 3,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Phương pháp giải các dạng bài (Phần 3)",
+      "contentText": "[C2 | Phương pháp giải các dạng bài | Phần 3] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_07_04",
+      "sourceId": "ksrc_m12_07",
+      "chunkIndex": 4,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Phương pháp giải các dạng bài (Phần 4)",
+      "contentText": "[C2 | Phương pháp giải các dạng bài | Phần 4] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_07_05",
+      "sourceId": "ksrc_m12_07",
+      "chunkIndex": 5,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Phương pháp giải các dạng bài (Phần 5)",
+      "contentText": "[C2 | Phương pháp giải các dạng bài | Phần 5] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_07_06",
+      "sourceId": "ksrc_m12_07",
+      "chunkIndex": 6,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Phương pháp giải các dạng bài (Phần 6)",
+      "contentText": "[C2 | Phương pháp giải các dạng bài | Phần 6] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_07_07",
+      "sourceId": "ksrc_m12_07",
+      "chunkIndex": 7,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Phương pháp giải các dạng bài (Phần 7)",
+      "contentText": "[C2 | Phương pháp giải các dạng bài | Phần 7] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_08_01",
+      "sourceId": "ksrc_m12_08",
+      "chunkIndex": 1,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Sai lầm thường gặp & cách tránh (Phần 1)",
+      "contentText": "[C2 | Sai lầm thường gặp & cách tránh | Phần 1] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_08_02",
+      "sourceId": "ksrc_m12_08",
+      "chunkIndex": 2,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Sai lầm thường gặp & cách tránh (Phần 2)",
+      "contentText": "[C2 | Sai lầm thường gặp & cách tránh | Phần 2] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_08_03",
+      "sourceId": "ksrc_m12_08",
+      "chunkIndex": 3,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Sai lầm thường gặp & cách tránh (Phần 3)",
+      "contentText": "[C2 | Sai lầm thường gặp & cách tránh | Phần 3] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_08_04",
+      "sourceId": "ksrc_m12_08",
+      "chunkIndex": 4,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Sai lầm thường gặp & cách tránh (Phần 4)",
+      "contentText": "[C2 | Sai lầm thường gặp & cách tránh | Phần 4] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_08_05",
+      "sourceId": "ksrc_m12_08",
+      "chunkIndex": 5,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Sai lầm thường gặp & cách tránh (Phần 5)",
+      "contentText": "[C2 | Sai lầm thường gặp & cách tránh | Phần 5] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_08_06",
+      "sourceId": "ksrc_m12_08",
+      "chunkIndex": 6,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Sai lầm thường gặp & cách tránh (Phần 6)",
+      "contentText": "[C2 | Sai lầm thường gặp & cách tránh | Phần 6] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_08_07",
+      "sourceId": "ksrc_m12_08",
+      "chunkIndex": 7,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Sai lầm thường gặp & cách tránh (Phần 7)",
+      "contentText": "[C2 | Sai lầm thường gặp & cách tránh | Phần 7] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_09_01",
+      "sourceId": "ksrc_m12_09",
+      "chunkIndex": 1,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Tuyển tập ví dụ vận dụng (Phần 1)",
+      "contentText": "[C2 | Tuyển tập ví dụ vận dụng | Phần 1] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_09_02",
+      "sourceId": "ksrc_m12_09",
+      "chunkIndex": 2,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Tuyển tập ví dụ vận dụng (Phần 2)",
+      "contentText": "[C2 | Tuyển tập ví dụ vận dụng | Phần 2] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_09_03",
+      "sourceId": "ksrc_m12_09",
+      "chunkIndex": 3,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Tuyển tập ví dụ vận dụng (Phần 3)",
+      "contentText": "[C2 | Tuyển tập ví dụ vận dụng | Phần 3] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_09_04",
+      "sourceId": "ksrc_m12_09",
+      "chunkIndex": 4,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Tuyển tập ví dụ vận dụng (Phần 4)",
+      "contentText": "[C2 | Tuyển tập ví dụ vận dụng | Phần 4] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_09_05",
+      "sourceId": "ksrc_m12_09",
+      "chunkIndex": 5,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Tuyển tập ví dụ vận dụng (Phần 5)",
+      "contentText": "[C2 | Tuyển tập ví dụ vận dụng | Phần 5] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_09_06",
+      "sourceId": "ksrc_m12_09",
+      "chunkIndex": 6,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Tuyển tập ví dụ vận dụng (Phần 6)",
+      "contentText": "[C2 | Tuyển tập ví dụ vận dụng | Phần 6] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_09_07",
+      "sourceId": "ksrc_m12_09",
+      "chunkIndex": 7,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Tuyển tập ví dụ vận dụng (Phần 7)",
+      "contentText": "[C2 | Tuyển tập ví dụ vận dụng | Phần 7] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_10_01",
+      "sourceId": "ksrc_m12_10",
+      "chunkIndex": 1,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Tài liệu ôn tập & tự luyện (Phần 1)",
+      "contentText": "[C2 | Tài liệu ôn tập & tự luyện | Phần 1] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_10_02",
+      "sourceId": "ksrc_m12_10",
+      "chunkIndex": 2,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Tài liệu ôn tập & tự luyện (Phần 2)",
+      "contentText": "[C2 | Tài liệu ôn tập & tự luyện | Phần 2] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_10_03",
+      "sourceId": "ksrc_m12_10",
+      "chunkIndex": 3,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Tài liệu ôn tập & tự luyện (Phần 3)",
+      "contentText": "[C2 | Tài liệu ôn tập & tự luyện | Phần 3] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_10_04",
+      "sourceId": "ksrc_m12_10",
+      "chunkIndex": 4,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Tài liệu ôn tập & tự luyện (Phần 4)",
+      "contentText": "[C2 | Tài liệu ôn tập & tự luyện | Phần 4] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_10_05",
+      "sourceId": "ksrc_m12_10",
+      "chunkIndex": 5,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Tài liệu ôn tập & tự luyện (Phần 5)",
+      "contentText": "[C2 | Tài liệu ôn tập & tự luyện | Phần 5] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_10_06",
+      "sourceId": "ksrc_m12_10",
+      "chunkIndex": 6,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Tài liệu ôn tập & tự luyện (Phần 6)",
+      "contentText": "[C2 | Tài liệu ôn tập & tự luyện | Phần 6] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_10_07",
+      "sourceId": "ksrc_m12_10",
+      "chunkIndex": 7,
+      "title": "Chương 2: Vectơ và hệ tọa độ trong không gian — Tài liệu ôn tập & tự luyện (Phần 7)",
+      "contentText": "[C2 | Tài liệu ôn tập & tự luyện | Phần 7] Kiến thức chuẩn Toán 12 về Chương 2: Vectơ và hệ tọa độ trong không gian: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_11_01",
+      "sourceId": "ksrc_m12_11",
+      "chunkIndex": 1,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Bảng công thức trọng tâm (Phần 1)",
+      "contentText": "[C3 | Bảng công thức trọng tâm | Phần 1] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_11_02",
+      "sourceId": "ksrc_m12_11",
+      "chunkIndex": 2,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Bảng công thức trọng tâm (Phần 2)",
+      "contentText": "[C3 | Bảng công thức trọng tâm | Phần 2] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_11_03",
+      "sourceId": "ksrc_m12_11",
+      "chunkIndex": 3,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Bảng công thức trọng tâm (Phần 3)",
+      "contentText": "[C3 | Bảng công thức trọng tâm | Phần 3] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_11_04",
+      "sourceId": "ksrc_m12_11",
+      "chunkIndex": 4,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Bảng công thức trọng tâm (Phần 4)",
+      "contentText": "[C3 | Bảng công thức trọng tâm | Phần 4] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_11_05",
+      "sourceId": "ksrc_m12_11",
+      "chunkIndex": 5,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Bảng công thức trọng tâm (Phần 5)",
+      "contentText": "[C3 | Bảng công thức trọng tâm | Phần 5] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_11_06",
+      "sourceId": "ksrc_m12_11",
+      "chunkIndex": 6,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Bảng công thức trọng tâm (Phần 6)",
+      "contentText": "[C3 | Bảng công thức trọng tâm | Phần 6] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_11_07",
+      "sourceId": "ksrc_m12_11",
+      "chunkIndex": 7,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Bảng công thức trọng tâm (Phần 7)",
+      "contentText": "[C3 | Bảng công thức trọng tâm | Phần 7] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_12_01",
+      "sourceId": "ksrc_m12_12",
+      "chunkIndex": 1,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Phương pháp giải các dạng bài (Phần 1)",
+      "contentText": "[C3 | Phương pháp giải các dạng bài | Phần 1] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_12_02",
+      "sourceId": "ksrc_m12_12",
+      "chunkIndex": 2,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Phương pháp giải các dạng bài (Phần 2)",
+      "contentText": "[C3 | Phương pháp giải các dạng bài | Phần 2] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_12_03",
+      "sourceId": "ksrc_m12_12",
+      "chunkIndex": 3,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Phương pháp giải các dạng bài (Phần 3)",
+      "contentText": "[C3 | Phương pháp giải các dạng bài | Phần 3] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_12_04",
+      "sourceId": "ksrc_m12_12",
+      "chunkIndex": 4,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Phương pháp giải các dạng bài (Phần 4)",
+      "contentText": "[C3 | Phương pháp giải các dạng bài | Phần 4] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_12_05",
+      "sourceId": "ksrc_m12_12",
+      "chunkIndex": 5,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Phương pháp giải các dạng bài (Phần 5)",
+      "contentText": "[C3 | Phương pháp giải các dạng bài | Phần 5] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_12_06",
+      "sourceId": "ksrc_m12_12",
+      "chunkIndex": 6,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Phương pháp giải các dạng bài (Phần 6)",
+      "contentText": "[C3 | Phương pháp giải các dạng bài | Phần 6] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_12_07",
+      "sourceId": "ksrc_m12_12",
+      "chunkIndex": 7,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Phương pháp giải các dạng bài (Phần 7)",
+      "contentText": "[C3 | Phương pháp giải các dạng bài | Phần 7] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_13_01",
+      "sourceId": "ksrc_m12_13",
+      "chunkIndex": 1,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Sai lầm thường gặp & cách tránh (Phần 1)",
+      "contentText": "[C3 | Sai lầm thường gặp & cách tránh | Phần 1] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_13_02",
+      "sourceId": "ksrc_m12_13",
+      "chunkIndex": 2,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Sai lầm thường gặp & cách tránh (Phần 2)",
+      "contentText": "[C3 | Sai lầm thường gặp & cách tránh | Phần 2] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_13_03",
+      "sourceId": "ksrc_m12_13",
+      "chunkIndex": 3,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Sai lầm thường gặp & cách tránh (Phần 3)",
+      "contentText": "[C3 | Sai lầm thường gặp & cách tránh | Phần 3] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_13_04",
+      "sourceId": "ksrc_m12_13",
+      "chunkIndex": 4,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Sai lầm thường gặp & cách tránh (Phần 4)",
+      "contentText": "[C3 | Sai lầm thường gặp & cách tránh | Phần 4] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_13_05",
+      "sourceId": "ksrc_m12_13",
+      "chunkIndex": 5,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Sai lầm thường gặp & cách tránh (Phần 5)",
+      "contentText": "[C3 | Sai lầm thường gặp & cách tránh | Phần 5] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_13_06",
+      "sourceId": "ksrc_m12_13",
+      "chunkIndex": 6,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Sai lầm thường gặp & cách tránh (Phần 6)",
+      "contentText": "[C3 | Sai lầm thường gặp & cách tránh | Phần 6] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_13_07",
+      "sourceId": "ksrc_m12_13",
+      "chunkIndex": 7,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Sai lầm thường gặp & cách tránh (Phần 7)",
+      "contentText": "[C3 | Sai lầm thường gặp & cách tránh | Phần 7] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_14_01",
+      "sourceId": "ksrc_m12_14",
+      "chunkIndex": 1,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Tuyển tập ví dụ vận dụng (Phần 1)",
+      "contentText": "[C3 | Tuyển tập ví dụ vận dụng | Phần 1] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_14_02",
+      "sourceId": "ksrc_m12_14",
+      "chunkIndex": 2,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Tuyển tập ví dụ vận dụng (Phần 2)",
+      "contentText": "[C3 | Tuyển tập ví dụ vận dụng | Phần 2] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_14_03",
+      "sourceId": "ksrc_m12_14",
+      "chunkIndex": 3,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Tuyển tập ví dụ vận dụng (Phần 3)",
+      "contentText": "[C3 | Tuyển tập ví dụ vận dụng | Phần 3] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_14_04",
+      "sourceId": "ksrc_m12_14",
+      "chunkIndex": 4,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Tuyển tập ví dụ vận dụng (Phần 4)",
+      "contentText": "[C3 | Tuyển tập ví dụ vận dụng | Phần 4] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_14_05",
+      "sourceId": "ksrc_m12_14",
+      "chunkIndex": 5,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Tuyển tập ví dụ vận dụng (Phần 5)",
+      "contentText": "[C3 | Tuyển tập ví dụ vận dụng | Phần 5] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_14_06",
+      "sourceId": "ksrc_m12_14",
+      "chunkIndex": 6,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Tuyển tập ví dụ vận dụng (Phần 6)",
+      "contentText": "[C3 | Tuyển tập ví dụ vận dụng | Phần 6] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_14_07",
+      "sourceId": "ksrc_m12_14",
+      "chunkIndex": 7,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Tuyển tập ví dụ vận dụng (Phần 7)",
+      "contentText": "[C3 | Tuyển tập ví dụ vận dụng | Phần 7] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_15_01",
+      "sourceId": "ksrc_m12_15",
+      "chunkIndex": 1,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Tài liệu ôn tập & tự luyện (Phần 1)",
+      "contentText": "[C3 | Tài liệu ôn tập & tự luyện | Phần 1] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_15_02",
+      "sourceId": "ksrc_m12_15",
+      "chunkIndex": 2,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Tài liệu ôn tập & tự luyện (Phần 2)",
+      "contentText": "[C3 | Tài liệu ôn tập & tự luyện | Phần 2] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_15_03",
+      "sourceId": "ksrc_m12_15",
+      "chunkIndex": 3,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Tài liệu ôn tập & tự luyện (Phần 3)",
+      "contentText": "[C3 | Tài liệu ôn tập & tự luyện | Phần 3] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_15_04",
+      "sourceId": "ksrc_m12_15",
+      "chunkIndex": 4,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Tài liệu ôn tập & tự luyện (Phần 4)",
+      "contentText": "[C3 | Tài liệu ôn tập & tự luyện | Phần 4] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_15_05",
+      "sourceId": "ksrc_m12_15",
+      "chunkIndex": 5,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Tài liệu ôn tập & tự luyện (Phần 5)",
+      "contentText": "[C3 | Tài liệu ôn tập & tự luyện | Phần 5] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_15_06",
+      "sourceId": "ksrc_m12_15",
+      "chunkIndex": 6,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Tài liệu ôn tập & tự luyện (Phần 6)",
+      "contentText": "[C3 | Tài liệu ôn tập & tự luyện | Phần 6] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_15_07",
+      "sourceId": "ksrc_m12_15",
+      "chunkIndex": 7,
+      "title": "Chương 3: Các số đặc trưng đo mức độ phân tán — Tài liệu ôn tập & tự luyện (Phần 7)",
+      "contentText": "[C3 | Tài liệu ôn tập & tự luyện | Phần 7] Kiến thức chuẩn Toán 12 về Chương 3: Các số đặc trưng đo mức độ phân tán: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_16_01",
+      "sourceId": "ksrc_m12_16",
+      "chunkIndex": 1,
+      "title": "Chương 4: Nguyên hàm và tích phân — Bảng công thức trọng tâm (Phần 1)",
+      "contentText": "[C4 | Bảng công thức trọng tâm | Phần 1] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_16_02",
+      "sourceId": "ksrc_m12_16",
+      "chunkIndex": 2,
+      "title": "Chương 4: Nguyên hàm và tích phân — Bảng công thức trọng tâm (Phần 2)",
+      "contentText": "[C4 | Bảng công thức trọng tâm | Phần 2] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_16_03",
+      "sourceId": "ksrc_m12_16",
+      "chunkIndex": 3,
+      "title": "Chương 4: Nguyên hàm và tích phân — Bảng công thức trọng tâm (Phần 3)",
+      "contentText": "[C4 | Bảng công thức trọng tâm | Phần 3] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_16_04",
+      "sourceId": "ksrc_m12_16",
+      "chunkIndex": 4,
+      "title": "Chương 4: Nguyên hàm và tích phân — Bảng công thức trọng tâm (Phần 4)",
+      "contentText": "[C4 | Bảng công thức trọng tâm | Phần 4] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_16_05",
+      "sourceId": "ksrc_m12_16",
+      "chunkIndex": 5,
+      "title": "Chương 4: Nguyên hàm và tích phân — Bảng công thức trọng tâm (Phần 5)",
+      "contentText": "[C4 | Bảng công thức trọng tâm | Phần 5] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_16_06",
+      "sourceId": "ksrc_m12_16",
+      "chunkIndex": 6,
+      "title": "Chương 4: Nguyên hàm và tích phân — Bảng công thức trọng tâm (Phần 6)",
+      "contentText": "[C4 | Bảng công thức trọng tâm | Phần 6] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_16_07",
+      "sourceId": "ksrc_m12_16",
+      "chunkIndex": 7,
+      "title": "Chương 4: Nguyên hàm và tích phân — Bảng công thức trọng tâm (Phần 7)",
+      "contentText": "[C4 | Bảng công thức trọng tâm | Phần 7] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_17_01",
+      "sourceId": "ksrc_m12_17",
+      "chunkIndex": 1,
+      "title": "Chương 4: Nguyên hàm và tích phân — Phương pháp giải các dạng bài (Phần 1)",
+      "contentText": "[C4 | Phương pháp giải các dạng bài | Phần 1] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_17_02",
+      "sourceId": "ksrc_m12_17",
+      "chunkIndex": 2,
+      "title": "Chương 4: Nguyên hàm và tích phân — Phương pháp giải các dạng bài (Phần 2)",
+      "contentText": "[C4 | Phương pháp giải các dạng bài | Phần 2] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_17_03",
+      "sourceId": "ksrc_m12_17",
+      "chunkIndex": 3,
+      "title": "Chương 4: Nguyên hàm và tích phân — Phương pháp giải các dạng bài (Phần 3)",
+      "contentText": "[C4 | Phương pháp giải các dạng bài | Phần 3] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_17_04",
+      "sourceId": "ksrc_m12_17",
+      "chunkIndex": 4,
+      "title": "Chương 4: Nguyên hàm và tích phân — Phương pháp giải các dạng bài (Phần 4)",
+      "contentText": "[C4 | Phương pháp giải các dạng bài | Phần 4] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_17_05",
+      "sourceId": "ksrc_m12_17",
+      "chunkIndex": 5,
+      "title": "Chương 4: Nguyên hàm và tích phân — Phương pháp giải các dạng bài (Phần 5)",
+      "contentText": "[C4 | Phương pháp giải các dạng bài | Phần 5] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_17_06",
+      "sourceId": "ksrc_m12_17",
+      "chunkIndex": 6,
+      "title": "Chương 4: Nguyên hàm và tích phân — Phương pháp giải các dạng bài (Phần 6)",
+      "contentText": "[C4 | Phương pháp giải các dạng bài | Phần 6] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_17_07",
+      "sourceId": "ksrc_m12_17",
+      "chunkIndex": 7,
+      "title": "Chương 4: Nguyên hàm và tích phân — Phương pháp giải các dạng bài (Phần 7)",
+      "contentText": "[C4 | Phương pháp giải các dạng bài | Phần 7] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_18_01",
+      "sourceId": "ksrc_m12_18",
+      "chunkIndex": 1,
+      "title": "Chương 4: Nguyên hàm và tích phân — Sai lầm thường gặp & cách tránh (Phần 1)",
+      "contentText": "[C4 | Sai lầm thường gặp & cách tránh | Phần 1] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_18_02",
+      "sourceId": "ksrc_m12_18",
+      "chunkIndex": 2,
+      "title": "Chương 4: Nguyên hàm và tích phân — Sai lầm thường gặp & cách tránh (Phần 2)",
+      "contentText": "[C4 | Sai lầm thường gặp & cách tránh | Phần 2] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_18_03",
+      "sourceId": "ksrc_m12_18",
+      "chunkIndex": 3,
+      "title": "Chương 4: Nguyên hàm và tích phân — Sai lầm thường gặp & cách tránh (Phần 3)",
+      "contentText": "[C4 | Sai lầm thường gặp & cách tránh | Phần 3] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_18_04",
+      "sourceId": "ksrc_m12_18",
+      "chunkIndex": 4,
+      "title": "Chương 4: Nguyên hàm và tích phân — Sai lầm thường gặp & cách tránh (Phần 4)",
+      "contentText": "[C4 | Sai lầm thường gặp & cách tránh | Phần 4] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_18_05",
+      "sourceId": "ksrc_m12_18",
+      "chunkIndex": 5,
+      "title": "Chương 4: Nguyên hàm và tích phân — Sai lầm thường gặp & cách tránh (Phần 5)",
+      "contentText": "[C4 | Sai lầm thường gặp & cách tránh | Phần 5] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_18_06",
+      "sourceId": "ksrc_m12_18",
+      "chunkIndex": 6,
+      "title": "Chương 4: Nguyên hàm và tích phân — Sai lầm thường gặp & cách tránh (Phần 6)",
+      "contentText": "[C4 | Sai lầm thường gặp & cách tránh | Phần 6] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_18_07",
+      "sourceId": "ksrc_m12_18",
+      "chunkIndex": 7,
+      "title": "Chương 4: Nguyên hàm và tích phân — Sai lầm thường gặp & cách tránh (Phần 7)",
+      "contentText": "[C4 | Sai lầm thường gặp & cách tránh | Phần 7] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_19_01",
+      "sourceId": "ksrc_m12_19",
+      "chunkIndex": 1,
+      "title": "Chương 4: Nguyên hàm và tích phân — Tuyển tập ví dụ vận dụng (Phần 1)",
+      "contentText": "[C4 | Tuyển tập ví dụ vận dụng | Phần 1] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_19_02",
+      "sourceId": "ksrc_m12_19",
+      "chunkIndex": 2,
+      "title": "Chương 4: Nguyên hàm và tích phân — Tuyển tập ví dụ vận dụng (Phần 2)",
+      "contentText": "[C4 | Tuyển tập ví dụ vận dụng | Phần 2] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_19_03",
+      "sourceId": "ksrc_m12_19",
+      "chunkIndex": 3,
+      "title": "Chương 4: Nguyên hàm và tích phân — Tuyển tập ví dụ vận dụng (Phần 3)",
+      "contentText": "[C4 | Tuyển tập ví dụ vận dụng | Phần 3] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_19_04",
+      "sourceId": "ksrc_m12_19",
+      "chunkIndex": 4,
+      "title": "Chương 4: Nguyên hàm và tích phân — Tuyển tập ví dụ vận dụng (Phần 4)",
+      "contentText": "[C4 | Tuyển tập ví dụ vận dụng | Phần 4] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_19_05",
+      "sourceId": "ksrc_m12_19",
+      "chunkIndex": 5,
+      "title": "Chương 4: Nguyên hàm và tích phân — Tuyển tập ví dụ vận dụng (Phần 5)",
+      "contentText": "[C4 | Tuyển tập ví dụ vận dụng | Phần 5] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_19_06",
+      "sourceId": "ksrc_m12_19",
+      "chunkIndex": 6,
+      "title": "Chương 4: Nguyên hàm và tích phân — Tuyển tập ví dụ vận dụng (Phần 6)",
+      "contentText": "[C4 | Tuyển tập ví dụ vận dụng | Phần 6] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_19_07",
+      "sourceId": "ksrc_m12_19",
+      "chunkIndex": 7,
+      "title": "Chương 4: Nguyên hàm và tích phân — Tuyển tập ví dụ vận dụng (Phần 7)",
+      "contentText": "[C4 | Tuyển tập ví dụ vận dụng | Phần 7] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_20_01",
+      "sourceId": "ksrc_m12_20",
+      "chunkIndex": 1,
+      "title": "Chương 4: Nguyên hàm và tích phân — Tài liệu ôn tập & tự luyện (Phần 1)",
+      "contentText": "[C4 | Tài liệu ôn tập & tự luyện | Phần 1] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_20_02",
+      "sourceId": "ksrc_m12_20",
+      "chunkIndex": 2,
+      "title": "Chương 4: Nguyên hàm và tích phân — Tài liệu ôn tập & tự luyện (Phần 2)",
+      "contentText": "[C4 | Tài liệu ôn tập & tự luyện | Phần 2] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_20_03",
+      "sourceId": "ksrc_m12_20",
+      "chunkIndex": 3,
+      "title": "Chương 4: Nguyên hàm và tích phân — Tài liệu ôn tập & tự luyện (Phần 3)",
+      "contentText": "[C4 | Tài liệu ôn tập & tự luyện | Phần 3] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_20_04",
+      "sourceId": "ksrc_m12_20",
+      "chunkIndex": 4,
+      "title": "Chương 4: Nguyên hàm và tích phân — Tài liệu ôn tập & tự luyện (Phần 4)",
+      "contentText": "[C4 | Tài liệu ôn tập & tự luyện | Phần 4] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_20_05",
+      "sourceId": "ksrc_m12_20",
+      "chunkIndex": 5,
+      "title": "Chương 4: Nguyên hàm và tích phân — Tài liệu ôn tập & tự luyện (Phần 5)",
+      "contentText": "[C4 | Tài liệu ôn tập & tự luyện | Phần 5] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_20_06",
+      "sourceId": "ksrc_m12_20",
+      "chunkIndex": 6,
+      "title": "Chương 4: Nguyên hàm và tích phân — Tài liệu ôn tập & tự luyện (Phần 6)",
+      "contentText": "[C4 | Tài liệu ôn tập & tự luyện | Phần 6] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_20_07",
+      "sourceId": "ksrc_m12_20",
+      "chunkIndex": 7,
+      "title": "Chương 4: Nguyên hàm và tích phân — Tài liệu ôn tập & tự luyện (Phần 7)",
+      "contentText": "[C4 | Tài liệu ôn tập & tự luyện | Phần 7] Kiến thức chuẩn Toán 12 về Chương 4: Nguyên hàm và tích phân: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_21_01",
+      "sourceId": "ksrc_m12_21",
+      "chunkIndex": 1,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Bảng công thức trọng tâm (Phần 1)",
+      "contentText": "[C5 | Bảng công thức trọng tâm | Phần 1] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_21_02",
+      "sourceId": "ksrc_m12_21",
+      "chunkIndex": 2,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Bảng công thức trọng tâm (Phần 2)",
+      "contentText": "[C5 | Bảng công thức trọng tâm | Phần 2] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_21_03",
+      "sourceId": "ksrc_m12_21",
+      "chunkIndex": 3,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Bảng công thức trọng tâm (Phần 3)",
+      "contentText": "[C5 | Bảng công thức trọng tâm | Phần 3] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_21_04",
+      "sourceId": "ksrc_m12_21",
+      "chunkIndex": 4,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Bảng công thức trọng tâm (Phần 4)",
+      "contentText": "[C5 | Bảng công thức trọng tâm | Phần 4] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_21_05",
+      "sourceId": "ksrc_m12_21",
+      "chunkIndex": 5,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Bảng công thức trọng tâm (Phần 5)",
+      "contentText": "[C5 | Bảng công thức trọng tâm | Phần 5] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_21_06",
+      "sourceId": "ksrc_m12_21",
+      "chunkIndex": 6,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Bảng công thức trọng tâm (Phần 6)",
+      "contentText": "[C5 | Bảng công thức trọng tâm | Phần 6] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_21_07",
+      "sourceId": "ksrc_m12_21",
+      "chunkIndex": 7,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Bảng công thức trọng tâm (Phần 7)",
+      "contentText": "[C5 | Bảng công thức trọng tâm | Phần 7] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_22_01",
+      "sourceId": "ksrc_m12_22",
+      "chunkIndex": 1,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Phương pháp giải các dạng bài (Phần 1)",
+      "contentText": "[C5 | Phương pháp giải các dạng bài | Phần 1] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_22_02",
+      "sourceId": "ksrc_m12_22",
+      "chunkIndex": 2,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Phương pháp giải các dạng bài (Phần 2)",
+      "contentText": "[C5 | Phương pháp giải các dạng bài | Phần 2] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_22_03",
+      "sourceId": "ksrc_m12_22",
+      "chunkIndex": 3,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Phương pháp giải các dạng bài (Phần 3)",
+      "contentText": "[C5 | Phương pháp giải các dạng bài | Phần 3] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_22_04",
+      "sourceId": "ksrc_m12_22",
+      "chunkIndex": 4,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Phương pháp giải các dạng bài (Phần 4)",
+      "contentText": "[C5 | Phương pháp giải các dạng bài | Phần 4] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_22_05",
+      "sourceId": "ksrc_m12_22",
+      "chunkIndex": 5,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Phương pháp giải các dạng bài (Phần 5)",
+      "contentText": "[C5 | Phương pháp giải các dạng bài | Phần 5] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_22_06",
+      "sourceId": "ksrc_m12_22",
+      "chunkIndex": 6,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Phương pháp giải các dạng bài (Phần 6)",
+      "contentText": "[C5 | Phương pháp giải các dạng bài | Phần 6] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_22_07",
+      "sourceId": "ksrc_m12_22",
+      "chunkIndex": 7,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Phương pháp giải các dạng bài (Phần 7)",
+      "contentText": "[C5 | Phương pháp giải các dạng bài | Phần 7] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_23_01",
+      "sourceId": "ksrc_m12_23",
+      "chunkIndex": 1,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Sai lầm thường gặp & cách tránh (Phần 1)",
+      "contentText": "[C5 | Sai lầm thường gặp & cách tránh | Phần 1] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_23_02",
+      "sourceId": "ksrc_m12_23",
+      "chunkIndex": 2,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Sai lầm thường gặp & cách tránh (Phần 2)",
+      "contentText": "[C5 | Sai lầm thường gặp & cách tránh | Phần 2] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_23_03",
+      "sourceId": "ksrc_m12_23",
+      "chunkIndex": 3,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Sai lầm thường gặp & cách tránh (Phần 3)",
+      "contentText": "[C5 | Sai lầm thường gặp & cách tránh | Phần 3] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_23_04",
+      "sourceId": "ksrc_m12_23",
+      "chunkIndex": 4,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Sai lầm thường gặp & cách tránh (Phần 4)",
+      "contentText": "[C5 | Sai lầm thường gặp & cách tránh | Phần 4] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_23_05",
+      "sourceId": "ksrc_m12_23",
+      "chunkIndex": 5,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Sai lầm thường gặp & cách tránh (Phần 5)",
+      "contentText": "[C5 | Sai lầm thường gặp & cách tránh | Phần 5] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_23_06",
+      "sourceId": "ksrc_m12_23",
+      "chunkIndex": 6,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Sai lầm thường gặp & cách tránh (Phần 6)",
+      "contentText": "[C5 | Sai lầm thường gặp & cách tránh | Phần 6] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_23_07",
+      "sourceId": "ksrc_m12_23",
+      "chunkIndex": 7,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Sai lầm thường gặp & cách tránh (Phần 7)",
+      "contentText": "[C5 | Sai lầm thường gặp & cách tránh | Phần 7] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_24_01",
+      "sourceId": "ksrc_m12_24",
+      "chunkIndex": 1,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Tuyển tập ví dụ vận dụng (Phần 1)",
+      "contentText": "[C5 | Tuyển tập ví dụ vận dụng | Phần 1] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_24_02",
+      "sourceId": "ksrc_m12_24",
+      "chunkIndex": 2,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Tuyển tập ví dụ vận dụng (Phần 2)",
+      "contentText": "[C5 | Tuyển tập ví dụ vận dụng | Phần 2] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_24_03",
+      "sourceId": "ksrc_m12_24",
+      "chunkIndex": 3,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Tuyển tập ví dụ vận dụng (Phần 3)",
+      "contentText": "[C5 | Tuyển tập ví dụ vận dụng | Phần 3] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_24_04",
+      "sourceId": "ksrc_m12_24",
+      "chunkIndex": 4,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Tuyển tập ví dụ vận dụng (Phần 4)",
+      "contentText": "[C5 | Tuyển tập ví dụ vận dụng | Phần 4] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_24_05",
+      "sourceId": "ksrc_m12_24",
+      "chunkIndex": 5,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Tuyển tập ví dụ vận dụng (Phần 5)",
+      "contentText": "[C5 | Tuyển tập ví dụ vận dụng | Phần 5] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_24_06",
+      "sourceId": "ksrc_m12_24",
+      "chunkIndex": 6,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Tuyển tập ví dụ vận dụng (Phần 6)",
+      "contentText": "[C5 | Tuyển tập ví dụ vận dụng | Phần 6] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_24_07",
+      "sourceId": "ksrc_m12_24",
+      "chunkIndex": 7,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Tuyển tập ví dụ vận dụng (Phần 7)",
+      "contentText": "[C5 | Tuyển tập ví dụ vận dụng | Phần 7] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_25_01",
+      "sourceId": "ksrc_m12_25",
+      "chunkIndex": 1,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Tài liệu ôn tập & tự luyện (Phần 1)",
+      "contentText": "[C5 | Tài liệu ôn tập & tự luyện | Phần 1] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_25_02",
+      "sourceId": "ksrc_m12_25",
+      "chunkIndex": 2,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Tài liệu ôn tập & tự luyện (Phần 2)",
+      "contentText": "[C5 | Tài liệu ôn tập & tự luyện | Phần 2] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_25_03",
+      "sourceId": "ksrc_m12_25",
+      "chunkIndex": 3,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Tài liệu ôn tập & tự luyện (Phần 3)",
+      "contentText": "[C5 | Tài liệu ôn tập & tự luyện | Phần 3] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_25_04",
+      "sourceId": "ksrc_m12_25",
+      "chunkIndex": 4,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Tài liệu ôn tập & tự luyện (Phần 4)",
+      "contentText": "[C5 | Tài liệu ôn tập & tự luyện | Phần 4] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_25_05",
+      "sourceId": "ksrc_m12_25",
+      "chunkIndex": 5,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Tài liệu ôn tập & tự luyện (Phần 5)",
+      "contentText": "[C5 | Tài liệu ôn tập & tự luyện | Phần 5] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_25_06",
+      "sourceId": "ksrc_m12_25",
+      "chunkIndex": 6,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Tài liệu ôn tập & tự luyện (Phần 6)",
+      "contentText": "[C5 | Tài liệu ôn tập & tự luyện | Phần 6] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_25_07",
+      "sourceId": "ksrc_m12_25",
+      "chunkIndex": 7,
+      "title": "Chương 5: Phương pháp tọa độ trong không gian Oxyz — Tài liệu ôn tập & tự luyện (Phần 7)",
+      "contentText": "[C5 | Tài liệu ôn tập & tự luyện | Phần 7] Kiến thức chuẩn Toán 12 về Chương 5: Phương pháp tọa độ trong không gian Oxyz: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_26_01",
+      "sourceId": "ksrc_m12_26",
+      "chunkIndex": 1,
+      "title": "Chương 6: Xác suất có điều kiện — Bảng công thức trọng tâm (Phần 1)",
+      "contentText": "[C6 | Bảng công thức trọng tâm | Phần 1] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_26_02",
+      "sourceId": "ksrc_m12_26",
+      "chunkIndex": 2,
+      "title": "Chương 6: Xác suất có điều kiện — Bảng công thức trọng tâm (Phần 2)",
+      "contentText": "[C6 | Bảng công thức trọng tâm | Phần 2] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_26_03",
+      "sourceId": "ksrc_m12_26",
+      "chunkIndex": 3,
+      "title": "Chương 6: Xác suất có điều kiện — Bảng công thức trọng tâm (Phần 3)",
+      "contentText": "[C6 | Bảng công thức trọng tâm | Phần 3] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_26_04",
+      "sourceId": "ksrc_m12_26",
+      "chunkIndex": 4,
+      "title": "Chương 6: Xác suất có điều kiện — Bảng công thức trọng tâm (Phần 4)",
+      "contentText": "[C6 | Bảng công thức trọng tâm | Phần 4] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_26_05",
+      "sourceId": "ksrc_m12_26",
+      "chunkIndex": 5,
+      "title": "Chương 6: Xác suất có điều kiện — Bảng công thức trọng tâm (Phần 5)",
+      "contentText": "[C6 | Bảng công thức trọng tâm | Phần 5] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_26_06",
+      "sourceId": "ksrc_m12_26",
+      "chunkIndex": 6,
+      "title": "Chương 6: Xác suất có điều kiện — Bảng công thức trọng tâm (Phần 6)",
+      "contentText": "[C6 | Bảng công thức trọng tâm | Phần 6] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_26_07",
+      "sourceId": "ksrc_m12_26",
+      "chunkIndex": 7,
+      "title": "Chương 6: Xác suất có điều kiện — Bảng công thức trọng tâm (Phần 7)",
+      "contentText": "[C6 | Bảng công thức trọng tâm | Phần 7] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_27_01",
+      "sourceId": "ksrc_m12_27",
+      "chunkIndex": 1,
+      "title": "Chương 6: Xác suất có điều kiện — Phương pháp giải các dạng bài (Phần 1)",
+      "contentText": "[C6 | Phương pháp giải các dạng bài | Phần 1] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_27_02",
+      "sourceId": "ksrc_m12_27",
+      "chunkIndex": 2,
+      "title": "Chương 6: Xác suất có điều kiện — Phương pháp giải các dạng bài (Phần 2)",
+      "contentText": "[C6 | Phương pháp giải các dạng bài | Phần 2] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_27_03",
+      "sourceId": "ksrc_m12_27",
+      "chunkIndex": 3,
+      "title": "Chương 6: Xác suất có điều kiện — Phương pháp giải các dạng bài (Phần 3)",
+      "contentText": "[C6 | Phương pháp giải các dạng bài | Phần 3] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_27_04",
+      "sourceId": "ksrc_m12_27",
+      "chunkIndex": 4,
+      "title": "Chương 6: Xác suất có điều kiện — Phương pháp giải các dạng bài (Phần 4)",
+      "contentText": "[C6 | Phương pháp giải các dạng bài | Phần 4] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_27_05",
+      "sourceId": "ksrc_m12_27",
+      "chunkIndex": 5,
+      "title": "Chương 6: Xác suất có điều kiện — Phương pháp giải các dạng bài (Phần 5)",
+      "contentText": "[C6 | Phương pháp giải các dạng bài | Phần 5] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_27_06",
+      "sourceId": "ksrc_m12_27",
+      "chunkIndex": 6,
+      "title": "Chương 6: Xác suất có điều kiện — Phương pháp giải các dạng bài (Phần 6)",
+      "contentText": "[C6 | Phương pháp giải các dạng bài | Phần 6] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_27_07",
+      "sourceId": "ksrc_m12_27",
+      "chunkIndex": 7,
+      "title": "Chương 6: Xác suất có điều kiện — Phương pháp giải các dạng bài (Phần 7)",
+      "contentText": "[C6 | Phương pháp giải các dạng bài | Phần 7] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_28_01",
+      "sourceId": "ksrc_m12_28",
+      "chunkIndex": 1,
+      "title": "Chương 6: Xác suất có điều kiện — Sai lầm thường gặp & cách tránh (Phần 1)",
+      "contentText": "[C6 | Sai lầm thường gặp & cách tránh | Phần 1] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_28_02",
+      "sourceId": "ksrc_m12_28",
+      "chunkIndex": 2,
+      "title": "Chương 6: Xác suất có điều kiện — Sai lầm thường gặp & cách tránh (Phần 2)",
+      "contentText": "[C6 | Sai lầm thường gặp & cách tránh | Phần 2] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_28_03",
+      "sourceId": "ksrc_m12_28",
+      "chunkIndex": 3,
+      "title": "Chương 6: Xác suất có điều kiện — Sai lầm thường gặp & cách tránh (Phần 3)",
+      "contentText": "[C6 | Sai lầm thường gặp & cách tránh | Phần 3] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_28_04",
+      "sourceId": "ksrc_m12_28",
+      "chunkIndex": 4,
+      "title": "Chương 6: Xác suất có điều kiện — Sai lầm thường gặp & cách tránh (Phần 4)",
+      "contentText": "[C6 | Sai lầm thường gặp & cách tránh | Phần 4] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_28_05",
+      "sourceId": "ksrc_m12_28",
+      "chunkIndex": 5,
+      "title": "Chương 6: Xác suất có điều kiện — Sai lầm thường gặp & cách tránh (Phần 5)",
+      "contentText": "[C6 | Sai lầm thường gặp & cách tránh | Phần 5] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_28_06",
+      "sourceId": "ksrc_m12_28",
+      "chunkIndex": 6,
+      "title": "Chương 6: Xác suất có điều kiện — Sai lầm thường gặp & cách tránh (Phần 6)",
+      "contentText": "[C6 | Sai lầm thường gặp & cách tránh | Phần 6] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_28_07",
+      "sourceId": "ksrc_m12_28",
+      "chunkIndex": 7,
+      "title": "Chương 6: Xác suất có điều kiện — Sai lầm thường gặp & cách tránh (Phần 7)",
+      "contentText": "[C6 | Sai lầm thường gặp & cách tránh | Phần 7] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_29_01",
+      "sourceId": "ksrc_m12_29",
+      "chunkIndex": 1,
+      "title": "Chương 6: Xác suất có điều kiện — Tuyển tập ví dụ vận dụng (Phần 1)",
+      "contentText": "[C6 | Tuyển tập ví dụ vận dụng | Phần 1] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_29_02",
+      "sourceId": "ksrc_m12_29",
+      "chunkIndex": 2,
+      "title": "Chương 6: Xác suất có điều kiện — Tuyển tập ví dụ vận dụng (Phần 2)",
+      "contentText": "[C6 | Tuyển tập ví dụ vận dụng | Phần 2] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_29_03",
+      "sourceId": "ksrc_m12_29",
+      "chunkIndex": 3,
+      "title": "Chương 6: Xác suất có điều kiện — Tuyển tập ví dụ vận dụng (Phần 3)",
+      "contentText": "[C6 | Tuyển tập ví dụ vận dụng | Phần 3] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_29_04",
+      "sourceId": "ksrc_m12_29",
+      "chunkIndex": 4,
+      "title": "Chương 6: Xác suất có điều kiện — Tuyển tập ví dụ vận dụng (Phần 4)",
+      "contentText": "[C6 | Tuyển tập ví dụ vận dụng | Phần 4] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_29_05",
+      "sourceId": "ksrc_m12_29",
+      "chunkIndex": 5,
+      "title": "Chương 6: Xác suất có điều kiện — Tuyển tập ví dụ vận dụng (Phần 5)",
+      "contentText": "[C6 | Tuyển tập ví dụ vận dụng | Phần 5] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_29_06",
+      "sourceId": "ksrc_m12_29",
+      "chunkIndex": 6,
+      "title": "Chương 6: Xác suất có điều kiện — Tuyển tập ví dụ vận dụng (Phần 6)",
+      "contentText": "[C6 | Tuyển tập ví dụ vận dụng | Phần 6] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_29_07",
+      "sourceId": "ksrc_m12_29",
+      "chunkIndex": 7,
+      "title": "Chương 6: Xác suất có điều kiện — Tuyển tập ví dụ vận dụng (Phần 7)",
+      "contentText": "[C6 | Tuyển tập ví dụ vận dụng | Phần 7] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_30_01",
+      "sourceId": "ksrc_m12_30",
+      "chunkIndex": 1,
+      "title": "Chương 6: Xác suất có điều kiện — Tài liệu ôn tập & tự luyện (Phần 1)",
+      "contentText": "[C6 | Tài liệu ôn tập & tự luyện | Phần 1] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_30_02",
+      "sourceId": "ksrc_m12_30",
+      "chunkIndex": 2,
+      "title": "Chương 6: Xác suất có điều kiện — Tài liệu ôn tập & tự luyện (Phần 2)",
+      "contentText": "[C6 | Tài liệu ôn tập & tự luyện | Phần 2] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_30_03",
+      "sourceId": "ksrc_m12_30",
+      "chunkIndex": 3,
+      "title": "Chương 6: Xác suất có điều kiện — Tài liệu ôn tập & tự luyện (Phần 3)",
+      "contentText": "[C6 | Tài liệu ôn tập & tự luyện | Phần 3] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_30_04",
+      "sourceId": "ksrc_m12_30",
+      "chunkIndex": 4,
+      "title": "Chương 6: Xác suất có điều kiện — Tài liệu ôn tập & tự luyện (Phần 4)",
+      "contentText": "[C6 | Tài liệu ôn tập & tự luyện | Phần 4] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_30_05",
+      "sourceId": "ksrc_m12_30",
+      "chunkIndex": 5,
+      "title": "Chương 6: Xác suất có điều kiện — Tài liệu ôn tập & tự luyện (Phần 5)",
+      "contentText": "[C6 | Tài liệu ôn tập & tự luyện | Phần 5] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_30_06",
+      "sourceId": "ksrc_m12_30",
+      "chunkIndex": 6,
+      "title": "Chương 6: Xác suất có điều kiện — Tài liệu ôn tập & tự luyện (Phần 6)",
+      "contentText": "[C6 | Tài liệu ôn tập & tự luyện | Phần 6] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
+    },
+    {
+      "id": "kchk_m12_30_07",
+      "sourceId": "ksrc_m12_30",
+      "chunkIndex": 7,
+      "title": "Chương 6: Xác suất có điều kiện — Tài liệu ôn tập & tự luyện (Phần 7)",
+      "contentText": "[C6 | Tài liệu ôn tập & tự luyện | Phần 7] Kiến thức chuẩn Toán 12 về Chương 6: Xác suất có điều kiện: quy tắc nhận dạng, điều kiện áp dụng, công thức tính và phương pháp kiểm chứng đáp án độc lập."
     }
   ]
 }

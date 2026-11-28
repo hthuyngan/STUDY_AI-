@@ -100,6 +100,15 @@ try {
         Assert-PacketInvocationAllowed -ReviewSessionId $sid3 -PacketId "BUDGET-$i" -SnapshotFingerprint $fp -RemediationRound 1 -ContextChars 78000
     }
     Assert-Throws { Assert-PacketInvocationAllowed -ReviewSessionId $sid3 -PacketId "BUDGET-9" -SnapshotFingerprint $fp -RemediationRound 1 -ContextChars 1 } "MAX_CONTEXT_BUDGET_EXCEEDED" "ContextBudget_ExactLimitEnforced"
+    # Verify full-prompt accounting rejects combined instructions + diff + immutable context over 624000
+    $sid4 = "test-fullprompt-" + ([guid]::NewGuid().ToString("N").Substring(0, 8))
+    $null = New-ReviewSessionState -ReviewSessionId $sid4 -Branch "feature/test" -BaseSha "0143e2dfc5c4db80c0bae0ce322971cfec5f3f11" -SnapshotId "snap-fp" -SnapshotFingerprint $fp -RemediationRound 1
+    try {
+        Assert-PacketInvocationAllowed -ReviewSessionId $sid4 -PacketId "FULL-1" -SnapshotFingerprint $fp -RemediationRound 1 -ContextChars 400000
+        Assert-Throws { Assert-PacketInvocationAllowed -ReviewSessionId $sid4 -PacketId "FULL-2" -SnapshotFingerprint $fp -RemediationRound 1 -ContextChars 224001 } "MAX_CONTEXT_BUDGET_EXCEEDED" "ContextBudget_FullPromptAccounting"
+    } finally {
+        Remove-Item (Get-ReviewSessionStatePath -ReviewSessionId $sid4) -Force -ErrorAction SilentlyContinue
+    }
 } finally {
     Remove-Item (Get-ReviewSessionStatePath -ReviewSessionId $sid3) -Force -ErrorAction SilentlyContinue
 }

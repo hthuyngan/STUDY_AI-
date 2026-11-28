@@ -1,10 +1,43 @@
 [
   {
+    "id": "SRC-GDPT2018-TOAN",
+    "title": "Chương trình Giáo dục phổ thông môn Toán (Ban hành kèm Thông tư 32/2018/TT-BGDĐT)",
+    "author": "Bộ Giáo dục và Đào tạo",
+    "publisher": "Bộ Giáo dục và Đào tạo",
+    "url": "https://moet.gov.vn/tintuc/Pages/tin-tong-hop.aspx?ItemID=5756",
+    "license": "PUBLIC_OFFICIAL_REGULATION",
+    "accessDate": "2026-11-28",
+    "verificationStatus": "VERIFIED"
+  },
+  {
+    "id": "SRC-BGD2025-STRUCTURE",
+    "title": "Cấu trúc định dạng đề thi Kỳ thi tốt nghiệp THPT từ năm 2025 môn Toán (12 MC + 4 TFG + 6 SA, 90 phút)",
+    "author": "Bộ Giáo dục và Đào tạo",
+    "publisher": "Bộ Giáo dục và Đào tạo",
+    "url": "https://moet.gov.vn/tintuc/Pages/tin-tong-hop.aspx?ItemID=9030",
+    "license": "PUBLIC_OFFICIAL_REGULATION",
+    "accessDate": "2026-11-28",
+    "verificationStatus": "VERIFIED"
+  },
+  {
+    "id": "SRC-KNTT-TOAN12",
+    "title": "Khung chương trình Toán 12 — Bộ sách Kết nối tri thức với cuộc sống (6 chương, 19 bài học)",
+    "author": "Hà Huy Khoái (Tổng Chủ biên)",
+    "publisher": "NXB Giáo dục Việt Nam",
+    "url": "https://ketnoitrithuc.nxbgd.vn",
+    "license": "CURRICULUM_STRUCTURE_REFERENCE",
+    "accessDate": "2026-11-28",
+    "verificationStatus": "VERIFIED"
+  },
+  {
     "id": "SRC-STUDYAI-ORIG-2026",
-    "title": "STUDY_AI Original Math 12 Curriculum Dataset (GDPT 2018 KNTT)",
+    "title": "STUDY_AI Original Math 12 Curriculum Dataset (SymPy-Verified)",
+    "author": "STUDY_AI Content Engineering",
+    "publisher": "STUDY_AI",
+    "url": "https://github.com/hthuyngan/STUDY_AI-",
     "license": "ORIGINAL_PROJECT_ASSET",
-    "verificationStatus": "MATH_VERIFIED",
-    "verifiedWith": "SymPy 1.14.0 + Codex 6.1 High",
-    "createdAt": "2026-11-28T04:35:50.123282+00:00"
+    "accessDate": "2026-11-28",
+    "verificationStatus": "MATH_AUTO_VERIFIED",
+    "verifiedWith": "SymPy 1.14.0"
   }
 ]

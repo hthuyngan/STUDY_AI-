@@ -205,10 +205,17 @@ public sealed class Math12DatasetImportService
             return result;
         }
 
-        var writtenFiles = new List<string>();
+        var uploadRoot = Path.Combine(AppContext.BaseDirectory, "App_Data", "uploads", "content-materials");
+        Directory.CreateDirectory(uploadRoot);
+
         async Task ExecuteImportAsync()
         {
-            var now = DateTimeOffset.UtcNow;
+            var stagedFiles = new List<(string StagingPath, string TargetPath, string? BackupPath)>();
+            var committedBackups = new List<(string TargetPath, string BackupPath)>();
+            var promotedTargets = new List<string>();
+            try
+            {
+                var now = DateTimeOffset.UtcNow;
 
             if (existingSubject == null)
             {
@@ -421,8 +428,12 @@ public sealed class Math12DatasetImportService
 
                 if (!File.Exists(physicalPath) || !existingMaterials.TryGetValue(m.Id, out var existingMat) || existingMat.FileHashSha256 != sha)
                 {
-                    await File.WriteAllBytesAsync(physicalPath, bytes, ct);
-                    writtenFiles.Add(physicalPath);
+                    var stagingPath = Path.Combine(uploadRoot, $".staging_{m.Id}_{Guid.NewGuid():N}{safeExt}");
+                    await File.WriteAllBytesAsync(stagingPath, bytes, ct);
+                    string? backupPath = File.Exists(physicalPath)
+                        ? Path.Combine(uploadRoot, $".bak_{m.Id}_{Guid.NewGuid():N}{safeExt}")
+                        : null;
+                    stagedFiles.Add((stagingPath, physicalPath, backupPath));
                 }
 
                 if (!existingMaterials.TryGetValue(m.Id, out var ex))
@@ -530,32 +541,58 @@ public sealed class Math12DatasetImportService
             }
 
             await _db.SaveChangesAsync(ct);
+
+            // Promote staged files BEFORE CommitAsync so any filesystem failure rolls back the DB transaction atomically
+            foreach (var item in stagedFiles)
+            {
+                if (item.BackupPath != null && File.Exists(item.TargetPath))
+                {
+                    File.Move(item.TargetPath, item.BackupPath, overwrite: true);
+                    committedBackups.Add((item.TargetPath, item.BackupPath));
+                }
+                File.Move(item.StagingPath, item.TargetPath, overwrite: true);
+                promotedTargets.Add(item.TargetPath);
+            }
+            }
+            catch
+            {
+                foreach (var target in promotedTargets)
+                {
+                    try { if (File.Exists(target)) File.Delete(target); } catch { }
+                }
+                foreach (var (target, bak) in committedBackups)
+                {
+                    try
+                    {
+                        if (File.Exists(bak)) File.Move(bak, target, overwrite: true);
+                    }
+                    catch { }
+                }
+                foreach (var item in stagedFiles)
+                {
+                    try { if (File.Exists(item.StagingPath)) File.Delete(item.StagingPath); } catch { }
+                }
+                throw;
+            }
+            foreach (var (_, bak) in committedBackups)
+            {
+                try { if (File.Exists(bak)) File.Delete(bak); } catch { }
+            }
         }
 
-        try
+        if (_db.Database.IsRelational() && _db.Database.CurrentTransaction == null)
         {
-            if (_db.Database.IsRelational() && _db.Database.CurrentTransaction == null)
+            var strategy = _db.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
             {
-                var strategy = _db.Database.CreateExecutionStrategy();
-                await strategy.ExecuteAsync(async () =>
-                {
-                    await using var tx = await _db.Database.BeginTransactionAsync(ct);
-                    await ExecuteImportAsync();
-                    await tx.CommitAsync(ct);
-                });
-            }
-            else
-            {
+                await using var tx = await _db.Database.BeginTransactionAsync(ct);
                 await ExecuteImportAsync();
-            }
+                await tx.CommitAsync(ct);
+            });
         }
-        catch
+        else
         {
-            foreach (var fp in writtenFiles)
-            {
-                try { if (File.Exists(fp)) File.Delete(fp); } catch { }
-            }
-            throw;
+            await ExecuteImportAsync();
         }
 
         return result;

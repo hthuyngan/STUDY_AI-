@@ -157,9 +157,6 @@ try {
         $diffPatch = $diffPatch.Substring(0, $maxDiff) + "`n... [DIFF TRUNCATED; INSPECT FILES IN READ-ONLY SNAPSHOT]"
     }
     $safeDiff = Redact-SensitiveText -Text $diffPatch
-    if ($isSessionMode) {
-        Assert-PacketInvocationAllowed -ReviewSessionId $ReviewSessionId -PacketId $PacketId -SnapshotFingerprint $SnapshotFingerprint -RemediationRound $RemediationRound -ContextChars $safeDiff.Length
-    }
 
     $prevFindingsBlock = ""
     $expectedPrevIds = @()
@@ -181,14 +178,13 @@ try {
         $regressionBlock = "`n<UNTRUSTED_REGRESSION_TEST_SUMMARY>`n$(Redact-SensitiveText -Text $regRaw)`n</UNTRUSTED_REGRESSION_TEST_SUMMARY>"
     }
 
+    $limits = Get-ReviewOrchestrationLimits -Config $config
     $immutableContextBlock = ""
     if ($ContextPaths.Count -gt 0) {
         $ctxSb = New-Object System.Text.StringBuilder
-        $maxCtxBudget = 240000
-        if ($config.PSObject.Properties['reviewOrchestrator'] -and $config.reviewOrchestrator.PSObject.Properties['maxTotalContextChars']) {
-            $maxCtxBudget = [int]$config.reviewOrchestrator.maxTotalContextChars
-        }
-        $perSessionCap = [Math]::Min($maxCtxBudget, 180000)
+        $perSessionCap = [int]$limits.MaxTotalContextChars
+        $snapshotRootFull = [System.IO.Path]::GetFullPath($snapshotDir).TrimEnd('\', '/')
+        $snapshotRootWithSep = $snapshotRootFull + [System.IO.Path]::DirectorySeparatorChar
         foreach ($cp in $ContextPaths) {
             if ([string]::IsNullOrWhiteSpace($cp)) { continue }
             $normCp = $cp.Trim().Replace('\', '/')
@@ -196,6 +192,22 @@ try {
                 throw "PATH_VALIDATION_ERROR: Invalid ContextPath '$cp'."
             }
             $ctxFile = Join-Path $snapshotDir $normCp
+            $ctxFull = [System.IO.Path]::GetFullPath($ctxFile)
+            if (-not $ctxFull.StartsWith($snapshotRootWithSep, [System.StringComparison]::OrdinalIgnoreCase)) {
+                throw "PATH_VALIDATION_ERROR: ContextPath '$cp' escapes snapshot root."
+            }
+            # Walk every path component from snapshot root to leaf to block reparse-point/symlink ancestors
+            $probe = $snapshotRootFull
+            foreach ($seg in ($normCp -split '/')) {
+                if ([string]::IsNullOrWhiteSpace($seg)) { continue }
+                $probe = Join-Path $probe $seg
+                if (Test-Path -LiteralPath $probe) {
+                    $segInfo = Get-Item -LiteralPath $probe -Force
+                    if ($segInfo.Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
+                        throw "PATH_VALIDATION_ERROR: Symlink/reparse point in ContextPath '$cp' at '$seg' is forbidden."
+                    }
+                }
+            }
             if (Test-Path -LiteralPath $ctxFile -PathType Leaf) {
                 $rawCtx = Get-Content -LiteralPath $ctxFile -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
                 if (-not [string]::IsNullOrEmpty($rawCtx)) {
@@ -242,6 +254,13 @@ $diffStat
 $safeDiff
 </UNTRUSTED_DIFF_PATCH>
 "@
+
+    $totalContextChars = $prompt.Length
+    if ($isSessionMode) {
+        Assert-PacketInvocationAllowed -ReviewSessionId $ReviewSessionId -PacketId $PacketId -SnapshotFingerprint $SnapshotFingerprint -RemediationRound $RemediationRound -ContextChars $totalContextChars -Limits $limits
+    } elseif ($FailOnTruncation -and $totalContextChars -gt $limits.MaxTotalContextChars) {
+        throw "MAX_CONTEXT_BUDGET_EXCEEDED: Full prompt length ($totalContextChars) exceeds MaxTotalContextChars ($($limits.MaxTotalContextChars))."
+    }
 
     Write-AgentAuditLog -EventName "CODEX_REVIEW_START" -Message "mode=$ReviewMode attempt=$attempt reasoning=$reasoning base=$resolvedBase head=$resolvedHead"
     $resultJson = Invoke-CodexSandboxed `

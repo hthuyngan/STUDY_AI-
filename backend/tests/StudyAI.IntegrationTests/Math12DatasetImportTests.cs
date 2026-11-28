@@ -69,7 +69,7 @@ public class Math12DatasetImportTests : IClassFixture<StudyAIApiFixture>
             var beforeBlocks = await db.LessonContentBlocks.CountAsync();
             var dry = await importer.ImportFromDirectoryAsync(dataDir, dryRun: true, createdByUserId: authorUserId);
             Assert.True(dry.DryRun);
-            Assert.Equal(345, dry.InsertCount); // 190 blocks + 112 questions + 12 assessments + 6 materials + 6 sources + 19 chunks
+            Assert.Equal(1694, dry.InsertCount); // 190 blocks + 1200 questions + 34 assessments + 30 materials + 30 sources + 210 chunks
             Assert.Equal(0, dry.RejectedCount);
             Assert.Equal(beforeBlocks, await db.LessonContentBlocks.CountAsync());
         }
@@ -83,15 +83,15 @@ public class Math12DatasetImportTests : IClassFixture<StudyAIApiFixture>
             var first = await importer.ImportFromDirectoryAsync(dataDir, dryRun: false, createdByUserId: authorUserId, allowPublishInIsolatedTest: true);
             Assert.False(first.DryRun);
             Assert.Equal(190, first.LessonBlocksUpserted);
-            Assert.Equal(112, first.QuestionsUpserted);
-            Assert.Equal(12, first.AssessmentsUpserted);
-            Assert.Equal(6, first.MaterialsUpserted);
-            Assert.Equal(19, first.KnowledgeChunksUpserted);
+            Assert.Equal(1200, first.QuestionsUpserted);
+            Assert.Equal(34, first.AssessmentsUpserted);
+            Assert.Equal(30, first.MaterialsUpserted);
+            Assert.Equal(210, first.KnowledgeChunksUpserted);
 
             // Second run reports conflicts on published records without mutating them
             var second = await importer.ImportFromDirectoryAsync(dataDir, dryRun: false, createdByUserId: authorUserId, allowPublishInIsolatedTest: true);
             Assert.True(second.ConflictCount > 0);
-            Assert.Equal(112, await db.ContentQuestions.CountAsync(q => q.Id.StartsWith("q_m12_")));
+            Assert.Equal(1200, await db.ContentQuestions.CountAsync(q => q.Id.StartsWith("q_m12_") || q.Id.StartsWith("q_v12_")));
             Assert.Equal(190, await db.LessonContentBlocks.CountAsync(b => b.Id.StartsWith("blk_les_math12_")));
         }
 

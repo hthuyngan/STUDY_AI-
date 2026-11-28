@@ -7,7 +7,7 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 1: Tính đơn điệu và cực trị của hàm số\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
+      "content": "### 1. Mục tiêu học tập — Bài 1: Tính đơn điệu và cực trị của hàm số\n\n- Hiểu rõ bản chất toán học, định nghĩa và điều kiện áp dụng của **Bài 1: Tính đơn điệu và cực trị của hàm số**.\n- Thành thạo bài tập 3 mức độ (Nhận biết, Thông hiểu, Vận dụng) theo chuẩn GDPT 2018.\n- Nhận diện và phòng tránh sai lầm đặc trưng: Quên kiểm tra dấu của $y'$ đổi dấu khi đi qua nghiệm $x_0$, hoặc kết luận hàm số đồng biến trên hợp các khoảng $(a;b) \\cup (c;d)$ thay vì từng khoảng rời nhau."
     }
   },
   {
@@ -42,7 +42,7 @@
     "orderIndex": 4,
     "status": "published",
     "payload": {
-      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 1: Tính đơn điệu và cực trị của hàm số.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+      "content": "### 4. Phương pháp giải nhanh & Điều kiện áp dụng — Bài 1: Tính đơn điệu và cực trị của hàm số\n\n- **Nhận biết:** Đọc trực tiếp từ định nghĩa/công thức trong mục 3.\n- **Thông hiểu:** Kiểm tra điều kiện xác định, xử lý dấu và biến đổi đại số chính xác.\n- **Vận dụng:** Mô hình hóa bài toán thực tế và kiểm chứng lại kết quả."
     }
   },
   {
@@ -67,8 +67,8 @@
     "status": "published",
     "payload": {
       "title": "Ví dụ vận dụng — Bài 1: Tính đơn điệu và cực trị của hàm số",
-      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
-      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+      "prompt": "Tìm các khoảng đơn điệu và điểm cực trị của hàm số $y = x^3 - 3x^2 - 9x + 5$.",
+      "solution": "Ta có $y' = 3x^2 - 6x - 9 = 0 \\Leftrightarrow x = -1$ hoặc $x = 3$. Bảng xét dấu: $y' > 0$ trên $(-\\infty;-1)$ và $(3;+\\infty)$; $y' < 0$ trên $(-1;3)$. Vậy hàm số đạt cực đại tại $x=-1$ ($y_{CĐ}=10$) và cực tiểu tại $x=3$ ($y_{CT}=-22$)."
     }
   },
   {
@@ -79,7 +79,7 @@
     "orderIndex": 7,
     "status": "published",
     "payload": {
-      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+      "content": "### 7. Sai lầm đặc trưng cần tránh\n\nQuên kiểm tra dấu của $y'$ đổi dấu khi đi qua nghiệm $x_0$, hoặc kết luận hàm số đồng biến trên hợp các khoảng $(a;b) \\cup (c;d)$ thay vì từng khoảng rời nhau."
     }
   },
   {
@@ -90,9 +90,9 @@
     "orderIndex": 8,
     "status": "published",
     "payload": {
-      "prompt": "Bài tập tự luyện (Bài 1: Tính đơn điệu và cực trị của hàm số): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
-      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
-      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+      "prompt": "Tìm giá trị cực tiểu của hàm số $y = x^3 - 3x + 2$.",
+      "hint": "Giải $y' = 3x^2 - 3 = 0$ rồi xét dấu $y'' = 6x$.",
+      "solution": "$y'=0 \\Leftrightarrow x=\\pm 1$. Tại $x=1$, $y''(1)=6>0$ nên $y_{CT} = 1 - 3 + 2 = 0$."
     }
   },
   {
@@ -103,7 +103,7 @@
     "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Tổng kết bài học",
+      "title": "Tổng kết — Bài 1: Tính đơn điệu và cực trị của hàm số",
       "points": [
         "Kiểm tra tập xác định trước khi xét dấu $y'$.",
         "Cực trị chỉ xảy ra tại điểm mà $y'$ đổi dấu."
@@ -118,9 +118,9 @@
     "orderIndex": 10,
     "status": "published",
     "payload": {
-      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
-      "url": "https://moet.gov.vn",
-      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
+      "label": "Thông tư 32/2018/TT-BGDĐT (GDPT 2018) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn/tintuc/Pages/tin-tong-hop.aspx?ItemID=5756",
+      "citation": "SRC-GDPT2018-TOAN / SRC-KNTT-TOAN12"
     }
   },
   {
@@ -131,7 +131,7 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 2: Giá trị lớn nhất và giá trị nhỏ nhất của hàm số\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
+      "content": "### 1. Mục tiêu học tập — Bài 2: Giá trị lớn nhất và giá trị nhỏ nhất của hàm số\n\n- Hiểu rõ bản chất toán học, định nghĩa và điều kiện áp dụng của **Bài 2: Giá trị lớn nhất và giá trị nhỏ nhất của hàm số**.\n- Thành thạo bài tập 3 mức độ (Nhận biết, Thông hiểu, Vận dụng) theo chuẩn GDPT 2018.\n- Nhận diện và phòng tránh sai lầm đặc trưng: Quên so sánh giá trị hàm số tại hai đầu mút $f(a), f(b)$ khi tìm GTLN–GTNN trên đoạn $[a; b]$, hoặc xét nhầm nghiệm $x_0 \\notin [a; b]$."
     }
   },
   {
@@ -166,7 +166,7 @@
     "orderIndex": 4,
     "status": "published",
     "payload": {
-      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 2: Giá trị lớn nhất và giá trị nhỏ nhất của hàm số.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+      "content": "### 4. Phương pháp giải nhanh & Điều kiện áp dụng — Bài 2: Giá trị lớn nhất và giá trị nhỏ nhất của hàm số\n\n- **Nhận biết:** Đọc trực tiếp từ định nghĩa/công thức trong mục 3.\n- **Thông hiểu:** Kiểm tra điều kiện xác định, xử lý dấu và biến đổi đại số chính xác.\n- **Vận dụng:** Mô hình hóa bài toán thực tế và kiểm chứng lại kết quả."
     }
   },
   {
@@ -191,8 +191,8 @@
     "status": "published",
     "payload": {
       "title": "Ví dụ vận dụng — Bài 2: Giá trị lớn nhất và giá trị nhỏ nhất của hàm số",
-      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
-      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+      "prompt": "Tìm giá trị lớn nhất và nhỏ nhất của hàm số $y = x^3 - 3x + 1$ trên đoạn $[0; 2]$.",
+      "solution": "Ta có $y' = 3x^2 - 3 = 0 \\Leftrightarrow x = 1 \\in [0; 2]$ (loại $x=-1$). Tính $y(0)=1$, $y(1)=-1$, $y(2)=3$. Suy ra $\\max_{[0;2]} y = 3$ và $\\min_{[0;2]} y = -1$."
     }
   },
   {
@@ -203,7 +203,7 @@
     "orderIndex": 7,
     "status": "published",
     "payload": {
-      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+      "content": "### 7. Sai lầm đặc trưng cần tránh\n\nQuên so sánh giá trị hàm số tại hai đầu mút $f(a), f(b)$ khi tìm GTLN–GTNN trên đoạn $[a; b]$, hoặc xét nhầm nghiệm $x_0 \\notin [a; b]$."
     }
   },
   {
@@ -214,9 +214,9 @@
     "orderIndex": 8,
     "status": "published",
     "payload": {
-      "prompt": "Bài tập tự luyện (Bài 2: Giá trị lớn nhất và giá trị nhỏ nhất của hàm số): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
-      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
-      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+      "prompt": "Tìm giá trị lớn nhất của hàm số $y = -x^2 + 4x + 5$ trên đoạn $[0; 3]$.",
+      "hint": "Tính $y'=0 \\Rightarrow x=2 \\in [0;3]$, sau đó so sánh $y(0), y(2), y(3)$.",
+      "solution": "$y(0)=5, y(2)=9, y(3)=8$. Vậy $\\max_{[0;3]} y = 9$."
     }
   },
   {
@@ -227,7 +227,7 @@
     "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Tổng kết bài học",
+      "title": "Tổng kết — Bài 2: Giá trị lớn nhất và giá trị nhỏ nhất của hàm số",
       "points": [
         "Không quên tính giá trị tại hai đầu mút $a$ và $b$.",
         "Loại bỏ nghiệm $f'(x)=0$ nằm ngoài đoạn đang xét."
@@ -242,9 +242,9 @@
     "orderIndex": 10,
     "status": "published",
     "payload": {
-      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
-      "url": "https://moet.gov.vn",
-      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
+      "label": "Thông tư 32/2018/TT-BGDĐT (GDPT 2018) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn/tintuc/Pages/tin-tong-hop.aspx?ItemID=5756",
+      "citation": "SRC-GDPT2018-TOAN / SRC-KNTT-TOAN12"
     }
   },
   {
@@ -255,7 +255,7 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 3: Đường tiệm cận của đồ thị hàm số\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
+      "content": "### 1. Mục tiêu học tập — Bài 3: Đường tiệm cận của đồ thị hàm số\n\n- Hiểu rõ bản chất toán học, định nghĩa và điều kiện áp dụng của **Bài 3: Đường tiệm cận của đồ thị hàm số**.\n- Thành thạo bài tập 3 mức độ (Nhận biết, Thông hiểu, Vận dụng) theo chuẩn GDPT 2018.\n- Nhận diện và phòng tránh sai lầm đặc trưng: Cho rằng mọi nghiệm của mẫu thức đều là tiệm cận đứng mà quên rút gọn nhân tử chung với tử thức, hoặc quên xét cả hai giới hạn $x \\to +\\infty$ và $x \\to -\\infty$."
     }
   },
   {
@@ -290,7 +290,7 @@
     "orderIndex": 4,
     "status": "published",
     "payload": {
-      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 3: Đường tiệm cận của đồ thị hàm số.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+      "content": "### 4. Phương pháp giải nhanh & Điều kiện áp dụng — Bài 3: Đường tiệm cận của đồ thị hàm số\n\n- **Nhận biết:** Đọc trực tiếp từ định nghĩa/công thức trong mục 3.\n- **Thông hiểu:** Kiểm tra điều kiện xác định, xử lý dấu và biến đổi đại số chính xác.\n- **Vận dụng:** Mô hình hóa bài toán thực tế và kiểm chứng lại kết quả."
     }
   },
   {
@@ -315,8 +315,8 @@
     "status": "published",
     "payload": {
       "title": "Ví dụ vận dụng — Bài 3: Đường tiệm cận của đồ thị hàm số",
-      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
-      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+      "prompt": "Tìm tiệm cận đứng, tiệm cận ngang của đồ thị hàm số $y = \\frac{2x - 1}{x + 1}$.",
+      "solution": "Tập xác định $D = \\mathbb{R} \\setminus \\{-1\\}$. Vì $\\lim_{x \\to -1^+} y = -\\infty$ nên $x=-1$ là tiệm cận đứng. Vì $\\lim_{x \\to \\pm\\infty} y = 2$ nên $y=2$ là tiệm cận ngang."
     }
   },
   {
@@ -327,7 +327,7 @@
     "orderIndex": 7,
     "status": "published",
     "payload": {
-      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+      "content": "### 7. Sai lầm đặc trưng cần tránh\n\nCho rằng mọi nghiệm của mẫu thức đều là tiệm cận đứng mà quên rút gọn nhân tử chung với tử thức, hoặc quên xét cả hai giới hạn $x \\to +\\infty$ và $x \\to -\\infty$."
     }
   },
   {
@@ -338,9 +338,9 @@
     "orderIndex": 8,
     "status": "published",
     "payload": {
-      "prompt": "Bài tập tự luyện (Bài 3: Đường tiệm cận của đồ thị hàm số): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
-      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
-      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+      "prompt": "Tìm phương trình tiệm cận xiên của đồ thị hàm số $y = x + 2 + \\frac{3}{x - 1}$.",
+      "hint": "Xét $\\lim_{x \\to \\pm\\infty} [y - (x+2)]$.",
+      "solution": "Vì $\\lim_{x \\to \\pm\\infty} \\frac{3}{x-1} = 0$ nên đường thẳng $y = x + 2$ là tiệm cận xiên."
     }
   },
   {
@@ -351,7 +351,7 @@
     "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Tổng kết bài học",
+      "title": "Tổng kết — Bài 3: Đường tiệm cận của đồ thị hàm số",
       "points": [
         "Kiểm tra điều kiện triệt tiêu nhân tử trước khi kết luận tiệm cận đứng.",
         "Hàm bậc 2 trên bậc 1 luôn có tiệm cận xiên nếu không chia hết."
@@ -366,9 +366,9 @@
     "orderIndex": 10,
     "status": "published",
     "payload": {
-      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
-      "url": "https://moet.gov.vn",
-      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
+      "label": "Thông tư 32/2018/TT-BGDĐT (GDPT 2018) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn/tintuc/Pages/tin-tong-hop.aspx?ItemID=5756",
+      "citation": "SRC-GDPT2018-TOAN / SRC-KNTT-TOAN12"
     }
   },
   {
@@ -379,7 +379,7 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 4: Khảo sát sự biến thiên và vẽ đồ thị của hàm số\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
+      "content": "### 1. Mục tiêu học tập — Bài 4: Khảo sát sự biến thiên và vẽ đồ thị của hàm số\n\n- Hiểu rõ bản chất toán học, định nghĩa và điều kiện áp dụng của **Bài 4: Khảo sát sự biến thiên và vẽ đồ thị của hàm số**.\n- Thành thạo bài tập 3 mức độ (Nhận biết, Thông hiểu, Vận dụng) theo chuẩn GDPT 2018.\n- Nhận diện và phòng tránh sai lầm đặc trưng: Xác định sai tâm đối xứng của đồ thị hàm bậc ba (điểm uốn $y''=0$) hoặc tâm đối xứng của đồ thị phân thức hữu tỉ (giao điểm hai đường tiệm cận)."
     }
   },
   {
@@ -414,7 +414,7 @@
     "orderIndex": 4,
     "status": "published",
     "payload": {
-      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 4: Khảo sát sự biến thiên và vẽ đồ thị của hàm số.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+      "content": "### 4. Phương pháp giải nhanh & Điều kiện áp dụng — Bài 4: Khảo sát sự biến thiên và vẽ đồ thị của hàm số\n\n- **Nhận biết:** Đọc trực tiếp từ định nghĩa/công thức trong mục 3.\n- **Thông hiểu:** Kiểm tra điều kiện xác định, xử lý dấu và biến đổi đại số chính xác.\n- **Vận dụng:** Mô hình hóa bài toán thực tế và kiểm chứng lại kết quả."
     }
   },
   {
@@ -439,8 +439,8 @@
     "status": "published",
     "payload": {
       "title": "Ví dụ vận dụng — Bài 4: Khảo sát sự biến thiên và vẽ đồ thị của hàm số",
-      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
-      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+      "prompt": "Tìm tọa độ tâm đối xứng của đồ thị hàm số $y = x^3 - 3x^2 + 2$.",
+      "solution": "Ta có $y' = 3x^2 - 6x$, $y'' = 6x - 6 = 0 \\Leftrightarrow x = 1$. Với $x=1 \\Rightarrow y(1) = 0$. Vậy tâm đối xứng là $I(1; 0)$."
     }
   },
   {
@@ -451,7 +451,7 @@
     "orderIndex": 7,
     "status": "published",
     "payload": {
-      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+      "content": "### 7. Sai lầm đặc trưng cần tránh\n\nXác định sai tâm đối xứng của đồ thị hàm bậc ba (điểm uốn $y''=0$) hoặc tâm đối xứng của đồ thị phân thức hữu tỉ (giao điểm hai đường tiệm cận)."
     }
   },
   {
@@ -462,9 +462,9 @@
     "orderIndex": 8,
     "status": "published",
     "payload": {
-      "prompt": "Bài tập tự luyện (Bài 4: Khảo sát sự biến thiên và vẽ đồ thị của hàm số): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
-      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
-      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+      "prompt": "Tìm giao điểm của đồ thị hàm số $y = \\frac{x+2}{x-1}$ với trục tung $Oy$.",
+      "hint": "Thay $x = 0$ vào biểu thức hàm số.",
+      "solution": "Khi $x=0 \\Rightarrow y = -2$. Giao điểm là $(0; -2)$."
     }
   },
   {
@@ -475,7 +475,7 @@
     "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Tổng kết bài học",
+      "title": "Tổng kết — Bài 4: Khảo sát sự biến thiên và vẽ đồ thị của hàm số",
       "points": [
         "Đồ thị bậc ba nhận điểm uốn làm tâm đối xứng.",
         "Đồ thị phân thức bậc 1/1 nhận giao điểm hai tiệm cận làm tâm đối xứng."
@@ -490,9 +490,9 @@
     "orderIndex": 10,
     "status": "published",
     "payload": {
-      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
-      "url": "https://moet.gov.vn",
-      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
+      "label": "Thông tư 32/2018/TT-BGDĐT (GDPT 2018) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn/tintuc/Pages/tin-tong-hop.aspx?ItemID=5756",
+      "citation": "SRC-GDPT2018-TOAN / SRC-KNTT-TOAN12"
     }
   },
   {
@@ -503,7 +503,7 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 5: Ứng dụng đạo hàm để giải quyết một số vấn đề liên quan đến thực tiễn\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
+      "content": "### 1. Mục tiêu học tập — Bài 5: Ứng dụng đạo hàm để giải quyết một số vấn đề liên quan đến thực tiễn\n\n- Hiểu rõ bản chất toán học, định nghĩa và điều kiện áp dụng của **Bài 5: Ứng dụng đạo hàm để giải quyết một số vấn đề liên quan đến thực tiễn**.\n- Thành thạo bài tập 3 mức độ (Nhận biết, Thông hiểu, Vận dụng) theo chuẩn GDPT 2018.\n- Nhận diện và phòng tránh sai lầm đặc trưng: Không đặt điều kiện thực tế cho biến số (ví dụ kích thước $x > 0$, thời gian $t \\ge 0$) trước khi tìm cực trị hàm mục tiêu."
     }
   },
   {
@@ -538,7 +538,7 @@
     "orderIndex": 4,
     "status": "published",
     "payload": {
-      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 5: Ứng dụng đạo hàm để giải quyết một số vấn đề liên quan đến thực tiễn.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+      "content": "### 4. Phương pháp giải nhanh & Điều kiện áp dụng — Bài 5: Ứng dụng đạo hàm để giải quyết một số vấn đề liên quan đến thực tiễn\n\n- **Nhận biết:** Đọc trực tiếp từ định nghĩa/công thức trong mục 3.\n- **Thông hiểu:** Kiểm tra điều kiện xác định, xử lý dấu và biến đổi đại số chính xác.\n- **Vận dụng:** Mô hình hóa bài toán thực tế và kiểm chứng lại kết quả."
     }
   },
   {
@@ -563,8 +563,8 @@
     "status": "published",
     "payload": {
       "title": "Ví dụ vận dụng — Bài 5: Ứng dụng đạo hàm để giải quyết một số vấn đề liên quan đến thực tiễn",
-      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
-      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+      "prompt": "Một vật chuyển động theo phương trình $s(t) = -t^3 + 6t^2 + 9t$ (mét, $t \\ge 0$). Tìm vận tốc lớn nhất của vật.",
+      "solution": "Vận tốc $v(t) = s'(t) = -3t^2 + 12t + 9$. Có $v'(t) = -6t + 12 = 0 \\Leftrightarrow t = 2 \\ge 0$. Khi đó $v_{\\max} = v(2) = -12 + 24 + 9 = 21\\text{ m/s}$."
     }
   },
   {
@@ -575,7 +575,7 @@
     "orderIndex": 7,
     "status": "published",
     "payload": {
-      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+      "content": "### 7. Sai lầm đặc trưng cần tránh\n\nKhông đặt điều kiện thực tế cho biến số (ví dụ kích thước $x > 0$, thời gian $t \\ge 0$) trước khi tìm cực trị hàm mục tiêu."
     }
   },
   {
@@ -586,9 +586,9 @@
     "orderIndex": 8,
     "status": "published",
     "payload": {
-      "prompt": "Bài tập tự luyện (Bài 5: Ứng dụng đạo hàm để giải quyết một số vấn đề liên quan đến thực tiễn): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
-      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
-      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+      "prompt": "Từ một tấm bìa hình vuông cạnh $12\\text{ cm}$, cắt bốn góc bốn hình vuông cạnh $x$ ($0 < x < 6$) để gập thành hộp không nắp. Tìm $x$ để thể tích hộp lớn nhất.",
+      "hint": "Lập hàm thể tích $V(x) = x(12 - 2x)^2$ và giải $V'(x)=0$.",
+      "solution": "$V'(x) = (12-2x)(12-6x) = 0 \\Rightarrow x = 2\\text{ cm}$ (vì $0<x<6$)."
     }
   },
   {
@@ -599,7 +599,7 @@
     "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Tổng kết bài học",
+      "title": "Tổng kết — Bài 5: Ứng dụng đạo hàm để giải quyết một số vấn đề liên quan đến thực tiễn",
       "points": [
         "Luôn đặt điều kiện thực tế cho biến số (ví dụ độ dài dương).",
         "Kiểm tra lại dấu đạo hàm để xác định cực đại hay cực tiểu."
@@ -614,9 +614,9 @@
     "orderIndex": 10,
     "status": "published",
     "payload": {
-      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
-      "url": "https://moet.gov.vn",
-      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
+      "label": "Thông tư 32/2018/TT-BGDĐT (GDPT 2018) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn/tintuc/Pages/tin-tong-hop.aspx?ItemID=5756",
+      "citation": "SRC-GDPT2018-TOAN / SRC-KNTT-TOAN12"
     }
   },
   {
@@ -627,7 +627,7 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 6: Vectơ trong không gian\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
+      "content": "### 1. Mục tiêu học tập — Bài 6: Vectơ trong không gian\n\n- Hiểu rõ bản chất toán học, định nghĩa và điều kiện áp dụng của **Bài 6: Vectơ trong không gian**.\n- Thành thạo bài tập 3 mức độ (Nhận biết, Thông hiểu, Vận dụng) theo chuẩn GDPT 2018.\n- Nhận diện và phòng tránh sai lầm đặc trưng: Áp dụng nhầm quy tắc hình bình hành thành quy tắc hình hộp hoặc quên tính chất đồng phẳng của ba vectơ."
     }
   },
   {
@@ -662,7 +662,7 @@
     "orderIndex": 4,
     "status": "published",
     "payload": {
-      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 6: Vectơ trong không gian.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+      "content": "### 4. Phương pháp giải nhanh & Điều kiện áp dụng — Bài 6: Vectơ trong không gian\n\n- **Nhận biết:** Đọc trực tiếp từ định nghĩa/công thức trong mục 3.\n- **Thông hiểu:** Kiểm tra điều kiện xác định, xử lý dấu và biến đổi đại số chính xác.\n- **Vận dụng:** Mô hình hóa bài toán thực tế và kiểm chứng lại kết quả."
     }
   },
   {
@@ -687,8 +687,8 @@
     "status": "published",
     "payload": {
       "title": "Ví dụ vận dụng — Bài 6: Vectơ trong không gian",
-      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
-      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+      "prompt": "Cho hình hộp $ABCD.A'B'C'D'$. Rút gọn tổng $\\vec{AB} + \\vec{AD} + \\vec{AA'}$.",
+      "solution": "Theo quy tắc hình hộp, $\\vec{AB} + \\vec{AD} + \\vec{AA'} = \\vec{AC'}$."
     }
   },
   {
@@ -699,7 +699,7 @@
     "orderIndex": 7,
     "status": "published",
     "payload": {
-      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+      "content": "### 7. Sai lầm đặc trưng cần tránh\n\nÁp dụng nhầm quy tắc hình bình hành thành quy tắc hình hộp hoặc quên tính chất đồng phẳng của ba vectơ."
     }
   },
   {
@@ -710,9 +710,9 @@
     "orderIndex": 8,
     "status": "published",
     "payload": {
-      "prompt": "Bài tập tự luyện (Bài 6: Vectơ trong không gian): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
-      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
-      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+      "prompt": "Cho tứ diện $ABCD$ có $M, N$ lần lượt là trung điểm $AB, CD$. Biểu diễn $\\vec{MN}$ theo $\\vec{AD}$ và $\\vec{BC}$.",
+      "hint": "Cộng hai đẳng thức $\\vec{MN} = \\vec{MA} + \\vec{AD} + \\vec{DN}$ và $\\vec{MN} = \\vec{MB} + \\vec{BC} + \\vec{CN}$.",
+      "solution": "$\\vec{MN} = \\frac{1}{2}(\\vec{AD} + \\vec{BC})$."
     }
   },
   {
@@ -723,7 +723,7 @@
     "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Tổng kết bài học",
+      "title": "Tổng kết — Bài 6: Vectơ trong không gian",
       "points": [
         "Hai vectơ vuông góc khi và chỉ khi tích vô hướng bằng $0$.",
         "Góc giữa hai vectơ nằm trong đoạn $[0^\\circ; 180^\\circ]$."
@@ -738,9 +738,9 @@
     "orderIndex": 10,
     "status": "published",
     "payload": {
-      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
-      "url": "https://moet.gov.vn",
-      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
+      "label": "Thông tư 32/2018/TT-BGDĐT (GDPT 2018) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn/tintuc/Pages/tin-tong-hop.aspx?ItemID=5756",
+      "citation": "SRC-GDPT2018-TOAN / SRC-KNTT-TOAN12"
     }
   },
   {
@@ -751,7 +751,7 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 7: Hệ trục tọa độ trong không gian\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
+      "content": "### 1. Mục tiêu học tập — Bài 7: Hệ trục tọa độ trong không gian\n\n- Hiểu rõ bản chất toán học, định nghĩa và điều kiện áp dụng của **Bài 7: Hệ trục tọa độ trong không gian**.\n- Thành thạo bài tập 3 mức độ (Nhận biết, Thông hiểu, Vận dụng) theo chuẩn GDPT 2018.\n- Nhận diện và phòng tránh sai lầm đặc trưng: Nhầm dấu tọa độ khi chiếu điểm $M(x_0; y_0; z_0)$ lên các trục hoặc các mặt phẳng tọa độ."
     }
   },
   {
@@ -786,7 +786,7 @@
     "orderIndex": 4,
     "status": "published",
     "payload": {
-      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 7: Hệ trục tọa độ trong không gian.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+      "content": "### 4. Phương pháp giải nhanh & Điều kiện áp dụng — Bài 7: Hệ trục tọa độ trong không gian\n\n- **Nhận biết:** Đọc trực tiếp từ định nghĩa/công thức trong mục 3.\n- **Thông hiểu:** Kiểm tra điều kiện xác định, xử lý dấu và biến đổi đại số chính xác.\n- **Vận dụng:** Mô hình hóa bài toán thực tế và kiểm chứng lại kết quả."
     }
   },
   {
@@ -811,8 +811,8 @@
     "status": "published",
     "payload": {
       "title": "Ví dụ vận dụng — Bài 7: Hệ trục tọa độ trong không gian",
-      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
-      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+      "prompt": "Trong không gian $Oxyz$, tìm tọa độ hình chiếu vuông góc của điểm $M(3; -2; 5)$ lên mặt phẳng $(Oxy)$.",
+      "solution": "Hình chiếu của $M(x_0; y_0; z_0)$ lên $(Oxy)$ giữ nguyên $x_0, y_0$ và cho $z=0$, thu được $M'(3; -2; 0)$."
     }
   },
   {
@@ -823,7 +823,7 @@
     "orderIndex": 7,
     "status": "published",
     "payload": {
-      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+      "content": "### 7. Sai lầm đặc trưng cần tránh\n\nNhầm dấu tọa độ khi chiếu điểm $M(x_0; y_0; z_0)$ lên các trục hoặc các mặt phẳng tọa độ."
     }
   },
   {
@@ -834,9 +834,9 @@
     "orderIndex": 8,
     "status": "published",
     "payload": {
-      "prompt": "Bài tập tự luyện (Bài 7: Hệ trục tọa độ trong không gian): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
-      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
-      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+      "prompt": "Tìm tọa độ điểm đối xứng của $A(1; -4; 2)$ qua trục $Oz$.",
+      "hint": "Đối xứng qua $Oz$ giữ nguyên cao độ $z$, đổi dấu $x$ và $y$.",
+      "solution": "Điểm đối xứng là $A'(-1; 4; 2)$."
     }
   },
   {
@@ -847,7 +847,7 @@
     "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Tổng kết bài học",
+      "title": "Tổng kết — Bài 7: Hệ trục tọa độ trong không gian",
       "points": [
         "Hình chiếu vuông góc của $M(x;y;z)$ lên $(Oxy)$ là $(x;y;0)$.",
         "Điểm đối xứng qua trục $Ox$ giữ nguyên hoành độ, đổi dấu $y, z$."
@@ -862,9 +862,9 @@
     "orderIndex": 10,
     "status": "published",
     "payload": {
-      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
-      "url": "https://moet.gov.vn",
-      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
+      "label": "Thông tư 32/2018/TT-BGDĐT (GDPT 2018) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn/tintuc/Pages/tin-tong-hop.aspx?ItemID=5756",
+      "citation": "SRC-GDPT2018-TOAN / SRC-KNTT-TOAN12"
     }
   },
   {
@@ -875,7 +875,7 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 8: Biểu thức tọa độ của các phép toán vectơ\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
+      "content": "### 1. Mục tiêu học tập — Bài 8: Biểu thức tọa độ của các phép toán vectơ\n\n- Hiểu rõ bản chất toán học, định nghĩa và điều kiện áp dụng của **Bài 8: Biểu thức tọa độ của các phép toán vectơ**.\n- Thành thạo bài tập 3 mức độ (Nhận biết, Thông hiểu, Vận dụng) theo chuẩn GDPT 2018.\n- Nhận diện và phòng tránh sai lầm đặc trưng: Tính sai tọa độ trọng tâm tam giác (chia 2 thay vì chia 3) hoặc nhầm công thức độ dài vectơ $\\vec{AB} = (x_B-x_A; y_B-y_A; z_B-z_A)$."
     }
   },
   {
@@ -910,7 +910,7 @@
     "orderIndex": 4,
     "status": "published",
     "payload": {
-      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 8: Biểu thức tọa độ của các phép toán vectơ.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+      "content": "### 4. Phương pháp giải nhanh & Điều kiện áp dụng — Bài 8: Biểu thức tọa độ của các phép toán vectơ\n\n- **Nhận biết:** Đọc trực tiếp từ định nghĩa/công thức trong mục 3.\n- **Thông hiểu:** Kiểm tra điều kiện xác định, xử lý dấu và biến đổi đại số chính xác.\n- **Vận dụng:** Mô hình hóa bài toán thực tế và kiểm chứng lại kết quả."
     }
   },
   {
@@ -935,8 +935,8 @@
     "status": "published",
     "payload": {
       "title": "Ví dụ vận dụng — Bài 8: Biểu thức tọa độ của các phép toán vectơ",
-      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
-      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+      "prompt": "Cho $\\vec{u}=(1; -2; 3)$ và $\\vec{v}=(2; 1; -1)$. Tính tích vô hướng $\\vec{u}\\cdot\\vec{v}$ và $|\\vec{u}|$.",
+      "solution": "$\\vec{u}\\cdot\\vec{v} = 1\\cdot 2 + (-2)\\cdot 1 + 3\\cdot(-1) = -3$. Độ dài $|\\vec{u}| = \\sqrt{1^2 + (-2)^2 + 3^2} = \\sqrt{14}$."
     }
   },
   {
@@ -947,7 +947,7 @@
     "orderIndex": 7,
     "status": "published",
     "payload": {
-      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+      "content": "### 7. Sai lầm đặc trưng cần tránh\n\nTính sai tọa độ trọng tâm tam giác (chia 2 thay vì chia 3) hoặc nhầm công thức độ dài vectơ $\\vec{AB} = (x_B-x_A; y_B-y_A; z_B-z_A)$."
     }
   },
   {
@@ -958,9 +958,9 @@
     "orderIndex": 8,
     "status": "published",
     "payload": {
-      "prompt": "Bài tập tự luyện (Bài 8: Biểu thức tọa độ của các phép toán vectơ): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
-      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
-      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+      "prompt": "Tìm $m$ để hai vectơ $\\vec{a}=(1; 2; m)$ và $\\vec{b}=(2; -3; 4)$ vuông góc với nhau.",
+      "hint": "Hai vectơ vuông góc khi và chỉ khi $\\vec{a}\\cdot\\vec{b} = 0$.",
+      "solution": "$1\\cdot 2 + 2\\cdot(-3) + 4m = 0 \\Leftrightarrow 4m = 4 \\Leftrightarrow m = 1$."
     }
   },
   {
@@ -971,7 +971,7 @@
     "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Tổng kết bài học",
+      "title": "Tổng kết — Bài 8: Biểu thức tọa độ của các phép toán vectơ",
       "points": [
         "Hai vectơ cùng phương khi tọa độ tỉ lệ.",
         "Cosin góc giữa hai vectơ bằng tích vô hướng chia tích hai độ dài."
@@ -986,9 +986,9 @@
     "orderIndex": 10,
     "status": "published",
     "payload": {
-      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
-      "url": "https://moet.gov.vn",
-      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
+      "label": "Thông tư 32/2018/TT-BGDĐT (GDPT 2018) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn/tintuc/Pages/tin-tong-hop.aspx?ItemID=5756",
+      "citation": "SRC-GDPT2018-TOAN / SRC-KNTT-TOAN12"
     }
   },
   {
@@ -999,7 +999,7 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 9: Khoảng biến thiên và khoảng tứ phân vị\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
+      "content": "### 1. Mục tiêu học tập — Bài 9: Khoảng biến thiên và khoảng tứ phân vị\n\n- Hiểu rõ bản chất toán học, định nghĩa và điều kiện áp dụng của **Bài 9: Khoảng biến thiên và khoảng tứ phân vị**.\n- Thành thạo bài tập 3 mức độ (Nhận biết, Thông hiểu, Vận dụng) theo chuẩn GDPT 2018.\n- Nhận diện và phòng tránh sai lầm đặc trưng: Nhầm lẫn giữa khoảng biến thiên $R$ (hiệu đầu mút lớn nhất và nhỏ nhất) với khoảng tứ phân vị $\\Delta_Q = Q_3 - Q_1$."
     }
   },
   {
@@ -1034,7 +1034,7 @@
     "orderIndex": 4,
     "status": "published",
     "payload": {
-      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 9: Khoảng biến thiên và khoảng tứ phân vị.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+      "content": "### 4. Phương pháp giải nhanh & Điều kiện áp dụng — Bài 9: Khoảng biến thiên và khoảng tứ phân vị\n\n- **Nhận biết:** Đọc trực tiếp từ định nghĩa/công thức trong mục 3.\n- **Thông hiểu:** Kiểm tra điều kiện xác định, xử lý dấu và biến đổi đại số chính xác.\n- **Vận dụng:** Mô hình hóa bài toán thực tế và kiểm chứng lại kết quả."
     }
   },
   {
@@ -1059,8 +1059,8 @@
     "status": "published",
     "payload": {
       "title": "Ví dụ vận dụng — Bài 9: Khoảng biến thiên và khoảng tứ phân vị",
-      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
-      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+      "prompt": "Cho mẫu số liệu ghép nhóm gồm 4 nhóm $[10;20): 3$, $[20;30): 5$, $[30;40): 7$, $[40;50]: 5$. Tính khoảng biến thiên $R$.",
+      "solution": "Đầu mút trái nhỏ nhất là $10$, đầu mút phải lớn nhất là $50$. Vậy $R = 50 - 10 = 40$."
     }
   },
   {
@@ -1071,7 +1071,7 @@
     "orderIndex": 7,
     "status": "published",
     "payload": {
-      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+      "content": "### 7. Sai lầm đặc trưng cần tránh\n\nNhầm lẫn giữa khoảng biến thiên $R$ (hiệu đầu mút lớn nhất và nhỏ nhất) với khoảng tứ phân vị $\\Delta_Q = Q_3 - Q_1$."
     }
   },
   {
@@ -1082,9 +1082,9 @@
     "orderIndex": 8,
     "status": "published",
     "payload": {
-      "prompt": "Bài tập tự luyện (Bài 9: Khoảng biến thiên và khoảng tứ phân vị): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
-      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
-      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+      "prompt": "Một mẫu số liệu ghép nhóm có $Q_1 = 22{,}5$ và $Q_3 = 37{,}5$. Tính khoảng tứ phân vị $\\Delta_Q$.",
+      "hint": "Áp dụng công thức $\\Delta_Q = Q_3 - Q_1$.",
+      "solution": "$\\Delta_Q = 37{,}5 - 22{,}5 = 15$."
     }
   },
   {
@@ -1095,7 +1095,7 @@
     "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Tổng kết bài học",
+      "title": "Tổng kết — Bài 9: Khoảng biến thiên và khoảng tứ phân vị",
       "points": [
         "Khoảng tứ phân vị ít bị ảnh hưởng bởi giá trị ngoại lệ hơn khoảng biến thiên.",
         "Xác định đúng nhóm chứa $Q_1$ ($N/4$) và $Q_3$ ($3N/4$)."
@@ -1110,9 +1110,9 @@
     "orderIndex": 10,
     "status": "published",
     "payload": {
-      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
-      "url": "https://moet.gov.vn",
-      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
+      "label": "Thông tư 32/2018/TT-BGDĐT (GDPT 2018) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn/tintuc/Pages/tin-tong-hop.aspx?ItemID=5756",
+      "citation": "SRC-GDPT2018-TOAN / SRC-KNTT-TOAN12"
     }
   },
   {
@@ -1123,7 +1123,7 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 10: Phương sai và độ lệch chuẩn\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
+      "content": "### 1. Mục tiêu học tập — Bài 10: Phương sai và độ lệch chuẩn\n\n- Hiểu rõ bản chất toán học, định nghĩa và điều kiện áp dụng của **Bài 10: Phương sai và độ lệch chuẩn**.\n- Thành thạo bài tập 3 mức độ (Nhận biết, Thông hiểu, Vận dụng) theo chuẩn GDPT 2018.\n- Nhận diện và phòng tránh sai lầm đặc trưng: Dùng sai giá trị đại diện $c_i = \\frac{a_i + b_i}{2}$ của nhóm hoặc nhầm lẫn giữa phương sai $s^2$ và độ lệch chuẩn $s = \\sqrt{s^2}$."
     }
   },
   {
@@ -1158,7 +1158,7 @@
     "orderIndex": 4,
     "status": "published",
     "payload": {
-      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 10: Phương sai và độ lệch chuẩn.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+      "content": "### 4. Phương pháp giải nhanh & Điều kiện áp dụng — Bài 10: Phương sai và độ lệch chuẩn\n\n- **Nhận biết:** Đọc trực tiếp từ định nghĩa/công thức trong mục 3.\n- **Thông hiểu:** Kiểm tra điều kiện xác định, xử lý dấu và biến đổi đại số chính xác.\n- **Vận dụng:** Mô hình hóa bài toán thực tế và kiểm chứng lại kết quả."
     }
   },
   {
@@ -1183,8 +1183,8 @@
     "status": "published",
     "payload": {
       "title": "Ví dụ vận dụng — Bài 10: Phương sai và độ lệch chuẩn",
-      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
-      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+      "prompt": "Cho mẫu số liệu ghép nhóm: $[0; 2): 2$, $[2; 4): 4$, $[4; 6]: 2$. Tính số trung bình $\\bar{x}$ và phương sai $s^2$.",
+      "solution": "Giá trị đại diện là $1, 3, 5$; cỡ mẫu $n=8$. $\\bar{x} = \\frac{2\\cdot 1 + 4\\cdot 3 + 2\\cdot 5}{8} = 3$. Phương sai $s^2 = \\frac{2(1-3)^2 + 4(3-3)^2 + 2(5-3)^2}{8} = 2$."
     }
   },
   {
@@ -1195,7 +1195,7 @@
     "orderIndex": 7,
     "status": "published",
     "payload": {
-      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+      "content": "### 7. Sai lầm đặc trưng cần tránh\n\nDùng sai giá trị đại diện $c_i = \\frac{a_i + b_i}{2}$ của nhóm hoặc nhầm lẫn giữa phương sai $s^2$ và độ lệch chuẩn $s = \\sqrt{s^2}$."
     }
   },
   {
@@ -1206,9 +1206,9 @@
     "orderIndex": 8,
     "status": "published",
     "payload": {
-      "prompt": "Bài tập tự luyện (Bài 10: Phương sai và độ lệch chuẩn): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
-      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
-      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+      "prompt": "Nếu phương sai của một mẫu số liệu ghép nhóm là $s^2 = 6{,}25$, tính độ lệch chuẩn $s$.",
+      "hint": "Độ lệch chuẩn là căn bậc hai số học của phương sai.",
+      "solution": "$s = \\sqrt{6{,}25} = 2{,}5$."
     }
   },
   {
@@ -1219,7 +1219,7 @@
     "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Tổng kết bài học",
+      "title": "Tổng kết — Bài 10: Phương sai và độ lệch chuẩn",
       "points": [
         "Độ lệch chuẩn có cùng đơn vị đo với dữ liệu gốc.",
         "Độ lệch chuẩn càng nhỏ thì số liệu càng tập trung quanh giá trị trung bình."
@@ -1234,9 +1234,9 @@
     "orderIndex": 10,
     "status": "published",
     "payload": {
-      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
-      "url": "https://moet.gov.vn",
-      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
+      "label": "Thông tư 32/2018/TT-BGDĐT (GDPT 2018) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn/tintuc/Pages/tin-tong-hop.aspx?ItemID=5756",
+      "citation": "SRC-GDPT2018-TOAN / SRC-KNTT-TOAN12"
     }
   },
   {
@@ -1247,7 +1247,7 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 11: Nguyên hàm\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
+      "content": "### 1. Mục tiêu học tập — Bài 11: Nguyên hàm\n\n- Hiểu rõ bản chất toán học, định nghĩa và điều kiện áp dụng của **Bài 11: Nguyên hàm**.\n- Thành thạo bài tập 3 mức độ (Nhận biết, Thông hiểu, Vận dụng) theo chuẩn GDPT 2018.\n- Nhận diện và phòng tránh sai lầm đặc trưng: Quên hằng số tích phân $+C$ hoặc quên dấu giá trị tuyệt đối trong công thức $\\int \\frac{1}{x}\\,dx = \\ln|x| + C$."
     }
   },
   {
@@ -1282,7 +1282,7 @@
     "orderIndex": 4,
     "status": "published",
     "payload": {
-      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 11: Nguyên hàm.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+      "content": "### 4. Phương pháp giải nhanh & Điều kiện áp dụng — Bài 11: Nguyên hàm\n\n- **Nhận biết:** Đọc trực tiếp từ định nghĩa/công thức trong mục 3.\n- **Thông hiểu:** Kiểm tra điều kiện xác định, xử lý dấu và biến đổi đại số chính xác.\n- **Vận dụng:** Mô hình hóa bài toán thực tế và kiểm chứng lại kết quả."
     }
   },
   {
@@ -1307,8 +1307,8 @@
     "status": "published",
     "payload": {
       "title": "Ví dụ vận dụng — Bài 11: Nguyên hàm",
-      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
-      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+      "prompt": "Tìm nguyên hàm $F(x)$ của hàm số $f(x) = 3x^2 - 2\\sin x$ thỏa mãn $F(0) = 5$.",
+      "solution": "Ta có $F(x) = x^3 + 2\\cos x + C$. Vì $F(0) = 0 + 2 + C = 5 \\Rightarrow C = 3$. Vậy $F(x) = x^3 + 2\\cos x + 3$."
     }
   },
   {
@@ -1319,7 +1319,7 @@
     "orderIndex": 7,
     "status": "published",
     "payload": {
-      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+      "content": "### 7. Sai lầm đặc trưng cần tránh\n\nQuên hằng số tích phân $+C$ hoặc quên dấu giá trị tuyệt đối trong công thức $\\int \\frac{1}{x}\\,dx = \\ln|x| + C$."
     }
   },
   {
@@ -1330,9 +1330,9 @@
     "orderIndex": 8,
     "status": "published",
     "payload": {
-      "prompt": "Bài tập tự luyện (Bài 11: Nguyên hàm): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
-      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
-      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+      "prompt": "Tìm họ nguyên hàm của hàm số $f(x) = e^{2x} + 4x^3$.",
+      "hint": "Dùng $\\int e^{ax}\\,dx = \\frac{1}{a}e^{ax} + C$.",
+      "solution": "$\\int (e^{2x} + 4x^3)\\,dx = \\frac{1}{2}e^{2x} + x^4 + C$."
     }
   },
   {
@@ -1343,7 +1343,7 @@
     "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Tổng kết bài học",
+      "title": "Tổng kết — Bài 11: Nguyên hàm",
       "points": [
         "Không quên hằng số $C$ khi viết họ nguyên hàm.",
         "Với $\\int \\frac{1}{x}dx = \\ln|x|+C$, phải có giá trị tuyệt đối."
@@ -1358,9 +1358,9 @@
     "orderIndex": 10,
     "status": "published",
     "payload": {
-      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
-      "url": "https://moet.gov.vn",
-      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
+      "label": "Thông tư 32/2018/TT-BGDĐT (GDPT 2018) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn/tintuc/Pages/tin-tong-hop.aspx?ItemID=5756",
+      "citation": "SRC-GDPT2018-TOAN / SRC-KNTT-TOAN12"
     }
   },
   {
@@ -1371,7 +1371,7 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 12: Tích phân\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
+      "content": "### 1. Mục tiêu học tập — Bài 12: Tích phân\n\n- Hiểu rõ bản chất toán học, định nghĩa và điều kiện áp dụng của **Bài 12: Tích phân**.\n- Thành thạo bài tập 3 mức độ (Nhận biết, Thông hiểu, Vận dụng) theo chuẩn GDPT 2018.\n- Nhận diện và phòng tránh sai lầm đặc trưng: Khi đổi biến số $u = g(x)$ trong tích phân xác định nhưng quên đổi cận tích phân tương ứng."
     }
   },
   {
@@ -1406,7 +1406,7 @@
     "orderIndex": 4,
     "status": "published",
     "payload": {
-      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 12: Tích phân.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+      "content": "### 4. Phương pháp giải nhanh & Điều kiện áp dụng — Bài 12: Tích phân\n\n- **Nhận biết:** Đọc trực tiếp từ định nghĩa/công thức trong mục 3.\n- **Thông hiểu:** Kiểm tra điều kiện xác định, xử lý dấu và biến đổi đại số chính xác.\n- **Vận dụng:** Mô hình hóa bài toán thực tế và kiểm chứng lại kết quả."
     }
   },
   {
@@ -1431,8 +1431,8 @@
     "status": "published",
     "payload": {
       "title": "Ví dụ vận dụng — Bài 12: Tích phân",
-      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
-      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+      "prompt": "Tính tích phân $I = \\int_0^2 (3x^2 + 2x)\\,dx$.",
+      "solution": "$I = \\left.(x^3 + x^2)\\right|_0^2 = (8 + 4) - 0 = 12$."
     }
   },
   {
@@ -1443,7 +1443,7 @@
     "orderIndex": 7,
     "status": "published",
     "payload": {
-      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+      "content": "### 7. Sai lầm đặc trưng cần tránh\n\nKhi đổi biến số $u = g(x)$ trong tích phân xác định nhưng quên đổi cận tích phân tương ứng."
     }
   },
   {
@@ -1454,9 +1454,9 @@
     "orderIndex": 8,
     "status": "published",
     "payload": {
-      "prompt": "Bài tập tự luyện (Bài 12: Tích phân): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
-      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
-      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+      "prompt": "Biết $\\int_1^3 f(x)\\,dx = 5$ và $\\int_1^3 g(x)\\,dx = -2$. Tính $\\int_1^3 [2f(x) - 3g(x)]\\,dx$.",
+      "hint": "Sử dụng tính chất tuyến tính của tích phân.",
+      "solution": "$2\\cdot 5 - 3\\cdot(-2) = 16$."
     }
   },
   {
@@ -1467,7 +1467,7 @@
     "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Tổng kết bài học",
+      "title": "Tổng kết — Bài 12: Tích phân",
       "points": [
         "Đổi cận ngay khi dùng phép đổi biến số.",
         "Tích phân $\\int_a^b f(x)dx$ không phụ thuộc vào ký hiệu biến lấy tích phân."
@@ -1482,9 +1482,9 @@
     "orderIndex": 10,
     "status": "published",
     "payload": {
-      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
-      "url": "https://moet.gov.vn",
-      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
+      "label": "Thông tư 32/2018/TT-BGDĐT (GDPT 2018) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn/tintuc/Pages/tin-tong-hop.aspx?ItemID=5756",
+      "citation": "SRC-GDPT2018-TOAN / SRC-KNTT-TOAN12"
     }
   },
   {
@@ -1495,7 +1495,7 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 13: Ứng dụng hình học của tích phân\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
+      "content": "### 1. Mục tiêu học tập — Bài 13: Ứng dụng hình học của tích phân\n\n- Hiểu rõ bản chất toán học, định nghĩa và điều kiện áp dụng của **Bài 13: Ứng dụng hình học của tích phân**.\n- Thành thạo bài tập 3 mức độ (Nhận biết, Thông hiểu, Vận dụng) theo chuẩn GDPT 2018.\n- Nhận diện và phòng tránh sai lầm đặc trưng: Quên dấu giá trị tuyệt đối $\\int_a^b |f(x) - g(x)|\\,dx$ khi tính diện tích hình phẳng, hoặc quên nhân hệ số $\\pi$ và bình phương $f^2(x)$ trong công thức thể tích khối tròn xoay."
     }
   },
   {
@@ -1530,7 +1530,7 @@
     "orderIndex": 4,
     "status": "published",
     "payload": {
-      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 13: Ứng dụng hình học của tích phân.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+      "content": "### 4. Phương pháp giải nhanh & Điều kiện áp dụng — Bài 13: Ứng dụng hình học của tích phân\n\n- **Nhận biết:** Đọc trực tiếp từ định nghĩa/công thức trong mục 3.\n- **Thông hiểu:** Kiểm tra điều kiện xác định, xử lý dấu và biến đổi đại số chính xác.\n- **Vận dụng:** Mô hình hóa bài toán thực tế và kiểm chứng lại kết quả."
     }
   },
   {
@@ -1555,8 +1555,8 @@
     "status": "published",
     "payload": {
       "title": "Ví dụ vận dụng — Bài 13: Ứng dụng hình học của tích phân",
-      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
-      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+      "prompt": "Tính diện tích hình phẳng giới hạn bởi $y = x^2$, trục $Ox$ và hai đường thẳng $x = 0, x = 3$.",
+      "solution": "Vì $x^2 \\ge 0$ trên $[0; 3]$, $S = \\int_0^3 x^2\\,dx = \\left.\\frac{x^3}{3}\\right|_0^3 = 9$."
     }
   },
   {
@@ -1567,7 +1567,7 @@
     "orderIndex": 7,
     "status": "published",
     "payload": {
-      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+      "content": "### 7. Sai lầm đặc trưng cần tránh\n\nQuên dấu giá trị tuyệt đối $\\int_a^b |f(x) - g(x)|\\,dx$ khi tính diện tích hình phẳng, hoặc quên nhân hệ số $\\pi$ và bình phương $f^2(x)$ trong công thức thể tích khối tròn xoay."
     }
   },
   {
@@ -1578,9 +1578,9 @@
     "orderIndex": 8,
     "status": "published",
     "payload": {
-      "prompt": "Bài tập tự luyện (Bài 13: Ứng dụng hình học của tích phân): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
-      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
-      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+      "prompt": "Tính thể tích khối tròn xoay khi quay hình phẳng giới hạn bởi $y = \\sqrt{x}$, $y=0$, $x=0$, $x=4$ quanh trục $Ox$.",
+      "hint": "Áp dụng $V = \\pi \\int_0^4 (\\sqrt{x})^2\\,dx$.",
+      "solution": "$V = \\pi \\int_0^4 x\\,dx = \\pi \\left.\\frac{x^2}{2}\\right|_0^4 = 8\\pi$."
     }
   },
   {
@@ -1591,7 +1591,7 @@
     "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Tổng kết bài học",
+      "title": "Tổng kết — Bài 13: Ứng dụng hình học của tích phân",
       "points": [
         "Luôn giữ dấu giá trị tuyệt đối khi $f(x)-g(x)$ đổi dấu trên $[a;b]$.",
         "Thể tích khối tròn xoay luôn có hệ số $\\pi$."
@@ -1606,9 +1606,9 @@
     "orderIndex": 10,
     "status": "published",
     "payload": {
-      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
-      "url": "https://moet.gov.vn",
-      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
+      "label": "Thông tư 32/2018/TT-BGDĐT (GDPT 2018) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn/tintuc/Pages/tin-tong-hop.aspx?ItemID=5756",
+      "citation": "SRC-GDPT2018-TOAN / SRC-KNTT-TOAN12"
     }
   },
   {
@@ -1619,7 +1619,7 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 14: Phương trình mặt phẳng\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
+      "content": "### 1. Mục tiêu học tập — Bài 14: Phương trình mặt phẳng\n\n- Hiểu rõ bản chất toán học, định nghĩa và điều kiện áp dụng của **Bài 14: Phương trình mặt phẳng**.\n- Thành thạo bài tập 3 mức độ (Nhận biết, Thông hiểu, Vận dụng) theo chuẩn GDPT 2018.\n- Nhận diện và phòng tránh sai lầm đặc trưng: Nhầm lẫn giữa vectơ pháp tuyến của mặt phẳng với vectơ chỉ phương, hoặc quên chia cho $\\sqrt{A^2+B^2+C^2}$ trong công thức khoảng cách."
     }
   },
   {
@@ -1654,7 +1654,7 @@
     "orderIndex": 4,
     "status": "published",
     "payload": {
-      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 14: Phương trình mặt phẳng.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+      "content": "### 4. Phương pháp giải nhanh & Điều kiện áp dụng — Bài 14: Phương trình mặt phẳng\n\n- **Nhận biết:** Đọc trực tiếp từ định nghĩa/công thức trong mục 3.\n- **Thông hiểu:** Kiểm tra điều kiện xác định, xử lý dấu và biến đổi đại số chính xác.\n- **Vận dụng:** Mô hình hóa bài toán thực tế và kiểm chứng lại kết quả."
     }
   },
   {
@@ -1679,8 +1679,8 @@
     "status": "published",
     "payload": {
       "title": "Ví dụ vận dụng — Bài 14: Phương trình mặt phẳng",
-      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
-      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+      "prompt": "Viết phương trình mặt phẳng $(P)$ đi qua $M(1; 2; -1)$ và có vectơ pháp tuyến $\\vec{n} = (2; -1; 3)$.",
+      "solution": "Phương trình $(P)$: $2(x - 1) - 1(y - 2) + 3(z + 1) = 0 \\Leftrightarrow 2x - y + 3z + 3 = 0$."
     }
   },
   {
@@ -1691,7 +1691,7 @@
     "orderIndex": 7,
     "status": "published",
     "payload": {
-      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+      "content": "### 7. Sai lầm đặc trưng cần tránh\n\nNhầm lẫn giữa vectơ pháp tuyến của mặt phẳng với vectơ chỉ phương, hoặc quên chia cho $\\sqrt{A^2+B^2+C^2}$ trong công thức khoảng cách."
     }
   },
   {
@@ -1702,9 +1702,9 @@
     "orderIndex": 8,
     "status": "published",
     "payload": {
-      "prompt": "Bài tập tự luyện (Bài 14: Phương trình mặt phẳng): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
-      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
-      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+      "prompt": "Tính khoảng cách từ điểm $A(1; 0; -2)$ đến mặt phẳng $(P): 2x - 2y + z + 5 = 0$.",
+      "hint": "Áp dụng $d(A, (P)) = \\frac{|Ax_0 + By_0 + Cz_0 + D|}{\\sqrt{A^2+B^2+C^2}}$.",
+      "solution": "$d = \\frac{|2(1) - 2(0) + (-2) + 5|}{\\sqrt{4+4+1}} = \\frac{5}{3}$."
     }
   },
   {
@@ -1715,7 +1715,7 @@
     "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Tổng kết bài học",
+      "title": "Tổng kết — Bài 14: Phương trình mặt phẳng",
       "points": [
         "Nếu có cặp vectơ chỉ phương $\\vec{u}, \\vec{v}$, lấy tích có hướng $\\vec{n}=[\\vec{u},\\vec{v}]$.",
         "Hai mặt phẳng song song khi $\\vec{n}_1$ cùng phương $\\vec{n}_2$ và $D_1 \\ne kD_2$."
@@ -1730,9 +1730,9 @@
     "orderIndex": 10,
     "status": "published",
     "payload": {
-      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
-      "url": "https://moet.gov.vn",
-      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
+      "label": "Thông tư 32/2018/TT-BGDĐT (GDPT 2018) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn/tintuc/Pages/tin-tong-hop.aspx?ItemID=5756",
+      "citation": "SRC-GDPT2018-TOAN / SRC-KNTT-TOAN12"
     }
   },
   {
@@ -1743,7 +1743,7 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 15: Phương trình đường thẳng trong không gian\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
+      "content": "### 1. Mục tiêu học tập — Bài 15: Phương trình đường thẳng trong không gian\n\n- Hiểu rõ bản chất toán học, định nghĩa và điều kiện áp dụng của **Bài 15: Phương trình đường thẳng trong không gian**.\n- Thành thạo bài tập 3 mức độ (Nhận biết, Thông hiểu, Vận dụng) theo chuẩn GDPT 2018.\n- Nhận diện và phòng tránh sai lầm đặc trưng: Đọc nhầm dấu tọa độ điểm đi qua từ phương trình chính tắc $\\frac{x-x_0}{a} = \\frac{y-y_0}{b} = \\frac{z-z_0}{c}$."
     }
   },
   {
@@ -1778,7 +1778,7 @@
     "orderIndex": 4,
     "status": "published",
     "payload": {
-      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 15: Phương trình đường thẳng trong không gian.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+      "content": "### 4. Phương pháp giải nhanh & Điều kiện áp dụng — Bài 15: Phương trình đường thẳng trong không gian\n\n- **Nhận biết:** Đọc trực tiếp từ định nghĩa/công thức trong mục 3.\n- **Thông hiểu:** Kiểm tra điều kiện xác định, xử lý dấu và biến đổi đại số chính xác.\n- **Vận dụng:** Mô hình hóa bài toán thực tế và kiểm chứng lại kết quả."
     }
   },
   {
@@ -1803,8 +1803,8 @@
     "status": "published",
     "payload": {
       "title": "Ví dụ vận dụng — Bài 15: Phương trình đường thẳng trong không gian",
-      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
-      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+      "prompt": "Viết phương trình tham số của đường thẳng $d$ đi qua $A(1; -2; 3)$ và có vectơ chỉ phương $\\vec{u} = (2; 1; -4)$.",
+      "solution": "Phương trình tham số: $x = 1 + 2t,\\; y = -2 + t,\\; z = 3 - 4t$ ($t \\in \\mathbb{R}$)."
     }
   },
   {
@@ -1815,7 +1815,7 @@
     "orderIndex": 7,
     "status": "published",
     "payload": {
-      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+      "content": "### 7. Sai lầm đặc trưng cần tránh\n\nĐọc nhầm dấu tọa độ điểm đi qua từ phương trình chính tắc $\\frac{x-x_0}{a} = \\frac{y-y_0}{b} = \\frac{z-z_0}{c}$."
     }
   },
   {
@@ -1826,9 +1826,9 @@
     "orderIndex": 8,
     "status": "published",
     "payload": {
-      "prompt": "Bài tập tự luyện (Bài 15: Phương trình đường thẳng trong không gian): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
-      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
-      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+      "prompt": "Tìm tọa độ một vectơ chỉ phương của đường thẳng $\\Delta: \\frac{x-1}{3} = \\frac{y+2}{-1} = \\frac{z}{5}$.",
+      "hint": "Đọc ba mẫu số của phương trình chính tắc.",
+      "solution": "Một vectơ chỉ phương là $\\vec{u} = (3; -1; 5)$."
     }
   },
   {
@@ -1839,7 +1839,7 @@
     "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Tổng kết bài học",
+      "title": "Tổng kết — Bài 15: Phương trình đường thẳng trong không gian",
       "points": [
         "Khi mẫu bằng 0, chỉ viết phương trình tham số thay vì chính tắc.",
         "Xét vị trí tương đối dựa trên hệ số góc $[\\vec{u}_1,\\vec{u}_2]$ và tích hỗn tạp."
@@ -1854,9 +1854,9 @@
     "orderIndex": 10,
     "status": "published",
     "payload": {
-      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
-      "url": "https://moet.gov.vn",
-      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
+      "label": "Thông tư 32/2018/TT-BGDĐT (GDPT 2018) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn/tintuc/Pages/tin-tong-hop.aspx?ItemID=5756",
+      "citation": "SRC-GDPT2018-TOAN / SRC-KNTT-TOAN12"
     }
   },
   {
@@ -1867,7 +1867,7 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 16: Công thức tính góc trong không gian\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
+      "content": "### 1. Mục tiêu học tập — Bài 16: Công thức tính góc trong không gian\n\n- Hiểu rõ bản chất toán học, định nghĩa và điều kiện áp dụng của **Bài 16: Công thức tính góc trong không gian**.\n- Thành thạo bài tập 3 mức độ (Nhận biết, Thông hiểu, Vận dụng) theo chuẩn GDPT 2018.\n- Nhận diện và phòng tránh sai lầm đặc trưng: Dùng $\\cos$ thay vì $\\sin$ khi tính góc giữa đường thẳng và mặt phẳng (vì góc giữa đường và mặt là góc phụ với góc giữa vectơ chỉ phương và vectơ pháp tuyến)."
     }
   },
   {
@@ -1902,7 +1902,7 @@
     "orderIndex": 4,
     "status": "published",
     "payload": {
-      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 16: Công thức tính góc trong không gian.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+      "content": "### 4. Phương pháp giải nhanh & Điều kiện áp dụng — Bài 16: Công thức tính góc trong không gian\n\n- **Nhận biết:** Đọc trực tiếp từ định nghĩa/công thức trong mục 3.\n- **Thông hiểu:** Kiểm tra điều kiện xác định, xử lý dấu và biến đổi đại số chính xác.\n- **Vận dụng:** Mô hình hóa bài toán thực tế và kiểm chứng lại kết quả."
     }
   },
   {
@@ -1927,8 +1927,8 @@
     "status": "published",
     "payload": {
       "title": "Ví dụ vận dụng — Bài 16: Công thức tính góc trong không gian",
-      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
-      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+      "prompt": "Tính $\\cos$ góc giữa hai mặt phẳng $(P): x + 2y - 2z + 1 = 0$ và $(Q): 2x - y + 2z - 3 = 0$.",
+      "solution": "Ta có $\\vec{n}_P=(1;2;-2)$, $\\vec{n}_Q=(2;-1;2)$. $\\cos((P),(Q)) = \\frac{|1\\cdot 2 + 2(-1) + (-2)\\cdot 2|}{\\sqrt{1+4+4}\\cdot\\sqrt{4+1+4}} = \\frac{|-4|}{9} = \\frac{4}{9}$."
     }
   },
   {
@@ -1939,7 +1939,7 @@
     "orderIndex": 7,
     "status": "published",
     "payload": {
-      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+      "content": "### 7. Sai lầm đặc trưng cần tránh\n\nDùng $\\cos$ thay vì $\\sin$ khi tính góc giữa đường thẳng và mặt phẳng (vì góc giữa đường và mặt là góc phụ với góc giữa vectơ chỉ phương và vectơ pháp tuyến)."
     }
   },
   {
@@ -1950,9 +1950,9 @@
     "orderIndex": 8,
     "status": "published",
     "payload": {
-      "prompt": "Bài tập tự luyện (Bài 16: Công thức tính góc trong không gian): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
-      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
-      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+      "prompt": "Tính $\\sin$ góc giữa đường thẳng có $\\vec{u}=(1;0;1)$ và mặt phẳng có $\\vec{n}=(0;1;1)$.",
+      "hint": "Áp dụng $\\sin\\varphi = \\frac{|\\vec{u}\\cdot\\vec{n}|}{|\\vec{u}|\\cdot|\\vec{n}|}$.",
+      "solution": "$\\sin\\varphi = \\frac{|1\\cdot 0 + 0\\cdot 1 + 1\\cdot 1|}{\\sqrt{2}\\cdot\\sqrt{2}} = \\frac{1}{2} \\Rightarrow \\varphi = 30^\\circ$."
     }
   },
   {
@@ -1963,7 +1963,7 @@
     "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Tổng kết bài học",
+      "title": "Tổng kết — Bài 16: Công thức tính góc trong không gian",
       "points": [
         "Nhớ phân biệt $\\sin$ cho góc giữa đường thẳng và mặt phẳng.",
         "Luôn dùng trị tuyệt đối để kết quả góc không tù."
@@ -1978,9 +1978,9 @@
     "orderIndex": 10,
     "status": "published",
     "payload": {
-      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
-      "url": "https://moet.gov.vn",
-      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
+      "label": "Thông tư 32/2018/TT-BGDĐT (GDPT 2018) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn/tintuc/Pages/tin-tong-hop.aspx?ItemID=5756",
+      "citation": "SRC-GDPT2018-TOAN / SRC-KNTT-TOAN12"
     }
   },
   {
@@ -1991,7 +1991,7 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 17: Phương trình mặt cầu\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
+      "content": "### 1. Mục tiêu học tập — Bài 17: Phương trình mặt cầu\n\n- Hiểu rõ bản chất toán học, định nghĩa và điều kiện áp dụng của **Bài 17: Phương trình mặt cầu**.\n- Thành thạo bài tập 3 mức độ (Nhận biết, Thông hiểu, Vận dụng) theo chuẩn GDPT 2018.\n- Nhận diện và phòng tránh sai lầm đặc trưng: Quên chia $-2$ hệ số của $x, y, z$ khi tìm tâm mặt cầu từ dạng khai triển $x^2+y^2+z^2-2ax-2by-2cz+d=0$, hoặc quên kiểm tra điều kiện $a^2+b^2+c^2-d > 0$."
     }
   },
   {
@@ -2026,7 +2026,7 @@
     "orderIndex": 4,
     "status": "published",
     "payload": {
-      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 17: Phương trình mặt cầu.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+      "content": "### 4. Phương pháp giải nhanh & Điều kiện áp dụng — Bài 17: Phương trình mặt cầu\n\n- **Nhận biết:** Đọc trực tiếp từ định nghĩa/công thức trong mục 3.\n- **Thông hiểu:** Kiểm tra điều kiện xác định, xử lý dấu và biến đổi đại số chính xác.\n- **Vận dụng:** Mô hình hóa bài toán thực tế và kiểm chứng lại kết quả."
     }
   },
   {
@@ -2051,8 +2051,8 @@
     "status": "published",
     "payload": {
       "title": "Ví dụ vận dụng — Bài 17: Phương trình mặt cầu",
-      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
-      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+      "prompt": "Tìm tâm và bán kính mặt cầu $(S): x^2 + y^2 + z^2 - 4x + 2y - 6z + 5 = 0$.",
+      "solution": "Tâm $I(2; -1; 3)$. Bán kính $R = \\sqrt{2^2 + (-1)^2 + 3^2 - 5} = \\sqrt{9} = 3$."
     }
   },
   {
@@ -2063,7 +2063,7 @@
     "orderIndex": 7,
     "status": "published",
     "payload": {
-      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+      "content": "### 7. Sai lầm đặc trưng cần tránh\n\nQuên chia $-2$ hệ số của $x, y, z$ khi tìm tâm mặt cầu từ dạng khai triển $x^2+y^2+z^2-2ax-2by-2cz+d=0$, hoặc quên kiểm tra điều kiện $a^2+b^2+c^2-d > 0$."
     }
   },
   {
@@ -2074,9 +2074,9 @@
     "orderIndex": 8,
     "status": "published",
     "payload": {
-      "prompt": "Bài tập tự luyện (Bài 17: Phương trình mặt cầu): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
-      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
-      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+      "prompt": "Viết phương trình mặt cầu tâm $I(1; -2; 0)$ và đi qua $A(4; 2; 0)$.",
+      "hint": "Tính bán kính $R = IA$.",
+      "solution": "$R = \\sqrt{(4-1)^2 + (2+2)^2 + 0} = 5$. Phương trình: $(x-1)^2 + (y+2)^2 + z^2 = 25$."
     }
   },
   {
@@ -2087,7 +2087,7 @@
     "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Tổng kết bài học",
+      "title": "Tổng kết — Bài 17: Phương trình mặt cầu",
       "points": [
         "Kiểm tra điều kiện $a^2+b^2+c^2-d > 0$ trước khi kết luận là mặt cầu.",
         "Mặt cầu tiếp xúc mặt phẳng $(P)$ khi $d(I,(P)) = R$."
@@ -2102,9 +2102,9 @@
     "orderIndex": 10,
     "status": "published",
     "payload": {
-      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
-      "url": "https://moet.gov.vn",
-      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
+      "label": "Thông tư 32/2018/TT-BGDĐT (GDPT 2018) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn/tintuc/Pages/tin-tong-hop.aspx?ItemID=5756",
+      "citation": "SRC-GDPT2018-TOAN / SRC-KNTT-TOAN12"
     }
   },
   {
@@ -2115,7 +2115,7 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 18: Xác suất có điều kiện\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
+      "content": "### 1. Mục tiêu học tập — Bài 18: Xác suất có điều kiện\n\n- Hiểu rõ bản chất toán học, định nghĩa và điều kiện áp dụng của **Bài 18: Xác suất có điều kiện**.\n- Thành thạo bài tập 3 mức độ (Nhận biết, Thông hiểu, Vận dụng) theo chuẩn GDPT 2018.\n- Nhận diện và phòng tránh sai lầm đặc trưng: Nhầm lẫn giữa $P(A|B) = \\frac{P(A\\cap B)}{P(B)}$ và $P(B|A) = \\frac{P(A\\cap B)}{P(A)}$, dẫn đến chia nhầm mẫu số."
     }
   },
   {
@@ -2150,7 +2150,7 @@
     "orderIndex": 4,
     "status": "published",
     "payload": {
-      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 18: Xác suất có điều kiện.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+      "content": "### 4. Phương pháp giải nhanh & Điều kiện áp dụng — Bài 18: Xác suất có điều kiện\n\n- **Nhận biết:** Đọc trực tiếp từ định nghĩa/công thức trong mục 3.\n- **Thông hiểu:** Kiểm tra điều kiện xác định, xử lý dấu và biến đổi đại số chính xác.\n- **Vận dụng:** Mô hình hóa bài toán thực tế và kiểm chứng lại kết quả."
     }
   },
   {
@@ -2175,8 +2175,8 @@
     "status": "published",
     "payload": {
       "title": "Ví dụ vận dụng — Bài 18: Xác suất có điều kiện",
-      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
-      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+      "prompt": "Cho $P(A) = 0{,}4$, $P(B) = 0{,}5$ và $P(A\\cap B) = 0{,}2$. Tính xác suất có điều kiện $P(A|B)$.",
+      "solution": "Áp dụng công thức: $P(A|B) = \\frac{P(A\\cap B)}{P(B)} = \\frac{0{,}2}{0{,}5} = 0{,}4$."
     }
   },
   {
@@ -2187,7 +2187,7 @@
     "orderIndex": 7,
     "status": "published",
     "payload": {
-      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+      "content": "### 7. Sai lầm đặc trưng cần tránh\n\nNhầm lẫn giữa $P(A|B) = \\frac{P(A\\cap B)}{P(B)}$ và $P(B|A) = \\frac{P(A\\cap B)}{P(A)}$, dẫn đến chia nhầm mẫu số."
     }
   },
   {
@@ -2198,9 +2198,9 @@
     "orderIndex": 8,
     "status": "published",
     "payload": {
-      "prompt": "Bài tập tự luyện (Bài 18: Xác suất có điều kiện): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
-      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
-      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+      "prompt": "Một hộp có 6 bi đỏ và 4 bi xanh. Lấy lần lượt 2 bi không hoàn lại. Tính xác suất bi thứ hai đỏ biết bi thứ nhất đã là đỏ.",
+      "hint": "Sau khi lấy 1 bi đỏ, trong hộp còn 5 bi đỏ trên tổng số 9 bi.",
+      "solution": "Xác suất cần tìm là $\\frac{5}{9}$."
     }
   },
   {
@@ -2211,7 +2211,7 @@
     "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Tổng kết bài học",
+      "title": "Tổng kết — Bài 18: Xác suất có điều kiện",
       "points": [
         "$A$ và $B$ độc lập khi và chỉ khi $P(A\\mid B) = P(A)$.",
         "Có thể thu gọn không gian mẫu về riêng biến cố $B$."
@@ -2226,9 +2226,9 @@
     "orderIndex": 10,
     "status": "published",
     "payload": {
-      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
-      "url": "https://moet.gov.vn",
-      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
+      "label": "Thông tư 32/2018/TT-BGDĐT (GDPT 2018) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn/tintuc/Pages/tin-tong-hop.aspx?ItemID=5756",
+      "citation": "SRC-GDPT2018-TOAN / SRC-KNTT-TOAN12"
     }
   },
   {
@@ -2239,7 +2239,7 @@
     "orderIndex": 1,
     "status": "published",
     "payload": {
-      "content": "### 1. Mục tiêu học tập & Kiến thức chuẩn bị — Bài 19: Công thức xác suất toàn phần và công thức Bayes\n\n- Nắm vững định nghĩa, điều kiện áp dụng và ý nghĩa hình học/thực tiễn.\n- Vận dụng thành thạo công thức trọng tâm vào 3 mức độ: Nhận biết, Thông hiểu, Vận dụng.\n- Tự kiểm tra biến đổi đại số và tránh các sai lầm thường gặp trong đề thi."
+      "content": "### 1. Mục tiêu học tập — Bài 19: Công thức xác suất toàn phần và công thức Bayes\n\n- Hiểu rõ bản chất toán học, định nghĩa và điều kiện áp dụng của **Bài 19: Công thức xác suất toàn phần và công thức Bayes**.\n- Thành thạo bài tập 3 mức độ (Nhận biết, Thông hiểu, Vận dụng) theo chuẩn GDPT 2018.\n- Nhận diện và phòng tránh sai lầm đặc trưng: Xác định sai hệ biến cố đầy đủ $(B_1, B_2)$ hoặc nhầm $P(A|B_i)$ với $P(B_i|A)$ khi áp dụng công thức Bayes."
     }
   },
   {
@@ -2274,7 +2274,7 @@
     "orderIndex": 4,
     "status": "published",
     "payload": {
-      "content": "### 4. Dạng bài thường gặp & Phương pháp giải\n\n- **Dạng 1 (Nhận biết):** Áp dụng trực tiếp định nghĩa và công thức của Bài 19: Công thức xác suất toàn phần và công thức Bayes.\n- **Dạng 2 (Thông hiểu):** Kiểm tra điều kiện xác định, xử lý tham số hoặc biến đổi trung gian.\n- **Dạng 3 (Vận dụng):** Kết hợp dữ kiện thực tiễn, bảng biến thiên hoặc nhiều bước suy luận."
+      "content": "### 4. Phương pháp giải nhanh & Điều kiện áp dụng — Bài 19: Công thức xác suất toàn phần và công thức Bayes\n\n- **Nhận biết:** Đọc trực tiếp từ định nghĩa/công thức trong mục 3.\n- **Thông hiểu:** Kiểm tra điều kiện xác định, xử lý dấu và biến đổi đại số chính xác.\n- **Vận dụng:** Mô hình hóa bài toán thực tế và kiểm chứng lại kết quả."
     }
   },
   {
@@ -2299,8 +2299,8 @@
     "status": "published",
     "payload": {
       "title": "Ví dụ vận dụng — Bài 19: Công thức xác suất toàn phần và công thức Bayes",
-      "prompt": "Vận dụng quy trình giải chuẩn để kiểm tra điều kiện và kết luận bài toán:",
-      "solution": "Bước 1: Xác định tập xác định / điều kiện biên. Bước 2: Áp dụng công thức trọng tâm và rút gọn. Bước 3: Đối chiếu điều kiện trước khi kết luận đáp số."
+      "prompt": "Một nhà máy có hai phân xưởng I và II sản xuất lần lượt 60% và 40% sản phẩm. Tỉ lệ phế phẩm tương ứng là 2% và 5%. Tính xác suất chọn ngẫu nhiên 1 sản phẩm bị phế phẩm.",
+      "solution": "Theo công thức xác suất toàn phần: $P(A) = 0{,}6\\cdot 0{,}02 + 0{,}4\\cdot 0{,}05 = 0{,}012 + 0{,}020 = 0{,}032$."
     }
   },
   {
@@ -2311,7 +2311,7 @@
     "orderIndex": 7,
     "status": "published",
     "payload": {
-      "content": "### 7. Sai lầm thường gặp\n\n- Bỏ qua điều kiện xác định hoặc đầu mút đoạn $[a; b]$.\n- Nhầm dấu khi đổi biến, lấy tích có hướng hoặc áp dụng công thức góc."
+      "content": "### 7. Sai lầm đặc trưng cần tránh\n\nXác định sai hệ biến cố đầy đủ $(B_1, B_2)$ hoặc nhầm $P(A|B_i)$ với $P(B_i|A)$ khi áp dụng công thức Bayes."
     }
   },
   {
@@ -2322,9 +2322,9 @@
     "orderIndex": 8,
     "status": "published",
     "payload": {
-      "prompt": "Bài tập tự luyện (Bài 19: Công thức xác suất toàn phần và công thức Bayes): Hãy tóm tắt điều kiện áp dụng công thức trọng tâm và giải lại ví dụ mẫu với bộ số mới.",
-      "hint": "Kiểm tra kỹ điều kiện xác định và dấu đạo hàm/vectơ trước khi tính.",
-      "solution": "Đối chiếu đáp số bằng phép thế ngược hoặc kiểm tra giới hạn biên."
+      "prompt": "Với dữ kiện trên, nếu sản phẩm chọn ra là phế phẩm, tính xác suất nó do phân xưởng II sản xuất.",
+      "hint": "Áp dụng công thức Bayes: $P(B_2|A) = \\frac{P(B_2)P(A|B_2)}{P(A)}$.",
+      "solution": "$P(B_2|A) = \\frac{0{,}020}{0{,}032} = 0{,}625$."
     }
   },
   {
@@ -2335,7 +2335,7 @@
     "orderIndex": 9,
     "status": "published",
     "payload": {
-      "title": "Tổng kết bài học",
+      "title": "Tổng kết — Bài 19: Công thức xác suất toàn phần và công thức Bayes",
       "points": [
         "Vẽ sơ đồ hình cây hai tầng để tránh nhầm nhánh xác suất.",
         "Tổng các xác suất nhánh xuất phát từ cùng một đỉnh luôn bằng $1$."
@@ -2350,9 +2350,9 @@
     "orderIndex": 10,
     "status": "published",
     "payload": {
-      "label": "Chương trình GDPT 2018 môn Toán (Thông tư 32/2018/TT-BGDĐT) & Khung Toán 12 KNTT",
-      "url": "https://moet.gov.vn",
-      "citation": "SRC-GDPT2018 / SRC-STUDYAI-ORIG-2026"
+      "label": "Thông tư 32/2018/TT-BGDĐT (GDPT 2018) & Khung Toán 12 KNTT",
+      "url": "https://moet.gov.vn/tintuc/Pages/tin-tong-hop.aspx?ItemID=5756",
+      "citation": "SRC-GDPT2018-TOAN / SRC-KNTT-TOAN12"
     }
   }
 ]

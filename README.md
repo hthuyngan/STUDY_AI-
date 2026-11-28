@@ -65,6 +65,15 @@ STUDY_AI- là nền tảng gia sư & trợ lý học tập thông minh sử dụ
 
 ## 🚀 Hướng dẫn Cài đặt & Chạy cục bộ trên Windows
 
+### Khởi chạy nhanh thống nhất (Khuyến nghị)
+Từ thư mục gốc `D:\TN-math12-content` (nhánh `feature/math12-integrated-release`):
+```powershell
+# Chế độ QA/Demo cô lập (tự tạo StudyAIDb_Clean_{GUID}, không chạm StudyAIDb)
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\start_studyai.ps1 -Mode QA
+```
+- **Frontend QA:** `http://127.0.0.1:5175` | **Backend QA:** `http://127.0.0.1:8012` (`/health`)
+- **Chế độ Development (Persistent `StudyAIDb`):** yêu cầu `backend\.env` hợp lệ, chạy `-Mode Development` (không tự migrate/seed).
+
 ### Yêu cầu hệ thống
 - Windows 10/11
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
