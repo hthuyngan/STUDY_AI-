@@ -280,6 +280,46 @@ public class Math12UserWorkspaceTests : IClassFixture<StudyAIApiFixture>
             Assert.Equal(HttpStatusCode.Conflict, mutateResp.StatusCode);
         }
 
+        // SW-003: Partial submission (1 correct out of 2 published questions) must score 1/2 (failed), not 1/1
+        var authQ2Id = $"q-r07-2-{Guid.NewGuid():N}";
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            var anyLesson = await db.ContentLessons.FirstAsync();
+            db.ContentQuestions.Add(new ContentQuestion
+            {
+                Id = authQ2Id,
+                AssessmentId = authAsmId,
+                LessonId = authLesId,
+                SubjectId = "math-12",
+                ChapterId = anyLesson.ChapterId,
+                Prompt = "Nguyên hàm của 2x là gì?",
+                OptionsJson = "[\"x^2\", \"2\", \"x\"]",
+                CorrectAnswer = "x^2",
+                Status = "published"
+            });
+            await db.SaveChangesAsync();
+        }
+        var partialPayload = new
+        {
+            assessmentId = authAsmId,
+            lessonId = authLesId,
+            subjectId = "math-12",
+            completionStatus = "completed",
+            responses = new Dictionary<string, object>
+            {
+                [authQId] = new { questionId = authQId, selectedOptionIds = new[] { "2x" } }
+            }
+        };
+        var partialResp = await _client.PostAsync("/api/v1/me/assessment-attempts", new StringContent(JsonSerializer.Serialize(partialPayload), Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.Created, partialResp.StatusCode);
+        using (var pDoc = JsonDocument.Parse(await partialResp.Content.ReadAsStringAsync()))
+        {
+            Assert.Equal(1.0, pDoc.RootElement.GetProperty("scoreRaw").GetDouble());
+            Assert.Equal(2.0, pDoc.RootElement.GetProperty("scoreMax").GetDouble());
+            Assert.Equal("failed", pDoc.RootElement.GetProperty("successStatus").GetString());
+        }
+
         // Invalid short join code returns 400 BadRequest
         var badJoin = await _client.PostAsync("/api/v1/learner/workspace/classrooms/join", new StringContent(
             JsonSerializer.Serialize(new JoinClassroomRequestDto { Code = "AB" }), Encoding.UTF8, "application/json"));

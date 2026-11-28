@@ -261,7 +261,7 @@ public class StudentAssessmentService : ILearnerAssessmentService
                     }
                 }
 
-                var totalQ = Math.Max(attempt.Responses.Count, 1);
+                var totalQ = Math.Max(scopeQuestions.Count, 1);
                 attempt.ScoreRaw = correctCount;
                 attempt.ScoreMin = 0.0;
                 attempt.ScoreMax = totalQ;

@@ -44,25 +44,34 @@ public class AiTutorService : IAiTutorService
             .ToArray();
         if (terms.Length == 0) return null;
 
-        // Filter published Math 12 materials and lessons first before ranking all eligible chunks (R07-05)
+        // Filter published Math 12 materials and lessons first (no null bypasses, R07-05 / AI-003)
         var publishedMatIds = (await _context.ContentMaterials.AsNoTracking()
-            .Where(m => m.Status == "published" && (m.ChapterCode == null || m.ChapterCode.StartsWith("M12-")))
+            .Where(m => m.Status == "published" && m.ChapterCode != null && m.ChapterCode.StartsWith("M12-"))
             .Select(m => m.Id)
             .ToListAsync(ct))
             .ToHashSet(StringComparer.Ordinal);
 
         var publishedLesIds = (await _context.ContentLessons.AsNoTracking()
             .Include(l => l.Chapter).ThenInclude(ch => ch!.Subject)
-            .Where(l => l.Status == "published" && (l.Chapter == null || l.Chapter.Subject == null || l.Chapter.Subject.Grade == "12"))
+            .Where(l => l.Status == "published" && l.Chapter != null && l.Chapter.Subject != null && l.Chapter.Subject.Grade == "12")
             .Select(l => l.Id)
             .ToListAsync(ct))
             .ToHashSet(StringComparer.Ordinal);
 
+        // SQL-side keyword filter + deterministic cap (AI-002) so memory stays bounded while >200 total chunks work
+        var term0 = terms[0];
+        var term1 = terms.Length > 1 ? terms[1] : term0;
+        var term2 = terms.Length > 2 ? terms[2] : term0;
         var eligibleChunks = await _context.AiKnowledgeChunks.AsNoTracking()
             .Include(c => c.Source)
             .Where(c => c.Source != null && c.Source.Status == "indexed" &&
                         ((c.Source.SourceType == "material" && publishedMatIds.Contains(c.Source.SourceRefId)) ||
-                         (c.Source.SourceType == "lesson" && publishedLesIds.Contains(c.Source.SourceRefId))))
+                         (c.Source.SourceType == "lesson" && publishedLesIds.Contains(c.Source.SourceRefId))) &&
+                        (c.Title.ToLower().Contains(term0) || c.ContentText.ToLower().Contains(term0) ||
+                         c.Title.ToLower().Contains(term1) || c.ContentText.ToLower().Contains(term1) ||
+                         c.Title.ToLower().Contains(term2) || c.ContentText.ToLower().Contains(term2)))
+            .OrderBy(c => c.Id)
+            .Take(100)
             .ToListAsync(ct);
 
         if (eligibleChunks.Count == 0) return null;

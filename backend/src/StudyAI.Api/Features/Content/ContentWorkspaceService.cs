@@ -755,7 +755,22 @@ public class ContentWorkspaceService : IContentWorkspaceService
                     using var msIn = new MemoryStream(bytes, rawIdx, rawLen);
                     using var z = new ZLibStream(msIn, CompressionMode.Decompress);
                     using var msOut = new MemoryStream();
-                    z.CopyTo(msOut);
+                    const int maxDecompressedBytes = 1024 * 1024; // 1 MB cap against decompression bombs (AI-004)
+                    var buffer = new byte[8192];
+                    int totalRead = 0;
+                    int read;
+                    bool overflowed = false;
+                    while ((read = z.Read(buffer, 0, buffer.Length)) > 0)
+                    {
+                        totalRead += read;
+                        if (totalRead > maxDecompressedBytes)
+                        {
+                            overflowed = true;
+                            break;
+                        }
+                        msOut.Write(buffer, 0, read);
+                    }
+                    if (overflowed) continue;
                     contentStream = Encoding.Latin1.GetString(msOut.ToArray());
                 }
                 catch
