@@ -38,10 +38,10 @@
     "ignoreUserConfig": true,
     "disablePlugins": true,
     "reasoning": {
-      "planning": "medium",
-      "initialReview": "medium",
-      "simpleReReview": "low",
-      "complexSecurityReview": "medium"
+      "planning": "high",
+      "initialReview": "high",
+      "simpleReReview": "high",
+      "complexSecurityReview": "high"
     },
     "timeoutSeconds": 1200,
     "maxAutomaticReviewRounds": 3,
@@ -49,7 +49,10 @@
   },
   "taskRouting": {
     "defaultRoute": "STANDARD",
-    "supportedRoutes": ["ECO", "STANDARD"],
+    "supportedRoutes": [
+      "ECO",
+      "STANDARD"
+    ],
     "ECO": {
       "agents": "Antigravity Hydrogen Medium",
       "requirePlan": false,
