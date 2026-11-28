@@ -34,7 +34,7 @@ export function Card({
             {icon && <span className="card-header-icon" aria-hidden>{icon}</span>}
             <div className="card-title-group">
               {title && <h2 className="card-title">{title}</h2>}
-              {subtitle && <p className="card-subtitle">{subtitle}</p>}
+              {subtitle && <div className="card-subtitle">{subtitle}</div>}
             </div>
           </div>
           {action && <div className="card-header-action">{action}</div>}

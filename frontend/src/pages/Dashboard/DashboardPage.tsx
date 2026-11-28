@@ -45,7 +45,7 @@ export function DashboardPage() {
           </div>
           <h1 className="guest-hero-title">Chào mừng bạn đến với STUDY_AI</h1>
           <p className="guest-hero-desc">
-            Nền tảng học tập cá nhân hóa, luyện thi Toán 10, 11 và 12 chuẩn ma trận Bộ Giáo dục & Đào tạo.
+            Nền tảng học tập cá nhân hóa, luyện thi Toán lớp 12 chuẩn ma trận Bộ Giáo dục &amp; Đào tạo.
             Đăng nhập để theo dõi lộ trình năng lực thực tế, nhận diện lỗ hổng kiến thức và luyện tập cùng AI Tutor.
           </p>
           <div className="guest-hero-actions">
