@@ -228,5 +228,17 @@ public class Math12TeacherWorkspaceTests : IClassFixture<StudyAIApiFixture>
         var tUpDto = JsonSerializer.Deserialize<ClassroomMaterialDto>(await tUp.Content.ReadAsStringAsync(), JsonOpts)!;
         Assert.False(string.IsNullOrWhiteSpace(tUpDto.FileHashSha256));
         Assert.Equal(HttpStatusCode.OK, (await _client.GetAsync($"/api/v1/teacher/workspace/materials/{tUpDto.Id}/download")).StatusCode);
+
+        // TW-001: Enrolled learner can download unrevoked classroom material (200), outsider gets 403, learner still gets 403 on teacher-only routes
+        var (_, enrolledLearnerToken) = await CreateUserWithRoleAsync("tw_learner_in", "learner");
+        var (_, outsiderLearnerToken) = await CreateUserWithRoleAsync("tw_learner_out", "learner");
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", enrolledLearnerToken);
+        var clsCode = await _factory.Services.CreateScope().ServiceProvider.GetRequiredService<StudyAIDbContext>().Classrooms.Where(c => c.Id == classId).Select(c => c.Code).FirstAsync();
+        Assert.Equal(HttpStatusCode.OK, (await _client.PostAsync("/api/v1/learner/workspace/classrooms/join", new StringContent(JsonSerializer.Serialize(new JoinClassroomRequestDto { Code = clsCode! }), Encoding.UTF8, "application/json"))).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await _client.GetAsync($"/api/v1/teacher/workspace/materials/{tUpDto.Id}/download")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await _client.GetAsync("/api/v1/teacher/workspace/exams")).StatusCode);
+
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", outsiderLearnerToken);
+        Assert.Equal(HttpStatusCode.Forbidden, (await _client.GetAsync($"/api/v1/teacher/workspace/materials/{tUpDto.Id}/download")).StatusCode);
     }
 }

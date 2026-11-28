@@ -242,5 +242,28 @@ public class Math12ContentWorkspaceTests : IClassFixture<StudyAIApiFixture>
         var srcA = JsonSerializer.Deserialize<AiKnowledgeSourceDto>(await syncA.Content.ReadAsStringAsync(), JsonOpts)!;
         var srcB = JsonSerializer.Deserialize<AiKnowledgeSourceDto>(await syncB.Content.ReadAsStringAsync(), JsonOpts)!;
         Assert.Equal(srcA.Id, srcB.Id);
+
+        // R07-04: PDF with Tj text stream extracts text; encrypted PDF does not fabricate extracted text
+        using var pdfTextForm = new MultipartFormDataContent();
+        pdfTextForm.Add(new StringContent("PDF Có Text"), "title");
+        pdfTextForm.Add(new StringContent("pdf"), "category");
+        var pdfTextBytes = Encoding.Latin1.GetBytes("%PDF-1.4\n1 0 obj\n<< /Length 25 >>\nstream\nBT (Tich phan Toan 12) Tj ET\nendstream\nendobj\n%%EOF");
+        var pdfFc = new ByteArrayContent(pdfTextBytes);
+        pdfFc.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+        pdfTextForm.Add(pdfFc, "file", "toan12-text.pdf");
+        var pdfUp = await _client.PostAsync("/api/v1/content/workspace/materials/upload", pdfTextForm);
+        Assert.Equal(HttpStatusCode.Created, pdfUp.StatusCode);
+        Assert.True(JsonSerializer.Deserialize<ContentMaterialDto>(await pdfUp.Content.ReadAsStringAsync(), JsonOpts)!.HasExtractedText);
+
+        using var pdfEncForm = new MultipartFormDataContent();
+        pdfEncForm.Add(new StringContent("PDF Mã Hóa"), "title");
+        pdfEncForm.Add(new StringContent("pdf"), "category");
+        var pdfEncBytes = Encoding.Latin1.GetBytes("%PDF-1.4\n1 0 obj\n<< /Encrypt 2 0 R >>\nstream\nBT (Secret) Tj ET\nendstream\nendobj\n%%EOF");
+        var pdfEncFc = new ByteArrayContent(pdfEncBytes);
+        pdfEncFc.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+        pdfEncForm.Add(pdfEncFc, "file", "toan12-enc.pdf");
+        var pdfEncUp = await _client.PostAsync("/api/v1/content/workspace/materials/upload", pdfEncForm);
+        Assert.Equal(HttpStatusCode.Created, pdfEncUp.StatusCode);
+        Assert.False(JsonSerializer.Deserialize<ContentMaterialDto>(await pdfEncUp.Content.ReadAsStringAsync(), JsonOpts)!.HasExtractedText);
     }
 }

@@ -33,11 +33,16 @@ public class StudentWorkspaceService : IStudentWorkspaceService
             .Distinct()
             .ToList();
 
-        // Respect TeacherExam result-release policy: if a TeacherExam exists for the assessment and PublishResults == false, mask answers
-        var unreleasedAssessmentIds = attemptAssessmentIds.Count == 0
+        // Respect TeacherExam result-release policy scoped to classrooms this learner is enrolled in (R07-02)
+        var enrolledClassIds = await _db.ClassroomStudents.AsNoTracking()
+            .Where(cs => cs.StudentId == userId)
+            .Select(cs => cs.ClassroomId)
+            .ToListAsync(ct);
+
+        var unreleasedAssessmentIds = (attemptAssessmentIds.Count == 0 || enrolledClassIds.Count == 0)
             ? new HashSet<string>()
             : (await _db.TeacherExams.AsNoTracking()
-                .Where(e => e.SourceAssessmentId != null && attemptAssessmentIds.Contains(e.SourceAssessmentId) && !e.PublishResults)
+                .Where(e => enrolledClassIds.Contains(e.ClassroomId) && e.SourceAssessmentId != null && attemptAssessmentIds.Contains(e.SourceAssessmentId) && !e.PublishResults)
                 .Select(e => e.SourceAssessmentId!)
                 .ToListAsync(ct))
                 .ToHashSet(StringComparer.Ordinal);
@@ -47,6 +52,17 @@ public class StudentWorkspaceService : IStudentWorkspaceService
             .Where(q => qIds.Contains(q.Id))
             .ToDictionaryAsync(q => q.Id, ct);
 
+        var chapterIds = questionsById.Values
+            .Select(q => q.ChapterId)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct()
+            .ToList();
+        var chaptersById = chapterIds.Count == 0
+            ? new Dictionary<string, string>()
+            : await _db.ContentChapters.AsNoTracking()
+                .Where(c => chapterIds.Contains(c.Id))
+                .ToDictionaryAsync(c => c.Id, c => c.Title, ct);
+
         return wrongResponses
             .GroupBy(r => r.QuestionId)
             .Select(g =>
@@ -55,6 +71,9 @@ public class StudentWorkspaceService : IStudentWorkspaceService
                 var isUnreleased = latest.Attempt != null && unreleasedAssessmentIds.Contains(latest.Attempt.AssessmentId);
                 questionsById.TryGetValue(latest.QuestionId, out var q);
                 var snap = TryReadQuestionSnapshot(latest.Attempt?.SuspendDataJson, latest.QuestionId);
+                string? chapterTitle = null;
+                if (q?.ChapterId != null && chaptersById.TryGetValue(q.ChapterId, out var resolvedTitle))
+                    chapterTitle = resolvedTitle;
                 return new StudentMistakeItemDto
                 {
                     ResponseId = latest.Id.ToString(),
@@ -63,7 +82,7 @@ public class StudentWorkspaceService : IStudentWorkspaceService
                     StudentAnswer = latest.SelectedOptionIdsJson,
                     CorrectAnswer = isUnreleased ? null : (snap?.CorrectAnswer ?? q?.CorrectAnswer),
                     Explanation = isUnreleased ? "Kết quả chưa được giáo viên công bố." : (snap?.Explanation ?? q?.Explanation),
-                    ChapterTitle = q?.ChapterId,
+                    ChapterTitle = chapterTitle,
                     WrongCount = g.Count(),
                     IsResolved = latest.IsMistakeResolved,
                     LastAttemptAt = (latest.Attempt?.StartedAt ?? DateTimeOffset.UtcNow).ToString("o")
@@ -80,6 +99,8 @@ public class StudentWorkspaceService : IStudentWorkspaceService
             .Include(r => r.Attempt)
             .FirstOrDefaultAsync(r => r.Id == responseId && r.Attempt != null && r.Attempt.UserId == userId, ct)
             ?? throw new NotFoundException("Không tìm thấy câu sai cần đánh dấu.");
+        if (response.Attempt?.CompletedAt == null || response.IsCorrect != false)
+            throw new ValidationException("ResponseId", "Chỉ được đánh dấu đã khắc phục cho câu trả lời sai trong bài đã nộp.");
         response.IsMistakeResolved = true;
         await _db.SaveChangesAsync(ct);
     }

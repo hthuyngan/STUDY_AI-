@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -262,7 +263,7 @@ public class ContentWorkspaceService : IContentWorkspaceService
         if (!AllowedMaterialCategories.Contains(normalizedCat))
             throw new ValidationException("Category", "Danh mục tài liệu không hợp lệ.");
 
-        var mime = (file.ContentType ?? "application/octet-stream").Trim().ToLowerInvariant();
+        var mime = (file.ContentType ?? "application/octet-stream").Split(';')[0].Trim().ToLowerInvariant();
         if (!AllowedMaterialMimes.Contains(mime))
             throw new ValidationException("MimeType", "Định dạng MIME không được hỗ trợ.");
 
@@ -721,15 +722,67 @@ public class ContentWorkspaceService : IContentWorkspaceService
         }
         if (mime == "application/pdf")
         {
-            var ascii = Encoding.Latin1.GetString(bytes);
-            var matches = Regex.Matches(ascii, @"\(([^\(\)\\]{3,200})\)");
-            if (matches.Count > 0)
-            {
-                var extracted = string.Join(" ", matches.Select(m => m.Groups[1].Value)).Trim();
-                return string.IsNullOrWhiteSpace(extracted) ? null : extracted;
-            }
+            return ExtractPdfTextBounded(bytes);
         }
         return null;
+    }
+
+    private static string? ExtractPdfTextBounded(byte[] bytes)
+    {
+        if (bytes.Length < 8 || bytes[0] != 0x25 || bytes[1] != 0x50 || bytes[2] != 0x44 || bytes[3] != 0x46)
+            return null;
+
+        var latin1 = Encoding.Latin1.GetString(bytes);
+        if (latin1.Contains("/Encrypt", StringComparison.Ordinal))
+            return null; // Encrypted PDFs cannot be extracted without decryption
+
+        var chunks = new List<string>();
+        // Inspect stream...endstream blocks, decompressing FlateDecode streams safely
+        var streamMatches = Regex.Matches(latin1, @"stream\r?\n(.*?)\r?\nendstream", RegexOptions.Singleline);
+        foreach (Match m in streamMatches)
+        {
+            var rawIdx = m.Groups[1].Index;
+            var rawLen = m.Groups[1].Length;
+            if (rawLen <= 0 || rawLen > 2 * 1024 * 1024) continue;
+
+            var headerStart = Math.Max(0, m.Index - 256);
+            var dictHeader = latin1.Substring(headerStart, m.Index - headerStart);
+            string contentStream;
+            if (dictHeader.Contains("/FlateDecode", StringComparison.Ordinal))
+            {
+                try
+                {
+                    using var msIn = new MemoryStream(bytes, rawIdx, rawLen);
+                    using var z = new ZLibStream(msIn, CompressionMode.Decompress);
+                    using var msOut = new MemoryStream();
+                    z.CopyTo(msOut);
+                    contentStream = Encoding.Latin1.GetString(msOut.ToArray());
+                }
+                catch
+                {
+                    continue;
+                }
+            }
+            else
+            {
+                contentStream = m.Groups[1].Value;
+            }
+
+            foreach (Match tj in Regex.Matches(contentStream, @"\(([^()\\]{2,200})\)\s*Tj"))
+            {
+                chunks.Add(tj.Groups[1].Value);
+            }
+            foreach (Match tjArr in Regex.Matches(contentStream, @"\[(.*?)\]\s*TJ", RegexOptions.Singleline))
+            {
+                foreach (Match inner in Regex.Matches(tjArr.Groups[1].Value, @"\(([^()\\]{1,200})\)"))
+                {
+                    chunks.Add(inner.Groups[1].Value);
+                }
+            }
+        }
+
+        var result = string.Join(" ", chunks).Trim();
+        return string.IsNullOrWhiteSpace(result) ? null : result;
     }
 
     private static void ValidateFileSignatureBytes(string mime, byte[] bytes)

@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using StudyAI.Common.Exceptions;
 using StudyAI.Data;
 using StudyAI.Features.AI;
@@ -17,6 +18,7 @@ public class TeacherWorkspaceService : ITeacherWorkspaceService
     private readonly ILlmProvider _llmProvider;
     private readonly IAiUsageService? _aiUsageService;
     private readonly IAuditWriter? _auditWriter;
+    private readonly IConfiguration? _configuration;
 
     private static readonly HashSet<string> AllowedExamStatuses = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -37,12 +39,14 @@ public class TeacherWorkspaceService : ITeacherWorkspaceService
         StudyAIDbContext db,
         ILlmProvider llmProvider,
         IAiUsageService? aiUsageService = null,
-        IAuditWriter? auditWriter = null)
+        IAuditWriter? auditWriter = null,
+        IConfiguration? configuration = null)
     {
         _db = db;
         _llmProvider = llmProvider;
         _aiUsageService = aiUsageService;
         _auditWriter = auditWriter;
+        _configuration = configuration;
     }
 
     private async Task<Classroom> VerifyOwnedClassroomAsync(string classroomId, string teacherUserId, bool isAdmin, CancellationToken ct)
@@ -151,6 +155,7 @@ public class TeacherWorkspaceService : ITeacherWorkspaceService
         entity.UpdatedAt = DateTimeOffset.UtcNow;
 
         // Integrate with canonical Assignment / Gradebook pipeline (idempotent deterministic ID prevents concurrent duplicate assignments)
+        Assignment? newlyAddedAssign = null;
         if (nextStatus == "published" && string.IsNullOrWhiteSpace(entity.LinkedAssignmentId))
         {
             var deterministicAssignId = $"assign-{entity.Id}";
@@ -158,7 +163,7 @@ public class TeacherWorkspaceService : ITeacherWorkspaceService
             var existingAssign = await _db.Assignments.FirstOrDefaultAsync(a => a.Id == deterministicAssignId, ct);
             if (existingAssign == null)
             {
-                existingAssign = new Assignment
+                newlyAddedAssign = new Assignment
                 {
                     Id = deterministicAssignId,
                     ClassroomId = entity.ClassroomId,
@@ -172,7 +177,8 @@ public class TeacherWorkspaceService : ITeacherWorkspaceService
                     CreatedAt = DateTimeOffset.UtcNow,
                     UpdatedAt = DateTimeOffset.UtcNow
                 };
-                _db.Assignments.Add(existingAssign);
+                _db.Assignments.Add(newlyAddedAssign);
+                existingAssign = newlyAddedAssign;
             }
             entity.LinkedAssignmentId = existingAssign.Id;
         }
@@ -186,7 +192,20 @@ public class TeacherWorkspaceService : ITeacherWorkspaceService
             }
         }
 
-        await _db.SaveChangesAsync(ct);
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException) when (newlyAddedAssign != null)
+        {
+            // Concurrent publish race: detach failed insert, re-query deterministic assignment and link
+            _db.Entry(newlyAddedAssign).State = EntityState.Detached;
+            var winner = await _db.Assignments.AsNoTracking()
+                .FirstOrDefaultAsync(a => a.Id == newlyAddedAssign.Id && a.ClassroomId == entity.ClassroomId, ct);
+            if (winner == null) throw;
+            entity.LinkedAssignmentId = winner.Id;
+            await _db.SaveChangesAsync(ct);
+        }
         return ToDto(entity);
     }
 
@@ -253,7 +272,7 @@ public class TeacherWorkspaceService : ITeacherWorkspaceService
         if (string.IsNullOrWhiteSpace(safeFileName) || safeFileName.Contains(".."))
             throw new ValidationException("FileName", "Tên tệp không hợp lệ.");
 
-        var mime = (file.ContentType ?? "application/octet-stream").Trim().ToLowerInvariant();
+        var mime = (file.ContentType ?? "application/octet-stream").Split(';')[0].Trim().ToLowerInvariant();
         if (!AllowedMaterialMimes.Contains(mime))
             throw new ValidationException("MimeType", "Định dạng MIME không được hỗ trợ.");
 
@@ -461,11 +480,12 @@ public class TeacherWorkspaceService : ITeacherWorkspaceService
         var studentCount = await _db.ClassroomStudents.AsNoTracking().CountAsync(cs => cs.ClassroomId == cls.Id, ct);
         var assignmentCount = await _db.Assignments.AsNoTracking().CountAsync(a => a.ClassroomId == cls.Id, ct);
 
+        var dailyQuota = _configuration?.GetValue<int?>("Ai:TeacherDailyQuota") ?? 50;
         if (_aiUsageService != null)
         {
             var stats = await _aiUsageService.GetUsageStatsAsync(teacherUserId, DateTimeOffset.UtcNow.Date, null, ct);
-            if (stats.TotalRequests >= 50)
-                throw new ValidationException("Quota", "Bạn đã vượt quá hạn mức sử dụng AI Trợ giảng trong ngày (50 lượt/ngày).");
+            if (stats.TotalRequests >= dailyQuota)
+                throw new ValidationException("Quota", $"Bạn đã vượt quá hạn mức sử dụng AI Trợ giảng trong ngày ({dailyQuota} lượt/ngày).");
         }
 
         if (!_llmProvider.IsConfigured || _llmProvider is FakeLlmProvider)

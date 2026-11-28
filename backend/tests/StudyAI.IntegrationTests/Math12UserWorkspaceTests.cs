@@ -106,12 +106,15 @@ public class Math12UserWorkspaceTests : IClassFixture<StudyAIApiFixture>
         using (var scope = _factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            var seedSubjId = $"subj-{Guid.NewGuid():N}";
+            var seedChapId = $"chap-{Guid.NewGuid():N}";
+            var seedLessonId = $"les-{Guid.NewGuid():N}";
             db.ContentQuestions.AddRange(
                 new ContentQuestion
                 {
                     Id = unreleasedQuestionId,
                     SubjectId = "math-12",
-                    ChapterId = "M12-C1",
+                    ChapterId = seedChapId,
                     Prompt = "Câu hỏi chưa công bố đáp án",
                     CorrectAnswer = "C",
                     Explanation = "Giải thích bí mật"
@@ -120,14 +123,11 @@ public class Math12UserWorkspaceTests : IClassFixture<StudyAIApiFixture>
                 {
                     Id = submittedQuestionId,
                     SubjectId = "math-12",
-                    ChapterId = "M12-C1",
+                    ChapterId = seedChapId,
                     Prompt = "Câu hỏi đã công bố đáp án",
                     CorrectAnswer = "D",
                     Explanation = "Giải thích công khai"
                 });
-            var seedSubjId = $"subj-{Guid.NewGuid():N}";
-            var seedChapId = $"chap-{Guid.NewGuid():N}";
-            var seedLessonId = $"les-{Guid.NewGuid():N}";
             db.ContentSubjects.Add(new ContentSubject { Id = seedSubjId, Code = $"MATH12-{seedSubjId[..6]}", Name = "Toán 12", Grade = "12" });
             db.ContentChapters.Add(new ContentChapter { Id = seedChapId, SubjectId = seedSubjId, Title = "Chương 1", OrderIndex = 1 });
             db.ContentLessons.Add(new ContentLesson { Id = seedLessonId, ChapterId = seedChapId, AuthorId = student1Id, Title = "Bài 1", Status = "published" });
@@ -217,12 +217,68 @@ public class Math12UserWorkspaceTests : IClassFixture<StudyAIApiFixture>
         Assert.Equal("D", releasedItem.CorrectAnswer);
         Assert.False(releasedItem.IsResolved);
 
+        // SW-002: ChapterTitle must be human-readable ContentChapter.Title, not opaque ChapterId
+        Assert.Equal("Chương 1", releasedItem.ChapterTitle);
+
         // MYNOTES-001: Resolve mistake persists across reload
         var resolveResp = await _client.PatchAsync($"/api/v1/learner/workspace/mistakes/{releasedItem.ResponseId}/resolve", new StringContent("{}", Encoding.UTF8, "application/json"));
         Assert.Equal(HttpStatusCode.NoContent, resolveResp.StatusCode);
         var mistakesAfter = JsonSerializer.Deserialize<List<StudentMistakeItemDto>>(
             await (await _client.GetAsync("/api/v1/learner/workspace/mistakes")).Content.ReadAsStringAsync(), JsonOpts)!;
         Assert.True(Assert.Single(mistakesAfter, m => m.QuestionId == submittedQuestionId).IsResolved);
+
+        // R07-01: Server-side assessment authority ignores tampered ScoreRaw/IsCorrect/SuccessStatus and enforces immutability
+        string authQId;
+        string authLesId;
+        string authAsmId;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<StudyAIDbContext>();
+            var anyLesson = await db.ContentLessons.FirstAsync();
+            authLesId = anyLesson.Id;
+            authAsmId = $"asm-r07-{Guid.NewGuid():N}";
+            authQId = $"q-r07-{Guid.NewGuid():N}";
+            db.ContentAssessments.Add(new ContentAssessment { Id = authAsmId, LessonId = authLesId, Title = "Đề R07", PassScore = 80, Status = "published" });
+            db.ContentQuestions.Add(new ContentQuestion
+            {
+                Id = authQId,
+                AssessmentId = authAsmId,
+                LessonId = authLesId,
+                SubjectId = "math-12",
+                ChapterId = anyLesson.ChapterId,
+                Prompt = "Đạo hàm của x^2 là gì?",
+                OptionsJson = "[\"2x\", \"x\", \"2\", \"x^2\"]",
+                CorrectAnswer = "2x",
+                Status = "published"
+            });
+            await db.SaveChangesAsync();
+        }
+        var tamperedPayload = new
+        {
+            assessmentId = authAsmId,
+            lessonId = authLesId,
+            subjectId = "math-12",
+            completionStatus = "completed",
+            successStatus = "passed",
+            scoreRaw = 100.0,
+            scoreScaled = 1.0,
+            responses = new Dictionary<string, object>
+            {
+                [authQId] = new { questionId = authQId, selectedOptionIds = new[] { "x" }, isCorrect = true }
+            }
+        };
+        var attResp = await _client.PostAsync("/api/v1/me/assessment-attempts", new StringContent(JsonSerializer.Serialize(tamperedPayload), Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.Created, attResp.StatusCode);
+        using (var attDoc = JsonDocument.Parse(await attResp.Content.ReadAsStringAsync()))
+        {
+            Assert.Equal(0.0, attDoc.RootElement.GetProperty("scoreRaw").GetDouble());
+            Assert.Equal("failed", attDoc.RootElement.GetProperty("successStatus").GetString());
+            Assert.False(attDoc.RootElement.GetProperty("responses").GetProperty(authQId).GetProperty("isCorrect").GetBoolean());
+            var attId = attDoc.RootElement.GetProperty("id").GetString();
+            // Completed attempt is immutable -> 409 Conflict
+            var mutateResp = await _client.PutAsync($"/api/v1/me/assessment-attempts/{attId}", new StringContent(JsonSerializer.Serialize(tamperedPayload), Encoding.UTF8, "application/json"));
+            Assert.Equal(HttpStatusCode.Conflict, mutateResp.StatusCode);
+        }
 
         // Invalid short join code returns 400 BadRequest
         var badJoin = await _client.PostAsync("/api/v1/learner/workspace/classrooms/join", new StringContent(
