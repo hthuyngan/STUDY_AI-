@@ -184,8 +184,10 @@ try {
     $immutableContextBlock = ""
     if ($ContextPaths.Count -gt 0) {
         $ctxSb = New-Object System.Text.StringBuilder
-        $maxCtxBudget = [int]$config.tokenOptimization.maxTotalContextChars
-        if ($maxCtxBudget -le 0) { $maxCtxBudget = 240000 }
+        $maxCtxBudget = 240000
+        if ($config.PSObject.Properties['reviewOrchestrator'] -and $config.reviewOrchestrator.PSObject.Properties['maxTotalContextChars']) {
+            $maxCtxBudget = [int]$config.reviewOrchestrator.maxTotalContextChars
+        }
         $perSessionCap = [Math]::Min($maxCtxBudget, 180000)
         foreach ($cp in $ContextPaths) {
             if ([string]::IsNullOrWhiteSpace($cp)) { continue }
